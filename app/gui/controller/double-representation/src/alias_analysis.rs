@@ -245,8 +245,6 @@ impl AliasAnalyzer {
             // new scopes or different context. We skip the keywords ("if" in "if-then-else" is not
             // an identifier) and process the matched subtrees as usual.
             self.process_given_subtrees(macro_match.shape(), macro_match.iter_pat_match_subcrumbs())
-        } else if let Ok(ambiguous) = ast::known::Ambiguous::try_from(ast) {
-            self.process_given_subtrees(ambiguous.shape(), ambiguous.iter_pat_match_subcrumbs())
         } else if self.is_in_pattern() {
             // We are in the pattern (be it a lambda's or assignment's left side). Three options:
             // 1) This is a destructuring pattern match using infix syntax, like `head,tail`.

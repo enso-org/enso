@@ -3,7 +3,6 @@
 
 use crate::prelude::*;
 
-use crate::crumbs::AmbiguousCrumb;
 use crate::crumbs::Located;
 use crate::crumbs::MatchCrumb;
 use crate::known;
@@ -295,20 +294,5 @@ impl crate::Match<Ast> {
                 _ => true,
             }
         })
-    }
-}
-
-
-
-// =======================
-// === Ambiguous Utils ===
-// =======================
-
-impl crate::Ambiguous<Ast> {
-    /// Iterates matched ASTs. Skips segment heads ("keywords").
-    /// For example, for `(a)` it iterates only over `a`, skkipping segment heads `(` and `)`.
-    pub fn iter_pat_match_subcrumbs(&self) -> impl Iterator<Item = AmbiguousCrumb> + '_ {
-        self.iter_subcrumbs()
-            .filter(|crumb| crumb.field != crate::crumbs::AmbiguousSegmentCrumb::Head)
     }
 }

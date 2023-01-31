@@ -455,20 +455,6 @@ impl<'de> Deserialize<'de> for Ast {
 #[ast(flat)]
 #[derive(HasTokens)]
 pub enum Shape<T> {
-    Unrecognized {
-        str: String,
-    },
-    Unexpected {
-        msg:    String,
-        stream: Vec<Shifted<T>>,
-    },
-    InvalidQuote {
-        quote: Builder,
-    },
-    InlineBlock {
-        quote: Builder,
-    },
-
     // === Identifiers ===
     Blank {},
     Var {
@@ -486,10 +472,6 @@ pub enum Shape<T> {
     },
     Mod {
         name: String,
-    },
-    InvalidSuffix {
-        elem:   T,
-        suffix: String,
     },
 
     // === Number ===
@@ -576,10 +558,6 @@ pub enum Shape<T> {
         pfx:      Option<MacroPatternMatch<Shifted<T>>>,
         segs:     ShiftedVec1<MacroMatchSegment<T>>,
     },
-    Ambiguous {
-        segs:  ShiftedVec1<MacroAmbiguousSegment<T>>,
-        paths: MatchTree<Ast, Unit>,
-    },
     Tree {
         particleboard: Vec<ParticleBoard>,
     },
@@ -606,13 +584,13 @@ impl<'a> From<&'a ParticleBoard> for Token<'a> {
 #[macro_export]
 macro_rules! with_shape_variants {
     ($f:ident) => {
-        $f! { [Unrecognized] [Unexpected Ast] [InvalidQuote] [InlineBlock]
-          [Blank] [Var] [Cons] [Opr] [Annotation] [Mod] [InvalidSuffix Ast]
+        $f! {
+          [Blank] [Var] [Cons] [Opr] [Annotation] [Mod]
           [Number] [DanglingBase]
           [TextLineRaw] [TextLineFmt Ast] [TextBlockRaw] [TextBlockFmt Ast] [TextUnclosed Ast]
           [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
           [Module Ast] [Block Ast]
-          [Match Ast] [Ambiguous Ast]
+          [Match Ast]
           [Tree]
         }
     };
@@ -738,12 +716,6 @@ pub struct BlockLine<T> {
 pub struct MacroMatchSegment<T> {
     pub head: T,
     pub body: MacroPatternMatch<Shifted<T>>,
-}
-
-#[ast]
-pub struct MacroAmbiguousSegment<T> {
-    pub head: T,
-    pub body: Option<Shifted<T>>,
 }
 
 pub type MacroPattern = Rc<MacroPatternRaw>;
@@ -1484,14 +1456,6 @@ impl Ast {
         Ast::from(opr)
     }
 
-    /// Creates an AST node with `InvalidSuffix` shape.
-    pub fn invalid_suffix(elem: impl Into<Ast>, suffix: impl Str) -> Ast {
-        let elem = elem.into();
-        let suffix = suffix.into();
-        let invalid_suffix = InvalidSuffix { elem, suffix };
-        Ast::from(invalid_suffix)
-    }
-
     /// Creates an AST node with `Infix` shape.
     pub fn infix(larg: impl Into<Ast>, opr: impl Str, rarg: impl Into<Ast>) -> Ast {
         let larg = larg.into();
@@ -1662,7 +1626,7 @@ mod tests {
 
     #[test]
     fn ast_updating_id() {
-        let var = Var { name: "foo".into() };
+        let var = Var { name: "foo".into(), off: 0 };
         let ast = Ast::new(var, None);
         assert!(ast.id.is_some());
 
@@ -1701,8 +1665,8 @@ mod tests {
         };
         let uid = default();
         let ids = vec![(span(0, 2), uid), (span(3, 2), uid), (span(0, 5), uid)];
-        let func = Ast::new(Var { name: "XX".into() }, Some(uid));
-        let arg = Ast::new(Var { name: "YY".into() }, Some(uid));
+        let func = Ast::new(Var { name: "XX".into(), off: 0 }, Some(uid));
+        let arg = Ast::new(Var { name: "YY".into(), off: 0 }, Some(uid));
         let ast = Ast::new(Prefix { func, off: 1, arg }, Some(uid));
         assert_eq!(ast.id_map(), IdMap::new(ids));
     }
@@ -1711,7 +1675,7 @@ mod tests {
     fn ast_wrapping() {
         // We can convert `Var` into AST without worrying about length nor id.
         let ident = "foo".to_string();
-        let v = Var { name: ident.clone() };
+        let v = Var { name: ident.clone(), off: 0 };
         let ast = Ast::from(v);
         assert!(ast.wrapped.id.is_some());
         assert_eq!(ast.wrapped.wrapped.length, ident.chars().count());
@@ -1719,7 +1683,7 @@ mod tests {
 
     #[test]
     fn serialization_round_trip() {
-        let make_var = || Var { name: "foo".into() };
+        let make_var = || Var { name: "foo".into(), off: 0 };
         round_trips(&make_var());
 
         let ast_without_id = Ast::new(make_var(), None);
@@ -1749,7 +1713,7 @@ mod tests {
         let expected_length = 3;
         assert_eq!(ast.length, expected_length);
 
-        let expected_var = Var { name: var_name.into() };
+        let expected_var = Var { name: var_name.into(), off: 0 };
         let expected_shape = Shape::from(expected_var);
         assert_eq!(*ast.shape(), expected_shape);
     }

@@ -1,4 +1,4 @@
-//! A module with utilities for generating SpanTree from macros (Match and Ambiguous).
+//! A module with utilities for generating SpanTree from macros (Match).
 
 // TODO[ao] Duplicated with `pattern_subcrumbs` function in `ast::crumbs`, but adds information
 // about spacing. All the 'crumblike' utilities should be merged to one solution

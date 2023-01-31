@@ -16,7 +16,6 @@ use ast::crumbs::Located;
 use ast::opr::GeneralizedInfix;
 use ast::{Ast, ParticleBoard};
 use ast::HasRepr;
-use ast::MacroAmbiguousSegment;
 use ast::MacroMatchSegment;
 
 
@@ -468,64 +467,6 @@ fn generate_children_from_segment<T: Payload>(
 }
 
 
-// === Ambiguous ==
-
-impl<T: Payload> SpanTreeGenerator<T> for ast::known::Ambiguous {
-    fn generate_node(
-        &self,
-        kind: impl Into<node::Kind>,
-        context: &impl Context,
-    ) -> FallibleResult<Node<T>> {
-        generate_node_for_known_ambiguous(self, kind.into(), context)
-    }
-}
-
-fn generate_node_for_known_ambiguous<T: Payload>(
-    this: &ast::known::Ambiguous,
-    kind: node::Kind,
-    context: &impl Context,
-) -> FallibleResult<Node<T>> {
-    let mut gen = ChildGenerator::default();
-    let first_segment_index = 0;
-    generate_children_from_ambiguous(&mut gen, first_segment_index, &this.segs.head, context)?;
-    for (index, segment) in this.segs.tail.iter().enumerate() {
-        gen.spacing(segment.off);
-        generate_children_from_ambiguous(&mut gen, index + 1, &segment.wrapped, context)?;
-    }
-    Ok(Node {
-        kind,
-        size: gen.current_offset,
-        children: gen.children,
-        ast_id: this.id(),
-        payload: default(),
-    })
-}
-
-fn generate_children_from_ambiguous<T: Payload>(
-    gen: &mut ChildGenerator<T>,
-    index: usize,
-    segment: &MacroAmbiguousSegment<Ast>,
-    context: &impl Context,
-) -> FallibleResult {
-    let children_kind = node::Kind::argument();
-    // generate child for head
-    let ast = segment.head.clone_ref();
-    let segment_crumb = ast::crumbs::AmbiguousSegmentCrumb::Head;
-    let ast_crumb = ast::crumbs::AmbiguousCrumb { field: segment_crumb, index };
-    let located_ast = Located::new(ast_crumb, ast);
-    gen.generate_ast_node(located_ast, node::Kind::Token, context)?;
-
-    if let Some(sast) = &segment.body {
-        gen.spacing(sast.off);
-        let field = ast::crumbs::AmbiguousSegmentCrumb::Body;
-        let located_ast =
-            Located::new(ast::crumbs::AmbiguousCrumb { index, field }, sast.clone_ref());
-        gen.generate_ast_node(located_ast, children_kind, context)?;
-    }
-    Ok(())
-}
-
-
 // === Common Utility ==
 
 /// Build a prefix application-like span tree structure where the prefix argument has not been
@@ -647,8 +588,6 @@ mod test {
     use crate::node::Payload;
     use crate::ArgumentInfo;
 
-    use ast::crumbs::AmbiguousCrumb;
-    use ast::crumbs::AmbiguousSegmentCrumb;
     use ast::crumbs::InfixCrumb;
     use ast::crumbs::PatternMatchCrumb;
     use ast::crumbs::PrefixCrumb;
@@ -712,18 +651,18 @@ mod test {
         let expected = TreeBuilder::new(15)
             .add_empty_child(0, BeforeTarget)
             .add_child(0, 11, node::Kind::this(), InfixCrumb::LeftOperand)
-            .add_empty_child(0, BeforeTarget)
-            .add_leaf(0, 1, node::Kind::this(), InfixCrumb::LeftOperand)
-            .add_empty_child(1, AfterTarget)
-            .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
-            .add_child(4, 7, node::Kind::argument(), InfixCrumb::RightOperand)
-            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
-            .add_empty_child(4, BeforeTarget)
-            .add_leaf(4, 3, node::Kind::this(), PrefixCrumb::Arg)
-            .add_empty_child(7, Append)
-            .done()
-            .add_empty_child(11, Append)
-            .done()
+                .add_empty_child(0, BeforeTarget)
+                .add_leaf(0, 1, node::Kind::this(), InfixCrumb::LeftOperand)
+                .add_empty_child(1, AfterTarget)
+                .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
+                .add_child(4, 7, node::Kind::argument(), InfixCrumb::RightOperand)
+                    .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
+                    .add_empty_child(4, BeforeTarget)
+                    .add_leaf(4, 3, node::Kind::this(), PrefixCrumb::Arg)
+                    .add_empty_child(7, Append)
+                    .done()
+                .add_empty_child(11, Append)
+                .done()
             .add_empty_child(11, AfterTarget)
             .add_leaf(12, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_leaf(14, 1, node::Kind::argument(), InfixCrumb::RightOperand)
@@ -932,30 +871,6 @@ mod test {
             .add_leaf(2, 1, node::Kind::Token, segment_body_crumbs(0, &comma_cr))
             .add_leaf(3, 1, node::Kind::argument(), segment_body_crumbs(0, &second_element_cr))
             .add_leaf(4, 1, node::Kind::Token, segment_head_crumbs(1))
-            .build();
-
-        assert_eq!(expected, tree);
-    }
-
-    #[wasm_bindgen_test]
-    fn generating_span_tree_from_ambiguous_macros() {
-        let parser = Parser::new();
-        let mut id_map = IdMap::default();
-        id_map.generate(0..2);
-        let ast = parser.parse_line_ast_with_id_map("(4", id_map.clone()).unwrap();
-        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
-
-        // Check the expression id:
-        let (_, expected_id) = id_map.vec.first().unwrap();
-        assert_eq!(tree.root_ref().ast_id, Some(*expected_id));
-
-        // Check the other fields:
-        clear_expression_ids(&mut tree.root);
-        let head_crumb = AmbiguousCrumb { index: 0, field: AmbiguousSegmentCrumb::Head };
-        let body_crumb = AmbiguousCrumb { index: 0, field: AmbiguousSegmentCrumb::Body };
-        let expected = TreeBuilder::new(2)
-            .add_leaf(0, 1, node::Kind::Token, head_crumb)
-            .add_leaf(1, 1, node::Kind::argument(), body_crumb)
             .build();
 
         assert_eq!(expected, tree);

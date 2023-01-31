@@ -127,7 +127,6 @@ has_tokens!(BlockLine<T>, self.elem, self.off);
 // === Macro Segments ==
 
 has_tokens!(MacroMatchSegment<T>, self.head, self.body);
-has_tokens!(MacroAmbiguousSegment<T>, self.head, self.body);
 
 
 // === MacroPatternMatch subtypes ===
@@ -173,15 +172,6 @@ has_tokens!(ShiftedVec1<T>, self.head, self.tail);
 // === Shape ===================================================================
 // =============================================================================
 
-// ===============
-// === Invalid ===
-// ===============
-
-has_tokens!(Unrecognized, self.str);
-has_tokens!(Unexpected<T>, self.stream);
-has_tokens!(InvalidQuote, self.quote);
-has_tokens!(InlineBlock, self.quote);
-
 
 // ===================
 // === Identifiers ===
@@ -193,7 +183,6 @@ has_tokens!(Cons, self.name);
 has_tokens!(Opr, self.name);
 has_tokens!(Annotation, self.name);
 has_tokens!(Mod, self.name, MOD_SUFFIX);
-has_tokens!(InvalidSuffix<T>, self.elem, self.suffix);
 
 
 // ==============
@@ -321,11 +310,6 @@ impl<T: HasTokens> HasTokens for Match<T> {
         self.segs.feed_to(consumer);
     }
 }
-
-
-// === Ambiguous ===
-
-has_tokens!(Ambiguous<T>, self.segs);
 
 
 

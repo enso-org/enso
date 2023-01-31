@@ -163,12 +163,6 @@ macro_rules! crumbs {
 ///
 /// Crumbs are potentially invalidated by any AST change.
 
-// === InvalidSuffix ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct InvalidSuffixCrumb;
-
 
 // === TextLineFmt ===
 
@@ -312,23 +306,6 @@ pub enum SegmentMatchCrumb {
 }
 
 
-// === Ambiguous ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct AmbiguousCrumb {
-    pub index: usize,
-    pub field: AmbiguousSegmentCrumb,
-}
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum AmbiguousSegmentCrumb {
-    Head,
-    Body,
-}
-
-
 // === Conversion Traits ===
 
 macro_rules! from_crumb {
@@ -423,12 +400,10 @@ impl_crumbs! {
     ( Module        , ModuleCrumb        , is_module         ),
     ( Block         , BlockCrumb         , is_block          ),
     // ?
-    ( InvalidSuffix , InvalidSuffixCrumb , is_invalid_suffix ),
     ( TextLineFmt   , TextLineFmtCrumb   , is_text_line_fmt  ),
     ( TextBlockFmt  , TextBlockFmtCrumb  , is_text_block_fmt ),
     ( TextUnclosed  , TextUnclosedCrumb  , is_text_unclosed  ),
     ( Match         , MatchCrumb         , is_match          ),
-    ( Ambiguous     , AmbiguousCrumb     , is_ambiguous      ),
     // Tree
     ( Tree          , TreeCrumb          , is_tree           )
 }
@@ -475,24 +450,6 @@ pub trait Crumbable {
     fn children<'a>(&'a self) -> Box<dyn Iterator<Item = ChildAst<'a>> + 'a> {
         let iter = self.enumerate().map(|(crumb, ast)| ChildAst::new(crumb, ast));
         Box::new(iter)
-    }
-}
-
-impl Crumbable for crate::InvalidSuffix<Ast> {
-    type Crumb = InvalidSuffixCrumb;
-
-    fn get(&self, _crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        Ok(&self.elem)
-    }
-
-    fn set(&self, _crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut ret = self.clone();
-        ret.elem = new_ast;
-        Ok(ret)
-    }
-
-    fn iter_subcrumbs(&self) -> Box<dyn Iterator<Item = Self::Crumb>> {
-        Box::new(std::iter::once(InvalidSuffixCrumb))
     }
 }
 
@@ -1095,40 +1052,6 @@ impl Crumbable for crate::Match<Ast> {
     }
 }
 
-impl Crumbable for crate::Ambiguous<Ast> {
-    type Crumb = AmbiguousCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        let seg = self.segs.get_or_err(crumb.index, "seg")?;
-        let ast = match crumb.field {
-            AmbiguousSegmentCrumb::Head => &seg.head,
-            AmbiguousSegmentCrumb::Body =>
-                &seg.body.as_ref().ok_or_else(|| NotPresent("body".into()))?.wrapped,
-        };
-        Ok(ast)
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut new_self = self.clone();
-        let mut seg = new_self.segs.get_mut_or_err(crumb.index, "seg")?;
-        match crumb.field {
-            AmbiguousSegmentCrumb::Head => seg.head = new_ast,
-            AmbiguousSegmentCrumb::Body =>
-                seg.body.as_mut().ok_or_else(|| NotPresent("body".into()))?.wrapped = new_ast,
-        };
-        Ok(new_self)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let head = |index| AmbiguousCrumb { index, field: AmbiguousSegmentCrumb::Head };
-        let body = |index| AmbiguousCrumb { index, field: AmbiguousSegmentCrumb::Body };
-        let crumbs = self.segs.iter().enumerate().flat_map(move |(index, seg)| {
-            iter::once(head(index)).chain(seg.body.iter().map(move |_| body(index)))
-        });
-        Box::new(crumbs)
-    }
-}
-
 /// Just delegates the implementation to shape.
 impl Crumbable for Ast {
     type Crumb = Crumb;
@@ -1450,35 +1373,6 @@ mod tests {
         ast.set(&crumb, internal_ast)
     }
 
-
-    // === InvalidSuffix ===
-
-    #[test]
-    fn invalid_suffix_crumb() -> FallibleResult {
-        let elem = Ast::var("foo");
-        let ast = Ast::invalid_suffix(elem, "@");
-        let to_crumb_enum = Crumb::InvalidSuffix;
-        let baz = Ast::var("baz");
-
-        assert_eq!(ast.repr(), "foo@");
-        assert_eq!(get(to_crumb_enum, &ast, InvalidSuffixCrumb)?.repr(), "foo");
-        assert_eq!(set(to_crumb_enum, &ast, InvalidSuffixCrumb, baz)?.repr(), "baz@");
-
-        Ok(())
-    }
-
-    #[test]
-    fn iterate_invalid_suffix() -> FallibleResult {
-        let elem = Ast::var("foo");
-        let ast = Ast::invalid_suffix(elem, "@");
-
-        let mut iter = ast.iter_subcrumbs();
-
-        assert_eq!(iter.next(), Some(Crumb::InvalidSuffix(InvalidSuffixCrumb)));
-        assert_eq!(iter.next(), None);
-
-        Ok(())
-    }
 
     // === Infix ===
 
@@ -1972,31 +1866,6 @@ mod tests {
         assert_eq!(match4.get(&crumb5).unwrap(), &ast[2]);
         assert_eq!(match4.get(&crumb6).unwrap(), &ast[0]);
         assert_eq!(match4.get(&crumb7).unwrap(), &ast[3]);
-    }
-
-    #[test]
-    fn ambiguous() {
-        let ast = [Ast::var("A"), Ast::var("B"), Ast::var("C")];
-        let body = Some(Shifted::new(0, ast[1].clone()));
-        let seg1 = MacroAmbiguousSegment { head: ast[0].clone(), body };
-        let seg2 = MacroAmbiguousSegment { head: ast[2].clone(), body: None };
-        let segs = ShiftedVec1 { head: seg1, tail: vec![Shifted::new(0, seg2)] };
-        let paths = MatchTree { value: None, branches: vec![] };
-        let shape = Ambiguous { segs, paths };
-
-        let (c1, c2, c3) = shape.iter_subcrumbs().expect_tuple();
-
-        assert_eq!(c1, AmbiguousCrumb { index: 0, field: AmbiguousSegmentCrumb::Head });
-        assert_eq!(c2, AmbiguousCrumb { index: 0, field: AmbiguousSegmentCrumb::Body });
-        assert_eq!(c3, AmbiguousCrumb { index: 1, field: AmbiguousSegmentCrumb::Head });
-
-        assert_eq!(shape.set(&c1, ast[1].clone()).unwrap().get(&c1).unwrap(), &ast[1]);
-        assert_eq!(shape.set(&c2, ast[2].clone()).unwrap().get(&c2).unwrap(), &ast[2]);
-        assert_eq!(shape.set(&c3, ast[1].clone()).unwrap().get(&c3).unwrap(), &ast[1]);
-
-        assert_eq!(shape.get(&c1).unwrap(), &ast[0]);
-        assert_eq!(shape.get(&c2).unwrap(), &ast[1]);
-        assert_eq!(shape.get(&c3).unwrap(), &ast[2]);
     }
 
 
