@@ -896,6 +896,9 @@ ensogl::define_endpoints! {
         on_port_code_update (Crumbs,ImString),
         on_background_press (),
         view_mode           (view::Mode),
+        /// A set of widgets attached to a method requires metadata to be queried. The tuple
+        /// contains the ID of the call expression the widget is attached to, and the ID of that
+        /// call's target expression (`self` or first argument).
         requested_widgets   (ast::Id, ast::Id),
     }
 }

@@ -101,8 +101,8 @@ pub struct View {
 }
 
 impl View {
-    /// Create a new node widget. The widget is initialized into the `Unset` state, waiting for
-    /// metadata to be set.
+    /// Create a new node widget. The widget is initialized to empty state, waiting for widget
+    /// metadata to be provided using `set_node_data` and `set_metadata` FRP endpoints.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(app));
@@ -147,7 +147,7 @@ impl View {
 struct Model {
     app:            Application,
     display_object: display::object::Instance,
-    kind:           RefCell<KindModel>,
+    kind_model:     RefCell<Option<KindModel>>,
 }
 
 impl Model {
@@ -156,28 +156,25 @@ impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
-        let kind = RefCell::new(KindModel::Unset);
-        Self { app, display_object, kind }
+        let kind = default();
+        Self { app, display_object, kind_model: kind }
     }
 
     fn set_widget_data(&self, frp: &SampledFrp, meta: &Option<Metadata>, node_data: &NodeData) {
         trace!("Setting widget data: {:?} {:?}", meta, node_data);
-        let kind_fallback = || {
-            if !node_data.argument_info.tag_values.is_empty() {
-                Kind::SingleChoice
-            } else {
-                Kind::Unset
-            }
-        };
 
-        let desired_kind = meta.as_ref().map_or_else(kind_fallback, |m| m.kind);
+        let has_tag_values = !node_data.argument_info.tag_values.is_empty();
+        let kind_fallback = has_tag_values.then_some(Kind::SingleChoice);
 
-        let kind_changed = desired_kind != self.kind.borrow().kind();
-        if kind_changed {
-            *self.kind.borrow_mut() =
-                KindModel::new(&self.app, &self.display_object, desired_kind, frp, meta, node_data);
+        let desired_kind = meta.as_ref().map(|m| m.kind).or(kind_fallback);
+        let current_kind = self.kind_model.borrow().as_ref().map(|m| m.kind());
+
+        if current_kind != desired_kind {
+            *self.kind_model.borrow_mut() = desired_kind.map(|desired_kind| {
+                KindModel::new(&self.app, &self.display_object, desired_kind, frp, meta, node_data)
+            });
         } else {
-            self.kind.borrow().update(meta, node_data);
+            self.kind_model.borrow().as_ref().map(|model| model.update(meta, node_data));
         }
     }
 }
@@ -197,9 +194,9 @@ impl display::Object for View {
 
 
 
-// =========================
-// === ModelInner / Kind ===
-// =========================
+// ========================
+// === KindModel / Kind ===
+// ========================
 
 /// Possible widgets for a node input.
 ///
@@ -207,9 +204,6 @@ impl display::Object for View {
 /// future the widget types might be user-defined, similar to visualizations.
 #[derive(serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
-    /// Placeholder widget data when no data is available.
-    #[serde(skip)]
-    Unset,
     /// A widget for selecting a single value from a list of available options.
     #[serde(rename = "Single_Choice")]
     SingleChoice,
@@ -218,8 +212,6 @@ pub enum Kind {
 /// A part of widget model that is dependant on the widget kind.
 #[derive(Debug)]
 pub enum KindModel {
-    /// Placeholder widget data when no data is available.
-    Unset,
     /// A widget for selecting a single value from a list of available options.
     SingleChoice(SingleChoiceModel),
 }
@@ -236,7 +228,6 @@ impl KindModel {
         let this = match kind {
             Kind::SingleChoice =>
                 Self::SingleChoice(SingleChoiceModel::new(app, display_object, frp)),
-            _ => Self::Unset,
         };
 
         this.update(meta, node_data);
@@ -245,7 +236,6 @@ impl KindModel {
 
     fn update(&self, meta: &Option<Metadata>, node_data: &NodeData) {
         match self {
-            KindModel::Unset => {}
             KindModel::SingleChoice(inner) => {
                 let dynamic_entries = meta.as_ref().map(|meta| meta.dynamic_entries.clone());
                 let tag_values = node_data.argument_info.tag_values.iter().map(Into::into);
@@ -258,7 +248,6 @@ impl KindModel {
     }
     fn kind(&self) -> Kind {
         match self {
-            Self::Unset => Kind::Unset,
             Self::SingleChoice(_) => Kind::SingleChoice,
         }
     }

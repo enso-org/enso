@@ -355,8 +355,9 @@ ensogl::define_endpoints_2! {
         /// [`visualization_visible`] is updated. Please remember, that the [`position`] is not
         /// immediately updated, only during the Display Object hierarchy update
         bounding_box             (BoundingBox),
-        /// Emitted when new method call is discovered in the node expression and it requires
-        /// widgets data. A tuple of IDs and the method call expression and left operand.
+        /// A set of widgets attached to a method requires metadata to be queried. The tuple
+        /// contains the ID of the call expression the widget is attached to, and the ID of that
+        /// call's target expression (`self` or first argument).
         requested_widgets        (ast::Id, ast::Id),
     }
 }
