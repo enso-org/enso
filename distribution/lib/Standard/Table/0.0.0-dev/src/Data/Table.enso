@@ -13,6 +13,7 @@ import Standard.Base.Error.Unimplemented.Unimplemented
 from Standard.Base.Metadata.Widget import Single_Choice
 import Standard.Base.Metadata.Display
 
+import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
 import project.Data.Column as Column_Module
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
@@ -25,11 +26,10 @@ import project.Data.Match_Columns as Match_Columns_Helpers
 import project.Data.Position.Position
 import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
+import project.Data.Set_Mode.Set_Mode
+import project.Data.Sort_Column.Sort_Column
 import project.Data.Storage.Storage
 import project.Data.Value_Type.Value_Type
-import project.Data.Sort_Column.Sort_Column
-import project.Data.Aggregate_Column.Aggregate_Column
-import project.Data.Storage.Storage
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
@@ -44,7 +44,7 @@ import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from project.Internal.Rows_View import Rows_View
-from project.Errors import Column_Count_Mismatch, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type, Cross_Join_Row_Limit_Exceeded, Row_Count_Mismatch
+from project.Errors import Column_Count_Mismatch, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type, Cross_Join_Row_Limit_Exceeded, Row_Count_Mismatch, Existing_Column, Missing_Column
 
 from project.Data.Column import get_item_string
 from project.Internal.Filter_Condition_Helpers import make_filter_column
@@ -797,8 +797,8 @@ type Table
        `filter`.
 
        Arguments:
-       - column: The column to use for filtering. Can be a column name, index or
-         the `Column` object itself.
+       - column: The column to use for filtering.
+         Can be a column name, index or the `Column` object itself.
        - filter: The filter to apply to the column. It can either be an instance
          of `Filter_Condition` or a predicate taking a cell value and returning
          a boolean value indicating whether the corresponding row should be kept
@@ -835,6 +835,8 @@ type Table
 
              people.filter "age" (age -> (age%10 == 0))
     @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
+    @filter Filter_Condition.widget_for_filter_condition
+    @on_problems (Single_Choice ["Report_Error", "Report_Warning", "Ignore"] display=Display.Expanded_Only)
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
     filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
         _ : Column ->
@@ -844,16 +846,27 @@ type Table
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
                 _ : Function -> mask (column.map filter)
-        _ : Text ->
+        _ ->
             table_at = self.at column
-            if table_at.is_error.not then self.filter table_at filter on_problems else
-                expression = self.evaluate column
-                if expression.is_error.not then self.filter expression filter on_problems else
-                    pick_error = expression.catch Expression_Error.Syntax_Error (_->table_at)
-                    on_problems.handle_errors pick_error fallback=self
-        _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
-            Nothing -> self
-            resolved_column -> self.filter resolved_column filter on_problems
+            self.filter table_at filter on_problems
+
+    ## ALIAS Filter Rows
+
+       Selects only the rows of this table that correspond to `True` values of
+       `filter`.
+
+       Arguments:
+       - expression: The expression to evaluate to filter the rows.
+
+       > Example
+         Select people celebrating a jubilee.
+
+             people.filter_by_expression "[age] % 10 == 0"
+    filter_by_expression : Text -> Problem_Behavior -> Table
+    filter_by_expression self expression on_problems=Report_Warning =
+        column = self.compute expression on_problems=on_problems
+        if column.value_type != Value_Type.Boolean then Error.throw (Illegal_Argument.Error "Expression must evaluate to a boolean value.") else
+            self.filter column on_problems=on_problems
 
     ## PRIVATE
     with_no_rows self = self.take (First 0)
@@ -904,17 +917,18 @@ type Table
 
     ## ALIAS Add Column, Update Column
 
-       Sets the column value at the given name.
+       Adds or updates the column in the table.
 
        Arguments:
-       - name: The name of the column to set the value of.
-       - column: The new value for the column either a `Column` or `Text` of an
-         expression.
-       - on_problems: Specifies how to handle if a problem occurs, raising as a
-         warning by default.
-
-       If a column with the given name already exists, it will be replaced.
-       Otherwise a new column is added.
+       - column: The new column or expression to create column.
+       - new_name: Optional new name for the column.
+       - set_mode: Specifies how to handle the new column.
+         If `Add_Or_Update`, the column will be added if not present, updated
+         if present. If `Add`, the column will be added if not present, error
+         if already present. If `Update`, the column will be updated if
+         present, error if missing.
+       - on_problems: Specifies how to handle problems with expression
+         evaluation.
 
        > Example
          Create a table where the values of the total stock in the inventory is
@@ -925,24 +939,39 @@ type Table
              example_set =
                  table = Examples.inventory_table
                  double_inventory = table.at "total_stock" * 2
-                 table.set "total_stock" double_inventory
-                 table.set "total_stock_expr" "2 * [total_stock]"
-    set : Text -> Column | Vector | Text -> Problem_Behavior -> Table
-    set self name column on_problems=Report_Warning = case column of
-        _ : Text ->
-            expression = self.evaluate column
-            if expression.is_error.not then self.set name expression on_problems else
-                on_problems.handle_errors expression fallback=self
-        _ : Vector -> self.set name (Column.from_vector name column)
-        _ : Column ->
-            Table.Value (self.java_table.addOrReplaceColumn (column.rename name . java_column))
+                 table.set double_inventory new_name="total_stock"
+                 table.set "2 * [total_stock]" new_name="total_stock_expr"
+    set : Text -> Column | Text -> Problem_Behavior -> Table ! Existing_Column | Missing_Column
+    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+        resolved = case column of
+            _ : Text -> self.compute column on_problems
+            _ : Column -> column
+        renamed = if new_name.is_nothing then resolved else resolved.rename new_name
+        to_add = case set_mode of
+            Set_Mode.Add_Or_Update -> True
+            Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
+                Error.throw (Existing_Column.Error renamed.name)
+            Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
+                Error.throw (Missing_Column.Error renamed.name)
 
-    ## PRIVATE
-    evaluate : Text -> Column
-    evaluate self expression =
+        if to_add then Table.Value (self.java_table.addOrReplaceColumn renamed.java_column) else to_add
+
+    ## Given an expression, create a derived column where each value is the
+       result of evaluating the expression for the row.
+
+       Arguments:
+       - expression: The expression to evaluate.
+       - on_problems: Specifies how to handle problems with expression
+         evaluation.
+    compute : Text -> Problem_Behavior -> Column
+    compute self expression on_problems=Report_Warning =
         get_column name = self.at name
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
-        Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
+        new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
+        if new_column.is_error then new_column else
+            warnings = Warning.get_all new_column
+            rename = new_column.rename expression
+            on_problems.attach_problems_after (Warning.set rename []) warnings
 
     ## Returns the vector of columns contained in this table.
 
@@ -1037,6 +1066,7 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
+    @join_kind (Single_Choice ["Join_Kind.Inner", "Join_Kind.Left_Outer", "Join_Kind.Right_Outer", "Join_Kind.Full", "Join_Kind.Left_Exclusive", "Join_Kind.Right_Exclusive"]])
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
         if check_table "right" right then

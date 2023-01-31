@@ -30,7 +30,7 @@ spec detailed setup =
     epsilon=0.0000000001
 
     tester expression value =
-        new_table = test_table.set "NEW_COL" expression
+        new_table = test_table.set expression new_name="NEW_COL"
         new_table.column_count . should_equal (test_table.column_count + 1)
         new_column = new_table.at -1
         new_column.name . should_equal "NEW_COL"
@@ -278,8 +278,7 @@ spec detailed setup =
 
     Test.group prefix+"Errors should be handled" pending=pending_bug <|
         error_tester expression fail_type =
-            test_table.set "NEW_COL" expression on_problems=Problem_Behavior.Report_Error . should_fail_with fail_type
-            test_table.set "NEW_COL" expression . column_count . should_equal test_table.column_count
+            test_table.set expression new_name="NEW_COL" . should_fail_with fail_type
 
         specify_test "should fail with Syntax_Error if badly formed" expression_test=error_tester expression_test->
             expression_test "IIF [A] THEN 1 ELSE 2" Expression_Error.Syntax_Error
@@ -293,4 +292,4 @@ spec detailed setup =
             expression_test "starts_with([C])" Expression_Error.Argument_Mismatch
 
         specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
-            expression_test "starts_with([C], 'Hello', 'World')" Expression_Error.Argument_Mismatch
+            expression_test "Not([C], 'Hello')" Expression_Error.Argument_Mismatch
