@@ -291,6 +291,8 @@ impl NodeToWidgetsMapping {
     }
 }
 
+
+
 /// ===============
 /// === Request ===
 /// ===============
@@ -377,6 +379,7 @@ impl QueryData {
         manager.request_visualization(target_expression, vis_metadata);
     }
 
+    /// Generate visualization metadata for this query.
     fn visualization_metadata(&self) -> Metadata {
         let relevant_arguments = self.arguments.split_first().map_or_default(|(_self, args)| args);
         let arguments: Vec<Code> = vec![
@@ -392,12 +395,16 @@ impl QueryData {
         Metadata { preprocessor }
     }
 
+    /// Escape a string to be used as a visualization argument. Transforms the string into an enso
+    /// expression with string literal.
     fn escape_visualization_argument(arg: &str) -> String {
         let segment = ast::SegmentPlain { value: arg.into() };
         let text = ast::TextLineRaw { text: vec![segment.into()] };
         text.repr()
     }
 
+    /// Escape a list of strings to be used as a visualization argument. Transforms the strings into
+    /// an enso expression with a list of string literals.
     fn arg_sequence(args: &[ImString]) -> String {
         let mut buffer = String::from("[");
         for (i, arg) in args.iter().enumerate() {
@@ -417,7 +424,9 @@ impl QueryData {
 /// === WidgetVisualizationData ===
 /// ===============================
 
-/// type representing the data received from the widget visualization for single widget.
+/// A type representing the data received from the widget visualization for a single widget.
+///
+/// The structure of this struct is dictated by the expected widget visualization JSON result shape.
 #[derive(Debug, serde::Deserialize)]
 struct WidgetVisualizationData {
     constructor: widget::Kind,

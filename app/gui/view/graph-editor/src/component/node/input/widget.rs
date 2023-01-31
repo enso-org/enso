@@ -36,21 +36,21 @@ ensogl::define_endpoints_2! {
     }
 }
 
-/// Widget metadata that needs to be fetched from the graph asynchronously.
+/// Widget metadata that comes from an asynchronous visualization. Defines which widget should be
+/// used and a set of options that it should allow to choose from.
 #[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub struct Metadata {
-    /// The kind of widget to use.
     pub kind:            Kind,
-    /// The widget display mode.
     pub display:         Display,
-    /// Dynamically fetched widget entries.
     pub dynamic_entries: Vec<ImString>,
 }
 
 /// Widget display mode. Determines when the widget should be expanded.
-#[derive(serde::Deserialize, Debug, Clone, Copy)]
+#[derive(serde::Deserialize, Debug, Clone, Copy, Default)]
 pub enum Display {
     /// The widget should always be in its expanded mode.
+    #[default]
     Always,
     /// The widget should only be in its expanded mode when it has non-default value.
     #[serde(rename = "When_Modified")]
@@ -60,20 +60,12 @@ pub enum Display {
     ExpandedOnly,
 }
 
-impl Default for Display {
-    fn default() -> Self {
-        Self::Always
-    }
-}
-
 /// The data of node port that this widget is attached to. Available immediately after widget
 /// creation. Can be updated later when the node data changes.
 #[derive(Debug, Clone, Default)]
+#[allow(missing_docs)]
 pub struct NodeData {
-    /// Argument info of the node port that this widget is attached to.
     pub argument_info: span_tree::ArgumentInfo,
-    /// The current height of the node that the widget can use for layout.
-    /// TODO [pg]: remove and use the automatic layout instead.
     pub node_height:   f32,
 }
 
@@ -83,9 +75,9 @@ pub struct NodeData {
 /// === SampledFrp ===
 /// ==================
 
-/// Sampled version of widget FRP endpoints that can be used by lazily initialized widgets.
-/// Without sampling, the widget that is initialized after the endpoints are set would not receive
-/// the correct initial value.
+/// Sampled version of widget FRP endpoints that can be used by widget views that are initialized
+/// on demand after first interaction. Without samplers, when a widget view would be initialized
+/// after the endpoints were set, it would not receive previously set endpoint values.
 #[derive(Debug, Clone, CloneRef)]
 struct SampledFrp {
     set_current_value: frp::Sampler<Option<ImString>>,
@@ -100,14 +92,15 @@ struct SampledFrp {
 // === Widget ===
 // ==============
 
-/// The node widget UI widget.
+/// The node widget view. Represents one widget of any kind on the node input area. Can change its
+/// appearance and behavior depending on the widget metadata updates, without being recreated.
 #[derive(Debug, Clone, CloneRef)]
-pub struct Widget {
+pub struct View {
     frp:   Frp,
     model: Rc<Model>,
 }
 
-impl Widget {
+impl View {
     /// Create a new node widget. The widget is initialized into the `Unset` state, waiting for
     /// metadata to be set.
     pub fn new(app: &Application) -> Self {
@@ -152,17 +145,19 @@ impl Widget {
 
 #[derive(Debug)]
 struct Model {
-    common: ModelCommon,
-    inner:  RefCell<ModelInner>,
+    app:            Application,
+    display_object: display::object::Instance,
+    kind:           RefCell<KindModel>,
 }
 
 impl Model {
     /// Create a new node widget, selecting the appropriate widget type based on the provided
     /// argument info.
     fn new(app: &Application) -> Self {
-        let common = ModelCommon::new(app);
-        let inner = RefCell::new(ModelInner::Unset);
-        Self { common, inner }
+        let app = app.clone_ref();
+        let display_object = display::object::Instance::new();
+        let kind = RefCell::new(KindModel::Unset);
+        Self { app, display_object, kind }
     }
 
     fn set_widget_data(&self, frp: &SampledFrp, meta: &Option<Metadata>, node_data: &NodeData) {
@@ -177,43 +172,30 @@ impl Model {
 
         let desired_kind = meta.as_ref().map_or_else(kind_fallback, |m| m.kind);
 
-        let kind_changed = desired_kind != self.inner.borrow().kind();
+        let kind_changed = desired_kind != self.kind.borrow().kind();
         if kind_changed {
-            *self.inner.borrow_mut() =
-                ModelInner::new(desired_kind, &self.common, frp, meta, node_data);
+            *self.kind.borrow_mut() =
+                KindModel::new(&self.app, &self.display_object, desired_kind, frp, meta, node_data);
         } else {
-            self.inner.borrow().update(&self.common, meta, node_data);
+            self.kind.borrow().update(meta, node_data);
         }
     }
 }
 
-impl Deref for Widget {
+impl Deref for View {
     type Target = Frp;
     fn deref(&self) -> &Self::Target {
         self.frp()
     }
 }
 
-impl display::Object for Widget {
+impl display::Object for View {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.common.display_object
+        &self.model.display_object
     }
 }
 
 
-#[derive(Debug)]
-struct ModelCommon {
-    app:            Application,
-    display_object: display::object::Instance,
-}
-
-impl ModelCommon {
-    fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
-        let display_object = display::object::Instance::new();
-        Self { app, display_object }
-    }
-}
 
 // =========================
 // === ModelInner / Kind ===
@@ -233,36 +215,38 @@ pub enum Kind {
     SingleChoice,
 }
 
-/// The widget model that is dependant on the widget kind.
+/// A part of widget model that is dependant on the widget kind.
 #[derive(Debug)]
-pub enum ModelInner {
+pub enum KindModel {
     /// Placeholder widget data when no data is available.
     Unset,
     /// A widget for selecting a single value from a list of available options.
     SingleChoice(SingleChoiceModel),
 }
 
-impl ModelInner {
+impl KindModel {
     fn new(
+        app: &Application,
+        display_object: &display::object::Instance,
         kind: Kind,
-        common: &ModelCommon,
         frp: &SampledFrp,
         meta: &Option<Metadata>,
         node_data: &NodeData,
     ) -> Self {
         let this = match kind {
-            Kind::SingleChoice => Self::SingleChoice(SingleChoiceModel::new(common, frp)),
+            Kind::SingleChoice =>
+                Self::SingleChoice(SingleChoiceModel::new(app, display_object, frp)),
             _ => Self::Unset,
         };
 
-        this.update(common, meta, node_data);
+        this.update(meta, node_data);
         this
     }
 
-    fn update(&self, _common: &ModelCommon, meta: &Option<Metadata>, node_data: &NodeData) {
+    fn update(&self, meta: &Option<Metadata>, node_data: &NodeData) {
         match self {
-            ModelInner::Unset => {}
-            ModelInner::SingleChoice(inner) => {
+            KindModel::Unset => {}
+            KindModel::SingleChoice(inner) => {
                 let dynamic_entries = meta.as_ref().map(|meta| meta.dynamic_entries.clone());
                 let tag_values = node_data.argument_info.tag_values.iter().map(Into::into);
                 let entries = dynamic_entries.unwrap_or_else(|| tag_values.collect());
@@ -321,9 +305,11 @@ pub struct SingleChoiceModel {
 }
 
 impl SingleChoiceModel {
-    fn new(common: &ModelCommon, frp: &SampledFrp) -> Self {
-        let display_object = &common.display_object;
-
+    fn new(
+        app: &Application,
+        display_object: &display::object::Instance,
+        frp: &SampledFrp,
+    ) -> Self {
         let activation_dot = dot::View::new();
         activation_dot.set_size((15.0, 15.0));
         display_object.add_child(&activation_dot);
@@ -339,13 +325,8 @@ impl SingleChoiceModel {
 
         let set_current_value = frp.set_current_value.clone_ref();
         let dropdown_output = frp.out_value_changed.clone_ref();
-        let dropdown = LazyDropdown::new(
-            &common.app,
-            display_object,
-            set_current_value,
-            is_open,
-            dropdown_output,
-        );
+        let dropdown =
+            LazyDropdown::new(app, display_object, set_current_value, is_open, dropdown_output);
         let dropdown = Rc::new(RefCell::new(dropdown));
 
         frp::extend! { network

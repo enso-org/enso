@@ -104,15 +104,17 @@ impl Debug for Expression {
     }
 }
 
-// === Pretty printing display adapter ===
+// === Pretty printing debug adapter ===
 
-/// Display adapter used for pretty-printing the `Expression` span tree.
-#[derive(Debug)]
+/// Debug adapter used for pretty-printing the `Expression` span tree. Can be used to print the
+/// expression with detailed span-tree information. This printer is normally too verbose to be
+/// a default `Debug` implementation of `Expression`, so it is hidden behind a separate adapter
+/// and can be chosen by calling `expression.tree_pretty_printer()`.
 pub struct ExpressionTreePrettyPrint<'a> {
     expression: &'a Expression,
 }
 
-impl<'a> Display for ExpressionTreePrettyPrint<'a> {
+impl<'a> Debug for ExpressionTreePrettyPrint<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
         let printed = self.expression.span_tree.debug_print(&self.expression.code);
         f.write_str(&printed)
@@ -120,8 +122,11 @@ impl<'a> Display for ExpressionTreePrettyPrint<'a> {
 }
 
 impl Expression {
-    /// Wrap the expression into a pretty-printing adapter that implements `Display` and prints
+    /// Wrap the expression into a pretty-printing adapter that implements `Debug` and prints
     /// detailed span-tree information. See [`SpanTree::debug_print`] method for more details.
+    ///
+    /// Note that this printer emits multi-line output. In order for those lines to be properly
+    /// aligned, it should be always printed on a new line.
     pub fn tree_pretty_printer(&self) -> ExpressionTreePrettyPrint<'_> {
         ExpressionTreePrettyPrint { expression: self }
     }
@@ -305,7 +310,8 @@ impl Model {
         }
     }
 
-    fn set_expression_widgets(&self, updates: &WidgetUpdates) {
+    /// Apply widget updates to widgets in this input area.
+    fn apply_widget_updates(&self, updates: &WidgetUpdates) {
         let expression = self.expression.borrow();
         let widgets_map = self.widgets_map.borrow();
         let WidgetUpdates { call_id, updates } = updates;
@@ -327,6 +333,8 @@ impl Model {
         }
     }
 
+    /// Set the visibility of all widgets in this input area. This is only a visual change, and does
+    /// not affect the widget's state. Widget updates are still processed when the widget is hidden.
     fn set_widgets_visibility(&self, visible: bool) {
         let expression = self.expression.borrow();
         let widgets_map = self.widgets_map.borrow();
@@ -806,7 +814,7 @@ impl Model {
     ) -> Expression {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {
-            debug!("SET EXPRESSION: \n{}", new_expression.tree_pretty_printer());
+            debug!("set expression: \n{:?}", new_expression.tree_pretty_printer());
         }
 
         let call_info = CallInfoMap::scan_expression(&new_expression);
@@ -862,9 +870,8 @@ ensogl::define_endpoints! {
         /// colored if the definition type was present.
         set_expression_usage_type (Crumbs,Option<Type>),
 
-        /// Set the method pointer for the port indicated by the breadcrumbs. Useful for updating
-        /// argument labels and querying for widgets.
-        set_expression_widgets   (WidgetUpdates),
+        /// Update widget metadata for widgets already present in this input area.
+        update_widgets   (WidgetUpdates),
 
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
         /// if any. It is used to highlight ports if they are missing type information or if their
@@ -1008,7 +1015,7 @@ impl Area {
 
             // === Widgets ===
 
-            eval frp.set_expression_widgets ((a) model.set_expression_widgets(a));
+            eval frp.update_widgets ((a) model.apply_widget_updates(a));
 
             // === View Mode ===
 

@@ -608,7 +608,7 @@ ensogl::define_endpoints_2! {
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
-        set_expression_widgets       ((NodeId,WidgetUpdates)),
+        update_node_widgets          ((NodeId,WidgetUpdates)),
         cycle_visualization          (NodeId),
         set_visualization            ((NodeId,Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
@@ -2147,9 +2147,9 @@ impl GraphEditorModel {
         }
     }
 
-    fn set_expression_widgets(&self, node_id: NodeId, updates: &WidgetUpdates) {
+    fn update_node_widgets(&self, node_id: NodeId, updates: &WidgetUpdates) {
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.view.set_expression_widgets.emit(updates.clone());
+            node.view.update_widgets.emit(updates.clone());
         }
     }
 
@@ -3284,7 +3284,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
          nodes.get_cloned_ref(node_id).map(|node| node.all_edges())
     )).unwrap();
     eval edges_to_refresh ((edge) model.refresh_edge_position(*edge));
-    eval inputs.set_expression_widgets(((node, updates)) model.set_expression_widgets(*node, updates));
+    eval inputs.update_node_widgets(((node, updates)) model.update_node_widgets(*node, updates));
     }
 
 

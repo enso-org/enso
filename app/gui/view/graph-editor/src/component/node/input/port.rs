@@ -5,7 +5,7 @@ use enso_text::unit::*;
 use ensogl::display::shape::*;
 
 use crate::node::input::area;
-use crate::node::input::widget::Widget;
+use crate::node::input::widget;
 use crate::Type;
 
 use ensogl::application::Application;
@@ -154,7 +154,7 @@ ensogl::define_endpoints! {
 pub struct Model {
     pub frp:         Frp,
     pub shape:       Option<Shape>,
-    pub widget:      Option<Widget>,
+    pub widget:      Option<widget::View>,
     pub index:       ByteDiff,
     pub local_index: ByteDiff,
     pub length:      ByteDiff,
@@ -184,16 +184,16 @@ impl Model {
         self.shape.as_ref().unwrap().clone_ref()
     }
 
-    /// Widget initialization. Only nodes that represent function arguments, either existing or
-    /// potential ones, will have widgets created for them.
-    pub fn init_widget(&mut self, app: &Application) -> Widget {
-        let widget = Widget::new(app);
+    /// Widget initialization. Only nodes that represent function arguments or argument placeholders
+    /// will have widgets created for them.
+    pub fn init_widget(&mut self, app: &Application) -> widget::View {
+        let widget = widget::View::new(app);
         self.widget = Some(widget.clone_ref());
         widget
     }
 
     /// Assign an existing widget to this port.
-    pub fn use_existing_widget(&mut self, widget: Widget) -> Widget {
+    pub fn use_existing_widget(&mut self, widget: widget::View) -> widget::View {
         self.widget = Some(widget.clone_ref());
         widget
     }

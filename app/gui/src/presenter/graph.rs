@@ -734,7 +734,7 @@ impl Graph {
         }
         frp::extend! { network
             widgets.retain_node_expressions <+ widget_refresh._0().unwrap();
-            view.set_expression_widgets <+ widgets.widget_data.filter_map(
+            view.update_node_widgets <+ widgets.widget_data.filter_map(
                 f!(((id, updates)) model.map_widget_update_data(*id, updates.clone()))
             );
         }

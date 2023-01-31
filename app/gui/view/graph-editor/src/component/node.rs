@@ -307,7 +307,7 @@ ensogl::define_endpoints_2! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type         (Crumbs,Option<Type>),
-        set_expression_widgets            (WidgetUpdates),
+        update_widgets                    (WidgetUpdates),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
         /// Show visualization preview until either editing of the node is finished or the
@@ -754,7 +754,7 @@ impl Node {
 
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;
-            model.input.set_expression_widgets    <+ input.set_expression_widgets;
+            model.input.update_widgets             <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
 
