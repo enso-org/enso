@@ -547,7 +547,7 @@ type Table
             if to_add then
                 new_col = Internal_Column.Value renamed.name resolved.sql_type resolved.expression
                 new_cols = if index.is_nothing then self.internal_columns + [new_col] else
-                    Vector.new self.internal_columns i-> if i == index then new_col else self.internal_columns.at i
+                    Vector.new self.column_count i-> if i == index then new_col else self.internal_columns.at i
                 self.updated_columns new_cols
 
     ## Given an expression, evaluate it and return the derived Column.

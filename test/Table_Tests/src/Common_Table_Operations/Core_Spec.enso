@@ -15,7 +15,7 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    table =
+    table_fn =
         col1 = ["foo", [1,2,3]]
         col2 = ["bar", [4,5,6]]
         col3 = ["Baz", [7,8,9]]
@@ -24,6 +24,7 @@ spec setup =
         col6 = ["ab.+123", [16,17,18]]
         col7 = ["abcd123", [19,20,21]]
         table_builder [col1, col2, col3, col4, col5, col6, col7]
+    table = table_fn
 
     Test.group prefix+"Table.at" <|
         Test.specify "should allow selecting columns by name" <|
