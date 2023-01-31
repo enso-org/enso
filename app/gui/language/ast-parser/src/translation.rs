@@ -74,53 +74,8 @@ fn translate(tree: &Tree) -> WithInitialSpace<Ast> {
             translate_opr_app(lhs.as_ref(), opr, rhs.as_ref()),
         tree::Variant::OprSectionBoundary(tree::OprSectionBoundary { ast, .. }) =>
             translate(ast).expect_unspaced(),
-        tree::Variant::Function(tree::Function { name, args, equals, body }) => {
-            let name = translate(name);
-            let mut lhs_terms = vec![name];
-            lhs_terms.extend(args.into_iter().map(translate_argument_definition));
-            let larg = lhs_terms
-                .into_iter()
-                .reduce(|func, arg| {
-                    let (off, arg) = arg.split();
-                    func.map(|func| Ast::from(ast::Prefix { func, off, arg }))
-                })
-                .unwrap()
-                .expect_unspaced();
-            let loff = equals.left_offset.visible.width_in_spaces;
-            let opr = Ast::from(ast::Opr { name: equals.code.to_string() });
-            match body {
-                Some(body) => {
-                    let (roff, rarg) = translate(body).split();
-                    Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
-                }
-                None => Ast::from(ast::SectionLeft { arg: larg, off: loff, opr }),
-            }
-        }
-        tree::Variant::ForeignFunction(func) => {
-            let tree::ForeignFunction { foreign, language, name, args, equals, body } = func;
-            let mut lhs_terms: Vec<_> = [foreign, language, name]
-                .into_iter()
-                .map(|ident| {
-                    WithInitialSpace::new(
-                        translate_var(ident),
-                        ident.left_offset.visible.width_in_spaces,
-                    )
-                })
-                .collect();
-            lhs_terms.extend(args.into_iter().map(translate_argument_definition));
-            let larg = lhs_terms
-                .into_iter()
-                .reduce(|func, arg| {
-                    let (off, arg) = arg.split();
-                    func.map(|func| Ast::from(ast::Prefix { func, off, arg }))
-                })
-                .unwrap()
-                .expect_unspaced();
-            let loff = equals.left_offset.visible.width_in_spaces;
-            let opr = Ast::from(ast::Opr { name: equals.code.to_string() });
-            let (roff, rarg) = translate(body).split();
-            Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
-        }
+        tree::Variant::Function(func) => translate_function(func),
+        tree::Variant::ForeignFunction(func) => translate_foreign_function(func),
         tree::Variant::UnaryOprApp(tree::UnaryOprApp { opr, rhs }) => {
             let opr = Ast::from(ast::Opr { name: opr.code.to_string() });
             if let Some(arg) = rhs {
@@ -197,6 +152,55 @@ fn translate(tree: &Tree) -> WithInitialSpace<Ast> {
             Ast::from(ast::Tree { particleboard: deconstruct_tree(tree) }),
     };
     WithInitialSpace { space, body }
+}
+
+fn translate_function(tree::Function { name, args, equals, body }: &tree::Function) -> Ast {
+    let name = translate(name);
+    let mut lhs_terms = vec![name];
+    lhs_terms.extend(args.into_iter().map(translate_argument_definition));
+    let larg = lhs_terms
+        .into_iter()
+        .reduce(|func, arg| {
+            let (off, arg) = arg.split();
+            func.map(|func| Ast::from(ast::Prefix { func, off, arg }))
+        })
+        .unwrap()
+        .expect_unspaced();
+    let loff = equals.left_offset.visible.width_in_spaces;
+    let opr = Ast::from(ast::Opr { name: equals.code.to_string() });
+    match body {
+        Some(body) => {
+            let (roff, rarg) = translate(body).split();
+            Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
+        }
+        None => Ast::from(ast::SectionLeft { arg: larg, off: loff, opr }),
+    }
+}
+
+fn translate_foreign_function(func: &tree::ForeignFunction) -> Ast {
+    let tree::ForeignFunction { foreign, language, name, args, equals, body } = func;
+    let mut lhs_terms: Vec<_> = [foreign, language, name]
+        .into_iter()
+        .map(|ident| {
+            WithInitialSpace::new(
+                translate_var(ident),
+                ident.left_offset.visible.width_in_spaces,
+            )
+        })
+        .collect();
+    lhs_terms.extend(args.into_iter().map(translate_argument_definition));
+    let larg = lhs_terms
+        .into_iter()
+        .reduce(|func, arg| {
+            let (off, arg) = arg.split();
+            func.map(|func| Ast::from(ast::Prefix { func, off, arg }))
+        })
+        .unwrap()
+        .expect_unspaced();
+    let loff = equals.left_offset.visible.width_in_spaces;
+    let opr = Ast::from(ast::Opr { name: equals.code.to_string() });
+    let (roff, rarg) = translate(body).split();
+    Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
 }
 
 fn translate_var(token: &syntax::token::Ident) -> Ast {

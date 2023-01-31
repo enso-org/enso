@@ -288,14 +288,9 @@ impl Project {
         let language_server = language_server_rpc.clone();
         let module_registry = default();
         let execution_contexts = default();
-        let visualization =
-<<<<<<< HEAD
-            controller::Visualization::new(language_server, embedded_visualizations);
-        let parser = Parser::new_or_panic();
-=======
-            controller::Visualization::new(language_server, embedded_visualizations, &logger);
         let parser = Parser::new();
->>>>>>> 9a56303f0 (replace scala parser in frontend)
+        let visualization =
+            controller::Visualization::new(language_server, embedded_visualizations);
         let language_server = &*language_server_rpc;
         let suggestion_db = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db = Rc::new(suggestion_db.await.map_err(&wrap)?);
