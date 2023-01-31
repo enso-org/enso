@@ -18,16 +18,6 @@ type Column_Name_Mapping
        column in the table).
     By_Index (indexes : Map Number Text)
 
-    ## Selects columns having exactly the same names as the columns provided in
-       the input.
-
-       The input columns do not necessarily have to come from the same table, so
-       this approach can be used to match columns with the same names as a set
-       of columns of some other table, for example, when preparing for a join.
-
-       The Vector should be of the form [[Column, Name], [Column1, Name1], ...]
-    By_Column (columns : Vector)
-
     ## Selects columns by position starting at the first column until the
        new_names is exhausted.
-    By_Position (new_names : [Text])
+    By_Position (new_names : Vector Text)
