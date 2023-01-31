@@ -325,11 +325,8 @@ fn generate_node_for_opr_chain<T: Payload>(
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
     let is_access = this.operator.name == ast::opr::predefined::ACCESS;
-    let this_call_id = if is_access {
-        kind.call_id()
-    } else { 
-        this.args.first().and_then(|elem| elem.infix_id)
-    };
+    let this_call_id =
+        if is_access { kind.call_id() } else { this.args.first().and_then(|elem| elem.infix_id) };
 
     // Removing operands is possible only when chain has at least 3 of them
     // (target and two arguments).
@@ -425,7 +422,8 @@ fn generate_node_for_prefix_chain<T: Payload>(
     use ast::crumbs::PrefixCrumb::*;
     // Removing arguments is possible if there at least two of them
     let removable = this.args.len() >= 2;
-    let node = this.func.generate_node(node::Kind::operation().with_call_id(app_base.call_id), context);
+    let node =
+        this.func.generate_node(node::Kind::operation().with_call_id(app_base.call_id), context);
     let ret = this.args.iter().enumerate().fold(node, |node, (i, arg)| {
         let node = node?;
         let is_first = i == 0;

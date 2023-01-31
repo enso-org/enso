@@ -157,7 +157,7 @@ fn span_tree_args() {
     assert_eq!(get_param(2), None);
 
     graph.set_expression(id, "Base.bar").unwrap();
-    assert_eq!(get_param(0), Some(span_tree::ArgumentInfo::this(None, Some(id))));
+    assert_eq!(get_param(0), Some(span_tree::ArgumentInfo::this(None, None)));
     assert_eq!(get_param(1), Some(default()));
     assert_eq!(get_param(2), None);
 

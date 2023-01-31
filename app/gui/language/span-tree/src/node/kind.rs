@@ -206,21 +206,20 @@ impl Default for Kind {
 // =================
 
 /// Kind representing an operation (operator or function) of parent Infix, Section or Prefix.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Operation {
     /// The AST id of function application that this operation is part of. If this is an access
     /// chain operation (e.g. `method.call arg`), the call will be the outermost expression
-    /// containing all arguments. For other infix operators (not access), the call will be the infix
-    /// expression containing two arguments.
-    pub call_id:   Option<ast::Id>,
+    /// containing all arguments. For other infix operators (not access), the call will be the
+    /// infix expression containing two arguments.
+    pub call_id: Option<ast::Id>,
 }
 
 
 // === Setters ===
 
-#[allow(missing_docs)]
 impl Operation {
+    /// Set operation `call_id` field. See [`Operation::call_id`] for more information.
     pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
         self.call_id = call_id;
         self

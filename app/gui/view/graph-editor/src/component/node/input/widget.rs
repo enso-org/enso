@@ -221,8 +221,8 @@ impl ModelCommon {
 
 /// Possible widgets for a node input.
 ///
-/// Currently all widget types are hardcoded. This is likely to be a temporary solution. In the
-/// future the set of widget types might be dynamic, similar to visualizations.
+/// Currently, all widget types are hardcoded. This is likely to be a temporary solution. In the
+/// future the widget types might be user-defined, similar to visualizations.
 #[derive(serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     /// Placeholder widget data when no data is available.
