@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Extensions import slice_text
 from Standard.Visualization.Text import get_chunk_from_line
 import Standard.Base.Error.Common.Not_Found
+from Standard.Table import Table
 
 
 ## PRIVATE
@@ -87,7 +88,7 @@ compute_table_update table table_cell_position text_window_position text_window_
     TableUpdate.Value chunks layout
 
 ## Returns a vector that contains a pairs of row index and vector of corresponding lines indices.
-compute_vertical_indices : Table.Table -> Integer -> Integer -> Integer -> Integer -> Vector Any
+compute_vertical_indices : Table -> Integer -> Integer -> Integer -> Integer -> Vector Any
 compute_vertical_indices table start_row end_row start_line lines_to_get =
     ## agg is a Vector of `[processed_lines, initial_offset, result_indices]`
     process_line agg row_ix =
