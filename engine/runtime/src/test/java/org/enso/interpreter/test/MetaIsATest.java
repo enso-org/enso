@@ -15,30 +15,18 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class MetaIsATest {
+public class MetaIsATest extends TestBase {
   private Context ctx;
   private Value isACheck;
 
   @Before
   public void prepareCtx() throws Exception {
-    Engine eng = Engine.newBuilder()
-      .allowExperimentalOptions(true)
-      .logHandler(new ByteArrayOutputStream())
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
-    this.ctx = Context.newBuilder()
-      .engine(eng)
-      .allowIO(true)
-      .allowAllAccess(true)
-      .build();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
-
+    ctx = createDefaultContext();
     final URI uri = new URI("memory://choose.enso");
     final Source src = Source.newBuilder("enso", """
     import Standard.Base.Meta
@@ -51,6 +39,11 @@ public class MetaIsATest {
     var module = ctx.eval(src);
     isACheck = module.invokeMember("eval_expression", "check");
     assertTrue("it is a function", isACheck.canExecute());
+  }
+
+  @After
+  public void disposeCtx() {
+    ctx.close();
   }
 
   @Test

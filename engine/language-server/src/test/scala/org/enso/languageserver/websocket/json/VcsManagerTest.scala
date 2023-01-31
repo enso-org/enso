@@ -912,7 +912,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
                        },
                        "end" : {
                          "line" : 0,
-                         "character" : 13
+                         "character" : 12
                        }
                      },
                      "text" : "file contents"
@@ -959,7 +959,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
                        },
                        "end" : {
                          "line" : 0,
-                         "character" : 13
+                         "character" : 12
                        }
                      },
                      "text" : "file contents"

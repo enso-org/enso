@@ -95,7 +95,7 @@ object Runtime {
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.OpenFileNotification],
-        name  = "openFileNotification"
+        name  = "setModuleSourcesNotification"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.EditFileNotification],
@@ -160,10 +160,6 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.ModuleNotFound],
         name  = "moduleNotFound"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ModuleNotFoundForExpression],
-        name  = "moduleNotFoundForExpression"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.ExecutionUpdate],
@@ -389,10 +385,22 @@ object Runtime {
       sealed trait Payload
       object Payload {
 
-        /** An empty payload. Indicates that the expression was computed to a
-          * value.
+        /** Indicates that the expression was computed to a value.
+          *
+          * @param warnings information about attached warnings.
           */
-        case class Value() extends Payload
+        case class Value(warnings: Option[Value.Warnings] = None)
+            extends Payload
+
+        object Value {
+
+          /** Information about warnings associated with the value.
+            *
+            * @param count the number of attached warnings.
+            * @param warning textual representation of the attached warning.
+            */
+          case class Warnings(count: Int, warning: Option[String])
+        }
 
         /** TBD
           */
@@ -1222,13 +1230,6 @@ object Runtime {
       */
     final case class ModuleNotFound(moduleName: String) extends Error
 
-    /** Signals that a module cannot be found for the provided expression id.
-      *
-      * @param expressionId the expression id
-      */
-    final case class ModuleNotFoundForExpression(expressionId: ExpressionId)
-        extends Error
-
     /** Signals that execution of a context completed.
       *
       * @param contextId the context's id
@@ -1300,11 +1301,10 @@ object Runtime {
       */
     final case class InvalidStackItemError(contextId: ContextId) extends Error
 
-    /** A notification sent to the server about switching a file to literal
-      * contents.
+    /** A notification sent to the server about opening a file.
       *
       * @param path the file being moved to memory.
-      * @param contents the current file contents.
+      * @param contents the current module's contents.
       */
     final case class OpenFileNotification(
       path: File,

@@ -18,7 +18,6 @@ use ensogl::system::web;
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    logger:             Logger,
     pub root_dom:       web::Element,
     new_project_button: ClickableElement,
     projects_list_dom:  web::Element,
@@ -27,7 +26,7 @@ pub struct Model {
 
 impl Model {
     /// Constructor.
-    pub fn new(logger: Logger) -> Self {
+    pub fn new() -> Self {
         let root_dom = web::document.create_element_or_panic("aside");
         root_dom.set_class_name(crate::css_class::SIDE_MENU);
         let header = Self::create_header("Your projects");
@@ -37,7 +36,7 @@ impl Model {
         let new_project_button = Self::create_new_project_button(&projects_list_dom);
         let projects = default();
 
-        Self { logger, root_dom, projects_list_dom, projects, new_project_button }
+        Self { root_dom, projects_list_dom, projects, new_project_button }
     }
 
     pub fn set_projects_list(&self, projects: &[String], open_project: &frp::Any<String>) {
@@ -129,10 +128,9 @@ impl Deref for SideMenu {
 }
 
 impl SideMenu {
-    pub fn new(logger: &Logger) -> Self {
-        let logger = Logger::new_sub(logger, "SideMenu");
+    pub fn new() -> Self {
         let frp = Frp::new();
-        let model = Model::new(logger);
+        let model = Model::new();
 
         let network = &frp.network;
         frp::extend! { network

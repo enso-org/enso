@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.ibm.icu.text.Normalizer;
+import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -9,17 +10,21 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
+
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Map;
+
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
@@ -29,8 +34,10 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.State;
@@ -49,9 +56,12 @@ public abstract class EqualsAnyNode extends Node {
   public static EqualsAnyNode build() {
     return EqualsAnyNodeGen.create();
   }
+
   public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object right);
 
-  /** Primitive values **/
+  /**
+   * Primitive values
+   **/
 
 
   @Specialization
@@ -117,18 +127,20 @@ public abstract class EqualsAnyNode extends Node {
     return self == other.doubleValue();
   }
 
-  /** Enso specific types **/
+  /**
+   * Enso specific types
+   **/
 
   @Specialization
   boolean equalsUnresolvedSymbols(UnresolvedSymbol self, UnresolvedSymbol otherSymbol,
-      @Cached EqualsAnyNode equalsNode) {
+                                  @Cached EqualsAnyNode equalsNode) {
     return self.getName().equals(otherSymbol.getName())
         && equalsNode.execute(self.getScope(), otherSymbol.getScope());
   }
 
   @Specialization
   boolean equalsUnresolvedConversion(UnresolvedConversion selfConversion, UnresolvedConversion otherConversion,
-      @Cached EqualsAnyNode equalsNode) {
+                                     @Cached EqualsAnyNode equalsNode) {
     return equalsNode.execute(selfConversion.getScope(), otherConversion.getScope());
   }
 
@@ -140,9 +152,9 @@ public abstract class EqualsAnyNode extends Node {
       "selfWarnLib.hasWarnings(selfWithWarnings) || otherWarnLib.hasWarnings(otherWithWarnings)"
   }, limit = "3")
   boolean equalsWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
-      @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
-      @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-      @Cached EqualsAnyNode equalsNode
+                             @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
+                             @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
+                             @Cached EqualsAnyNode equalsNode
   ) {
     try {
       Object self =
@@ -157,18 +169,46 @@ public abstract class EqualsAnyNode extends Node {
     }
   }
 
+  @Specialization(limit = "3")
+  boolean equalsTexts(Text selfText, Text otherText,
+      @CachedLibrary("selfText") InteropLibrary selfInterop,
+      @CachedLibrary("otherText") InteropLibrary otherInterop) {
+    if (selfText.is_normalized() && otherText.is_normalized()) {
+      return selfText.toString().compareTo(otherText.toString()) == 0;
+    } else {
+      return equalsStrings(selfText, otherText, selfInterop, otherInterop);
+    }
+  }
+
   /** Interop libraries **/
 
   @Specialization(guards = {
-      "selfInterop.isNull(selfNull)",
-      "otherInterop.isNull(otherNull)"
+      "selfInterop.isNull(selfNull) || otherInterop.isNull(otherNull)",
   }, limit = "3")
   boolean equalsNull(
       Object selfNull, Object otherNull,
       @CachedLibrary("selfNull") InteropLibrary selfInterop,
       @CachedLibrary("otherNull") InteropLibrary otherInterop
   ) {
-    return true;
+    return selfInterop.isNull(selfNull) && otherInterop.isNull(otherNull);
+  }
+
+  @Specialization(guards = {
+      "isHostObject(selfHostObject)",
+      "isHostObject(otherHostObject)",
+  })
+  boolean equalsHostObjects(
+      Object selfHostObject, Object otherHostObject,
+      @CachedLibrary(limit = "5") InteropLibrary interop
+  ) {
+    try {
+      return interop.asBoolean(
+          interop.invokeMember(selfHostObject, "equals", otherHostObject)
+      );
+    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
+             UnsupportedTypeException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Specialization(guards = {
@@ -197,8 +237,8 @@ public abstract class EqualsAnyNode extends Node {
       "otherInterop.isTimeZone(otherTimeZone)"
   }, limit = "3")
   boolean equalsTimeZones(Object selfTimeZone, Object otherTimeZone,
-      @CachedLibrary("selfTimeZone") InteropLibrary selfInterop,
-      @CachedLibrary("otherTimeZone") InteropLibrary otherInterop) {
+                          @CachedLibrary("selfTimeZone") InteropLibrary selfInterop,
+                          @CachedLibrary("otherTimeZone") InteropLibrary otherInterop) {
     try {
       return selfInterop.asTimeZone(selfTimeZone).equals(
           otherInterop.asTimeZone(otherTimeZone)
@@ -218,8 +258,8 @@ public abstract class EqualsAnyNode extends Node {
       "otherInterop.isTimeZone(otherZonedDateTime)"
   }, limit = "3")
   boolean equalsZonedDateTimes(Object selfZonedDateTime, Object otherZonedDateTime,
-      @CachedLibrary("selfZonedDateTime") InteropLibrary selfInterop,
-      @CachedLibrary("otherZonedDateTime") InteropLibrary otherInterop) {
+                               @CachedLibrary("selfZonedDateTime") InteropLibrary selfInterop,
+                               @CachedLibrary("otherZonedDateTime") InteropLibrary otherInterop) {
     try {
       var self = ZonedDateTime.of(
           selfInterop.asDate(selfZonedDateTime),
@@ -246,8 +286,8 @@ public abstract class EqualsAnyNode extends Node {
       "!otherInterop.isTimeZone(otherDateTime)"
   }, limit = "3")
   boolean equalsDateTimes(Object selfDateTime, Object otherDateTime,
-      @CachedLibrary("selfDateTime") InteropLibrary selfInterop,
-      @CachedLibrary("otherDateTime") InteropLibrary otherInterop) {
+                          @CachedLibrary("selfDateTime") InteropLibrary selfInterop,
+                          @CachedLibrary("otherDateTime") InteropLibrary otherInterop) {
     try {
       var self = LocalDateTime.of(
           selfInterop.asDate(selfDateTime),
@@ -272,8 +312,8 @@ public abstract class EqualsAnyNode extends Node {
       "!otherInterop.isTimeZone(otherDate)"
   }, limit = "3")
   boolean equalsDates(Object selfDate, Object otherDate,
-      @CachedLibrary("selfDate") InteropLibrary selfInterop,
-      @CachedLibrary("otherDate") InteropLibrary otherInterop) {
+                      @CachedLibrary("selfDate") InteropLibrary selfInterop,
+                      @CachedLibrary("otherDate") InteropLibrary otherInterop) {
     try {
       return selfInterop.asDate(selfDate).isEqual(
           otherInterop.asDate(otherDate)
@@ -292,8 +332,8 @@ public abstract class EqualsAnyNode extends Node {
       "!otherInterop.isTimeZone(otherTime)"
   }, limit = "3")
   boolean equalsTimes(Object selfTime, Object otherTime,
-      @CachedLibrary("selfTime") InteropLibrary selfInterop,
-      @CachedLibrary("otherTime") InteropLibrary otherInterop) {
+                      @CachedLibrary("selfTime") InteropLibrary selfInterop,
+                      @CachedLibrary("otherTime") InteropLibrary otherInterop) {
     try {
       return selfInterop.asTime(selfTime).equals(
           otherInterop.asTime(otherTime)
@@ -308,8 +348,8 @@ public abstract class EqualsAnyNode extends Node {
       "otherInterop.isDuration(otherDuration)"
   }, limit = "3")
   boolean equalsDuration(Object selfDuration, Object otherDuration,
-      @CachedLibrary("selfDuration") InteropLibrary selfInterop,
-      @CachedLibrary("otherDuration") InteropLibrary otherInterop) {
+                         @CachedLibrary("selfDuration") InteropLibrary selfInterop,
+                         @CachedLibrary("otherDuration") InteropLibrary otherInterop) {
     try {
       return selfInterop.asDuration(selfDuration).equals(
           otherInterop.asDuration(otherDuration)
@@ -329,8 +369,8 @@ public abstract class EqualsAnyNode extends Node {
       "otherInterop.isString(otherString)"
   }, limit = "3")
   boolean equalsStrings(Object selfString, Object otherString,
-      @CachedLibrary("selfString") InteropLibrary selfInterop,
-      @CachedLibrary("otherString") InteropLibrary otherInterop) {
+                        @CachedLibrary("selfString") InteropLibrary selfInterop,
+                        @CachedLibrary("otherString") InteropLibrary otherInterop) {
     String selfJavaString;
     String otherJavaString;
     try {
@@ -351,10 +391,10 @@ public abstract class EqualsAnyNode extends Node {
       "otherInterop.hasArrayElements(otherArray)"
   }, limit = "3")
   boolean equalsArrays(Object selfArray, Object otherArray,
-      @CachedLibrary("selfArray") InteropLibrary selfInterop,
-      @CachedLibrary("otherArray") InteropLibrary otherInterop,
-      @Cached EqualsAnyNode equalsNode
-      ) {
+                       @CachedLibrary("selfArray") InteropLibrary selfInterop,
+                       @CachedLibrary("otherArray") InteropLibrary otherInterop,
+                       @Cached EqualsAnyNode equalsNode
+  ) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
       if (selfSize != otherInterop.getArraySize(otherArray)) {
@@ -369,6 +409,43 @@ public abstract class EqualsAnyNode extends Node {
       }
       return true;
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  @Specialization(guards = {
+      "selfInterop.hasHashEntries(selfHashMap)",
+      "otherInterop.hasHashEntries(otherHashMap)"
+  }, limit = "3")
+  boolean equalsHashMaps(Object selfHashMap, Object otherHashMap,
+      @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
+      @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
+      @CachedLibrary(limit = "5") InteropLibrary entriesInterop,
+      @Cached EqualsAnyNode equalsNode) {
+    try {
+      int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
+      int otherHashSize = (int) otherInterop.getHashSize(otherHashMap);
+      if (selfHashSize != otherHashSize) {
+        return false;
+      }
+      Object selfEntriesIter = selfInterop.getHashEntriesIterator(selfHashMap);
+      while (entriesInterop.hasIteratorNextElement(selfEntriesIter)) {
+        Object selfKeyValue = entriesInterop.getIteratorNextElement(selfEntriesIter);
+        Object key = entriesInterop.readArrayElement(selfKeyValue, 0);
+        Object selfValue = entriesInterop.readArrayElement(selfKeyValue, 1);
+        if (otherInterop.isHashEntryExisting(otherHashMap, key)
+            && otherInterop.isHashEntryReadable(otherHashMap, key)) {
+          Object otherValue = otherInterop.readHashValue(otherHashMap, key);
+          if (!equalsNode.execute(selfValue, otherValue)) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+      return true;
+    } catch (UnsupportedMessageException | StopIterationException | UnknownKeyException |
+             InvalidArrayIndexException e) {
       throw new IllegalStateException(e);
     }
   }
@@ -392,12 +469,17 @@ public abstract class EqualsAnyNode extends Node {
   }
 
   @Specialization
-  boolean equalsAtoms(Atom self, Atom other,
+  boolean equalsAtoms(
+      Atom self,
+      Atom other,
       @Cached LoopConditionProfile loopProfile,
       @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsAnyNode[] fieldEqualsNodes,
       @Cached InvokeEqualsNode atomInvokeEqualsNode,
       @Cached ConditionProfile enoughEqualNodesForFieldsProfile,
-      @Cached ConditionProfile constructorsNotEqualProfile) {
+      @Cached ConditionProfile constructorsNotEqualProfile,
+      @CachedLibrary(limit = "3") StructsLibrary selfStructs,
+      @CachedLibrary(limit = "3") StructsLibrary otherStructs
+  ) {
     if (atomOverridesEquals(self)) {
       return atomInvokeEqualsNode.execute(self, other);
     }
@@ -407,21 +489,23 @@ public abstract class EqualsAnyNode extends Node {
     )) {
       return false;
     }
-    assert self.getFields().length == other.getFields().length;
+    var selfFields = selfStructs.getFields(self);
+    var otherFields = otherStructs.getFields(other);
+    assert selfFields.length == otherFields.length;
 
-    int fieldsSize = self.getFields().length;
+    int fieldsSize = selfFields.length;
     if (enoughEqualNodesForFieldsProfile.profile(fieldsSize <= equalsNodeCountForFields)) {
       loopProfile.profileCounted(fieldsSize);
       for (int i = 0; loopProfile.inject(i < fieldsSize); i++) {
         if (!fieldEqualsNodes[i].execute(
-            self.getFields()[i],
-            other.getFields()[i]
+            selfFields[i],
+            otherFields[i]
         )) {
           return false;
         }
       }
     } else {
-      return equalsAtomsFieldsUncached(self.getFields(), other.getFields());
+      return equalsAtomsFieldsUncached(selfFields, otherFields);
     }
     return true;
   }
@@ -462,10 +546,10 @@ public abstract class EqualsAnyNode extends Node {
 
     @Specialization(guards = "cachedSelfAtomCtor == selfAtom.getConstructor()")
     boolean invokeEqualsCachedAtomCtor(Atom selfAtom, Atom otherAtom,
-        @Cached("selfAtom.getConstructor()") AtomConstructor cachedSelfAtomCtor,
-        @Cached("getEqualsMethod(cachedSelfAtomCtor)") Function equalsMethod,
-        @Cached ExecuteCallNode executeCallNode,
-        @CachedLibrary(limit = "3") InteropLibrary interop) {
+                                       @Cached("selfAtom.getConstructor()") AtomConstructor cachedSelfAtomCtor,
+                                       @Cached("getEqualsMethod(cachedSelfAtomCtor)") Function equalsMethod,
+                                       @Cached ExecuteCallNode executeCallNode,
+                                       @CachedLibrary(limit = "3") InteropLibrary interop) {
       assert atomOverridesEquals(selfAtom);
       Object ret = executeCallNode.executeCall(
           equalsMethod,
@@ -483,7 +567,7 @@ public abstract class EqualsAnyNode extends Node {
     @TruffleBoundary
     @Specialization(replaces = "invokeEqualsCachedAtomCtor")
     boolean invokeEqualsUncached(Atom selfAtom, Atom otherAtom,
-        @Cached ExecuteCallNode executeCallNode) {
+                                 @Cached ExecuteCallNode executeCallNode) {
       Function equalsMethod = getEqualsMethod(selfAtom.getConstructor());
       Object ret = executeCallNode.executeCall(
           equalsMethod,
@@ -534,24 +618,13 @@ public abstract class EqualsAnyNode extends Node {
   @TruffleBoundary
   boolean equalsGeneric(Object left, Object right,
       @CachedLibrary(limit = "5") InteropLibrary interop) {
-    EnsoContext ctx = EnsoContext.get(interop);
-    if (isHostObject(ctx, left) && isHostObject(ctx, right)) {
-      try {
-        return interop.asBoolean(
-            interop.invokeMember(left, "equals", right)
-        );
-      } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
-               UnsupportedTypeException e) {
-        throw new IllegalStateException(e);
-      }
-    } else {
       return left == right
-          || left.equals(right)
-          || interop.isIdentical(left, right, interop);
-    }
+          || interop.isIdentical(left, right, interop)
+          || left.equals(right);
   }
 
-  private static boolean isHostObject(EnsoContext context, Object object) {
-    return context.getEnvironment().isHostObject(object);
+  @TruffleBoundary
+  boolean isHostObject(Object object) {
+    return EnsoContext.get(this).getEnvironment().isHostObject(object);
   }
 }

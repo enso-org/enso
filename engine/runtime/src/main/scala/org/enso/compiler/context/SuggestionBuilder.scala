@@ -75,6 +75,7 @@ final class SuggestionBuilder[A: IndexedSource](
                     arguments,
                     _,
                     _,
+                    _,
                     _
                   ) =>
                 buildAtomConstructor(

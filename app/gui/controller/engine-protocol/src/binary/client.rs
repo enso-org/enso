@@ -97,7 +97,6 @@ pub trait API {
 #[derivative(Debug)]
 pub struct Client {
     handler: Handler<Uuid, FromServerPayloadOwned, Notification>,
-    logger:  Logger,
 }
 
 impl Client {
@@ -146,10 +145,9 @@ impl Client {
     /// Before client is functional:
     /// * `runner` must be scheduled for execution;
     /// * `init` must be called or it needs to be wrapped into `Connection`.
-    pub fn new(parent: impl AnyLogger, transport: impl Transport + 'static) -> Client {
-        let logger = Logger::new_sub(parent, "binary-protocol-client");
+    pub fn new(transport: impl Transport + 'static) -> Client {
         let processor = Self::processor();
-        Client { logger: logger.clone_ref(), handler: Handler::new(transport, logger, processor) }
+        Client { handler: Handler::new(transport, processor) }
     }
 
     /// Starts a new request, described by the given payload.
@@ -267,9 +265,8 @@ mod tests {
 
     impl ClientFixture {
         fn new() -> ClientFixture {
-            let logger = Logger::new("ClientFixture");
             let transport = MockTransport::new();
-            let client = Client::new(logger, transport.clone());
+            let client = Client::new(transport.clone());
             let executor = futures::executor::LocalPool::new();
             executor.spawner().spawn_local(client.runner()).unwrap();
             ClientFixture { transport, client, executor }

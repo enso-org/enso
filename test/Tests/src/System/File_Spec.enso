@@ -21,6 +21,15 @@ spec =
             file = File.new sample_file
             file . should_equal sample_file
 
+        Test.specify "should allow joining sections" <|
+            f_1 = File.new "foo/bar"
+            (File.new "foo" / "bar") . normalize . should_equal f_1
+            File.new "foo" . join "bar" . should_equal f_1
+
+            f_2 = File.new "foo/a/b/c/d/e"
+            File.new "foo" . join "a" . join "b" . join "c" . join "d" . join "e" . should_equal f_2
+            File.new "foo" . join ["a", "b", "c", "d", "e"] . should_equal f_2
+
         Test.specify "should check if file exists" <|
             non_existent_file.exists.should_be_false
             sample_file.exists.should_be_true
@@ -41,8 +50,9 @@ spec =
 
         Test.specify "should normalize file" <|
             f_1 = File.new "foo"
-            f_2 = File.new "bar/../baz/../foo"
-            f_2.normalize.should_equal f_1
+            File.new "bar/../baz/../foo" . normalize . should_equal f_1
+            (File.new "bar" / ".." / "baz" / ".." / "foo") . normalize . should_equal f_1
+            File.new "bar" . join ["..", "baz", "..", "foo"] . should_equal f_1
 
         Test.specify "should handle `==` on files" <|
             (File.new "foo").should_equal (File.new "foo")

@@ -8,8 +8,6 @@ import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.Module.CompilationStage
 import org.enso.syntax.text.Parser
 
-import scala.annotation.unused
-
 /** A phase responsible for initializing the builtins' IR from the provided
   * source.
   */
@@ -30,9 +28,9 @@ object BuiltinsIrBuilder {
     * @param passes the compiler's pass manager
     */
   def build(
-    @unused module: Module,
-    @unused freshNameSupply: FreshNameSupply,
-    @unused passes: Passes
+    module: Module,
+    freshNameSupply: FreshNameSupply,
+    passes: Passes
   ): Unit = {
     val passManager = passes.passManager
     val moduleContext = ModuleContext(

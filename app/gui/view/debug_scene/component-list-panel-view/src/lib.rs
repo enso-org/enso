@@ -37,14 +37,12 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
-use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use ide_view_component_list_panel::grid;
 use ide_view_component_list_panel::grid::entry::icon;
@@ -87,10 +85,10 @@ const GROUPS_AS_IN_DESIGN: &[grid::content::Group] = &[
     make_group(grid::SectionId::Popular, 0, 7),
     make_group(grid::SectionId::Popular, 1, 7),
     make_group(grid::SectionId::Popular, 2, 5),
-    make_group(grid::SectionId::SubModules, 3, 10),
-    make_group(grid::SectionId::SubModules, 4, 3),
-    make_group(grid::SectionId::SubModules, 5, 10),
-    make_group(grid::SectionId::SubModules, 6, 10),
+    make_group(grid::SectionId::Namespace(0), 3, 10),
+    make_group(grid::SectionId::Namespace(0), 4, 3),
+    make_group(grid::SectionId::Namespace(0), 5, 10),
+    make_group(grid::SectionId::Namespace(0), 6, 10),
 ];
 
 const GROUPS: &[grid::content::Group] = &[
@@ -108,28 +106,30 @@ const GROUPS: &[grid::content::Group] = &[
     make_group(grid::SectionId::Popular, 12, 10),
     make_group(grid::SectionId::Popular, 13, 12),
     make_group(grid::SectionId::Popular, 14, 3),
-    make_group(grid::SectionId::SubModules, 15, 23),
-    make_group(grid::SectionId::SubModules, 16, 12),
-    make_group(grid::SectionId::SubModules, 17, 21),
-    make_group(grid::SectionId::SubModules, 18, 33),
-    make_group(grid::SectionId::SubModules, 19, 5),
-    make_group(grid::SectionId::SubModules, 20, 14),
-    make_group(grid::SectionId::SubModules, 21, 44),
-    make_group(grid::SectionId::SubModules, 22, 12),
-    make_group(grid::SectionId::SubModules, 23, 14),
-    make_group(grid::SectionId::SubModules, 24, 7),
-    make_group(grid::SectionId::SubModules, 25, 8),
-    make_group(grid::SectionId::SubModules, 26, 13),
-    make_group(grid::SectionId::SubModules, 27, 32),
-    make_group(grid::SectionId::SubModules, 28, 34),
+    make_group(grid::SectionId::Namespace(0), 15, 23),
+    make_group(grid::SectionId::Namespace(0), 16, 12),
+    make_group(grid::SectionId::Namespace(0), 17, 21),
+    make_group(grid::SectionId::Namespace(0), 18, 33),
+    make_group(grid::SectionId::Namespace(0), 19, 5),
+    make_group(grid::SectionId::Namespace(0), 20, 14),
+    make_group(grid::SectionId::Namespace(0), 21, 44),
+    make_group(grid::SectionId::Namespace(0), 22, 12),
+    make_group(grid::SectionId::Namespace(0), 23, 14),
+    make_group(grid::SectionId::Namespace(0), 24, 7),
+    make_group(grid::SectionId::Namespace(0), 25, 8),
+    make_group(grid::SectionId::Namespace(0), 26, 13),
+    make_group(grid::SectionId::Namespace(0), 27, 32),
+    make_group(grid::SectionId::Namespace(0), 28, 34),
 ];
 
 const LOCAL_SCOPE_GROUP_SIZE: usize = 1024;
+const NAMESPACE_SECTION_COUNT: usize = 1;
 
 fn content_info() -> grid::content::Info {
     grid::content::Info {
         groups:                  GROUPS_AS_IN_DESIGN.into(),
         local_scope_entry_count: LOCAL_SCOPE_GROUP_SIZE,
+        namespace_section_count: NAMESPACE_SECTION_COUNT,
     }
 }
 
@@ -188,9 +188,6 @@ fn snap_to_pixel_offset(size: Vector2, scene_shape: &display::scene::Shape) -> V
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
         let app = Application::new("root");
-        theme::builtin::light::register(&app);
-        theme::builtin::light::enable(&app);
-
 
         let world = &app.display;
         let scene = &world.default_scene;

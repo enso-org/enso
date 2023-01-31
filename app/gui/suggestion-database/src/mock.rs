@@ -9,6 +9,7 @@ use crate::Entry;
 use crate::SuggestionDatabase;
 
 use double_representation::name::QualifiedName;
+use enso_text::Location;
 
 
 
@@ -73,6 +74,13 @@ impl Builder {
         default()
     }
 
+    /// Create a builder from an already existing database. The builder will start with the next
+    /// available entry id.
+    pub fn from_existing_db(db: SuggestionDatabase) -> Self {
+        let next_id = db.entries.borrow().keys().cloned().max().unwrap_or_default() + 1;
+        Self { next_id, result: db, in_module: None, in_type: None }
+    }
+
     fn add_entry(&mut self, entry: Entry, modifier: impl FnOnce(Entry) -> Entry) {
         let id = self.next_id;
         self.next_id += 1;
@@ -87,15 +95,9 @@ impl Builder {
     /// module, the `segment` shall be just a name of the new sub-module.
     pub fn add_and_enter_module<S>(&mut self, segment: S, modifier: impl FnOnce(Entry) -> Entry)
     where S: Into<ImString> + TryInto<QualifiedName, Error: Debug> {
-        let module_path = if let Some(path) = &mut self.in_module {
-            path.push_segment(segment.into());
-            path.clone()
-        } else {
-            let initial_path = segment.try_into().unwrap();
-            self.in_module = Some(initial_path.clone());
-            initial_path
-        };
-        self.add_entry(Entry::new_module(module_path), modifier);
+        self.enter_module(segment);
+        let module_path = self.in_module.as_ref().unwrap();
+        self.add_entry(Entry::new_module(module_path.clone()), modifier);
     }
 
     /// Add a new type and set it as new context, so the next entries will be added inside this type
@@ -113,6 +115,22 @@ impl Builder {
             Entry::new_type(defined_in.clone(), type_name).with_arguments(arguments),
             modifier,
         )
+    }
+
+    /// Enter a module and set it as a new context, so the next entries will be added inside this
+    /// module now.
+    ///
+    /// If the context is empty, the `segment` parameter should be a valid qualified name (with
+    /// project namespace and name), otherwise this function will panic. If we are already in the
+    /// module, the `segment` shall be just a name of the new sub-module.
+    pub fn enter_module<S>(&mut self, segment: S)
+    where S: Into<ImString> + TryInto<QualifiedName, Error: Debug> {
+        if let Some(path) = &mut self.in_module {
+            path.push_segment(segment.into());
+        } else {
+            let initial_path = segment.try_into().unwrap();
+            self.in_module = Some(initial_path);
+        }
     }
 
     /// Leave the current type or module.
@@ -162,6 +180,39 @@ impl Builder {
             Entry::new_constructor(on_type.clone(), name).with_arguments(arguments),
             modifier,
         );
+    }
+
+    /// Add a new function.
+    ///
+    /// Context should be inside a module, otherwise this function will panic.
+    pub fn add_function(
+        &mut self,
+        name: impl Into<String>,
+        arguments: Vec<Argument>,
+        return_type: impl TryInto<QualifiedName, Error: Debug>,
+        scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
+        modifier: impl FnOnce(Entry) -> Entry,
+    ) {
+        let in_module = self.in_module.as_ref().expect("Cannot add function without context.");
+        let return_type = return_type.try_into().expect("Invalid return type.");
+        let function = Entry::new_function(in_module.clone(), name, return_type, scope);
+        let entry = function.with_arguments(arguments);
+        self.add_entry(entry, modifier);
+    }
+
+    /// Add a new local.
+    ///
+    /// Context should be inside a module, otherwise this function will panic.
+    pub fn add_local(
+        &mut self,
+        name: impl Into<String>,
+        return_type: impl TryInto<QualifiedName, Error: Debug>,
+        scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
+        modifier: impl FnOnce(Entry) -> Entry,
+    ) {
+        let in_module = self.in_module.as_ref().expect("Cannot add local without context.");
+        let return_type = return_type.try_into().expect("Invalid return type.");
+        self.add_entry(Entry::new_local(in_module.clone(), name, return_type, scope), modifier);
     }
 }
 

@@ -3,10 +3,11 @@ import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.File_Error.File_Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Problem_Behavior.Problem_Behavior
+import project.Meta
 import project.Network.URI.URI
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
@@ -20,7 +21,10 @@ import project.System.File_Format.File_Format
 
 from project.Data.Boolean import Boolean, True, False
 
-## Read a file using the specified file format
+## ALIAS Load, Open
+   Read's a file into Enso.
+   Uses the specified file format to parse the file into an Enso type. If not
+   specified will use the file's extension to determine the file format.
 
    Arguments:
    - path: The path to the file to read.
@@ -28,6 +32,8 @@ from project.Data.Boolean import Boolean, True, False
      If `Auto_Detect` is specified; the provided file determines the specific
      type and configures it appropriately. If there is no matching type then
      a `File_Error.Unsupported_Type` error is returned.
+     You can use `File_Format.all` to get a list of currently loaded
+     formats.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
      By default, a warning is issued, but the operation proceeds.
@@ -54,7 +60,8 @@ read : File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read format on_problems
 
-## Open and read the file at the provided `path`.
+##  ALIAS Load Text, Open Text
+    Open and read the file at the provided `path`.
 
    Arguments:
    - path: The path of the file to open and read the contents of. It will
@@ -146,7 +153,7 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
         _ : Vector -> Header.new (h.at 0) (h.at 1)
         _ : Pair -> Header.new (h.at 0) (h.at 1)
         _ : Header -> h
-        _ -> Error.throw (Type_Error.Error Header "Invalid header type (must be a Pair, Vector or Header).")
+        _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
     request = Request.new method uri parsed_headers
     response = HTTP.new.request request

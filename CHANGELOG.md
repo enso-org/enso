@@ -73,6 +73,9 @@
   scrollbar.][3824]
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
+- [The default text visualisation now loads its content lazily from the
+  backend][3910]. This means that the visualisation cannot be overwhelmed by
+  large amounts of data.
 - [Added project snapshot saving on shortcut][3923]
 - [The color of the displayed project name indicates whether the project's
   current state is saved in a snapshot.][3950] The project name is darker when
@@ -81,6 +84,8 @@
 - [Added shortcut to interrupt the program][3967]
 - [Added suggestion dropdown for function arguments][4013]. The dropdown is
   present only when the argument is of type that has a predefined set of values.
+- [Separate component browser navigator sections for modules imported from
+  different namespaces][4044]
 
 #### EnsoGL (rendering engine)
 
@@ -114,11 +119,24 @@
   steps towards migrating the Cloud Dashboard from the existing React (web-only)
   implementation towards a shared structure that can be used in both the Desktop
   and Web versions of the IDE.
+- [Removed Cloud Dashboard][4047]. The Cloud Dashboard was being rewritten in
+  EnsoGL but after internal discussion we've decided to rewrite it in React,
+  with a shared implementation between the Desktop and Web versions of the IDE.
 - [Added a new component: Dropdown][3985]. A list of selectable labeled entries,
   suitable for single and multi-select scenarios.
+- [Compile-time shader optimizer was implemented][4003]. It is capable of
+  extracting non-optimized shaders from the compiled WASM artifacts, running
+  stand-alone optimization toolchain (glslc, spirv-opt, spirv-cross), and
+  injecting optimized shaders back to WASM during its initialization process.
+  Unfortunately, it caused our theme system to stop working correctly, because
+  generated shaders differ per theme (only light theme is available, the dark
+  theme has been disabled). We will support multiple themes in the future, but
+  this is not on our priority list right now.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
+[4047]: https://github.com/enso-org/enso/pull/4047
+[4003]: https://github.com/enso-org/enso/pull/4003
 
 #### Enso Standard Library
 
@@ -265,6 +283,8 @@
 - [Added support for milli and micro seconds, new short form for rename_columns
   and fixed issue with compare_to versus Nothing][3874]
 - [Aligned `Text.match`/`Text.locate` API][3841]
+- [There is a new API to lazily feed visualisation information to the
+  IDE.][3910]
 - [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
 - [Improvements to JSON, Pair, Statistics and other minor tweaks.][3964]
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
@@ -274,6 +294,10 @@
   to the types.][4026]
 - [Implemented `Table.distinct` for Database backends.][4027]
 - [Implemented `Table.union` for the in-memory backend.][4052]
+- [Implemented `Table.cross_join` and `Table.zip` for the in-memory
+  backend.][4063]
+- [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new
+  simpler API.][4078]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -419,17 +443,22 @@
 [3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
 [3885]: https://github.com/enso-org/enso/pull/3885
+[3910]: https://github.com/enso-org/enso/pull/3910
 [3919]: https://github.com/enso-org/enso/pull/3919
 [3923]: https://github.com/enso-org/enso/pull/3923
 [3950]: https://github.com/enso-org/enso/pull/3950
 [3964]: https://github.com/enso-org/enso/pull/3964
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
+[3878]: https://github.com/enso-org/enso/pull/3878
 [3997]: https://github.com/enso-org/enso/pull/3997
 [4013]: https://github.com/enso-org/enso/pull/4013
 [4026]: https://github.com/enso-org/enso/pull/4026
 [4027]: https://github.com/enso-org/enso/pull/4027
+[4044]: https://github.com/enso-org/enso/pull/4044
 [4052]: https://github.com/enso-org/enso/pull/4052
+[4063]: https://github.com/enso-org/enso/pull/4063
+[4078]: https://github.com/enso-org/enso/pull/4078
 
 #### Enso Compiler
 
@@ -510,9 +539,14 @@
 - [Sync language server with file system after VCS restore][4020]
 - [`ArrayOverBuffer` behaves like an `Array` and `Array.sort` no longer sorts in
   place][4022]
+- [Implement hashing functionality for all objects][3878]
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
 - [Attach visualizations to sub-expressions][4048]
+- [Add Meta.get_annotation method][4049]
+- [Resolve Fully Qualified Names][4056]
+- [Optimize Atom storage layouts][3862]
+- [Make instance methods callable like statics for builtin types][4077]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -580,6 +614,7 @@
 [3810]: https://github.com/enso-org/enso/pull/3810
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3851]: https://github.com/enso-org/enso/pull/3851
+[3862]: https://github.com/enso-org/enso/pull/3862
 [3897]: https://github.com/enso-org/enso/pull/3897
 [3906]: https://github.com/enso-org/enso/pull/3906
 [3941]: https://github.com/enso-org/enso/pull/3941
@@ -598,6 +633,9 @@
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
 [4048]: https://github.com/enso-org/enso/pull/4048
+[4049]: https://github.com/enso-org/enso/pull/4049
+[4056]: https://github.com/enso-org/enso/pull/4056
+[4077]: https://github.com/enso-org/enso/pull/4077
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

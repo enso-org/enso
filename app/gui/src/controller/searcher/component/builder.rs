@@ -90,6 +90,52 @@ impl ModuleGroups {
 
 
 
+// ================
+// === Sections ===
+// ================
+
+/// Construct a component section from a list of module groups.
+fn new_section(name: ImString, modules: &[&ModuleGroups]) -> component::Section {
+    let modules_iter = modules.iter();
+    let mut module_builder = component::group::AlphabeticalListBuilder::default();
+    module_builder.extend(modules_iter.clone().map(|g| g.content.clone_ref()));
+    let modules = module_builder.build();
+    let mut flattened_module_builder = component::group::AlphabeticalListBuilder::default();
+    flattened_module_builder.extend(modules_iter.filter_map(|g| g.flattened_content.clone()));
+    let modules_flattened = flattened_module_builder.build();
+    component::Section { modules, modules_flattened, name }
+}
+
+/// The sections builder collects module groups by namespace in alphabetical order. It builds a
+/// list of component sections.
+struct Sections<'a> {
+    modules: BTreeMap<ImString, Vec<&'a ModuleGroups>>,
+}
+
+impl<'a> Sections<'a> {
+    /// Collect module groups by namespace in alphabetical order.
+    fn new(groups: Vec<&'a ModuleGroups>) -> Self {
+        let mut modules: BTreeMap<_, Vec<&ModuleGroups>> = BTreeMap::new();
+        for group in groups {
+            let namespace = group.qualified_name.project().namespace.clone();
+            modules.entry(namespace).or_insert_with(default).push(group);
+        }
+        Sections { modules }
+    }
+
+    /// Build a list of component sections from the collected module groups.
+    fn build(&self) -> Vec<component::Section> {
+        self.modules.iter().map(|(name, modules)| new_section(name.clone(), modules)).collect()
+    }
+
+    /// Get a map from section names to section indices.
+    fn section_indices(&self) -> HashMap<ImString, usize> {
+        self.modules.keys().enumerate().map(|(pos, name)| (name.clone(), pos)).collect()
+    }
+}
+
+
+
 // ============
 // === List ===
 // ============
@@ -240,16 +286,14 @@ impl List {
             }
         }
         self.local_scope.update_sorting(components_order);
-        let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
-        let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
-        top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
-        let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
-        top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
         let favorites = self.build_favorites_and_add_to_all_components();
+        let top_module_groups = self.module_groups.values().filter(|g| g.is_top_module).collect();
+        let section_list_builder = Sections::new(top_module_groups);
+
         component::List {
             all_components: Rc::new(self.all_components),
-            top_modules: top_mdl_bld.build(),
-            top_modules_flattened: top_mdl_flat_bld.build(),
+            top_module_sections: Rc::new(section_list_builder.build()),
+            top_module_section_indices: Rc::new(section_list_builder.section_indices()),
             module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
@@ -321,8 +365,12 @@ mod tests {
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, second_part);
         let list = builder.build();
 
-        let top_modules: Vec<ComparableGroupData> =
-            list.top_modules.iter().map(Into::into).collect();
+        let top_modules: Vec<ComparableGroupData> = list
+            .top_module_sections
+            .iter()
+            .flat_map(|section| section.modules.iter())
+            .map(Into::into)
+            .collect();
         let expected = vec![
             ComparableGroupData {
                 name:         "Test.TopModule1",
@@ -337,8 +385,12 @@ mod tests {
         ];
         assert_eq!(top_modules, expected);
 
-        let flattened_top_modules: Vec<ComparableGroupData> =
-            list.top_modules_flattened.iter().map(Into::into).collect();
+        let flattened_top_modules: Vec<ComparableGroupData> = list
+            .top_module_sections
+            .iter()
+            .flat_map(|section| section.modules_flattened.iter())
+            .map(Into::into)
+            .collect();
         let expected = vec![
             ComparableGroupData {
                 name:         "Test.TopModule1",

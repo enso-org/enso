@@ -28,7 +28,13 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
 
   @Override
   public NumericStorage<?> runMap(LongStorage storage, Object arg) {
-    if (!alwaysCastToDouble && arg instanceof Long x) {
+    if (arg == null) {
+      if (alwaysCastToDouble) {
+        return DoubleStorage.makeEmpty(storage.size());
+      } else {
+        return LongStorage.makeEmpty(storage.size());
+      }
+    } else if (!alwaysCastToDouble && arg instanceof Long x) {
       long[] newVals = new long[storage.size()];
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i)) {

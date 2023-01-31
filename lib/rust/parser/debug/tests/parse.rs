@@ -137,8 +137,18 @@ fn doc_comments() {
         " foo",
     ];
     #[rustfmt::skip]
-    test(&lines.join("\n"), block![
-        (Documented (#((Section " Test indent handling")) #(())) (Ident foo))]);
+    test!(&lines.join("\n"), (Documented (#((Section " Test indent handling")) #(())) (Ident foo)));
+    #[rustfmt::skip]
+    let lines = vec![
+        " ## Test indent handling",
+        "  ",
+        " foo",
+    ];
+    #[rustfmt::skip]
+    test!(&lines.join("\n"),
+        (Documented
+         (#((Section " Test indent handling")) #(() ()))
+         (Ident foo)));
 }
 
 
@@ -688,20 +698,12 @@ fn unevaluated_argument() {
 
 #[test]
 fn unary_operator_missing_operand() {
-    let code = ["main ~ = x"];
-    let expected = block![
-        (Function (Ident main) #((() (UnaryOprApp "~" ()) () ())) "=" (Ident x))
-    ];
-    test(&code.join("\n"), expected);
+    test_invalid("main ~ = x");
 }
 
 #[test]
 fn unary_operator_at_end_of_expression() {
-    let code = ["foo ~"];
-    let expected = block![
-        (App (Ident foo) (UnaryOprApp "~" ()))
-    ];
-    test(&code.join("\n"), expected);
+    test_invalid("foo ~");
 }
 
 #[test]
@@ -1227,8 +1229,8 @@ fn trailing_whitespace() {
 
 #[test]
 fn at_operator() {
-    test!("foo@bar", (OprApp (Ident foo) (Ok "@") (Ident bar)));
-    test!("foo @ bar", (OprApp (Ident foo) (Ok "@") (Ident bar)));
+    test_invalid("foo@bar");
+    test_invalid("foo @ bar");
 }
 
 #[test]

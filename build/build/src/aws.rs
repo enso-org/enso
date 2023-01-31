@@ -26,7 +26,7 @@ pub const MANIFEST_FILENAME: &str = "manifest.yaml";
 
 
 
-#[derive(Clone, Debug, Display, Serialize, Deserialize, Shrinkwrap)]
+#[derive(Clone, Debug, Display, Serialize, Deserialize, Deref)]
 pub struct Edition(pub String);
 
 impl AsRef<str> for Edition {

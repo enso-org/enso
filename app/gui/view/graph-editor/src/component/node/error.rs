@@ -71,7 +71,6 @@ const BORDER_RADIUS: f32 = 14.0;
 /// The container containing just the error visualization and background.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Container {
-    logger:         Logger,
     visualization:  error_visualization::Error,
     scene:          Scene,
     // TODO : We added a HTML background to the `View`, because "shape" background was
@@ -93,7 +92,6 @@ impl Container {
     /// Constructor of error container.
     pub fn new(app: &Application) -> Self {
         let scene = app.display.default_scene.clone_ref();
-        let logger = Logger::new("error::Container");
         let display_object = display::object::Instance::new();
         let background_dom = Self::create_background_dom(&scene);
         let visualization = error_visualization::Error::new(app);
@@ -101,7 +99,7 @@ impl Container {
         display_object.add_child(&background_dom);
         display_object.add_child(&visualization);
 
-        Self { logger, visualization, scene, background_dom, display_object }
+        Self { visualization, scene, background_dom, display_object }
     }
 
     fn create_background_dom(scene: &Scene) -> DomSymbol {

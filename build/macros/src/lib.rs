@@ -13,6 +13,7 @@
 
 
 mod prelude {
+    pub use derive_more::*;
     pub use enso_build_base::prelude::*;
 
     pub use convert_case::Case;
@@ -21,7 +22,6 @@ mod prelude {
     pub use proc_macro2::Span;
     pub use proc_macro2::TokenStream;
     pub use quote::quote;
-    pub use shrinkwraprs::Shrinkwrap;
     pub use syn::parse::Parse;
     pub use syn::Data;
     pub use syn::DeriveInput;

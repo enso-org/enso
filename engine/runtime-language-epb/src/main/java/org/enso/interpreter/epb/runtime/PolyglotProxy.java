@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -408,6 +409,131 @@ public final class PolyglotProxy implements TruffleObject {
     try {
       return contextRewrapNode.execute(
           arrays.readArrayElement(this.delegate, index), origin, target);
+    } catch (Throwable e) {
+      profile.enter();
+      if (errors.isException(e)) {
+        // `isException` means this must be AbstractTruffleException
+        //noinspection ConstantConditions
+        throw contextRewrapExceptionNode.execute((AbstractTruffleException) e, origin, target);
+      } else {
+        throw e;
+      }
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  public boolean hasHashEntries(
+      @CachedLibrary("this.delegate") InteropLibrary hashMaps,
+      @CachedLibrary("this") InteropLibrary node,
+      @CachedLibrary(limit = "5") InteropLibrary errors,
+      @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
+      @Cached @Cached.Exclusive BranchProfile profile) {
+    Object p = enterOrigin(node);
+    try {
+      return hashMaps.hasHashEntries(this.delegate);
+    } catch (Throwable e) {
+      profile.enter();
+      if (errors.isException(e)) {
+        // `isException` means this must be AbstractTruffleException
+        //noinspection ConstantConditions
+        throw contextRewrapExceptionNode.execute((AbstractTruffleException) e, origin, target);
+      } else {
+        throw e;
+      }
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  public long getHashSize(
+      @CachedLibrary("this.delegate") InteropLibrary hashes,
+      @CachedLibrary("this") InteropLibrary node,
+      @CachedLibrary(limit = "5") InteropLibrary errors,
+      @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
+      @Cached @Cached.Exclusive BranchProfile profile)
+      throws UnsupportedMessageException {
+    Object p = enterOrigin(node);
+    try {
+      return hashes.getHashSize(this.delegate);
+    } catch (Throwable e) {
+      profile.enter();
+      if (errors.isException(e)) {
+        // `isException` means this must be AbstractTruffleException
+        //noinspection ConstantConditions
+        throw contextRewrapExceptionNode.execute((AbstractTruffleException) e, origin, target);
+      } else {
+        throw e;
+      }
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  public boolean isHashEntryReadable(
+      Object key,
+      @CachedLibrary("this.delegate") InteropLibrary hashes,
+      @CachedLibrary("this") InteropLibrary node,
+      @CachedLibrary(limit = "5") InteropLibrary errors,
+      @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
+      @Cached @Cached.Exclusive BranchProfile profile) {
+    Object p = enterOrigin(node);
+    try {
+      return hashes.isHashEntryReadable(this.delegate, key);
+    } catch (Throwable e) {
+      profile.enter();
+      if (errors.isException(e)) {
+        // `isException` means this must be AbstractTruffleException
+        //noinspection ConstantConditions
+        throw contextRewrapExceptionNode.execute((AbstractTruffleException) e, origin, target);
+      } else {
+        throw e;
+      }
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  public Object readHashValue(
+      Object key,
+      @CachedLibrary("this.delegate") InteropLibrary hashes,
+      @CachedLibrary("this") InteropLibrary node,
+      @CachedLibrary(limit = "5") InteropLibrary errors,
+      @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
+      @Cached @Cached.Exclusive BranchProfile profile)
+      throws UnsupportedMessageException, UnknownKeyException {
+    Object p = enterOrigin(node);
+    try {
+      return hashes.readHashValue(this.delegate, key);
+    } catch (Throwable e) {
+      profile.enter();
+      if (errors.isException(e)) {
+        // `isException` means this must be AbstractTruffleException
+        //noinspection ConstantConditions
+        throw contextRewrapExceptionNode.execute((AbstractTruffleException) e, origin, target);
+      } else {
+        throw e;
+      }
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  public Object getHashEntriesIterator(
+      @CachedLibrary("this.delegate") InteropLibrary hashes,
+      @CachedLibrary("this") InteropLibrary node,
+      @CachedLibrary(limit = "5") InteropLibrary errors,
+      @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
+      @Cached @Cached.Exclusive BranchProfile profile)
+      throws UnsupportedMessageException {
+    Object p = enterOrigin(node);
+    try {
+      return hashes.getHashEntriesIterator(this.delegate);
     } catch (Throwable e) {
       profile.enter();
       if (errors.isException(e)) {

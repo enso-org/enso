@@ -10,13 +10,16 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
+import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
@@ -25,6 +28,9 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
@@ -37,12 +43,16 @@ public final class AtomConstructor implements TruffleObject {
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
+  private final Lock layoutsLock = new ReentrantLock();
+  private @CompilerDirectives.CompilationFinal Layout boxedLayout;
+  private Layout[] unboxingLayouts = new Layout[0];
+
   private final Type type;
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(LocalScope,ExpressionNode[],ExpressionNode[],ArgumentDefinition...)}
-   * is called.
+   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[], Annotation[],
+   * ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
@@ -53,8 +63,8 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(LocalScope,ExpressionNode[],ExpressionNode[],ArgumentDefinition...)}
-   * is called.
+   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[], Annotation[],
+   * ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
@@ -81,12 +91,13 @@ public final class AtomConstructor implements TruffleObject {
    *
    * @return {@code this}, for convenience
    */
-  public AtomConstructor initializeFields(ArgumentDefinition... args) {
+  public AtomConstructor initializeFields(EnsoLanguage language, ArgumentDefinition... args) {
     ExpressionNode[] reads = new ExpressionNode[args.length];
     for (int i = 0; i < args.length; i++) {
       reads[i] = ReadArgumentNode.build(i, null);
     }
-    return initializeFields(LocalScope.root(), new ExpressionNode[0], reads, args);
+    return initializeFields(
+        language, LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
   }
 
   /**
@@ -99,18 +110,24 @@ public final class AtomConstructor implements TruffleObject {
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(
+      EnsoLanguage language,
       LocalScope localScope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
+      Annotation[] annotations,
       ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
-    this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
-    generateQualifiedAccessor();
     if (args.length == 0) {
-      cachedInstance = new Atom(this);
+      cachedInstance = new BoxingAtom(this);
     } else {
       cachedInstance = null;
     }
+    if (Layout.isAritySupported(args.length)) {
+      boxedLayout = Layout.create(args.length, 0);
+    }
+    this.constructorFunction =
+        buildConstructorFunction(language, localScope, assignments, varReads, annotations, args);
+    generateQualifiedAccessor();
     return this;
   }
 
@@ -128,16 +145,17 @@ public final class AtomConstructor implements TruffleObject {
    *     {@link AtomConstructor}
    */
   private Function buildConstructorFunction(
+      EnsoLanguage language,
       LocalScope localScope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
+      Annotation[] annotations,
       ArgumentDefinition[] args) {
-
     ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
     BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
         ClosureRootNode.build(
-            null,
+            language,
             localScope,
             definitionScope,
             instantiateBlock,
@@ -146,7 +164,7 @@ public final class AtomConstructor implements TruffleObject {
             null,
             false);
     RootCallTarget callTarget = rootNode.getCallTarget();
-    return new Function(callTarget, null, new FunctionSchema(args));
+    return new Function(callTarget, null, new FunctionSchema(annotations, args));
   }
 
   private void generateQualifiedAccessor() {
@@ -207,7 +225,7 @@ public final class AtomConstructor implements TruffleObject {
   // TODO [AA] Check where this can be called from user code.
   public Atom newInstance(Object... arguments) {
     if (cachedInstance != null) return cachedInstance;
-    return new Atom(this, arguments);
+    return new BoxingAtom(this, arguments);
   }
 
   /**
@@ -227,6 +245,37 @@ public final class AtomConstructor implements TruffleObject {
    */
   public Function getConstructorFunction() {
     return constructorFunction;
+  }
+
+  public Layout[] getUnboxingLayouts() {
+    return unboxingLayouts;
+  }
+
+  public Layout getBoxedLayout() {
+    return boxedLayout;
+  }
+
+  /**
+   * Adds a layout, if the caller knows the latest version of the layouts array. This is verified by
+   * checking the layout count they know about. This is enough, because the array is append-only.
+   *
+   * @param layout the layout to add
+   * @param knownLayoutCount the number of layouts the caller knows about
+   */
+  public void atomicallyAddLayout(Layout layout, int knownLayoutCount) {
+    layoutsLock.lock();
+    try {
+      if (unboxingLayouts.length != knownLayoutCount) {
+        // client has outdated information and should re-fetch.
+        return;
+      }
+      var newLayouts = new Layout[unboxingLayouts.length + 1];
+      System.arraycopy(unboxingLayouts, 0, newLayouts, 0, unboxingLayouts.length);
+      newLayouts[unboxingLayouts.length] = layout;
+      unboxingLayouts = newLayouts;
+    } finally {
+      layoutsLock.unlock();
+    }
   }
 
   /**

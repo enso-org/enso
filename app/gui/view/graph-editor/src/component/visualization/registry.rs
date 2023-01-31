@@ -22,7 +22,6 @@ use enso_prelude::CloneRef;
 pub struct Registry {
     path_map: Rc<RefCell<HashMap<visualization::Path, visualization::Definition>>>,
     type_map: Rc<RefCell<HashMap<enso::Type, Vec<visualization::Definition>>>>,
-    logger:   Logger,
 }
 
 impl Registry {
@@ -30,8 +29,7 @@ impl Registry {
     pub fn new() -> Self {
         let path_map = default();
         let type_map = default();
-        let logger = Logger::new("Registry");
-        Registry { path_map, type_map, logger }
+        Registry { path_map, type_map }
     }
 
     /// Return a `Registry` pre-populated with default visualizations.
@@ -60,13 +58,7 @@ impl Registry {
         let class = class.into();
         match class {
             Ok(class) => self.add(class),
-            Err(err) => {
-                warning!(
-                    &self.logger,
-                    "Failed to add visualization class to registry due to error: \
-                                       {err}"
-                )
-            }
+            Err(err) => warn!("Failed to add visualization class to registry due to error: {err}"),
         };
     }
 
@@ -100,7 +92,7 @@ impl Registry {
 
     /// Add default visualizations to the registry.
     pub fn add_default_visualizations(&self) {
-        self.add(builtin::visualization::native::RawText::definition());
+        self.add(builtin::visualization::native::text_visualization::text_visualisation());
         self.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
         self.try_add_java_script(builtin::visualization::java_script::histogram_visualization());
         self.try_add_java_script(builtin::visualization::java_script::heatmap_visualization());
@@ -113,7 +105,7 @@ impl Registry {
 
     /// Return a default visualisation definition.
     pub fn default_visualisation() -> visualization::Definition {
-        builtin::visualization::native::RawText::definition()
+        builtin::visualization::native::text_visualization::text_visualisation()
     }
 }
 

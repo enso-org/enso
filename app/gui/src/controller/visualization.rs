@@ -71,8 +71,7 @@ pub enum VisualizationPath {
 pub type EmbeddedVisualizationName = String;
 
 /// Embedded visualizations mapped from name to source code.
-#[derive(Shrinkwrap, Debug, Clone, Default)]
-#[shrinkwrap(mutable)]
+#[derive(Debug, Clone, Default, Deref, DerefMut)]
 pub struct EmbeddedVisualizations {
     #[allow(missing_docs)]
     pub map: HashMap<EmbeddedVisualizationName, definition::Definition>,
@@ -90,7 +89,6 @@ pub struct EmbeddedVisualizations {
 pub struct Handle {
     language_server_rpc:     Rc<language_server::Connection>,
     embedded_visualizations: Rc<RefCell<EmbeddedVisualizations>>,
-    logger:                  Logger,
 }
 
 impl Handle {
@@ -98,11 +96,9 @@ impl Handle {
     pub fn new(
         language_server_rpc: Rc<language_server::Connection>,
         embedded_visualizations: EmbeddedVisualizations,
-        logger: &Logger,
     ) -> Self {
-        let logger = logger.sub("VisualizationController");
         let embedded_visualizations = Rc::new(RefCell::new(embedded_visualizations));
-        Self { language_server_rpc, embedded_visualizations, logger }
+        Self { language_server_rpc, embedded_visualizations }
     }
 
     async fn list_project_specific_visualizations(&self) -> FallibleResult<Vec<VisualizationPath>> {
@@ -163,8 +159,7 @@ impl Handle {
                     let sources: &[(&str, &str)] = &[(file_name, &js_code)];
                     Sources::from_files(sources)
                 } else {
-                    warning!(
-                        self.logger,
+                    warn!(
                         "Unable to get a file name from {path}. Visualization source map will not be provided."
                     );
                     Sources::empty()
@@ -247,8 +242,7 @@ mod tests {
         let embedded_visualization = builtin::visualization::native::BubbleChart::definition();
         embedded_visualizations
             .insert("[Demo] Bubble Visualization".to_string(), embedded_visualization.clone());
-        let logger = Logger::new("Mock logger");
-        let vis_controller = Handle::new(language_server, embedded_visualizations, &logger);
+        let vis_controller = Handle::new(language_server, embedded_visualizations);
 
         let visualizations = vis_controller.list_visualizations().await;
         let visualizations = visualizations.expect("Couldn't list visualizations.");

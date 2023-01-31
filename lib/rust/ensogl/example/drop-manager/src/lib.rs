@@ -24,7 +24,6 @@
 #![warn(unused_qualifications)]
 
 use enso_prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::display::world::World;
 use ensogl_core::frp::web;
@@ -34,18 +33,18 @@ use wasm_bindgen_futures::spawn_local;
 
 fn download_file(file: ensogl_drop_manager::File) {
     spawn_local(async move {
-        INFO!("Received file: {file:?}");
+        info!("Received file: {file:?}");
         loop {
             match file.read_chunk().await {
                 Ok(Some(chunk)) => {
-                    INFO!("Received chunk: {chunk:?}");
+                    info!("Received chunk: {chunk:?}");
                 }
                 Ok(None) => {
-                    INFO!("All chunks received successfully");
+                    info!("All chunks received successfully");
                     break;
                 }
                 Err(err) => {
-                    ERROR!("Error in receiving chunk promise: {err:?}");
+                    error!("Error in receiving chunk promise: {err:?}");
                     break;
                 }
             }
@@ -79,7 +78,7 @@ pub fn main() {
         })
         .forget();
 
-    INFO!("Drag and drop file to the scene to test the drop manager functionality.");
+    info!("Drag and drop file to the scene to test the drop manager functionality.");
 
     std::mem::forget(world);
     std::mem::forget(network);

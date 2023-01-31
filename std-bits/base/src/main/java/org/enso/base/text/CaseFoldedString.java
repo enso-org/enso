@@ -3,6 +3,8 @@ package org.enso.base.text;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.CaseMap;
 import com.ibm.icu.text.CaseMap.Fold;
+import org.enso.base.arrays.IntArrayBuilder;
+
 import java.util.Locale;
 
 /**

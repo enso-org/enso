@@ -146,7 +146,6 @@ ensogl::define_endpoints! {
 /// An internal model of Status Bar component
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    logger:          Logger,
     display_object:  display::object::Instance,
     root:            display::object::Instance,
     background:      background::View,
@@ -160,7 +159,6 @@ struct Model {
 impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let logger = Logger::new("StatusBar");
         let display_object = display::object::Instance::new();
         let root = display::object::Instance::new();
         let background = background::View::new();
@@ -180,18 +178,8 @@ impl Model {
         label.frp.set_property(.., text_color);
         label.frp.set_property_default(text_color);
 
-        Self {
-            logger,
-            display_object,
-            root,
-            background,
-            label,
-            events,
-            processes,
-            next_process_id,
-            camera,
-        }
-        .init()
+        Self { display_object, root, background, label, events, processes, next_process_id, camera }
+            .init()
     }
 
     fn init(self) -> Self {

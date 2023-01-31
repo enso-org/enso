@@ -9,6 +9,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.*;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -47,6 +48,7 @@ import org.enso.polyglot.data.TypeGraph;
   PanicException.class,
   PanicSentinel.class,
   Vector.class,
+  EnsoHashMap.class,
   Warning.class,
   EnsoFile.class,
   EnsoDate.class,

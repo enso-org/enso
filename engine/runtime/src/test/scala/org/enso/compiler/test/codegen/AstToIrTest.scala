@@ -1041,7 +1041,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |type Foo a b
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Name.Annotation]
+      ir.bindings.head shouldBe an[IR.Name.BuiltinAnnotation]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.SugaredType]
     }
 
@@ -1059,8 +1059,8 @@ class AstToIrTest extends CompilerTest with Inside {
       val complexType =
         ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
 
-      complexType.body.head shouldBe an[IR.Name.Annotation]
-      complexType.body(2) shouldBe an[IR.Name.Annotation]
+      complexType.body.head shouldBe an[IR.Name.BuiltinAnnotation]
+      complexType.body(2) shouldBe an[IR.Name.BuiltinAnnotation]
     }
   }
 

@@ -195,7 +195,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`EmptyStackError`](#emptystackerror)
   - [`InvalidStackItemError`](#invalidstackitemerror)
   - [`ModuleNotFoundError`](#modulenotfounderror)
-  - [`ModuleNotFoundForExpressionError`](#modulenotfoundforexpressionerror)
   - [`VisualisationNotFoundError`](#visualisationnotfounderror)
   - [`VisualisationExpressionError`](#visualisationexpressionerror)
   - [`FileNotOpenedError`](#filenotopenederror)
@@ -352,9 +351,14 @@ An information about the computed value.
 type ExpressionUpdatePayload = Value | DatafalowError | Panic | Pending;
 
 /**
- * An empty payload. Indicates that the expression was computed to a value.
+ * Indicates that the expression was computed to a value.
  */
-interface Value {}
+interface Value {
+  /**
+   * Information about attached warnings.
+   */
+  warnings?: Warnings;
+}
 
 /**
  * Indicates that the expression was computed to an error.
@@ -395,6 +399,23 @@ interface Pending {
    * Optional amount of already done work as a number between `0.0` to `1.0`.
    */
   progress?: Number;
+}
+
+/**
+ * Information about warnings associated with the value.
+ */
+interface Warnings {
+  /**
+   * The number of attached warnings.
+   */
+  count: number;
+
+  /**
+   * If the value has a single warning attached, this field contains textual
+   * representation of the attached warning. In general, warning values should
+   * be obtained by attaching an appropriate visualization to a value.
+   */
+  value?: string;
 }
 ```
 
@@ -3992,8 +4013,6 @@ null;
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
   the visualisation cannot be found.
-- [`ModuleNotFoundForExpressionError`](#modulenotfoundforexpressionerror) to
-  signal that the module containing the provided expression cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
   the expression specified in the `VisualisationConfiguration` cannot be
   evaluated.
@@ -4032,8 +4051,6 @@ null;
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
   the visualisation cannot be found.
-- [`ModuleNotFoundForExpressionError`](#modulenotfoundforexpressionerror) to
-  signal that the module containing the provided expression cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
   the expression specified in the `VisualisationConfiguration` cannot be
   evaluated.
@@ -5502,18 +5519,6 @@ cannot be evaluated. The error contains an optional `data` field of type
     "expressionId" : "aa1f75c4-8c4d-493d-a6a7-72123a52f084",
     "stack" : []
   }
-}
-```
-
-### `ModuleNotFoundForExpressionError`
-
-It signals that the module containing the provided expression id cannot be
-found.
-
-```typescript
-"error" : {
-  "code" : 2008,
-  "message" : "Module not found for [aa1f75c4-8c4d-493d-a6a7-72123a52f084]"
 }
 ```
 

@@ -135,7 +135,7 @@ impl<'a> IdentifierValidator<'a> {
 
     /// Marks given identifier as checked.
     pub fn validate_identifier(&mut self, name: &str) {
-        let err = iformat!("{self.name}: unexpected identifier `{name}` validated");
+        let err = format!("{}: unexpected identifier `{name}` validated", self.name);
         let used = self.validations.get_mut(name).expect(&err);
         *used = HasBeenValidated::Yes;
     }
@@ -151,7 +151,7 @@ impl<'a> IdentifierValidator<'a> {
             let crumbs = &identifier.crumbs;
             let ast_result = self.ast.get_traversing(crumbs);
             let ast = ast_result.expect("failed to retrieve ast from crumb");
-            let name_err = || ipanic!("Failed to use AST {ast.repr()} as an identifier name");
+            let name_err = || panic!("Failed to use AST {} as an identifier name", ast.repr());
             let name = ast::identifier::name(ast).unwrap_or_else(name_err);
             assert_eq!(name, identifier.item)
         }
@@ -172,7 +172,7 @@ impl<'a> Drop for IdentifierValidator<'a> {
                 )
             }
         } else {
-            DEBUG!("Skipping identifier validation, because thread is already in panic.");
+            debug!("Skipping identifier validation, because thread is already in panic.");
         }
     }
 }

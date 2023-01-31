@@ -18,6 +18,8 @@ use crate::presenter::graph::ViewNodeId;
 use crate::presenter::searcher::provider::ControllerComponentsProviderExt;
 
 use enso_frp as frp;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::documentation_ir::Placeholder;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
@@ -78,7 +80,6 @@ fn doc_placeholder_for(suggestion: &model::suggestion_database::Entry) -> String
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    logger:     Logger,
     controller: controller::Searcher,
     view:       view::project::View,
     provider:   Rc<RefCell<Option<provider::Component>>>,
@@ -88,14 +89,12 @@ struct Model {
 impl Model {
     #[profile(Debug)]
     fn new(
-        parent: impl AnyLogger,
         controller: controller::Searcher,
         view: view::project::View,
         input_view: ViewNodeId,
     ) -> Self {
-        let logger = parent.sub("presenter::Searcher");
         let provider = default();
-        Self { logger, controller, view, provider, input_view }
+        Self { controller, view, provider, input_view }
     }
 
     #[profile(Debug)]
@@ -221,15 +220,23 @@ impl Model {
         }
     }
 
-    fn set_section_name_crumb(&self, text: &str) {
+    fn set_section_name_crumb(&self, text: ImString) {
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
             let breadcrumbs = &browser.model().list.model().breadcrumbs;
-            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, ImString::new(text).into()));
+            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
         }
     }
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
-        self.set_section_name_crumb(section_id.as_str());
+        let components = self.controller.components();
+        let mut section_names = components.top_module_section_names();
+        let name = match section_id {
+            component_grid::SectionId::Namespace(n) =>
+                section_names.nth(n).map(|n| n.clone_ref()).unwrap_or_default(),
+            component_grid::SectionId::Popular => "Popular".to_im_string(),
+            component_grid::SectionId::LocalScope => "Local".to_im_string(),
+        };
+        self.set_section_name_crumb(name);
     }
 
     fn module_entered(&self, module: component_grid::ElementId) {
@@ -268,23 +275,15 @@ impl Model {
     fn documentation_of_component(
         &self,
         id: view::component_browser::component_list_panel::grid::GroupEntryId,
-    ) -> String {
+    ) -> EntryDocumentation {
         let component = self.controller.provider().component_by_view_id(id);
         if let Some(component) = component {
             match component.data {
-                component::Data::FromDatabase { entry, .. } => {
-                    if let Some(documentation) = &entry.documentation_html {
-                        let title = title_for_docs(&entry);
-                        format!(
-                            "<div class=\"enso docs summary\"><p />{title}</div>{documentation}"
-                        )
-                    } else {
-                        doc_placeholder_for(&entry)
-                    }
-                }
+                component::Data::FromDatabase { id, .. } =>
+                    self.controller.documentation_for_entry(*id),
                 component::Data::Virtual { snippet } => {
                     if let Some(documentation) = &snippet.documentation_html {
-                        documentation.to_string()
+                        EntryDocumentation::Builtin(documentation.into())
                     } else {
                         default()
                     }
@@ -295,10 +294,14 @@ impl Model {
         }
     }
 
-    fn documentation_of_group(&self, id: component_grid::GroupId) -> String {
+    fn documentation_of_group(&self, id: component_grid::GroupId) -> EntryDocumentation {
         let group = self.controller.provider().group_by_view_id(id);
         if let Some(group) = group {
-            iformat!("<div class=\"enso docs summary\"><p />{group.name}</div>")
+            if let Some(id) = group.component_id {
+                self.controller.documentation_for_entry(id)
+            } else {
+                Placeholder::VirtualComponentGroup { name: group.name.clone() }.into()
+            }
         } else {
             default()
         }
@@ -329,12 +332,11 @@ impl Searcher {
     /// Constructor. The returned structure works right away.
     #[profile(Task)]
     pub fn new(
-        parent: impl AnyLogger,
         controller: controller::Searcher,
         view: view::project::View,
         input_view: ViewNodeId,
     ) -> Self {
-        let model = Rc::new(Model::new(parent, controller, view, input_view));
+        let model = Rc::new(Model::new(controller, view, input_view));
         let network = frp::Network::new("presenter::Searcher");
 
         let graph = &model.view.graph().frp;
@@ -349,12 +351,15 @@ impl Searcher {
         match model.view.searcher() {
             SearcherVariant::ComponentBrowser(browser) => {
                 let grid = &browser.model().list.model().grid;
+                let navigator = &browser.model().list.model().section_navigator;
                 let breadcrumbs = &browser.model().list.model().breadcrumbs;
                 let documentation = &browser.model().documentation;
                 frp::extend! { network
-                    eval_ action_list_changed ([model, grid] {
+                    eval_ action_list_changed ([model, grid, navigator] {
                         model.provider.take();
                         let controller_provider = model.controller.provider();
+                        let namespace_section_count = controller_provider.namespace_section_count();
+                        navigator.set_namespace_section_count.emit(namespace_section_count);
                         let provider = provider::Component::provide_new_list(controller_provider, &grid);
                         *model.provider.borrow_mut() = Some(provider);
                     });
@@ -362,26 +367,26 @@ impl Searcher {
                     graph.set_node_expression <+ new_input;
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
-                    entry_hovered <- grid.hovered.map(|&s| s?.as_entry_id());
-                    entry_docs <- all_with3(&action_list_changed,
-                        &entry_selected,
-                        &entry_hovered,
-                        f!([model](_, selected, hovered) {
-                            let entry = hovered.as_ref().unwrap_or(selected);
-                            model.documentation_of_component(*entry)
-                        })
-                    );
-                    header_selected <- grid.active.filter_map(|element| {
-                        use component_grid::content::ElementId;
-                        use component_grid::content::ElementInGroup::Header;
-                        match element {
-                            Some(ElementId { element: Header, group}) => Some(*group),
-                            _ => None
+                    hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
+                        match (h, s) {
+                            (Some(h), Some(s)) => h != s,
+                            _ => false,
                         }
                     });
-                    header_docs <- header_selected.map(f!((id) model.documentation_of_group(*id)));
-                    documentation.frp.display_documentation <+ entry_docs;
-                    documentation.frp.display_documentation <+ header_docs;
+                    documentation.frp.show_hovered_item_preview_caption <+ hovered_not_selected;
+                    docs_params <- all3(&action_list_changed, &grid.active, &grid.hovered);
+                    docs <- docs_params.filter_map(f!([model]((_, selected, hovered)) {
+                        let entry = hovered.as_ref().or(selected.as_ref());
+                        entry.map(|entry| {
+                            if let Some(group_id) = entry.as_header() {
+                                model.documentation_of_group(group_id)
+                            } else {
+                                let entry_id = entry.as_entry_id().expect("GroupEntryId");
+                                model.documentation_of_component(entry_id)
+                            }
+                        })
+                    }));
+                    documentation.frp.display_documentation <+ docs;
 
                     eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
                     eval entry_selected((entry) model.suggestion_selected(*entry));
@@ -446,6 +451,9 @@ impl Searcher {
         let mut new_node = NewNodeInfo::new_pushed_back(DEFAULT_INPUT_EXPRESSION);
         new_node.metadata = Some(metadata);
         new_node.introduce_pattern = false;
+        let transaction_name = "Add code for created node's visualization preview.";
+        let _transaction =
+            graph_controller.undo_redo_repository().open_ignored_transaction(transaction_name);
         let created_node = graph_controller.add_node(new_node)?;
 
         graph.assign_node_view_explicitly(input, created_node);
@@ -488,7 +496,6 @@ impl Searcher {
     /// presenter handling it.
     #[profile(Task)]
     pub fn setup_controller(
-        parent: impl AnyLogger,
         ide_controller: controller::Ide,
         project_controller: controller::Project,
         graph_controller: controller::ExecutedGraph,
@@ -504,7 +511,6 @@ impl Searcher {
         )?;
 
         let searcher_controller = controller::Searcher::new_from_graph_controller(
-            &parent,
             ide_controller,
             &project_controller.model,
             graph_controller,
@@ -522,7 +528,7 @@ impl Searcher {
         }
 
         let input = parameters.input;
-        Ok(Self::new(parent, searcher_controller, view, input))
+        Ok(Self::new(searcher_controller, view, input))
     }
 
     /// Commit editing in the old Node Searcher.

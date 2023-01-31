@@ -158,4 +158,26 @@ class ImportsTest extends PackageTest {
   "Constructors" should "be exportable" in {
     evalTestProject("Test_Type_Exports").toString shouldEqual "(Some 10)"
   }
+
+  "Fully qualified names" should "not be resolved when lacking imports" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Fully_Qualified_Name_Failure"
+    ) should have message "Compilation aborted due to errors."
+
+    val outLines = consumeOut
+    outLines should have length 3
+    outLines(
+      2
+    ) shouldEqual "Main.enso[2:14-2:17]: Fully qualified name references a library Standard.Base but an import statement for it is missing."
+  }
+
+  "Fully qualified names" should "be resolved when library has already been loaded" in {
+    evalTestProject(
+      "Test_Fully_Qualified_Name_Success"
+    ).toString shouldEqual "0"
+    val outLines = consumeOut
+    outLines should have length 1
+    outLines(0) shouldEqual "Hello world!"
+  }
+
 }

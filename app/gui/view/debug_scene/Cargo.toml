@@ -14,4 +14,3 @@ debug-scene-icons = { path = "icons" }
 debug-scene-interface = { path = "interface" }
 debug-scene-text-grid-visualization = { path = "text-grid-visualization" }
 debug-scene-visualization = { path = "visualization" }
-debug-scene-cloud-dashboard = { path = "cloud-dashboard" }

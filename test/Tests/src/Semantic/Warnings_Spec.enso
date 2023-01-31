@@ -65,7 +65,7 @@ map_odd_warnings_and_errors value =
 throw_a_bar =
     Panic.throw "bar"
 
-Any.is_static_nothing x = x.is_nothing
+Any.is_static_nothing self x = x.is_nothing
 
 spec = Test.group "Dataflow Warnings" <|
     Test.specify "should allow to attach multiple warnings and read them back" <|

@@ -2,6 +2,8 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
+
+import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -30,6 +32,12 @@ public final class DoubleStorage extends NumericStorage<Double> {
     this.data = data;
     this.isMissing = isMissing;
     this.size = size;
+  }
+
+  public static DoubleStorage makeEmpty(int size) {
+    BitSet isMissing = new BitSet(size);
+    isMissing.set(0, size);
+    return new DoubleStorage(new long[0], size, new BitSet(size));
   }
 
   /** @inheritDoc */
@@ -288,6 +296,11 @@ public final class DoubleStorage extends NumericStorage<Double> {
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
     return new DoubleStorage(newData, newSize, newMask);
+  }
+
+  @Override
+  public Builder createDefaultBuilderOfSameType(int capacity) {
+    return NumericBuilder.createDoubleBuilder(capacity);
   }
 
   @Override

@@ -19,7 +19,6 @@ use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
 use ensogl::prelude::*;
 use span_tree::traits::*;
-use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;

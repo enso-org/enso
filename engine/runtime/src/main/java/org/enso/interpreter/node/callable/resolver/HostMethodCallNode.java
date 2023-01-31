@@ -80,6 +80,11 @@ public abstract class HostMethodCallNode extends Node {
      * Standard.Base.Data.Time.Time_Zone} and dispatching natively.
      */
     CONVERT_TO_TIME_ZONE,
+    /**
+     * The method call should be handled by converting {@code self} to a {@code
+     * Standard.Base.Data.Map} and dispatching natively.
+     */
+    CONVERT_TO_HASH_MAP,
     /** The method call should be handled by dispatching through the {@code Any} type. */
     NOT_SUPPORTED;
 
@@ -99,7 +104,8 @@ public abstract class HostMethodCallNode extends Node {
           && this != CONVERT_TO_DURATION
           && this != CONVERT_TO_ZONED_DATE_TIME
           && this != CONVERT_TO_TIME_OF_DAY
-          && this != CONVERT_TO_TIME_ZONE;
+          && this != CONVERT_TO_TIME_ZONE
+          && this != CONVERT_TO_HASH_MAP;
     }
   }
 
@@ -163,6 +169,8 @@ public abstract class HostMethodCallNode extends Node {
           return PolyglotCallType.CONVERT_TO_ARRAY;
         }
       }
+    } else if (library.hasHashEntries(self)) {
+      return PolyglotCallType.CONVERT_TO_HASH_MAP;
     }
 
     String methodName = symbol.getName();

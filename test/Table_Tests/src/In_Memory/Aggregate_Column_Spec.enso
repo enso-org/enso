@@ -39,7 +39,7 @@ spec = Test.group "Aggregate Columns" <|
             result.should_equal expected_result
 
     Test.specify "should be able to count a set" <|
-        test_aggregator simple_table (Count Nothing) "Count" simple_table.row_count
+        test_aggregator simple_table (Count) "Count" simple_table.row_count
         test_aggregator simple_table (Count test_name) test_name simple_table.row_count
         test_aggregator empty_table (Count test_name) test_name empty_table.row_count
 

@@ -3,7 +3,9 @@ package org.enso.interpreter.runtime.data.text;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.utilities.TriState;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -83,7 +85,7 @@ public final class Text implements TruffleObject {
         return false;
       }
       case UNKNOWN -> {
-        Normalizer2 normalizer = Normalizer2.getInstance(null, "nfc", Normalizer2.Mode.FCD);
+        Normalizer2 normalizer = Normalizer2.getNFDInstance();
         boolean isNormalized = normalizer.isNormalized(toString());
         setFcdNormalized(isNormalized);
         return isNormalized;

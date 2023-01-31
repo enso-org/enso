@@ -242,11 +242,12 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       );
       var inlineContext = new InlineContext(
           module,
+          redirectConfigWithStrictErrors,
           scala.Some.apply(localScope),
           scala.Some.apply(false),
           scala.Option.empty(),
           scala.Option.empty(),
-          redirectConfigWithStrictErrors
+          scala.Option.empty()
       );
       Compiler silentCompiler = context.getCompiler().duplicateWithConfig(redirectConfigWithStrictErrors);
       scala.Option<ExpressionNode> exprNode;

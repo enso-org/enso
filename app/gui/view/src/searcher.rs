@@ -108,7 +108,6 @@ pub type Entry = list_view::entry::GlyphHighlightedLabel;
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     app:            Application,
-    logger:         Logger,
     display_object: display::object::Instance,
     list:           ListView<Entry>,
     documentation:  documentation::View,
@@ -119,7 +118,6 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let app = app.clone_ref();
-        let logger = Logger::new("SearcherView");
         let display_object = display::object::Instance::new();
         let list = app.new_view::<ListView<Entry>>();
         list.deprecated_focus();
@@ -139,13 +137,7 @@ impl Model {
         list.set_x(ACTION_LIST_X);
         documentation.set_x(DOCUMENTATION_X);
         documentation.set_y(-action_list_gap);
-        Self { app, logger, display_object, list, documentation, doc_provider }
-    }
-
-    fn docs_for(&self, id: Option<entry::Id>) -> String {
-        let doc_provider = self.doc_provider.get();
-        let when_none_selected = || doc_provider.get().unwrap_or_else(|| " ".to_owned());
-        id.map_or_else(when_none_selected, |id| doc_provider.get_for_entry(id).unwrap_or_default())
+        Self { app, display_object, list, documentation, doc_provider }
     }
 
     fn set_height(&self, h: f32) {
@@ -244,12 +236,9 @@ impl View {
             is_selected               <- selected_entry.map(|e| e.is_some());
             is_enabled                <- bool(&frp.hide,&frp.show);
             is_entry_enabled          <- is_selected && is_enabled;
-            displayed_doc             <- selected_entry.map(f!((id) model.docs_for(*id)));
             opt_picked_entry          <- selected_entry.sample(&frp.use_as_suggestion);
             source.used_as_suggestion <+ opt_picked_entry.gate(&is_entry_enabled);
             source.editing_committed  <+ model.list.chosen_entry.gate(&is_entry_enabled);
-
-            eval displayed_doc ((data) model.documentation.frp.display_documentation(data));
         };
 
         self

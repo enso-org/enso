@@ -61,13 +61,6 @@ spec =
             t2 = t1.limit 5
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" LIMIT 5', []]
 
-        Test.specify "should work correctly when there are no columns" <|
-            empty = t1.select_columns (Column_Selector.By_Name [])
-            json = JS_Object.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]] . to_text
-            empty.to_json . should_equal json
-            empty.column_count . should_equal 0
-            empty.to_sql . should_fail_with Unsupported_Database_Operation.Error
-
     Test.group "[Codegen] Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
             a = t1.at "A"
@@ -75,10 +68,10 @@ spec =
             c = t1.at "C"
             arith = (a * 2) + 1
             logic = (c || c.not) && True
-            cmp = (a / a >= b) && (a - b < a)
+            cmp = (a * a >= b) && (a - b < a)
             arith.to_sql.prepare . should_equal ['SELECT (("T1"."A" * ?) + ?) AS "A" FROM "T1" AS "T1"', [[2, int], [1, int]]]
             logic.to_sql.prepare . should_equal ['SELECT (("T1"."C" OR (NOT "T1"."C")) AND ?) AS "C" FROM "T1" AS "T1"', [[True, bool]]]
-            cmp.to_sql.prepare . should_equal ['SELECT ((("T1"."A" / "T1"."A") >= "T1"."B") AND (("T1"."A" - "T1"."B") < "T1"."A")) AS "A" FROM "T1" AS "T1"', []]
+            cmp.to_sql.prepare . should_equal ['SELECT ((("T1"."A" * "T1"."A") >= "T1"."B") AND (("T1"."A" - "T1"."B") < "T1"."A")) AS "A" FROM "T1" AS "T1"', []]
 
         Test.specify "should support simple text operations" <|
             b = t1.at "B"
@@ -145,11 +138,8 @@ spec =
             r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" DESC', []]
 
         Test.specify 'should return warnings and errors when passed a non-existent column' <|
-            action = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
-            tester table =
-                table.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            problems = [Missing_Input_Columns.Error [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
-            Problems.test_problem_handling action problems tester
+            t2 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar'])
+            t2.should_fail_with Missing_Input_Columns
 
     Test.group "Helpers" <|
         Test.specify "fresh_names should provide fresh names" <|

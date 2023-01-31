@@ -53,6 +53,9 @@ trait PackageRepository {
     libraryName: LibraryName
   ): Either[PackageRepository.Error, Unit]
 
+  /** Checks if the library has already been loaded */
+  def isPackageLoaded(libraryName: LibraryName): Boolean
+
   /** Get a sequence of currently loaded packages. */
   def getLoadedPackages: Seq[Package[TruffleFile]]
 
@@ -107,6 +110,9 @@ trait PackageRepository {
 
   /** Modifies package and module names to reflect the project name change. */
   def renameProject(namespace: String, oldName: String, newName: String): Unit
+
+  /** Checks if any library with a given namespace has been registered */
+  def isNamespaceRegistered(namespace: String): Boolean
 }
 
 object PackageRepository {
@@ -527,6 +533,11 @@ object PackageRepository {
       }
 
     /** @inheritdoc */
+    def isPackageLoaded(libraryName: LibraryName): Boolean = {
+      loadedPackages.keySet.contains(libraryName)
+    }
+
+    /** @inheritdoc */
     override def getLoadedModules: Seq[Module] =
       loadedModules.values.toSeq
 
@@ -627,6 +638,9 @@ object PackageRepository {
         loadedModules.put(module.getName.toString, module)
       }
     }
+
+    override def isNamespaceRegistered(namespace: String): Boolean =
+      loadedPackages.keySet.exists(_.namespace == namespace)
   }
 
   /** Creates a [[PackageRepository]] for the run.

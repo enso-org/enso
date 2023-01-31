@@ -661,7 +661,6 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
         "@" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())
-                .with_binary_infix_precedence(20)
                 .as_compile_time_operation()
                 .as_annotation(),
         "-" =>
@@ -972,7 +971,9 @@ impl<'s> Lexer<'s> {
                         before_newline.clone(),
                         token::Variant::text_section(),
                     );
-                    if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
+                    // If `token.code.is_empty()`, we ignore the `token.left_offset` here even if
+                    // it is non-empty, because it will be attached to the newline token.
+                    if !(token.code.is_empty()) {
                         self.output.push(token);
                     } else {
                         before_newline = text_start;

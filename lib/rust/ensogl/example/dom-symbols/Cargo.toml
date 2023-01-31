@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-core = { path = "../../core" }
 wasm-bindgen = { workspace = true }
-nalgebra = { version = "0.26.1" }
+nalgebra = { workspace = true }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
 [package.metadata.wasm-pack.profile.release]

@@ -50,3 +50,7 @@ spec =
         Test.specify "should be allowed to be called statically" pending="Needs changes to method dispatch logic" <|
             b = Bar.Value 1
             Bar.meh b 2 . should_equal 3
+    Test.group "Fully Qualified Names" <|
+        Test.specify "should be correctly resolved" <|
+            a = Standard.Base.Data.Array.Array.new 10
+            a.length . should_equal 10

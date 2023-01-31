@@ -701,10 +701,10 @@ impl SheetData {
         let sheet_node_index = node_map.value;
         let sheet_node = &self.nodes[sheet_node_index];
         let value = format!("{:?}", sheet_node.value);
-        let label = iformat!("sheet_{sheet_node_index}({value})");
-        dot.push_str(&iformat!("sheet_{sheet_node_index} [label=\"{label}\"]\n"));
+        let label = format!("sheet_{sheet_node_index}({value})");
+        dot.push_str(&format!("sheet_{sheet_node_index} [label=\"{label}\"]\n"));
         for (path, child) in &node_map.branches {
-            let attrs = iformat!("[label=\"{path}\"]");
+            let attrs = format!("[label=\"{path}\"]");
             Self::sheet_node_sheet_node_link(dot, sheet_node_index, child.value, attrs);
             self.sheet_node_map_to_graphviz(dot, child);
         }
@@ -720,7 +720,7 @@ impl SheetData {
             let query = &self.queries[query_index];
             let scope = if query.is_external() { "External" } else { "Internal" };
             let real_path = path.iter().rev().join(".");
-            dot.push_str(&iformat!("query_{query_index} [label=\"{scope} Query({real_path})\"]\n"));
+            dot.push_str(&format!("query_{query_index} [label=\"{scope} Query({real_path})\"]\n"));
         });
         for (segment, child) in &query_map.branches {
             path.push(segment.into());

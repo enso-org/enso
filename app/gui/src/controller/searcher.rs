@@ -20,6 +20,8 @@ use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use double_representation::node::NodeInfo;
 use engine_protocol::language_server;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::entry::Id as EntryId;
 use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
@@ -494,16 +496,33 @@ pub struct ComponentsProvider {
     has_this_arg: Immutable<bool>,
 }
 
+/// Enum of top modules and their content to display.
+#[derive(Debug)]
+pub enum TopModules {
+    /// The selected `Groups` list and the section number the groups belong to.
+    Subset(group::AlphabeticalList, usize),
+    /// Vector of all `Group` lists in the same order as the sections they belong to.
+    All(Vec<group::AlphabeticalList>),
+}
+
 impl ComponentsProvider {
     /// The list of modules and their content displayed in `Submodules` section of the browser.
-    pub fn top_modules(&self) -> group::AlphabeticalList {
+    pub fn top_modules(&self) -> TopModules {
         let components = self.components();
         if let Some(selected) = self.breadcrumbs.selected() {
-            components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
+            let section = components
+                .module_qualified_name(selected)
+                .and_then(|name| {
+                    components.top_module_section_indices().get(&name.project().namespace).copied()
+                })
+                .unwrap_or_default();
+            let submodules =
+                components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default();
+            TopModules::Subset(submodules, section)
         } else if *self.has_this_arg {
-            components.top_modules_flattened().clone_ref()
+            TopModules::All(components.top_modules_flattened().collect())
         } else {
-            components.top_modules().clone_ref()
+            TopModules::All(components.top_modules().collect())
         }
     }
 
@@ -536,6 +555,11 @@ impl ComponentsProvider {
     fn components(&self) -> &component::List {
         &self.list
     }
+
+    /// Returns the number of namespace sections.
+    pub fn namespace_section_count(&self) -> usize {
+        self.list.top_module_section_count()
+    }
 }
 
 /// Searcher Controller.
@@ -553,7 +577,6 @@ impl ComponentsProvider {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger:           Logger,
     data:             Rc<RefCell<Data>>,
     breadcrumbs:      Breadcrumbs,
     notifier:         notification::Publisher<Notification>,
@@ -571,14 +594,13 @@ pub struct Searcher {
 impl Searcher {
     /// Create new Searcher Controller.
     pub async fn new(
-        parent: impl AnyLogger,
         ide: controller::Ide,
         project: &model::Project,
         method: language_server::MethodPointer,
         mode: Mode,
     ) -> FallibleResult<Self> {
-        let graph = controller::ExecutedGraph::new(&parent, project.clone_ref(), method).await?;
-        Self::new_from_graph_controller(parent, ide, project, graph, mode)
+        let graph = controller::ExecutedGraph::new(project.clone_ref(), method).await?;
+        Self::new_from_graph_controller(ide, project, graph, mode)
     }
 
     /// Abort editing and perform cleanup.
@@ -589,14 +611,12 @@ impl Searcher {
     /// Create new Searcher Controller, when you have Executed Graph Controller handy.
     #[profile(Task)]
     pub fn new_from_graph_controller(
-        parent: impl AnyLogger,
         ide: controller::Ide,
         project: &model::Project,
         graph: controller::ExecutedGraph,
         mode: Mode,
     ) -> FallibleResult<Self> {
         let project = project.clone_ref();
-        let logger = Logger::new_sub(parent, "Searcher Controller");
         let database = project.suggestion_db();
         let data = if let Mode::EditNode { node_id } = mode {
             Data::new_with_edited_node(&graph.graph(), &database, node_id)?
@@ -615,7 +635,6 @@ impl Searcher {
         });
         let breadcrumbs = Breadcrumbs::new();
         let ret = Self {
-            logger,
             graph,
             this_arg,
             ide,
@@ -655,6 +674,11 @@ impl Searcher {
     /// Get the current component list.
     pub fn components(&self) -> component::List {
         self.data.borrow().components.clone_ref()
+    }
+
+    /// Get the documentation for the entry.
+    pub fn documentation_for_entry(&self, id: EntryId) -> EntryDocumentation {
+        self.database.documentation_for_entry(id)
     }
 
     /// Build a provider for this searcher.
@@ -821,6 +845,9 @@ impl Searcher {
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
     pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
+        let transaction_name = "Previewing Component Browser suggestion.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+
         debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
         self.clear_temporary_imports();
 
@@ -943,9 +970,6 @@ impl Searcher {
     #[profile(Debug)]
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
-        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
-            guard.prevent_revert()
-        }
         self.clear_temporary_imports();
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
@@ -968,6 +992,11 @@ impl Searcher {
         let graph = self.graph.graph();
         if let Some(this) = self.this_arg.deref().as_ref() {
             this.introduce_pattern(graph.clone_ref())?;
+        }
+        // Should go last, as we want to prevent a revert only when the committing process was
+        // successful.
+        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
+            guard.prevent_revert()
         }
         Ok(node_id)
     }
@@ -1080,6 +1109,8 @@ impl Searcher {
     }
 
     fn clear_temporary_imports(&self) {
+        let transaction_name = "Clearing temporary imports after closing searcher.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
         let mut module = self.module();
         let import_metadata = self.graph.graph().module.all_import_metadata();
         let metadata_to_remove = import_metadata
@@ -1449,6 +1480,9 @@ fn add_virtual_entries_to_builder(
 /// On creation the `EditGuard` saves the current expression of the node to its metadata.
 /// When dropped the metadata is cleared again and, by default, the node content is reverted to the
 /// previous expression. The expression reversion can be prevented by calling `prevent_revert`.
+///
+/// This structure does not create any Undo Redo transactions, but may contribute to existing one
+/// if opened somewhere else.
 #[derive(Debug)]
 struct EditGuard {
     node_id:           ast::Id,
@@ -1474,6 +1508,8 @@ impl EditGuard {
     /// Mark the node as edited in its metadata and save the current expression, so it can later
     /// be restored.
     fn save_node_expression_to_metadata(&self, mode: &Mode) -> FallibleResult {
+        let transaction_name = "Storing edited node original expression.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
         let module = &self.graph.graph().module;
         match mode {
             Mode::NewNode { .. } => module.with_node_metadata(
@@ -1501,6 +1537,8 @@ impl EditGuard {
 
     /// Mark the node as no longer edited and discard the edit metadata.
     fn clear_node_edit_metadata(&self) -> FallibleResult {
+        let transaction_name = "Storing edited node original expression.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
         let module = &self.graph.graph().module;
         module.with_node_metadata(
             self.node_id,
@@ -1512,17 +1550,12 @@ impl EditGuard {
 
     fn get_saved_expression(&self) -> FallibleResult<Option<NodeEditStatus>> {
         let module = &self.graph.graph().module;
-        let mut edit_status = None;
-        module.with_node_metadata(
-            self.node_id,
-            Box::new(|metadata| {
-                edit_status = metadata.edit_status.clone();
-            }),
-        )?;
-        Ok(edit_status)
+        Ok(module.node_metadata(self.node_id)?.edit_status)
     }
 
     fn revert_node_expression_edit(&self) -> FallibleResult {
+        let transaction_name = "Reverting node expression to original.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
         let edit_status = self.get_saved_expression()?;
         match edit_status {
             None => {
@@ -1736,7 +1769,6 @@ pub mod test {
             let searcher_target = graph.graph().nodes().unwrap().last().unwrap().id();
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
-            let logger = Logger::new("Searcher"); // new_empty
             let module_name = crate::test::mock::data::module_qualified_name();
             let database = suggestion_database_with_mock_entries(code_range);
             let mut ide = controller::ide::MockAPI::new();
@@ -1755,7 +1787,6 @@ pub mod test {
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
                 graph,
-                logger,
                 database,
                 ide: Rc::new(ide),
                 data: default(),
@@ -1961,7 +1992,7 @@ pub mod test {
 
         // Known functions cases
         searcher.set_input("Test.test_method ".to_string()).unwrap();
-        searcher.set_input(iformat!("{MODULE_NAME}.test_method ")).unwrap();
+        searcher.set_input(format!("{MODULE_NAME}.test_method ")).unwrap();
         searcher.set_input("testFunction2 \"str\" ".to_string()).unwrap();
 
         // Unknown functions case
@@ -2066,7 +2097,7 @@ pub mod test {
         test.run_until_stalled();
         // Verify the contents of the components list loaded by the Searcher.
         let components = searcher.components();
-        if let [module_group] = &components.top_modules()[..] {
+        if let [module_group] = &components.top_modules().next().unwrap()[..] {
             let expected_group_name =
                 format!("{}.{}", entry3.defined_in.project().project, entry3.defined_in.name());
             assert_eq!(module_group.name, expected_group_name);
@@ -2074,7 +2105,10 @@ pub mod test {
             assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry3.name && e2.name()
     == entry9.name);
         } else {
-            ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
+            panic!(
+                "Wrong top modules in Component List: {:?}",
+                components.top_modules().collect::<Vec<_>>()
+            );
         }
         let favorites = &components.favorites;
         assert_eq!(favorites.len(), 2);

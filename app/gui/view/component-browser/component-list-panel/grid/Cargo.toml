@@ -12,7 +12,7 @@ ensogl-hardcoded-theme = { path = "../../../../../../lib/rust/ensogl/app/theme/h
 ensogl-text = { path = "../../../../../../lib/rust/ensogl/component/text" }
 ensogl-grid-view = { path = "../../../../../../lib/rust/ensogl/component/grid-view" }
 ensogl-gui-component = { path = "../../../../../../lib/rust/ensogl/component/gui" }
-ensogl-shadow = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/component/shadow" }
+ensogl-shadow = { path = "../../../../../../lib/rust/ensogl/component/shadow" }
 ide-view-component-list-panel-icons = { path = "../icons" }
-failure = "0.1.8"
+failure = { workspace = true }
 num_enum = "0.5.1"

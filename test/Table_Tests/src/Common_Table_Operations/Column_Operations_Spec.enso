@@ -12,8 +12,28 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    Test.group prefix+"Column Operations" <|
-        #inmem_todo = if setup.is_database.not then "New Null-equality is not yet implemented in In-memory backend."
+    Test.group prefix+"Basic Column Operations" <|
+        Test.specify "iif" <|
+            t = table_builder [["X", [True, False, Nothing, True]]]
+            t.at "X" . iif 22 33 . to_vector . should_equal [22, 33, Nothing, 22]
+
+        Test.specify "iif on Columns" pending="Not implemented yet." Nothing
+
+    t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2, 3, 5, Nothing]], ["b", [False, False, True, Nothing]]]
+    x = t2.at "x"
+    y = t2.at "y"
+    b = t2.at "b"
+    Test.group prefix+"Column Operations - Equality & Null Handling" <|
+        Test.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
+            (x == y).to_vector . should_equal [False, False, True, Nothing]
+            (x != y).to_vector . should_equal [True, True, False, Nothing]
+            (x == 4).to_vector . should_equal [False, True, False, Nothing]
+            (x == Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+
+        Test.specify "should allow to check which values are null"
+            x.is_missing.to_vector . should_equal [False, False, False, True]
+            (x + Nothing).is_missing.to_vector . should_equal [True, True, True, True]
+
         Test.specify "Column equality should handle nulls correctly" pending="TODO" <|
             a = [2, 3, Nothing, Nothing]
             b = [2, 4, Nothing, 5]
@@ -22,6 +42,17 @@ spec setup =
 
             t = table_builder [["A", a], ["B", b]]
             ((t.at "A") == (t.at "B")) . to_vector . should_equal r
+
+        Test.specify "equals_ignore_case for ASCII strings" <|
+            # TODO test for nothing too
+            x = ["a", "B", "c", "DEF"]
+            y = ["aa", "b", "c", "dEf"]
+            r = [False, True, True, True]
+
+            x.zip y (.equals_ignore_case) . should_equal r
+
+            t = table_builder [["X", x], ["Y", y]]
+            (t.at "X") . equals_ignore_case (t.at "Y") . to_vector . should_equal r
 
         Test.specify "Text Column equality (including case-insensitive) should handle nulls correctly" pending="TODO" <|
             a = ["Z", "a", "b", Nothing, Nothing]
@@ -36,6 +67,49 @@ spec setup =
             ((t.at "A") == (t.at "B")) . to_vector . should_equal r_sensitive
             ((t.at "A").equals_ignore_case (t.at "B")) . to_vector . should_equal r_insensitive
 
+    Test.group prefix+"Arithmetic and Boolean Column Operations" <|
+        Test.specify "should allow basic operations" <|
+            (x + y).to_vector . should_equal [3, 7, 10, Nothing]
+            (x - y).to_vector . should_equal [-1, 1, 0, Nothing]
+            (x * y).to_vector . should_equal [2, 12, 25, Nothing]
+            (x < y).to_vector . should_equal [True, False, False, Nothing]
+            (x <= y).to_vector . should_equal [True, False, True, Nothing]
+            (x > y).to_vector . should_equal (x <= y).not.to_vector
+            (x >= y).to_vector . should_equal (x < y).not.to_vector
+            #(((x < y) || (x == y)) == (x <= y)).to_vector . should_equal [True, True, True, Nothing]
+            (b || b.not).to_vector . should_equal [True, True, True, Nothing]
+
+        Test.specify "should allow combining a column with a scalar" pending="TODO null handling" <|
+            (x + 100).to_vector . should_equal [101, 104, 105, Nothing]
+            (x * 10).to_vector . should_equal [10, 40, 50, Nothing]
+            (x - 10).to_vector . should_equal [-9, -6, -5, Nothing]
+            (x < 1000).to_vector . should_equal [True, True, True, Nothing]
+            (b || False).to_vector . should_equal [False, False, True, Nothing]
+            (b || True).to_vector . should_equal [True, True, True, True]
+            (b && False).to_vector . should_equal [False, False, False, False]
+
+        Test.specify "division should be aligned with the Enso arithmetic" <|
+            a = [1, 5, 10, 100]
+            b = [2, 2, 4, 5]
+            r = [0.5, 2.5, 2.5, 20.0]
+            a.zip b (/) . should_equal r
+
+            t = table_builder [["A", a], ["B", b]]
+            r2 = (t.at "A") / (t.at "B")
+            r2 . to_vector . should_equal r
+
+            r3 = (t.at "A") / 2
+            r3 . to_vector . should_equal [0.5, 2.5, 5.0, 50.0]
+
+        Test.specify "should return null if one of arguments is missing" pending="TODO null handling" <|
+            nulls = [Nothing, Nothing, Nothing, Nothing]
+            (x + Nothing).to_vector . should_equal nulls
+            (x - Nothing).to_vector . should_equal nulls
+            (x * Nothing).to_vector . should_equal nulls
+            (x / Nothing).to_vector . should_equal nulls
+            (b && Nothing).to_vector . should_equal nulls
+            (b || Nothing).to_vector . should_equal nulls
+
         Test.specify "Between should return null if any of the values are null" pending="TODO" <|
             a = [2, 3, Nothing, 7,       5,       Nothing]
             b = [0, 5, 7,       Nothing, 7,       Nothing]
@@ -45,19 +119,19 @@ spec setup =
             t = table_builder [["A", a], ["B", b], ["C", c]]
             ((t.at "A").between (t.at "B") (t.at "C")) . to_vector . should_equal r
 
-        Test.specify "iif" <|
-            t = table_builder [["X", [True, False, Nothing, True]]]
-            t.at "X" . iif 22 33 . to_vector . should_equal [22, 33, Nothing, 22]
+    Test.group prefix+"Column Operations - Text" <|
+        t3 = table_builder [["s1", ["foobar", "bar", "baz", Nothing]], ["s2", ["foo", "ar", "a", Nothing]]]
+        s1 = t3.at "s1"
+        s2 = t3.at "s2"
+        Test.specify "should handle basic Text operations" <|
+            s1.starts_with s2 . to_vector . should_equal [True, False, False, Nothing]
+            s1.starts_with "foo" . to_vector . should_equal [True, False, False, Nothing]
+            s1.starts_with "ba" . to_vector . should_equal [False, True, True, Nothing]
 
-        Test.specify "iif on Columns" pending="Not implemented yet." Nothing
+            s1.contains s2 . to_vector . should_equal [True, True, True, Nothing]
+            s1.contains "a" . to_vector . should_equal [True, True, True, Nothing]
+            s1.contains "oo" . to_vector . should_equal [True, False, False, Nothing]
 
-        Test.specify "equals_ignore_case for ASCII" <|
-            # TODO test for nothing too
-            x = ["a", "B", "c", "DEF"]
-            y = ["aa", "b", "c", "dEf"]
-            r = [False, True, True, True]
-
-            x.zip y (.equals_ignore_case) . should_equal r
-
-            t = table_builder [["X", x], ["Y", y]]
-            (t.at "X") . equals_ignore_case (t.at "Y") . to_vector . should_equal r
+            s1.ends_with s2 . to_vector . should_equal [False, True, False, Nothing]
+            s1.ends_with "ar" . to_vector . should_equal [True, True, False, Nothing]
+            s1.ends_with "a" . to_vector . should_equal [False, False, False, Nothing]

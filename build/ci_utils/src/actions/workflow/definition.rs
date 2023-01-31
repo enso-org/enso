@@ -1,3 +1,5 @@
+//! Model of a workflow definition and related utilities.
+
 use crate::prelude::*;
 
 use crate::env::accessor::RawVariable;
@@ -6,9 +8,15 @@ use heck::ToKebabCase;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::convert::identity;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering;
 
 
 
+/// Default timeout for a job.
+///
+/// We use a very long timeout because we want to avoid cancelling jobs that are just slow.
 pub const DEFAULT_TIMEOUT_IN_MINUTES: u32 = 360;
 
 pub fn wrap_expression(expression: impl AsRef<str>) -> String {
@@ -174,7 +182,9 @@ impl Workflow {
 impl Workflow {
     pub fn add_job(&mut self, job: Job) -> String {
         let key = job.name.to_kebab_case();
-        self.jobs.insert(key.clone(), job);
+        if self.jobs.insert(key.clone(), job).is_some() {
+            warn!("Job with name {key} already exists.");
+        }
         key
     }
 
@@ -573,6 +583,10 @@ pub enum JobSecrets {
     Map(BTreeMap<String, String>),
 }
 
+/// Job is a top-level building block of a workflow.
+///
+/// It is scheduled to run on a specific runner. A workflow can have multiple jobs, they will run in
+/// parallel by default.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Job {
@@ -604,10 +618,37 @@ pub struct Job {
 }
 
 impl Job {
-    pub fn new(name: impl Into<String>) -> Self {
-        Self { name: name.into(), timeout_minutes: Some(DEFAULT_TIMEOUT_IN_MINUTES), ..default() }
+    /// Create a new job definition.
+    pub fn new(
+        name: impl Into<String>,
+        runs_on: impl IntoIterator<Item: Into<RunnerLabel>>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            timeout_minutes: Some(DEFAULT_TIMEOUT_IN_MINUTES),
+            runs_on: runs_on.into_iter().map(Into::into).collect(),
+            ..Default::default()
+        }
     }
 
+    /// Add a step to this job, while exposing the step's outputs as job outputs.
+    pub fn add_step_with_output(
+        &mut self,
+        mut step: Step,
+        outputs: impl IntoIterator<Item: Into<String>>,
+    ) {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        // A step must have an unique id if we want to access its output.
+        let id =
+            step.id.unwrap_or_else(|| format!("step_{}", COUNTER.fetch_add(1, Ordering::SeqCst)));
+        step.id = Some(id.clone());
+        self.steps.push(step);
+        for output in outputs {
+            self.expose_output(&id, output);
+        }
+    }
+
+    /// Expose a step's output as a job output.
     pub fn expose_output(&mut self, step_id: impl AsRef<str>, output_name: impl Into<String>) {
         let step = step_id.as_ref();
         let output = output_name.into();
@@ -620,14 +661,19 @@ impl Job {
         }
     }
 
+    /// Define an environment variable for this job, it will be available to all steps.
     pub fn env(&mut self, name: impl Into<String>, value: impl Into<String>) {
         self.env.insert(name.into(), value.into());
     }
 
+    /// Expose a secret as environment variable for this job.
     pub fn expose_secret_as(&mut self, secret: impl AsRef<str>, given_name: impl Into<String>) {
         self.env(given_name, format!("${{{{ secrets.{} }}}}", secret.as_ref()));
     }
 
+    /// Expose outputs of another job as environment variables in this job.
+    ///
+    /// This also adds a dependency on the other job.
     pub fn use_job_outputs(&mut self, job_id: impl Into<String>, job: &Job) {
         let job_id = job_id.into();
         for output_name in job.outputs.keys() {
@@ -637,14 +683,19 @@ impl Job {
         self.needs(job_id);
     }
 
+    /// Add a dependency on another job.
     pub fn needs(&mut self, job_id: impl Into<String>) {
         self.needs.insert(job_id.into());
     }
 
+    /// Set an input for the invoked reusable workflow.
+    ///
+    /// This is only valid if the job uses a reusable workflow.
     pub fn with(&mut self, name: impl Into<String>, value: impl Into<String>) {
         self.with.insert(name.into(), value.into());
     }
 
+    /// Like [`with`](Self::with), but self-consuming.
     pub fn with_with(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.with(name, value);
         self
@@ -817,6 +868,7 @@ pub enum CheckoutArgumentSubmodules {
 
 pub mod step {
     use super::*;
+    use crate::github;
 
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -825,6 +877,11 @@ pub mod step {
     pub enum Argument {
         #[serde(rename_all = "kebab-case")]
         Checkout {
+            #[serde(
+                skip_serializing_if = "Option::is_none",
+                with = "crate::serde::via_string_opt"
+            )]
+            repository: Option<github::Repo>,
             #[serde(skip_serializing_if = "Option::is_none")]
             clean:      Option<bool>,
             #[serde(skip_serializing_if = "Option::is_none")]
@@ -879,7 +936,7 @@ pub enum RunnerLabel {
     MatrixOs,
 }
 
-pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
+pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> {
     // This is a workaround for a bug in GH actions/checkout. If a submodule is added and removed,
     // it effectively breaks any future builds of this repository on a given self-hosted runner.
     // The workaround step below comes from:
@@ -921,12 +978,19 @@ pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
         //        shallow copy of the repo.
         uses: Some("actions/checkout@v2".into()),
         with: Some(step::Argument::Checkout {
+            repository: None,
             clean:      Some(false),
             submodules: Some(CheckoutArgumentSubmodules::Recursive),
         }),
         ..default()
     };
-    [submodules_workaround_win, submodules_workaround_linux, actual_checkout]
+    // Apply customization.
+    let actual_checkout = f(actual_checkout);
+    vec![submodules_workaround_win, submodules_workaround_linux, actual_checkout]
+}
+
+pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
+    checkout_repo_step_customized(identity)
 }
 
 pub trait JobArchetype {
@@ -956,4 +1020,15 @@ pub trait JobArchetype {
             }
         }
     }
+}
+
+/// Describes the workflow to be stored on the disk.
+#[derive(Clone, Debug)]
+pub struct WorkflowToWrite {
+    /// The workflow to be stored.
+    pub workflow: Workflow,
+    /// The path where the workflow should be stored.
+    pub path:     PathBuf,
+    /// Who generated this workflow.
+    pub source:   String,
 }

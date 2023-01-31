@@ -6,7 +6,6 @@ use crate::prelude::*;
 
 use serde::Deserialize;
 use serde::Serialize;
-use shrinkwraprs::Shrinkwrap;
 
 
 
@@ -15,8 +14,7 @@ use shrinkwraprs::Shrinkwrap;
 // ===============
 
 /// All JSON-RPC messages bear `jsonrpc` version number.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-#[derive(Shrinkwrap)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Deref)]
 pub struct Message<T> {
     /// JSON-RPC Protocol version, should be 2.0.
     pub jsonrpc: Version,
@@ -24,7 +22,7 @@ pub struct Message<T> {
     /// Payload, either a Request or Response or Notification in direct
     /// or serialized form.
     #[serde(flatten)]
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub payload: T,
 }
 
@@ -94,9 +92,8 @@ impl<T> Message<T> {
 /// Each request made by client should get a unique id (unique in a context of
 /// the current session). Auto-incrementing integer is a common choice.
 #[derive(Serialize, Deserialize)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash, Deref)]
 #[derive(Display)]
-#[derive(Shrinkwrap)]
 pub struct Id(pub i64);
 
 /// JSON-RPC protocol version. Only 2.0 is supported.
@@ -111,13 +108,12 @@ pub enum Version {
 ///
 /// `Call` must be a type, that upon JSON serialization provides `method` and
 /// `params` fields, like `MethodCall`.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-#[derive(Shrinkwrap)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Deref)]
 pub struct Request<Call> {
     /// An identifier for this request that will allow matching the response.
     pub id:   Id,
     #[serde(flatten)]
-    #[shrinkwrap(main_field)]
+    #[deref]
     /// method and its params
     pub call: Call,
 }
@@ -220,13 +216,12 @@ pub fn decode_incoming_message(message: &str) -> serde_json::Result<IncomingMess
 ///
 /// `In` is any serializable (or already serialized) representation of the
 /// method arguments passed in this call.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-#[derive(Shrinkwrap)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Deref)]
 pub struct MethodCall<In> {
     /// Name of the method that is being called.
     pub method: String,
     /// Method arguments.
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub params: In,
 }
 
@@ -304,7 +299,7 @@ mod tests {
         let notification = Notification(call);
         let message = Message::new(notification);
 
-        DEBUG!(serde_json::to_string(&message).unwrap());
+        debug!("{}", serde_json::to_string(&message).unwrap());
 
         let json = serde_json::to_value(message).expect("serialization error");
         let json = json.as_object().expect("expected an object");

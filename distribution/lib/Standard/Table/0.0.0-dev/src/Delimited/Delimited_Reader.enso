@@ -8,7 +8,7 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Java_Problems
-from project.Errors import Additional_Warnings, Parser_Error
+from project.Errors import Additional_Warnings, Parser_Error, Empty_File_Error
 
 polyglot java import org.enso.base.encoding.NewlineDetector
 polyglot java import org.enso.table.read.DelimitedReader
@@ -85,7 +85,7 @@ read_stream format stream on_problems max_columns=default_max_columns related_fi
      integer.
 read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
-    Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
+    Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <| Empty_File_Error.handle_java_exception <|
         reader = prepare_reader java_reader format max_columns on_problems
         result_with_problems = reader.read
         parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map Java_Problems.translate_problem

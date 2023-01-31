@@ -186,6 +186,24 @@ class MethodsTest extends InterpreterTest {
       )
     }
 
+    "be callable on builtin types when non-static, with additional self arg" in {
+      val code =
+        """import Standard.Base.IO
+          |import Standard.Base.Data.Array.Array
+          |import Standard.Base.Data.Text.Text
+          |
+          |main =
+          |    a = Array.new_1 1
+          |    t_1 = "foo"
+          |    t_2 = "bar"
+          |
+          |    IO.println (Array.length a)
+          |    IO.println (Text.+ t_1 t_2)
+          |""".stripMargin
+      eval(code)
+      consumeOut.shouldEqual(List("1", "foobar"))
+    }
+
     "not be callable on instances when static" in {
       val code =
         """
@@ -200,5 +218,18 @@ class MethodsTest extends InterpreterTest {
         code
       ) should have message "Method `new` of Mk_Foo could not be found."
     }
+
+    "not be callable on Nothing when non-static" in {
+      val code =
+        """
+          |import Standard.Base.Nothing.Nothing
+          |
+          |main = Nothing.is_nothing Nothing
+          |""".stripMargin
+      the[InterpreterException] thrownBy eval(
+        code
+      ) should have message "Type error: expected a function, but got True."
+    }
+
   }
 }

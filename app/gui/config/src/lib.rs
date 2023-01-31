@@ -13,10 +13,8 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-use enso_logger::*;
 use enso_prelude::*;
 
-use enso_logger::DefaultWarningLogger as Logger;
 use ensogl::system::web;
 
 
@@ -40,36 +38,35 @@ pub fn engine_version_requirement() -> semver::VersionReq {
 // ============
 
 ensogl::read_args! {
-    [window_app_scope_name, window_app_scope_config_name] {
-        entry                  : String,
-        project                : String,
-        project_manager        : String,
-        language_server_rpc    : String,
-        language_server_data   : String,
-        namespace              : String,
-        platform               : web::platform::Platform,
-        frame                  : bool,
-        theme                  : String,
-        dark_theme             : bool,
-        high_contrast          : bool,
-        use_loader             : bool,
-        wasm_url               : String,
-        wasm_glue_url          : String,
-        node_labels            : bool,
-        crash_report_host      : String,
-        data_gathering         : bool,
-        mixpanel_token         : String,
-        is_in_cloud            : bool,
-        verbose                : bool,
-        authentication_enabled : bool,
-        email                  : String,
-        application_config_url : String,
-        /// When profiling the application (e.g. with the `./run profile` command), this argument
-        /// chooses what is profiled.
-        test_workflow            : String,
-        skip_min_version_check   : bool,
-        preferred_engine_version : semver::Version,
-        enable_new_component_browser : bool,
-        emit_user_timing_measurements : bool,
-    }
+    application_config_url: String,
+    authentication_enabled: bool,
+    dark_theme: bool,
+    data_gathering: bool,
+    debug: bool,
+    email: Option<String>,
+    emit_user_timing_measurements: bool,
+    enable_new_component_browser: bool,
+    enable_spector:bool,
+    entry: String,
+    frame: bool,
+    is_in_cloud: bool,
+    language_server_data: Option<String>,
+    language_server_rpc: Option<String>,
+    loader_download_to_init_ratio: f32,
+    max_before_main_entry_points_time_ms: f32,
+    namespace: Option<String>,
+    node_labels: bool,
+    pkg_js_url: String,
+    pkg_wasm_url: String,
+    platform: Option<web::platform::Platform>,
+    preferred_engine_version: Option<semver::Version>,
+    project: Option<String>,
+    project_manager: Option<String>,
+    shaders_url: String,
+    skip_min_version_check: bool,
+    /// When profiling the application (e.g. with the `./run profile` command), this argument
+    /// chooses what is profiled.
+    test_workflow: Option<String>,
+    theme: String,
+    use_loader: bool,
 }

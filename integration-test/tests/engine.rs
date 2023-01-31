@@ -66,5 +66,5 @@ async fn getting_component_groups() {
     ls_json_connection.push_to_execution_context(&execution_ctx.context_id, &frame).await.unwrap();
     sleep(Duration::from_secs(15)).await;
     let groups = ls_json_connection.get_component_groups(&execution_ctx.context_id).await.unwrap();
-    DEBUG!("{groups:?}");
+    debug!("{groups:?}");
 }

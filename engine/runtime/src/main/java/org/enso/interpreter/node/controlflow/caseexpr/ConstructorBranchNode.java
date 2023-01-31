@@ -4,10 +4,12 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
 /** An implementation of the case expression specialised to working on constructors. */
 @NodeInfo(shortName = "ConstructorMatch")
@@ -33,9 +35,13 @@ public abstract class ConstructorBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doAtom(VirtualFrame frame, Object state, Atom target) {
+  void doAtom(
+      VirtualFrame frame,
+      Object state,
+      Atom target,
+      @CachedLibrary(limit = "10") StructsLibrary structs) {
     if (profile.profile(matcher == target.getConstructor())) {
-      accept(frame, state, target.getFields());
+      accept(frame, state, structs.getFields(target));
     }
   }
 

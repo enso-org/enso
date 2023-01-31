@@ -22,7 +22,6 @@
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 use ensogl_core::system::web::traits::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::Sprite;
@@ -59,8 +58,9 @@ fn update_shape(screen: Shape, sprites: &[Sprite], dom_symbols: &[DomSymbol]) {
         object.set_position(Vector3(x, 0.0, 0.0));
     }
     for symbol in sprites {
+        warn!("setting sprite size: {:?}", Vector2(width, height * HEIGHT_FRACTION));
         let size = Vector2::new(width, height * HEIGHT_FRACTION);
-        symbol.size.set(size);
+        symbol.set_size(size);
         symbol.update_y(|y| y - screen.height / 2.0 + size.y / 2.0 + VERTICAL_MARGIN);
     }
     for symbol in dom_symbols {
@@ -94,6 +94,7 @@ pub fn main() {
         let fi = i as f32;
         if i % 2 == 0 {
             let sprite = sprite_system.new_instance();
+            world.add_child(&sprite);
             sprites.push(sprite);
         } else {
             let div = web::document.create_div_or_panic();
@@ -116,7 +117,7 @@ pub fn main() {
             let r = ((fi + 2.0) * 64.0 / (ELEM_COUNT as f32)) as u8;
             let g = ((fi + 4.0) * 128.0 / (ELEM_COUNT as f32)) as u8;
             let b = ((fi + 8.0) * 255.0 / (ELEM_COUNT as f32)) as u8;
-            let color = iformat!("rgb({r},{g},{b})");
+            let color = format!("rgb({r},{g},{b})");
             div.set_style_or_warn("background-color", color);
             object.dom().append_or_warn(&div);
             dom_symbols.push(object);

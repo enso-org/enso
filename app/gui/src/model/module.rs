@@ -89,7 +89,7 @@ pub type TextChange = enso_text::Change<enso_text::index::Byte, String>;
 /// * the first one is a source directory in the project (see `SOURCE_DIRECTORY`);
 /// * the last one is a source file with the module's contents;
 /// * all the ones between (if present) are names of the parent modules.
-#[derive(Clone, CloneRef, Debug, Eq, Hash, PartialEq, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Eq, Hash, PartialEq, Deref)]
 pub struct Path {
     file_path: Rc<FilePath>,
 }
@@ -97,7 +97,7 @@ pub struct Path {
 impl Path {
     /// Get the file name of the module with given name.
     pub fn module_filename(name: &str) -> String {
-        iformat!("{name}.{LANGUAGE_FILE_EXTENSION}")
+        format!("{name}.{LANGUAGE_FILE_EXTENSION}")
     }
 
     /// Build module's path in a filesystem under given root ID.
@@ -658,6 +658,13 @@ pub trait API: Debug + model::undo_redo::Aware {
 
     /// Returns self as any. Used for casting down the [`Module`] object.
     fn as_any(&self) -> &dyn Any;
+
+    /// Remove all temporary changes in the Module:
+    /// 1. All imports marked as temporary in metadata will be removed
+    /// 2. All nodes marked as edited in metadata will be removed (if they have been created), or
+    /// have their original expressions restored.
+    /// In both cases, the metadata marking as temporary will be removed.
+    fn restore_temporary_changes(&self) -> FallibleResult;
 }
 
 /// Trait for methods that cannot be defined in `API` because it is a trait object.

@@ -8,6 +8,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Unsupported_Argument_Types", name = "to_display_text")
@@ -19,8 +20,11 @@ public abstract class UnsupportedArgumentTypesToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom self, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    Object messageArg = self.getFields()[1];
+  Text doAtom(
+      Atom self,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") StructsLibrary structs) {
+    Object messageArg = structs.getField(self, 1);
     try {
       return Text.create(interop.asString(messageArg));
     } catch (UnsupportedMessageException e) {

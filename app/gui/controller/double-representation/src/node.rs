@@ -88,12 +88,12 @@ impl NodeLocation {
 // ===============
 
 /// Information about the node coupled with its location within a block.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct LocatedNode {
     /// Line index in the block. Zero for inline definition nodes.
     pub index: NodeLocation,
-    #[shrinkwrap(main_field)]
     /// Information about the node.
+    #[deref]
     pub node:  NodeInfo,
 }
 
@@ -201,13 +201,13 @@ impl<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a> Iterator for Node
 
 /// Information about node, including both its main line (i.e. line with expression) and optionally
 /// attached documentation comment.
-#[derive(Clone, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Debug, Deref, DerefMut)]
 pub struct NodeInfo {
     /// If the node has doc comment attached, it will be represented here.
     pub documentation: Option<DocumentationCommentInfo>,
     /// Primary node AST that contains node's expression and optional pattern binding.
-    #[shrinkwrap(main_field)]
+    #[deref]
+    #[deref_mut]
     pub main_line:     MainLine,
 }
 

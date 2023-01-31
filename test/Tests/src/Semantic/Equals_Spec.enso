@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import java.util.HashMap
+polyglot java import java.nio.file.Path as JavaPath
 polyglot java import java.util.Random as Java_Random
 
 type CustomEqType
@@ -113,6 +113,11 @@ spec =
             (js_true == False).should_be_false
             (js_text_foo == "foo").should_be_true
 
+        Test.specify "should handle Text via NFD normalization" <|
+            ('ś' == 's\u0301') . should_be_true
+            ('e\u0301abc' == 'éabc') . should_be_true
+            ('e\u0301abc' == 'é') . should_be_false
+            ((Point.Value 'ś' 23.0) == (Point.Value 's\u0301' 23)) . should_be_true
 
         Test.specify "should dispatch to overriden `==` on atoms" <|
             child1 = Child.Value 11
@@ -136,24 +141,14 @@ spec =
             ((CustomEqType.C1 0) == (CustomEqType.C2 7 3)).should_be_false
 
         Test.specify "should dispatch to equals on host values" <|
-            java_object1 = HashMap.new
-            java_object1.put "a" 1
-            java_object1.put "b" 2
-
-            java_object2 = HashMap.new
-            java_object2.put "b" 2
-            java_object2.put "a" 1
-
-            (java_object1 == java_object2).should_be_true
-
-            java_object2.put "c" 42
-
-            (java_object1 == java_object2).should_be_false
+            path1 = JavaPath.of "home" "user" . resolve "file.txt"
+            path2 = JavaPath.of "home" "user" "file.txt"
+            (path1 == path2).should_be_true
+            path3 = path1.resolve "subfile.txt"
+            (path3 == path2).should_be_false
 
         Test.specify "should return False for different Atoms with same fields" <|
-            p1 = Point.Value 1 2
-            p2 = Point.Value 3 4
-            rect = Rect.Value p1 p2
+            rect = Rect.Value (Point.Value 1 2) (Point.Value 3 4)
             four_field = FourFieldType.Value 1 2 3 4
             (rect == four_field).should_be_false
 
@@ -161,8 +156,8 @@ spec =
             (Child == Child).should_be_true
             (Child == Point).should_be_false
             (Point == Child).should_be_false
-            (HashMap == Child).should_be_false
-            (Child == HashMap).should_be_false
+            (JavaPath == Child).should_be_false
+            (Child == JavaPath).should_be_false
             (Boolean == Any).should_be_false
             (Any == Boolean).should_be_false
             (Any == Any).should_be_true

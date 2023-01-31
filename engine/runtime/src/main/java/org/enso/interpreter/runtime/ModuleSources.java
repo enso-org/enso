@@ -44,6 +44,15 @@ record ModuleSources(
     return new ModuleSources(file(), r, null);
   }
 
+  /** Resets the contents of sources but retains the reference to the
+   * file. Continue with {@code newWith} methods.
+   *
+   * @return new sources triple
+   */
+  ModuleSources reset() {
+    return new ModuleSources(file(), null, null);
+  }
+
   /** Makes sure Truffle {@code Source} object is ready for the sources. If
    * this triple already contains Truffle source, it just returns itself.
    * Otherwise, if the {@link #rope() content} is set, it is used as chars

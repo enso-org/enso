@@ -223,7 +223,6 @@ impl From<&style::Sheet> for ManagerData {
 /// Theme manager. Allows registering themes by names, enabling, and disabling them.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Manager {
-    logger:        Logger,
     data:          Rc<RefCell<ManagerData>>,
     handles:       Rc<RefCell<HashMap<String, callback::Handle>>>,
     current_dirty: dirty::SharedBool,
@@ -234,13 +233,12 @@ pub struct Manager {
 impl Manager {
     /// Constructor.
     pub fn new() -> Self {
-        let logger = Logger::new("Theme Manager");
         let current_dirty = dirty::SharedBool::new(());
         let enabled_dirty = dirty::SharedVector::new(());
         let data = default();
         let handles = default();
         let initialized = default();
-        Self { logger, data, handles, current_dirty, enabled_dirty, initialized }
+        Self { data, handles, current_dirty, enabled_dirty, initialized }
     }
 
     /// Return a theme of the given name.

@@ -36,6 +36,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
@@ -92,6 +93,7 @@ public class Builtins {
   private final Builtin text;
   private final Builtin array;
   private final Builtin vector;
+  private final Builtin map;
   private final Builtin dataflowError;
   private final Builtin ref;
   private final Builtin managedResource;
@@ -137,6 +139,7 @@ public class Builtins {
     text = builtins.get(Text.class);
     array = builtins.get(Array.class);
     vector = builtins.get(Vector.class);
+    map = builtins.get(org.enso.interpreter.node.expression.builtin.Map.class);
     dataflowError = builtins.get(org.enso.interpreter.node.expression.builtin.Error.class);
     ref = builtins.get(Ref.class);
     managedResource = builtins.get(ManagedResource.class);
@@ -172,7 +175,8 @@ public class Builtins {
         methods.entrySet().stream().forEach(entry -> {
           Type tpe = entry.getValue().isAutoRegister ? (!entry.getValue().isStatic() ? type : type.getEigentype()) : null;
           if (tpe != null) {
-            Optional<BuiltinFunction> fun = entry.getValue().toFunction(language);
+            LoadedBuiltinMethod value = entry.getValue();
+            Optional<BuiltinFunction> fun = value.toFunction(language, false);
             fun.ifPresent(f -> scope.registerMethod(tpe, entry.getKey(), f.getFunction()));
           }
         });
@@ -357,7 +361,7 @@ public class Builtins {
                     @SuppressWarnings("unchecked")
                     Class<BuiltinRootNode> clazz =
                             (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
-                    Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class);
+                    Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class, boolean.class);
                     LoadedBuiltinMethod meta = new LoadedBuiltinMethod(meth, isStatic, isAutoRegister);
                     return new AbstractMap.SimpleEntry<String, LoadedBuiltinMethod>(builtinMeta[0], meta);
                   } catch (ClassNotFoundException | NoSuchMethodException e) {
@@ -377,17 +381,17 @@ public class Builtins {
    * @return A non-empty function under the given name, if it exists. An empty value if no such
    *     builtin method was ever registerd
    */
-  public Optional<BuiltinFunction> getBuiltinFunction(String type, String methodName, EnsoLanguage language) {
+  public Optional<BuiltinFunction> getBuiltinFunction(String type, String methodName, EnsoLanguage language, boolean isStaticInstance) {
     // TODO: move away from String mapping once Builtins is gone
     Map<String, LoadedBuiltinMethod> atomNodes = builtinMethodNodes.get(type);
     if (atomNodes == null) return Optional.empty();
     LoadedBuiltinMethod builtin = atomNodes.get(methodName);
     if (builtin == null) return Optional.empty();
-    return builtin.toFunction(language);
+    return builtin.toFunction(language, isStaticInstance);
   }
 
   public Optional<BuiltinFunction> getBuiltinFunction(Type type, String methodName, EnsoLanguage language) {
-    return getBuiltinFunction(type.getName(), methodName, language);
+    return getBuiltinFunction(type.getName(), methodName, language, false);
   }
 
   public <T extends Builtin> T getBuiltinType(Class<T> clazz) {
@@ -552,6 +556,10 @@ public class Builtins {
     return vector.getType();
   }
 
+  public Type map() {
+    return map.getType();
+  }
+
   /** @return the Ref constructor. */
   public Type ref() {
     return ref.getType();
@@ -603,7 +611,7 @@ public class Builtins {
    * Convert from type-system type names to types.
    *
    * @param typeName the fully qualified type name of a builtin
-   * @return the associated {@link org.enso.interpreter.runtime.callable.atom.Atom} if it exists,
+   * @return the associated {@link Atom} if it exists,
    *     and {@code null} otherwise
    */
   public Type fromTypeSystem(String typeName) {
@@ -611,9 +619,9 @@ public class Builtins {
   }
 
   private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
-    Optional<BuiltinFunction> toFunction(EnsoLanguage language) {
+    Optional<BuiltinFunction> toFunction(EnsoLanguage language, boolean isStaticInstance) {
       try {
-        return Optional.ofNullable((Function) meth.invoke(null, language)).map(f-> new BuiltinFunction(f, isAutoRegister));
+        return Optional.ofNullable((Function) meth.invoke(null, language, isStaticInstance)).map(f-> new BuiltinFunction(f, isAutoRegister));
       } catch (Exception e) {
         e.printStackTrace();
         return Optional.empty();

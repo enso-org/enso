@@ -1153,11 +1153,15 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
-        requestId,
-        Api.ModuleNotFoundForExpression(context.Main.idMainX)
-      )
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Failure("Execution stack is empty.", None)
+        )
+      ),
+      context.executionComplete(contextId)
     )
 
     // push main
@@ -1169,40 +1173,17 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveNIgnorePendingExpressionUpdates(
-      5
-    ) should contain theSameElementsAs Seq(
+    val pushResponses = context.receiveNIgnorePendingExpressionUpdates(6)
+    pushResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
     )
-
-    // attach visualisation
-    context.send(
-      Api.Request(
-        requestId,
-        Api.AttachVisualisation(
-          visualisationId,
-          context.Main.idMainX,
-          Api.VisualisationConfiguration(
-            contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
-              "x -> encode x"
-            )
-          )
-        )
-      )
-    )
-    val attachVisualisationResponses = context.receiveN(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
-    )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) =
-      attachVisualisationResponses.collectFirst {
+      pushResponses.collectFirst {
         case Api.Response(
               None,
               Api.VisualisationUpdate(
@@ -2163,7 +2144,7 @@ class RuntimeVisualizationsTest
     )
   }
 
-  it should "run internal IDE visualisation preprocessor catching error" in {
+  it should "run visualisation error preprocessor" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
     val visualisationId = UUID.randomUUID()
@@ -2262,6 +2243,105 @@ class RuntimeVisualizationsTest
     }
     val stringified = new String(data)
     stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
+  }
+
+  it should "run visualisation default preprocessor" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idMain = metadata.addItem(47, 6)
+
+    val code =
+      """import Standard.Visualization
+        |
+        |main =
+        |    fn = x -> x
+        |    fn
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    val visualisationModule   = "Standard.Visualization.Preprocessor"
+    val visualisationFunction = "default_preprocessor"
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    val pushContextResponses =
+      context.receiveNIgnorePendingExpressionUpdates(3)
+    pushContextResponses should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.FUNCTION
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.ModuleMethod(
+              Api.MethodPointer(
+                visualisationModule,
+                visualisationModule,
+                visualisationFunction
+              ),
+              Vector()
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses =
+      context.receiveNIgnoreExpressionUpdates(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idMain`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    val stringified = new String(data)
+    stringified shouldEqual "\"Function\""
   }
 
   it should "attach method pointer visualisation without arguments" in {
@@ -2767,7 +2847,14 @@ class RuntimeVisualizationsTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.INTEGER,
+        payload = Api.ExpressionUpdate.Payload.Value(
+          Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+        )
+      ),
       context.executionComplete(contextId)
     )
 
@@ -2955,13 +3042,25 @@ class RuntimeVisualizationsTest
         contextId,
         idX,
         ConstantsGen.INTEGER,
-        Api.MethodPointer(
-          warningModuleName.toString,
-          warningTypeName.toString + ".type",
-          "attach"
+        methodPointer = Some(
+          Api.MethodPointer(
+            warningModuleName.toString,
+            warningTypeName.toString + ".type",
+            "attach"
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'")))
         )
       ),
-      TestMessages.update(contextId, idRes, s"$moduleName.Newtype"),
+      TestMessages.update(
+        contextId,
+        idRes,
+        s"$moduleName.Newtype",
+        payload = Api.ExpressionUpdate.Payload.Value(
+          Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'")))
+        )
+      ),
       context.executionComplete(contextId)
     )
 

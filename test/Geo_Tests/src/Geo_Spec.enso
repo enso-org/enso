@@ -32,7 +32,7 @@ spec =
         Test.specify "should allow converting a GeoJSON array of features into a table" <|
             fields = ['foo', 'bar', 'baz', 'longitude', 'elevation']
             t = Geo.geo_json_to_table (geo_json.get "features") fields
-            t.columns.map .name . should_equal fields
+            t.columns.map .name . should_contain_the_same_elements_as fields
             t.at 'foo' . to_vector . should_equal [1, 2]
             t.at 'bar' . to_vector . should_equal ['value2', Nothing]
             t.at 'baz' . to_vector . should_equal [Nothing, 3]
@@ -42,7 +42,7 @@ spec =
         Test.specify "should allow converting a GeoJSON object into a table with provided fields" <|
             fields = ['foo', 'bar', 'longitude']
             t = Geo.geo_json_to_table geo_json fields
-            t.columns.map .name . should_equal fields
+            t.columns.map .name . should_contain_the_same_elements_as fields
             t.at 'foo' . to_vector . should_equal [1, 2]
             t.at 'bar' . to_vector . should_equal ['value2', Nothing]
             t.at 'longitude' . to_vector . should_equal [-118.58, 10.11]
@@ -50,7 +50,7 @@ spec =
         Test.specify "should allow converting a GeoJSON object into a table containing all available fields" <|
             fields = ['bar', 'baz', 'elevation', 'foo',  'latitude', 'longitude']
             t = Geo.geo_json_to_table geo_json
-            t.columns.map .name . should_equal fields
+            t.columns.map .name . should_contain_the_same_elements_as fields
             t.at 'foo' . to_vector . should_equal [1, 2]
             t.at 'bar' . to_vector . should_equal ['value2', Nothing]
             t.at 'baz' . to_vector . should_equal [Nothing, 3]

@@ -112,11 +112,11 @@ impl Graphviz {
                 "Lambda2" => "d45769",
                 _ => "455054",
             };
-            let fill = iformat!("[fillcolor=\"#{color}\"]");
+            let fill = format!("[fillcolor=\"#{color}\"]");
             let spacing = "<br/><FONT POINT-SIZE=\"5\"> </FONT><br/>";
-            let variant = iformat!("<FONT POINT-SIZE=\"9\">{node.variant}</FONT>");
-            let label = iformat!("[label=< {node.label} {spacing} {variant} >]");
-            let line = iformat!("\n{idx} {fill} {label}");
+            let variant = format!("<FONT POINT-SIZE=\"9\">{}</FONT>", node.variant);
+            let label = format!("[label=< {} {spacing} {variant} >]", node.label);
+            let line = format!("\n{idx} {fill} {label}");
             code.push_str(&line);
         }
         //
@@ -131,8 +131,8 @@ impl Graphviz {
         //                    _ => ""
         //                };
         //                let label = if data_type == "()" { "" } else { &data_type };
-        //                let label = iformat!("[label=\"  {label}\"]");
-        //                let line  = iformat!("\n{source} -> {target} {style} {label}");
+        //                let label = format!("[label=\"  {label}\"]");
+        //                let line  = format!("\n{source} -> {target} {style} {label}");
         //                code.push_str(&line);
         //            }
         //        }
@@ -141,11 +141,10 @@ impl Graphviz {
         let node_shape = "[shape=box penwidth=0 margin=0.12 style=\"rounded,filled\"]";
         let node_style = "[fontcolor=white fillcolor=\"#5397dc\"]";
         let edge_style = "[arrowsize=.7 fontcolor=\"#555555\"]";
-        let graph_cfg = iformat!("rankdir=TD; graph {fonts};");
-        let nodes_cfg = iformat!("node {fonts} {node_shape} {node_style};");
-        let edges_cfg = iformat!("edge {fonts} {edge_style};");
-        iformat!("digraph G {{ \n{graph_cfg} \n{nodes_cfg} \n{edges_cfg} \n{code} \n}}")
-        //        todo!()
+        let graph_cfg = format!("rankdir=TD; graph {fonts};");
+        let nodes_cfg = format!("node {fonts} {node_shape} {node_style};");
+        let edges_cfg = format!("edge {fonts} {edge_style};");
+        format!("digraph G {{ \n{graph_cfg} \n{nodes_cfg} \n{edges_cfg} \n{code} \n}}")
     }
 }
 

@@ -500,10 +500,10 @@ mod tests {
     use std::assert_matches::assert_matches;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[derive(Shrinkwrap)]
-    #[shrinkwrap(mutable)]
+    #[derive(Deref, DerefMut)]
     struct Fixture {
-        #[shrinkwrap(main_field)]
+        #[deref]
+        #[deref_mut]
         inner:   crate::test::mock::Fixture,
         node_id: ast::Id,
     }
@@ -537,10 +537,10 @@ mod tests {
         Modify { id: VisualizationId, method_pointer: Option<QualifiedMethodPointer> },
     }
 
-    #[derive(Shrinkwrap)]
-    #[shrinkwrap(mutable)]
+    #[derive(Deref, DerefMut)]
     struct VisOperationsTester {
-        #[shrinkwrap(main_field)]
+        #[deref]
+        #[deref_mut]
         pub inner:    Fixture,
         pub is_ready: Synchronized<bool>,
         pub manager:  Rc<Manager>,
