@@ -4,7 +4,7 @@ import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
-from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
+from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
 import Standard.Table.Main as Table_Module
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Data.Storage import Storage
@@ -367,7 +367,7 @@ spec =
             c_1 = ['id', [1, 2, 3, 4, 5, 6]]
             c_2 = ['val', [My.Data 1 2, My.Data 3 4, My.Data 2 1, My.Data 5 2, My.Data 7 0, My.Data 4 -1]]
             df = Table.new [c_1, c_2]
-            r = df.order_by (Sort_Column_Selector.By_Name ['val'])
+            r = df.order_by (['val'])
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
@@ -383,7 +383,7 @@ spec =
             mixed_dates = [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 2000]
 
             df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs], ['dates', dates], ['times', times], ['datetimes', datetimes], ['mixed_dates', mixed_dates]]
-            r = df.order_by (Sort_Column_Selector.By_Name ['ord'])
+            r = df.order_by (['ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
             df.at 'ints' . to_vector . should_equal ints
@@ -410,23 +410,23 @@ spec =
             df.at 'datetimes' . to_vector . should_equal datetimes
 
             # TODO move this test to Common_Table_Operations once we support dates there
-            r2 = df.order_by (Sort_Column_Selector.By_Name ['dates'])
+            r2 = df.order_by (['dates'])
             r2.at 'dates' . to_vector . should_equal [Date.new 1999, Date.new 1999 12 31, Date.new 2000 2 7, Date.new 2000 10 3, Date.new 2020]
             r2.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
 
-            r3 = df.order_by (Sort_Column_Selector.By_Name ['times'])
+            r3 = df.order_by (['times'])
             r3.at 'times' . to_vector . should_equal [Time_Of_Day.new 1 30 40, Time_Of_Day.new 10 20 30, Time_Of_Day.new 12, Time_Of_Day.new 12 30 0, Time_Of_Day.new 23 59 59]
             r3.at 'ints' . to_vector . should_equal [2, 5, 1, 4, 3]
 
-            r4 = df.order_by (Sort_Column_Selector.By_Name ['datetimes'])
+            r4 = df.order_by (['datetimes'])
             r4.at 'datetimes' . to_vector . should_equal [Date_Time.new 1999 1 1 1 30 40, Date_Time.new 1999 12 31 12 30 0, Date_Time.new 2000 10 3 10 20 30, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 2020 1 1 12]
             r4.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
 
-            r5 = df.order_by (Sort_Column_Selector.By_Name ['objs'])
+            r5 = df.order_by (['objs'])
             r5.at 'objs' . to_vector . should_equal [My.Data 2 3, My.Data 6 7, My.Data 8 9, My.Data 10 30, My.Data 100 2]
             r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
 
-            r6 = df.order_by (Sort_Column_Selector.By_Name ['mixed_dates'])
+            r6 = df.order_by (['mixed_dates'])
             r6 . should_fail_with Incomparable_Values
 
     Test.group "Sorting Columns" <|
@@ -663,7 +663,7 @@ spec =
             texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]
             ints = ["ints", [1, 2, 4, 8, 16, 32]]
             table = Table.new [texts, ints]
-            r1 = table.aggregate [Group_By "texts", Sum "ints"] . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "texts"])
+            r1 = table.aggregate [Group_By "texts", Sum "ints"] . order_by ([Sort_Column.Name "texts"])
             r1.at "texts" . to_vector . should_equal ['sciana', 'ściana', 'łąka']
             r1.at "Sum ints" . to_vector . should_equal [32, 11, 20]
 
