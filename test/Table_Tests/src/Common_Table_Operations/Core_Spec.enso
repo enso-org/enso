@@ -84,22 +84,28 @@ spec setup =
     Test.group prefix+"Table.set" <|
         Test.specify "should allow adding a column" <|
             bar2 = table.get "bar" . rename "bar2"
-            table.set bar2
-            table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar2"]
-            table.get "bar2" . to_vector . should_equal [4, 5, 6]
+            t2 = table.set bar2
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar2"]
+            t2.get "bar2" . to_vector . should_equal [4, 5, 6]
+
+            t3 = t2.set bar2 "bar3"
+            t3.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar2", "bar3"]
 
         Test.specify "should allow replacing a column" <|
             foo = table.get "bar" . rename "foo"
-            table.set foo
-            table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            table.get "bar2" . to_vector . should_equal [4, 5, 6]
+            t2 = table.set foo
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+            t2.get "foo" . to_vector . should_equal [4, 5, 6]
+
+            t3 = t2.set foo "bar3"
+            t3.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar3"]
 
         Test.specify "should allow adding a column" <|
             bar2 = table.get "bar" . rename "bar2"
-            table.set bar2 Set_Mode.Update . should_fail_with Missing_Column.Error
+            table.set bar2 set_mode=Set_Mode.Update . should_fail_with Missing_Column.Error
 
             foo = table.get "bar" . rename "foo"
-            table.set foo Set_Mode.Add . should_fail_with Existing_Column.Error
+            table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column.Error
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|

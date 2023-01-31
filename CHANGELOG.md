@@ -298,8 +298,8 @@
   backend.][4063]
 - [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new
   simpler API.][4078]
-- [Updated `Table.set` to new API. New `Column.parse` function and added
-  case sensitivity to `Filter_Condition` and column functions.]4097]
+- [Updated `Table.set` to new API. New `Column.parse` function and added case
+  sensitivity to `Filter_Condition` and column functions.]4097]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -593,7 +593,7 @@
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
-[3637]: https://github.com/enso-org/enso/pull/3638
+[3638]: https://github.com/enso-org/enso/pull/3638
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3658]: https://github.com/enso-org/enso/pull/3658
 [3671]: https://github.com/enso-org/enso/pull/3671
