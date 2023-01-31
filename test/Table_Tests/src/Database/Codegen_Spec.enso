@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Sort_Column, Sort_Column_Selector, Column_Selector, Join_Condition
+from Standard.Table import Sort_Column, Column_Selector, Join_Condition
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column
 

@@ -112,8 +112,8 @@ all_same_column aggregates =
    indices or column references potentially from a different table) are
    replaced with column references from the provided table.
 
-   Sort_Column_Selectors are resolved to Sort_Column_Select.By_Column with the
-   matched columns coming from the provided table.
+   `Sort_Column`s are replaced with column references of matched columns coming
+   from the provided table.
 
    This preprocess step is required by some helper function, to avoid having
    to pass the table reference and resolve the column descriptors all the
@@ -141,8 +141,8 @@ resolve_aggregate table problem_builder aggregate_column =
         _ ->
             columns_for_ordering = Table_Helpers.prepare_order_by table_columns selector problem_builder
             sort_columns = columns_for_ordering.map c->
-                Sort_Column.Column c.column c.associated_selector.direction
-            Sort_Column_Selector.By_Column sort_columns
+                Internal_Order_By_Column_Reference.Value c.column c.associated_selector.direction
+            sort_columns
 
     result = case aggregate_column of
         Group_By c new_name -> Group_By (resolve c) new_name
@@ -173,6 +173,11 @@ resolve_aggregate table problem_builder aggregate_column =
     ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
        value, keeping any other dataflow errors intact.
     result.catch Internal_Missing_Column_Error (_->Nothing)
+
+## PRIVATE
+type Internal_Order_By_Column_Reference
+    ## PRIVATE
+    Value column direction
 
 ## PRIVATE
    A marker for missing columns during resolution.

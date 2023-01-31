@@ -17,4 +17,4 @@ type Sort_Column
        matched columns will be placed in the ORDER BY clause at the position of
        this selector. Their relative order between each other will be the same
        as in the table.
-    Select_By_Name name:Text direction:Sort_Direction=Sort_Direction.Ascending case_sensitivity:Case_Sensitivity=Case_Sensitivity.Case_Insensitive use_regex:Boolean=False
+    Select_By_Name name:Text direction:Sort_Direction=Sort_Direction.Ascending case_sensitivity:Case_Sensitivity=Case_Sensitivity.Insensitive use_regex:Boolean=False
