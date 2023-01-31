@@ -44,7 +44,7 @@ type Too_Many_Column_Names_Provided
        Convert a too many columns error to a human-readable form.
     to_display_text : Text
     to_display_text self =
-        "Too many column names provided. " + (self.column_names.at 0).to_text + " unused."
+        "Too many column names provided. " + (self.column_names.at 0).to_text + " are unused."
 
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names
@@ -79,40 +79,17 @@ type No_Output_Columns
     to_display_text self =
         "The result contains no columns."
 
-## Indicates that the provided Column_Selector has duplicate entries.
-type Duplicate_Column_Selectors
-    Error (duplicate_selectors : [(Text | Integer)])
-
-    to_display_text : Text
-    to_display_text self =
-        "The provided Column_Selector has duplicate entries: "+self.duplicate_selectors.short_display_text+"."
-
-## Indicates that one column has been matched by multiple selectors.
-
-   In case the selectors have differing metadata and the error does not prevent
-   the operation from continuing, the first selector on the list is used.
-type Column_Matched_By_Multiple_Selectors
-    Error (column_name : Text) (selectors : [Any])
+## Indicates that one column has been matched by multiple selectors, resulting
+   in ambiguous new names.
+type Ambiguous_Column_Rename
+    Error (column_name : Text) (new_names : Vector Text)
 
     ## PRIVATE
 
        Pretty prints the error.
     to_display_text : Text
     to_display_text self =
-        'The column "' + self.column_name + '" is matched by multiple selectors: ' + self.selectors.short_display_text + "."
-
-## Indicates that the provided indices matched columns already matched by
-   others, so they do not introduce any new columns to the input.
-
-  For example, if the table has only one column, then selecting
-  `By_Index [0, -1]` will only yield this single column and
-  `Input_Indices_Already_Matched [-1]` will be raised.
-type Input_Indices_Already_Matched
-    Error (indices : [Integer])
-
-    to_display_text : Text
-    to_display_text self =
-        "The indices "+self.indices.short_display_text+" matched columns which have been matched earlier by other indices, so they did not introduce any new columns into the result."
+        'The column "' + self.column_name + '" is matched by multiple selectors, and it is ambiguous which of the following names it should be assigned: ' + self.new_names.short_display_text + "."
 
 ## Indicates that no input columns were selected for the operation, so the
    operation will cause no effect.

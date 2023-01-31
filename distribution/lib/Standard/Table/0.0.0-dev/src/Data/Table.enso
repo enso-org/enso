@@ -247,19 +247,19 @@ type Table
        - columns: Column selection criteria or vector of column names.
        - reorder: By default, or if set to `False`, columns in the output will
          be in the same order as in the input table. If `True`, the order in the
-         output table will match the order in the columns list.
+         output table will match the order in the columns list. If a column is
+         matched by multiple selectors in reorder mode, it will be placed at
+         the position of the first one matched.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
+
+       ! Error Conditions
+
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
@@ -290,7 +290,7 @@ type Table
              table.select_columns (Column_Selector.By_Column [column1, column2])
 
        Icon: select_column
-    select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
+    select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns
     select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.select_columns selector=columns reorder=reorder on_problems=on_problems
         Table.new new_columns
@@ -308,12 +308,7 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
@@ -361,12 +356,7 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
 
        > Example
          Move a column with a specified name to back.
@@ -442,17 +432,15 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`.
+         - If a column is matched by two selectors resulting in a different name
+           mapping, a `Ambiguous_Column_Rename`.
          - If in `By_Position` mode and more names than columns are provided,
            a `Too_Many_Column_Names_Provided`.
          - If any of the new names are invalid, an
            `Invalid_Output_Column_Names`.
          - If any of the new names clash either with existing names or each
-           other, a Duplicate_Output_Column_Names.
+           other, a `Duplicate_Output_Column_Names`.
 
        > Example
          Rename the first column to "FirstColumn"
@@ -468,6 +456,11 @@ type Table
          Add a prefix to all column names.
 
               table.rename_columns (table.columns.map c-> "prefix_" + c.name)
+
+       > Example
+         For all columns starting with the prefix `name=`, replace it with `key:`.
+
+              table.rename_columns (Column_Name_Mapping.By_Name (Map.from_vector [["name=(.*)", "key:$1"]]) Regex_Matcher.Value)
     rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
         _ : Vector ->
@@ -475,10 +468,10 @@ type Table
         _ : Map ->
             self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
         _ ->
-            new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems
-            if new_names.is_error then new_names else
-                new_columns = self.columns.map_with_index i->c->(c.rename (new_names.at i))
-                Table.new new_columns
+            case Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems of
+                new_names ->
+                    new_columns = self.columns.map_with_index i->c->(c.rename (new_names.at i))
+                    Table.new new_columns
 
     ## Returns a new table with the columns renamed based on entries in the
        first row.
@@ -560,20 +553,15 @@ type Table
        Arguments:
        - columns: The columns and order to sort the table.
        - text_ordering: The ordering method to use on text values.
-       - on_problems: Specifies how to handle if a problem occurs, raising as a
-         warning by default. The following problems can occur:
-         - If a column in `columns` is not present in the input table, a
-           `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`.
-         - If two name matchers match the same column, a
-           `Column_Matched_By_Multiple_Selectors`.
-         - If no valid columns are selected, a `No_Input_Columns_Selected`.
-         - If values do not implement an ordering, an
-           `Incomparable_Values`.
+
+       This method may raise the following errors:
+       - If a column in `columns` is not present in the input table, a
+         `Missing_Input_Columns`.
+       - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+       - If no valid columns are selected, a `No_Input_Columns_Selected`.
+       - If values do not implement an ordering, an `Incomparable_Values`.
+
+       Missing (`Nothing`) values are sorted as less than any other object.
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
@@ -604,50 +592,11 @@ type Table
          descending order.
 
              table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
-
-       > Example
-         Sorting the shop inventory based on the per-item price in ascending
-         order.
-
-             import Standard.Examples
-
-             example_sort = Examples.inventory_table.order_by (Sort_Column_Selector.By_Name ["price"])
-
-       > Example
-         Sort the shop inventory based on the per-item price in descending order
-
-             import Standard.Examples
-
-             example_sort =
-                table = Examples.inventory_table
-                table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "price" Sort_Direction.Descending])
-
-       > Example
-         Sort the shop inventory based on the total stock, using the number sold
-         to break ties in descending order.
-
-             import Standard.Examples
-
-             example_sort =
-                 table = Examples.inventory_table
-                 table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "total_stock" Sort_Direction.Descending, Sort_Column.Name "sold_stock" Sort_Direction.Descending])
-
-       > Example
-         Sort the shop inventory in ascending order by the total stock, using
-         the number of items sold in descending order to break ties.
-
-             import Standard.Examples
-             from Standard.Table import Table
-
-             example_sort =
-                 table = Examples.inventory_table
-                 table.order_by (Sort_Column_Selector.By_Name ["total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
-
-    order_by : Text | Sort_Column | Vector (Text | Sort_Column) | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values
-    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default on_problems=Report_Warning =
+    order_by : Text | Sort_Column | Vector (Text | Sort_Column) | Sort_Column_Selector -> Text_Ordering -> Table ! Incomparable_Values
+    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
-        problem_builder.attach_problems_before on_problems <|
+        problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
@@ -676,11 +625,7 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`.
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
@@ -789,12 +734,7 @@ type Table
 
          The following problems can occur:
          - If a column in columns is not in the input table, a `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
          - If a column in columns does not have a storage type of `Text`, or `Any`,
            thus it is guaranteed that it can't contain any text values, a
            `Invalid_Value_Type`.
@@ -1400,12 +1340,7 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
          - If there are no columns to transpose, a `No_Input_Columns`.
     transpose : Text | Vector Text | Column_Selector -> Text -> Text -> Problem_Behavior -> Table
     transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (on_problems = Report_Warning) =
@@ -1447,11 +1382,6 @@ type Table
          - If a column in the input is not in the input table, a
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - In `grouping`, if duplicate column names or indices are provided, a
-           `Duplicate_Column_Selectors`.
-         - In `grouping`, If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
          - If grouping on, using as the column name, or computing the `Mode` on
            a floating point number, a `Floating_Point_Grouping`.
          - If an aggregation fails, an `Invalid_Aggregation`.

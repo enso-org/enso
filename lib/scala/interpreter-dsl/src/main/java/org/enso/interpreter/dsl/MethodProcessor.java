@@ -159,6 +159,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println("  description = \"\"\"\n" + methodDefinition.getDescription() + "\"\"\")");
       out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode {");
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
+      out.println("  private final boolean staticOfInstanceMethod;");
 
       out.println();
 
@@ -184,9 +185,10 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       }
       out.println("  private final BranchProfile anyWarningsProfile = BranchProfile.create();");
 
-      out.println("  private " + methodDefinition.getClassName() + "(EnsoLanguage language) {");
+      out.println("  private " + methodDefinition.getClassName() + "(EnsoLanguage language, boolean staticOfInstanceMethod) {");
       out.println("    super(language);");
-      out.println("    bodyNode = " + methodDefinition.getConstructorExpression() + ";");
+      out.println("    this.bodyNode = " + methodDefinition.getConstructorExpression() + ";");
+      out.println("    this.staticOfInstanceMethod = staticOfInstanceMethod;");
       out.println("  }");
 
       out.println();
@@ -197,29 +199,27 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
               : "fromBuiltinRootNode";
 
       out.println("  public static Function makeFunction(EnsoLanguage language) {");
-      out.println("    return Function." + functionBuilderMethod + "(");
-      out.println(
-          "        new "
-              + methodDefinition.getClassName()
-              + "(language)");
-      List<String> argumentDefs = new ArrayList<>();
-      for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-        if (arg.isPositional()) {
-          String executionMode = arg.isSuspended() ? "PASS_THUNK" : "EXECUTE";
-          argumentDefs.add(
-              "        new ArgumentDefinition("
-                  + arg.getPosition()
-                  + ", \""
-                  + arg.getName()
-                  + "\", ArgumentDefinition.ExecutionMode."
-                  + executionMode
-                  + ")");
-        }
-      }
-      if (!argumentDefs.isEmpty()) {
+      out.println("    return makeFunction(language, false);");
+      out.println("  }");
+      out.println();
+      out.println("  public static Function makeFunction(EnsoLanguage language, boolean staticOfInstanceMethod) {");
+      out.println("    if (staticOfInstanceMethod) {");
+      out.println("      return Function." + functionBuilderMethod + "(");
+      out.print("        new " + methodDefinition.getClassName() + "(language, staticOfInstanceMethod)");
+      List<String> argsStaticInstace = generateMakeFunctionArgs(true, methodDefinition.getArguments());
+      if (!argsStaticInstace.isEmpty()) {
         out.println(",");
       }
-      out.println(String.join(",\n", argumentDefs) + ");");
+      out.println(String.join(",\n", argsStaticInstace) + ");");
+      out.println("    } else {");
+      out.println("      return Function." + functionBuilderMethod + "(");
+      out.print("        new " + methodDefinition.getClassName() + "(language, staticOfInstanceMethod)");
+      List<String> argsInstance = generateMakeFunctionArgs(false, methodDefinition.getArguments());
+      if (!argsInstance.isEmpty()) {
+        out.println(",");
+      }
+      out.println(String.join(",\n", argsInstance) + ");");
+      out.println("    }");
       out.println("  }");
 
       out.println();
@@ -233,7 +233,14 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       }
       out.println(
           "    Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());");
+      out.println("    int prefix = this.staticOfInstanceMethod ? 1 : 0;");
       List<String> callArgNames = new ArrayList<>();
+      for (MethodDefinition.ArgumentDefinition arg :
+              methodDefinition.getArguments()) {
+        if (!(arg.isImplicit() || arg.isFrame() || arg.isState() || arg.isCallerInfo())) {
+          out.println("    int arg" + arg.getPosition() + "Idx = " + arg.getPosition() + " + prefix;");
+        }
+      }
       boolean warningsPossible =
           generateWarningsCheck(out, methodDefinition.getArguments(), "arguments");
       for (MethodDefinition.ArgumentDefinition argumentDefinition :
@@ -289,7 +296,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
       out.println("  @Override");
       out.println("  protected RootNode cloneUninitialized() {");
-      out.println("    return new " + methodDefinition.getClassName() + "(EnsoLanguage.get(this));");
+      out.println("    return new " + methodDefinition.getClassName() + "(EnsoLanguage.get(this), this.staticOfInstanceMethod);");
       out.println("  }");
 
       out.println();
@@ -298,9 +305,32 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     }
   }
 
+  private List<String> generateMakeFunctionArgs(boolean staticInstance, List<ArgumentDefinition> args) {
+    List<String> argumentDefs = new ArrayList<>();
+    int staticPrefix = 0;
+    if (staticInstance) {
+      argumentDefs.add("        new ArgumentDefinition(0, \"selfStatic\", ArgumentDefinition.ExecutionMode.EXECUTE)");
+      staticPrefix = 1;
+    }
+    for (MethodDefinition.ArgumentDefinition arg : args) {
+      if (arg.isPositional()) {
+        String executionMode = arg.isSuspended() ? "PASS_THUNK" : "EXECUTE";
+        argumentDefs.add(
+                "        new ArgumentDefinition("
+                        + (staticPrefix + arg.getPosition())
+                        + ", \""
+                        + arg.getName()
+                        + "\", ArgumentDefinition.ExecutionMode."
+                        + executionMode
+                        + ")");
+      }
+    }
+    return argumentDefs;
+  }
+
   private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String argReference = argsArray + "[" + arg.getPosition() + "]";
+    String argReference = argsArray + "[arg" + arg.getPosition() + "Idx]";
     if (arg.shouldCheckErrors()) {
       String condProfile = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
       out.println(
@@ -350,9 +380,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
             + varName
             + " = "
             + argsArray
-            + "["
+            + "[arg"
             + arg.getPosition()
-            + "];");
+            + "Idx];");
   }
 
   private void generateUncheckedArgumentRead(
@@ -368,9 +398,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
             + castName
             + "("
             + argsArray
-            + "["
+            + "[arg"
             + arg.getPosition()
-            + "]);");
+            + "Idx]);");
   }
 
   private void generateUncheckedArrayCast(
@@ -386,9 +416,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
                     + castName
                     + ")"
                     + argsArray
-                    + "["
+                    + "[arg"
                     + arg.getPosition()
-                    + "];");
+                    + "Idx];");
   }
 
   private void generateCheckedArgumentRead(
@@ -398,18 +428,18 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     out.println("    " + arg.getTypeName() + " " + varName + ";");
     out.println("    try {");
     out.println(
-        "      " + varName + " = " + castName + "(" + argsArray + "[" + arg.getPosition() + "]);");
+        "      " + varName + " = " + castName + "(" + argsArray + "[arg" + arg.getPosition() + "Idx]);");
     out.println("    } catch (UnexpectedResultException e) {");
     out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
     out.println("      var builtins = EnsoContext.get(this).getBuiltins();");
     out.println(
-        "      var expected = builtins.fromTypeSystem(TypesGen.getName(arguments["
+        "      var expected = builtins.fromTypeSystem(TypesGen.getName(arguments[arg"
             + arg.getPosition()
-            + "]));");
+            + "Idx]));");
     out.println(
-        "      var error = builtins.error().makeTypeError(expected, arguments["
+        "      var error = builtins.error().makeTypeError(expected, arguments[arg"
             + arg.getPosition()
-            + "], \""
+            + "Idx], \""
             + varName
             + "\");");
     out.println("      throw new PanicException(error,this);");
@@ -500,7 +530,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   }
 
   private String arrayRead(String array, int index) {
-    return array + "[" + index + "]";
+    return array + "[arg" + index + "Idx]";
   }
 
   private String capitalize(String name) {
