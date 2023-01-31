@@ -614,21 +614,23 @@ mod tests {
     /// excluded from the list.
     #[test]
     fn building_component_list_with_private_component() {
+        use ast::constants::PRIVATE_DOC_SECTION_TAG_NAME as PRIVATE_TAG;
+        let private_doc_section = enso_suggestion_database::doc_section!(@ PRIVATE_TAG, "");
         let suggestion_db = enso_suggestion_database::mock_suggestion_database! {
             test.Test {
                 mod TopModule {
-                    fn fun_1() -> Standard.Base.Any;
-                    #[with_doc_section(enso_suggestion_database::doc_section!(@ "PRIVATE", ""))]
-                    fn private_fun_2() -> Standard.Base.Any;
-                    fn fun_3() -> Standard.Base.Any;
+                    fn fun1() -> Standard.Base.Any;
+                    #[with_doc_section(private_doc_section)]
+                    fn private_fun2() -> Standard.Base.Any;
+                    fn fun3() -> Standard.Base.Any;
                 }
             }
         };
         let mut builder = List::new().with_local_scope_module_id(1);
+        // ID's for `test.Test`, `TopModule` and 3 function ID's in `suggestion_db`.
         let entry_ids = 0..5;
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, entry_ids);
         let list = builder.build();
-
         let component_names: Vec<_> = list
             .all_components
             .iter()
@@ -637,7 +639,7 @@ mod tests {
                 _ => None,
             })
             .collect();
-        let expected = vec!["TopModule", "fun_1", "fun_3"];
+        let expected = vec!["TopModule", "fun1", "fun3"];
         assert_eq!(component_names, expected);
     }
 }

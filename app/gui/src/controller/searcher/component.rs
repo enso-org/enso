@@ -168,7 +168,8 @@ impl Component {
     pub fn is_private(&self) -> bool {
         match &self.data {
             Data::FromDatabase { entry, .. } => entry.documentation.iter().any(|doc| match doc {
-                DocSection::Tag { name, .. } => name == "PRIVATE",
+                DocSection::Tag { name, .. } =>
+                    name == ast::constants::PRIVATE_DOC_SECTION_TAG_NAME,
                 _ => false,
             }),
             _ => false,
