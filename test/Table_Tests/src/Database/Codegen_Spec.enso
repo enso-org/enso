@@ -51,7 +51,7 @@ spec =
             foo = t1.at "A" . rename "FOO"
             foo.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "FOO" FROM "T1" AS "T1"', []]
 
-            t3 = t2.set "bar" foo
+            t3 = t2.set foo new_name="bar"
             t3.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B", "T1"."A" AS "bar" FROM "T1" AS "T1"', []]
 
         Test.specify "should fail if at is called for a non-existent column" <|
@@ -81,8 +81,8 @@ spec =
             ends = b.ends_with "suf"
             starts = b.starts_with "pref"
             contains = b.contains "inf"
-            ends.to_sql.prepare . should_equal ['SELECT ("T1"."B" LIKE (\'%\' || ?)) AS "B" FROM "T1" AS "T1"', [["suf", str]]]
-            starts.to_sql.prepare . should_equal ['SELECT ("T1"."B" LIKE (? || \'%\')) AS "B" FROM "T1" AS "T1"', [["pref", str]]]
+            ends.to_sql.prepare . should_equal ['SELECT ("T1"."B" GLOB (\'*\' || ?)) AS "B" FROM "T1" AS "T1"', [["suf", str]]]
+            starts.to_sql.prepare . should_equal ['SELECT ("T1"."B" GLOB (? || \'*\')) AS "B" FROM "T1" AS "T1"', [["pref", str]]]
             contains.to_sql.prepare . should_equal ['SELECT instr("T1"."B", ?) > 0 AS "B" FROM "T1" AS "T1"', [["inf", str]]]
 
     Test.group "[Codegen] Masking Tables and Columns" <|

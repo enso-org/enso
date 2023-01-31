@@ -176,7 +176,7 @@ type Table_Column_Helper
                adding a new column with a clashing name will not affect any
                other columns computed from the old column with that name.
             table_with_blank_indicators = blanks.fold self.table table-> blanks_col->
-                table.set blanks_col.name blanks_col
+                table.set blanks_col
             just_indicators = table_with_blank_indicators.select_columns (blanks.map .name) on_problems=Problem_Behavior.Report_Error
             # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
             col_aggregate = if when_any then Maximum _ else Minimum _
@@ -212,7 +212,7 @@ type Table_Column_Helper
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
                 if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
-                    expression = (self.table.evaluate selector).catch Any _->Nothing
+                    expression = (self.table.compute selector).catch Any _->Nothing
                     if Nothing != expression then expression else
                         problem_builder.report_missing_input_columns [selector]
                         Nothing

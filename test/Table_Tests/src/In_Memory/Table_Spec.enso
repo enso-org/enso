@@ -844,7 +844,7 @@ spec =
 
                             t.filter "X" (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "X" . to_vector . should_equal expected_vector
                             t.filter "X" (Filter_Condition.Is_In in_column) on_problems=Report_Error . at "X" . to_vector . should_equal expected_vector
-                            t2 = t.set "Y" (t.at "X" . not)
+                            t2 = t.set (t.at "X" . not) new_name="Y"
                             t2.filter "Y" (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "Y" . to_vector . should_equal expected_neg_vector
                             t2.filter "Y" (Filter_Condition.Is_In in_column) on_problems=Report_Error . at "Y" . to_vector . should_equal expected_neg_vector
 
