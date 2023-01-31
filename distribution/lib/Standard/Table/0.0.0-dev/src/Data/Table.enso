@@ -595,7 +595,7 @@ type Table
        > Example
          Sort the table by columns whose names start with letter `a`.
 
-              table.order_by [Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive]
+              table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
     order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Table ! Incomparable_Values
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default =
         problem_builder = Problem_Builder.new
