@@ -301,14 +301,14 @@ impl NodeToWidgetsMapping {
 /// to, and the method call that corresponds to that expression.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Request {
-    /// The node id of a node that contains the widget.
+    /// The node ID of a node that contains the widget.
     pub node_id:           NodeId,
     /// Expression of the whole method call. Only used to correlate the visualization response with
-    /// the widget view. Not actually used in the visualization request.
+    /// the widget view.
     pub call_expression:   ExpressionId,
-    /// Expression of the call target. Used as a visualization target.
+    /// Target (`self`) argument in the call expression. Used as a visualization target.
     pub target_expression: ExpressionId,
-    /// The suggestion id of the method that this call refers to.
+    /// The suggestion ID of the method that this call refers to.
     pub call_suggestion:   SuggestionId,
 }
 
