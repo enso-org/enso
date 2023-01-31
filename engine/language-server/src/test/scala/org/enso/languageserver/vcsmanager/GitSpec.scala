@@ -1,5 +1,8 @@
 package org.enso.languageserver.vcsmanager
 
+import java.nio.file.{Files, Path}
+import java.nio.charset.StandardCharsets
+
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.effect.Effects
 import org.scalatest.matchers.should.Matchers
@@ -9,11 +12,12 @@ import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.RevCommit
 
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
-import java.nio.file.{Files, Path}
-import java.nio.charset.StandardCharsets
 
 class GitSpec extends AnyWordSpecLike with Matchers with Effects {
+
+  override def opTimeout = 5.seconds
 
   "VCS initialization" should {
     "create a new repository" in new TestCtx {
