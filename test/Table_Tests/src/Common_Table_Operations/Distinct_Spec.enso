@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Column_Selector, Sort_Column, Sort_Column_Selector
+from Standard.Table import Column_Selector, Sort_Column
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
@@ -45,7 +45,7 @@ spec setup =
                 a = ["A", ["a", "a", "a", "a", "a", "a"]]
                 b = ["B", [1, 1, 2, 2, 1, 2]]
                 c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
-                t = table_builder [a, b, c] . order_by (Sort_Column_Selector.By_Name [(Sort_Column.Name "C" Sort_Direction.Descending)])
+                t = table_builder [a, b, c] . order_by ([(Sort_Column.Name "C" Sort_Direction.Descending)])
 
                 r2 = t.distinct ["A", "B"] on_problems=Report_Error |> materialize |> _.order_by "B"
                 r2.at "A" . to_vector . should_equal ["a", "a"]

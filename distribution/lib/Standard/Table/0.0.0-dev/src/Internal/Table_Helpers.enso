@@ -8,7 +8,6 @@ import project.Data.Column.Column
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Position.Position
-import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Value_Type.Value_Type
@@ -465,41 +464,38 @@ type Column_Transform_Element
     Value column associated_selector
 
 ## PRIVATE
-prepare_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) | Sort_Column_Selector -> Problem_Builder -> Vector Column_Transform_Element
+prepare_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
-    selected_elements = case column_selectors of
-        _ : Text ->
-            unified_name_selectors = [Sort_Column.Name column_selectors]
-            select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
-        Sort_Column.Name _ _ -> select_columns_by_name internal_columns [column_selectors] Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
-        Sort_Column.Index _ _ -> select_columns_by_index internal_columns [column_selectors] problem_builder index_extractor=(_.index)
-        Sort_Column.Column _ _ -> select_columns_by_column_reference internal_columns [column_selectors] problem_builder column_extractor=(_.column)
-        _ : Vector ->
-            unified_name_selectors = column_selectors.map selector-> case selector of
-                _ : Text -> Sort_Column.Name selector
-                Sort_Column.Name _ _ -> selector
-                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Name are allowed as a Vector.")
-            select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
-        Sort_Column_Selector.By_Name name_selectors matcher ->
-            unified_name_selectors = name_selectors.map selector-> case selector of
-                _ : Text -> Sort_Column.Name selector
-                Sort_Column.Name _ _ -> selector
-                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Name are allowed for Sort_Column_Selector.By_Name.")
-            select_columns_by_name internal_columns unified_name_selectors matcher problem_builder name_extractor=(_.name)
-        Sort_Column_Selector.By_Index index_selectors ->
-            unified_index_selectors = index_selectors.map selector-> case selector of
-                _ : Integer -> Sort_Column.Index selector
-                Sort_Column.Index _ _ -> selector
-                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Integer and Sort_Column.Index are allowed for Sort_Column_Selector.By_Index.")
-            select_columns_by_index internal_columns unified_index_selectors problem_builder index_extractor=(_.index)
-        Sort_Column_Selector.By_Column column_selectors ->
-            unified_column_selectors = column_selectors.map selector-> case selector of
-                Sort_Column.Column _ _ -> selector
-                ## We cannot match by type here, as there is no common `Column`
-                   type - the type is different for In-Memory and Database
-                   tables, and we do not have interfaces yet.
-                column_reference -> Sort_Column.Column column_reference
-            select_columns_by_column_reference internal_columns unified_column_selectors problem_builder column_extractor=(_.column)
+    resolve_selector selector = case selector of
+        name : Text -> resolve_selector (Sort_Column.Name name)
+        ix : Integer -> resolve_selector (Sort_Column.Index ix)
+        Sort_Column.Name name direction ->
+            resolve_selector (Sort_Column.Select_By_Name name direction Case_Sensitivity.Sensitive use_regex=False)
+        Sort_Column.Index ix _ ->
+            actual_index = if ix < 0 then internal_columns.length+ix else ix
+            case (actual_index >= 0) && (actual_index < internal_columns.length) of
+                True -> [Column_Transform_Element.Value (internal_columns.at actual_index) selector]
+                False ->
+                    problem_builder.report_oob_indices [ix]
+                    []
+        Sort_Column.Select_By_Name name _ case_sensitivity use_regex ->
+            matcher = case use_regex of
+                True -> Regex_Matcher.Value case_sensitivity=case_sensitivity
+                False -> case case_sensitivity of
+                    Case_Sensitivity.Default -> Text_Matcher.Case_Sensitive
+                    Case_Sensitivity.Sensitive -> Text_Matcher.Case_Sensitive
+                    Case_Sensitivity.Insensitive locale ->
+                        Text_Matcher.Case_Insensitive locale=locale
+            matches = internal_columns.filter c->
+                matcher.match_single_criterion c.name name
+            if matches.is_empty then
+                problem_builder.report_missing_input_columns [name]
+            matches.map c->
+                Column_Transform_Element.Value c selector
+    selectors_vec = case column_selectors of
+        _ : Vector -> column_selectors
+        _ -> [column_selectors]
+    selected_elements = selectors_vec.flat_map resolve_selector
     if selected_elements.is_empty then
         problem_builder.report_other_warning No_Input_Columns_Selected
     selected_elements

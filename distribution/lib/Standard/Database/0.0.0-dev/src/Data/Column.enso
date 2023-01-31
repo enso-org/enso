@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Sort_Column, Sort_Column_Selector
+from Standard.Table import Sort_Column
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
 
@@ -637,7 +637,7 @@ type Column
              column.sort Sort_Direction.Descending
     sort : Sort_Direction -> Column
     sort self order=Sort_Direction.Ascending =
-        self.to_table.order_by (Sort_Column_Selector.By_Column [Sort_Column.Column self order]) . at self.name
+        self.to_table.order_by (Sort_Column.Index 0 order) . at 0
 
     ## UNSTABLE
        Creates a new Column with the specified range of rows from the input
