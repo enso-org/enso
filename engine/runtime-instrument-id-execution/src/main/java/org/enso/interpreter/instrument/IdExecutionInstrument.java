@@ -19,8 +19,10 @@ import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
@@ -64,6 +66,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     private final UUID nextExecutionItem;
     private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
     private final Timer timer;
+    private final TypeOfNode typeOfNode;
     private long nanoTimeElapsed = 0;
 
     /**
@@ -101,6 +104,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       this.onCachedCallback = onCachedCallback;
       this.onExceptionalCallback = onExceptionalCallback;
       this.timer = timer;
+      this.typeOfNode = TypeOfNode.build();
     }
 
     @Override
@@ -187,6 +191,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         boolean isPanic = result instanceof PanicSentinel;
         UUID nodeId = ((ExpressionNode) node).getId();
         String resultType = Types.getName(result);
+        if (resultType == null && result != null) {
+            // Slow path
+            Object typeResult = typeOfNode.execute(result);
+            if (typeResult instanceof Type t) {
+                resultType = t.getQualifiedName().toString();
+            }
+        }
 
         String cachedType = cache.getType(nodeId);
         FunctionCallInfo call = calls.get(nodeId);

@@ -312,6 +312,64 @@ class RuntimeInstrumentTest
     )
   }
 
+  it should "instrument expressions returning polyglot values" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata    = new Metadata
+    val mainBody    = metadata.addItem(72, 39)
+    val xExpr       = metadata.addItem(81, 13)
+    val mainResExpr = metadata.addItem(99, 12)
+
+    val code =
+      """import Standard.Base.IO
+        |polyglot java import java.time.LocalDate
+        |
+        |main =
+        |    x = LocalDate.now
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xExpr, ConstantsGen.DATE),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "instrument sub-expressions" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
