@@ -153,10 +153,6 @@ type Table_Column_Helper
                     select_indices_reordering self.internal_columns good_indices
                 False ->
                     select_indices_preserving_order self.internal_columns good_indices
-        Column_Selector.By_Column columns ->
-            column_names = columns.map .name
-            new_selector = Column_Selector.By_Name column_names Text_Matcher.Case_Sensitive
-            self.select_columns_helper new_selector reorder=reorder problem_builder=problem_builder
         Column_Selector.Blank_Columns when_any treat_nans_as_blank -> if self.internal_columns.is_empty then [] else
             blanks = self.internal_columns.map_with_index ix-> internal_column->
                 column = self.make_column internal_column

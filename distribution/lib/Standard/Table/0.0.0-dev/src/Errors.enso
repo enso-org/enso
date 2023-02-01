@@ -9,7 +9,6 @@ polyglot java import org.enso.table.error.EmptySheetException
 type Missing_Input_Columns
     ## PRIVATE
        One or more columns not found in the input table.
-       Can occur when using By_Name or By_Column.
     Error (criteria : [Text])
 
     ## PRIVATE

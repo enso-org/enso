@@ -169,15 +169,10 @@ type Table
 
              table.select_columns (Column_Selector.By_Index [-1, 0, 1]) reorder=True
 
-       > Example
-         Select columns with the same names as the ones provided.
-
-             table.select_columns (Column_Selector.By_Column [column1, column2])
-
        Icon: select_column
-    select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
-    select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.select_columns selector=columns reorder=reorder on_problems=on_problems
+    select_columns : Vector Text | Column_Selector -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns
+    select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
+        new_columns = self.columns_helper.select_columns selector=columns reorder=reorder allow_missing_columns=allow_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
@@ -218,12 +213,8 @@ type Table
 
              table.remove_columns (Column_Selector.By_Index [-1, 0, 1])
 
-       > Example
-         Remove columns with the same names as the ones provided.
-
-             table.remove_columns (Column_Selector.By_Column [column1, column2])
-    remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
-    remove_columns self (columns = Column_Selector.By_Index [0]) (on_problems = Report_Warning) =
+    remove_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
+    remove_columns self (columns = Column_Selector.By_Index [0]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.remove_columns selector=columns on_problems=on_problems
         self.updated_columns new_columns
 
@@ -268,12 +259,8 @@ type Table
 
              table.reorder_columns (Column_Selector.By_Index [0]) position=After_Other_Columns
 
-       > Example
-         Move the columns with names matching the provided columns to the front.
-
-             table.reorder_columns (Column_Selector.By_Column [column1, column2])
-    reorder_columns : Vector Text | Column_Selector -> Position -> Problem_Behavior -> Table
-    reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
+    reorder_columns : Vector Text | Column_Selector -> Position -> Boolean -> Problem_Behavior -> Table
+    reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
         self.updated_columns new_columns
 
@@ -343,14 +330,14 @@ type Table
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
               table.rename_columns (Column_Name_Mapping.By_Name (Map.from_vector [["name=(.*)", "key:$1"]]) Regex_Matcher.Value)
-    rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
-    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
+    rename_columns : Map | Vector Text | Column_Name_Mapping -> Boolean -> Problem_Behavior -> Table
+    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (error_on_missing_columns=True) (on_problems=Report_Warning) = case column_map of
         _ : Vector ->
-            self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
+            self.rename_columns (Column_Name_Mapping.By_Position column_map) allow_missing_columns on_problems
         _ : Map ->
-            self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
+            self.rename_columns (Column_Name_Mapping.By_Name column_map) allow_missing_columns on_problems
         _ ->
-            case Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map on_problems=on_problems of
+            case Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map allow_missing_columns=allow_missing_columns on_problems=on_problems of
                 new_names ->
                     new_columns = self.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
                     self.updated_columns new_columns
@@ -652,7 +639,7 @@ type Table
 
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
     order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Table ! Incomparable_Values
-    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default = Panic.handle_wrapped_dataflow_error <|
+    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
@@ -692,8 +679,8 @@ type Table
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
-    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
-    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default on_problems=Report_Warning =
+    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
         key_columns = self.columns_helper.select_columns selector=columns reorder=True on_problems=Problem_Behavior.Report_Error . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         problem_builder = Problem_Builder.new
@@ -1058,8 +1045,8 @@ type Table
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If there are no columns to transpose, a `No_Input_Columns`.
-    transpose : Vector Text | Column_Selector -> Text -> Text -> Problem_Behavior -> Table
-    transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (on_problems = Report_Warning) =
+    transpose : Vector Text | Column_Selector -> Text -> Text -> Boolean -> Problem_Behavior -> Table
+    transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [id_fields, name_field, value_field, on_problems]
