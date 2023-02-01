@@ -4,7 +4,6 @@ import Standard.Base.Data.Ordering.Comparator
 import project.Data.Column.Column
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Sort_Column.Sort_Column
-import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
@@ -113,8 +112,8 @@ all_same_column aggregates =
    indices or column references potentially from a different table) are
    replaced with column references from the provided table.
 
-   Sort_Column_Selectors are resolved to Sort_Column_Select.By_Column with the
-   matched columns coming from the provided table.
+   `Sort_Column`s are replaced with column references of matched columns coming
+   from the provided table.
 
    This preprocess step is required by some helper function, to avoid having
    to pass the table reference and resolve the column descriptors all the
@@ -142,8 +141,8 @@ resolve_aggregate table problem_builder aggregate_column =
         _ ->
             columns_for_ordering = Table_Helpers.prepare_order_by table_columns selector problem_builder
             sort_columns = columns_for_ordering.map c->
-                Sort_Column.Column c.column c.associated_selector.direction
-            Sort_Column_Selector.By_Column sort_columns
+                Internal_Order_By_Column_Reference.Value c.column c.associated_selector.direction
+            sort_columns
 
     result = case aggregate_column of
         Group_By c new_name -> Group_By (resolve c) new_name
@@ -176,6 +175,11 @@ resolve_aggregate table problem_builder aggregate_column =
     result.catch Internal_Missing_Column_Error (_->Nothing)
 
 ## PRIVATE
+type Internal_Order_By_Column_Reference
+    ## PRIVATE
+    Value column direction
+
+## PRIVATE
    A marker for missing columns during resolution.
 type Internal_Missing_Column_Error
 
@@ -201,13 +205,13 @@ java_aggregator name column =
         Mode c _ -> ModeAggregator.new name c.java_column
         First c _ ignore_nothing ordering ->
             if ordering.is_nothing then FirstAggregator.new name c.java_column ignore_nothing else
-                order_columns = ordering.columns.map c->c.column.java_column
-                order_directions = ordering.columns.map c->c.direction.to_sign
+                order_columns = ordering.map c->c.column.java_column
+                order_directions = ordering.map c->c.direction.to_sign
                 FirstAggregator.new name c.java_column ignore_nothing order_columns.to_array order_directions.to_array Comparator.new
         Last c _ ignore_nothing ordering ->
             if ordering.is_nothing then LastAggregator.new name c.java_column ignore_nothing else
-                order_columns = ordering.columns.map c->c.column.java_column
-                order_direction = ordering.columns.map c->c.direction.to_sign
+                order_columns = ordering.map c->c.column.java_column
+                order_direction = ordering.map c->c.direction.to_sign
                 LastAggregator.new name c.java_column ignore_nothing order_columns.to_array order_direction.to_array Comparator.new
         Maximum c _ -> MinOrMaxAggregator.new name c.java_column 1 Comparator.new
         Minimum c _ -> MinOrMaxAggregator.new name c.java_column -1 Comparator.new

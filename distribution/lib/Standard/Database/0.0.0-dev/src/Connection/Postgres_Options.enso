@@ -17,9 +17,13 @@ type Postgres_Options
        Arguments:
        - host: The hostname of the database server (defaults to localhost).
        - port: The port of the database server (defaults to 5432).
-       - database: The database to connect to. If empty, the default database will be used.
-       - schema: The schema to connect to. If empty, the default schema will be used.
-       - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
+       - database: The database to connect to. By default, it will use the
+         database provided in `PGDATABASE` environment variable, or if that is
+         not defined, it will fall back to a default database name: `postgres`.
+       - schema: The schema to connect to. If empty, the default schema will be
+         used.
+       - credentials: The credentials to use for the connection (defaults to
+         PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `SSL_Mode.Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
     Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
@@ -97,4 +101,4 @@ default_postgres_port =
         port -> Integer.parse port . catch Number_Parse_Error.Error (_->hardcoded_port)
 
 ## PRIVATE
-default_postgres_database = Environment.get "PGDATABASE" ""
+default_postgres_database = Environment.get "PGDATABASE" "postgres"

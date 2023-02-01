@@ -1109,7 +1109,7 @@ class SuggestionsHandlerSpec
     Config(
       root,
       FileManagerConfig(timeout = 3.seconds),
-      VcsManagerConfig(timeout  = 5.seconds),
+      VcsManagerConfig(),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),

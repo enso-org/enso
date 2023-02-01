@@ -91,7 +91,7 @@ class BaseServerTest
     Config(
       testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
-      VcsManagerConfig(timeout  = 5.seconds),
+      VcsManagerConfig(),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig(testContentRoot.file),

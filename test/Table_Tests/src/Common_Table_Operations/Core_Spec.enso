@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
+from Standard.Table import Set_Mode
 from Standard.Table.Errors import all
 
 from Standard.Test import Test
@@ -14,7 +15,7 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    table =
+    table_fn =
         col1 = ["foo", [1,2,3]]
         col2 = ["bar", [4,5,6]]
         col3 = ["Baz", [7,8,9]]
@@ -23,6 +24,7 @@ spec setup =
         col6 = ["ab.+123", [16,17,18]]
         col7 = ["abcd123", [19,20,21]]
         table_builder [col1, col2, col3, col4, col5, col6, col7]
+    table = table_fn
 
     Test.group prefix+"Table.at" <|
         Test.specify "should allow selecting columns by name" <|
@@ -79,6 +81,42 @@ spec setup =
         Test.specify "should fail with Type Error is not an Integer or Text" <|
             table.get (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
             table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
+
+    Test.group prefix+"Table.set" <|
+        Test.specify "should allow adding a column" <|
+            bar2 = table.get "bar" . rename "bar2"
+            t2 = table.set bar2
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar2"]
+            t2.get "bar2" . to_vector . should_equal [4, 5, 6]
+
+            t3 = t2.set bar2 "bar3"
+            t3.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar2", "bar3"]
+
+        Test.specify "should allow replacing a column" <|
+            foo = table.get "bar" . rename "foo"
+            t2 = table.set foo
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+            t2.get "foo" . to_vector . should_equal [4, 5, 6]
+
+            t3 = t2.set foo "bar3"
+            t3.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar3"]
+
+        Test.specify "should allow adding a column" <|
+            bar2 = table.get "bar" . rename "bar2"
+            table.set bar2 set_mode=Set_Mode.Update . should_fail_with Missing_Column.Error
+
+            foo = table.get "bar" . rename "foo"
+            table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column.Error
+
+        Test.specify "should not affect existing columns that depended on the old column being replaced" <|
+            t1 = table_builder [["X", [1,2,3]]]
+            t2 = t1.set (t1.at "X" * 100) new_name="Y"
+            t3 = t2.set "[X] + 10" new_name="Z"
+            t4 = t3.set "[X] + 1000" new_name="X"
+
+            t4.at "X" . to_vector . should_equal [1001, 1002, 1003]
+            t4.at "Y" . to_vector . should_equal [100, 200, 300]
+            t4.at "Z" . to_vector . should_equal [11, 12, 13]
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|

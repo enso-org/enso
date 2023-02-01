@@ -226,6 +226,20 @@ type Duplicate_Type_Selector
     to_display_text : Text
     to_display_text self = "Duplicate type selector for column " + self.column + "."
 
+## Indicates that the column was already present in the table.
+type Existing_Column
+    Error column_name
+
+    to_display_text : Text
+    to_display_text self = "The column '" + self.column_name + "' already exists, but `Set_Mode.Add` was selected."
+
+## Indicates that the column was not present in the table.
+type Missing_Column
+    Error column_name
+
+    to_display_text : Text
+    to_display_text self = "The column '" + self.column_name + "' was not found, but `Set_Mode.Update` was selected."
+
 ## Indicates that the target range contains existing data and the user did not
    specify to overwrite.
 type Existing_Data
