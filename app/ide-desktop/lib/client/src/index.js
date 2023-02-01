@@ -570,6 +570,7 @@ function createWindow() {
         dataGathering: args.dataGathering,
         preferredEngineVersion: args.preferredEngineVersion,
         enableNewComponentBrowser: args.enableNewComponentBrowser,
+        enableSkipAndFreeze: args.enableSkipAndFreeze,
         emitUserTimingMeasurements: args.emitUserTimingMeasurements,
         nodeLabels: args.nodeLabels,
         debug: args.verbose,

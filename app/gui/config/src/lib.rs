@@ -69,4 +69,5 @@ ensogl::read_args! {
     test_workflow: Option<String>,
     theme: String,
     use_loader: bool,
+    enable_skip_and_freeze: bool,
 }
