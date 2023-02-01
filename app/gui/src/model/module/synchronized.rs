@@ -232,7 +232,7 @@ impl Module {
     ) -> FallibleResult {
         let source = parser.parse_with_metadata(content.clone())?;
         let new_content = source.serialize()?;
-        let change = TextEdit::from_prefix_postfix_differences(&content, &new_content.content);
+        let change = TextEdit::from_prefix_postfix_differences(&content, new_content.content);
         self.model.set_content(source, NotificationKind::Reloaded { summary, change })
     }
 }
