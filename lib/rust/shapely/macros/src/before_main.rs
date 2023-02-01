@@ -21,8 +21,8 @@ fn mangle_name(name: &str) -> String {
 
 /// Functions exposed in WASM have to have unique names. This utility creates a name based on the
 /// location the function was defined at (module path, line number, column number).
-fn unique_name() -> String {
-    mangle_name(&root_call_path())
+fn unique_name(name: &syn::Ident) -> String {
+    mangle_name(&format!("{} ({name})", root_call_path()))
 }
 
 /// The prefix of the before-main entry point function in WASM. The JS code contains a code
@@ -56,7 +56,8 @@ pub fn run(
         }
     };
     let mut input_fn = syn::parse_macro_input!(input as syn::ImplItemMethod);
-    let name = format!("{BEFORE_MAIN_ENTRY_POINT_PREFIX}_{priority}_{}", unique_name());
+    let name =
+        format!("{BEFORE_MAIN_ENTRY_POINT_PREFIX}_{priority}_{}", unique_name(&input_fn.sig.ident));
     input_fn.sig.ident = quote::format_ident!("{name}");
     let output = quote! {
         #[wasm_bindgen::prelude::wasm_bindgen]

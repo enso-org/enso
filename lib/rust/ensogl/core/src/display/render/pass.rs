@@ -58,10 +58,21 @@ impl Instance {
     /// Create a new texture covering the whole screen and register it in the global uniform scope
     /// with the name provided as the configuration argument.
     pub fn new_screen_texture(&self, output: &OutputDefinition) -> AnyTextureUniform {
+        self.new_texture(output, self.width, self.height)
+    }
+
+    /// Create a new texture of given size and register it in the global uniform scope with the name
+    /// provided as the configuration argument.
+    pub fn new_texture(
+        &self,
+        output: &OutputDefinition,
+        width: i32,
+        height: i32,
+    ) -> AnyTextureUniform {
         let context = &self.context;
         let variables = &self.variables;
         let name = format!("pass_{}", output.name);
-        let args = (self.width, self.height);
+        let args = (width, height);
         let format = output.internal_format;
         let item_type = output.item_type;
         let params = Some(output.texture_parameters);
@@ -99,6 +110,22 @@ impl Instance {
             warn!("Framebuffer incomplete (status: {framebuffer_status}).")
         }
         Framebuffer { context, native }
+    }
+
+    /// Run a closure with different viewport set in context.
+    ///
+    /// The viewport in EnsoGL is always set to the screen size. This function will override it,
+    /// run the closure and restore the viewport.
+    pub fn with_viewport<R>(
+        &self,
+        viewport_width: i32,
+        viewport_height: i32,
+        f: impl FnOnce() -> R,
+    ) -> R {
+        self.context.viewport(0, 0, viewport_width, viewport_height);
+        let result = f();
+        self.context.viewport(0, 0, self.width, self.height);
+        result
     }
 }
 
@@ -167,5 +194,19 @@ impl Framebuffer {
     /// Bind the framebuffer to the current WebGL context.
     pub fn bind(&self) {
         self.context.bind_framebuffer(*Context::FRAMEBUFFER, Some(&self.native));
+    }
+
+    /// Run the closure with this framebuffer bound in context.
+    ///
+    /// This framebuffer will be bound before running the closure, and [`None`] framebuffer will
+    /// be bound on return.
+    ///
+    /// **Important**: After leaving this function, the context will have no framebuffer bound,
+    /// even if there was another framebuffer bound before, or inside the closure.
+    pub fn with_bound<R>(&self, f: impl FnOnce() -> R) -> R {
+        self.bind();
+        let result = f();
+        self.context.bind_framebuffer(*Context::FRAMEBUFFER, None);
+        result
     }
 }
