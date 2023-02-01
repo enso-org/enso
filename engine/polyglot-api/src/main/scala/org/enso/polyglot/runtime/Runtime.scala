@@ -94,7 +94,7 @@ object Runtime {
         name  = "getComponentGroupsResponse"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.SetModuleSourcesNotification],
+        value = classOf[Api.OpenFileNotification],
         name  = "setModuleSourcesNotification"
       ),
       new JsonSubTypes.Type(
@@ -1301,12 +1301,12 @@ object Runtime {
       */
     final case class InvalidStackItemError(contextId: ContextId) extends Error
 
-    /** A notification sent to the server about setting module's sources to literal contents.
+    /** A notification sent to the server about opening a file.
       *
       * @param path the file being moved to memory.
       * @param contents the current module's contents.
       */
-    final case class SetModuleSourcesNotification(
+    final case class OpenFileNotification(
       path: File,
       contents: String
     ) extends ApiRequest
@@ -1314,7 +1314,7 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "SetModuleSourcesNotification(" +
+        "OpenFileNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
         s"contents=${MaskedString(contents).toLogString(shouldMask)}," +
         ")"

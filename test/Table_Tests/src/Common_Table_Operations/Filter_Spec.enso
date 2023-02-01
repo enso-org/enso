@@ -1,8 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import SQL_Error
@@ -78,26 +80,45 @@ spec setup =
             t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal ["b", "c"]
             t.filter "X" (Filter_Condition.Between (t.at "Y") "bzzzz") . at "X" . to_vector . should_equal ["abb", "baca", "b"]
 
-        Test.specify "by text search (contains, starts_with, ends_with, like)" <|
-            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "banana", Nothing, "nana"]], ["Y", ["a", "b", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
+        Test.specify "by text search (contains, starts_with, ends_with, not_contains)" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
-            t.filter "X" (Filter_Condition.Starts_With "ba") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana"]
+            t.filter "X" (Filter_Condition.Starts_With "ba") on_problems=Report_Error . at "X" . to_vector . should_equal ["bacb", "banana"]
+            t.filter "X" (Filter_Condition.Starts_With "BA" Case_Sensitivity.Sensitive) on_problems=Report_Error . at "X" . to_vector . should_equal []
+            t.filter "X" (Filter_Condition.Starts_With "BA" Case_Sensitivity.Insensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["bacb", "banana"]
             t.filter "X" (Filter_Condition.Ends_With "na") on_problems=Report_Error . at "X" . to_vector . should_equal ["banana", "nana"]
-            t.filter "X" (Filter_Condition.Contains "ac") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca"]
+            t.filter "X" (Filter_Condition.Ends_With "NA" Case_Sensitivity.Sensitive) on_problems=Report_Error . at "X" . to_vector . should_equal []
+            t.filter "X" (Filter_Condition.Ends_With "NA" Case_Sensitivity.Insensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["banana", "nana"]
+            t.filter "X" (Filter_Condition.Contains "ac") on_problems=Report_Error . at "X" . to_vector . should_equal ["bacb"]
+            t.filter "X" (Filter_Condition.Contains "AC" Case_Sensitivity.Sensitive) on_problems=Report_Error . at "X" . to_vector . should_equal []
+            t.filter "X" (Filter_Condition.Contains "AC" Case_Sensitivity.Insensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["bacb"]
             t.filter "X" (Filter_Condition.Not_Contains "ac") on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "banana", "nana"]
+            t.filter "X" (Filter_Condition.Not_Contains "AC" Case_Sensitivity.Sensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "bacb", "banana", "nana"]
+            t.filter "X" (Filter_Condition.Not_Contains "AC" Case_Sensitivity.Insensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "banana", "nana"]
 
-            t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "baca"]
+            t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb"]
+            t.filter "X" (Filter_Condition.Starts_With (t.at "Y") Case_Sensitivity.Sensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb"]
+            t.filter "X" (Filter_Condition.Starts_With (t.at "Y") Case_Sensitivity.Insensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (Filter_Condition.Ends_With (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["nana"]
-            t.filter "X" (Filter_Condition.Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "baca", "nana"]
-            t.filter "X" (Filter_Condition.Not_Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["banana"]
+            t.filter "X" (Filter_Condition.Ends_With (t.at "Y") Case_Sensitivity.Sensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["nana"]
+            t.filter "X" (Filter_Condition.Ends_With (t.at "Y") Case_Sensitivity.Insensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["bacb", "nana"]
+            t.filter "X" (Filter_Condition.Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "nana"]
+            t.filter "X" (Filter_Condition.Contains (t.at "Y") Case_Sensitivity.Sensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "nana"]
+            t.filter "X" (Filter_Condition.Contains (t.at "Y") Case_Sensitivity.Insensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "bacb", "nana"]
+            t.filter "X" (Filter_Condition.Not_Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["bacb", "banana"]
+            t.filter "X" (Filter_Condition.Not_Contains (t.at "Y") Case_Sensitivity.Sensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["bacb", "banana"]
+            t.filter "X" (Filter_Condition.Not_Contains (t.at "Y") Case_Sensitivity.Insensitive) on_problems=Report_Error . at "X" . to_vector . should_equal ["banana"]
+
+        Test.specify "by text search (like, not_like)" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
             t.filter "X" (Filter_Condition.Like "%an%") on_problems=Report_Error . at "X" . to_vector . should_equal ["banana", "nana"]
-            t.filter "X" (Filter_Condition.Like "_a%") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana", "nana"]
-            t.filter "X" (Filter_Condition.Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["abb"]
+            t.filter "X" (Filter_Condition.Like "_a%") on_problems=Report_Error . at "X" . to_vector . should_equal ["bacb", "banana", "nana"]
+            t.filter "X" (Filter_Condition.Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (Filter_Condition.Like "nana") on_problems=Report_Error . at "X" . to_vector . should_equal ["nana"]
             t.filter "Z" (Filter_Condition.Like "[ab]_%") on_problems=Report_Error . at "Z" . to_vector . should_equal ["[ab]aaaa", "[ab]ccc"]
 
-            t.filter "X" (Filter_Condition.Not_Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana", "nana"]
+            t.filter "X" (Filter_Condition.Not_Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["banana", "nana"]
             t.filter "Z" (Filter_Condition.Not_Like "[ab]%") on_problems=Report_Error . at "Z" . to_vector . should_equal ["aaaaa", "bbbbb"]
 
         Test.specify "text operations should also match newlines" <|
@@ -259,16 +280,29 @@ spec setup =
 
         Test.specify "should handle selection errors: unknown column name" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            action = t.filter "unknown column" on_problems=_
-            tester table =
-                table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
-            problems = [No_Such_Column.Error "unknown column"]
-            Problems.test_problem_handling action problems tester
+            t.filter "unknown column" . should_fail_with No_Such_Column.Error
+            t.filter "unknown column" . catch . should_equal (No_Such_Column.Error "unknown column")
 
         Test.specify "should handle selection errors: out of bounds index" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            action = t.filter 4 on_problems=_
-            tester table =
-                table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
-            problems = [Index_Out_Of_Bounds.Error 4 1]
-            Problems.test_problem_handling action problems tester
+            t.filter 4 . should_fail_with Index_Out_Of_Bounds.Error
+            t.filter 4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 1)
+
+    Test.group prefix+"Table.filter_by_expression" <|
+        Test.specify "by a boolean column" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
+            t.filter_by_expression "[b]" on_problems=Report_Error . at "ix" . to_vector . should_equal [1, 4, 5]
+            t.filter_by_expression "![b]" on_problems=Report_Error . at "ix" . to_vector . should_equal [2]
+
+        Test.specify "by an integer comparison" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
+            t.filter_by_expression "[ix]==3" on_problems=Report_Error . at "ix" . to_vector . should_equal [3]
+            t.filter_by_expression "[ix]>2" on_problems=Report_Error . at "ix" . to_vector . should_equal [3, 4, 5]
+
+        Test.specify "fail gracefully" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
+            t.filter_by_expression "[ix" . should_fail_with Expression_Error.Syntax_Error
+            t.filter_by_expression "NOT(b,False)" . should_fail_with Expression_Error.Argument_Mismatch
+            t.filter_by_expression "Starts_With(b)" . should_fail_with Expression_Error.Argument_Mismatch
+            t.filter_by_expression "[missing]" . should_fail_with No_Such_Column.Error
+            t.filter_by_expression "[ix]" . should_fail_with Illegal_Argument.Error
