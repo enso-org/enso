@@ -224,7 +224,12 @@ impl Module {
         self.reload_module_content(content.into(), summary, parser)
     }
 
-    fn reload_module_content(&self, content: String, summary: ContentSummary, parser: &Parser) -> FallibleResult {
+    fn reload_module_content(
+        &self,
+        content: String,
+        summary: ContentSummary,
+        parser: &Parser,
+    ) -> FallibleResult {
         let source = parser.parse_with_metadata(content.clone())?;
         let new_content = source.serialize()?;
         let change = TextEdit::from_prefix_postfix_differences(&content, &new_content.content);
@@ -422,7 +427,7 @@ impl Module {
                     profiler::await_!(notify_ls, _profiler)
                 }
                 NotificationKind::Reloaded { summary, change } => {
-                    let notify_ls = self.notify_language_server(&summary, &new_file, vec![ change ]);
+                    let notify_ls = self.notify_language_server(&summary, &new_file, vec![change]);
                     profiler::await_!(notify_ls, _profiler)
                 }
             },

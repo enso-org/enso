@@ -288,9 +288,9 @@ pub enum NotificationKind {
     /// The whole content was reloaded from file.
     Reloaded {
         /// Content summary of the reloaded file.
-        summary:           synchronized::ContentSummary,
+        summary: synchronized::ContentSummary,
         /// The text change description due to parsing of the reloaded file.
-        change:            engine_protocol::language_server::TextEdit,
+        change:  engine_protocol::language_server::TextEdit,
     },
 }
 
