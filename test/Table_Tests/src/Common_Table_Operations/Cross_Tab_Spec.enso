@@ -1,6 +1,8 @@
 from Standard.Base import all
 
-from Standard.Test import Test
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Sum
+
+from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -10,7 +12,6 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    test_selection = setup.test_selection
     db_todo = if prefix.contains "In-Memory" then Nothing else "Table.transpose is not implemented yet in Database."
     Test.group prefix+"Table.cross_tab" pending=db_todo <|
         Test.specify "should cross_tab counts by default using first column as names" <|
