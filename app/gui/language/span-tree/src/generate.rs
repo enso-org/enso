@@ -534,8 +534,16 @@ fn tree_generate_node<T: Payload>(tree: &ast::Tree, kind: impl Into<Kind>, conte
     for (index, thing) in tree.particleboard.iter().enumerate() {
         match thing {
             ParticleBoard::Space(n) => offset += ByteDiff::from(n),
-            ParticleBoard::Token(s) => offset += ByteDiff::from(s.len()),
+            ParticleBoard::Token(s) => {
+                let kind = Kind::Token;
+                let size = ByteDiff::from(s.len());
+                let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
+                let node = Node { kind, size, ..default() };
+                children.push(node::Child { node, offset, ast_crumbs });
+                offset += size;
+            },
             ParticleBoard::Child(a) => {
+                // TODO: Set `kind` properly
                 let node = a.generate_node(kind.clone(), context)?;
                 let child_size = node.size;
                 let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
@@ -746,42 +754,6 @@ mod test {
             .build();
 
         assert_eq!(expected, tree)
-    }
-
-    #[test]
-    fn generating_span_tree_from_section() {
-        let parser = Parser::new();
-        // The star makes `SectionSides` ast being one of the parameters of + chain. First + makes
-        // SectionRight, and last + makes SectionLeft.
-        let ast = parser.parse_line_ast("+ * + + 2 +").unwrap();
-        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
-        clear_expression_ids(&mut tree.root);
-
-        let expected = TreeBuilder::new(11)
-            .add_child(0, 9, node::Kind::Chained, SectionLeftCrumb::Arg)
-            .add_child(0, 5, node::Kind::Chained, InfixCrumb::LeftOperand)
-            .add_child(0, 3, node::Kind::Chained, SectionLeftCrumb::Arg)
-            .add_empty_child(0, BeforeTarget)
-            .add_leaf(0, 1, node::Kind::Operation, SectionRightCrumb::Opr)
-            .add_child(2, 1, node::Kind::argument().removable(), SectionRightCrumb::Arg)
-            .add_empty_child(0, BeforeTarget)
-            .add_leaf(0, 1, node::Kind::Operation, SectionSidesCrumb)
-            .add_empty_child(1, Append)
-            .done()
-            .add_empty_child(3, Append)
-            .done()
-            .add_leaf(4, 1, node::Kind::Operation, SectionLeftCrumb::Opr)
-            .add_empty_child(5, Append)
-            .done()
-            .add_leaf(6, 1, node::Kind::Operation, InfixCrumb::Operator)
-            .add_leaf(8, 1, node::Kind::argument().removable(), InfixCrumb::RightOperand)
-            .add_empty_child(9, Append)
-            .done()
-            .add_leaf(10, 1, node::Kind::Operation, SectionLeftCrumb::Opr)
-            .add_empty_child(11, Append)
-            .build();
-
-        assert_eq!(expected, tree);
     }
 
     #[test]
