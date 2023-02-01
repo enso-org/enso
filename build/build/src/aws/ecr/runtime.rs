@@ -30,3 +30,32 @@ pub async fn build_runtime_image(
     let id = Docker.build(opts).await?;
     Ok(id)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::repo::deduce_repository_path;
+    use crate::version;
+
+    use super::*;
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_name() -> Result {
+        setup_logging()?;
+        info!("Current directory: {}", ide_ci::env::current_dir()?.display());
+        let root = deduce_repository_path()?;
+        let root = root.absolutize()?;
+
+        info!("Repository root: {}", root.display());
+        let engine_package = generated::EnginePackage::new_root(
+            root.join("built-distribution/enso-engine-2023.1.1-dev-linux-amd64/enso-2023.1.1-dev"),
+        );
+        let dockerfile = generated::RepoRootToolsCiDocker::new_root(root.join("tools/ci/docker"));
+        let tag = "foooo";
+        let id = build_runtime_image(dockerfile, engine_package, tag.to_string()).await?;
+        info!("Built image: {}", id);
+
+        // Docker.cmd()?.run(&["--rm", &id, "--version"]).await?;
+        Ok(())
+    }
+}
