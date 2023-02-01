@@ -5,6 +5,8 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 from Standard.Table import Sort_Column
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Data.Column_Type_Selection.Auto
+import Standard.Table.Data.Value_Type.Value_Type
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -16,7 +18,7 @@ import project.Internal.IR.Query.Query
 
 from project.Data.Table import Table, freshen_columns
 
-from project.Errors import Unsupported_Database_Operation, Integrity_Error
+from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
 
 type Column
 
@@ -612,10 +614,9 @@ type Column
 
        Arguments:
        - new_name: The name to rename `self` column to.
-    rename : Text -> Column
-    rename self new_name = case Helpers.ensure_name_is_sane new_name of
-        True ->
-            Column.Value new_name self.connection self.sql_type self.expression self.context
+    rename : Text -> Column ! Unsupported_Name
+    rename self new_name = Helpers.ensure_name_is_sane new_name <|
+        Column.Value new_name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
 
@@ -669,13 +670,16 @@ type Column
 
        Arguments:
        - other: A column or text to check for each item in `self`.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
 
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    starts_with : Column | Text -> Column
-    starts_with self other = self.make_binary_op "starts_with" other new_type=SQL_Type.boolean
+    starts_with : Column | Text -> Case_Sensitivity -> Column
+    starts_with self other case_sensitivity=Case_Sensitivity.Default =
+        make_text_case_op self "starts_with" other case_sensitivity
 
     ## UNSTABLE
 
@@ -683,13 +687,16 @@ type Column
 
        Arguments:
        - other: A column ot text to check for each item in `self`.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
 
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    ends_with : Column | Text -> Column
-    ends_with self other = self.make_binary_op "ends_with" other new_type=SQL_Type.boolean
+    ends_with : Column | Text -> Case_Sensitivity -> Column
+    ends_with self other case_sensitivity=Case_Sensitivity.Default =
+        make_text_case_op self "ends_with" other case_sensitivity
 
     ## UNSTABLE
 
@@ -697,13 +704,16 @@ type Column
 
        Arguments:
        - other: A column ot text to check for each item in `self`.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
 
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    contains : Column | Text -> Column
-    contains self other = self.make_binary_op "contains" other new_type=SQL_Type.boolean
+    contains : Column | Text -> Case_Sensitivity -> Column
+    contains self other case_sensitivity=Case_Sensitivity.Default =
+        make_text_case_op self "contains" other case_sensitivity
 
     ## Checks for each element of the column if it matches an SQL-like pattern.
 
@@ -780,6 +790,44 @@ type Column
             new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
             Column.Value self.name self.connection SQL_Type.boolean new_expr self.context
 
+    ## Parses a text column into values
+
+       Arguments:
+       - type: Target type to parse the value to.
+         If `Auto`, will attempt to deduce the type automatically.
+       - format: For date/time types, the format to parse the value with.
+         For boolean types, two values that represent true and false separated
+         by `|`.
+       - on_problems: What to do if the value cannot be parsed.
+         By default, an `Invalid_Format` warning is attached and the value is
+         set to `Nothing`.
+
+       > Example
+         Parse dates in a column in the format `yyyy-MM-dd` (the default format).
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.parse Date
+
+       > Example
+         Parse dates in a column in the format `dd/MM/yyyy`
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.parse Date 'dd/MM/yyyy'
+
+       > Example
+         Parse a Yes/No column into a boolean column.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
+    @type (Single_Choice ['Auto','Integer','Decimal','Date','Date_Time','Time_Of_Day','Boolean'] display=Display.Always)
+    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Nothing -> Problem_Behavior -> Column
+    parse self type=Auto format=Nothing on_problems=Report_Warning =
+        _ = [type, format, on_problems]
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
+
     ## PRIVATE
     as_internal : Internal_Column
     as_internal self = Internal_Column.Value self.name self.sql_type self.expression
@@ -799,3 +847,15 @@ get_approximate_type value default = case value of
     _ : Column -> value.sql_type
     Nothing -> default
     _ -> SQL_Type.approximate_type value
+
+## PRIVATE
+   Helper for case case_sensitivity based text operations
+make_text_case_op left op other case_sensitivity =
+    Value_Type.expect_text left.value_type <| case case_sensitivity of
+        Case_Sensitivity.Default -> left.make_binary_op op other new_type=SQL_Type.boolean
+        Case_Sensitivity.Sensitive ->
+            cs_other = if other.is_a Column then other.make_unary_op "MAKE_CASE_SENSITIVE" else other
+            left.make_unary_op "MAKE_CASE_SENSITIVE" . make_binary_op op cs_other new_type=SQL_Type.boolean
+        Case_Sensitivity.Insensitive locale -> Helpers.assume_default_locale locale <|
+            ci_other = if other.is_a Column then other.make_unary_op "FOLD_CASE" else other.to_case Case.Lower
+            left.make_unary_op "FOLD_CASE" . make_binary_op op ci_other new_type=SQL_Type.boolean

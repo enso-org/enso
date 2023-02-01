@@ -1,0 +1,11 @@
+type Set_Mode
+    ## Add a new column to the table.
+       If already present an `Existing_Column` error is returned.
+    Add
+
+    ## Update the column in the table.
+       If not present a `Missing_Column` error is returned.
+    Update
+
+    ## Add the column to the table if not present, or update if present.
+    Add_Or_Update

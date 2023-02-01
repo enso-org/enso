@@ -298,8 +298,8 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
 
         c2.host . should_equal "localhost"
         c2.port . should_equal 5432
-        c2.database . should_equal ""
-        c2.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
+        c2.database . should_equal "postgres"
+        c2.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
 
         c3.host . should_equal "192.168.0.1"
         c3.port . should_equal 1000
@@ -312,18 +312,18 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
             Postgres
         c4.host . should_equal "localhost"
         c4.port . should_equal 5432
-        c4.database . should_equal ""
-        c4.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
+        c4.database . should_equal "postgres"
+        c4.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
 
     add_ssl props = props+[Pair.new 'sslmode' 'prefer']
     Test.specify "should use the given credentials" <|
         c = Postgres credentials=(Credentials.Username_And_Password "myuser" "mypass")
-        c.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
+        c.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
         c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "myuser", Pair.new "password" "mypass"]
 
     Test.specify "should fallback to environment variables and fill-out missing information based on the PGPASS file (if available)" <|
         c1 = Postgres
-        c1.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
+        c1.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
 
         c1.jdbc_properties . should_equal <| add_ssl []
         Test_Environment.unsafe_with_environment_override "PGPASSWORD" "somepassword" <|

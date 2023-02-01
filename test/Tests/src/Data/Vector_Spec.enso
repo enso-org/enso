@@ -50,8 +50,8 @@ foreign python generate_nested_py_array = """
     return [[1, 2, 3], [4, 5]]
 
 spec = Test.group "Vectors" <|
-    pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else """
-        Can't run Python tests, Python is not installed.
+    pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else
+        "Can't run Python tests, Python is not installed."
 
     Test.specify "text bytes" <|
         "Lore".utf_8 . should_equal [76, 111, 114, 101]
@@ -191,11 +191,23 @@ spec = Test.group "Vectors" <|
 
         txtvec = ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"]
+        txtvec.filter (Filter_Condition.Contains 'A' Case_Sensitivity.Sensitive) . should_equal []
+        txtvec.filter (Filter_Condition.Contains 'A' Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab", "baaa"]
         txtvec.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"]
+        txtvec.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal []
+        txtvec.filter (Filter_Condition.Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["ś"]
         txtvec.filter (Filter_Condition.Not_Contains "a") . should_equal ["bbb", "cccc", "ś"]
+        txtvec.filter (Filter_Condition.Not_Contains "A" Case_Sensitivity.Sensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
+        txtvec.filter (Filter_Condition.Not_Contains "A" Case_Sensitivity.Insensitive) . should_equal ["bbb", "cccc", "ś"]
         txtvec.filter (Filter_Condition.Not_Contains 's\u0301') . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"]
+        txtvec.filter (Filter_Condition.Not_Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
+        txtvec.filter (Filter_Condition.Not_Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"]
         txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"]
+        txtvec.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Sensitive) . should_equal []
+        txtvec.filter (Filter_Condition.Starts_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab"]
         txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["aaa", "baaa"]
+        txtvec.filter (Filter_Condition.Ends_With "A" Case_Sensitivity.Sensitive) . should_equal []
+        txtvec.filter (Filter_Condition.Ends_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "baaa"]
         txtvec.filter (Filter_Condition.Less than="a") . should_equal []
         txtvec.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
