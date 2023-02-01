@@ -300,6 +300,10 @@ spec setup =
             r1.should_fail_with Missing_Input_Columns.Error
             r1.catch.criteria.should_equal ["foo", "baz"]
 
+            r2 = t1.join t2 on=[Join_Condition.Equals 42 0] on_problems=Problem_Behavior.Ignore
+            r2.should_fail_with Column_Indexes_Out_Of_Range.Error
+            r2.catch.indexes.should_equal [42]
+
         Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
             t1 = table_builder [["X", ["1", "2", "c"]], ["Y", [1, 2, 3]]]
             t2 = table_builder [["Z", ["1", "2", "c"]], ["W", [1, 2, 3]]]
