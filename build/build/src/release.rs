@@ -281,7 +281,7 @@ pub async fn upload_gui_to_cloud(
 
     // Some file we upload as-is, some gzipped. This seems somewhat arbitrary now.
     let files_to_upload =
-        [assets.pkg_wasm.as_path(), assets.style_css.as_path(), assets.shaders.as_path()];
+        [assets.pkg_opt_wasm.as_path(), assets.style_css.as_path(), assets.shaders.as_path()];
     let files_to_upload_gzipped = [assets.index_js.as_path(), assets.pkg_js.as_path()];
 
     for file in files_to_upload.iter() {
@@ -360,7 +360,7 @@ mod tests {
         let assets = crate::paths::generated::RepoRootDistGuiAssets::new_root(
             r"H:\NBO\enso4\dist\gui\assets",
         );
-        let version = "2022.1.1-dev.provisional.test.2".parse2()?;
+        let version = "2023.1.1-dev.cloud.test".parse2()?;
         upload_gui_to_cloud(&assets, &version).await?;
         notify_cloud_about_gui(&version).await?;
         Ok(())
