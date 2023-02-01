@@ -44,7 +44,8 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
       interpreterContext.executionService.getLogger.fine(
         "Executing commands in a separate command pool"
       )
-      interpreterContext.executionService.getContext.newCachedThreadPool("command-pool", false)
+      interpreterContext.executionService.getContext
+        .newCachedThreadPool("command-pool", false)
     }
 
   implicit private val commandExecutionContext: ExecutionContextExecutor =

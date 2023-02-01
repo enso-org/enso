@@ -37,9 +37,11 @@ final class JobExecutionEngine(
 
   private val jobParallelism = context.getJobParallelism
 
-  val jobExecutor: ExecutorService = context.newFixedThreadPool(jobParallelism, "job-pool", false)
+  val jobExecutor: ExecutorService =
+    context.newFixedThreadPool(jobParallelism, "job-pool", false)
 
-  val backgroundJobExecutor: ExecutorService = context.newFixedThreadPool(1, "background-job-pool", false)
+  val backgroundJobExecutor: ExecutorService =
+    context.newFixedThreadPool(1, "background-job-pool", false)
 
   private val runtimeContext =
     RuntimeContext(
