@@ -205,8 +205,7 @@ impl Module {
         let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
         let digest = opened.current_version;
         let summary = ContentSummary { digest, end_of_file };
-        let source = parser.parse_with_metadata(opened.content.clone())?;
-        self.model.set_content(source, NotificationKind::Reloaded { summary, content: opened.content })
+        self.reload_module_content(content.into(), summary, parser)
     }
 
     /// Apply text changes from language server.
@@ -222,8 +221,14 @@ impl Module {
             content.apply_change(change);
         }
         let summary = ContentSummary::new(&content);
-        let source = parser.parse_with_metadata(content.clone().into())?;
-        self.model.set_content(source, NotificationKind::Reloaded { summary, content: content.into() })
+        self.reload_module_content(content.into(), summary, parser)
+    }
+
+    fn reload_module_content(&self, content: String, summary: ContentSummary, parser: &Parser) -> FallibleResult {
+        let source = parser.parse_with_metadata(content.clone())?;
+        let new_content = source.serialize()?;
+        let change = TextEdit::from_prefix_postfix_differences(&content, &new_content.content);
+        self.model.set_content(source, NotificationKind::Reloaded { summary, change })
     }
 }
 
@@ -416,9 +421,8 @@ impl Module {
                     let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
                     profiler::await_!(notify_ls, _profiler)
                 }
-                NotificationKind::Reloaded { content, summary } => {
-                    let edit = TextEdit::from_prefix_postfix_differences(&content, &new_file.content);
-                    let notify_ls = self.notify_language_server(&summary, &new_file, vec![ edit ]);
+                NotificationKind::Reloaded { summary, change } => {
+                    let notify_ls = self.notify_language_server(&summary, &new_file, vec![ change ]);
                     profiler::await_!(notify_ls, _profiler)
                 }
             },
