@@ -200,16 +200,11 @@ impl Module {
         let file_path = self.path();
         self.language_server.client.close_text_file(file_path).await?;
         let opened = self.language_server.client.open_text_file(file_path).await?;
-        let content: text::Rope = (&opened.content).into();
-        let end_of_file_byte = content.last_line_end_location();
-        let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
-        let digest = opened.current_version;
-        let summary = ContentSummary { digest, end_of_file };
-        self.reload_module_content(content.into(), summary, parser)
+        self.reload_module_content(opened.content.into(), parser)
     }
 
     /// Apply text changes from language server.
-    pub async fn apply_file_edit(&self, file_edit: FileEdit, parser: &Parser) -> FallibleResult {
+    pub fn apply_file_edit(&self, file_edit: FileEdit, parser: &Parser) -> FallibleResult {
         let mut content: text::Rope = self.serialized_content()?.content.into();
         for TextEdit { range, text } in file_edit.edits {
             let start = content.location_of_utf16_code_unit_location_snapped(range.start.into());
@@ -220,19 +215,18 @@ impl Module {
             let change = TextChange { range, text };
             content.apply_change(change);
         }
-        let summary = ContentSummary::new(&content);
-        self.reload_module_content(content.into(), summary, parser)
+        self.reload_module_content(content, parser)
     }
 
     fn reload_module_content(
         &self,
-        content: String,
-        summary: ContentSummary,
+        content: text::Rope,
         parser: &Parser,
     ) -> FallibleResult {
-        let source = parser.parse_with_metadata(content.clone())?;
-        let new_content = source.serialize()?;
-        let change = TextEdit::from_prefix_postfix_differences(&content, new_content.content);
+        let summary = ContentSummary::new(&content);
+        let source = parser.parse_with_metadata(content.to_string())?;
+        let new_content = source.serialize()?.content;
+        let change = TextEdit::from_prefix_postfix_differences(&content, new_content);
         self.model.set_content(source, NotificationKind::Reloaded { summary, change })
     }
 }
