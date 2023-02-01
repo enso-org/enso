@@ -97,7 +97,7 @@ impl Clone for TraceCopies {
         let handle = self.handle.clone();
         if let Some(name) = &*borrow {
             let bt = backtrace();
-            debug!("[{name}] Cloning {self.clone_id} -> {clone_id} {bt}");
+            debug!("[{name}] Cloning {} -> {clone_id} {bt}", self.clone_id);
         }
         Self { clone_id, handle }
     }

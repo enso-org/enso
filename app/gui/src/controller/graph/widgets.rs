@@ -453,7 +453,7 @@ impl WidgetVisualizationData {
     /// of the response, the rest of the response is still processed, while errors are returned
     /// separately for each failed widget.
     fn try_deserialize(data: &VisualizationUpdateData) -> (Vec<WidgetUpdate>, Vec<failure::Error>) {
-        let arguments: Vec<(String, serde_json::Value)> = match serde_json::from_slice(&data) {
+        let arguments: Vec<(String, serde_json::Value)> = match serde_json::from_slice(data) {
             Ok(args) => args,
             Err(err) => {
                 let err = err

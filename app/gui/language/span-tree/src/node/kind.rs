@@ -160,6 +160,10 @@ impl Kind {
     /// or was skipped.
     pub fn set_argument_info(&mut self, argument_info: ArgumentInfo) -> bool {
         match self {
+            Self::Operation(t) => {
+                t.call_id = argument_info.call_id;
+                true
+            }
             Self::This(t) => {
                 t.tp = argument_info.tp;
                 t.call_id = argument_info.call_id;

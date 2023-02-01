@@ -122,6 +122,9 @@ impl<T: Payload> Node<T> {
     pub fn is_expected_argument(&self) -> bool {
         self.kind.is_expected_argument()
     }
+    pub fn is_function_parameter(&self) -> bool {
+        self.kind.is_function_parameter()
+    }
 }
 
 

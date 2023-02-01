@@ -173,8 +173,8 @@ impl Model {
             *self.kind_model.borrow_mut() = desired_kind.map(|desired_kind| {
                 KindModel::new(&self.app, &self.display_object, desired_kind, frp, meta, node_data)
             });
-        } else {
-            self.kind_model.borrow().as_ref().map(|model| model.update(meta, node_data));
+        } else if let Some(model) = self.kind_model.borrow().as_ref() {
+            model.update(meta, node_data);
         }
     }
 }

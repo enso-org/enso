@@ -671,7 +671,7 @@ impl Graph {
             view.set_expression_usage_type <+ update_expression.filter_map(f!((id) model.refresh_expression_type(*id)));
             view.set_node_error_status <+ update_expression.filter_map(f!((id) model.refresh_node_error(*id)));
 
-            self.init_widgets(reset_node_types.into(), update_expression.clone_ref().into());
+            self.init_widgets(reset_node_types, update_expression.clone_ref());
 
             // === Changes from the View ===
 

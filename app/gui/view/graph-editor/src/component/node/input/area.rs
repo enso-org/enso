@@ -524,7 +524,7 @@ impl Model {
                     widgets_map.insert(widget_bind, crumbs.clone_ref());
                     widget.set_x(position_x);
                     builder.parent.add_child(&widget);
-            
+
                     if port.is_argument() {
                         let range = port.payload.range();
                         let code = &expression.viz_code[range];
@@ -586,11 +586,9 @@ impl Model {
         // the same ast ID.
         let prev_widgets_map = self.widgets_map.borrow();
         let prev_id_crumbs_map = self.id_crumbs_map.borrow();
-        let prev_crumbs = prev_widgets_map.get(&widget_bind).or_else(|| {
-            port.ast_id.as_ref().and_then(|id| {
-                prev_id_crumbs_map.get(id)
-            })
-        });
+        let prev_crumbs = prev_widgets_map
+            .get(&widget_bind)
+            .or_else(|| port.ast_id.as_ref().and_then(|id| prev_id_crumbs_map.get(id)));
         let prev_widget = prev_crumbs.and_then(|crumbs| {
             let prev_expression = self.expression.borrow();
             let prev_root = prev_expression.span_tree.root_ref();

@@ -192,7 +192,7 @@ impl<T: Payload> SpanTree<T> {
     /// span-tree. It will be used to print code fragments associated with each span.
     ///
     /// Example output with AST ids removed for clarity:
-    /// ```
+    /// ```text
     /// operator6.join operator31 Join_Kind.Inner ["County"] Root
     /// operator6.join operator31 Join_Kind.Inner ["County"] ├── Chained
     /// operator6.join operator31 Join_Kind.Inner ["County"] │   ├── Chained
