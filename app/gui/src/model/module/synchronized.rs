@@ -204,9 +204,9 @@ impl Module {
     }
 
     /// Apply text changes from language server.
-    pub fn apply_file_edit(&self, file_edit: FileEdit, parser: &Parser) -> FallibleResult {
+    pub fn apply_text_edit(&self, edits: Vec<TextEdit>, parser: &Parser) -> FallibleResult {
         let mut content: text::Rope = self.serialized_content()?.content.into();
-        for TextEdit { range, text } in file_edit.edits {
+        for TextEdit { range, text } in edits {
             let start = content.location_of_utf16_code_unit_location_snapped(range.start.into());
             let end = content.location_of_utf16_code_unit_location_snapped(range.end.into());
             let start = <Byte as enso_text::FromInContextSnapped<&text::Rope, Location<Byte>>>::from_in_context_snapped(&content, start);

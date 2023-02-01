@@ -193,11 +193,11 @@ async fn update_modules_on_file_change(
     parser: Parser,
     module_registry: Rc<model::registry::Registry<module::Path, module::Synchronized>>,
 ) -> FallibleResult {
-    for edit in changes.edits {
-        let file_path = edit.path.clone();
+    for file_edit in changes.edits {
+        let file_path = file_edit.path.clone();
         let module_path = module::Path::from_file_path(file_path).unwrap();
         if let Some(module) = module_registry.get(&module_path).await? {
-            module.apply_file_edit(edit, &parser)?;
+            module.apply_text_edit(file_edit.edits, &parser)?;
         }
     }
     Ok(())
