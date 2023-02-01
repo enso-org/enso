@@ -531,8 +531,8 @@ pub enum Shape<T> {
 
     // === Macros ===
     Match {
-        pfx:      Option<MacroPatternMatch<Shifted<T>>>,
-        segs:     ShiftedVec1<MacroMatchSegment<T>>,
+        pfx:  Option<MacroPatternMatch<Shifted<T>>>,
+        segs: ShiftedVec1<MacroMatchSegment<T>>,
     },
     Tree {
         particleboard: Vec<ParticleBoard>,

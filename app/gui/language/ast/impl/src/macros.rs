@@ -46,13 +46,7 @@ pub const QUALIFIED_EXPORT_KEYWORD: &str = "export";
 
 /// Try Interpreting the line as disabling comment. Return the text after `#`.
 pub fn as_disable_comment(ast: &Ast) -> Option<String> {
-    let r#match = crate::known::Match::try_from(ast).ok()?;
-    let first_segment = &r#match.segs.head;
-    if crate::identifier::name(&first_segment.head) == Some(DISABLING_COMMENT_INTRODUCER) {
-        Some(first_segment.body.repr())
-    } else {
-        None
-    }
+    None // TODO
 }
 
 /// Check if this AST is a disabling comment.
@@ -209,34 +203,13 @@ pub fn is_documentation_comment(ast: &Ast) -> bool {
 /// If the given AST node is an import declaration, returns it as a Match (which is the only shape
 /// capable of storing import declarations). Returns `None` otherwise.
 pub fn ast_as_import_match(ast: &Ast) -> Option<known::Match> {
-    let macro_match = known::Match::try_from(ast).ok()?;
-    is_match_import(&macro_match).then_some(macro_match)
-}
-
-/// If the given AST node is a qualified import declaration (`import <module name>`), returns it as
-/// a Match (which is the only shape capable of storing import declarations). Returns `None`
-/// otherwise.
-pub fn is_match_qualified_import(ast: &known::Match) -> bool {
-    let segment = &ast.segs.head;
-    let keyword = crate::identifier::name(&segment.head);
-    keyword.contains_if(|str| *str == QUALIFIED_IMPORT_KEYWORD)
-}
-
-/// If the given AST node is an unqualified import declaration (`from <module name> import <...>`),
-/// returns it as a Match (which is the only shape capable of storing import declarations). Returns
-/// `None` otherwise.
-pub fn is_match_unqualified_import(ast: &known::Match) -> bool {
-    let first_segment = &ast.segs.head;
-    let first_keyword = crate::identifier::name(&first_segment.head);
-    let second_segment = &ast.segs.tail.first();
-    let second_keyword = second_segment.and_then(|s| crate::identifier::name(&s.head));
-    first_keyword == Some(UNQUALIFIED_IMPORT_KEYWORD)
-        && second_keyword == Some(QUALIFIED_IMPORT_KEYWORD)
+    None // TODO
 }
 
 /// Check if the given macro match node is an import declaration.
 pub fn is_match_import(ast: &known::Match) -> bool {
-    is_match_qualified_import(ast) || is_match_unqualified_import(ast)
+    //is_match_qualified_import(ast) || is_match_unqualified_import(ast)
+    false // TODO
 }
 
 /// Check if the given ast node is an import declaration.
@@ -261,9 +234,7 @@ pub struct LambdaInfo<'a> {
 
 /// If this is the builtin macro for `->` (lambda expression), returns it as known `Match`.
 pub fn as_lambda_match(ast: &Ast) -> Option<known::Match> {
-    let macro_match = known::Match::try_from(ast).ok()?;
-    let segment = &macro_match.segs.head;
-    crate::opr::is_arrow_opr(&segment.head).then_some(macro_match)
+    None // TODO
 }
 
 /// Describes the given Ast as lambda, if this is a matched `->` builtin macro.

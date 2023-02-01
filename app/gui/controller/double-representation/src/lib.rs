@@ -29,7 +29,6 @@ use crate::definition::ScopeKind;
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::known;
-use ast::macros::DocumentationCommentAst;
 use ast::opr;
 use ast::prefix;
 use ast::Ast;
@@ -114,12 +113,6 @@ pub enum LineKind {
         /// Ast of the whole expression.
         ast: Ast,
     },
-    /// Documentation comment lines are not nodes.
-    /// Instead, they are discovered and processed as part of nodes that follow them.
-    DocumentationComment {
-        /// The comment representation.
-        documentation: DocumentationCommentAst,
-    },
 }
 
 impl LineKind {
@@ -128,18 +121,9 @@ impl LineKind {
     pub fn discern(ast: &Ast, kind: ScopeKind) -> Self {
         use LineKind::*;
 
-        // First of all, if non-empty line is not an infix (i.e. binding) it can be only a node or
-        // a documentation comment.
         let ast = match opr::to_assignment(ast) {
             Some(infix) => infix,
-            None =>
-                return if let Some(documentation) = DocumentationCommentAst::new(ast) {
-                    // e.g. `## My comment.`
-                    DocumentationComment { documentation }
-                } else {
-                    // The simplest form of node, e.g. `Point 5 10`
-                    ExpressionPlain { ast: ast.clone_ref() }
-                },
+            None => return ExpressionPlain { ast: ast.clone_ref() },
         };
 
         // Assignment can be either nodes or definitions. To discern, we check the left hand side.

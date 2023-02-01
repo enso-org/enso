@@ -22,7 +22,6 @@ use double_representation::module;
 use double_representation::node;
 use double_representation::node::MainLine;
 use double_representation::node::NodeInfo;
-use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
 use span_tree::action::Action;
 use span_tree::action::Actions;
@@ -693,7 +692,7 @@ impl Handle {
             };
 
             let mut lines = graph.block_lines();
-            let range = NodeLocation::range(node_to_be_after.index, node_to_be_before.index);
+            let range = node_to_be_after.index..node_to_be_before.index;
             lines[range].sort_by_key(should_be_at_end);
             self.update_definition_ast(|mut def| {
                 def.set_block_lines(lines)?;

@@ -1,7 +1,7 @@
 use ast::id_map::JsonIdMap;
 use ast::HasIdMap;
-use ast::IdMap;
 use ast::HasRepr;
+use ast::IdMap;
 use enso_prelude::*;
 use enso_text::index::*;
 use enso_text::unit::*;
@@ -47,11 +47,9 @@ impl<M: Metadata> ParsedSourceFile<M> {
         );
         Ok(SourceFile {
             content,
-            code:     (0.byte()..code.len().to_byte()).into(),
-            id_map:   (id_map_start_bytes..id_map_start_bytes + ByteDiff::from(id_map.len()))
-                .into(),
-            metadata: (metadata_start_bytes
-                ..metadata_start_bytes + ByteDiff::from(metadata.len()))
+            code: (0.byte()..code.len().to_byte()).into(),
+            id_map: (id_map_start_bytes..id_map_start_bytes + ByteDiff::from(id_map.len())).into(),
+            metadata: (metadata_start_bytes..metadata_start_bytes + ByteDiff::from(metadata.len()))
                 .into(),
         })
     }
@@ -93,7 +91,9 @@ pub trait PruneUnusedIds {
 }
 
 /// Things that are metadata.
-pub trait Metadata: Default + serde::de::DeserializeOwned + serde::Serialize + PruneUnusedIds {}
+pub trait Metadata:
+    Default + serde::de::DeserializeOwned + serde::Serialize + PruneUnusedIds {
+}
 
 /// Raw metadata.
 impl PruneUnusedIds for serde_json::Value {}
@@ -243,6 +243,6 @@ pub struct TooManyLinesProduced;
 
 /// Wraps an arbitrary `std::error::Error` as an `InteropError.`
 pub fn interop_error<T>(error: T) -> Error
-    where T: Fail {
+where T: Fail {
     Error::InteropError(Box::new(error))
 }

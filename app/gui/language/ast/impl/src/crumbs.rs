@@ -163,7 +163,6 @@ macro_rules! crumbs {
 ///
 /// Crumbs are potentially invalidated by any AST change.
 
-
 // === Prefix ===
 
 #[allow(missing_docs)]

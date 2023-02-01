@@ -111,8 +111,8 @@ impl GraphInfo {
         let index = match location_hint {
             LocationHint::Start => 0,
             LocationHint::End => last_non_empty().map_or(lines.len(), |ix| ix + 1),
-            LocationHint::After(id) => self.locate_node(id)?.index.last() + 1,
-            LocationHint::Before(id) => self.locate_node(id)?.index.first(),
+            LocationHint::After(id) => self.locate_node(id)?.index + 1,
+            LocationHint::Before(id) => self.locate_node(id)?.index,
         };
         let elem = Some(node.ast().clone_ref());
         let off = 0;
@@ -164,7 +164,9 @@ impl GraphInfo {
 
         let mut lines = self.source.block_lines();
         if let Some(updated_node) = f(node) {
-            lines[index.main_line].elem = Some(updated_node.main_line.ast().clone_ref());
+            lines[index].elem = Some(updated_node.ast().clone_ref());
+            // TODO
+            /*
             match (index.documentation_line, updated_node.documentation) {
                 (Some(old_comment_index), None) => {
                     lines.remove(old_comment_index);
@@ -172,14 +174,12 @@ impl GraphInfo {
                 (Some(old_comment_index), Some(new_comment)) =>
                     lines[old_comment_index] = new_comment.block_line(),
                 (None, Some(new_comment)) =>
-                    lines.insert(index.main_line, new_comment.block_line()),
+                    lines.insert(index, new_comment.block_line()),
                 (None, None) => {}
             }
+             */
         } else {
-            lines.remove(index.main_line);
-            if let Some(doc_index) = index.documentation_line {
-                lines.remove(doc_index);
-            }
+            lines.remove(index);
         }
         let non_empty_lines_count = lines.iter().filter(|line| line.elem.is_some()).count();
         if non_empty_lines_count == 0 {
@@ -281,7 +281,7 @@ mod tests {
             left.documentation.as_ref().map(DocumentationCommentInfo::to_string),
             right.documentation.as_ref().map(DocumentationCommentInfo::to_string)
         );
-        assert_eq!(left.main_line.repr(), right.main_line.repr());
+        assert_eq!(left.repr(), right.repr());
     }
 
     #[test]

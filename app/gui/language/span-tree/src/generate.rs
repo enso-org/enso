@@ -14,8 +14,9 @@ use crate::SpanTree;
 use ast::assoc::Assoc;
 use ast::crumbs::Located;
 use ast::opr::GeneralizedInfix;
-use ast::{Ast, ParticleBoard};
+use ast::Ast;
 use ast::HasRepr;
+use ast::ParticleBoard;
 
 
 
@@ -442,7 +443,11 @@ fn generate_expected_arguments<T: Payload>(
 // === SpanTree for Tree ===
 // =========================
 
-fn tree_generate_node<T: Payload>(tree: &ast::Tree, kind: impl Into<node::Kind>, context: &impl Context) -> FallibleResult<Node<T>> {
+fn tree_generate_node<T: Payload>(
+    tree: &ast::Tree,
+    kind: impl Into<node::Kind>,
+    context: &impl Context,
+) -> FallibleResult<Node<T>> {
     let mut kind = kind.into();
     let mut offset = ByteDiff::from(0);
     let mut children = vec![];
@@ -470,7 +475,7 @@ fn tree_generate_node<T: Payload>(tree: &ast::Tree, kind: impl Into<node::Kind>,
                 let node = Node { kind, size, ..default() };
                 children.push(node::Child { node, offset, ast_crumbs });
                 offset += size;
-            },
+            }
             ParticleBoard::Child(a) => {
                 // TODO: Set `kind` properly
                 let node = a.generate_node(kind.clone(), context)?;
@@ -478,19 +483,13 @@ fn tree_generate_node<T: Payload>(tree: &ast::Tree, kind: impl Into<node::Kind>,
                 let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
                 children.push(node::Child { node, offset, ast_crumbs });
                 offset += child_size;
-            },
+            }
         }
     }
     let size = offset;
     let ast_id = default(); // TODO
     let payload = default();
-    Ok(Node {
-        kind,
-        size,
-        children,
-        ast_id,
-        payload,
-    })
+    Ok(Node { kind, size, children, ast_id, payload })
 }
 
 
@@ -597,18 +596,18 @@ mod test {
         let expected = TreeBuilder::new(15)
             .add_empty_child(0, BeforeTarget)
             .add_child(0, 11, node::Kind::this(), InfixCrumb::LeftOperand)
-                .add_empty_child(0, BeforeTarget)
-                .add_leaf(0, 1, node::Kind::this(), InfixCrumb::LeftOperand)
-                .add_empty_child(1, AfterTarget)
-                .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
-                .add_child(4, 7, node::Kind::argument(), InfixCrumb::RightOperand)
-                    .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
-                    .add_empty_child(4, BeforeTarget)
-                    .add_leaf(4, 3, node::Kind::this(), PrefixCrumb::Arg)
-                    .add_empty_child(7, Append)
-                    .done()
-                .add_empty_child(11, Append)
-                .done()
+            .add_empty_child(0, BeforeTarget)
+            .add_leaf(0, 1, node::Kind::this(), InfixCrumb::LeftOperand)
+            .add_empty_child(1, AfterTarget)
+            .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
+            .add_child(4, 7, node::Kind::argument(), InfixCrumb::RightOperand)
+            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
+            .add_empty_child(4, BeforeTarget)
+            .add_leaf(4, 3, node::Kind::this(), PrefixCrumb::Arg)
+            .add_empty_child(7, Append)
+            .done()
+            .add_empty_child(11, Append)
+            .done()
             .add_empty_child(11, AfterTarget)
             .add_leaf(12, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_leaf(14, 1, node::Kind::argument(), InfixCrumb::RightOperand)

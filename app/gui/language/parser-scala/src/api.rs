@@ -22,6 +22,6 @@ pub enum Error {
 
 /// Wraps an arbitrary `std::error::Error` as an `InteropError.`
 pub fn interop_error<T>(error: T) -> Error
-    where T: Fail {
+where T: Fail {
     Error::InteropError(Box::new(error))
 }

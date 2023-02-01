@@ -111,8 +111,8 @@ impl Translate {
             //tree::Variant::Documented(tree::Documented { documentation, expression }) =>
             // TODO
             //    self.translate(expression.as_ref().unwrap()).without_space(),
-            tree::Variant::Documented(_) |
-            tree::Variant::Invalid(_)
+            tree::Variant::Documented(_)
+            | tree::Variant::Invalid(_)
             | tree::Variant::AutoScope(_)
             | tree::Variant::TextLiteral(_)
             | tree::Variant::MultiSegmentApp(_)
@@ -125,8 +125,9 @@ impl Translate {
             | tree::Variant::Array(_)
             | tree::Variant::Tuple(_)
             | tree::Variant::Annotated(_)
-            | tree::Variant::ConstructorDefinition(_) =>
-                Ast::from(ast::Tree { particleboard: deconstruct_tree(tree, |t| self.translate(t)) }),
+            | tree::Variant::ConstructorDefinition(_) => Ast::from(ast::Tree {
+                particleboard: deconstruct_tree(tree, |t| self.translate(t)),
+            }),
         };
         WithInitialSpace { space, body }
     }
