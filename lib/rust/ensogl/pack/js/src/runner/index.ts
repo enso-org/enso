@@ -12,6 +12,7 @@ import * as debug from 'runner/debug'
 import host from 'runner/host'
 import { logger } from 'runner/log'
 import { sortedWasmFunctions } from 'runner/wasm'
+import { HelpScreenSection } from 'runner/debug'
 
 // ===============
 // === Exports ===
@@ -440,22 +441,33 @@ export class App {
             const href = '?entry=' + entryPoint.strippedName
             return new debug.HelpScreenEntry(entryPoint.strippedName, [description], href)
         })
+        const sections = [new debug.HelpScreenSection('Entry points', entries)]
 
         const headers = ['Name', 'Description']
-        new debug.HelpScreen().display({ title, headers, entries })
+        new debug.HelpScreen().display({ title, headers, sections })
     }
 
-    showConfigOptions(unknownConfigOptions?: string[]) {
-        // logger.log('Showing config options help screen.')
-        // const msg = unknownConfigOptions
-        //     ? `Unknown config options: '${unknownConfigOptions.join(', ')}'. `
-        //     : ''
-        // const title = msg + 'Available options:'
-        // const entries = Array.from(Object.entries(this.config.options)).map(([key, option]) => {
-        //     return new debug.HelpScreenEntry(key, [option.description, String(option.default)])
-        // })
-        // const headers = ['Name', 'Description', 'Default']
-        // new debug.HelpScreen().display({ title, headers, entries })
+    showConfigOptions(unknownOptions?: string[]) {
+        logger.log('Showing config options help screen.')
+        let msg = ''
+        if (unknownOptions) {
+            const optionLabel = unknownOptions.length > 1 ? 'options' : 'option'
+            msg = `Unknown config ${optionLabel}: ${unknownOptions.map(t => `'${t}'`).join(', ')}. `
+        }
+        const title = msg + 'Available options:'
+        const sections = Array.from(Object.entries(this.config.options)).map(([group, options]) => {
+            const entries = Array.from(Object.entries(options)).map(([key, option]) => {
+                const name = group === key ? group : group + '.' + key
+                return new debug.HelpScreenEntry(name, [option.description, String(option.default)])
+            })
+            const label =
+                group.charAt(0).toUpperCase() +
+                group.slice(1).replace(/([A-Z])/g, ' $1') +
+                ' Options'
+            return new debug.HelpScreenSection(label, entries)
+        })
+        const headers = ['Name', 'Description', 'Default']
+        new debug.HelpScreen().display({ title, headers, sections })
     }
 
     /** Print the warning for the end user that they should not copy any code to the console. */

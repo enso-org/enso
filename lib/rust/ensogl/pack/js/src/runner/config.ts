@@ -281,8 +281,10 @@ export class Config {
         }
 
         const x = Array.from(paramsToBeAssigned.entries())
-        const unrecognized = x.flatMap(([group, params]) =>
-            Array.from(params.values(), p => `${group}.${p}`)
+        const unrecognized = x.flatMap(([group, options]) =>
+            Array.from(options.values(), option =>
+                group === option ? group : group + '.' + option
+            )
         )
         if (unrecognized.length > 0) {
             return unrecognized
