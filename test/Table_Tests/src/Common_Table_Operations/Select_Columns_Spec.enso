@@ -114,7 +114,7 @@ spec setup =
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
-            err = table.select_columns selector on_problems=Problem_Behavior.Report_Ignore
+            err = table.select_columns selector on_problems=Problem_Behavior.Ignore
             err.should_fail_with Missing_Input_Columns
             err.catch.criteria . should_equal ["hmm", weird_name]
 
@@ -123,7 +123,8 @@ spec setup =
                 t = table.select_columns (By_Index []) on_problems=pb
                 t.should_fail_with No_Output_Columns
 
-            table.select_columns (By_Name ["hmmm"]) . should_fail_with No_Output_Columns
+            table.select_columns (By_Name ["hmmm"]) . should_fail_with Missing_Input_Columns
+            table.select_columns (By_Name ["hmmm"]) error_on_missing_columns=False . should_fail_with No_Output_Columns
 
     Test.group prefix+"Table.remove_columns" <|
         Test.specify "should work as shown in the doc examples" <|

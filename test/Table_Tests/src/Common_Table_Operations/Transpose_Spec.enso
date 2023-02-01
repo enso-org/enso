@@ -60,14 +60,15 @@ spec setup =
             t1.at "Value" . to_vector . should_equal [1, 10, 2, Nothing, 3, 20]
 
         Test.specify "should allow all current columns to become id fields, without warning" <|
-            t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
+            t = table_builder [["Key", ["x", "y", "z"]], ["Foo", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
             t1 = t.transpose t.column_names
             t1.row_count . should_equal 3
             t1.column_names . should_equal ["Key", "Value", "Another", "Yet Another", "Name", "Value_1"]
             t1.at "Key" . to_vector . should_equal ["x", "y", "z"]
-            t1.at "Value" . to_vector . should_equal [1, 2, 3]
+            t1.at "Foo" . to_vector . should_equal [1, 2, 3]
             t1.at "Name" . to_vector . should_equal [Nothing, Nothing, Nothing]
-            t1.at "Value_1" . to_vector . should_equal [Nothing, Nothing, Nothing]
+            t1.at "Value" . to_vector . should_equal [Nothing, Nothing, Nothing]
+            Problems.assume_no_problems t1
 
         # ToDo: Verify the warnings and error handling within transpose.
         Test.specify "should handle missing columns" <|
@@ -89,11 +90,11 @@ spec setup =
 
             action2 = t1.transpose (Column_Selector.By_Index [0, -1, 42, -100]) error_on_missing_columns=False on_problems=_
             tester2 table =
-                table.column_names . should_equal ["Key", "Name", "Value"]
+                table.column_names . should_equal ["Key", "Another", "Name", "Value"]
             problems2 = [Column_Indexes_Out_Of_Range.Error [42, -100]]
             Problems.test_problem_handling action2 problems2 tester2
 
-        Test.specify "should warn on colum name clashes" <|
+        Test.specify "should warn on column name clashes" <|
             t1 = table_builder [["X", ["x", "y", "z"]], ["Y", [1, 2, 3]], ["Z", [10, Nothing, 20]]]
 
             action1 = t1.transpose ["X", "Y", "Z"] name_field="Y" value_field="Z" on_problems=_

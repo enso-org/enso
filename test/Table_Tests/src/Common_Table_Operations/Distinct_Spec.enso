@@ -113,11 +113,9 @@ spec setup =
                 t6 = t1.distinct [] error_on_missing_columns=False on_problems=pb
                 t6.should_fail_with No_Input_Columns_Selected
 
-            action1 = t1.distinct ["Y", "Z"] error_on_missing_columns=False on_problems=_
-            tester1 table =
-                table.at "X" . to_vector . should_equal [1, 2, 3, 2, 2]
-            problems1 = [Missing_Input_Columns.Error ["Y", "Z"]]
-            Problems.test_problem_handling action1 problems1 tester1
+            # When not erroring about missing columns, No_Input_Columns_Selected will still yield an error.
+            t7 = t1.distinct ["Y", "Z"] error_on_missing_columns=False on_problems=Problem_Behavior.Report_Warning
+            t7.should_fail_with No_Input_Columns_Selected
 
             action2 = t1.distinct (Column_Selector.By_Name ["X", "Y"]) error_on_missing_columns=False on_problems=_
             tester2 table =

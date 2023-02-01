@@ -343,7 +343,7 @@ type Table
 
     remove_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
     remove_columns self (columns = Column_Selector.By_Index [0]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.remove_columns selector=columns on_problems=on_problems
+        new_columns = self.columns_helper.remove_columns selector=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the specified selection of columns moved to
@@ -389,7 +389,7 @@ type Table
 
     reorder_columns : Vector Text | Column_Selector -> Position -> Boolean -> Problem_Behavior -> Table
     reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
+        new_columns = self.columns_helper.reorder_columns selector=columns position=position error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -599,9 +599,9 @@ type Table
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
     order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
-        problem_builder = Problem_Builder.new
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
-        problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
+        problem_builder.attach_problems_before on_problems <|
             java_columns = columns_for_ordering.map c->
                 c.column.java_column
             directions = columns_for_ordering.map c->
@@ -638,7 +638,7 @@ type Table
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
-        key_columns = self.columns_helper.select_columns selector=columns reorder=True on_problems=Problem_Behavior.Report_Error . catch No_Output_Columns _->
+        key_columns = self.columns_helper.select_columns selector=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
@@ -1383,11 +1383,10 @@ type Table
     transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         columns_helper = self.columns_helper
         unique = Unique_Name_Strategy.new
-        problem_builder = Problem_Builder.new
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
         id_columns = columns_helper.select_columns_helper id_fields False problem_builder
         count = self.column_count - id_columns.length
-        if count == 0 then problem_builder.report_other_warning No_Input_Columns_Selected
 
         selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
 
@@ -1396,8 +1395,12 @@ type Table
 
         java_id = id_columns.map .java_column
 
-        id_columns.each k-> unique.make_unique k.name
+        unique.mark_used (id_columns.map .name)
         result = Table.Value (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
+        problem_builder.report_unique_name_strategy unique
+
+        # This is reported last, so that in error mode any other problems take precedence over it - as this one gives the least information.
+        if count == 0 then problem_builder.report_other_warning No_Input_Columns_Selected
         problem_builder.attach_problems_after on_problems result
 
     ## Returns a new table using a chosen field as the column header and then

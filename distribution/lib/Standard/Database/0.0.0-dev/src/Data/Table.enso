@@ -215,7 +215,7 @@ type Table
 
     remove_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
     remove_columns self (columns = Column_Selector.By_Index [0]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.remove_columns selector=columns on_problems=on_problems
+        new_columns = self.columns_helper.remove_columns selector=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the specified selection of columns moved to
@@ -261,7 +261,7 @@ type Table
 
     reorder_columns : Vector Text | Column_Selector -> Position -> Boolean -> Problem_Behavior -> Table
     reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
+        new_columns = self.columns_helper.reorder_columns selector=columns position=position error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -640,9 +640,9 @@ type Table
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
     order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning = Panic.handle_wrapped_dataflow_error <|
-        problem_builder = Problem_Builder.new
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
-        problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
+        problem_builder.attach_problems_before on_problems <|
             new_order_descriptors = columns_for_ordering.map selected_column->
                 internal_column = selected_column.column
                 associated_selector = selected_column.associated_selector
@@ -681,7 +681,7 @@ type Table
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
-        key_columns = self.columns_helper.select_columns selector=columns reorder=True on_problems=Problem_Behavior.Report_Error . catch No_Output_Columns _->
+        key_columns = self.columns_helper.select_columns selector=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         problem_builder = Problem_Builder.new
         new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
@@ -1049,7 +1049,7 @@ type Table
     transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
-        _ = [id_fields, name_field, value_field, on_problems]
+        _ = [id_fields, name_field, value_field, error_on_missing_columns, on_problems]
         msg = "Transposing columns is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
