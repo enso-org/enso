@@ -54,8 +54,8 @@ define_endpoints_2! {
         request_widgets(Request),
         /// Remove all widget queries of given node that are not on this list.
         retain_node_expressions(NodeId, HashSet<ast::Id>),
-        /// Remove all widget queries of given node.
-        remove_node(NodeId),
+        /// Remove all widget data associated with given node.
+        remove_all_node_widgets(NodeId),
     }
     Output {
         /// Emitted when the node's visualization has been set.
@@ -101,7 +101,9 @@ impl Controller {
             eval input.retain_node_expressions(((node_id, expr_ids)) {
                 model.borrow_mut().retain_node_expressions(*node_id, expr_ids)
             });
-            eval input.remove_node((node_id) model.borrow_mut().remove_node(*node_id));
+            eval input.remove_all_node_widgets((node_id) {
+                model.borrow_mut().remove_all_node_widgets(*node_id)
+            });
         };
 
         let out_widget_data = output.widget_data.clone_ref();
@@ -237,8 +239,8 @@ impl Model {
 
     /// Remove all widget queries of given node. No widget update is emitted after a query is
     /// cleaned up.
-    fn remove_node(&mut self, node_id: NodeId) {
-        for expr_id in self.widgets_of_node.remove_node(node_id) {
+    fn remove_all_node_widgets(&mut self, node_id: NodeId) {
+        for expr_id in self.widgets_of_node.remove_node_widgets(node_id) {
             self.manager.remove_visualization(expr_id);
         }
     }
@@ -286,7 +288,7 @@ impl NodeToWidgetsMapping {
         }
     }
 
-    fn remove_node(&mut self, node_id: NodeId) -> Vec<ExpressionId> {
+    fn remove_node_widgets(&mut self, node_id: NodeId) -> Vec<ExpressionId> {
         self.attached_widgets.remove(&node_id).unwrap_or_default()
     }
 }

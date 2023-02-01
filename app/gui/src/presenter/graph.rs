@@ -226,7 +226,7 @@ impl Model {
         self.log_action(
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
-                self.widgets.remove_node(ast_id);
+                self.widgets.remove_all_node_widgets(ast_id);
                 Some(self.controller.graph().remove_node(ast_id))
             },
             "remove node",

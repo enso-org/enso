@@ -364,10 +364,6 @@ impl Model {
     ) {
         let mut is_header = true;
 
-        let prev_id_crumbs_map = self.id_crumbs_map.take();
-        let prev_widgets_map = self.widgets_map.take();
-        let prev_expression = self.expression.borrow();
-
         let mut id_crumbs_map = HashMap::new();
         let mut widgets_map = HashMap::new();
         let builder = PortLayerBuilder::empty(&self.ports);
@@ -431,43 +427,6 @@ impl Model {
                 let position_x = unit * index as f32;
 
                 let port_shape = port.payload.init_shape(size, node::HEIGHT);
-
-                let valid_call_id = port.kind.call_id().filter(|id| call_info.has_target(id));
-                let port_widget = valid_call_id.and_then(|call_id| {
-                    let info = port.kind.argument_info()?;
-                    let argument_name = info.name.as_ref()?.clone();
-                    let widget_id = WidgetBind { call_id, argument_name };
-
-                    // Try getting the previous widget by exact target/argument ID first, which is
-                    // necessary when the argument expression was replaced. This lookup can fail
-                    // when the target expression was replaced, but the widget argument expression
-                    // wasn't. In that case, try to reuse the widget from old argument node under
-                    // the same ast ID.
-                    let prev_crumbs = prev_widgets_map.get(&widget_id).or_else(|| {
-                        port.ast_id.as_ref().and_then(|id| prev_id_crumbs_map.get(id))
-                    });
-                    let prev_widget = prev_crumbs.and_then(|crumbs|{
-                        let prev_root = prev_expression.span_tree.root_ref();
-                        let prev_node = prev_root.get_descendant(crumbs).ok()?;
-                        let prev_widget = prev_node.payload.widget.as_ref()?.clone_ref();
-                        Some(prev_widget)
-                    });
-
-                    widgets_map.insert(widget_id, crumbs.clone_ref());
-                    let widget = match prev_widget {
-                        Some(prev_widget) => port.payload.use_existing_widget(prev_widget),
-                        None => port.payload.init_widget(&self.app),
-                    };
-                    widget.set_x(position_x);
-                    builder.parent.add_child(&widget);
-
-                    widget.set_node_data(widget::NodeData {
-                        argument_info: info,
-                        node_height: node::HEIGHT,
-                    });
-
-                    Some(widget)
-                });
 
                 port_shape.set_x(position_x);
                 if DEBUG {
@@ -561,25 +520,28 @@ impl Model {
                     area_frp.source.pointer_style <+ pointer_style;
                 }
 
-                if let Some(port_widget) = port_widget {
+                if let Some((widget_bind, widget)) = self.init_port_widget(port, call_info) {
+                    widgets_map.insert(widget_bind, crumbs.clone_ref());
+                    widget.set_x(position_x);
+                    builder.parent.add_child(&widget);
+            
                     if port.is_argument() {
                         let range = port.payload.range();
                         let code = &expression.viz_code[range];
-                        port_widget.set_current_value(Some(code.into()));
+                        widget.set_current_value(Some(code.into()));
                     } else {
-                        port_widget.set_current_value(None);
+                        widget.set_current_value(None);
                     }
 
                     let can_be_removed = call_info.is_last_argument(port);
+                    let empty_value = if can_be_removed { "" } else { "_" };
 
+                    let port_network = &port.network;
                     frp::extend! { port_network
-                        code_update <- port_widget.value_changed.map(
-                            f!([crumbs](v) {
-                                (crumbs.clone_ref(), v.clone().unwrap_or_else(|| {
-                                    if can_be_removed { default() } else { "_".into() }
-                                }))
-                            })
-                        );
+                        code_update <- widget.value_changed.map(f!([crumbs](value) {
+                            let expression = value.clone().unwrap_or_else(|| empty_value.into());
+                            (crumbs.clone_ref(), expression)
+                        }));
                         area_frp.source.on_port_code_update <+ code_update;
                     }
                 }
@@ -603,6 +565,48 @@ impl Model {
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
         *self.widgets_map.borrow_mut() = widgets_map;
         area_frp.set_view_mode.emit(area_frp.view_mode.value());
+    }
+
+    fn init_port_widget(
+        &self,
+        port: &mut PortRefMut,
+        call_info: &CallInfoMap,
+    ) -> Option<(WidgetBind, widget::View)> {
+        let call_id = port.kind.call_id().filter(|id| call_info.has_target(id))?;
+        let argument_info = port.kind.argument_info()?;
+        let argument_name = argument_info.name.as_ref()?.clone();
+
+        let widget_bind = WidgetBind { call_id, argument_name };
+
+
+        // Try getting the previous widget by exact target/argument ID first, which is
+        // necessary when the argument expression was replaced. This lookup can fail
+        // when the target expression was replaced, but the widget argument expression
+        // wasn't. In that case, try to reuse the widget from old argument node under
+        // the same ast ID.
+        let prev_widgets_map = self.widgets_map.borrow();
+        let prev_id_crumbs_map = self.id_crumbs_map.borrow();
+        let prev_crumbs = prev_widgets_map.get(&widget_bind).or_else(|| {
+            port.ast_id.as_ref().and_then(|id| {
+                prev_id_crumbs_map.get(id)
+            })
+        });
+        let prev_widget = prev_crumbs.and_then(|crumbs| {
+            let prev_expression = self.expression.borrow();
+            let prev_root = prev_expression.span_tree.root_ref();
+            let prev_node = prev_root.get_descendant(crumbs).ok()?;
+            let prev_widget = prev_node.payload.widget.as_ref()?.clone_ref();
+            Some(prev_widget)
+        });
+
+        let widget = match prev_widget {
+            Some(prev_widget) => port.payload.use_existing_widget(prev_widget),
+            None => port.payload.init_widget(&self.app),
+        };
+
+        widget.set_node_data(widget::NodeData { argument_info, node_height: node::HEIGHT });
+
+        Some((widget_bind, widget))
     }
 
     /// Initializes FRP network for every port. Please note that the networks are connected
@@ -1190,7 +1194,7 @@ impl CallInfoMap {
         self.call_info.get(call_id).and_then(|info| info.target_id)
     }
 
-    fn is_last_argument(&self, node: &span_tree::node::RefMut<port::Model>) -> bool {
+    fn is_last_argument(&self, node: &PortRefMut) -> bool {
         let call_id = node.kind.call_id();
         let info = call_id.and_then(|call_id| self.call_info.get(&call_id));
         let last_argument = info.and_then(|info| info.last_argument.as_ref());
