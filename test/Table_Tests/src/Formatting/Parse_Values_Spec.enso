@@ -1,281 +1,337 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Data_Formatter
+from Standard.Table import Table, Data_Formatter, Column
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from Standard.Table.Errors import Invalid_Format, Leading_Zeros, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
-spec = Test.group "Table.parse_values" <|
-    Test.specify "should correctly parse integers" <|
-        t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]]]
-        t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Integer]
-        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, Nothing, Nothing, 12345, Nothing]
+spec =
+    Test.group "Table.parse_values" <|
+        Test.specify "should correctly parse integers" <|
+            t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]]]
+            t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Integer]
+            t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, Nothing, Nothing, 12345, Nothing]
 
-    Test.specify "should correctly parse decimals" <|
-        t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "12345", Nothing]]]
-        t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
-        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 12345, Nothing]
-        t2.at "ints" . to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "12345.0", "Nothing"]
+        Test.specify "should correctly parse decimals" <|
+            t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "12345", Nothing]]]
+            t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
+            t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 12345, Nothing]
+            t2.at "ints" . to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "12345.0", "Nothing"]
 
-        t3 = Table.new [["floats", ["0.0", "+0.0", "-0.0", "+1.0", "-1.0", "1.0", "0.0000", "10.", "12345."]]]
-        t4 = t3.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
-        t4.at "floats" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345]
+            t3 = Table.new [["floats", ["0.0", "+0.0", "-0.0", "+1.0", "-1.0", "1.0", "0.0000", "10.", "12345."]]]
+            t4 = t3.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
+            t4.at "floats" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345]
 
-        t5 = Table.new [["floats", [".0", "0.", "1.", ".1", ".123", "-.1", "+.1", "+0.0", "0.1234", Nothing, "11111111.111"]]]
-        t6 = t5.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
-        t6.at "floats" . to_vector . should_equal [0.0, 0.0, 1.0, 0.1, 0.123, -0.1, 0.1, 0.0, 0.1234, Nothing, 11111111.111]
+            t5 = Table.new [["floats", [".0", "0.", "1.", ".1", ".123", "-.1", "+.1", "+0.0", "0.1234", Nothing, "11111111.111"]]]
+            t6 = t5.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
+            t6.at "floats" . to_vector . should_equal [0.0, 0.0, 1.0, 0.1, 0.123, -0.1, 0.1, 0.0, 0.1234, Nothing, 11111111.111]
 
-    Test.specify "should warn on leading zeros in numbers, if asked" <|
-        t1 = Table.new [["ints", ["0", "+00", "-00", "+01", "-01", "01", "000", "0010", "12345", Nothing]]]
-        t2 = Table.new [["floats", ["0.0000", ".0", "00.", "01.0", "-0010.0000", "1.0000"]]]
+        Test.specify "should warn on leading zeros in numbers, if asked" <|
+            t1 = Table.new [["ints", ["0", "+00", "-00", "+01", "-01", "01", "000", "0010", "12345", Nothing]]]
+            t2 = Table.new [["floats", ["0.0000", ".0", "00.", "01.0", "-0010.0000", "1.0000"]]]
 
-        t1_parsed = [0, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 12345, Nothing]
-        t1_zeros = ["+00", "-00", "+01", "-01", "01", "000", "0010"]
-        t3 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Integer]
-        t3.at "ints" . to_vector . should_equal t1_parsed
-        Problems.get_attached_warnings t3 . should_equal [Leading_Zeros.Error "ints" Integer t1_zeros]
+            t1_parsed = [0, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 12345, Nothing]
+            t1_zeros = ["+00", "-00", "+01", "-01", "01", "000", "0010"]
+            t3 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Integer]
+            t3.at "ints" . to_vector . should_equal t1_parsed
+            Problems.get_attached_warnings t3 . should_equal [Leading_Zeros.Error "ints" Integer t1_zeros]
 
-        t4 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
-        t4.at "ints" . to_vector . should_equal t1_parsed
-        Problems.get_attached_warnings t4 . should_equal [Leading_Zeros.Error "ints" Decimal t1_zeros]
+            t4 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
+            t4.at "ints" . to_vector . should_equal t1_parsed
+            Problems.get_attached_warnings t4 . should_equal [Leading_Zeros.Error "ints" Decimal t1_zeros]
 
-        t5 = t2.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
-        t5.at "floats" . to_vector . should_equal [0.0, 0.0, Nothing, Nothing, Nothing, 1.0]
-        Problems.get_attached_warnings t5 . should_equal [Leading_Zeros.Error "floats" Decimal ["00.", "01.0", '-0010.0000']]
+            t5 = t2.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
+            t5.at "floats" . to_vector . should_equal [0.0, 0.0, Nothing, Nothing, Nothing, 1.0]
+            Problems.get_attached_warnings t5 . should_equal [Leading_Zeros.Error "floats" Decimal ["00.", "01.0", '-0010.0000']]
 
-        opts = Data_Formatter.Value allow_leading_zeros=True
-        t1_parsed_zeros = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
-        t6 = t1.parse_values value_formatter=opts column_types=[Column_Type_Selection.Value 0 Integer]
-        t6.at "ints" . to_vector . should_equal t1_parsed_zeros
-        Warning.get_all t6 . should_equal []
+            opts = Data_Formatter.Value allow_leading_zeros=True
+            t1_parsed_zeros = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
+            t6 = t1.parse_values value_formatter=opts column_types=[Column_Type_Selection.Value 0 Integer]
+            t6.at "ints" . to_vector . should_equal t1_parsed_zeros
+            Warning.get_all t6 . should_equal []
 
-        t7 = t1.parse_values value_formatter=opts column_types=[Column_Type_Selection.Value 0 Decimal]
-        t7.at "ints" . to_vector . should_equal t1_parsed_zeros
-        Warning.get_all t7 . should_equal []
-        t8 = t2.parse_values value_formatter=opts column_types=[Column_Type_Selection.Value 0 Decimal]
-        t8.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.0, -10.0, 1.0]
-        Warning.get_all t8 . should_equal []
+            t7 = t1.parse_values value_formatter=opts column_types=[Column_Type_Selection.Value 0 Decimal]
+            t7.at "ints" . to_vector . should_equal t1_parsed_zeros
+            Warning.get_all t7 . should_equal []
+            t8 = t2.parse_values value_formatter=opts column_types=[Column_Type_Selection.Value 0 Decimal]
+            t8.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.0, -10.0, 1.0]
+            Warning.get_all t8 . should_equal []
 
-    Test.specify "should correctly parse booleans" <|
-        t1 = Table.new [["bools", ["true", "false", "True", "TRUE", "FALSE", Nothing, "False"]]]
-        t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Boolean]
-        t2.at "bools" . to_vector . should_equal [True, False, True, True, False, Nothing, False]
+        Test.specify "should correctly parse booleans" <|
+            t1 = Table.new [["bools", ["true", "false", "True", "TRUE", "FALSE", Nothing, "False"]]]
+            t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Boolean]
+            t2.at "bools" . to_vector . should_equal [True, False, True, True, False, Nothing, False]
 
-    Test.specify "should correctly parse date and time" <|
-        t1 = Table.new [["dates", ["2022-05-07", "2000-01-01", "2010-12-31"]]]
-        t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Date]
-        t2.at "dates" . to_vector . should_equal [Date.new 2022 5 7, Date.new 2000 1 1, Date.new 2010 12 31]
+        Test.specify "should correctly parse date and time" <|
+            t1 = Table.new [["dates", ["2022-05-07", "2000-01-01", "2010-12-31"]]]
+            t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Date]
+            t2.at "dates" . to_vector . should_equal [Date.new 2022 5 7, Date.new 2000 1 1, Date.new 2010 12 31]
 
-        t3 = Table.new [["datetimes", ["2022-05-07 23:59:59", "2000-01-01 00:00:00", "2010-12-31 12:34:56"]]]
-        t4 = t3.parse_values column_types=[Column_Type_Selection.Value 0 Date_Time]
-        t4.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Date_Time.new 2000 1 1, Date_Time.new 2010 12 31 12 34 56]
+            t3 = Table.new [["datetimes", ["2022-05-07 23:59:59", "2000-01-01 00:00:00", "2010-12-31 12:34:56"]]]
+            t4 = t3.parse_values column_types=[Column_Type_Selection.Value 0 Date_Time]
+            t4.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Date_Time.new 2000 1 1, Date_Time.new 2010 12 31 12 34 56]
 
-        t5 = Table.new [["times", ["23:59:59", "00:00:00", "12:34:56"]]]
-        t6 = t5.parse_values column_types=[Column_Type_Selection.Value 0 Time_Of_Day]
-        t6.at "times" . to_vector . should_equal [Time_Of_Day.new 23 59 59, Time_Of_Day.new, Time_Of_Day.new 12 34 56]
+            t5 = Table.new [["times", ["23:59:59", "00:00:00", "12:34:56"]]]
+            t6 = t5.parse_values column_types=[Column_Type_Selection.Value 0 Time_Of_Day]
+            t6.at "times" . to_vector . should_equal [Time_Of_Day.new 23 59 59, Time_Of_Day.new, Time_Of_Day.new 12 34 56]
 
-    Test.specify "should parse date and time in various formats" <|
-        opts = Data_Formatter.Value date_formats=["d.M.y", "d MMM y[ G]", "E, d MMM y"] datetime_formats=["yyyy-MM-dd'T'HH:mm:ss", "dd/MM/yyyy HH:mm"] time_formats=["H:mm:ss.n", "h:mma"]
+        Test.specify "should parse date and time in various formats" <|
+            opts = Data_Formatter.Value date_formats=["d.M.y", "d MMM y[ G]", "E, d MMM y"] datetime_formats=["yyyy-MM-dd'T'HH:mm:ss", "dd/MM/yyyy HH:mm"] time_formats=["H:mm:ss.n", "h:mma"]
 
-        t1 = Table.new [["dates", ["1.2.476", "10 Jan 1900 AD", "Tue, 3 Jun 2008"]]]
-        t2 = t1.parse_values opts column_types=[Column_Type_Selection.Value 0 Date]
-        t2.at "dates" . to_vector . should_equal [Date.new 476 2 1, Date.new 1900 1 10, Date.new 2008 6 3]
+            t1 = Table.new [["dates", ["1.2.476", "10 Jan 1900 AD", "Tue, 3 Jun 2008"]]]
+            t2 = t1.parse_values opts column_types=[Column_Type_Selection.Value 0 Date]
+            t2.at "dates" . to_vector . should_equal [Date.new 476 2 1, Date.new 1900 1 10, Date.new 2008 6 3]
 
-        t3 = Table.new [["datetimes", ["2011-12-03T10:15:30", "31/12/2012 22:33"]]]
-        t4 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Date_Time]
-        t4.at "datetimes" . to_vector . should_equal [Date_Time.new 2011 12 3 10 15 30, Date_Time.new 2012 12 31 22 33]
+            t3 = Table.new [["datetimes", ["2011-12-03T10:15:30", "31/12/2012 22:33"]]]
+            t4 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Date_Time]
+            t4.at "datetimes" . to_vector . should_equal [Date_Time.new 2011 12 3 10 15 30, Date_Time.new 2012 12 31 22 33]
 
-        t5 = Table.new [["times", ["1:02:03.987654321", "1:30PM"]]]
-        t6 = t5.parse_values opts column_types=[Column_Type_Selection.Value 0 Time_Of_Day]
-        t6.at "times" . to_vector . should_equal [Time_Of_Day.new 1 2 3 nanosecond=987654321, Time_Of_Day.new 13 30 0 0]
+            t5 = Table.new [["times", ["1:02:03.987654321", "1:30PM"]]]
+            t6 = t5.parse_values opts column_types=[Column_Type_Selection.Value 0 Time_Of_Day]
+            t6.at "times" . to_vector . should_equal [Time_Of_Day.new 1 2 3 nanosecond=987654321, Time_Of_Day.new 13 30 0 0]
 
-    Test.specify "should warn when cells do not fit the expected format" <|
-        ints = ["ints", ["0", "1", "1.0", "foobar", "", "--1", "+-1", "10", "-+1"]]
-        # Currently scientific notation is not supported and we document that in this test, in the future the situation may change and the test may need to be flipped.
-        floats = ["floats", ["0", "2.0", "1e6", "foobar", "", "--1", "+-1", "100.", "-+1"]]
-        bools = ["bools", ["True", "false", "fAlSE", "foobar", "", "0", "1", "true", "truefalse"]]
-        time_content = ["2001-01-01", "2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
-        t = Table.new [ints, floats, bools, ["dates", time_content], ["datetimes", time_content], ["times", time_content]]
+        Test.specify "should warn when cells do not fit the expected format" <|
+            ints = ["ints", ["0", "1", "1.0", "foobar", "", "--1", "+-1", "10", "-+1"]]
+            # Currently scientific notation is not supported and we document that in this test, in the future the situation may change and the test may need to be flipped.
+            floats = ["floats", ["0", "2.0", "1e6", "foobar", "", "--1", "+-1", "100.", "-+1"]]
+            bools = ["bools", ["True", "false", "fAlSE", "foobar", "", "0", "1", "true", "truefalse"]]
+            time_content = ["2001-01-01", "2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+            t = Table.new [ints, floats, bools, ["dates", time_content], ["datetimes", time_content], ["times", time_content]]
 
-        action pb =
-            t.parse_values column_types=[Column_Type_Selection.Value 0 Integer, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "bools"  Boolean, Column_Type_Selection.Value "dates" Date, Column_Type_Selection.Value "datetimes" Date_Time, Column_Type_Selection.Value "times" Time_Of_Day] on_problems=pb
-        tester t =
-            t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
-            t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, Nothing, Nothing, 100, Nothing]
-            t.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True, Nothing]
-            t.at "dates" . to_vector . should_equal [Date.new 2001 1 1, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            t.at "datetimes" . to_vector . should_equal [Nothing, Date_Time.new 2001 1 1 12 34 56, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            t.at "times" . to_vector . should_equal [Nothing, Nothing, Time_Of_Day.new 10 0 10, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-        problems =
-            ints = Invalid_Format.Error "ints" Integer ["1.0", "foobar", "", "--1", "+-1", "-+1"]
-            floats = Invalid_Format.Error "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]
-            bools = Invalid_Format.Error "bools" Boolean ["fAlSE", "foobar", "", "0", "1", "truefalse"]
-            dates = Invalid_Format.Error "dates" Date ["2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
-            datetimes = Invalid_Format.Error "datetimes" Date_Time ["2001-01-01", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
-            times = Invalid_Format.Error "times" Time_Of_Day ["2001-01-01", "2001-01-01 12:34:56", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
-            [ints, floats, bools, dates, datetimes, times]
-        Problems.test_problem_handling action problems tester
+            action pb =
+                t.parse_values column_types=[Column_Type_Selection.Value 0 Integer, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "bools"  Boolean, Column_Type_Selection.Value "dates" Date, Column_Type_Selection.Value "datetimes" Date_Time, Column_Type_Selection.Value "times" Time_Of_Day] on_problems=pb
+            tester t =
+                t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
+                t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, Nothing, Nothing, 100, Nothing]
+                t.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True, Nothing]
+                t.at "dates" . to_vector . should_equal [Date.new 2001 1 1, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                t.at "datetimes" . to_vector . should_equal [Nothing, Date_Time.new 2001 1 1 12 34 56, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                t.at "times" . to_vector . should_equal [Nothing, Nothing, Time_Of_Day.new 10 0 10, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            problems =
+                ints = Invalid_Format.Error "ints" Integer ["1.0", "foobar", "", "--1", "+-1", "-+1"]
+                floats = Invalid_Format.Error "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]
+                bools = Invalid_Format.Error "bools" Boolean ["fAlSE", "foobar", "", "0", "1", "truefalse"]
+                dates = Invalid_Format.Error "dates" Date ["2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+                datetimes = Invalid_Format.Error "datetimes" Date_Time ["2001-01-01", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+                times = Invalid_Format.Error "times" Time_Of_Day ["2001-01-01", "2001-01-01 12:34:56", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+                [ints, floats, bools, dates, datetimes, times]
+            Problems.test_problem_handling action problems tester
 
-    Test.specify "should leave not selected columns unaffected" <|
-        t1 = Table.new [["A", ["1", "2"]], ["B", ["3", "4"]]]
-        t2 = t1.parse_values column_types=[Column_Type_Selection.Value "B" Integer]
-        t2.at "A" . to_vector . should_equal ["1", "2"]
-        t2.at "B" . to_vector . should_equal [3, 4]
+        Test.specify "should leave not selected columns unaffected" <|
+            t1 = Table.new [["A", ["1", "2"]], ["B", ["3", "4"]]]
+            t2 = t1.parse_values column_types=[Column_Type_Selection.Value "B" Integer]
+            t2.at "A" . to_vector . should_equal ["1", "2"]
+            t2.at "B" . to_vector . should_equal [3, 4]
 
-    Test.specify "should report missing columns in Column_Type_Selection" <|
-        t = Table.new [["floats", ["1.0"]], ["ints", ["1"]], ["bools", ["True"]]]
-        action pb =
-            t.parse_values column_types=[Column_Type_Selection.Value -1 Boolean, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "bars" Boolean, Column_Type_Selection.Value "foos" Boolean, Column_Type_Selection.Value 100 Boolean, Column_Type_Selection.Value -100 Boolean] on_problems=pb
-        tester t =
-            t.at "floats" . to_vector . should_equal [1.0]
-            t.at "ints" . to_vector . should_equal ["1"]
-            t.at "bools" . to_vector . should_equal [True]
-        problems = [Missing_Input_Columns.Error ["bars", "foos"], Column_Indexes_Out_Of_Range.Error [100, -100]]
-        Problems.test_problem_handling action problems tester
+        Test.specify "should report missing columns in Column_Type_Selection" <|
+            t = Table.new [["floats", ["1.0"]], ["ints", ["1"]], ["bools", ["True"]]]
+            action pb =
+                t.parse_values column_types=[Column_Type_Selection.Value -1 Boolean, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "bars" Boolean, Column_Type_Selection.Value "foos" Boolean, Column_Type_Selection.Value 100 Boolean, Column_Type_Selection.Value -100 Boolean] on_problems=pb
+            tester t =
+                t.at "floats" . to_vector . should_equal [1.0]
+                t.at "ints" . to_vector . should_equal ["1"]
+                t.at "bools" . to_vector . should_equal [True]
+            problems = [Missing_Input_Columns.Error ["bars", "foos"], Column_Indexes_Out_Of_Range.Error [100, -100]]
+            Problems.test_problem_handling action problems tester
 
-    Test.specify "should report duplicate columns in Column_Type_Selection" <|
-        t = Table.new [["floats", ["1.0"]], ["ints", ["1"]], ["bools", ["True"]], ["foo", ["42"]]]
-        action pb =
-            t.parse_values column_types=[Column_Type_Selection.Value -2 Boolean, Column_Type_Selection.Value "bools" Boolean, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "floats" Integer, Column_Type_Selection.Value "ints" Integer] on_problems=pb
-        tester t =
-            t.at "floats" . to_vector . should_equal ["1.0"]
-            t.at "ints" . to_vector . should_equal [1]
-            t.at "bools" . to_vector . should_equal [True]
-            t.at "foo" . to_vector . should_equal ["42"]
-        problems = [(Duplicate_Type_Selector.Error "floats" ambiguous=True), (Duplicate_Type_Selector.Error "bools" ambiguous=False)]
-        Problems.test_problem_handling action problems tester
+        Test.specify "should report duplicate columns in Column_Type_Selection" <|
+            t = Table.new [["floats", ["1.0"]], ["ints", ["1"]], ["bools", ["True"]], ["foo", ["42"]]]
+            action pb =
+                t.parse_values column_types=[Column_Type_Selection.Value -2 Boolean, Column_Type_Selection.Value "bools" Boolean, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "floats" Integer, Column_Type_Selection.Value "ints" Integer] on_problems=pb
+            tester t =
+                t.at "floats" . to_vector . should_equal ["1.0"]
+                t.at "ints" . to_vector . should_equal [1]
+                t.at "bools" . to_vector . should_equal [True]
+                t.at "foo" . to_vector . should_equal ["42"]
+            problems = [(Duplicate_Type_Selector.Error "floats" ambiguous=True), (Duplicate_Type_Selector.Error "bools" ambiguous=False)]
+            Problems.test_problem_handling action problems tester
 
-    Test.specify "should guess the datatype for columns" <|
-        c1 = ["ints", ["1", "  +2", "-123", Nothing]]
-        c2 = ["ints0", ["01", "02 ", Nothing, "-1"]]
-        c3 = ["floats", ["  1.0  ", "2.2", Nothing, "-1.0"]]
-        c4 = ["bools", ["true", " False", Nothing, "True"]]
-        c5 = ["floats+ints", ["1", "2.2  ", "-1.0", Nothing]]
-        c6 = ["text", ["foobar", "foo", "", Nothing]]
-        c7 = ["dates", ["2022-10-01", "  2000-01-01", "1999-01-02", Nothing]]
-        c8 = ["datetimes", ["2022-10-01 01:02:03  ", "2000-01-01 01:02:03", "1999-01-02 01:02:03", Nothing]]
-        c9 = ["times", ["01:02:03", "  00:00:00  ", "01:02:03", Nothing]]
-        c10 = ["mixeddates", ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]]
-        c11 = ["text+ints", ["1", "2", "  foobar", Nothing]]
-        t = Table.new [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11]
-        t2 = t.parse_values
+        Test.specify "should guess the datatype for columns" <|
+            c1 = ["ints", ["1", "  +2", "-123", Nothing]]
+            c2 = ["ints0", ["01", "02 ", Nothing, "-1"]]
+            c3 = ["floats", ["  1.0  ", "2.2", Nothing, "-1.0"]]
+            c4 = ["bools", ["true", " False", Nothing, "True"]]
+            c5 = ["floats+ints", ["1", "2.2  ", "-1.0", Nothing]]
+            c6 = ["text", ["foobar", "foo", "", Nothing]]
+            c7 = ["dates", ["2022-10-01", "  2000-01-01", "1999-01-02", Nothing]]
+            c8 = ["datetimes", ["2022-10-01 01:02:03  ", "2000-01-01 01:02:03", "1999-01-02 01:02:03", Nothing]]
+            c9 = ["times", ["01:02:03", "  00:00:00  ", "01:02:03", Nothing]]
+            c10 = ["mixeddates", ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]]
+            c11 = ["text+ints", ["1", "2", "  foobar", Nothing]]
+            t = Table.new [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11]
+            t2 = t.parse_values
 
-        Warning.get_all t2 . should_equal []
-        t2.at "ints" . to_vector . should_equal [1, 2, -123, Nothing]
-        t2.at "ints" . to_vector . first . should_be_an Integer
-        t2.at "ints0" . to_vector . should_equal ["01", "02", Nothing, "-1"]
-        t2.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
-        t2.at "bools" . to_vector . should_equal [True, False, Nothing, True]
-        t2.at "floats+ints" . to_vector . should_equal [1.0, 2.2, -1.0, Nothing]
-        t2.at "text" . to_vector . should_equal ["foobar", "foo", "", Nothing]
-        t2.at "dates" . to_vector . should_equal [Date.new 2022 10 1, Date.new 2000 1 1, Date.new 1999 1 2, Nothing]
-        t2.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 10 1 1 2 3, Date_Time.new 2000 1 1 1 2 3, Date_Time.new 1999 1 2 1 2 3, Nothing]
-        t2.at "times" . to_vector . should_equal [Time_Of_Day.new 1 2 3, Time_Of_Day.new, Time_Of_Day.new 1 2 3, Nothing]
-        t2.at "mixeddates" . to_vector . should_equal ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]
-        t2.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
+            Warning.get_all t2 . should_equal []
+            t2.at "ints" . to_vector . should_equal [1, 2, -123, Nothing]
+            t2.at "ints" . to_vector . first . should_be_an Integer
+            t2.at "ints0" . to_vector . should_equal ["01", "02", Nothing, "-1"]
+            t2.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
+            t2.at "bools" . to_vector . should_equal [True, False, Nothing, True]
+            t2.at "floats+ints" . to_vector . should_equal [1.0, 2.2, -1.0, Nothing]
+            t2.at "text" . to_vector . should_equal ["foobar", "foo", "", Nothing]
+            t2.at "dates" . to_vector . should_equal [Date.new 2022 10 1, Date.new 2000 1 1, Date.new 1999 1 2, Nothing]
+            t2.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 10 1 1 2 3, Date_Time.new 2000 1 1 1 2 3, Date_Time.new 1999 1 2 1 2 3, Nothing]
+            t2.at "times" . to_vector . should_equal [Time_Of_Day.new 1 2 3, Time_Of_Day.new, Time_Of_Day.new 1 2 3, Nothing]
+            t2.at "mixeddates" . to_vector . should_equal ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]
+            t2.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
 
-        t3 = Table.new [["bools", ["1", "0", "True"]],  ["ints", ["1", "0", "0"]]] . parse_values (Data_Formatter.Value true_values=["1", "True"] false_values=["0", "False"])
-        t3.at "bools" . to_vector . should_equal [True, False, True]
-        t3.at "ints" . to_vector . should_equal [1, 0, 0]
+            t3 = Table.new [["bools", ["1", "0", "True"]],  ["ints", ["1", "0", "0"]]] . parse_values (Data_Formatter.Value true_values=["1", "True"] false_values=["0", "False"])
+            t3.at "bools" . to_vector . should_equal [True, False, True]
+            t3.at "ints" . to_vector . should_equal [1, 0, 0]
 
-        t4 = Table.new [c2] . parse_values (Data_Formatter.Value allow_leading_zeros=True)
-        t4 . at "ints0" . to_vector . should_equal [1, 2, Nothing, -1]
+            t4 = Table.new [c2] . parse_values (Data_Formatter.Value allow_leading_zeros=True)
+            t4 . at "ints0" . to_vector . should_equal [1, 2, Nothing, -1]
 
-        t5 = t.parse_values column_types=[Column_Type_Selection.Value "ints" Decimal, Column_Type_Selection.Value "floats" Auto, Column_Type_Selection.Value "text+ints" Auto]
-        t5.at "ints" . to_vector . should_equal [1.0, 2.0, -123.0, Nothing]
-        # `ints` are requested to be parsed as decimals.
-        t5.at "ints" . to_vector . first . should_be_a Decimal
-        # `floats` are auto-detected as decimals.
-        t5.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
-        # `text+ints` is attempted to be parsed (hence whitespace is stripped), but it only fits the text type.
-        t5.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
-        # `bools` are not requested to be parsed, so they are kept as-is, with leading whitespace etc.
-        t5.at "bools" . to_vector . should_equal ["true", " False", Nothing, "True"]
+            t5 = t.parse_values column_types=[Column_Type_Selection.Value "ints" Decimal, Column_Type_Selection.Value "floats" Auto, Column_Type_Selection.Value "text+ints" Auto]
+            t5.at "ints" . to_vector . should_equal [1.0, 2.0, -123.0, Nothing]
+            # `ints` are requested to be parsed as decimals.
+            t5.at "ints" . to_vector . first . should_be_a Decimal
+            # `floats` are auto-detected as decimals.
+            t5.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
+            # `text+ints` is attempted to be parsed (hence whitespace is stripped), but it only fits the text type.
+            t5.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
+            # `bools` are not requested to be parsed, so they are kept as-is, with leading whitespace etc.
+            t5.at "bools" . to_vector . should_equal ["true", " False", Nothing, "True"]
 
-    Test.specify "should allow to specify a thousands separator and a custom decimal point" <|
-        opts = Data_Formatter.Value decimal_point=',' thousand_separator='_'
-        t1 = Table.new [["floats", ["0,0", "+0,0", "-0,0", "+1,5", "-1,2", "1,0", "0,0000", "10_000,", ",0"]]]
-        t2 = t1.parse_values opts column_types=[Column_Type_Selection.Value 0 Decimal]
-        t2.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.5, -1.2, 1.0, 0.0, 10000.0, 0.0]
+        Test.specify "should allow to specify a thousands separator and a custom decimal point" <|
+            opts = Data_Formatter.Value decimal_point=',' thousand_separator='_'
+            t1 = Table.new [["floats", ["0,0", "+0,0", "-0,0", "+1,5", "-1,2", "1,0", "0,0000", "10_000,", ",0"]]]
+            t2 = t1.parse_values opts column_types=[Column_Type_Selection.Value 0 Decimal]
+            t2.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.5, -1.2, 1.0, 0.0, 10000.0, 0.0]
 
-        t3 = Table.new [["xs", ["1,2", "1.2", "_0", "0_", "1_0_0"]]]
-        t4 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Decimal]
-        t4.at "xs" . to_vector . should_equal [1.2, Nothing, Nothing, Nothing, 100.0]
-        Problems.get_attached_warnings t4 . should_equal [Invalid_Format.Error "xs" Decimal ["1.2", "_0", "0_"]]
-        t5 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Integer]
-        t5.at "xs" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 100.0]
-        Problems.get_attached_warnings t5 . should_equal [Invalid_Format.Error "xs" Integer ["1,2", "1.2", "_0", "0_"]]
+            t3 = Table.new [["xs", ["1,2", "1.2", "_0", "0_", "1_0_0"]]]
+            t4 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Decimal]
+            t4.at "xs" . to_vector . should_equal [1.2, Nothing, Nothing, Nothing, 100.0]
+            Problems.get_attached_warnings t4 . should_equal [Invalid_Format.Error "xs" Decimal ["1.2", "_0", "0_"]]
+            t5 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Integer]
+            t5.at "xs" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 100.0]
+            Problems.get_attached_warnings t5 . should_equal [Invalid_Format.Error "xs" Integer ["1,2", "1.2", "_0", "0_"]]
 
-    Test.specify "should allow to specify custom values for booleans" <|
-        opts_1 = Data_Formatter.Value true_values=["1", "YES"] false_values=["0"]
-        t1 = Table.new [["bools", ["1", "0", "YES", "1", "0"]]]
-        t2 = t1.parse_values opts_1 column_types=[Column_Type_Selection.Value 0 Boolean]
-        t2.at "bools" . to_vector . should_equal [True, False, True, True, False]
+        Test.specify "should allow to specify custom values for booleans" <|
+            opts_1 = Data_Formatter.Value true_values=["1", "YES"] false_values=["0"]
+            t1 = Table.new [["bools", ["1", "0", "YES", "1", "0"]]]
+            t2 = t1.parse_values opts_1 column_types=[Column_Type_Selection.Value 0 Boolean]
+            t2.at "bools" . to_vector . should_equal [True, False, True, True, False]
 
-        t3 = Table.new [["bools", ["1", "NO", "False", "True", "YES", "no", "oui", "0"]]]
-        t4 = t3.parse_values opts_1 column_types=[Column_Type_Selection.Value 0 Boolean]
-        t4.at "bools" . to_vector . should_equal [True, Nothing, Nothing, Nothing, True, Nothing, Nothing, False]
-        Problems.get_attached_warnings t4 . should_equal [Invalid_Format.Error "bools" Boolean ["NO", "False", "True", "no", "oui"]]
+            t3 = Table.new [["bools", ["1", "NO", "False", "True", "YES", "no", "oui", "0"]]]
+            t4 = t3.parse_values opts_1 column_types=[Column_Type_Selection.Value 0 Boolean]
+            t4.at "bools" . to_vector . should_equal [True, Nothing, Nothing, Nothing, True, Nothing, Nothing, False]
+            Problems.get_attached_warnings t4 . should_equal [Invalid_Format.Error "bools" Boolean ["NO", "False", "True", "no", "oui"]]
 
-    whitespace_table =
-        ints = ["ints", ["0", "1 ", "0 1", "     2"]]
-        floats = ["floats", ["0    ", " 2.0", "- 1", "10.0"]]
-        bools = ["bools", ["True ", " false", "t rue", "False"]]
-        dates = ["dates", [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""]]
-        datetimes = ["datetimes", [" 2022-01-01 11:59:00   ", Nothing, "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"]]
-        times = ["times", ["11:00:00 ", "  00:00:00", "00 : 00 : 00", Nothing]]
-        Table.new [ints, floats, bools, dates, datetimes, times]
+        whitespace_table =
+            ints = ["ints", ["0", "1 ", "0 1", "     2"]]
+            floats = ["floats", ["0    ", " 2.0", "- 1", "10.0"]]
+            bools = ["bools", ["True ", " false", "t rue", "False"]]
+            dates = ["dates", [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""]]
+            datetimes = ["datetimes", [" 2022-01-01 11:59:00   ", Nothing, "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"]]
+            times = ["times", ["11:00:00 ", "  00:00:00", "00 : 00 : 00", Nothing]]
+            Table.new [ints, floats, bools, dates, datetimes, times]
 
-    Test.specify "should trim input values by default" <|
-        t1 = whitespace_table.parse_values column_types=[Column_Type_Selection.Value 0 Integer, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "bools"  Boolean, Column_Type_Selection.Value "dates" Date, Column_Type_Selection.Value "datetimes" Date_Time, Column_Type_Selection.Value "times" Time_Of_Day]
-        t1.at "ints" . to_vector . should_equal [0, 1, Nothing, 2]
-        t1.at "floats" . to_vector . should_equal [0.0, 2.0, Nothing, 10.0]
-        t1.at "bools" . to_vector . should_equal [True, False, Nothing, False]
-        t1.at "dates" . to_vector . should_equal [Date.new 2022 1 1, Date.new 2022 7 17, Nothing, Nothing]
-        t1.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 1 1 11 59, Nothing, Nothing, Nothing]
-        t1.at "times" . to_vector . should_equal [Time_Of_Day.new 11 0 0, Time_Of_Day.new, Nothing, Nothing]
-        warnings = Problems.get_attached_warnings t1
-        expected_warnings = Vector.new_builder
-        expected_warnings.append (Invalid_Format.Error "ints" Integer ["0 1"])
-        expected_warnings.append (Invalid_Format.Error "floats" Decimal ["- 1"])
-        expected_warnings.append (Invalid_Format.Error "bools" Boolean ["t rue"])
-        expected_warnings.append (Invalid_Format.Error "dates" Date ["2022 - 07 - 17", ""])
-        expected_warnings.append (Invalid_Format.Error "datetimes" Date_Time ["2022 - 07 - 17  1:2:3", "2022-01-01     11:59:00"])
-        expected_warnings.append (Invalid_Format.Error "times" Time_Of_Day ["00 : 00 : 00"])
-        warnings.should_contain_the_same_elements_as expected_warnings.to_vector
+        Test.specify "should trim input values by default" <|
+            t1 = whitespace_table.parse_values column_types=[Column_Type_Selection.Value 0 Integer, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "bools"  Boolean, Column_Type_Selection.Value "dates" Date, Column_Type_Selection.Value "datetimes" Date_Time, Column_Type_Selection.Value "times" Time_Of_Day]
+            t1.at "ints" . to_vector . should_equal [0, 1, Nothing, 2]
+            t1.at "floats" . to_vector . should_equal [0.0, 2.0, Nothing, 10.0]
+            t1.at "bools" . to_vector . should_equal [True, False, Nothing, False]
+            t1.at "dates" . to_vector . should_equal [Date.new 2022 1 1, Date.new 2022 7 17, Nothing, Nothing]
+            t1.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 1 1 11 59, Nothing, Nothing, Nothing]
+            t1.at "times" . to_vector . should_equal [Time_Of_Day.new 11 0 0, Time_Of_Day.new, Nothing, Nothing]
+            warnings = Problems.get_attached_warnings t1
+            expected_warnings = Vector.new_builder
+            expected_warnings.append (Invalid_Format.Error "ints" Integer ["0 1"])
+            expected_warnings.append (Invalid_Format.Error "floats" Decimal ["- 1"])
+            expected_warnings.append (Invalid_Format.Error "bools" Boolean ["t rue"])
+            expected_warnings.append (Invalid_Format.Error "dates" Date ["2022 - 07 - 17", ""])
+            expected_warnings.append (Invalid_Format.Error "datetimes" Date_Time ["2022 - 07 - 17  1:2:3", "2022-01-01     11:59:00"])
+            expected_warnings.append (Invalid_Format.Error "times" Time_Of_Day ["00 : 00 : 00"])
+            warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
-    Test.specify "should fail to parse if whitespace is present and trimming is turned off" <|
-        opts = Data_Formatter.Value trim_values=False
-        t1 = whitespace_table.parse_values opts column_types=[Column_Type_Selection.Value 0 Integer, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "bools"  Boolean, Column_Type_Selection.Value "dates" Date, Column_Type_Selection.Value "datetimes" Date_Time, Column_Type_Selection.Value "times" Time_Of_Day]
-        t1.at "ints" . to_vector . should_equal [0, Nothing, Nothing, Nothing]
-        t1.at "floats" . to_vector . should_equal [Nothing, Nothing, Nothing, 10.0]
-        t1.at "bools" . to_vector . should_equal [Nothing, Nothing, Nothing, False]
-        nulls = Vector.new 4 _->Nothing
-        t1.at "dates" . to_vector . should_equal nulls
-        t1.at "datetimes" . to_vector . should_equal nulls
-        t1.at "times" . to_vector . should_equal nulls
-        warnings = Problems.get_attached_warnings t1
-        expected_warnings = Vector.new_builder
-        expected_warnings.append (Invalid_Format.Error "ints" Integer ["1 ", "0 1", "     2"])
-        expected_warnings.append (Invalid_Format.Error "floats" Decimal ["0    ", " 2.0", "- 1"])
-        expected_warnings.append (Invalid_Format.Error "bools" Boolean ["True ", " false", "t rue"])
-        expected_warnings.append (Invalid_Format.Error "dates" Date [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""])
-        expected_warnings.append (Invalid_Format.Error "datetimes" Date_Time [" 2022-01-01 11:59:00   ", "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"])
-        expected_warnings.append (Invalid_Format.Error "times" Time_Of_Day ["11:00:00 ", "  00:00:00", "00 : 00 : 00"])
-        warnings.should_contain_the_same_elements_as expected_warnings.to_vector
+        Test.specify "should fail to parse if whitespace is present and trimming is turned off" <|
+            opts = Data_Formatter.Value trim_values=False
+            t1 = whitespace_table.parse_values opts column_types=[Column_Type_Selection.Value 0 Integer, Column_Type_Selection.Value "floats" Decimal, Column_Type_Selection.Value "bools"  Boolean, Column_Type_Selection.Value "dates" Date, Column_Type_Selection.Value "datetimes" Date_Time, Column_Type_Selection.Value "times" Time_Of_Day]
+            t1.at "ints" . to_vector . should_equal [0, Nothing, Nothing, Nothing]
+            t1.at "floats" . to_vector . should_equal [Nothing, Nothing, Nothing, 10.0]
+            t1.at "bools" . to_vector . should_equal [Nothing, Nothing, Nothing, False]
+            nulls = Vector.new 4 _->Nothing
+            t1.at "dates" . to_vector . should_equal nulls
+            t1.at "datetimes" . to_vector . should_equal nulls
+            t1.at "times" . to_vector . should_equal nulls
+            warnings = Problems.get_attached_warnings t1
+            expected_warnings = Vector.new_builder
+            expected_warnings.append (Invalid_Format.Error "ints" Integer ["1 ", "0 1", "     2"])
+            expected_warnings.append (Invalid_Format.Error "floats" Decimal ["0    ", " 2.0", "- 1"])
+            expected_warnings.append (Invalid_Format.Error "bools" Boolean ["True ", " false", "t rue"])
+            expected_warnings.append (Invalid_Format.Error "dates" Date [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""])
+            expected_warnings.append (Invalid_Format.Error "datetimes" Date_Time [" 2022-01-01 11:59:00   ", "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"])
+            expected_warnings.append (Invalid_Format.Error "times" Time_Of_Day ["11:00:00 ", "  00:00:00", "00 : 00 : 00"])
+            warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
-    Test.specify "should fallback to text if whitespace is present and trimming is turned off" <|
-        c1 = ["1", "  +2", "-123", Nothing]
-        c2 = ["  1.0  ", "2.2", Nothing, "-1.0"]
-        c3 = ["true", " False", Nothing, "True"]
-        t = Table.new [["ints", c1], ["floats", c2], ["bools", c3]]
-        t2 = t.parse_values (Data_Formatter.Value trim_values=False)
+        Test.specify "should fallback to text if whitespace is present and trimming is turned off" <|
+            c1 = ["1", "  +2", "-123", Nothing]
+            c2 = ["  1.0  ", "2.2", Nothing, "-1.0"]
+            c3 = ["true", " False", Nothing, "True"]
+            t = Table.new [["ints", c1], ["floats", c2], ["bools", c3]]
+            t2 = t.parse_values (Data_Formatter.Value trim_values=False)
 
-        Warning.get_all t2 . should_equal []
-        t2.at "ints" . to_vector . should_equal c1
-        t2.at "floats" . to_vector . should_equal c2
-        t2.at "bools" . to_vector . should_equal c3
+            Warning.get_all t2 . should_equal []
+            t2.at "ints" . to_vector . should_equal c1
+            t2.at "floats" . to_vector . should_equal c2
+            t2.at "bools" . to_vector . should_equal c3
+
+    Test.group "Column.parse" <|
+        Test.specify "should correctly parse integers" <|
+            c1 = Column.from_vector "ints" ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]
+            c2 = c1.parse Integer
+            c2.name.should_equal c1.name
+            c2 . to_vector . should_equal [0, 0, 0, 1, -1, 1, Nothing, Nothing, 12345, Nothing]
+
+        Test.specify "should correctly parse decimals" <|
+            c1 = Column.from_vector "ints" ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]
+            c2 = c1.parse Decimal
+            c2.name.should_equal c1.name
+            c2 . to_vector . should_equal [0, 0, 0, 1, -1, 1, Nothing, Nothing, 12345, Nothing]
+            c2.to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "Nothing", "Nothing", "12345.0", "Nothing"]
+
+            c3 = Column.from_vector "floats" ["0.0", "+0.0", "-0.0", "+1.0", "-1.0", "1.0", "0.0000", "10.", "12345."]
+            c4 = c3.parse Decimal
+            c4.to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345]
+
+            c5 = Column.from_vector "floats" [".0", "0.", "1.", ".1", ".123", "-.1", "+.1", "+0.0", "0.1234", Nothing, "11111111.111"]
+            c6 = c5.parse Decimal
+            c6.to_vector . should_equal [0.0, 0.0, 1.0, 0.1, 0.123, -0.1, 0.1, 0.0, 0.1234, Nothing, 11111111.111]
+
+        Test.specify "should correctly parse booleans" <|
+            c1 = Column.from_vector "bools" ["true", "false", "True", "TRUE", "FALSE", Nothing, "False"]
+            c2 = c1.parse Boolean
+            c2.name.should_equal c1.name
+            c2.to_vector . should_equal [True, False, True, True, False, Nothing, False]
+            c1.parse . to_vector . should_equal [True, False, True, True, False, Nothing, False]
+
+            c3 = Column.from_vector "bools" ["yes", "no", Nothing]
+            c4 = c3.parse Boolean "yes|no"
+            c4.to_vector . should_equal [True, False, Nothing]
+
+        Test.specify "should correctly parse date and time" <|
+            c1 = Column.from_vector "date" ["2022-05-07", "2000-01-01", "2010-12-31"]
+            c2 = c1.parse Date
+            c2.to_vector . should_equal [Date.new 2022 5 7, Date.new 2000 1 1, Date.new 2010 12 31]
+
+            c3 = Column.from_vector "datetimes" ["2022-05-07 23:59:59", "2000-01-01 00:00:00", "2010-12-31 12:34:56"]
+            c4 = c3.parse Date_Time
+            c4.to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Date_Time.new 2000 1 1, Date_Time.new 2010 12 31 12 34 56]
+
+            c5 = Column.from_vector "times" ["23:59:59", "00:00:00", "12:34:56"]
+            c6 = c5.parse Time_Of_Day
+            c6.to_vector . should_equal [Time_Of_Day.new 23 59 59, Time_Of_Day.new, Time_Of_Day.new 12 34 56]
+
+        Test.specify "should correctly parse date and time with format" <|
+            c1 = Column.from_vector "date" ["5/7/2022", "1/1/2000", "12/31/2010"]
+            c2 = c1.parse Date "M/d/yyyy"
+            c2.to_vector . should_equal [Date.new 2022 5 7, Date.new 2000 1 1, Date.new 2010 12 31]
+
+            c3 = Column.from_vector "datetimes" ["5/7/2022 23:59:59", "1/1/2000 00:00:00", "12/31/2010 12:34:56"]
+            c4 = c3.parse Date_Time "M/d/yyyy HH:mm:ss"
+            c4.to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Date_Time.new 2000 1 1, Date_Time.new 2010 12 31 12 34 56]
 
 main = Test_Suite.run_main spec

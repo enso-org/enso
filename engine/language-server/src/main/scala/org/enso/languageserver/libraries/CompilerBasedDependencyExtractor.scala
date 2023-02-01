@@ -5,7 +5,7 @@ import org.enso.libraryupload.DependencyExtractor
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.pkg.Package
 import org.enso.pkg.SourceFile
-import org.enso.polyglot.{PolyglotContext, RuntimeOptions}
+import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
 
 import java.io.File
@@ -55,6 +55,7 @@ class CompilerBasedDependencyExtractor(logLevel: LogLevel)
       .newBuilder()
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
+      .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
       .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getCanonicalPath)
       .option("js.foreign-object-prototype", "true")
       .option(
