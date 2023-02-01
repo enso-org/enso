@@ -3,9 +3,7 @@ package org.enso.interpreter.runtime.data.text;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.utilities.TriState;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -197,7 +195,8 @@ public final class Text implements TruffleObject {
     String str = toJavaStringNode.execute(this);
     // TODO This should be more extensible
     String replaced =
-        str.replace("'", "\\'")
+        str.replace("\\", "\\\\")
+            .replace("'", "\\'")
             .replace("\n", "\\n")
             .replace("\t", "\\t")
             .replace("\u0007", "\\a")
