@@ -29,7 +29,6 @@ use std::env::consts::EXE_SUFFIX;
 use tempfile::tempdir;
 
 
-
 /// Get the prefix of URL of the release's asset in GitHub.
 ///
 /// By joining it with the asset name, we can get the URL of the asset.
@@ -281,13 +280,14 @@ pub async fn upload_gui_to_cloud(
     let bucket = crate::aws::s3::gui::context(version).await?;
 
     // Some file we upload as-is, some gzipped. This seems somewhat arbitrary now.
-    let files_to_upload = [assets.ide_wasm.as_path(), assets.style_css.as_path()];
-    let files_to_upload_gzipped = [assets.index_js.as_path(), assets.wasm_imports_js.as_path()];
-
+    let files_to_upload =
+        [assets.pkg_wasm.as_path(), assets.style_css.as_path(), assets.shaders.as_path()];
+    let files_to_upload_gzipped = [assets.index_js.as_path(), assets.pkg_js.as_path()];
 
     for file in files_to_upload.iter() {
-        bucket.put_file(file).await?;
+        bucket.put_item(file).await?;
     }
+
     put_files_gzipping(&bucket, &files_to_upload_gzipped).await?;
 
     Ok(())
