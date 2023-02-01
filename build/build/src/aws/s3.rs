@@ -91,6 +91,7 @@ impl BucketContext {
 
     /// Put the file at `path` to the S3 bucket. The key will be suffixed with the relative path
     /// between `root` and `path`.
+    #[instrument(fields(path = %path.as_ref().display(), root = %root.as_ref().display()))]
     pub async fn put_subtree_file(
         &self,
         root: impl AsRef<Path>,
