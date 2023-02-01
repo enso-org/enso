@@ -218,11 +218,7 @@ impl Module {
         self.reload_module_content(content, parser)
     }
 
-    fn reload_module_content(
-        &self,
-        content: text::Rope,
-        parser: &Parser,
-    ) -> FallibleResult {
+    fn reload_module_content(&self, content: text::Rope, parser: &Parser) -> FallibleResult {
         let summary = ContentSummary::new(&content);
         let source = parser.parse_with_metadata(content.to_string())?;
         let new_content = source.serialize()?.content;
