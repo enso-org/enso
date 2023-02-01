@@ -391,7 +391,7 @@ struct WithInitialSpace<T> {
     body:  T,
 }
 
-impl<T> WithInitialSpace<T> {
+impl<T: core::fmt::Debug> WithInitialSpace<T> {
     fn new(body: T, space: usize) -> WithInitialSpace<T> {
         Self { body, space }
     }
@@ -409,7 +409,7 @@ impl<T> WithInitialSpace<T> {
     /// If any initial space is present, emit a warning; forget the space and return the value.
     fn expect_unspaced(self) -> T {
         // TODO: This should be a warning.
-        debug_assert_eq!(self.space, 0);
+        debug_assert_eq!(self.space, 0, "Expected no space before {:?}", &self.body);
         self.body
     }
 
