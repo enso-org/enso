@@ -108,9 +108,10 @@ impl Translate {
                 let (off, arg) = self.translate(expression.as_ref().unwrap()).split();
                 Ast::from(ast::Prefix { func, off, arg })
             }
-            tree::Variant::Documented(tree::Documented { documentation, expression }) =>
+            //tree::Variant::Documented(tree::Documented { documentation, expression }) =>
             // TODO
-                self.translate(expression.as_ref().unwrap()).without_space(),
+            //    self.translate(expression.as_ref().unwrap()).without_space(),
+            tree::Variant::Documented(_) |
             tree::Variant::Invalid(_)
             | tree::Variant::AutoScope(_)
             | tree::Variant::TextLiteral(_)
