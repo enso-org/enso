@@ -1063,7 +1063,11 @@ type Column
         if valid_index.not then Error.throw (Index_Out_Of_Bounds.Error index self.length) else
             storage = self.java_column.getStorage
             if storage.isNa index then Nothing else
-                storage.getItem index
+                case storage.getItem index of
+                    d : Date -> Date.new d.year d.month d.day
+                    dt : Date_Time -> Date_Time.new dt.year dt.month dt.day dt.hour dt.minute dt.second 0 0 dt.nanosecond dt.time_zone
+                    t : Time_Of_Day -> Time_Of_Day.new t.hour t.minute t.second t.nanosecond
+                    x -> x
 
     ## UNSTABLE
 
@@ -1085,7 +1089,14 @@ type Column
 
              example_to_vector = Examples.integer_column.to_vector
     to_vector : Vector
-    to_vector self = Vector.from_polyglot_array self.java_column.getStorage.toList
+    to_vector self =
+        pg_array = self.java_column.getStorage.toList
+        get i = case pg_array.get i of
+            d : Date -> Date.new d.year d.month d.day
+            dt : Date_Time -> Date_Time.new dt.year dt.month dt.day dt.hour dt.minute dt.second 0 0 dt.nanosecond dt.time_zone
+            t : Time_Of_Day -> Time_Of_Day.new t.hour t.minute t.second t.nanosecond
+            x -> x
+        Vector.from_polyglot_array (Array_Proxy.new pg_array.length get)
 
     ## Returns the underlying storage type of this column.
 
