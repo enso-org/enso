@@ -336,11 +336,6 @@ pub fn name_for_ast(ast: &Ast) -> String {
         Shape::Var(ident) => ident.name.clone(),
         Shape::Cons(ident) => ident.name.to_lowercase(),
         Shape::Number(_) => "number".into(),
-        Shape::TextLineRaw(_) => "text".into(),
-        Shape::TextLineFmt(_) => "text".into(),
-        Shape::TextBlockRaw(_) => "text".into(),
-        Shape::TextBlockFmt(_) => "text".into(),
-        Shape::TextUnclosed(_) => "text".into(),
         Shape::Opr(opr) => match opr.name.as_ref() {
             "+" => "sum",
             "*" => "product",

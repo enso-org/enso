@@ -480,27 +480,6 @@ pub enum Shape<T> {
         int:  String,
     },
 
-    // === Text ===
-    TextLineRaw {
-        text: Vec<SegmentRaw>,
-    },
-    TextLineFmt {
-        text: Vec<SegmentFmt<T>>,
-    },
-    TextBlockRaw {
-        text:   Vec<TextBlockLine<SegmentRaw>>,
-        spaces: usize,
-        offset: usize,
-    },
-    TextBlockFmt {
-        text:   Vec<TextBlockLine<SegmentFmt<T>>>,
-        spaces: usize,
-        offset: usize,
-    },
-    TextUnclosed {
-        line: TextLine<T>,
-    },
-
     // === Applications ===
     Prefix {
         func: T,
@@ -584,7 +563,6 @@ macro_rules! with_shape_variants {
         $f! {
           [Blank] [Var] [Cons] [Opr] [Annotation] [Mod]
           [Number]
-          [TextLineRaw] [TextLineFmt Ast] [TextBlockRaw] [TextBlockFmt Ast] [TextUnclosed Ast]
           [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
           [Module Ast] [Block Ast]
           [Match Ast]
@@ -607,86 +585,6 @@ pub enum Builder {
     Space { span: usize },
     Text { str: String },
     Seq { first: Rc<Builder>, second: Rc<Builder> },
-}
-
-
-
-// ============
-// === Text ===
-// ============
-
-// === Text Block Lines ===
-
-#[ast]
-pub struct TextBlockLine<T> {
-    pub empty_lines: Vec<usize>,
-    pub text:        Vec<T>,
-}
-
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum TextLine<T> {
-    TextLineRaw(TextLineRaw),
-    TextLineFmt(TextLineFmt<T>),
-}
-
-
-// === Text Segments ===
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum SegmentRaw {
-    SegmentPlain(SegmentPlain),
-    SegmentRawEscape(SegmentRawEscape),
-}
-
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum SegmentFmt<T> {
-    SegmentPlain(SegmentPlain),
-    SegmentRawEscape(SegmentRawEscape),
-    SegmentExpr(SegmentExpr<T>),
-    SegmentEscape(SegmentEscape),
-}
-
-#[ast_node]
-pub struct SegmentPlain {
-    pub value: String,
-}
-#[ast_node]
-pub struct SegmentRawEscape {
-    pub code: RawEscape,
-}
-#[ast_node]
-pub struct SegmentExpr<T> {
-    pub value: Option<T>,
-}
-#[ast_node]
-pub struct SegmentEscape {
-    pub code: Escape,
-}
-
-
-// === Text Segment Escapes ===
-
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum RawEscape {
-    Unfinished {},
-    Invalid { str: char },
-    Slash {},
-    Quote {},
-    RawQuote {},
-}
-
-#[ast]
-#[derive(HasTokens)]
-pub enum Escape {
-    Character { c: char },
-    Control { name: String, code: u8 },
-    Number { digits: String },
-    Unicode16 { digits: String },
-    Unicode21 { digits: String },
-    Unicode32 { digits: String },
 }
 
 
@@ -1467,135 +1365,10 @@ impl Ast {
         Module::from_line(line_ast).into()
     }
 
-    /// Creates an AST node with `TextLineFmt` shape.
-    pub fn text_line_fmt(text: Vec<SegmentFmt<Ast>>) -> Ast {
-        let text_line_fmt = TextLineFmt { text };
-        Ast::from(text_line_fmt)
-    }
-
-    /// Creates an AST node with `TextUnclosed` shape.
-    pub fn text_unclosed(line: TextLine<Ast>) -> Ast {
-        let text_unclosed = TextUnclosed { line };
-        Ast::from(text_unclosed)
-    }
-
-    /// Creates an AST node with `TextBlockFmt` shape.
-    pub fn text_block_fmt(text: Vec<TextBlockLine<SegmentFmt<Ast>>>, offset: usize) -> Ast {
-        let spaces = 0;
-        let text_block_fmt = TextBlockFmt { text, spaces, offset };
-        Ast::from(text_block_fmt)
-    }
-
     /// Creates an AST node with `Infix` shape, where both its operands are Vars.
     pub fn infix_var(larg: impl Str, opr: impl Str, rarg: impl Str) -> Ast {
         let infix = Infix::from_vars(larg, opr, rarg);
         Ast::from(infix)
-    }
-}
-
-
-// === Text Conversion Boilerplate ===
-
-// support for transitive conversions, like:
-// RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentRaw
-
-impl From<Unfinished> for SegmentRaw {
-    fn from(value: Unfinished) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl From<Invalid> for SegmentRaw {
-    fn from(value: Invalid) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl From<Slash> for SegmentRaw {
-    fn from(value: Slash) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl From<Quote> for SegmentRaw {
-    fn from(value: Quote) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl From<RawQuote> for SegmentRaw {
-    fn from(value: RawQuote) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-
-
-// === RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentFmt ===
-
-impl<T> From<Unfinished> for SegmentFmt<T> {
-    fn from(value: Unfinished) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl<T> From<Invalid> for SegmentFmt<T> {
-    fn from(value: Invalid) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl<T> From<Slash> for SegmentFmt<T> {
-    fn from(value: Slash) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl<T> From<Quote> for SegmentFmt<T> {
-    fn from(value: Quote) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl<T> From<RawQuote> for SegmentFmt<T> {
-    fn from(value: RawQuote) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<Escape> for SegmentFmt<T> {
-    fn from(value: Escape) -> Self {
-        SegmentEscape { code: value }.into()
-    }
-}
-
-
-// === EscapeSth -> Escape -> SegmentEscape -> SegmentFmt ===
-
-impl<T> From<EscapeCharacter> for SegmentFmt<T> {
-    fn from(value: EscapeCharacter) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeControl> for SegmentFmt<T> {
-    fn from(value: EscapeControl) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeNumber> for SegmentFmt<T> {
-    fn from(value: EscapeNumber) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeUnicode16> for SegmentFmt<T> {
-    fn from(value: EscapeUnicode16) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeUnicode21> for SegmentFmt<T> {
-    fn from(value: EscapeUnicode21) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeUnicode32> for SegmentFmt<T> {
-    fn from(value: EscapeUnicode32) -> Self {
-        SegmentEscape { code: value.into() }.into()
     }
 }
 

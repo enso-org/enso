@@ -64,54 +64,6 @@ has_tokens!(Text, self.str);
 has_tokens!(Seq, self.first, self.second);
 
 
-// =====================
-// === TextBlockLine ===
-// =====================
-
-/// Not an instance of `Tokenizer`, as it needs to know parent block's offset.
-impl<T: HasTokens> TextBlockLine<T> {
-    fn feed_to(&self, consumer: &mut impl TokenConsumer, offset: usize) {
-        for empty_line_spaces in &self.empty_lines {
-            (NEWLINE, empty_line_spaces).feed_to(consumer);
-        }
-        (NEWLINE, offset, &self.text).feed_to(consumer);
-    }
-}
-
-
-
-// =====================
-// === Text Segments ===
-// =====================
-
-has_tokens!(SegmentPlain, self.value);
-has_tokens!(SegmentRawEscape, BACKSLASH, self.code);
-has_tokens!(SegmentExpr<T>, EXPR_QUOTE, self.value, EXPR_QUOTE);
-has_tokens!(SegmentEscape, BACKSLASH, self.code);
-
-
-// =================
-// === RawEscape ===
-// =================
-
-has_tokens!(Unfinished);
-has_tokens!(Invalid, self.str);
-has_tokens!(Slash, BACKSLASH);
-has_tokens!(Quote, FMT_QUOTE);
-has_tokens!(RawQuote, RAW_QUOTE);
-
-
-// ==============
-// === Escape ===
-// ==============
-
-has_tokens!(EscapeCharacter, self.c);
-has_tokens!(EscapeControl, self.name);
-has_tokens!(EscapeNumber, self.digits);
-has_tokens!(EscapeUnicode16, UNICODE16_INTRODUCER, self.digits);
-has_tokens!(EscapeUnicode21, UNICODE21_OPENER.deref(), self.digits, UNICODE21_CLOSER.deref());
-has_tokens!(EscapeUnicode32, UNICODE32_INTRODUCER, self.digits);
-
 
 // =============
 // === Block ===
@@ -194,54 +146,6 @@ struct NumberBase<T>(T);
 
 has_tokens!(NumberBase<T>, self.0, NUMBER_BASE_SEPARATOR);
 has_tokens!(Number, self.base.as_ref().map(NumberBase), self.int);
-
-
-
-// ============
-// === Text ===
-// ============
-
-
-// === Lines ===
-
-has_tokens!(TextLineRaw, RAW_QUOTE, self.text, RAW_QUOTE);
-has_tokens!(TextLineFmt<T>, FMT_QUOTE, self.text, FMT_QUOTE);
-
-
-// === TextBlockRaw ==
-
-impl HasTokens for TextBlockRaw {
-    fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        (RAW_BLOCK_QUOTES, self.spaces).feed_to(consumer);
-        for line in self.text.iter() {
-            line.feed_to(consumer, self.offset);
-        }
-    }
-}
-
-
-// === TextBlockFmt ==
-
-impl<T: HasTokens> HasTokens for TextBlockFmt<T> {
-    fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        (FMT_BLOCK_QUOTES, self.spaces).feed_to(consumer);
-        for line in self.text.iter() {
-            line.feed_to(consumer, self.offset);
-        }
-    }
-}
-
-
-// === TextUnclosed ==
-
-impl<T: HasTokens> HasTokens for TextUnclosed<T> {
-    fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        match &self.line {
-            TextLine::TextLineRaw(line) => (RAW_QUOTE, &line.text).feed_to(consumer),
-            TextLine::TextLineFmt(line) => (FMT_QUOTE, &line.text).feed_to(consumer),
-        }
-    }
-}
 
 
 
