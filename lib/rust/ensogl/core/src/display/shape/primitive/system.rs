@@ -765,6 +765,7 @@ macro_rules! _shape {
         pub use shape_system_definition::Shape;
         pub use shape_system_definition::View;
 
+        #[allow(unused_variables)]
         #[allow(unused_qualifications)]
         #[allow(unused_imports)]
         mod shape_system_definition {
@@ -824,7 +825,7 @@ macro_rules! _shape {
                 }
 
                 fn new_instance_params(
-                    gpu_params:&Self::GpuParams,
+                    gpu_params: &Self::GpuParams,
                     id: InstanceIndex
                 ) -> Shape {
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
@@ -906,6 +907,55 @@ macro_rules! _shape {
             /// A view of the defined shape. You can place the view in your objects and it will
             /// automatically initialize on-demand.
             pub type View = $crate::gui::component::ShapeView<Shape>;
+        }
+    };
+}
+
+/// Defines a new cached shape system.
+///
+/// The outcome is the same as for [`shape!`] macro, but the shape will be near application start
+/// to the special "cached shapes" texture. The texture is available in GLSL as "pass_cached_shapes"
+/// uniform. In the future there will be also a possibility of parametrization of normal shapes by
+/// cached shapes (see [#184212663](https://www.pivotaltracker.com/story/show/184212663)).
+///
+/// Because shape, once cached, is not redrawn, we don't allow for any parameterization except
+/// styles.
+#[macro_export]
+macro_rules! cached_shape {
+    (
+        $width:literal x $height:literal;
+        $(type SystemData = $system_data:ident;)?
+        $(type ShapeData = $shape_data:ident;)?
+        $(flavor = $flavor:path;)?
+        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
+        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
+        ($style:ident : Style) {$($body:tt)*}
+    ) => {
+        $crate::_shape! {
+            $(SystemData($system_data))?
+            $(ShapeData($shape_data))?
+            $(flavor = [$flavor];)?
+            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
+            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
+            $(pointer_events = $pointer_events;)?
+            [$style] (){$($body)*}
+        }
+
+        mod cached_shape_system_definition {
+            use $crate::prelude::*;
+            use wasm_bindgen::prelude::*;
+            use super::shape_system_definition::*;
+
+            #[before_main]
+            pub fn register_cached_shape() {
+                $crate::display::world::CACHED_SHAPES_DEFINITIONS.with(|shapes| {
+                    let cons: $crate::display::world::ShapeCons = Box::new(|| Box::new(View::new()));
+                    let size = Vector2($width, $height);
+                    let mut shapes = shapes.borrow_mut();
+                    shapes.push($crate::display::world::CachedShapeDefinition { cons, size });
+                });
+            }
         }
     };
 }
