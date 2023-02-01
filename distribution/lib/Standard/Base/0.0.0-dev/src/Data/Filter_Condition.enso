@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Extensions
 import project.Data.Text.Regex
 import project.Data.Text.Text
@@ -6,6 +7,9 @@ import project.Data.Vector.Vector
 import project.Nothing.Nothing
 
 from project.Data.Boolean import all
+
+from project.Metadata.Widget import Single_Choice
+import project.Metadata.Display
 
 polyglot java import org.enso.base.Regex_Utils
 
@@ -39,7 +43,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Starts_With (prefix:Text)
+    Starts_With (prefix:Text) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
 
     ## Does the value end with a suffix (Text only)?
 
@@ -47,7 +51,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Ends_With (suffix:Text)
+    Ends_With (suffix:Text) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
 
     ## Does the value contain the substring (Text only)?
 
@@ -55,7 +59,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Contains (substring:Text)
+    Contains (substring:Text) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
 
     ## Is the substring not present in the value (Text only)?
 
@@ -63,7 +67,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Not_Contains (substring:Text)
+    Not_Contains (substring:Text) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
 
     ## Is equal to Nothing?
     Is_Nothing
@@ -165,10 +169,10 @@ type Filter_Condition
         Not_Equal value -> !=value
         Between lower upper -> elem ->
             (lower <= elem) && (elem <= upper)
-        Starts_With prefix -> _.starts_with prefix
-        Ends_With suffix -> _.ends_with suffix
-        Contains substring -> _.contains substring
-        Not_Contains substring -> v-> v.contains substring . not
+        Starts_With prefix case_sensitivity -> _.starts_with prefix case_sensitivity
+        Ends_With suffix case_sensitivity -> _.ends_with suffix case_sensitivity
+        Contains substring case_sensitivity -> _.contains substring case_sensitivity
+        Not_Contains substring case_sensitivity -> v-> v.contains substring case_sensitivity . not
         Is_Nothing -> elem -> case elem of
             Nothing -> True
             _ -> False
@@ -195,6 +199,13 @@ type Filter_Condition
            answer quicker, currently we need to do a full scan for each element.
         Is_In values -> values.contains
         Not_In values -> elem -> values.contains elem . not
+
+    ## PRIVATE
+       Gets a widget set up for a Filter_Condition.
+    widget_for_filter_condition =
+        ## values = ["(Filter_Condition.Equal to=_)", "(Filter_Condition.Not_Equal to=_)", "(Filter_Condition.Is_In values=_)", "(Filter_Condition.Not_In values=_)", "Filter_Condition.Is_True", "Filter_Condition.Is_False", "Filter_Condition.Is_Nothing", "Filter_Condition.Not_Nothing", "Filter_Condition.Is_Empty", "Filter_Condition.Not_Empty", "(Filter_Condition.Less than=_)", "(Filter_Condition.Equal_Or_Less than=_)", "(Filter_Condition.Greater than=_)", "(Filter_Condition.Equal_Or_Greater than=_)", "(Filter_Condition.Between lower=_ upper=_)", "(Filter_Condition.Starts_With prefix=_)", "(Filter_Condition.Ends_With suffix=_)", "(Filter_Condition.Contains substring=_)", "(Filter_Condition.Not_Contains substring=_)", "(Filter_Condition.Like pattern=_)", "(Filter_Condition.Not_Like pattern=_)"]
+        values = ["(Filter_Condition.Equal _)", "(Filter_Condition.Not_Equal _)", "(Filter_Condition.Is_In _)", "(Filter_Condition.Not_In _)", "Filter_Condition.Is_True", "Filter_Condition.Is_False", "Filter_Condition.Is_Nothing", "Filter_Condition.Not_Nothing", "Filter_Condition.Is_Empty", "Filter_Condition.Not_Empty", "(Filter_Condition.Less _)", "(Filter_Condition.Equal_Or_Less _)", "(Filter_Condition.Greater _)", "(Filter_Condition.Equal_Or_Greater _)", "(Filter_Condition.Between _ _)", "(Filter_Condition.Starts_With _)", "(Filter_Condition.Ends_With _)", "(Filter_Condition.Contains _)", "(Filter_Condition.Not_Contains _)", "(Filter_Condition.Like _)", "(Filter_Condition.Not_Like _)"]
+        Single_Choice values display=Display.Always
 
 ## PRIVATE
 sql_like_to_regex sql_pattern =

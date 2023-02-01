@@ -1,6 +1,6 @@
 from Standard.Base import all hiding First, Last
 
-from Standard.Table import Table, Sort_Column, Sort_Column_Selector, Column_Selector
+from Standard.Table import Table, Sort_Column, Column_Selector
 from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter
@@ -129,7 +129,7 @@ spec setup =
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
+            grouped = table.aggregate [First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
@@ -139,7 +139,7 @@ spec setup =
             materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = table.aggregate [First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), First "TextWithNothing" (order_by = [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 3
@@ -258,7 +258,7 @@ spec setup =
             materialized.columns.at 2 . at 0 . should_equal Nothing
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = empty_table.aggregate [First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
+            grouped = empty_table.aggregate [First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
@@ -362,7 +362,7 @@ spec setup =
             materialized.columns.at 3 . name . should_equal "25%-ile Value"
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = empty_table.aggregate [Group_By 0, First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
+            grouped = empty_table.aggregate [Group_By 0, First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 3
@@ -516,7 +516,7 @@ spec setup =
             materialized.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
+            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 3
@@ -529,7 +529,7 @@ spec setup =
             materialized.columns.at 2 . at idx . should_equal -89.78 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 3
@@ -713,7 +713,7 @@ spec setup =
             materialized.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"]), Group_By "Index"]
+            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"]), Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 4
@@ -727,7 +727,7 @@ spec setup =
             materialized.columns.at 2 . at idx . should_equal -89.78 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending]), Group_By "Index"]
+            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending]), Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 4
@@ -815,7 +815,7 @@ spec setup =
             table = table_builder [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
             result = table.aggregate [Group_By "A", (Concatenate "B" prefix="[[" suffix="]]" separator="; ")]
             result.row_count . should_equal 2
-            materialized = materialize result . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"])
+            materialized = materialize result . order_by ([Sort_Column.Name "A"])
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "A"
             materialized.columns.at 0 . to_vector . should_equal ["bar", "foo"]
@@ -895,14 +895,14 @@ spec setup =
 
             r1 = t5.aggregate [Group_By "G", Count_Distinct "A" (ignore_nothing=True)]
             r1.row_count . should_equal 2
-            m1 = materialize r1 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
+            m1 = materialize r1 . order_by ([Sort_Column.Name "G"])
             m1.column_count . should_equal 2
             m1.columns.first.to_vector . should_equal ["bar", "foo"]
             m1.columns.second.to_vector . should_equal [0, 1]
 
             r2 = t5.aggregate [Group_By "G", Count_Distinct "A" (ignore_nothing=False)]
             r2.row_count . should_equal 2
-            m2 = materialize r2 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
+            m2 = materialize r2 . order_by ([Sort_Column.Name "G"])
             m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["bar", "foo"]
             m2.columns.second.to_vector . should_equal [1, 2]
@@ -944,7 +944,7 @@ spec setup =
 
             r2 = table.aggregate [Group_By "G", Average "X"]
             r2.row_count.should_equal 2
-            m2 = materialize r2 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
+            m2 = materialize r2 . order_by ([Sort_Column.Name "G"])
             m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["a", "b"]
             m2.columns.second.to_vector . should_equal [0.5, 1]
@@ -1116,7 +1116,7 @@ spec setup =
     Test.group prefix+"Table.aggregate First and Last" <|
         Test.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
             t1 = table_builder [["G", ["a", "a"]], ["X", [1, 2]]]
-            order = Sort_Column_Selector.By_Name [Sort_Column.Name "G"]
+            order = [Sort_Column.Name "G"]
             r1 = t1.aggregate [First "X" (order_by=order), Last "X" (order_by=order)]
             r1.row_count.should_equal 1
             m1 = materialize r1
@@ -1130,7 +1130,7 @@ spec setup =
             table = table_builder [["A", [1, 1, 2, 1]], ["B", [3, 2, 2, 3]], ["C", [11, 12, 13, 14]]]
             grouped = table.aggregate [Group_By "B", Group_By "A"]
             grouped.row_count . should_equal 3
-            materialized = materialize grouped . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A", Sort_Column.Name "B"])
+            materialized = materialize grouped . order_by ([Sort_Column.Name "A", Sort_Column.Name "B"])
             materialized.column_count . should_equal 2
             materialized.columns.at 1 . name . should_equal "A"
             materialized.columns.at 1 . to_vector . should_equal [1, 1, 2]
@@ -1158,17 +1158,17 @@ spec setup =
                 table = table_builder [dates, times, datetimes, ints]
 
                 g1 = table.aggregate [Group_By "Date", Sum "Int"]
-                m1 = materialize g1 . order_by (Sort_Column_Selector.By_Name ["Date"])
+                m1 = materialize g1 . order_by (["Date"])
                 m1.at "Date" . to_vector . should_equal [Date.new 1997, Date.new 2000 2 2, Date.new 2022 12 31]
                 m1.at "Sum Int" . to_vector . should_equal [17, 10, 4]
 
                 g2 = table.aggregate [Group_By "Time", Sum "Int"]
-                m2 = materialize g2 . order_by (Sort_Column_Selector.By_Name ["Time"])
+                m2 = materialize g2 . order_by (["Time"])
                 m2.at "Time" . to_vector . should_equal [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500 100 900, Time_Of_Day.new 1 2 3, Time_Of_Day.new 11 25 40]
                 m2.at "Sum Int" . to_vector . should_equal [9, 2, 4, 16]
 
                 g3 = table.aggregate [Group_By "DateTime", Sum "Int"]
-                m3 = materialize g3 . order_by (Sort_Column_Selector.By_Name ["DateTime"])
+                m3 = materialize g3 . order_by (["DateTime"])
                 m3.at "DateTime" . to_vector . should_equal [Date_Time.new 1998, Date_Time.new 1999, Date_Time.new 2022 8 29 17 28 5]
                 m3.at "Sum Int" . to_vector . should_equal [24, 5, 2]
 
@@ -1356,7 +1356,7 @@ spec setup =
             if test_selection.first_last.not then
                 Test.specify "with First and Last with ordering" <|
                     table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
-                    order = Sort_Column_Selector.By_Name [Sort_Column.Name "A"]
+                    order = [Sort_Column.Name "A"]
                     expect_sum_and_unsupported_errors 2 <|
                         table.aggregate [Sum "X", First "X" (order_by=order), Last "X" (order_by=order)]
 

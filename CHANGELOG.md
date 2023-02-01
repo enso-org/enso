@@ -222,8 +222,8 @@
   API and added builders for customizing less common settings.][3516]
 - [Allow control of sort direction in `First` and `Last` aggregations.][3517]
 - [Implemented `Text.write`, replacing `File.write_text`.][3518]
-- [Removed obsolete `select`, `group`, `sort` and releated types from tables.]
-  [3519]
+- [Removed obsolete `select`, `group`, `sort` and releated types from
+  tables.][3519]
 - [Removed obsolete `from_xls` and `from_xlsx` functions. Added support for
   reading column names from first row in `File_Format.Excel`][3523]
 - [Added `File_Format.Delimited` support to `Table.write` for new files.][3528]
@@ -300,6 +300,8 @@
   backend.][4063]
 - [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new
   simpler API.][4078]
+- [Updated `Table.set` to new API. New `Column.parse` function and added case
+  sensitivity to `Filter_Condition` and column functions.][4097]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -462,6 +464,7 @@
 [4063]: https://github.com/enso-org/enso/pull/4063
 [4078]: https://github.com/enso-org/enso/pull/4078
 [4085]: https://github.com/enso-org/enso/pull/4085
+[4097]: https://github.com/enso-org/enso/pull/4097
 
 #### Enso Compiler
 
@@ -550,6 +553,7 @@
 - [Resolve Fully Qualified Names][4056]
 - [Optimize Atom storage layouts][3862]
 - [Make instance methods callable like statics for builtin types][4077]
+- [Convert large longs to doubles, safely, for host calls][4099]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -592,7 +596,7 @@
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
-[3637]: https://github.com/enso-org/enso/pull/3638
+[3638]: https://github.com/enso-org/enso/pull/3638
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3658]: https://github.com/enso-org/enso/pull/3658
 [3671]: https://github.com/enso-org/enso/pull/3671
@@ -639,6 +643,7 @@
 [4049]: https://github.com/enso-org/enso/pull/4049
 [4056]: https://github.com/enso-org/enso/pull/4056
 [4077]: https://github.com/enso-org/enso/pull/4077
+[4099]: https://github.com/enso-org/enso/pull/4099
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -4,7 +4,7 @@ USER root
 
 ENV LOG_LEVEL=INFO
 
-RUN useradd -u 2000 -c 'Enso Developer' -U -M ensodev
+RUN useradd -u 2000 -c 'Enso Developer' -U -m ensodev
 
 # /opt/enso is the present engine distribution.
 # /opt/workdir is a directory for temporary runtime files and logs.
