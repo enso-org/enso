@@ -110,7 +110,7 @@ impl Translate {
             }
             tree::Variant::Documented(tree::Documented { documentation, expression }) =>
             // TODO
-                self.translate(expression.as_ref().unwrap()).expect_unspaced(),
+                self.translate(expression.as_ref().unwrap()).without_space(),
             tree::Variant::Invalid(_)
             | tree::Variant::AutoScope(_)
             | tree::Variant::TextLiteral(_)
