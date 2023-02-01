@@ -602,10 +602,6 @@ mod tests {
     use crate::module;
     use crate::INDENT;
 
-    use wasm_bindgen_test::wasm_bindgen_test;
-
-    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-
     fn assert_eq_strings(lhs: Vec<impl Str>, rhs: Vec<impl Str>) {
         let lhs = lhs.iter().map(|s| s.as_ref()).collect_vec();
         let rhs = rhs.iter().map(|s| s.as_ref()).collect_vec();

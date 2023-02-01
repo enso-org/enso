@@ -385,6 +385,7 @@ pub mod ast_schema {
     pub const COUNT: usize = FIELDS.len();
 }
 
+
 impl Serialize for Ast {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer {
@@ -477,9 +478,6 @@ pub enum Shape<T> {
     Number {
         base: Option<String>,
         int:  String,
-    },
-    DanglingBase {
-        base: String,
     },
 
     // === Text ===
@@ -585,7 +583,7 @@ macro_rules! with_shape_variants {
     ($f:ident) => {
         $f! {
           [Blank] [Var] [Cons] [Opr] [Annotation] [Mod]
-          [Number] [DanglingBase]
+          [Number]
           [TextLineRaw] [TextLineFmt Ast] [TextBlockRaw] [TextBlockFmt Ast] [TextUnclosed Ast]
           [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
           [Module Ast] [Block Ast]

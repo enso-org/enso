@@ -5,7 +5,7 @@ use enso_text::unit::*;
 
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
-use crate::node::{InsertionPointType, Kind};
+use crate::node::InsertionPointType;
 use crate::node::Payload;
 use crate::ArgumentInfo;
 use crate::Node;
@@ -16,7 +16,7 @@ use ast::crumbs::Located;
 use ast::opr::GeneralizedInfix;
 use ast::{Ast, ParticleBoard};
 use ast::HasRepr;
-use ast::MacroMatchSegment;
+
 
 
 // ==============
@@ -37,7 +37,7 @@ pub use context::Context;
 /// A trait for all types from which we can generate referred SpanTree. Meant to be implemented for
 /// all AST-like structures.
 pub trait SpanTreeGenerator<T> {
-    /// Generate node with it's whole subtree.
+    /// Generate node with its whole subtree.
     fn generate_node(
         &self,
         kind: impl Into<node::Kind>,
@@ -396,77 +396,6 @@ fn generate_node_for_prefix_chain<T: Payload>(
 }
 
 
-// === Match ===
-
-impl<T: Payload> SpanTreeGenerator<T> for ast::known::Match {
-    fn generate_node(
-        &self,
-        kind: impl Into<node::Kind>,
-        context: &impl Context,
-    ) -> FallibleResult<Node<T>> {
-        generate_node_for_known_match(self, kind.into(), context)
-    }
-}
-
-fn generate_node_for_known_match<T: Payload>(
-    this: &ast::known::Match,
-    kind: node::Kind,
-    context: &impl Context,
-) -> FallibleResult<Node<T>> {
-    let removable = false;
-    let children_kind = node::Kind::argument().with_removable(removable);
-    let mut gen = ChildGenerator::default();
-    if let Some(pat) = &this.pfx {
-        for macros::AstInPattern { ast, crumbs } in macros::all_ast_nodes_in_pattern(pat) {
-            let ast_crumb = ast::crumbs::MatchCrumb::Pfx { val: crumbs };
-            let located_ast = Located::new(ast_crumb, ast.wrapped);
-            gen.generate_ast_node(located_ast, children_kind.clone(), context)?;
-            gen.spacing(ast.off);
-        }
-    }
-    let first_segment_index = 0;
-    generate_children_from_segment(&mut gen, first_segment_index, &this.segs.head, context)?;
-    for (index, segment) in this.segs.tail.iter().enumerate() {
-        gen.spacing(segment.off);
-        generate_children_from_segment(&mut gen, index + 1, &segment.wrapped, context)?;
-    }
-    Ok(Node {
-        kind,
-        size: gen.current_offset,
-        children: gen.children,
-        ast_id: this.id(),
-        payload: default(),
-    })
-}
-
-fn generate_children_from_segment<T: Payload>(
-    gen: &mut ChildGenerator<T>,
-    index: usize,
-    segment: &MacroMatchSegment<Ast>,
-    context: &impl Context,
-) -> FallibleResult {
-    // generate child for head
-    let ast = segment.head.clone_ref();
-    let segment_crumb = ast::crumbs::SegmentMatchCrumb::Head;
-    let ast_crumb = ast::crumbs::MatchCrumb::Segs { val: segment_crumb, index };
-    let located_ast = Located::new(ast_crumb, ast);
-    gen.generate_ast_node(located_ast, node::Kind::Token, context)?;
-
-    for macros::AstInPattern { ast, crumbs } in macros::all_ast_nodes_in_pattern(&segment.body) {
-        let child_kind = match crumbs.last() {
-            Some(ast::crumbs::PatternMatchCrumb::Tok) => node::Kind::Token,
-            _ => node::Kind::argument().into(),
-        };
-        gen.spacing(ast.off);
-        let segment_crumb = ast::crumbs::SegmentMatchCrumb::Body { val: crumbs };
-        let ast_crumb = ast::crumbs::MatchCrumb::Segs { val: segment_crumb, index };
-        let located_ast = Located::new(ast_crumb, ast.wrapped);
-        gen.generate_ast_node(located_ast, child_kind, context)?;
-    }
-    Ok(())
-}
-
-
 // === Common Utility ==
 
 /// Build a prefix application-like span tree structure where the prefix argument has not been
@@ -513,7 +442,7 @@ fn generate_expected_arguments<T: Payload>(
 // === SpanTree for Tree ===
 // =========================
 
-fn tree_generate_node<T: Payload>(tree: &ast::Tree, kind: impl Into<Kind>, context: &impl Context) -> FallibleResult<Node<T>> {
+fn tree_generate_node<T: Payload>(tree: &ast::Tree, kind: impl Into<node::Kind>, context: &impl Context) -> FallibleResult<Node<T>> {
     let mut kind = kind.into();
     let mut offset = ByteDiff::from(0);
     let mut children = vec![];
@@ -525,17 +454,17 @@ fn tree_generate_node<T: Payload>(tree: &ast::Tree, kind: impl Into<Kind>, conte
                 is_group = s == "(";
                 break;
             }
-            ParticleBoard::Child(a) => break,
+            ParticleBoard::Child(_) => break,
         }
     }
     if is_group {
-        kind = Kind::Group;
+        kind = node::Kind::Group;
     }
     for (index, thing) in tree.particleboard.iter().enumerate() {
         match thing {
             ParticleBoard::Space(n) => offset += ByteDiff::from(n),
             ParticleBoard::Token(s) => {
-                let kind = Kind::Token;
+                let kind = node::Kind::Token;
                 let size = ByteDiff::from(s.len());
                 let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
                 let node = Node { kind, size, ..default() };
@@ -615,7 +544,6 @@ mod test {
     use ast::crumbs::PrefixCrumb;
     use ast::crumbs::SectionLeftCrumb;
     use ast::crumbs::SectionRightCrumb;
-    use ast::crumbs::SectionSidesCrumb;
     use ast::Crumbs;
     use ast::IdMap;
     use ast_parser::Parser;

@@ -46,14 +46,10 @@ impl Parser {
     ) -> api::Result<api::ParsedSourceFile<M>> {
         let (code, meta) = enso_parser::metadata::extract(&program);
         let tree = self.parser.run(code);
-        Ok(api::ParsedSourceFile {
-            ast:      ast::known::Module::try_from(
-                translation::to_legacy_ast_module(&tree).unwrap(),
-            )
-            .unwrap(),
-            // TODO: Log errors.
-            metadata: meta.and_then(|meta| serde_json::from_str(meta).ok()).unwrap_or_default(),
-        })
+        // TODO: Log errors.
+        let metadata = meta.and_then(|meta| serde_json::from_str(meta).ok()).unwrap_or_default();
+        let ast = ast::known::Module::try_from(translation::to_legacy_ast_module(&tree).unwrap()).unwrap();
+        Ok(api::ParsedSourceFile { ast, metadata })
     }
 
     pub fn parse_module(&self, program: impl Str, ids: IdMap) -> api::Result<ast::known::Module> {

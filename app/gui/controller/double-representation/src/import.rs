@@ -5,9 +5,7 @@ use crate::prelude::*;
 use crate::name::NamePath;
 use crate::name::QualifiedName;
 
-use ast::known;
 use ast::Ast;
-use ast::HasRepr;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::BTreeSet;
@@ -18,7 +16,6 @@ use std::collections::BTreeSet;
 // === Constants ===
 // =================
 
-const LIST_SEPARATOR: char = ',';
 const ALIAS_KEYWORD: &str = "as";
 const ALL_KEYWORD: &str = "all";
 const HIDING_KEYWORD: &str = "hiding";
@@ -53,33 +50,6 @@ pub enum ImportedNames {
     List { names: BTreeSet<String> },
 }
 
-impl ImportedNames {
-    /// Create [`ImportedNames`] structure from the second `Match` segment body.
-    ///
-    /// The unqualified imports are always parsed as [`Match`](crate::Shape::Match) AST node, where
-    /// the second segment starts from `import` and ends with end of the import declaration. Thus,
-    /// the second segment body may be `all`, `all hiding <comma-separated-name-list>`, or just
-    /// comma separated name list.
-    fn from_unqualified_import_match_second_segment(segment: impl AsRef<str>) -> Self {
-        let is_token_sep = |c: char| c.is_ascii_whitespace() || c == LIST_SEPARATOR;
-        let scope_split = segment.as_ref().split(is_token_sep);
-        let mut scope_tokens = scope_split.filter(|tok| !tok.is_empty());
-        let first_token = scope_tokens.next();
-        let second_token = scope_tokens.next();
-        let third_and_further_tokens = scope_tokens;
-        match (first_token, second_token) {
-            (Some("all"), Some("hiding")) =>
-                Self::AllExcept { not_imported: third_and_further_tokens.map(Into::into).collect() },
-            (Some("all"), _) => Self::All,
-            (first_name, second_name) => {
-                let all_names =
-                    first_name.into_iter().chain(second_name).chain(third_and_further_tokens);
-                Self::List { names: all_names.map(Into::into).collect() }
-            }
-        }
-    }
-}
-
 /// Representation of a single import declaration.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize, Hash)]
 pub struct Info {
@@ -112,51 +82,7 @@ impl Info {
 
     /// Construct from an AST. Fails if the Ast is not an import declaration.
     pub fn from_ast(ast: &Ast) -> Option<Self> {
-        let macro_match = known::Match::try_from(ast).ok()?;
-        Self::from_match(macro_match)
-    }
-
-    /// Construct from a macro match AST. Fails if the Ast is not an import declaration.
-    pub fn from_match(ast: known::Match) -> Option<Self> {
-        if ast::macros::is_match_qualified_import(&ast) {
-            Some(Self {
-                module:   Self::module_name_from_str(ast.segs.head.body.repr()),
-                // TODO[ao] the current parser does not recognize aliases for imports. Should be
-                //     fixed with the new parser. Once new parser will be integrated, the alias
-                //     support will be implemented as task
-                //     https://www.pivotaltracker.com/story/show/183590537
-                imported: ImportedNames::Module { alias: None },
-            })
-        } else if ast::macros::is_match_unqualified_import(&ast) {
-            let module = ast.segs.head.body.repr();
-            let imported = ast.segs.tail.first().map_or_default(|s| s.body.repr());
-            Some(Self::from_module_and_scope_str(module, imported))
-        } else {
-            None
-        }
-    }
-
-    /// Create [`Info`] from unqualified import segment's body representations.
-    ///
-    /// The unqualified imports are always parsed as [`Match`](crate::Shape::Match) AST node, where
-    /// the first segment contains keyword `from` and module name, and second segment the rest of
-    /// the import.
-    fn from_module_and_scope_str(module: impl AsRef<str>, imported: impl AsRef<str>) -> Self {
-        Self {
-            module:   Self::module_name_from_str(module),
-            imported: ImportedNames::from_unqualified_import_match_second_segment(imported),
-        }
-    }
-
-    fn module_name_from_str(module: impl AsRef<str>) -> NamePath {
-        let name = module.as_ref().trim();
-        if name.is_empty() {
-            default()
-        } else {
-            let segments = name.split(ast::opr::predefined::ACCESS);
-            let trimmed = segments.map(str::trim);
-            trimmed.map(Into::into).collect()
-        }
+        None // TODO
     }
 
     /// Return the ID of the import.
@@ -233,7 +159,7 @@ mod tests {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn qualified_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str]| Info {
@@ -254,7 +180,7 @@ mod tests {
         test.run_case(single_segment, single_segment_expected);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn unrestricted_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str]| Info {
@@ -271,7 +197,7 @@ mod tests {
         test.run_case(weird_spaces, weird_spaces_expected);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn restricted_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str], names: &[&str]| Info {
@@ -292,7 +218,7 @@ mod tests {
         test.run_case(single_name, single_name_expected);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn hiding_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str], hidden_names: &[&str]| Info {

@@ -194,7 +194,6 @@ struct NumberBase<T>(T);
 
 has_tokens!(NumberBase<T>, self.0, NUMBER_BASE_SEPARATOR);
 has_tokens!(Number, self.base.as_ref().map(NumberBase), self.int);
-has_tokens!(DanglingBase, self.base, NUMBER_BASE_SEPARATOR);
 
 
 
