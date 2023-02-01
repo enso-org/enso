@@ -1378,7 +1378,6 @@ type Table
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If there are no columns to transpose, a `No_Input_Columns_Selected`.
     transpose : Text | Vector Text | Column_Selector -> Text -> Text -> Boolean -> Problem_Behavior -> Table
     transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         columns_helper = self.columns_helper
@@ -1386,7 +1385,6 @@ type Table
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
         id_columns = columns_helper.select_columns_helper id_fields False problem_builder
-        remaining_count = self.column_count - id_columns.length
 
         selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
 
@@ -1399,8 +1397,6 @@ type Table
         result = Table.Value (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
         problem_builder.report_unique_name_strategy unique
 
-        # This is reported last, so that in error mode any other problems take precedence over it - as this one gives the least information.
-        if remaining_count == 0 then problem_builder.report_other_warning No_Input_Columns_Selected
         problem_builder.attach_problems_after on_problems result
 
     ## Returns a new table using a chosen field as the column header and then

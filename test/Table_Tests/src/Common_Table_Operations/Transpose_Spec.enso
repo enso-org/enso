@@ -100,7 +100,7 @@ spec setup =
             action1 = t1.transpose ["X", "Y", "Z"] name_field="Y" value_field="Z" on_problems=_
             tester1 table =
                 table.column_names . should_equal ["X", "Y", "Z", "Y_1", "Z_1"]
-            problems1 = [Duplicate_Output_Column_Names.Error ["Y", "Z"], No_Input_Columns_Selected]
+            problems1 = [Duplicate_Output_Column_Names.Error ["Y", "Z"]]
             Problems.test_problem_handling action1 problems1 tester1
 
             action2 = t1.transpose ["X"] name_field="F" value_field="F" on_problems=_
