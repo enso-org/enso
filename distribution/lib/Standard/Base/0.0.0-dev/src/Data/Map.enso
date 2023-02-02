@@ -1,11 +1,13 @@
 import project.Data.Numbers.Integer
 import project.Data.Vector.Vector
 import project.Data.Pair.Pair
+import project.Data.Text.Extensions
 import project.Data.Text.Text
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.No_Such_Key.No_Such_Key
 
 from project.Data.Boolean import Boolean, True, False
 from project import Error, Nothing, Any, Panic
-from project.Error.No_Such_Key import No_Such_Key
 
 
 ## A key-value store. It is possible to use any type as keys and values and mix them in
@@ -48,6 +50,11 @@ type Map key value
 
        Arguments:
        - vec: A vector of key-value pairs (2 element vectors).
+       - allow_duplicates: A flag which specifies if duplicate keys on the input
+         vector are allowed. By default, set to `False`, meaning that if two
+         entries in the vector share the same key, an `Illegal_Argument.Error`
+         will be thrown. If set to `True`, the last entry with a given key will
+         be kept.
 
        > Example
          Building a map containing two key-value pairs.
@@ -55,8 +62,13 @@ type Map key value
              import Standard.Base.Data.Map.Map
 
              example_from_vector = Map.from_vector [["A", 1], ["B", 2]]
-    from_vector : Vector Any -> Map
-    from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
+    from_vector : Vector Any -> Boolean -> Map
+    from_vector vec allow_duplicates=False =
+        vec.fold Map.empty m-> el->
+            key = el.at 0
+            value = el.at 1
+            if allow_duplicates || (m.contains_key key . not) then m.insert key value else
+                Error.throw (Illegal_Argument.Error "`Map.from_vector` encountered duplicate key: "+key.to_display_text)
 
     ## Returns True iff the Map is empty, i.e., does not have any entries.
     is_empty : Boolean
@@ -228,6 +240,10 @@ type Map key value
        - function: The function used to transform the map, taking a key and a
          value and returning a pair of `[key, value]`.
 
+       ! Error Conditions
+         - If multiple map entries end up with duplicate keys after the
+           transformation, an `Illegal_Argument.Error` is thrown.
+
        > Example
          Turn all keys into `Text` and append "_word" to the values in the map.
 
@@ -240,7 +256,13 @@ type Map key value
     transform self function =
         func_pairs = p -> function (p.at 0) (p.at 1)
         vec_transformed = self.to_vector.map func_pairs
-        Map.from_vector vec_transformed
+        new_map = Map.from_vector vec_transformed allow_duplicates=False
+        new_map.catch Illegal_Argument error->
+            case error.message.starts_with "`Map.from_vector` encountered duplicate key" of
+                True ->
+                    new_message = error.message.replace "from_vector" "transform"
+                    Error.throw (Illegal_Argument.Error new_message error.cause)
+                False -> new_map
 
     ## Combines the values in the map.
 

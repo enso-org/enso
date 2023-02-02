@@ -385,8 +385,11 @@ class IrToTruffle(
             // and not attempt to register it in the scope (can't redefined methods).
             // For non-builtin types (or modules) that own the builtin method
             // we have to look up the function and register it in the scope.
-            val x              = methodDef.body.asInstanceOf[IR.Function.Lambda].body
-            val fullMethodName = x.asInstanceOf[IR.Literal.Text]
+            // Static wrappers for instance methods have to be registered always.
+            val fullMethodName = methodDef.body
+              .asInstanceOf[IR.Function.Lambda]
+              .body
+              .asInstanceOf[IR.Literal.Text]
 
             val builtinNameElements = fullMethodName.text.split('.')
             if (builtinNameElements.length != 2) {
@@ -397,8 +400,15 @@ class IrToTruffle(
             val methodName      = builtinNameElements(1)
             val methodOwnerName = builtinNameElements(0)
 
+            val staticWrapper = methodDef.isStaticWrapperForInstanceMethod
+
             val builtinFunction = context.getBuiltins
-              .getBuiltinFunction(methodOwnerName, methodName, language)
+              .getBuiltinFunction(
+                methodOwnerName,
+                methodName,
+                language,
+                staticWrapper
+              )
             builtinFunction.toScala
               .map(Some(_))
               .toRight(
@@ -407,18 +417,44 @@ class IrToTruffle(
                 )
               )
               .left
-              .flatMap(l =>
+              .flatMap { l =>
                 // Builtin Types Number and Integer have methods only for documentation purposes
-                if (
-                  cons == context.getBuiltins.number().getNumber ||
-                  cons == context.getBuiltins.number().getInteger
-                ) Right(None)
+                val number = context.getBuiltins.number()
+                val ok =
+                  staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
+                  !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
+                if (ok) Right(None)
                 else Left(l)
-              )
+              }
               .map(fOpt =>
                 // Register builtin iff it has not been automatically registered at an early stage
-                // of builtins initialization.
-                fOpt.filter(m => !m.isAutoRegister).map(m => m.getFunction)
+                // of builtins initialization or if it is a static wrapper.
+                fOpt
+                  .filter(m => !m.isAutoRegister() || staticWrapper)
+                  .map { m =>
+                    if (staticWrapper) {
+                      // Static wrappers differ in the number of arguments by 1.
+                      // Therefore we cannot simply get the registered function.
+                      // BuiltinRootNode.execute will infer the right order of arguments.
+                      val bodyBuilder =
+                        new expressionProcessor.BuildFunctionBody(
+                          fn.arguments,
+                          fn.body,
+                          effectContext,
+                          true
+                        )
+                      new RuntimeFunction(
+                        m.getFunction.getCallTarget,
+                        null,
+                        new FunctionSchema(
+                          new Array[RuntimeAnnotation](0),
+                          bodyBuilder.args(): _*
+                        )
+                      )
+                    } else {
+                      m.getFunction
+                    }
+                  }
               )
           case fn: IR.Function =>
             val bodyBuilder =

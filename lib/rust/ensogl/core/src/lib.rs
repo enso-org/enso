@@ -7,6 +7,7 @@
 #![allow(incomplete_features)]
 #![feature(negative_impls)]
 #![feature(associated_type_defaults)]
+#![feature(associated_type_bounds)]
 #![feature(cell_update)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]

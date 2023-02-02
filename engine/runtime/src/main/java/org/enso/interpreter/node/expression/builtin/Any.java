@@ -11,6 +11,6 @@ public class Any extends Builtin {
 
   @Override
   protected boolean containsValues() {
-    return false;
+    return true;
   }
 }

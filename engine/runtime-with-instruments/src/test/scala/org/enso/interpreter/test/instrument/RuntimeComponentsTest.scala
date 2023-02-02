@@ -222,7 +222,7 @@ class RuntimeComponentsTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveOne shouldEqual None
 
@@ -316,7 +316,7 @@ class RuntimeComponentsTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveOne shouldEqual None
 

@@ -198,4 +198,8 @@ impl SymbolRegistry {
             }
         }
     }
+
+    pub fn all_ids(&self) -> Vec<SymbolId> {
+        self.symbols.borrow().keys().copied().collect()
+    }
 }

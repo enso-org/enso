@@ -210,7 +210,7 @@ class RepoInitializationSpec
     Config(
       root,
       FileManagerConfig(timeout = 3.seconds.dilated),
-      VcsManagerConfig(timeout  = 5.seconds.dilated),
+      VcsManagerConfig(),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
       ProjectDirectoriesConfig.initialize(root.file),

@@ -87,6 +87,16 @@ impl BoundingBox {
         !not_contained
     }
 
+    /// Return whether the interiors of two bounding boxes (the bounded area without boundaries)
+    /// have some area of overlap.
+    pub fn interior_intersects(&self, other: &BoundingBox) -> bool {
+        let not_contained = (self.right <= other.left)
+            || (other.right <= self.left)
+            || (self.bottom >= other.top)
+            || (other.bottom >= self.top);
+        !not_contained
+    }
+
     /// Expand the bounding box in the x direction by the given amount.
     pub fn grow_x(&mut self, size: f32) {
         self.left -= size / 2.0;
@@ -117,6 +127,11 @@ impl BoundingBox {
     /// Return the y position of the bottom boundary.
     pub fn bottom(&self) -> f32 {
         self.bottom
+    }
+
+    /// Return the position of the point at this bounding box center.
+    pub fn center(&self) -> Vector2 {
+        Vector2((self.left + self.right) / 2.0, (self.top + self.bottom) / 2.0)
     }
 
     /// Calculates the squared norm of a vector between the point passed as an argument, and a
