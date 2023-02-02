@@ -18,6 +18,7 @@ use crate::debug::stats::StatsData;
 use crate::display;
 use crate::display::garbage;
 use crate::display::render;
+use crate::display::render::cache_shapes::CacheShapesPass;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
@@ -79,16 +80,32 @@ fn init_context() {
 
 
 
-// =====================
-// === Static Shapes ===
-// =====================
+// =========================
+// === Shape Definitions ===
+// =========================
 
-type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+/// A constructor of view of some specific shape.
+pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+
+/// The definition of shapes created with the `cached_shape!` macro.
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct CachedShapeDefinition {
+    /// The size of the shape in the texture.
+    pub size: Vector2<i32>,
+    /// A constructor of single shape view.
+    #[derivative(Debug = "ignore")]
+    pub cons: ShapeCons,
+}
 
 thread_local! {
     /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
     /// program execution, before the `main` function is called.
     pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeCons>> = default();
+
+    /// All shapes defined with the `cached_shape!` macro. They will be populated on the beginning
+    /// of program execution, before the `main` function is called.
+    pub static CACHED_SHAPES_DEFINITIONS: RefCell<Vec<CachedShapeDefinition>> = default();
 }
 
 
@@ -493,7 +510,8 @@ impl WorldData {
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(&self.default_scene.layers))
             .add(ScreenRenderPass::new())
-            .add(pixel_read_pass);
+            .add(pixel_read_pass)
+            .add(CacheShapesPass::new(&self.default_scene));
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 
