@@ -182,7 +182,7 @@ class Config {
     emitUserTimingMeasurements: config.Param<boolean> = new config.Param(false, 'TODO')
     enableSkipAndFreeze: config.Param<boolean> = new config.Param(
         false,
-        'Enable experimental support for SKIP and FREEZE macros.'
+        'Enable experimental support for skipping and freezing nodes.'
     )
 }
 
