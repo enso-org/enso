@@ -535,23 +535,25 @@ pub enum Shape<T> {
         segs: ShiftedVec1<MacroMatchSegment<T>>,
     },
     Tree {
-        particleboard: Vec<ParticleBoard>,
+        span_info: Vec<RawSpanTree>,
     },
 }
 
+/// Represents the syntax tree, and its correspondence to the source text; with context information
+/// provided by an evaluator, this can be used to produce a complete [`SpanTree`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ParticleBoard {
+pub enum RawSpanTree {
     Space(usize),
     Token(String),
     Child(Ast),
 }
 
-impl<'a> From<&'a ParticleBoard> for Token<'a> {
-    fn from(value: &'a ParticleBoard) -> Self {
+impl<'a> From<&'a RawSpanTree> for Token<'a> {
+    fn from(value: &'a RawSpanTree) -> Self {
         match value {
-            ParticleBoard::Space(n) => Token::Off(*n),
-            ParticleBoard::Token(s) => Token::Str(s),
-            ParticleBoard::Child(a) => Token::Ast(a),
+            RawSpanTree::Space(n) => Token::Off(*n),
+            RawSpanTree::Token(s) => Token::Str(s),
+            RawSpanTree::Child(a) => Token::Ast(a),
         }
     }
 }

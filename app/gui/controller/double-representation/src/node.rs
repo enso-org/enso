@@ -17,8 +17,10 @@ use ast::macros::skip_and_freeze::MacrosInfo;
 use ast::macros::skip_and_freeze::FREEZE_MACRO_IDENTIFIER;
 use ast::macros::skip_and_freeze::SKIP_MACRO_IDENTIFIER;
 use ast::macros::DocumentationCommentInfo;
+use ast::macros::DocumentationCommentLine;
 use ast::Ast;
 use ast::BlockLine;
+use std::cmp::Ordering;
 
 
 
@@ -38,6 +40,47 @@ pub struct IdNotFound {
     pub id: Id,
 }
 
+/// Indices of lines belonging to a node.
+#[derive(Clone, Copy, Debug)]
+pub struct NodeLocation {
+    /// Documentation comment line index, if present.
+    pub documentation_line: Option<usize>,
+    /// Main line is a line that contains the node's expression.
+    pub main_line:          usize,
+}
+
+impl PartialEq for NodeLocation {
+    fn eq(&self, other: &Self) -> bool {
+        self.partial_cmp(other) == Some(Ordering::Equal)
+    }
+}
+
+impl PartialOrd for NodeLocation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.main_line.partial_cmp(&other.main_line)
+    }
+}
+
+impl NodeLocation {
+    /// Index for the first line belonging to the node.
+    pub fn first(&self) -> usize {
+        self.documentation_line.unwrap_or(self.main_line)
+    }
+
+    /// Index for the last line belonging to the node.
+    pub fn last(&self) -> usize {
+        self.main_line
+    }
+
+    /// Inclusive range between first and last node's lines.
+    ///
+    /// Note that while a node can contain at most two lines, they may be interspersed by a
+    /// number of blank lines.
+    pub fn range(start: NodeLocation, last: NodeLocation) -> RangeInclusive<usize> {
+        start.first()..=last.last()
+    }
+}
+
 
 
 // ===============
@@ -48,10 +91,16 @@ pub struct IdNotFound {
 #[derive(Clone, Debug, Deref)]
 pub struct LocatedNode {
     /// Line index in the block. Zero for inline definition nodes.
-    pub index: usize,
+    pub index: NodeLocation,
     /// Information about the node.
     #[deref]
     pub node:  NodeInfo,
+}
+
+/// Tests if given line contents can be seen as node with a given id
+pub fn is_main_line_of(line: &BlockLine<Option<Ast>>, id: Id) -> bool {
+    let node_info = MainLine::from_block_line(line);
+    node_info.contains_if(|node| node.id() == id)
 }
 
 /// Searches for `NodeInfo` with the associated `id` index in `lines`.
@@ -69,12 +118,13 @@ pub fn locate<'a>(
 ///
 /// If any of the looked for nodes is not found, `Err` is returned.
 /// Any `Ok(…)` return value is guaranteed to have length equal to `looked_for` argument.
-fn locate_many<'a>(
+pub fn locate_many<'a>(
     lines: impl IntoIterator<Item = &'a BlockLine<Option<Ast>>> + 'a,
     context_indent: usize,
     looked_for: impl IntoIterator<Item = Id>,
 ) -> FallibleResult<HashMap<ast::Id, LocatedNode>> {
     let mut looked_for = looked_for.into_iter().collect::<HashSet<_>>();
+
     let mut ret = HashMap::new();
     // Skip empty lines, there are no nodes.
     // However, indices are important.
@@ -84,10 +134,12 @@ fn locate_many<'a>(
         if looked_for.remove(&node.id()) {
             ret.insert(node.id(), node);
         }
+
         if looked_for.is_empty() {
             break;
         }
     }
+
     if let Some(id) = looked_for.into_iter().next() {
         Err(IdNotFound { id }.into())
     } else {
@@ -112,14 +164,33 @@ pub struct NodeIterator<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a
 
 impl<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a> Iterator for NodeIterator<'a, T> {
     type Item = LocatedNode;
+
     fn next(&mut self) -> Option<Self::Item> {
+        let mut indexed_documentation = None;
         for (index, line) in &mut self.lines_iter {
             match LineKind::discern(line.elem, ScopeKind::NonRoot) {
-                LineKind::Definition { .. } => {}
+                LineKind::DocumentationComment { documentation } => {
+                    let doc_line = DocumentationCommentLine::from_doc_ast(documentation, line.off);
+                    let documentation = DocumentationCommentInfo {
+                        line:         doc_line,
+                        block_indent: self.context_indent,
+                    };
+                    indexed_documentation = Some((index, documentation));
+                }
+                LineKind::Definition { .. } => {
+                    // Non-node entity consumes any previous documentation.
+                    indexed_documentation = None;
+                }
                 line =>
                     if let Some(main_line) = MainLine::from_discerned_line(line) {
-                        let documentation = None; // TODO
+                        let (documentation_line, documentation) = match indexed_documentation {
+                            Some((index, documentation)) => (Some(index), Some(documentation)),
+                            None => (None, None),
+                        };
+
                         let node = NodeInfo { documentation, main_line };
+                        let index = NodeLocation { main_line: index, documentation_line };
+
                         return Some(LocatedNode { index, node });
                     },
             }
@@ -154,7 +225,7 @@ impl NodeInfo {
     }
 
     /// Get the ast id of the line with the node comment (if present).
-    fn doc_comment_id(&self) -> Option<ast::Id> {
+    pub fn doc_comment_id(&self) -> Option<ast::Id> {
         self.documentation.as_ref().and_then(|comment| comment.ast().id())
     }
 
@@ -211,11 +282,12 @@ impl MainLine {
     }
 
     /// Try retrieving node information from an already discerned line data.
-    fn from_discerned_line(line: LineKind) -> Option<MainLine> {
+    pub fn from_discerned_line(line: LineKind) -> Option<MainLine> {
         match line {
             LineKind::ExpressionPlain { ast } => Self::new_expression(ast),
             LineKind::ExpressionAssignment { ast } => Self::new_binding(ast),
             LineKind::Definition { .. } => None,
+            LineKind::DocumentationComment { .. } => None,
         }
     }
 

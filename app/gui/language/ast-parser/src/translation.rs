@@ -33,7 +33,8 @@ impl Translate {
     fn translate(&self, tree: &Tree) -> WithInitialSpace<Ast> {
         let space = tree.span.left_offset.visible.width_in_spaces;
         let body = match &*tree.variant {
-            tree::Variant::BodyBlock(block) => self.translate_block(&block.statements).into(),
+            tree::Variant::BodyBlock(block) =>
+                self.translate_block(&block.statements).unwrap().into(),
             tree::Variant::Ident(tree::Ident { token }) if token.is_type =>
                 Ast::from(ast::Cons { name: token.code.to_string() }),
             tree::Variant::Ident(ident) => self.translate_var(&ident.token),
@@ -75,7 +76,7 @@ impl Translate {
             tree::Variant::ArgumentBlockApplication(app) => {
                 let tree::ArgumentBlockApplication { lhs, arguments } = app;
                 let func = self.translate(lhs.as_ref().unwrap()).expect_unspaced();
-                let arg = self.translate_block(arguments).into();
+                let arg = self.translate_block(arguments).unwrap().into();
                 Ast::from(ast::Prefix { func, off: 0, arg })
             }
             tree::Variant::DefaultApp(tree::DefaultApp { func, default }) => {
@@ -108,11 +109,9 @@ impl Translate {
                 let (off, arg) = self.translate(expression.as_ref().unwrap()).split();
                 Ast::from(ast::Prefix { func, off, arg })
             }
-            //tree::Variant::Documented(tree::Documented { documentation, expression }) =>
-            // TODO
-            //    self.translate(expression.as_ref().unwrap()).without_space(),
-            tree::Variant::Documented(_)
-            | tree::Variant::Invalid(_)
+            tree::Variant::Documented(tree::Documented { documentation, expression }) =>
+                self.translate(expression.as_ref().unwrap()).without_space(),
+            tree::Variant::Invalid(_)
             | tree::Variant::AutoScope(_)
             | tree::Variant::TextLiteral(_)
             | tree::Variant::MultiSegmentApp(_)
@@ -125,10 +124,35 @@ impl Translate {
             | tree::Variant::Array(_)
             | tree::Variant::Tuple(_)
             | tree::Variant::Annotated(_)
-            | tree::Variant::ConstructorDefinition(_) => Ast::from(ast::Tree {
-                particleboard: deconstruct_tree(tree, |t| self.translate(t)),
-            }),
+            | tree::Variant::ConstructorDefinition(_) =>
+                Ast::from(ast::Tree { span_info: deconstruct_tree(tree, |t| self.translate(t)) }),
         };
+        WithInitialSpace { space, body }
+    }
+
+    fn translate_lines(&self, tree: &Tree, mut out: impl Extend<WithInitialSpace<Ast>>) {
+        match &*tree.variant {
+            tree::Variant::AnnotatedBuiltin(tree::AnnotatedBuiltin {
+                token,
+                annotation,
+                newlines,
+                expression,
+            }) if !newlines.is_empty() => todo!(),
+            tree::Variant::Annotated(_) => todo!(),
+            tree::Variant::Documented(tree::Documented { documentation, expression }) => {
+                out.extend_one(self.translate_doc(documentation));
+                out.extend(expression.as_ref().map(|e| self.translate(e)));
+            }
+            _ => out.extend_one(self.translate(tree)),
+        }
+    }
+
+    fn translate_doc(&self, documentation: &tree::DocComment) -> WithInitialSpace<Ast> {
+        // TODO: representation that also includes "pretty text"
+        let token = ast::RawSpanTree::Token(documentation.code());
+        let span_info = vec![token];
+        let space = 0; // TODO
+        let body = Ast::from(ast::Tree { span_info });
         WithInitialSpace { space, body }
     }
 
@@ -242,30 +266,33 @@ impl Translate {
 
     fn translate_block<'a, 's: 'a>(
         &self,
-        block_lines: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
-    ) -> ast::Block<Ast> {
+        tree_lines: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
+    ) -> Option<ast::Block<Ast>> {
+        let tree_lines = tree_lines.into_iter();
+        let mut ast_lines = Vec::with_capacity(tree_lines.size_hint().0);
+        for line in tree_lines {
+            ast_lines.push(line.expression.as_ref().map(|e| self.translate(e)));
+        }
         let mut indent = 0;
         let mut empty_lines = vec![];
         let mut first_line = None;
         let mut lines = vec![];
-        for line in block_lines {
-            let expression = &line.expression;
+        for elem in ast_lines {
             if first_line.is_none() {
-                if let Some(expression) = expression {
-                    indent = expression.span.left_offset.visible.width_in_spaces;
-                    let elem = self.translate(expression).without_space();
-                    let off = 0;
-                    first_line = Some(ast::BlockLine { elem, off });
+                if let Some(elem) = elem {
+                    let (off0, elem) = elem.split();
+                    indent = off0;
+                    first_line = Some(ast::BlockLine { elem, off: 0 });
                 } else {
                     empty_lines.push(0); // lossy
                 }
             } else {
-                let elem = expression.as_ref().map(|e| self.translate(e).without_space());
+                let elem = elem.map(|e| e.without_space());
                 lines.push(ast::BlockLine { elem, off: 0 });
             }
         }
-        let first_line = first_line.unwrap();
-        ast::Block { indent, empty_lines, first_line, lines, is_orphan: false }
+        let first_line = first_line?;
+        Some(ast::Block { indent, empty_lines, first_line, lines, is_orphan: false })
     }
 
     fn translate_operator_block<'a, 's: 'a>(
@@ -344,7 +371,7 @@ impl Translate {
 // === DeconstructTree ===
 
 /// Analyze a [`Tree`] and produce a representation used by the frontend.
-fn deconstruct_tree<F>(tree: &syntax::tree::Tree<'_>, translate: F) -> Vec<ast::ParticleBoard>
+fn deconstruct_tree<F>(tree: &syntax::tree::Tree<'_>, translate: F) -> Vec<ast::RawSpanTree>
 where F: Fn(&Tree) -> WithInitialSpace<Ast> {
     use syntax::tree::ItemVisitable;
     let mut deconstructor = DeconstructTree { translate, particles: Default::default() };
@@ -355,7 +382,7 @@ where F: Fn(&Tree) -> WithInitialSpace<Ast> {
 #[derive(Default)]
 struct DeconstructTree<F> {
     translate: F,
-    particles: Vec<ast::ParticleBoard>,
+    particles: Vec<ast::RawSpanTree>,
 }
 
 impl<F> tree::Visitor for DeconstructTree<F> {}
@@ -367,16 +394,16 @@ where F: Fn(&Tree) -> WithInitialSpace<Ast>
             syntax::item::Ref::Token(token) => {
                 if token.left_offset.visible.width_in_spaces > 0 {
                     self.particles
-                        .push(ast::ParticleBoard::Space(token.left_offset.visible.width_in_spaces));
+                        .push(ast::RawSpanTree::Space(token.left_offset.visible.width_in_spaces));
                 }
-                self.particles.push(ast::ParticleBoard::Token(token.code.to_string()));
+                self.particles.push(ast::RawSpanTree::Token(token.code.to_string()));
             }
             syntax::item::Ref::Tree(tree) => {
                 let (space, ast) = (self.translate)(tree).split();
                 if space != 0 {
-                    self.particles.push(ast::ParticleBoard::Space(space));
+                    self.particles.push(ast::RawSpanTree::Space(space));
                 }
-                self.particles.push(ast::ParticleBoard::Child(ast));
+                self.particles.push(ast::RawSpanTree::Child(ast));
             }
         }
         false

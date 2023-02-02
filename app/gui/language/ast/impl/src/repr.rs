@@ -222,7 +222,7 @@ impl<T: HasTokens> HasTokens for Match<T> {
 
 impl HasTokens for Tree {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        for dust in &self.particleboard {
+        for dust in &self.span_info {
             Token::from(dust).feed_to(consumer)
         }
     }

@@ -8,7 +8,7 @@ use crate::enumerate_non_empty_lines;
 use crate::known;
 use crate::HasTokens;
 use crate::MacroPatternMatch;
-use crate::ParticleBoard;
+use crate::RawSpanTree;
 use crate::Shape;
 use crate::Shifted;
 use crate::ShiftedVec1;
@@ -967,11 +967,11 @@ impl Crumbable for crate::Tree {
 
     fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
         match self
-            .particleboard
+            .span_info
             .get(crumb.index)
             .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?
         {
-            ParticleBoard::Child(a) => Ok(a),
+            RawSpanTree::Child(a) => Ok(a),
             _ => Err(MismatchedCrumbType.into()),
         }
     }
@@ -979,17 +979,17 @@ impl Crumbable for crate::Tree {
     fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
         let mut result = self.clone();
         let child = result
-            .particleboard
+            .span_info
             .get_mut(crumb.index)
             .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?;
-        *child = ParticleBoard::Child(new_ast);
+        *child = RawSpanTree::Child(new_ast);
         Ok(result)
     }
 
     fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
         let mut subcrumbs = Vec::new();
-        for (index, thing) in self.particleboard.iter().enumerate() {
-            if matches!(thing, ParticleBoard::Child(_)) {
+        for (index, thing) in self.span_info.iter().enumerate() {
+            if matches!(thing, RawSpanTree::Child(_)) {
                 subcrumbs.push(TreeCrumb { index });
             }
         }

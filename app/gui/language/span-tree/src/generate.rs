@@ -16,7 +16,7 @@ use ast::crumbs::Located;
 use ast::opr::GeneralizedInfix;
 use ast::Ast;
 use ast::HasRepr;
-use ast::ParticleBoard;
+use ast::RawSpanTree;
 
 
 
@@ -452,23 +452,23 @@ fn tree_generate_node<T: Payload>(
     let mut offset = ByteDiff::from(0);
     let mut children = vec![];
     let mut is_group = false;
-    for thing in &tree.particleboard {
+    for thing in &tree.span_info {
         match thing {
-            ParticleBoard::Space(_) => continue,
-            ParticleBoard::Token(s) => {
+            RawSpanTree::Space(_) => continue,
+            RawSpanTree::Token(s) => {
                 is_group = s == "(";
                 break;
             }
-            ParticleBoard::Child(_) => break,
+            RawSpanTree::Child(_) => break,
         }
     }
     if is_group {
         kind = node::Kind::Group;
     }
-    for (index, thing) in tree.particleboard.iter().enumerate() {
+    for (index, thing) in tree.span_info.iter().enumerate() {
         match thing {
-            ParticleBoard::Space(n) => offset += ByteDiff::from(n),
-            ParticleBoard::Token(s) => {
+            RawSpanTree::Space(n) => offset += ByteDiff::from(n),
+            RawSpanTree::Token(s) => {
                 let kind = node::Kind::Token;
                 let size = ByteDiff::from(s.len());
                 let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
@@ -476,7 +476,7 @@ fn tree_generate_node<T: Payload>(
                 children.push(node::Child { node, offset, ast_crumbs });
                 offset += size;
             }
-            ParticleBoard::Child(a) => {
+            RawSpanTree::Child(a) => {
                 // TODO: Set `kind` properly
                 let node = a.generate_node(kind.clone(), context)?;
                 let child_size = node.size;
