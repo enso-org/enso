@@ -456,9 +456,19 @@ export class App {
         }
         const title = msg + 'Available options:'
         const sections = Array.from(Object.entries(this.config.options)).map(([group, options]) => {
+            if (options instanceof config.Option) {
+                throw 'wrong' // FIXME
+            }
             const entries = Array.from(Object.entries(options)).map(([key, option]) => {
-                const name = group === key ? group : group + '.' + key
-                return new debug.HelpScreenEntry(name, [option.description, String(option.default)])
+                if (option instanceof config.Option) {
+                    const name = group === key ? group : group + '.' + key
+                    return new debug.HelpScreenEntry(name, [
+                        option.description,
+                        String(option.default),
+                    ])
+                } else {
+                    throw 'wrong' // FIXME
+                }
             })
             const label =
                 group.charAt(0).toUpperCase() +

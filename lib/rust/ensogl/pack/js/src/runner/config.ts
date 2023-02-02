@@ -88,7 +88,11 @@ export class OptionGroups {
     static debug = 'debug'
 }
 
-export type ExternalOptions = Record<string, Record<string, Option<OptionValue>>>
+// export type ExternalOptions = Record<string, Record<string, Option<OptionValue>>>
+
+interface ExternalOptions {
+    [key: string]: Option<OptionValue> | ExternalOptions
+}
 
 /** Application default configuration. Users of this library can extend it with their own
  * options. */
@@ -192,12 +196,23 @@ export function mergeOptions<T1 extends Options, T2 extends Options>(
     }
     for (const [group, options] of Object.entries(opts2)) {
         if (result[group]) {
-            result[group] = { ...result[group], ...options }
+            result[group] = Object.assign({ ...result[group] }, options)
         } else {
             result[group] = options
         }
     }
     return result as T1 & T2
+}
+
+function initOptions(options: ExternalOptions) {
+    for (const [key, value] of Object.entries(options)) {
+        if (value instanceof Option) {
+            value.group = 'TODO'
+            value.name = key
+        } else {
+            initOptions(value)
+        }
+    }
 }
 
 // ==============
@@ -214,12 +229,7 @@ export class Config {
 
     constructor(inputOptions?: Options) {
         this.options = inputOptions || options
-        for (const [group, options] of Object.entries(this.options)) {
-            for (const [name, option] of Object.entries(options)) {
-                option.group = group
-                option.name = name
-            }
-        }
+        initOptions(this.options)
     }
 
     /** Resolve the configuration from the provided record list.
@@ -241,56 +251,88 @@ export class Config {
 
     /** Resolve the configuration from the provided record.
      * @returns list of unrecognized parameters. */
-    resolveFromObject(other: Record<string, Record<string, any>>): null | string[] {
-        const paramsToBeAssigned = new Map(
-            Object.entries(other).map(([group, options]) => [group, new Set(Object.keys(options))])
-        )
-        for (const [group, options] of Object.entries(this.options)) {
-            const otherGroup = other[group]
-            const groupOfParamsToBeAssigned = paramsToBeAssigned.get(group)
-            if (otherGroup != null && groupOfParamsToBeAssigned != null) {
-                for (const key of Object.keys(options)) {
-                    groupOfParamsToBeAssigned.delete(key)
-                    const otherVal: unknown = otherGroup[key]
-                    const option = options[key]
-                    if (option != null && otherVal != null) {
-                        const selfVal = option.value
-                        if (typeof selfVal === 'boolean') {
-                            const newVal = parseBoolean(otherVal)
-                            if (newVal == null) {
-                                this.printValueUpdateError(key, selfVal, otherVal)
-                            } else {
-                                option.value = newVal
-                                option.setByUser = true
-                            }
-                        } else if (typeof selfVal == 'number') {
-                            const newVal = Number(otherVal)
-                            if (isNaN(newVal)) {
-                                this.printValueUpdateError(key, selfVal, otherVal)
-                            } else {
-                                option.value = newVal
-                                option.setByUser = true
-                            }
+
+    resolveFromObject(other: Record<string, unknown>): null | string[] {
+        return this.resolveFromObjectInternal(this.options, other)
+    }
+
+    resolveFromObjectInternal(options: ExternalOptions, other: unknown): null | string[] {
+        if (typeof other === 'object' && other != null) {
+            for (const [key, value] of Object.entries(other)) {
+                const option = options[key]
+                if (option == null) {
+                    // TODO
+                } else {
+                    if (typeof value === 'string') {
+                        if (option instanceof Option) {
+                            option.value = value // FIXME parsing
                         } else {
-                            option.value = String(otherVal)
-                            option.setByUser = true
+                            // TODO
+                        }
+                    } else {
+                        if (option instanceof Option) {
+                            // TODO
+                        } else {
+                            this.resolveFromObjectInternal(option, value)
+                            // TODO
                         }
                     }
                 }
             }
+        } else {
+            // TODO
         }
 
-        const x = Array.from(paramsToBeAssigned.entries())
-        const unrecognized = x.flatMap(([group, options]) =>
-            Array.from(options.values(), option =>
-                group === option ? group : group + '.' + option
-            )
-        )
-        if (unrecognized.length > 0) {
-            return unrecognized
-        } else {
-            return null
-        }
+        return null
+        // const paramsToBeAssigned = new Map(
+        //     Object.entries(other).map(([group, options]) => [group, new Set(Object.keys(options))])
+        // )
+        // for (const [group, options] of Object.entries(this.options)) {
+        //     const otherGroup = other[group]
+        //     const groupOfParamsToBeAssigned = paramsToBeAssigned.get(group)
+        //     if (otherGroup != null && groupOfParamsToBeAssigned != null) {
+        //         for (const key of Object.keys(options)) {
+        //             groupOfParamsToBeAssigned.delete(key)
+        //             const otherVal: unknown = otherGroup[key]
+        //             const option = options[key]
+        //             if (option != null && otherVal != null) {
+        //                 const selfVal = option.value
+        //                 if (typeof selfVal === 'boolean') {
+        //                     const newVal = parseBoolean(otherVal)
+        //                     if (newVal == null) {
+        //                         this.printValueUpdateError(key, selfVal, otherVal)
+        //                     } else {
+        //                         option.value = newVal
+        //                         option.setByUser = true
+        //                     }
+        //                 } else if (typeof selfVal == 'number') {
+        //                     const newVal = Number(otherVal)
+        //                     if (isNaN(newVal)) {
+        //                         this.printValueUpdateError(key, selfVal, otherVal)
+        //                     } else {
+        //                         option.value = newVal
+        //                         option.setByUser = true
+        //                     }
+        //                 } else {
+        //                     option.value = String(otherVal)
+        //                     option.setByUser = true
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+
+        // const x = Array.from(paramsToBeAssigned.entries())
+        // const unrecognized = x.flatMap(([group, options]) =>
+        //     Array.from(options.values(), option =>
+        //         group === option ? group : group + '.' + option
+        //     )
+        // )
+        // if (unrecognized.length > 0) {
+        //     return unrecognized
+        // } else {
+        //     return null
+        // }
     }
 
     /** Finalize the configuration. Set some default options based on the provided values. */
@@ -311,19 +353,20 @@ export class Config {
     }
 
     strigifiedKeyValueMap(): Record<string, Record<string, any>> {
-        const config: Record<string, Record<string, any>> = {}
-        for (const [group, options] of Object.entries(this.options)) {
-            const configGroup: Record<string, any> = {}
-            config[group] = configGroup
-            for (const [key, option] of Object.entries(options)) {
-                if (option.value != null) {
-                    configGroup[key] = option.value.toString()
-                } else {
-                    configGroup[key] = option.value
-                }
-            }
-        }
-        return config
+        // const config: Record<string, Record<string, any>> = {}
+        // for (const [group, options] of Object.entries(this.options)) {
+        //     const configGroup: Record<string, any> = {}
+        //     config[group] = configGroup
+        //     for (const [key, option] of Object.entries(options)) {
+        //         if (option.value != null) {
+        //             configGroup[key] = option.value.toString()
+        //         } else {
+        //             configGroup[key] = option.value
+        //         }
+        //     }
+        // }
+        // return config
+        return {}
     }
 
     print() {
