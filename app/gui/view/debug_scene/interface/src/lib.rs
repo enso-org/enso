@@ -155,9 +155,17 @@ fn init(app: &Application) {
 
     let foo_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((foo_node, Expression::new_plain("foo")));
+    let kind = Immutable(graph_editor::component::node::error::Kind::Dataflow);
+    let message = Rc::new(Some("Dataflow Error".to_owned()));
+    let error = graph_editor::component::node::Error { kind, message, propagated };
+    graph_editor.frp.set_node_error_status.emit((foo_node, Some(error)));
 
     let baz_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((baz_node, Expression::new_plain("baz")));
+    let kind = Immutable(graph_editor::component::node::error::Kind::Warning);
+    let message = Rc::new(Some("Warning".to_owned()));
+    let error = graph_editor::component::node::Error { kind, message, propagated };
+    graph_editor.frp.set_node_error_status.emit((baz_node, Some(error)));
     let (_, baz_position) = graph_editor.node_position_set.value();
     let styles = StyleWatch::new(&scene.style_sheet);
     let min_spacing = styles.get_number(theme::graph_editor::minimal_x_spacing_for_new_nodes);
