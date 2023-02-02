@@ -121,6 +121,12 @@ impl Translate {
                 let type_info = analyze_import(import).unwrap_or_default();
                 Ast::from(ast::Tree { span_info, type_info })
             }
+            tree::Variant::CaseOf(_) => {
+                // TODO: Analyzed-representation to support alias analysis.
+                let span_info = deconstruct_tree(tree, |t| self.translate(t));
+                let type_info = ast::TreeType::Expression;
+                Ast::from(ast::Tree { span_info, type_info })
+            }
             _ => {
                 let span_info = deconstruct_tree(tree, |t| self.translate(t));
                 let type_info = ast::TreeType::Expression;
