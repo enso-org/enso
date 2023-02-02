@@ -534,8 +534,11 @@ impl<'a> ControllerChange<'a> {
             !root_cause.contains(&&node_id)
         };
         let (kind, message, propagated) = match payload {
-            Some(Value { warnings: Some(warnings) }) if warnings.count > 0 =>
-                Some((Kind::Warning, warnings.value, false)),
+            Some(Value { warnings: Some(warnings) }) if warnings.count > 0 => {
+                // We return `None` as message, even though we have a warning text available. We
+                // don't want to replace the visualization of the value with a warning text though.
+                Some((Kind::Warning, None, false))
+            }
             Some(DataflowError { trace }) => Some((Kind::Dataflow, None, is_propagated(trace))),
             Some(Panic { message, trace }) => {
                 let message = Some(message);

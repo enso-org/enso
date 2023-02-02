@@ -52,6 +52,11 @@ impl Error {
             message: self.message.as_ref().as_ref()?.clone(),
         })
     }
+
+    /// Whether we should display the error in a special error visualization attached to the node.
+    pub fn should_display(&self) -> bool {
+        !matches!(*self.kind, Kind::Warning)
+    }
 }
 
 

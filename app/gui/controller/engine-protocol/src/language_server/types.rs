@@ -251,10 +251,17 @@ pub enum ExpressionUpdatePayload {
     },
 }
 
+/// Information about warnings associated with the value.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[allow(missing_docs)]
 pub struct Warnings {
+    /// The number of attached warnings.
     pub count: usize,
+    /// If the value has a single warning attached, this field contains textual representation of
+    /// gg
+    ///
+    /// the attached warning. In general, warning values should be obtained by attaching an
+    /// appropriate visualization to a value.
     pub value: Option<String>,
 }
 
