@@ -664,7 +664,9 @@ impl NodeModel {
             if let Some(error_data) = error.visualization_data() {
                 self.error_visualization.set_data(&error_data);
             }
-            self.display_object.add_child(&self.error_visualization);
+            if error.should_display() {
+                self.display_object.add_child(&self.error_visualization);
+            }
         } else {
             self.error_visualization.unset_parent();
         }
@@ -809,7 +811,9 @@ impl Node {
         frp::extend! { network
 
             out.error <+ input.set_error;
-            is_error_set <- input.set_error.map(|err| err.is_some());
+            is_error_set <- input.set_error.map(
+                |err| err.as_ref().map_or(false, Error::should_display)
+            );
             no_error_set <- not(&is_error_set);
             error_color_anim.target <+ all_with(&input.set_error,&input.set_view_mode,
                 f!([style](error,&mode)
@@ -1006,6 +1010,7 @@ impl Node {
             let path = match *error.kind {
                 error::Kind::Panic => error_theme::panic,
                 error::Kind::Dataflow => error_theme::dataflow,
+                error::Kind::Warning => error_theme::warning,
             };
             style.get_color(path).into()
         } else {
