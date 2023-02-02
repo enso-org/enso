@@ -34,7 +34,6 @@ pub async fn build_runtime_image(
 #[cfg(test)]
 mod tests {
     use crate::repo::deduce_repository_path;
-    use crate::version;
 
     use super::*;
 
