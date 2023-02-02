@@ -93,9 +93,10 @@ pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView
 pub struct CachedShapeDefinition {
     /// The size of the shape in the texture.
     pub size: Vector2<i32>,
-    /// A constructor of single shape view.
     #[derivative(Debug = "ignore")]
-    pub cons: ShapeCons,
+    pub position_on_texture_setter: Box<dyn Fn(Vector2)>,
+    #[derivative(Debug = "ignore")]
+    pub for_texture_constructor: ShapeCons,
 }
 
 thread_local! {
@@ -315,6 +316,7 @@ impl WorldDataWithLoop {
         // Context is initialized automatically before main entry point starts in WASM. We are
         // performing manual initialization for native tests to work correctly.
         init_context();
+        display::shape::primitive::system::cached::initialize_cached_shape_positions_in_texture();
         let frp = Frp::new();
         let data = WorldData::new(&frp.private.output);
         let on_frame_start = animation::on_frame_start();
