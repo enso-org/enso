@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -45,12 +46,11 @@ spec =
         Test.specify "should support custom ordered comparator" <|
             Ordering.compare (Ord.Value 1) (Ord.Value 2) . should_equal Ordering.Less
             Ordering.compare (Ord.Value 1) (Ord.Value 1) . should_equal Ordering.Equal
-            Ordering.compare (Ord.Value 20) (Ord.Value 1) . should_equal Ordering.Less
+            Ordering.compare (Ord.Value 20) (Ord.Value 1) . should_equal Ordering.Greater
 
-        Test.specify "should support custom ordered comparator in atom field" <|
-            Ordering.compare (Parent.Value (Ord.Value 1)) (Parent.Value (Ord.Value 2)) . should_equal Ordering.Less
-            Ordering.compare (Parent.Value (Ord.Value 1)) (Parent.Value (Ord.Value 1)) . should_equal Ordering.Equal
-            Ordering.compare (Parent.Value (Ord.Value 20)) (Parent.Value (Ord.Value 1)) . should_equal Ordering.Less
+        Test.specify "should support equality for custom ordered comparators in atom field" <|
+            ((Parent.Value (Ord.Value 1)) == (Parent.Value (Ord.Value 1))) . should_be_true
+            ((Parent.Value (Ord.Value 1)) == (Parent.Value (Ord.Value 22))) . should_be_false
 
         Test.specify "should throw Incomparable_Values when comparing types with unordered comparator" <|
             Ordering.compare (UPair.Value 1 2) (UPair.Value 2 1) . should_fail_with Incomparable_Values

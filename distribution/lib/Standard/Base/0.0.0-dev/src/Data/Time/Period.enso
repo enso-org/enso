@@ -130,6 +130,3 @@ type Period
                 case err of
                     DateTimeException -> Error.throw Time_Error.Error "Period subtraction failed"
                     ArithmeticException -> Error.throw Illegal_Argument.Error "Arithmetic error"
-
-
-Comparable.from (_:Period) = Incomparable
