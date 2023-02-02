@@ -74,6 +74,36 @@ export class Option<T> {
     qualifiedName(): string {
         return this.group && this.group != this.name ? `${this.group}.${this.name}` : this.name
     }
+
+    load(input: string) {
+        if (typeof this.value === 'boolean') {
+            const newVal = parseBoolean(input)
+            if (newVal == null) {
+                this.printValueUpdateError(input)
+            } else {
+                this.value = newVal as T
+                this.setByUser = true
+            }
+        } else if (typeof this.value == 'number') {
+            const newVal = Number(input)
+            if (isNaN(newVal)) {
+                this.printValueUpdateError(input)
+            } else {
+                this.value = newVal as T
+                this.setByUser = true
+            }
+        } else {
+            this.value = String(input) as T
+            this.setByUser = true
+        }
+    }
+
+    printValueUpdateError(input: string) {
+        logger.error(
+            `The provided value for '${this.qualifiedName()}' is invalid. Expected ${this.type}, \
+            got '${input}'. Using the default value '${String(this.default)}' instead.`
+        )
+    }
 }
 
 // ==============
@@ -93,6 +123,112 @@ export class OptionGroups {
 interface ExternalOptions {
     [key: string]: Option<OptionValue> | ExternalOptions
 }
+
+type OptionsRecord = Record<string, Option<OptionValue>>
+type GroupsRecord = Record<string, GroupLike>
+
+interface GroupLike {
+    options: OptionsRecord
+    groups: GroupsRecord
+    merge<Other extends GroupLike>(other: Other): this & Other
+}
+
+class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
+    options: Options
+    groups: Groups
+    constructor(cfg?: { options?: Options; groups?: Groups }) {
+        this.options = cfg?.options ?? ({} as Options)
+        this.groups = cfg?.groups ?? ({} as Groups)
+    }
+
+    merge<Other extends GroupLike>(other: Other): this & Other {
+        const result: GroupLike = new Group()
+
+        Object.assign(result.groups, this.groups)
+        for (const [otherGroupName, otherGroup] of Object.entries(other.groups)) {
+            const group = result.groups[otherGroupName]
+            if (group == null) {
+                result.groups[otherGroupName] = otherGroup
+            } else {
+                result.groups[otherGroupName] = group.merge(otherGroup)
+            }
+        }
+        Object.assign(result.options, this.options)
+        for (const [otherOptionName, otherOption] of Object.entries(other.options)) {
+            const option = result.options[otherOptionName]
+            if (option != null) {
+                // TODO warning
+            }
+            result.options[otherOptionName] = otherOption
+        }
+        return result as this & Other
+    }
+
+    load(config: unknown) {
+        if (typeof config === 'object' && config != null) {
+            for (const [key, value] of Object.entries(config)) {
+                if (typeof value === 'string') {
+                    const option = this.options[key]
+                    if (option == null) {
+                        console.error('TODO')
+                    } else {
+                        option.load(value)
+                    }
+                } else {
+                    console.error('TODO')
+                }
+            }
+        } else {
+            console.error('TODO')
+        }
+    }
+}
+
+const opt1 = new Group({
+    options: {
+        opt1: new Option<boolean>({
+            default: false,
+            type: 'boolean',
+            description: 'foo',
+        }),
+    },
+    groups: {
+        grp1: new Group({
+            options: {
+                grp1Opt1: new Option<boolean>({
+                    default: false,
+                    type: 'boolean',
+                    description: 'foo',
+                }),
+            },
+        }),
+    },
+})
+
+const opt2 = new Group({
+    options: {
+        opt2: new Option<boolean>({
+            default: false,
+            type: 'boolean',
+            description: 'foo',
+        }),
+    },
+    groups: {
+        grp1: new Group({
+            options: {
+                grp1Opt2: new Option<boolean>({
+                    default: false,
+                    type: 'boolean',
+                    description: 'foo',
+                }),
+            },
+        }),
+    },
+})
+
+const xx = opt1.merge(opt2)
+console.log('XXXXXX', xx.groups.grp1.options)
+const yy = xx.groups.grp1.options.grp1Opt2.value === true
 
 /** Application default configuration. Users of this library can extend it with their own
  * options. */
