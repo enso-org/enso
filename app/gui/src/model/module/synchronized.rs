@@ -700,6 +700,19 @@ pub mod test {
             let end_of_file = code_so_far.utf16_code_unit_location_of_location(end_of_file_bytes);
             TextRange { start: Position { line: 0, character: 0 }, end: end_of_file.into() }
         }
+
+        fn get_ls_content(&self) -> text::Rope {
+            self.current_ls_content.get()
+        }
+
+        fn update_ls_content(&self, content: impl Into<text::Rope>) {
+            let new_ls_content = content.into();
+            let new_ls_version =
+                Sha3_224::from_parts(new_ls_content.iter_chunks(..).map(|ch| ch.as_bytes()));
+            debug!("Updated content:\n===\n{new_ls_content}\n===");
+            self.current_ls_content.set(new_ls_content);
+            self.current_ls_version.set(new_ls_version);
+        }
     }
 
     fn apply_edit(code: impl Into<text::Rope>, edit: &TextEdit) -> text::Rope {
@@ -757,6 +770,17 @@ pub mod test {
                     });
                     Ok(())
                 });
+
+                // Replacing `Test 2` with `Test 3`
+                edit_handler.expect_some_edit(client, |edits| {
+                    let edit_code = &edits.edits[0];
+                    assert_eq!(edit_code.text, "");
+                    assert_eq!(edit_code.range, TextRange {
+                        start: Position { line: 6, character: 46 },
+                        end:   Position { line: 6, character: 46 },
+                    });
+                    Ok(())
+                });
             });
 
             let parser = data.parser.clone();
@@ -768,6 +792,25 @@ pub mod test {
             runner.perhaps_run_until_stalled(&mut fixture);
             let change = TextChange { range: (20..24).into(), text: "Test 2".to_string() };
             module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
+            runner.perhaps_run_until_stalled(&mut fixture);
+
+            // edits, should fail as version mismatch is detected
+            let edit = TextEdit {
+                text: "Test 3".into(),
+                range: TextRange {
+                    start: Position { line: 1, character: 13 },
+                    end:   Position { line: 1, character: 19 },
+                },
+            };
+
+
+            let ls_content = edit_handler.get_ls_content();
+            panic!("{ls_content:?}");
+            let ls_content = apply_edit(ls_content, &edit);
+            edit_handler.update_ls_content(ls_content);
+
+            let change: Vec<TextEdit> = vec![edit];
+            module.apply_text_edit(change, &Parser::new_or_panic()).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
         };
 
