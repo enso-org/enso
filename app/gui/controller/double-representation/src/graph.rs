@@ -486,7 +486,6 @@ main =
         assert_eq!(graph.nodes()[0].expression().repr(), "node0");
     }
 
-
     #[test]
     fn editing_nodes_expression_in_graph() {
         let parser = ast_parser::Parser::new();

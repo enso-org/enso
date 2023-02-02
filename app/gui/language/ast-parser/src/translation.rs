@@ -19,8 +19,9 @@ pub fn to_legacy_ast_module(tree: &Tree) -> Result<Ast, ()> {
 }
 
 pub fn to_legacy_ast(tree: &Tree) -> Ast {
-    let context = Translate::default();
-    context.translate(tree).expect_unspaced()
+    //let context = Translate::default();
+    //context.translate(tree).expect_unspaced()
+    to_legacy_ast_module(tree).unwrap()
 }
 
 
@@ -259,7 +260,6 @@ impl Translate {
     ) -> Option<ast::Block<Ast>> {
         let (ast_lines, indent) = self.translate_block_raw(tree_lines);
         let indent = indent?;
-        debug_assert_ne!(indent, 0);
         let mut empty_lines = vec![];
         let mut first_line = None;
         let mut lines = vec![];
