@@ -65,11 +65,6 @@ pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_profiler as profiler;
     pub use enso_profiler::prelude::*;
-
-    #[cfg(test)]
-    pub use wasm_bindgen_test::wasm_bindgen_test;
-    #[cfg(test)]
-    pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
 
 
@@ -229,7 +224,7 @@ mod tests {
         assert_eq!(doc.line().repr(), doc2.line().repr())
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn parse_single_line_comment() {
         let parser = ast_parser::Parser::new();
 
@@ -266,7 +261,7 @@ main =
         run_case(&parser, code, expected);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn parse_multi_line_comment() {
         let parser = ast_parser::Parser::new();
         let code = r#"

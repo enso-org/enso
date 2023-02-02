@@ -441,7 +441,7 @@ mod tests {
     }
 
     #[allow(unused_parens)] // False warning.
-    #[wasm_bindgen_test]
+    #[test]
     fn test_collapse() {
         let parser = Parser::new();
         let module_name = "Main".to_owned();

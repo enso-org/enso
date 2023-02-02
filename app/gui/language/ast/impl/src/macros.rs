@@ -179,7 +179,7 @@ pub fn is_documentation_comment(ast: &Ast) -> bool {
 // === Lambdas ===
 // ===============
 
-/// Describes the lambda-expression's three pieces: the argument, the arrow operator and the body.
+/// Describes the lambda-expression's pieces: the argument and the body.
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct LambdaInfo<'a> {

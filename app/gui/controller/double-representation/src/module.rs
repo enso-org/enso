@@ -509,11 +509,8 @@ mod tests {
     use crate::definition::DefinitionName;
 
     use engine_protocol::language_server::MethodPointer;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
-    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-
-    #[wasm_bindgen_test]
+    #[test]
     fn import_listing() {
         let parser = ast_parser::Parser::new();
         let expect_imports = |code: &str, expected: &[&[&str]]| {
@@ -536,7 +533,7 @@ mod tests {
         ]]);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn import_adding_and_removing() {
         let parser = ast_parser::Parser::new();
         let code = "import Foo.Bar.Baz";
@@ -565,7 +562,7 @@ mod tests {
         info.expect_code("import Bar.Gar");
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn implicit_method_resolution() {
         let parser = ast_parser::Parser::new();
         let module_name =
@@ -623,7 +620,7 @@ mod tests {
         expect_not_found(&ptr, "bar a b = a + b");
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn test_definition_location() {
         let code = r"
 some def =
@@ -656,7 +653,7 @@ last def = inline expression";
         assert!(code[span].ends_with("nested body"));
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn add_method() {
         let parser = ast_parser::Parser::new();
         let module = r#"Main.method1 arg = body
