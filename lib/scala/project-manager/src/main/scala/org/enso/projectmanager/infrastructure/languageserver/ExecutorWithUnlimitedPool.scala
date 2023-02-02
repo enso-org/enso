@@ -108,7 +108,10 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
         .flatMap(path =>
           Seq("--server-profiling-events-log-path", path.toString)
         )
+    val serverEdition =
+      Seq("--server-edition", descriptor.engineVersion.toString())
     val additionalArguments =
+      serverEdition ++
       profilingPathArguments ++
       profilingTimeArguments ++
       profilingEventsLogPathArguments

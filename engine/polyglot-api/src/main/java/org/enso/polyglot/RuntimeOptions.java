@@ -65,8 +65,9 @@ public class RuntimeOptions {
   private static final OptionDescriptor LANGUAGE_HOME_OVERRIDE_DESCRIPTOR =
       OptionDescriptor.newBuilder(LANGUAGE_HOME_OVERRIDE_KEY, LANGUAGE_HOME_OVERRIDE).build();
 
+  public static final String EDITION_OVERRIDE_KEY_EMPTY = "";
   public static final String EDITION_OVERRIDE = optionName("editionOverride");
-  public static final OptionKey<String> EDITION_OVERRIDE_KEY = new OptionKey<>("");
+  public static final OptionKey<String> EDITION_OVERRIDE_KEY = new OptionKey<>(EDITION_OVERRIDE_KEY_EMPTY);
   private static final OptionDescriptor EDITION_OVERRIDE_DESCRIPTOR =
       OptionDescriptor.newBuilder(EDITION_OVERRIDE_KEY, EDITION_OVERRIDE).build();
 

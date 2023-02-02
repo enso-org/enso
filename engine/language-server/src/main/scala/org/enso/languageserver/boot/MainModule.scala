@@ -281,6 +281,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
     .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
     .option(
+      RuntimeOptions.EDITION_OVERRIDE,
+      serverConfig.editionOverride.getOrElse(
+        RuntimeOptions.EDITION_OVERRIDE_KEY_EMPTY
+      )
+    )
+    .option(
       RuntimeServerInfo.JOB_PARALLELISM_OPTION,
       Runtime.getRuntime.availableProcessors().toString
     )

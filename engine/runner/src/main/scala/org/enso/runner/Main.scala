@@ -46,6 +46,7 @@ object Main {
   private val LANGUAGE_SERVER_PROFILING_TIME = "server-profiling-time"
   private val LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH =
     "server-profiling-events-log-path"
+  private val LANGUAGE_SERVER_EDITION        = "server-edition"
   private val DAEMONIZE_OPTION               = "daemon"
   private val INTERFACE_OPTION               = "interface"
   private val RPC_PORT_OPTION                = "rpc-port"
@@ -182,6 +183,13 @@ object Main {
       .argName("file")
       .longOpt(LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH)
       .desc("The path to the runtime events log file.")
+      .build()
+    val lsEdition = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("edition")
+      .longOpt(LANGUAGE_SERVER_EDITION)
+      .desc("Override edition specified in the project config.")
       .build()
     val deamonizeOption = CliOption.builder
       .longOpt(DAEMONIZE_OPTION)
@@ -363,6 +371,7 @@ object Main {
       .addOption(lsProfilingPathOption)
       .addOption(lsProfilingTimeOption)
       .addOption(lsProfilingEventsLogPathOption)
+      .addOption(lsEdition)
       .addOption(deamonizeOption)
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
@@ -904,13 +913,15 @@ object Main {
       profilingEventsLogPath <- Either
         .catchNonFatal(profilingEventsLogPathStr.map(Paths.get(_)))
         .leftMap(_ => "Profiling events log path is invalid")
+      editionOverride = Option(line.getOptionValue(LANGUAGE_SERVER_EDITION))
     } yield boot.LanguageServerConfig(
       interface,
       rpcPort,
       dataPort,
       rootId,
       rootPath,
-      ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime)
+      ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime),
+      editionOverride
     )
 
   /** Prints the version of the Enso executable.
