@@ -124,8 +124,11 @@ impl Translate {
             | tree::Variant::Array(_)
             | tree::Variant::Tuple(_)
             | tree::Variant::Annotated(_)
-            | tree::Variant::ConstructorDefinition(_) =>
-                Ast::from(ast::Tree { span_info: deconstruct_tree(tree, |t| self.translate(t)) }),
+            | tree::Variant::ConstructorDefinition(_) => {
+                let span_info = deconstruct_tree(tree, |t| self.translate(t));
+                let type_info = ast::TreeType::Expression;
+                Ast::from(ast::Tree { span_info, type_info })
+            }
         };
         WithInitialSpace { space, body }
     }
@@ -148,11 +151,12 @@ impl Translate {
     }
 
     fn translate_doc(&self, documentation: &tree::DocComment) -> WithInitialSpace<Ast> {
-        // TODO: representation that also includes "pretty text"
         let token = ast::RawSpanTree::Token(documentation.code());
+        let rendered = documentation.code(); // TODO: render
+        let type_info = ast::TreeType::Documentation { rendered };
         let span_info = vec![token];
         let space = 0; // TODO
-        let body = Ast::from(ast::Tree { span_info });
+        let body = Ast::from(ast::Tree { span_info, type_info });
         WithInitialSpace { space, body }
     }
 

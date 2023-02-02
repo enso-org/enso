@@ -534,7 +534,14 @@ pub enum Shape<T> {
     },
     Tree {
         span_info: Vec<RawSpanTree>,
+        type_info: TreeType,
     },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TreeType {
+    Documentation { rendered: String },
+    Expression,
 }
 
 /// Represents the syntax tree, and its correspondence to the source text; with context information
