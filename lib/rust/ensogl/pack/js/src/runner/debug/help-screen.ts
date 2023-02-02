@@ -69,8 +69,8 @@ export class HelpScreen {
             const sectionDiv = document.createElement('div')
             sectionDiv.style.marginTop = '10px'
             sectionDiv.style.padding = `${sectionPaddingPx}px`
+            sectionDiv.style.border = '3px solid #2382cd'
             sectionDiv.style.borderRadius = sectionBackgroundRadius
-            sectionDiv.style.background = '#00000010'
 
             const sectionTitleDiv = document.createElement('div')
             const sectionTitle = document.createTextNode(section.name)

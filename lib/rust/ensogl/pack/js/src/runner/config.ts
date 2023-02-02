@@ -38,11 +38,11 @@ export type OptionValue = string | boolean | number | (string | null)
 export type OptionType = 'string' | 'boolean' | 'number'
 
 /** Configuration parameter. */
-export class Option {
+export class Option<T> {
     name = 'uninitialized'
     group = 'uninitialized'
-    default: OptionValue
-    value: OptionValue
+    default: T
+    value: T
     type: OptionType
     description: string
     /** The description of the default argument that should be shown to the user. For example,
@@ -55,7 +55,7 @@ export class Option {
      * options will be displayed on-demand only. */
     primary = true
     constructor(cfg: {
-        default: OptionValue
+        default: T
         type: OptionType
         description: string
         defaultDescription?: string
@@ -74,266 +74,131 @@ export class Option {
     qualifiedName(): string {
         return this.group && this.group != this.name ? `${this.group}.${this.name}` : this.name
     }
-
-    load(input: string) {
-        if (this.type === 'boolean') {
-            const newVal = parseBoolean(input)
-            if (newVal == null) {
-                this.printValueUpdateError(input)
-            } else {
-                this.value = newVal
-                this.setByUser = true
-            }
-        } else if (this.type == 'number') {
-            const newVal = Number(input)
-            if (isNaN(newVal)) {
-                this.printValueUpdateError(input)
-            } else {
-                this.value = newVal
-                this.setByUser = true
-            }
-        } else {
-            this.value = String(input)
-            this.setByUser = true
-        }
-    }
-
-    printValueUpdateError(value: any) {
-        console.error(
-            `The provided value for '${this.qualifiedName()}' is invalid. Expected ${this.type}, \
-            got '${value}'. Using the default value '${String(this.default)}' instead.`
-        )
-    }
 }
 
-// ===============
+// ==============
 // === Options ===
-// ===============
+// ==============
 
-interface GroupLike {
-    description?: string
-    options?: Record<string, Option>
-    groups?: Record<string, GroupLike>
+export type ExternalConfig = Record<string, OptionValue>
+
+export class OptionGroups {
+    static loader = 'loader'
+    static startup = 'startup'
+    static debug = 'debug'
 }
 
-class Group {
-    description: string
-    options: Record<string, Option>
-    groups: Record<string, Group>
-    constructor(cfg: {
-        description: string
-        options?: Record<string, Option>
-        groups?: Record<string, Group>
-    }) {
-        this.description = cfg.description
-        this.options = cfg.options ?? {}
-        this.groups = cfg.groups ?? {}
-    }
+export type ExternalOptions = Record<string, Record<string, Option<OptionValue>>>
 
-    read(path: string): null | Option {}
-
-    read_from_path_array(path: string[]): null | Option {
-        const head = path[0]
-        if (head == null) {
-            return null
-        } else if (path.length == 1) {
-            return this.options[path[0]] ?? null
-        } else {
-            const group = this.groups[path[0]]
-            if (group == null) {
-                return null
-            } else {
-                return group.read_from_path_array(path.slice(1))
-            }
-        }
-    }
-
-    load(config: unknown): void {
-        if (typeof config == 'object' && config != null) {
-            for (const [name, value] of Object.entries(config)) {
-                if (typeof value == 'string') {
-                    const option = this.options[name]
-                    if (option != null) {
-                        option.load(value)
-                    } else {
-                        console.error('TODO')
-                    }
-                }
-            }
-        } else {
-            console.error('TODO')
-        }
-    }
-
-    static fromGroupLike(input: GroupLike): Group {
-        let description = 'No description provided.'
-        if (input.description == null) {
-            logger.warn(`Group without description.`)
-        } else {
-            description = input.description
-        }
-        const options = input.options ?? {}
-        const groups: Record<string, Group> = {}
-        if (input.groups != null) {
-            for (const [name, group] of Object.entries(input.groups)) {
-                groups[name] = Group.fromGroupLike(group)
-            }
-        }
-        return new Group({ description, options, groups })
-    }
-
-    merge(other?: GroupLike): Group {
-        if (other == null) {
-            return this
-        } else {
-            const options = { ...this.options }
-            if (other.options != null) {
-                for (const [name, option] of Object.entries(other.options)) {
-                    const existingOption = options[name]
-                    if (existingOption) {
-                        logger.warn(`Duplicate option found: '${existingOption.qualifiedName()}'.`)
-                    }
-                    options[name] = option
-                }
-            }
-            const groups = { ...this.groups }
-            if (other.groups != null) {
-                for (const [name, group] of Object.entries(other.groups)) {
-                    const existingGroup = groups[name]
-                    if (existingGroup) {
-                        groups[name] = existingGroup.merge(group)
-                    } else {
-                        groups[name] = Group.fromGroupLike(group)
-                    }
-                }
-            }
-            // FIXME: check for double description
-            return new Group({
-                description: this.description,
-                options,
-                groups,
-            })
-        }
-    }
-}
-
-/** Application default configuration. Users of this library can extend it with their own options. */
-export const options = new Group({
-    description: 'Application configuration.',
-    groups: {
-        loader: new Group({
-            description: 'JS and WASM Loader.',
-            options: {
-                enabled: new Option({
-                    type: 'boolean',
-                    default: true,
-                    description:
-                        'Controls whether the visual loader should be visible on the screen when ' +
-                        'downloading and compiling WASM sources. By default, the loader is used only if ' +
-                        `the \`entry\` is set to ${DEFAULT_ENTRY_POINT}.`,
-                    primary: false,
-                }),
-                pkgWasmUrl: new Option({
-                    type: 'string',
-                    default: 'pkg.wasm',
-                    description: 'The URL of the WASM pkg file generated by ensogl-pack.',
-                    primary: false,
-                }),
-                pkgJsUrl: new Option({
-                    type: 'string',
-                    default: 'pkg.js',
-                    description: 'The URL of the JS pkg file generated by ensogl-pack.',
-                    primary: false,
-                }),
-                shadersUrl: new Option({
-                    type: 'string',
-                    default: 'shaders',
-                    description: 'The URL of pre-compiled the shaders directory.',
-                    primary: false,
-                }),
-                loaderDownloadToInitRatio: new Option({
-                    type: 'number',
-                    default: 1.0,
-                    description:
-                        'The (time needed for WASM download) / (total time including WASM ' +
-                        'download and WASM app initialization). In case of small WASM apps, this can be set ' +
-                        'to 1.0. In case of bigger WASM apps, it is desired to show the progress bar growing ' +
-                        'up to e.g. 70% and leaving the last 30% for WASM app init.',
-                    primary: false,
-                }),
-                maxBeforeMainTimeMs: new Option({
-                    type: 'number',
-                    default: 300,
-                    description:
-                        'The maximum time in milliseconds a before main entry point is allowed to run. After ' +
-                        'this time, an error will be printed, but the execution will continue.',
-                    primary: false,
-                }),
-            },
+/** Application default configuration. Users of this library can extend it with their own
+ * options. */
+export const options = {
+    loader: {
+        enabled: new Option<boolean>({
+            type: 'boolean',
+            default: true,
+            description:
+                'Controls whether the visual loader should be visible on the screen when ' +
+                'downloading and compiling WASM sources. By default, the loader is used only if ' +
+                `the \`entry\` is set to ${DEFAULT_ENTRY_POINT}.`,
+            primary: false,
         }),
-        // === Application Startup Options ===
-
-        startup: new Group({
-            description: 'bar',
-            options: {
-                entry: new Option({
-                    type: 'string',
-                    default: DEFAULT_ENTRY_POINT,
-                    description:
-                        'The application entry point. Use `entry=_` to list available entry points.',
-                }),
-                theme: new Option({
-                    type: 'string',
-                    default: 'default',
-                    description: 'The EnsoGL theme to be used.',
-                }),
-            },
+        pkgWasmUrl: new Option<string>({
+            type: 'string',
+            default: 'pkg.wasm',
+            description: 'The URL of the WASM pkg file generated by ensogl-pack.',
+            primary: false,
         }),
-
-        debug: new Group({
-            description: 'baz',
-            options: {
-                debug: new Option({
-                    type: 'boolean',
-                    default: false,
-                    description:
-                        'Controls whether the application should be run in the debug mode. In this mode all ' +
-                        'logs are printed to the console. Otherwise, the logs are hidden unless explicitly ' +
-                        'shown by calling `showLogs`. Moreover, EnsoGL extensions are loaded in the debug ' +
-                        'mode which may cause additional logs to be printed.',
-                }),
-                enableSpector: new Option({
-                    type: 'boolean',
-                    default: false,
-                    description:
-                        'Enables SpectorJS. This is a temporary flag to test Spector. It will be removed ' +
-                        'after all Spector integration issues are resolved. See: ' +
-                        'https://github.com/BabylonJS/Spector.js/issues/252.',
-                    primary: false,
-                }),
-            },
+        pkgJsUrl: new Option<string>({
+            type: 'string',
+            default: 'pkg.js',
+            description: 'The URL of the JS pkg file generated by ensogl-pack.',
+            primary: false,
+        }),
+        shadersUrl: new Option<string>({
+            type: 'string',
+            default: 'shaders',
+            description: 'The URL of pre-compiled the shaders directory.',
+            primary: false,
+        }),
+        loaderDownloadToInitRatio: new Option<number>({
+            type: 'number',
+            default: 1.0,
+            description:
+                'The (time needed for WASM download) / (total time including WASM ' +
+                'download and WASM app initialization). In case of small WASM apps, this can be set ' +
+                'to 1.0. In case of bigger WASM apps, it is desired to show the progress bar growing ' +
+                'up to e.g. 70% and leaving the last 30% for WASM app init.',
+            primary: false,
+        }),
+        maxBeforeMainTimeMs: new Option<number>({
+            type: 'number',
+            default: 300,
+            description:
+                'The maximum time in milliseconds a before main entry point is allowed to run. After ' +
+                'this time, an error will be printed, but the execution will continue.',
+            primary: false,
         }),
     },
-})
 
-// export function mergeOptions<T1 extends Options, T2 extends Options>(
-//     opts1: T1,
-//     opts2: T2
-// ): T1 & T2 {
-//     const result: ExternalOptions = {}
+    // === Application Startup Options ===
 
-//     for (const [group, options] of Object.entries(opts1)) {
-//         result[group] = options
-//     }
-//     for (const [group, options] of Object.entries(opts2)) {
-//         if (result[group]) {
-//             result[group] = { ...result[group], ...options }
-//         } else {
-//             result[group] = options
-//         }
-//     }
-//     return result as T1 & T2
-// }
+    startup: {
+        entry: new Option<string>({
+            type: 'string',
+            default: DEFAULT_ENTRY_POINT,
+            description:
+                'The application entry point. Use `entry=_` to list available entry points.',
+        }),
+        theme: new Option<string>({
+            type: 'string',
+            default: 'default',
+            description: 'The EnsoGL theme to be used.',
+        }),
+    },
+
+    debug: {
+        debug: new Option<boolean>({
+            type: 'boolean',
+            default: false,
+            description:
+                'Controls whether the application should be run in the debug mode. In this mode all ' +
+                'logs are printed to the console. Otherwise, the logs are hidden unless explicitly ' +
+                'shown by calling `showLogs`. Moreover, EnsoGL extensions are loaded in the debug ' +
+                'mode which may cause additional logs to be printed.',
+        }),
+        enableSpector: new Option<boolean>({
+            type: 'boolean',
+            default: false,
+            description:
+                'Enables SpectorJS. This is a temporary flag to test Spector. It will be removed ' +
+                'after all Spector integration issues are resolved. See: ' +
+                'https://github.com/BabylonJS/Spector.js/issues/252.',
+            primary: false,
+        }),
+    },
+}
+
+export type Options = typeof options & ExternalOptions
+
+export function mergeOptions<T1 extends Options, T2 extends Options>(
+    opts1: T1,
+    opts2: T2
+): T1 & T2 {
+    const result: ExternalOptions = {}
+
+    for (const [group, options] of Object.entries(opts1)) {
+        result[group] = options
+    }
+    for (const [group, options] of Object.entries(opts2)) {
+        if (result[group]) {
+            result[group] = { ...result[group], ...options }
+        } else {
+            result[group] = options
+        }
+    }
+    return result as T1 & T2
+}
 
 // ==============
 // === Config ===
@@ -345,10 +210,16 @@ export const options = new Group({
  * it is possible to extend the provided option list with custom options. See the `extend` method
  * to learn more. */
 export class Config {
-    options: Group
+    options: Options
 
-    constructor(inputOptions?: GroupLike) {
-        this.options = options.merge(inputOptions)
+    constructor(inputOptions?: Options) {
+        this.options = inputOptions || options
+        for (const [group, options] of Object.entries(this.options)) {
+            for (const [name, option] of Object.entries(options)) {
+                option.group = group
+                option.name = name
+            }
+        }
     }
 
     /** Resolve the configuration from the provided record list.
@@ -358,7 +229,7 @@ export class Config {
         for (const override of overrides) {
             if (override != null) {
                 for (const [group, options] of Object.entries(override)) {
-                    const overridesGroup = allOverrides[group] ?? {}
+                    const overridesGroup = allOverrides[group] || {}
                     allOverrides[group] = Object.assign(overridesGroup, options)
                 }
             }
@@ -370,9 +241,56 @@ export class Config {
 
     /** Resolve the configuration from the provided record.
      * @returns list of unrecognized parameters. */
-    resolveFromObject(other: unknown): null | string[] {
-        this.options.load(other)
-        return null
+    resolveFromObject(other: Record<string, Record<string, any>>): null | string[] {
+        const paramsToBeAssigned = new Map(
+            Object.entries(other).map(([group, options]) => [group, new Set(Object.keys(options))])
+        )
+        for (const [group, options] of Object.entries(this.options)) {
+            const otherGroup = other[group]
+            const groupOfParamsToBeAssigned = paramsToBeAssigned.get(group)
+            if (otherGroup != null && groupOfParamsToBeAssigned != null) {
+                for (const key of Object.keys(options)) {
+                    groupOfParamsToBeAssigned.delete(key)
+                    const otherVal: unknown = otherGroup[key]
+                    const option = options[key]
+                    if (option != null && otherVal != null) {
+                        const selfVal = option.value
+                        if (typeof selfVal === 'boolean') {
+                            const newVal = parseBoolean(otherVal)
+                            if (newVal == null) {
+                                this.printValueUpdateError(key, selfVal, otherVal)
+                            } else {
+                                option.value = newVal
+                                option.setByUser = true
+                            }
+                        } else if (typeof selfVal == 'number') {
+                            const newVal = Number(otherVal)
+                            if (isNaN(newVal)) {
+                                this.printValueUpdateError(key, selfVal, otherVal)
+                            } else {
+                                option.value = newVal
+                                option.setByUser = true
+                            }
+                        } else {
+                            option.value = String(otherVal)
+                            option.setByUser = true
+                        }
+                    }
+                }
+            }
+        }
+
+        const x = Array.from(paramsToBeAssigned.entries())
+        const unrecognized = x.flatMap(([group, options]) =>
+            Array.from(options.values(), option =>
+                group === option ? group : group + '.' + option
+            )
+        )
+        if (unrecognized.length > 0) {
+            return unrecognized
+        } else {
+            return null
+        }
     }
 
     /** Finalize the configuration. Set some default options based on the provided values. */
