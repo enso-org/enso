@@ -8,6 +8,7 @@ use aws_sdk_s3::types::ByteStream;
 use bytes::Buf;
 use enso_build_base::extensions::path::SplitFilename;
 use mime::Mime;
+use walkdir::WalkDir;
 
 
 // ==============
@@ -84,8 +85,44 @@ impl BucketContext {
     pub async fn put_file(&self, path: impl AsRef<Path>) -> Result<PutObjectOutput> {
         let path = path.as_ref();
         let stream = ByteStream::from_path(path).await?;
-        let path = path.file_name().with_context(|| format!("Path {:?} has no file name", path))?;
+        let path = path.try_file_name()?;
         self.put(path.as_str(), stream).await
+    }
+
+    /// Put the file at `path` to the S3 bucket. The key will be suffixed with the relative path
+    /// between `root` and `path`.
+    #[instrument(fields(path = %path.as_ref().display(), root = %root.as_ref().display()))]
+    pub async fn put_subtree_file(
+        &self,
+        root: impl AsRef<Path>,
+        path: impl AsRef<Path>,
+    ) -> Result<PutObjectOutput> {
+        let root = root.as_ref().absolutize()?;
+        let path = path.as_ref().absolutize()?;
+        let key_suffix = path.strip_prefix(&root).with_context(|| {
+            format!("{} is not a subpath of {}.", root.display(), path.display())
+        })?;
+        let stream = ByteStream::from_path(&path).await?;
+        self.put(key_suffix.as_str(), stream).await
+    }
+
+    /// Put an item to the S3 bucket.
+    ///
+    /// If the path is a file, it will be uploaded as is. If it is a directory, it will be uploaded
+    /// as a subtree.
+    pub async fn put_item(&self, path: impl AsRef<Path>) -> Result {
+        if ide_ci::fs::tokio::metadata(path.as_ref()).await?.is_dir() {
+            let parent = path.try_parent()?;
+            for entry in WalkDir::new(&path) {
+                let entry = entry?;
+                if entry.file_type().is_file() {
+                    self.put_subtree_file(&parent, &entry.path()).await?;
+                }
+            }
+        } else {
+            self.put_file(path).await?;
+        }
+        Ok(())
     }
 
     pub async fn get_yaml<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
