@@ -28,6 +28,7 @@ use serde::Serialize;
 pub enum Kind {
     Panic,
     Dataflow,
+    Warning,
 }
 
 /// Additional error information (beside the error value itself) for some erroneous node.
@@ -50,6 +51,11 @@ impl Error {
             kind:    Some(*self.kind),
             message: self.message.as_ref().as_ref()?.clone(),
         })
+    }
+
+    /// Whether we should display the error in a special error visualization attached to the node.
+    pub fn should_display(&self) -> bool {
+        !matches!(*self.kind, Kind::Warning)
     }
 }
 
