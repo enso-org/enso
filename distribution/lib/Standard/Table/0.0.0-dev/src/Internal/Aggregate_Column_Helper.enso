@@ -52,7 +52,6 @@ prepare_aggregate_columns aggregates table error_on_missing_columns =
     # Key resolution always errors on missing, regardless of any settings.
     keys_problem_builder = Problem_Builder.new error_on_missing_columns=True
     resolved_keys = keys.map (resolve_aggregate table keys_problem_builder)
-    key_columns = resolved_keys.map .column
 
     ## Since `keys_problem_builder` has `error_on_missing_columns` set to `True`,
        any missing columns will be reported as errors. Therefore, we can assume
@@ -63,6 +62,7 @@ prepare_aggregate_columns aggregates table error_on_missing_columns =
         valid_resolved_aggregate_columns = aggregates.map (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
 
         # Grouping Key
+        key_columns = resolved_keys.map .column
         unique_key_columns = key_columns.distinct (on = .name)
 
         # Resolve Names
@@ -82,7 +82,7 @@ prepare_aggregate_columns aggregates table error_on_missing_columns =
             True -> Error.throw No_Output_Columns
             False ->
                 problem_builder.report_unique_name_strategy unique
-                Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.build_problemset
+                Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.get_problemset_throwing_distinguished_errors
 
 ## PRIVATE
    Defines the default name of an `Aggregate_Column`.
