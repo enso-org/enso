@@ -42,13 +42,14 @@ type Validated_Aggregate_Columns
    - resolves the column descriptors, reporting any issues,
    - ensures that the output names are unique,
    - finds the key columns.
-prepare_aggregate_columns : Vector Aggregate_Column -> Table -> Problem_Behavior -> Validated_Aggregate_Columns
-prepare_aggregate_columns aggregates table =
+prepare_aggregate_columns : Vector Aggregate_Column -> Table -> Boolean -> Validated_Aggregate_Columns
+prepare_aggregate_columns aggregates table error_on_missing_columns =
     is_a_key c = case c of
         Aggregate_Column.Group_By _ _ -> True
         _ -> False
 
     keys = aggregates.filter is_a_key
+    # Key resolution always errors on missing, regardless of any settings.
     keys_problem_builder = Problem_Builder.new error_on_missing_columns=True
     resolved_keys = keys.map (resolve_aggregate table keys_problem_builder)
     key_columns = resolved_keys.map .column
@@ -58,7 +59,7 @@ prepare_aggregate_columns aggregates table =
        that all the columns were present.
     keys_problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
         # assert resolved_keys.find .is_nothing . is_nothing . not then
-        problem_builder = Problem_Builder.new
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         valid_resolved_aggregate_columns = aggregates.map (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
 
         # Grouping Key

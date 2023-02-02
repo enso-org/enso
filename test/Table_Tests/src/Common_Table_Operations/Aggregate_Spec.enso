@@ -1212,9 +1212,13 @@ spec setup =
             err2.should_fail_with Missing_Input_Columns
             err2.catch.criteria.should_equal ["Unknown", "Other Missing"]
 
-            err3 = table.aggregate [Group_By 100, Group_By "Index", Group_By -42] on_problems=Problem_Behavior.Ignore
-            err3.should_fail_with Column_Indexes_Out_Of_Range
-            err3.catch.indexes.should_equal [100, -42]
+            err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err3.should_fail_with Missing_Input_Columns
+            err3.catch.criteria.should_equal ["Missing"]
+
+            err4 = table.aggregate [Group_By 100, Group_By "Index", Group_By -42] on_problems=Problem_Behavior.Ignore
+            err4.should_fail_with Column_Indexes_Out_Of_Range
+            err4.catch.indexes.should_equal [100, -42]
 
             action2 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=_
             problems2 = [Column_Indexes_Out_Of_Range.Error [42]]
@@ -1222,9 +1226,18 @@ spec setup =
             Problems.test_problem_handling action2 problems2 tester2
 
             # As above, missing errors from group-by take precedence over aggregates.
-            err4 = table.aggregate [Group_By "Index", Group_By 55, Sum "Value", Sum 144, Group_By -33] on_problems=Problem_Behavior.Report_Error
-            err4.should_fail_with Column_Indexes_Out_Of_Range
-            err4.catch.indexes.should_equal [55, -33]
+            err5 = table.aggregate [Group_By "Index", Group_By 55, Sum "Value", Sum 144, Group_By -33] on_problems=Problem_Behavior.Report_Error
+            err5.should_fail_with Column_Indexes_Out_Of_Range
+            err5.catch.indexes.should_equal [55, -33]
+
+            err6 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err6.catch . should_equal (Column_Indexes_Out_Of_Range.Error [42])
+
+            # Prefer missing columns over out of range columns.
+            err7 = table.aggregate [Group_By "Index", Group_By "NOTFOUND", Sum "Value", Sum "Missing", Group_By -33] on_problems=Problem_Behavior.Ignore
+            err7.catch . should_equal (Missing_Input_Columns.Error ["NOTFOUND"])
+            err8 = table.aggregate [Group_By "Index", Sum "Value", Sum 42, Sum "Missing"] on_problems=Problem_Behavior.Report_Error
+            err8.catch . should_equal (Missing_Input_Columns.Error ["Missing"])
 
         Test.specify "should raise a warning when an invalid output name" <|
             action = table.aggregate [Group_By "Index" ""] on_problems=_
