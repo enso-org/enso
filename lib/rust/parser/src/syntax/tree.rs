@@ -499,6 +499,8 @@ pub struct DocComment<'s> {
 }
 
 impl<'s> DocComment<'s> {
+    /// Return the source code for the comment, excluding any initial indent, and the one mandatory
+    /// newline. If blank lines occur between the comment and the item, they will be represented.
     pub fn code(&self) -> String {
         let mut buf = String::new();
         macro_rules! emit_token {
@@ -507,7 +509,7 @@ impl<'s> DocComment<'s> {
                 $buf.push_str(&$token.code.repr);
             }};
         }
-        emit_token!(buf, &self.open);
+        buf.push_str(&self.open.code.repr);
         for element in &self.elements {
             match element {
                 TextElement::Section { text } => emit_token!(buf, text),
@@ -517,7 +519,7 @@ impl<'s> DocComment<'s> {
                 TextElement::Splice { .. } => continue,
             }
         }
-        for token in &self.newlines {
+        for token in &self.newlines[1..] {
             emit_token!(buf, token);
         }
         buf

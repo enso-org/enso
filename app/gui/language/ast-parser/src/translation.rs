@@ -133,7 +133,7 @@ impl Translate {
         WithInitialSpace { space, body }
     }
 
-    fn translate_lines(&self, tree: &Tree, mut out: impl Extend<WithInitialSpace<Ast>>) {
+    fn translate_lines(&self, tree: &Tree, out: &mut impl Extend<WithInitialSpace<Ast>>) {
         match &*tree.variant {
             tree::Variant::AnnotatedBuiltin(tree::AnnotatedBuiltin {
                 token,
@@ -143,21 +143,21 @@ impl Translate {
             }) if !newlines.is_empty() => todo!(),
             tree::Variant::Annotated(_) => todo!(),
             tree::Variant::Documented(tree::Documented { documentation, expression }) => {
-                out.extend_one(self.translate_doc(documentation));
+                let space = tree.span.left_offset.visible.width_in_spaces;
+                let body = self.translate_doc(documentation);
+                out.extend_one(WithInitialSpace { space, body });
                 out.extend(expression.as_ref().map(|e| self.translate(e)));
             }
             _ => out.extend_one(self.translate(tree)),
         }
     }
 
-    fn translate_doc(&self, documentation: &tree::DocComment) -> WithInitialSpace<Ast> {
+    fn translate_doc(&self, documentation: &tree::DocComment) -> Ast {
         let token = ast::RawSpanTree::Token(documentation.code());
-        let rendered = documentation.code(); // TODO: render
+        let rendered = documentation.code().into(); // TODO: render
         let type_info = ast::TreeType::Documentation { rendered };
         let span_info = vec![token];
-        let space = 0; // TODO
-        let body = Ast::from(ast::Tree { span_info, type_info });
-        WithInitialSpace { space, body }
+        Ast::from(ast::Tree { span_info, type_info })
     }
 
     fn translate_function(&self, function: &tree::Function) -> Ast {
@@ -257,14 +257,7 @@ impl Translate {
     }
 
     fn translate_module(&self, block: &tree::BodyBlock) -> Ast {
-        let lines: Vec<_> = block
-            .statements
-            .iter()
-            .map(|line| ast::BlockLine {
-                elem: line.expression.as_ref().map(|e| self.translate(e).without_space()),
-                off:  0,
-            })
-            .collect();
+        let (lines, _) = self.translate_block_raw(&block.statements);
         Ast::from(ast::Module { lines })
     }
 
@@ -272,37 +265,58 @@ impl Translate {
         &self,
         tree_lines: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
     ) -> Option<ast::Block<Ast>> {
-        let tree_lines = tree_lines.into_iter();
-        let mut ast_lines = Vec::with_capacity(tree_lines.size_hint().0);
-        for line in tree_lines {
-            ast_lines.push(line.expression.as_ref().map(|e| self.translate(e)));
-        }
-        let mut indent = 0;
+        let (ast_lines, indent) = self.translate_block_raw(tree_lines);
+        let indent = indent?;
+        debug_assert_ne!(indent, 0);
         let mut empty_lines = vec![];
         let mut first_line = None;
         let mut lines = vec![];
-        for elem in ast_lines {
+        for line in ast_lines {
             if first_line.is_none() {
-                if let Some(elem) = elem {
-                    let (off0, elem) = elem.split();
-                    indent = off0;
-                    first_line = Some(ast::BlockLine { elem, off: 0 });
+                if let Some(elem) = line.elem {
+                    first_line = Some(ast::BlockLine { elem, off: line.off });
                 } else {
                     empty_lines.push(0); // lossy
                 }
             } else {
-                let elem = elem.map(|e| e.without_space());
-                lines.push(ast::BlockLine { elem, off: 0 });
+                lines.push(line);
             }
         }
         let first_line = first_line?;
         Some(ast::Block { indent, empty_lines, first_line, lines })
     }
 
+    fn translate_block_raw<'a, 's: 'a>(
+        &self,
+        tree_lines: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
+    ) -> (Vec<ast::BlockLine<Option<Ast>>>, Option<usize>) {
+        let tree_lines = tree_lines.into_iter();
+        let mut ast_lines = Vec::with_capacity(tree_lines.size_hint().0);
+        let mut statement_lines = vec![];
+        let mut initial_indent = None;
+        for statement in tree_lines {
+            match &statement.expression {
+                Some(statement) => {
+                    self.translate_lines(statement, &mut statement_lines);
+                    if initial_indent.is_none() && let Some(first) = statement_lines.first() {
+                        initial_indent = Some(first.space);
+                    }
+                    let new_lines = statement_lines
+                        .drain(..)
+                        .map(|elem| ast::BlockLine { elem: Some(elem.without_space()), off: 0 });
+                    ast_lines.extend(new_lines);
+                }
+                None => ast_lines.push(ast::BlockLine { elem: None, off: 0 }),
+            }
+        }
+        (ast_lines, initial_indent)
+    }
+
     fn translate_operator_block<'a, 's: 'a>(
         &self,
         operator_lines: impl IntoIterator<Item = &'a tree::block::OperatorLine<'s>>,
     ) -> Ast {
+        // TODO: support doc comments
         let mut indent = 0;
         let mut empty_lines = vec![];
         let mut first_line = None;

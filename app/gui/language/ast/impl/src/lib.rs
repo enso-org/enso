@@ -16,8 +16,6 @@ use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
 
-use serde::de::Deserializer;
-use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::ser::Serializer;
 use serde::Serialize;
@@ -495,7 +493,7 @@ pub enum Shape<T> {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum TreeType {
-    Documentation { rendered: String },
+    Documentation { rendered: ImString },
     Expression,
 }
 

@@ -7,7 +7,7 @@ use crate::crumbs::Located;
 use crate::crumbs::MatchCrumb;
 use crate::known;
 use crate::BlockLine;
-use crate::Shifted;
+
 
 
 // ==============
@@ -65,26 +65,24 @@ pub fn is_disable_comment(ast: &Ast) -> bool {
 /// Describes the AST of a documentation comment.
 #[derive(Clone, Debug)]
 pub struct DocumentationCommentAst {
-    ast:  known::Match,
-    body: crate::MacroPatternMatch<Shifted<Ast>>,
+    ast:      known::Tree,
+    rendered: ImString,
 }
 
 impl DocumentationCommentAst {
     /// Interpret given Ast as a documentation comment. Return `None` if it is not recognized.
     pub fn new(ast: &Ast) -> Option<Self> {
-        let ast = crate::known::Match::try_from(ast).ok()?;
-        let first_segment = &ast.segs.head;
-        let introducer = crate::identifier::name(&first_segment.head)?;
-        if introducer == DOCUMENTATION_COMMENT_INTRODUCER {
-            let body = first_segment.body.clone_ref();
-            Some(DocumentationCommentAst { ast, body })
+        let ast = crate::known::Tree::try_from(ast).ok()?;
+        if let crate::TreeType::Documentation { rendered } = &ast.type_info {
+            let rendered = rendered.clone();
+            Some(DocumentationCommentAst { ast, rendered })
         } else {
             None
         }
     }
 
     /// Get the documentation comment's AST.
-    pub fn ast(&self) -> known::Match {
+    fn ast(&self) -> known::Tree {
         self.ast.clone_ref()
     }
 }
@@ -93,12 +91,11 @@ impl DocumentationCommentAst {
 // === Line Description ===
 
 /// Describes the line with a documentation comment.
-#[derive(Clone, Debug, Deref)]
+#[derive(Clone, Debug)]
 pub struct DocumentationCommentLine {
     /// Stores the documentation AST and the trailing whitespace length.
-    #[deref]
-    line: BlockLine<known::Match>,
-    body: crate::MacroPatternMatch<Shifted<Ast>>,
+    line:     BlockLine<known::Tree>,
+    rendered: ImString,
 }
 
 impl DocumentationCommentLine {
@@ -110,22 +107,22 @@ impl DocumentationCommentLine {
 
     /// Treat given documentation AST as the line with a given trailing whitespace.
     pub fn from_doc_ast(ast_doc: DocumentationCommentAst, off: usize) -> Self {
-        Self { line: BlockLine { elem: ast_doc.ast, off }, body: ast_doc.body }
+        Self { line: BlockLine { elem: ast_doc.ast, off }, rendered: ast_doc.rendered }
     }
 
     /// Get the documentation comment's AST.
-    pub fn ast(&self) -> known::Match {
+    fn ast(&self) -> known::Tree {
         self.line.elem.clone_ref()
     }
 
     /// Get the line with this comment.
-    pub fn line(&self) -> &BlockLine<known::Match> {
+    fn line(&self) -> &BlockLine<known::Tree> {
         &self.line
     }
 
     /// Convenience function that throws away some information to return the line description that
     /// is used in AST blocks.
-    pub fn block_line(&self) -> BlockLine<Option<Ast>> {
+    fn block_line(&self) -> BlockLine<Option<Ast>> {
         self.line.as_ref().map(|known_ast| Some(known_ast.ast().clone_ref()))
     }
 }
@@ -135,10 +132,9 @@ impl DocumentationCommentLine {
 
 /// Structure holding the documentation comment AST and related information necessary to deal with
 /// them.
-#[derive(Clone, Debug, Deref)]
+#[derive(Clone, Debug)]
 pub struct DocumentationCommentInfo {
     /// Description of the line with the documentation comment.
-    #[deref]
     pub line:         DocumentationCommentLine,
     /// The absolute indent of the block that contains the line with documentation comment.
     pub block_indent: usize,
@@ -150,18 +146,28 @@ impl DocumentationCommentInfo {
         Some(Self { line: DocumentationCommentLine::new(line)?, block_indent })
     }
 
+    /// Get the line with this comment.
+    pub fn line(&self) -> &BlockLine<known::Tree> {
+        self.line.line()
+    }
+
+    /// Get the documentation comment's AST.
+    pub fn ast(&self) -> known::Tree {
+        self.line.line.elem.clone_ref()
+    }
+
+    /// Convenience function that throws away some information to return the line description that
+    /// is used in AST blocks.
+    pub fn block_line(&self) -> BlockLine<Option<Ast>> {
+        self.line.block_line()
+    }
+
     /// Get the documentation text.
     ///
-    /// The text is pretty printed as per UI perspective -- all lines leading whitespace is stripped
-    /// up to the column following comment introducer (`##`).
-    pub fn pretty_text(&self) -> String {
-        let mut repr = self.body.repr();
-        // Trailing whitespace must be maintained.
-        repr.extend(std::iter::repeat(' ').take(self.line.off));
-        let indent = self.block_indent + DOCUMENTATION_COMMENT_INTRODUCER.len();
-        let old = format!("\n{}", " ".repeat(indent));
-        let new = "\n";
-        repr.replace(&old, new)
+    /// The text is pretty printed as per UI perspective--leading whitespace is stripped from all
+    /// lines up to the column following comment introducer (`##`).
+    pub fn pretty_text(&self) -> ImString {
+        self.line.rendered.clone()
     }
 
     /// Generates the source code text of the comment line from a pretty text.
@@ -173,13 +179,6 @@ impl DocumentationCommentInfo {
         let other_lines = lines.map(|line| format!("{indent}  {line}"));
         let mut out_lines = std::iter::once(first_line).chain(other_lines);
         out_lines.join("\n")
-    }
-}
-
-
-impl AsRef<Ast> for DocumentationCommentInfo {
-    fn as_ref(&self) -> &Ast {
-        self.line.elem.ast()
     }
 }
 

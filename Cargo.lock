@@ -137,7 +137,6 @@ dependencies = [
  "lazy_static",
  "regex",
  "serde",
- "serde_json",
  "uuid 0.8.2",
 ]
 
