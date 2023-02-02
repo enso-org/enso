@@ -509,7 +509,7 @@ fn extract_main_shader_code(code: &str) -> Result<String> {
         .collect();
     let declarations = declarations.join("\n");
     let main_content = &code[main_start + main_start_str.len()..main_end];
-    Ok(format!("{}\n{}", declarations, main_content))
+    Ok(format!("{declarations}\n{main_content}"))
 }
 
 /// Wrapper over `wasm-pack build` command.

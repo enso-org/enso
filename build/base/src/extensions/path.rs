@@ -56,7 +56,7 @@ pub trait PathExt: AsRef<Path> {
     #[context("Failed to deserialize file `{}` as type `{}`.", self.as_ref().display(), std::any::type_name::<T>())]
     fn read_to_json<T: DeserializeOwned>(&self) -> Result<T> {
         let content = crate::fs::read_to_string(self)?;
-        serde_json::from_str(&content).with_context(|| format!("File content was: {}", content))
+        serde_json::from_str(&content).with_context(|| format!("File content was: {content}"))
     }
 
     /// Write this file with a JSON-serialized value.

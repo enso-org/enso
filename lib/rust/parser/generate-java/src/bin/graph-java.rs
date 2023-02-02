@@ -28,5 +28,5 @@ fn main() {
     let (graph, _) = java::from_meta(&graph, enso_parser_generate_java::EITHER_TYPE);
     let graph = java::transform::optional_to_null(graph);
     let rendered = graphviz::Graph::from(&graph);
-    println!("{}", rendered);
+    println!("{rendered}");
 }

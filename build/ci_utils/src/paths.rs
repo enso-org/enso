@@ -124,7 +124,7 @@ impl<'a> Generator<'a> {
             .iter()
             .find(|node| node.matches_ref(r#type))
             .copied()
-            .context(format!("Could not find node for type reference: {}", r#type))
+            .context(format!("Could not find node for type reference: {type}"))
     }
 
     pub fn generate(&mut self) -> Result<TokenStream> {

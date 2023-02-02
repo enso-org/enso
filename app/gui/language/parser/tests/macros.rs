@@ -21,7 +21,7 @@ fn import_utilities() {
     let parser = Parser::new_or_panic();
     let expect_import = |code: &str| {
         let ast = parser.parse_line_ast(code).unwrap();
-        assert!(is_ast_import(&ast), "Not Ast import: {:?}", ast);
+        assert!(is_ast_import(&ast), "Not Ast import: {ast:?}");
         let ast_match = ast_as_import_match(&ast).unwrap();
         assert_eq!(&ast, ast_match.ast());
         assert!(is_match_import(&ast_match));

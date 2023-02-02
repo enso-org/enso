@@ -69,7 +69,7 @@ impl<T> Default for State<T> {
 impl<T> Debug for State<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = if *self == Self::INVALID { "INVALID".into() } else { format!("{:?}", self.id) };
-        write!(f, "State({})", name)
+        write!(f, "State({name})")
     }
 }
 

@@ -53,7 +53,7 @@ impl Display for Metadata {
             Metadata::RpcEvent(name) => f.collect_str(name),
             Metadata::RpcRequest(method) => f.collect_str(&method.to_string()),
             Metadata::BackendMessage(backend::Message { endpoint, .. }) => f.collect_str(endpoint),
-            Metadata::RenderStats(stats) => f.collect_str(&format!("{:#?}", stats)),
+            Metadata::RenderStats(stats) => f.collect_str(&format!("{stats:#?}")),
         }
     }
 }

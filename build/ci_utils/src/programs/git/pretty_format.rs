@@ -167,7 +167,7 @@ impl Display for Placeholder {
         match self {
             Placeholder::Newline => write!(f, "%n"),
             Placeholder::Percent => write!(f, "%%"),
-            Placeholder::HexCode(code) => write!(f, "%{:02x}", code),
+            Placeholder::HexCode(code) => write!(f, "%{code:02x}"),
             Placeholder::Hash => write!(f, "%H"),
             Placeholder::AbbreviatedHash => write!(f, "%h"),
             Placeholder::TreeHash => write!(f, "%T"),

@@ -178,7 +178,7 @@ impl Model {
         let messages = default();
 
         let styles = StyleWatch::new(&scene.style_sheet);
-        let padding_text = format!("{}px", PADDING_TEXT);
+        let padding_text = format!("{PADDING_TEXT}px");
 
         dom.dom().set_attribute_or_warn("class", "visualization scrollable");
         dom.dom().set_style_or_warn("overflow-x", "hidden");
