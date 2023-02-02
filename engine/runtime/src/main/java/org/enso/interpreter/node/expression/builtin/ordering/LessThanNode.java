@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
@@ -35,7 +36,7 @@ public abstract class LessThanNode extends Node {
     return LessThanNodeGen.create();
   }
 
-  public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object other);
+  public abstract Object execute(@AcceptsError Object left, @AcceptsError Object other);
 
   @Specialization
   boolean lessIntegers(int i, int j) {
@@ -113,7 +114,7 @@ public abstract class LessThanNode extends Node {
   @Specialization(guards = {
       "selfWarnLib.hasWarnings(selfWithWarnings) || otherWarnLib.hasWarnings(otherWithWarnings)"
   }, limit = "3")
-  boolean lessWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
+  Object lessWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
       @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
       @Cached LessThanNode lessThanNode
@@ -297,8 +298,8 @@ public abstract class LessThanNode extends Node {
   }
 
   @Fallback
-  boolean fallBack(Object self, Object other) {
-    // Will be 'converted' to Incomparable_Values_Error
-    throw DataflowError.withoutTrace("Incomparable values: " + self + " and " + other, null);
+  Object fallback(Object left, Object right) {
+    var typeError = EnsoContext.get(this).getBuiltins().error().makeTypeError(left, right, "right");
+    return DataflowError.withoutTrace(typeError, this);
   }
 }
