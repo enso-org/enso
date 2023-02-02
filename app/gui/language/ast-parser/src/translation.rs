@@ -19,8 +19,6 @@ pub fn to_legacy_ast_module(tree: &Tree) -> Result<Ast, ()> {
 }
 
 pub fn to_legacy_ast(tree: &Tree) -> Ast {
-    //let context = Translate::default();
-    //context.translate(tree).expect_unspaced()
     to_legacy_ast_module(tree).unwrap()
 }
 
@@ -47,6 +45,12 @@ impl Translate {
                 let func = self.translate(func).expect_unspaced();
                 let (off, arg) = self.translate(arg).split();
                 Ast::from(ast::Prefix { func, off, arg })
+            }
+            tree::Variant::OprApp(tree::OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
+                    if opr.properties.is_arrow() => {
+                let span_info = deconstruct_tree(tree, |t| self.translate(t));
+                let type_info = ast::TreeType::Lambda;
+                Ast::from(ast::Tree { span_info, type_info })
             }
             tree::Variant::OprApp(tree::OprApp { lhs, opr, rhs }) =>
                 self.translate_opr_app(lhs.as_ref(), opr, rhs.as_ref()),
@@ -468,17 +472,12 @@ where F: Fn(&Tree) -> WithInitialSpace<Ast>
     fn visit_item(&mut self, item: syntax::item::Ref<'s, 'a>) -> bool {
         match item {
             syntax::item::Ref::Token(token) => {
-                if token.left_offset.visible.width_in_spaces > 0 {
-                    self.particles
-                        .push(ast::RawSpanTree::Space(token.left_offset.visible.width_in_spaces));
-                }
+                self.particles.extend(ast::RawSpanTree::space(token.left_offset.visible.width_in_spaces));
                 self.particles.push(ast::RawSpanTree::Token(token.code.to_string()));
             }
             syntax::item::Ref::Tree(tree) => {
                 let (space, ast) = (self.translate)(tree).split();
-                if space != 0 {
-                    self.particles.push(ast::RawSpanTree::Space(space));
-                }
+                self.particles.extend(ast::RawSpanTree::space(space));
                 self.particles.push(ast::RawSpanTree::Child(ast));
             }
         }

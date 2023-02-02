@@ -237,4 +237,10 @@ main =
         let ast = Parser::new().parse_module(code, default()).unwrap();
         assert_eq!(ast.repr(), code);
     }
+
+    #[test]
+    fn test_as_lambda() {
+        let ast = Parser::new().parse_line_ast("a->4").unwrap();
+        assert!(ast::macros::as_lambda(&ast).is_some(), "{:?}", ast);
+    }
 }

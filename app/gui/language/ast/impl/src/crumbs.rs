@@ -628,13 +628,9 @@ impl Crumbable for crate::Tree {
     }
 
     fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let mut subcrumbs = Vec::new();
-        for (index, thing) in self.span_info.iter().enumerate() {
-            if matches!(thing, RawSpanTree::Child(_)) {
-                subcrumbs.push(TreeCrumb { index });
-            }
-        }
-        Box::new(subcrumbs.into_iter())
+        Box::new(self.span_info.iter().enumerate().filter_map(|(index, thing)|
+            matches!(thing, RawSpanTree::Child(_)).as_some(TreeCrumb { index })
+        ))
     }
 }
 

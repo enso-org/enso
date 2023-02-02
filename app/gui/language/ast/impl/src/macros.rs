@@ -21,21 +21,12 @@ pub mod skip_and_freeze;
 // === Recognized Macros Keywords ===
 // ==================================
 
-/// The keyword introducing a disabled code line.
-pub const DISABLING_COMMENT_INTRODUCER: &str = "#";
-
-/// The keyword introducing a documentation block.
-pub const DOCUMENTATION_COMMENT_INTRODUCER: &str = "##";
-
 /// The keyword introducing an qualified import declaration. See:
 /// https://dev.enso.org/docs/enso/syntax/imports.html#import-syntax
 pub const QUALIFIED_IMPORT_KEYWORD: &str = "import";
 
 /// The keyword introducing an unqualified import declaration.
 pub const UNQUALIFIED_IMPORT_KEYWORD: &str = "from";
-
-/// The keyword introducing an unqualified export declaration.
-pub const QUALIFIED_EXPORT_KEYWORD: &str = "export";
 
 
 
@@ -193,22 +184,17 @@ pub fn is_documentation_comment(ast: &Ast) -> bool {
 #[derive(Clone, Debug)]
 pub struct LambdaInfo<'a> {
     pub arg:  Located<&'a Ast>,
-    pub opr:  Located<&'a Ast>,
     pub body: Located<&'a Ast>,
-}
-
-/// If this is the builtin macro for `->` (lambda expression), returns it as known `Match`.
-pub fn as_lambda_match(ast: &Ast) -> Option<known::Tree> {
-    None // TODO
 }
 
 /// Describes the given Ast as lambda, if this is a matched `->` builtin macro.
 pub fn as_lambda(ast: &Ast) -> Option<LambdaInfo> {
-    let _ = as_lambda_match(ast)?;
-    let mut child_iter = ast.iter_subcrumbs();
-    let arg = ast.get_located(child_iter.next()?).ok()?;
-    let opr = ast.get_located(child_iter.next()?).ok()?;
-    let body = ast.get_located(child_iter.next()?).ok()?;
-    let is_arrow = crate::opr::is_arrow_opr(opr.item);
-    is_arrow.then_some(LambdaInfo { arg, opr, body })
+    if let crate::Shape::Tree(crate::Tree { type_info: crate::TreeType::Lambda, .. }) = ast.shape() {
+        let mut iter = ast.iter_subcrumbs().map(|crumb| ast.get_located(crumb).unwrap());
+        let arg = iter.next().unwrap();
+        let body = iter.next().unwrap();
+        Some(LambdaInfo { arg, body })
+    } else {
+        None
+    }
 }

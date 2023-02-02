@@ -428,7 +428,8 @@ pub enum TreeType {
     #[default]
     Expression,
     Documentation { rendered: ImString },
-    Import { module: Vec<ImString>, imported: ImportedNames }
+    Import { module: Vec<ImString>, imported: ImportedNames },
+    Lambda,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ImportedNames {
@@ -444,6 +445,15 @@ pub enum RawSpanTree {
     Space(usize),
     Token(String),
     Child(Ast),
+}
+
+impl RawSpanTree {
+    pub fn space(space: usize) -> Option<Self> {
+        match space {
+            0 => None,
+            space => Some(RawSpanTree::Space(space)),
+        }
+    }
 }
 
 impl<'a> From<&'a RawSpanTree> for Token<'a> {
