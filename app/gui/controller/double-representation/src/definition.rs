@@ -284,8 +284,7 @@ impl DefinitionInfo {
         let elem = line.elem.ok_or(MissingLineWithAst)?;
         let off = line.off;
         let first_line = ast::BlockLine { elem, off };
-        let is_orphan = false;
-        let block = ast::Block { indent, empty_lines, first_line, lines, is_orphan };
+        let block = ast::Block { indent, empty_lines, first_line, lines };
         let body_ast = Ast::new(block, None);
         self.set_body_ast(body_ast);
         Ok(())

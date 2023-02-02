@@ -292,7 +292,7 @@ impl Translate {
             }
         }
         let first_line = first_line?;
-        Some(ast::Block { indent, empty_lines, first_line, lines, is_orphan: false })
+        Some(ast::Block { indent, empty_lines, first_line, lines })
     }
 
     fn translate_operator_block<'a, 's: 'a>(
@@ -329,7 +329,7 @@ impl Translate {
             }
         }
         let first_line = first_line.unwrap();
-        Ast::from(ast::Block { indent, empty_lines, first_line, lines, is_orphan: false })
+        Ast::from(ast::Block { indent, empty_lines, first_line, lines })
     }
 
     fn translate_argument_definition(

@@ -183,7 +183,7 @@ impl<T: HasTokens> HasTokens for Module<T> {
 
 impl<T: HasTokens> HasTokens for Block<T> {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        (!self.is_orphan).as_some(NEWLINE).feed_to(consumer);
+        NEWLINE.feed_to(consumer);
         for empty_line_space in &self.empty_lines {
             (empty_line_space, NEWLINE).feed_to(consumer);
         }

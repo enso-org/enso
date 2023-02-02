@@ -525,8 +525,6 @@ pub enum Shape<T> {
         first_line:  BlockLine<T>,
         /// Rest of lines, each of them optionally having contents.
         lines:       Vec<BlockLine<Option<T>>>,
-        /// If false, the Block will start with a leading newline.
-        is_orphan:   bool,
     },
 
     // === Macros ===
@@ -1144,13 +1142,7 @@ impl<T> Module<T> {
             Some(BlockLine { off: line.off, elem: line.elem.as_ref()?.clone() })
         })?;
         let lines = self.lines.iter().skip_while(is_empty).skip(1).cloned().collect();
-        // We virtually never want a block to be an orphan (i.e. start with a first line attached
-        // to whatever AST was there before). While it may seem tempting to have this for single
-        // line blocks, it does not make sense. If we want expression inline, it shouldn't be a
-        // block at all. Also, having inline expression can make invalid AST when the only line is
-        // an assignment and we want to use block as a definition's body.
-        let is_orphan = false;
-        Some(Block { indent, empty_lines, first_line, lines, is_orphan })
+        Some(Block { indent, empty_lines, first_line, lines })
     }
 }
 
@@ -1245,13 +1237,7 @@ impl Block<Ast> {
         let empty_lines = Vec::new();
         let first_line = BlockLine::new(first_line.clone_ref());
         let lines = tail_lines.iter().cloned().map(BlockLine::new).collect();
-        // We virtually never want a block to be an orphan (i.e. start with a first line attached
-        // to whatever AST was there before). While it may seem tempting to have this for single
-        // line blocks, it does not make sense. If we want expression inline, it shouldn't be a
-        // block at all. Also, having inline expression can make invalid AST when the only line is
-        // an assignment and we want to use block as a definition's body.
-        let is_orphan = false;
-        Block { indent, empty_lines, first_line, lines, is_orphan }
+        Block { indent, empty_lines, first_line, lines }
     }
 }
 
@@ -1532,8 +1518,7 @@ mod tests {
             BlockLine { elem: None, off: 1 },
             BlockLine { elem: Some(Ast::var("tail2")), off: 3 },
         ];
-        let is_orphan = false;
-        let block = Block { indent, empty_lines, first_line, lines, is_orphan };
+        let block = Block { indent, empty_lines, first_line, lines };
         let expected_repr = "\n     \n    head   \n    tail0  \n \n    tail2   ";
         assert_eq!(block.repr(), expected_repr);
 
