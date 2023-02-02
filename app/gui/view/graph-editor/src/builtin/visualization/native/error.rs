@@ -231,10 +231,11 @@ impl Model {
     }
 
     fn display_kind(&self, new: Kind) {
+        use ensogl_hardcoded_theme::graph_editor::visualization::error as theme;
         let color_style = match new {
-            Kind::Panic => ensogl_hardcoded_theme::graph_editor::visualization::error::panic::text,
-            Kind::Dataflow =>
-                ensogl_hardcoded_theme::graph_editor::visualization::error::dataflow::text,
+            Kind::Panic => theme::panic::text,
+            Kind::Dataflow => theme::dataflow::text,
+            Kind::Warning => theme::warning::text,
         };
         let default = "";
         let opt_message = self.messages.get_cloned_ref(&new);

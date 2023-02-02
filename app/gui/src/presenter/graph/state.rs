@@ -528,20 +528,25 @@ impl<'a> ControllerChange<'a> {
     ) -> Option<node_view::error::Error> {
         use node_view::error::Kind;
         use ExpressionUpdatePayload::*;
-        let (kind, message, trace) = match payload {
-            None | Some(Value) => None,
-            Some(DataflowError { trace }) => Some((Kind::Dataflow, None, trace)),
-            Some(Panic { message, trace }) => Some((Kind::Panic, Some(message), trace)),
-            Some(Pending { .. }) => None,
-        }?;
-        let propagated = if kind == Kind::Panic {
+        let is_propagated = |trace: Vec<AstNodeId>| {
             let nodes = self.nodes.borrow();
             let root_cause = trace.iter().find(|id| nodes.get(**id).is_some());
             !root_cause.contains(&&node_id)
-        } else {
-            // TODO[ao]: traces are not available for Dataflow errors.
-            false
         };
+        let (kind, message, propagated) = match payload {
+            Some(Value { warnings: Some(warnings) }) if warnings.count > 0 => {
+                // We return `None` as message, even though we have a warning text available. We
+                // don't want to replace the visualization of the value with a warning text though.
+                Some((Kind::Warning, None, false))
+            }
+            Some(DataflowError { trace }) => Some((Kind::Dataflow, None, is_propagated(trace))),
+            Some(Panic { message, trace }) => {
+                let message = Some(message);
+                let is_propagated = is_propagated(trace);
+                Some((Kind::Panic, message, is_propagated))
+            }
+            _ => None,
+        }?;
 
         let kind = Immutable(kind);
         let message = Rc::new(message);
