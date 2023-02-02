@@ -33,7 +33,7 @@ type Table_Update
     to_json self =
         chunks = ["chunks", self.chunks]
         table_specification_update = ["table_specification_update", self.table_specification_update]
-        Json.from_pairs [chunks, table_specification_update] + ""
+        Json.from_pairs [chunks, table_specification_update]
 
 
 ## Return a sub-window of a table. The window is defined by a cell row/col and line/chunk
