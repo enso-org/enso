@@ -29,6 +29,7 @@ use std::env::consts::EXE_SUFFIX;
 use tempfile::tempdir;
 
 
+
 /// Get the prefix of URL of the release's asset in GitHub.
 ///
 /// By joining it with the asset name, we can get the URL of the asset.
