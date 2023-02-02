@@ -300,6 +300,7 @@ mod test {
         assert_eq!(case.resulting_code(), "fooc");
     }
 
+    #[test]
     fn applying_code_changes_to_id_map() {
         let parser = Parser::new();
 

@@ -394,6 +394,7 @@ mod tests {
         run_case(parser, case)
     }
 
+    #[test]
     fn test_alias_analysis() {
         let parser = ast_parser::Parser::new();
         let test_cases = [
