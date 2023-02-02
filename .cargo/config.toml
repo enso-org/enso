@@ -11,11 +11,7 @@ rustflags = [
 ]
 
 [target.x86_64-pc-windows-msvc]
-rustflags = [
-  "-C", "link-arg=/STACK:2097152"
-]
+rustflags = ["-C", "link-arg=/STACK:2097152"]
 
 [target.x86_64-pc-windows-gnu]
-rustflags = [
-  "-C", "link-arg=-Wl,--stack,2097152"
-]
+rustflags = ["-C", "link-arg=-Wl,--stack,2097152"]
