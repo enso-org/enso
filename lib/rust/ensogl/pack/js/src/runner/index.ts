@@ -213,7 +213,7 @@ export class App {
         this.config = new config.Config(opts?.configOptions)
         console.log('!!', host.urlParams())
         const unrecognizedParams = this.config.resolve([opts?.config, host.urlParams()])
-        if (unrecognizedParams) {
+        if (unrecognizedParams.length > 0) {
             this.config.print()
             // FIXME:
             console.log('Unrecognized parameters:', unrecognizedParams)
@@ -248,7 +248,7 @@ export class App {
         if (host.browser) {
             this.styleRoot()
             dom.disableContextMenu()
-            if (this.config.options.debug.debug.value) {
+            if (this.config.options.groups.debug.options.debug.value) {
                 logger.log('Application is run in debug mode. Logs will not be hidden.')
             } else {
                 this.printScamWarning()
@@ -294,7 +294,7 @@ export class App {
                  return module.exports`
             )()
             const out: unknown = await snippetsFn.init(wasm)
-            if (this.config.options.debug.enableSpector.value) {
+            if (this.config.options.groups.debug.options.enableSpector.value) {
                 /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
                 /* eslint @typescript-eslint/no-unsafe-call: "off" */
                 if (host.browser) {
@@ -314,7 +314,7 @@ export class App {
     async loadWasm() {
         const loader = new wasm.Loader(this.config)
 
-        const shadersUrl = this.config.options.loader.shadersUrl.value
+        const shadersUrl = this.config.options.groups.loader.options.shadersUrl.value
         const shadersNames = await log.Task.asyncRunCollapsed(
             'Downloading shaders list.',
             async () => {
@@ -325,8 +325,8 @@ export class App {
         )
 
         const files = new Files(
-            this.config.options.loader.pkgJsUrl.value,
-            this.config.options.loader.pkgWasmUrl.value
+            this.config.options.groups.loader.options.pkgJsUrl.value,
+            this.config.options.groups.loader.options.pkgWasmUrl.value
         )
         for (const mangledName of shadersNames) {
             const unmangledName = name.unmangle(mangledName)
@@ -392,7 +392,7 @@ export class App {
     /** Check whether the time needed to run before main entry points is reasonable. Print a warning
      * message otherwise. */
     checkBeforeMainEntryPointsTime(time: number) {
-        if (time > this.config.options.loader.maxBeforeMainTimeMs.value) {
+        if (time > this.config.options.groups.loader.options.maxBeforeMainTimeMs.value) {
             logger.error(
                 `Entry points took ${time} milliseconds to run. This is too long. ` +
                     'Before main entry points should be used for fast initialization only.'
@@ -402,7 +402,7 @@ export class App {
 
     /** Run both before main entry points and main entry point. */
     async runEntryPoints() {
-        const entryPointName = this.config.options.startup.entry.value
+        const entryPointName = this.config.options.groups.startup.options.entry.value
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             await this.runBeforeMainEntryPoints()
@@ -455,27 +455,23 @@ export class App {
             msg = `Unknown config ${optionLabel}: ${unknownOptions.map(t => `'${t}'`).join(', ')}. `
         }
         const title = msg + 'Available options:'
-        const sections = Array.from(Object.entries(this.config.options)).map(([group, options]) => {
-            if (options instanceof config.Option) {
-                throw 'wrong' // FIXME
-            }
-            const entries = Array.from(Object.entries(options)).map(([key, option]) => {
-                if (option instanceof config.Option) {
+        // FIXME: handle more generic cases
+        const sections = Array.from(Object.entries(this.config.options.groups)).map(
+            ([group, options]) => {
+                const entries = Array.from(Object.entries(options.options)).map(([key, option]) => {
                     const name = group === key ? group : group + '.' + key
                     return new debug.HelpScreenEntry(name, [
                         option.description,
                         String(option.default),
                     ])
-                } else {
-                    throw 'wrong' // FIXME
-                }
-            })
-            const label =
-                group.charAt(0).toUpperCase() +
-                group.slice(1).replace(/([A-Z])/g, ' $1') +
-                ' Options'
-            return new debug.HelpScreenSection(label, entries)
-        })
+                })
+                const label =
+                    group.charAt(0).toUpperCase() +
+                    group.slice(1).replace(/([A-Z])/g, ' $1') +
+                    ' Options'
+                return new debug.HelpScreenSection(label, entries)
+            }
+        )
         const headers = ['Name', 'Description', 'Default']
         new debug.HelpScreen().display({ title, headers, sections })
     }

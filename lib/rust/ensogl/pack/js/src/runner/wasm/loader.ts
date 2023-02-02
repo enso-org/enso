@@ -87,7 +87,7 @@ class ProgressIndicator {
         this.set(0)
         this.setIndicatorOpacity(0)
 
-        if (cfg.options.loader.enabled.value) {
+        if (cfg.options.groups.loader.options.enabled.value) {
             this.initialized = Promise.all([
                 this.animateShow(),
                 this.animateShowLogo(),
@@ -128,8 +128,8 @@ class ProgressIndicator {
                     <circle fill="white" r="${outerRadius}"/>
                     <circle fill="black" r="${this.ringInnerRadius}"/>
                 </mask>
-                    
-                
+
+
             </defs>
             <g>
                 <g transform="translate(${size / 2},${size / 2})" id="loaderIndicator" opacity="1">
@@ -323,7 +323,7 @@ export class Loader {
         this.downloadSpeed = 0
         this.lastReceiveTime = performance.now()
         this.initialized = this.indicator.initialized
-        this.capProgressAt = cfg.options.loader.loaderDownloadToInitRatio.value
+        this.capProgressAt = cfg.options.groups.loader.options.loaderDownloadToInitRatio.value
 
         this.done = new Promise(resolve => {
             this.doneResolve = resolve

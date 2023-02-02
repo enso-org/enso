@@ -43,11 +43,14 @@ async function fetchTimeout(url: string, timeout: number): Promise<any> {
 /// one of the compared versions does not match the semver scheme, it returns
 /// `true`.
 async function checkMinSupportedVersion(config: Config) {
-    if (config.engine.skipMinVersionCheck.value === true) {
+    if (config.groups.engine.options.skipMinVersionCheck.value === true) {
         return true
     }
     try {
-        const appConfig: any = await fetchTimeout(config.engine.applicationConfigUrl.value, 300)
+        const appConfig: any = await fetchTimeout(
+            config.groups.engine.options.applicationConfigUrl.value,
+            300
+        )
         const minSupportedVersion = appConfig.minimumSupportedVersion
         const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
         return comparator.test(Version.ide)
@@ -98,16 +101,17 @@ class Main {
         })
 
         if (appInstance.initialized) {
-            if (appInstance.config.options.runtimeMetrics.dataGathering.value) {
+            if (appInstance.config.options.groups.runtimeMetrics.options.dataGathering.value) {
                 // TODO: Add remote-logging here.
             }
             if (!(await checkMinSupportedVersion(appInstance.config.options))) {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    appInstance.config.options.runtimeMetrics.authenticationEnabled.value &&
-                    appInstance.config.options.startup.entry.value !=
-                        appInstance.config.options.startup.entry.default
+                    appInstance.config.options.groups.runtimeMetrics.options.authenticationEnabled
+                        .value &&
+                    appInstance.config.options.groups.startup.options.entry.value !=
+                        appInstance.config.options.groups.startup.options.entry.default
                 ) {
                     // TODO: authentication here
                     // appInstance.config.email.value = user.email
@@ -117,7 +121,7 @@ class Main {
                 }
                 if (appInstance.config.options.runtimeMetrics.email.value) {
                     logger.log(
-                        `User identified as '${appInstance.config.options.runtimeMetrics.email.value}'.`
+                        `User identified as '${appInstance.config.options.groups.runtimeMetrics.options.email.value}'.`
                     )
                 }
             }
