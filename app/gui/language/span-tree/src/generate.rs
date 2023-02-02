@@ -182,7 +182,7 @@ impl<'a> ApplicationBase<'a> {
     /// Create `ApplicationBase` from flattened prefix expression chain.
     fn from_prefix_chain(chain: &'a ast::prefix::Chain) -> Self {
         let call_id = chain.id();
-        // when first chain element is an infix access, derive the application base from it, but
+        // When first chain element is an infix access, derive the application base from it, but
         // treat the whole chain as a call expression.
         if let Some(access_infix) = GeneralizedInfix::try_new(&chain.func)
             .filter(|infix| infix.name() == ast::opr::predefined::ACCESS)
@@ -211,7 +211,8 @@ impl<'a> ApplicationBase<'a> {
         let parameters = invocation_info.with_call_id(self.call_id).parameters;
         let mut deque: VecDeque<ArgumentInfo> = parameters.into();
 
-        // for method notation, the first received argument is the target, so skip it.
+        // When a method notation is used, the first received argument is the target. Remove it from
+        // the list of expected prefix arguments.
         if self.uses_method_notation {
             deque.pop_front();
         }
@@ -248,7 +249,6 @@ fn generate_node_for_ast<T: Payload>(
         let chain = infix.flatten();
 
         if app_base.uses_method_notation {
-            // Code like `ast.func`
             // For method call, this is behaving like a prefix with single member. All prefix params
             // are missing arguments, since there is no prefix application.
 
@@ -265,7 +265,6 @@ fn generate_node_for_ast<T: Payload>(
             let args_iter = missing_args.into_iter();
             Ok(generate_expected_arguments(node, kind, provided_prefix_arg_count, args_iter))
         } else {
-            // Code like `a+b+c`
             // For non-access infix operators, missing arguments are not handled at this level.
             chain.generate_node(kind, context)
         }
