@@ -72,52 +72,14 @@ has_tokens!(Seq, self.first, self.second);
 has_tokens!(BlockLine<T>, self.elem, self.off);
 
 
-// =============
-// === Macro ===
-// =============
 
-// === Macro Segments ==
-
-has_tokens!(MacroMatchSegment<T>, self.head, self.body);
-
-
-// === MacroPatternMatch subtypes ===
-
-has_tokens!(MacroPatternMatchRawBegin);
-has_tokens!(MacroPatternMatchRawEnd);
-has_tokens!(MacroPatternMatchRawNothing);
-has_tokens!(MacroPatternMatchRawSeq<T>, self.elem);
-has_tokens!(MacroPatternMatchRawOr<T>, self.elem);
-has_tokens!(MacroPatternMatchRawMany<T>, self.elem);
-has_tokens!(MacroPatternMatchRawExcept<T>, self.elem);
-has_tokens!(MacroPatternMatchRawBuild<T>, self.elem);
-has_tokens!(MacroPatternMatchRawErr<T>, self.elem);
-has_tokens!(MacroPatternMatchRawTag<T>, self.elem);
-has_tokens!(MacroPatternMatchRawCls<T>, self.elem);
-has_tokens!(MacroPatternMatchRawTok<T>, self.elem);
-has_tokens!(MacroPatternMatchRawBlank<T>, self.elem);
-has_tokens!(MacroPatternMatchRawVar<T>, self.elem);
-has_tokens!(MacroPatternMatchRawCons<T>, self.elem);
-has_tokens!(MacroPatternMatchRawOpr<T>, self.elem);
-has_tokens!(MacroPatternMatchRawAnnotation<T>, self.elem);
-has_tokens!(MacroPatternMatchRawMod<T>, self.elem);
-has_tokens!(MacroPatternMatchRawNum<T>, self.elem);
-has_tokens!(MacroPatternMatchRawText<T>, self.elem);
-has_tokens!(MacroPatternMatchRawBlock<T>, self.elem);
-has_tokens!(MacroPatternMatchRawMacro<T>, self.elem);
-has_tokens!(MacroPatternMatchRawInvalid<T>, self.elem);
-has_tokens!(MacroPatternMatchRawFailedMatch);
-
-
-// === Switch ===
-
-has_tokens!(Switch<T>, self.deref());
-
-
+// ===============
 // === Shifted ===
+// ===============
 
 has_tokens!(Shifted<T>, self.off, self.wrapped);
 has_tokens!(ShiftedVec1<T>, self.head, self.tail);
+
 
 
 // =============================================================================
@@ -191,26 +153,6 @@ impl<T: HasTokens> HasTokens for Block<T> {
         for line in &self.lines {
             (NEWLINE, line.elem.as_ref().map(|_| self.indent), line).feed_to(consumer);
         }
-    }
-}
-
-
-
-// ==============
-// === Macros ===
-// ==============
-
-// === Match ==
-
-impl<T: HasTokens> HasTokens for Match<T> {
-    fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        for pat_match in &self.pfx {
-            for sast in pat_match.iter() {
-                // reverse the order for prefix: ast before spacing
-                (&sast.wrapped, &sast.off).feed_to(consumer);
-            }
-        }
-        self.segs.feed_to(consumer);
     }
 }
 

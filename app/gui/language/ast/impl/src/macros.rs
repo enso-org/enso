@@ -4,7 +4,6 @@
 use crate::prelude::*;
 
 use crate::crumbs::Located;
-use crate::crumbs::MatchCrumb;
 use crate::known;
 use crate::BlockLine;
 
@@ -201,12 +200,12 @@ pub fn is_documentation_comment(ast: &Ast) -> bool {
 
 /// If the given AST node is an import declaration, returns it as a Match (which is the only shape
 /// capable of storing import declarations). Returns `None` otherwise.
-pub fn ast_as_import_match(ast: &Ast) -> Option<known::Match> {
+pub fn ast_as_import_match(ast: &Ast) -> Option<known::Tree> {
     None // TODO
 }
 
 /// Check if the given macro match node is an import declaration.
-pub fn is_match_import(ast: &known::Match) -> bool {
+pub fn is_match_import(ast: &known::Tree) -> bool {
     //is_match_qualified_import(ast) || is_match_unqualified_import(ast)
     false // TODO
 }
@@ -232,7 +231,7 @@ pub struct LambdaInfo<'a> {
 }
 
 /// If this is the builtin macro for `->` (lambda expression), returns it as known `Match`.
-pub fn as_lambda_match(ast: &Ast) -> Option<known::Match> {
+pub fn as_lambda_match(ast: &Ast) -> Option<known::Tree> {
     None // TODO
 }
 
@@ -245,24 +244,4 @@ pub fn as_lambda(ast: &Ast) -> Option<LambdaInfo> {
     let body = ast.get_located(child_iter.next()?).ok()?;
     let is_arrow = crate::opr::is_arrow_opr(opr.item);
     is_arrow.then_some(LambdaInfo { arg, opr, body })
-}
-
-
-
-// ===================
-// === Match Utils ===
-// ===================
-
-impl crate::Match<Ast> {
-    /// Iterates matched ASTs. Skips segment heads ("keywords").
-    /// For example, for `(a)` it iterates only over `a`, skkipping segment heads `(` and `)`.
-    pub fn iter_pat_match_subcrumbs(&self) -> impl Iterator<Item = MatchCrumb> + '_ {
-        self.iter_subcrumbs().filter(|crumb| {
-            use crate::crumbs::SegmentMatchCrumb;
-            match crumb {
-                MatchCrumb::Segs { val, .. } => val != &SegmentMatchCrumb::Head,
-                _ => true,
-            }
-        })
-    }
 }

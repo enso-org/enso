@@ -111,22 +111,6 @@ pub struct NoSuchChild;
 
 
 
-// =================
-// === MatchTree ===
-// =================
-
-/// A tree structure where each node may store value of `V` and has arbitrary
-/// number of children nodes, each marked with a single `K`.
-///
-/// It is used to describe ambiguous macro match.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize)]
-pub struct MatchTree<K, V> {
-    pub value:    Option<V>,
-    pub branches: Vec<(K, MatchTree<K, V>)>,
-}
-
-
-
 // ===============
 // === Shifted ===
 // ===============
@@ -185,21 +169,6 @@ impl<T> Layer<T> for Layered<T> {
         Layered(t)
     }
 }
-
-
-
-// ============
-// === Unit ===
-// ============
-
-/// A unit type defined as an empty struct.
-///
-/// Because it is defined using {} syntax, serde_json will serialize it to
-/// an empty object rather than null node. This is to workaround issue with
-/// using units in `Option`, reported here:
-/// https://github.com/serde-rs/serde/issues/1690
-#[ast_node]
-pub struct Unit {}
 
 
 
@@ -479,12 +448,6 @@ pub enum Shape<T> {
         /// Rest of lines, each of them optionally having contents.
         lines:       Vec<BlockLine<Option<T>>>,
     },
-
-    // === Macros ===
-    Match {
-        pfx:  Option<MacroPatternMatch<Shifted<T>>>,
-        segs: ShiftedVec1<MacroMatchSegment<T>>,
-    },
     Tree {
         span_info: Vec<RawSpanTree>,
         type_info: TreeType,
@@ -525,7 +488,6 @@ macro_rules! with_shape_variants {
           [Number]
           [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
           [Module Ast] [Block Ast]
-          [Match Ast]
           [Tree]
         }
     };
@@ -560,133 +522,6 @@ pub struct BlockLine<T> {
     pub elem: T,
     /// The trailing whitespace in the line after the `elem`.
     pub off:  usize,
-}
-
-
-// =============
-// === Macro ===
-// =============
-
-#[ast]
-pub struct MacroMatchSegment<T> {
-    pub head: T,
-    pub body: MacroPatternMatch<Shifted<T>>,
-}
-
-pub type MacroPattern = Rc<MacroPatternRaw>;
-#[ast]
-pub enum MacroPatternRaw {
-    // === Boundary Patterns ===
-    Begin {},
-    End {},
-
-    // === Structural Patterns ===
-    Nothing {},
-    Seq { pat1: MacroPattern, pat2: MacroPattern },
-    Or { pat1: MacroPattern, pat2: MacroPattern },
-    Many { pat: MacroPattern },
-    Except { not: MacroPattern, pat: MacroPattern },
-
-    // === Meta Patterns ===
-    Build { pat: MacroPattern },
-    Err { msg: String, pat: MacroPattern },
-    Tag { tag: String, pat: MacroPattern },
-    Cls { cls: PatternClass, pat: MacroPattern },
-
-    // === Token Patterns ===
-    Tok { spaced: Spaced, ast: Ast },
-    Blank { spaced: Spaced },
-    Var { spaced: Spaced },
-    Cons { spaced: Spaced },
-    Opr { spaced: Spaced, max_prec: Option<usize> },
-    Annotation { spaced: Spaced },
-    Mod { spaced: Spaced },
-    Num { spaced: Spaced },
-    Text { spaced: Spaced },
-    Block { spaced: Spaced },
-    Macro { spaced: Spaced },
-    Invalid { spaced: Spaced },
-    FailedMatch { spaced: Spaced },
-}
-
-#[ast]
-pub enum PatternClass {
-    Normal,
-    Pattern,
-}
-pub type Spaced = Option<bool>;
-
-// Note: Switch Implementation
-#[ast(flat)]
-pub enum Switch<T> {
-    Left { value: T },
-    Right { value: T },
-}
-
-// Note: Switch Implementation
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Switch is not defined as Either<T,T> because an iterator generated for such
-// type would only iterate over right element, while we require both.
-//
-// Switch however does not need to be #[ast], when derive(Iterator) supports
-// enum with struct variants, this attribute should be possible to remove.
-
-impl<T> Deref for Switch<T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        match self {
-            Switch::Left(elem) => &elem.value,
-            Switch::Right(elem) => &elem.value,
-        }
-    }
-}
-
-impl<T> DerefMut for Switch<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        match self {
-            Switch::Left(elem) => &mut elem.value,
-            Switch::Right(elem) => &mut elem.value,
-        }
-    }
-}
-
-pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
-
-#[ast]
-#[derive(HasTokens)]
-pub enum MacroPatternMatchRaw<T> {
-    // === Boundary Matches ===
-    Begin { pat: MacroPatternRawBegin },
-    End { pat: MacroPatternRawEnd },
-
-    // === Structural Matches ===
-    Nothing { pat: MacroPatternRawNothing },
-    Seq { pat: MacroPatternRawSeq, elem: (MacroPatternMatch<T>, MacroPatternMatch<T>) },
-    Or { pat: MacroPatternRawOr, elem: Switch<MacroPatternMatch<T>> },
-    Many { pat: MacroPatternRawMany, elem: Vec<MacroPatternMatch<T>> },
-    Except { pat: MacroPatternRawExcept, elem: MacroPatternMatch<T> },
-
-    // === Meta Matches ===
-    Build { pat: MacroPatternRawBuild, elem: T },
-    Err { pat: MacroPatternRawErr, elem: T },
-    Tag { pat: MacroPatternRawTag, elem: MacroPatternMatch<T> },
-    Cls { pat: MacroPatternRawCls, elem: MacroPatternMatch<T> },
-
-    // === Token Matches ===
-    Tok { pat: MacroPatternRawTok, elem: T },
-    Blank { pat: MacroPatternRawBlank, elem: T },
-    Var { pat: MacroPatternRawVar, elem: T },
-    Cons { pat: MacroPatternRawCons, elem: T },
-    Opr { pat: MacroPatternRawOpr, elem: T },
-    Annotation { pat: MacroPatternRawAnnotation, elem: T },
-    Mod { pat: MacroPatternRawMod, elem: T },
-    Num { pat: MacroPatternRawNum, elem: T },
-    Text { pat: MacroPatternRawText, elem: T },
-    Block { pat: MacroPatternRawBlock, elem: T },
-    Macro { pat: MacroPatternRawMacro, elem: T },
-    Invalid { pat: MacroPatternRawInvalid, elem: T },
-    FailedMatch { pat: MacroPatternRawFailedMatch },
 }
 
 
