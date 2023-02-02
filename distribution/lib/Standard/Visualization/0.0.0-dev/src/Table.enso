@@ -13,7 +13,7 @@ from Standard.Table import Table
    by the UI.
 type Table_Specification_Update
 
-    Value row_heights column_widths column_names row_names
+    Value (row_heights : Vector Number ) (column_widths : Vector Number) (column_names : Vector Text) (row_names : Vector Text)
 
 
 ## PRIVATE
