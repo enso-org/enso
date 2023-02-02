@@ -20,7 +20,6 @@ use serde::de::Deserializer;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::ser::Serializer;
-use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -122,7 +121,7 @@ pub struct NoSuchChild;
 /// number of children nodes, each marked with a single `K`.
 ///
 /// It is used to describe ambiguous macro match.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize)]
 pub struct MatchTree<K, V> {
     pub value:    Option<V>,
     pub branches: Vec<(K, MatchTree<K, V>)>,
@@ -135,7 +134,7 @@ pub struct MatchTree<K, V> {
 // ===============
 
 /// A value of type `T` annotated with offset value `off`.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize, Deref, DerefMut, Iterator)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deref, DerefMut, Iterator)]
 pub struct Shifted<T> {
     #[deref]
     #[deref_mut]
@@ -144,7 +143,7 @@ pub struct Shifted<T> {
 }
 
 /// A non-empty sequence of `T`s interspersed by offsets.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize, Iterator)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Iterator)]
 pub struct ShiftedVec1<T> {
     pub head: T,
     pub tail: Vec<Shifted<T>>,
@@ -400,50 +399,6 @@ impl Serialize for Ast {
     }
 }
 
-/// Type to provide serde::de::Visitor to deserialize data into `Ast`.
-struct AstDeserializationVisitor;
-
-impl<'de> Visitor<'de> for AstDeserializationVisitor {
-    type Value = Ast;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use ast_schema::*;
-        write!(formatter, "an object with `{}` and `{}` fields", SHAPE, LENGTH)
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where A: serde::de::MapAccess<'de> {
-        use ast_schema::*;
-
-        let mut shape: Option<Shape<Ast>> = None;
-        let mut id: Option<Option<Id>> = None;
-        let mut len: Option<usize> = None;
-
-        while let Some(key) = map.next_key()? {
-            match key {
-                SHAPE => shape = Some(map.next_value()?),
-                ID => id = Some(map.next_value()?),
-                LENGTH => len = Some(map.next_value()?),
-                _ => {}
-            }
-        }
-
-        let shape = shape.ok_or_else(|| serde::de::Error::missing_field(SHAPE))?;
-        let id = id.unwrap_or(None); // allow missing `id` field
-        let len = len.ok_or_else(|| serde::de::Error::missing_field(LENGTH))?;
-        Ok(Ast::from_ast_id_len(shape, id, len))
-    }
-}
-
-impl<'de> Deserialize<'de> for Ast {
-    fn deserialize<D>(deserializer: D) -> Result<Ast, D::Error>
-    where D: Deserializer<'de> {
-        use ast_schema::FIELDS;
-        let visitor = AstDeserializationVisitor;
-        deserializer.deserialize_struct("AstOf", &FIELDS, visitor)
-    }
-}
-
 
 
 // =============
@@ -538,7 +493,7 @@ pub enum Shape<T> {
     },
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum TreeType {
     Documentation { rendered: String },
     Expression,
@@ -546,7 +501,7 @@ pub enum TreeType {
 
 /// Represents the syntax tree, and its correspondence to the source text; with context information
 /// provided by an evaluator, this can be used to produce a complete [`SpanTree`].
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum RawSpanTree {
     Space(usize),
     Token(String),
@@ -999,7 +954,7 @@ pub trait HasID {
     fn id(&self) -> Option<Id>;
 }
 
-#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize)]
 pub struct WithID<T> {
     #[deref]
     #[deref_mut]
@@ -1085,7 +1040,7 @@ pub fn traverse_with_span(ast: &impl HasTokens, mut f: impl FnMut(enso_text::Ran
 ///
 /// Even if `T` is `Spanned`, keeping `length` variable is desired for performance
 /// purposes.
-#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize)]
 pub struct WithLength<T> {
     #[deref]
     #[deref_mut]
@@ -1377,16 +1332,6 @@ impl Ast {
 mod tests {
     use super::*;
 
-    use serde::de::DeserializeOwned;
-
-    /// Assert that given value round trips JSON serialization.
-    fn round_trips<T>(input_val: &T)
-    where T: Serialize + DeserializeOwned + PartialEq + Debug {
-        let json_str = serde_json::to_string(&input_val).unwrap();
-        let deserialized_val: T = serde_json::from_str(&json_str).unwrap();
-        assert_eq!(*input_val, deserialized_val);
-    }
-
     #[test]
     fn ast_updating_id() {
         let var = Var { name: "foo".into() };
@@ -1442,43 +1387,6 @@ mod tests {
         let ast = Ast::from(v);
         assert!(ast.wrapped.id.is_some());
         assert_eq!(ast.wrapped.wrapped.length, ident.chars().count());
-    }
-
-    #[test]
-    fn serialization_round_trip() {
-        let make_var = || Var { name: "foo".into() };
-        round_trips(&make_var());
-
-        let ast_without_id = Ast::new(make_var(), None);
-        round_trips(&ast_without_id);
-
-        let id = Id::parse_str("15").ok();
-        let ast_with_id = Ast::new(make_var(), id);
-        round_trips(&ast_with_id);
-    }
-
-    #[test]
-    fn deserialize_var() {
-        let var_name = "foo";
-        let uuid_str = "51e74fb9-75a4-499d-9ea3-a90a2663b4a1";
-
-        let sample_json = serde_json::json!({
-            "shape": { "Var":{"name": var_name}},
-            "id": uuid_str,
-            "span": var_name.len()
-        });
-        let sample_json_text = sample_json.to_string();
-        let ast: Ast = serde_json::from_str(&sample_json_text).unwrap();
-
-        let expected_uuid = Id::parse_str(uuid_str).ok();
-        assert_eq!(ast.id, expected_uuid);
-
-        let expected_length = 3;
-        assert_eq!(ast.length, expected_length);
-
-        let expected_var = Var { name: var_name.into() };
-        let expected_shape = Shape::from(expected_var);
-        assert_eq!(*ast.shape(), expected_shape);
     }
 
     #[test]

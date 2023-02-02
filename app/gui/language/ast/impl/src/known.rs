@@ -9,8 +9,6 @@ use crate::HasTokens;
 use crate::Shape;
 use crate::TokenConsumer;
 
-use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
 
@@ -169,18 +167,6 @@ impl<T> Serialize for KnownAst<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer {
         self.ast.serialize(serializer)
-    }
-}
-
-impl<'de, T, E> Deserialize<'de> for KnownAst<T>
-where
-    for<'t> &'t Shape<Ast>: TryInto<&'t T, Error = E>,
-    E: fmt::Display,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: Deserializer<'de> {
-        let ast = Ast::deserialize(deserializer)?;
-        Self::try_new(ast).map_err(serde::de::Error::custom)
     }
 }
 
