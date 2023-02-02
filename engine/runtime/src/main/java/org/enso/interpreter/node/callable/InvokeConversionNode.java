@@ -8,6 +8,8 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.ConversionResolverNode;
@@ -16,6 +18,8 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.EnsoDate;
+import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
@@ -63,6 +67,13 @@ public abstract class InvokeConversionNode extends BaseNode {
     this.invokeFunctionNode.setTailStatus(tailStatus);
   }
 
+  /**
+   * @param self A target of the conversion. Should be a {@link Type} on which the {@code from}
+   *             method is defined. If it is not a {@link Type},
+   *             "Invalid conversion target" panic is thrown.
+   * @param that Source of the conversion. Can be arbitrary object, including polyglot values.
+   * @param arguments Additional arguments passed to the conversion function.
+   */
   public abstract Object execute(
       VirtualFrame frame,
       State state,
@@ -194,6 +205,98 @@ public abstract class InvokeConversionNode extends BaseNode {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
     }
+  }
+
+  @Specialization(guards = {
+      "!typesLib.hasType(that)",
+      "!typesLib.hasSpecialDispatch(that)",
+      "interop.isDate(that)",
+      "!interop.isTime(that)"
+  })
+  Object doConvertDate(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    try {
+      LocalDate date = interop.asDate(that);
+      var ensoDate = new EnsoDate(date);
+      Function function =
+          conversionResolverNode.expectNonNull(
+              ensoDate,
+              extractConstructor(self),
+              EnsoContext.get(this).getBuiltins().date(),
+              conversion);
+      arguments[0] = ensoDate;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, that is guaranteed to be a date.");
+    }
+  }
+
+  @Specialization(guards = {
+      "!typesLib.hasType(that)",
+      "!typesLib.hasSpecialDispatch(that)",
+      "interop.isDate(that)",
+      "interop.isTime(that)",
+      "interop.isTimeZone(that)"
+  })
+  Object doConvertZonedDateTime(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    try {
+      var date = interop.asDate(that);
+      var time = interop.asTime(that);
+      var timeZone = interop.asTimeZone(that);
+      var ensoDateTime = new EnsoDateTime(ZonedDateTime.of(date, time, timeZone));
+      Function function =
+          conversionResolverNode.expectNonNull(
+              ensoDateTime,
+              extractConstructor(self),
+              EnsoContext.get(this).getBuiltins().dateTime(),
+              conversion);
+      arguments[0] = ensoDateTime;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, that is guaranteed to be a zoned date time.");
+    }
+  }
+
+  @Specialization(guards = {
+      "!typesLib.hasType(thatMap)",
+      "!typesLib.hasSpecialDispatch(thatMap)",
+      "interop.hasHashEntries(thatMap)",
+  })
+  Object doConvertMap(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object thatMap,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+          conversionResolverNode.expectNonNull(
+              thatMap,
+              extractConstructor(self),
+              EnsoContext.get(this).getBuiltins().map(),
+              conversion);
+    arguments[0] = thatMap;
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
