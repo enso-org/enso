@@ -269,7 +269,7 @@ mod test {
                 .unwrap();
                 let result_repr = result.repr();
                 assert_eq!(result_repr, self.expected, "Wrong answer for case {self:?}");
-                assert_eq!(ast_id, result.id, "Changed AST id in case {self:?}");
+                assert_eq!(ast_id, result.id, "Changed AST ID in case {self:?}");
             }
         }
 

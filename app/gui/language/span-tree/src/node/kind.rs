@@ -145,7 +145,7 @@ impl Kind {
         })
     }
 
-    /// Get the function call AST id associated with this argument.
+    /// Get the function call AST ID associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
             Self::Operation(t) => t.call_id,
@@ -218,7 +218,7 @@ impl Default for Kind {
 /// Kind representing an operation (operator or function) of parent Infix, Section or Prefix.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Operation {
-    /// The AST id of function application that this operation is part of. If this is an access
+    /// The AST ID of function application that this operation is part of. If this is an access
     /// chain operation (e.g. `method.call arg`), the call will be the outermost expression
     /// containing all arguments. For other infix operators (not access), the call will be the
     /// infix expression containing two arguments.

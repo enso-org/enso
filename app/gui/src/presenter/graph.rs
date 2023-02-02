@@ -5,7 +5,7 @@ use crate::prelude::*;
 use enso_web::traits::*;
 use view::graph_editor::WidgetUpdates;
 
-use crate::controller::graph::widgets::Request as WidgetsRequest;
+use crate::controller::graph::widget::Request as WidgetRequest;
 use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
@@ -83,7 +83,7 @@ struct Model {
     view:             view::graph_editor::GraphEditor,
     state:            Rc<State>,
     _visualization:   Visualization,
-    widgets:          controller::Widgets,
+    widget:           controller::Widget,
     _execution_stack: CallStack,
 }
 
@@ -100,7 +100,7 @@ impl Model {
             view.clone_ref(),
             state.clone_ref(),
         );
-        let widgets = controller::Widgets::new(controller.clone_ref());
+        let widget = controller::Widget::new(controller.clone_ref());
         let execution_stack =
             CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
         Self {
@@ -109,7 +109,7 @@ impl Model {
             view,
             state,
             _visualization: visualization,
-            widgets,
+            widget,
             _execution_stack: execution_stack,
         }
     }
@@ -196,14 +196,14 @@ impl Model {
         &self,
         call_expression: ast::Id,
         target_expression: ast::Id,
-    ) -> Option<WidgetsRequest> {
+    ) -> Option<WidgetRequest> {
         let node_id = self
             .state
             .update_from_view()
             .set_call_expression_target_id(call_expression, Some(target_expression))?;
         let method_id = self.expression_method_suggestion(call_expression)?;
 
-        Some(WidgetsRequest {
+        Some(WidgetRequest {
             node_id,
             call_expression,
             target_expression,
@@ -226,7 +226,7 @@ impl Model {
         self.log_action(
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
-                self.widgets.remove_all_node_widgets(ast_id);
+                self.widget.remove_all_node_widgets(ast_id);
                 Some(self.controller.graph().remove_node(ast_id))
             },
             "remove node",
@@ -709,7 +709,7 @@ impl Graph {
         let network = &self.network;
         let model = &self.model;
         let view = &model.view.frp;
-        let widgets = &model.widgets;
+        let widget = &model.widget;
 
         frp::extend! { network
             widget_refresh <- reset_node_types.map(
@@ -730,11 +730,11 @@ impl Graph {
             widget_request <- widgets_to_update.filter_map(
                 f!(((call, target)) model.update_widget_request_data(*call, *target))
             );
-            widgets.request_widgets <+ widget_request;
+            widget.request_widgets <+ widget_request;
         }
         frp::extend! { network
-            widgets.retain_node_expressions <+ widget_refresh._0().unwrap();
-            view.update_node_widgets <+ widgets.widget_data.filter_map(
+            widget.retain_node_expressions <+ widget_refresh._0().unwrap();
+            view.update_node_widgets <+ widget.widget_data.filter_map(
                 f!(((id, updates)) model.map_widget_update_data(*id, updates.clone()))
             );
         }
@@ -775,12 +775,12 @@ impl Graph {
         self.model.state.view_id_of_ast_node(id)
     }
 
-    /// Get the ast id of given node view.
+    /// Get the AST ID of given node view.
     pub fn ast_node_of_view(&self, id: ViewNodeId) -> Option<AstNodeId> {
         self.model.state.ast_node_id_of_view(id)
     }
 
-    /// Assign a node view to the given AST id. Since next update, the presenter will share the
+    /// Assign a node view to the given AST ID. Since next update, the presenter will share the
     /// node content between the controllers and the view.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) {
         self.model.state.assign_node_view_explicitly(view_id, ast_id);

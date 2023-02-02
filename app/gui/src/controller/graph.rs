@@ -36,7 +36,7 @@ use span_tree::SpanTree;
 // ==============
 
 pub mod executed;
-pub mod widgets;
+pub mod widget;
 
 pub use double_representation::graph::Id;
 pub use double_representation::graph::LocationHint;

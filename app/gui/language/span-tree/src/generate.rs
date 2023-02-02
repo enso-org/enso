@@ -154,7 +154,7 @@ struct ApplicationBase<'a> {
     function_name:        Option<Cow<'a, str>>,
     /// True when Ast uses method notation to pass `self` as an invocation target.
     uses_method_notation: bool,
-    /// AST id of the function application expression. The subject of [`Context::call_info`] call,
+    /// AST ID of the function application expression. The subject of [`Context::call_info`] call,
     /// which is used to get a list of expected arguments for this application.
     ///
     /// For an expression `target.method arg`, this is the `target.method` part.
@@ -698,7 +698,7 @@ mod test {
     /// `node`.
     ///
     /// It is used in tests. Because parser can assign id as he pleases, therefore to keep tests
-    /// cleaner the expression ids are removed before comparing trees.
+    /// cleaner the expression IDs are removed before comparing trees.
     fn clear_expression_ids<T>(node: &mut Node<T>) {
         node.ast_id = None;
         for child in &mut node.children {
@@ -729,7 +729,7 @@ mod test {
         let ast = parser.parse_line_ast_with_id_map("2 + foo bar - 3", id_map.clone()).unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
 
-        // Check the expression ids we defined:
+        // Check the expression IDs we defined:
         for id_map_entry in id_map.vec {
             let (span, id) = id_map_entry;
             let node = tree.root_ref().find_by_span(&span);

@@ -1,7 +1,7 @@
-//! Widgets controller.
+//! Widget controller.
 //!
-//! The Widgets Controller is responsible for querying the language server for information about
-//! the node's widget metadata or resolving from local cache.
+//! The Widget Controller is responsible for querying the language server for information about
+//! the node's widget metadata or resolving it from local cache.
 
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::prelude::*;
@@ -126,7 +126,7 @@ impl Controller {
 // === Model ===
 // =============
 
-/// Model of the Widgets controller. Manages the widget queries, stores responses in cache. See
+/// Model of the Widget controller. Manages the widget queries, stores responses in cache. See
 /// [`Controller`] for more information.
 #[derive(Debug)]
 pub struct Model {
@@ -170,7 +170,7 @@ impl Model {
     ) -> Option<(NodeId, WidgetUpdates)> {
         let query_data = self.widget_queries.get_mut(&target)?;
 
-        let (updates, errors) = WidgetVisualizationData::try_deserialize(&data);
+        let (updates, errors) = VisualizationData::try_deserialize(&data);
 
         for error in errors {
             error!("{:?}", error);
@@ -430,18 +430,18 @@ impl QueryData {
 ///
 /// The structure of this struct is dictated by the expected widget visualization JSON result shape.
 #[derive(Debug, serde::Deserialize)]
-struct WidgetVisualizationData {
+struct VisualizationData {
     constructor: widget::Kind,
-    display:     WidgetVisualizationDataDisplay,
+    display:     VisualizationDataDisplay,
     values:      Vec<String>,
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct WidgetVisualizationDataDisplay {
+struct VisualizationDataDisplay {
     constructor: widget::Display,
 }
 
-impl WidgetVisualizationData {
+impl VisualizationData {
     fn into_metadata(self) -> widget::Metadata {
         let kind = self.constructor;
         let display = self.display.constructor;
@@ -466,12 +466,12 @@ impl WidgetVisualizationData {
         let updates = arguments.into_iter().map(
             |(argument_name, meta_json)| -> FallibleResult<WidgetUpdate> {
                 let deserialized = serde_json::from_value(meta_json);
-                let deserialized: Option<WidgetVisualizationData> = deserialized.map_err(|e| {
+                let deserialized: Option<VisualizationData> = deserialized.map_err(|e| {
                     let message =
                         format!("Failed to deserialize widget data for argument '{argument_name}'");
                     e.context(message)
                 })?;
-                let meta = deserialized.map(WidgetVisualizationData::into_metadata);
+                let meta = deserialized.map(VisualizationData::into_metadata);
                 Ok(WidgetUpdate { argument_name, meta })
             },
         );

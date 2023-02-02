@@ -538,7 +538,7 @@ impl Searcher {
     /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
     /// editing finishes. The `entry_id` might be none in case where the searcher should accept
     /// the node input without any entry selected. If the commitment results in creating a new
-    /// node, its AST id is returned.
+    /// node, its AST ID is returned.
     #[profile(Task)]
     pub fn commit_editing(self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         self.model.commit_editing(entry_id)
@@ -549,7 +549,7 @@ impl Searcher {
     /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
     /// editing finishes. The `entry_id` might be none in case where the user want to accept
     /// the node input without any entry selected. If the commitment results in creating a new
-    /// node, its AST id is returned.
+    /// node, its AST ID is returned.
     pub fn expression_accepted(
         self,
         entry_id: Option<component_grid::GroupEntryId>,

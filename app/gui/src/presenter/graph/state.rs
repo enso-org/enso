@@ -55,7 +55,7 @@ impl Default for Node {
 
 /// The set of node states.
 ///
-/// This structure allows to access data of any node by Ast id, or view id. It also keeps list
+/// This structure allows to access data of any node by Ast ID, or view id. It also keeps list
 /// of the AST nodes with no view assigned, and allows to assign View Id to the next one.
 #[derive(Clone, Debug, Default)]
 pub struct Nodes {
@@ -69,12 +69,12 @@ pub struct Nodes {
 }
 
 impl Nodes {
-    /// Get the state of the node by Ast id.
+    /// Get the state of the node by Ast ID.
     pub fn get(&self, id: AstNodeId) -> Option<&Node> {
         self.nodes.get(&id)
     }
 
-    /// Get mutable reference of the node's state by Ast id.
+    /// Get mutable reference of the node's state by Ast ID.
     pub fn get_mut(&mut self, id: AstNodeId) -> Option<&mut Node> {
         self.nodes.get_mut(&id)
     }
@@ -103,7 +103,7 @@ impl Nodes {
         })
     }
 
-    /// Get the AST id of the node represented by given view. Returns None, if the node view does
+    /// Get the AST ID of the node represented by given view. Returns None, if the node view does
     /// not represent any AST node.
     pub fn ast_id_of_view(&self, view_id: ViewNodeId) -> Option<AstNodeId> {
         self.ast_node_by_view_id.get(&view_id).copied()
@@ -152,7 +152,7 @@ impl Nodes {
         removed_views
     }
 
-    /// Remove node represented by given view (if any) and return it's AST id.
+    /// Remove node represented by given view (if any) and return it's AST ID.
     pub fn remove_node(&mut self, node: ViewNodeId) -> Option<AstNodeId> {
         let ast_id = self.ast_node_by_view_id.remove(&node)?;
         self.nodes.remove(&ast_id);
@@ -241,7 +241,7 @@ pub struct Expression {
     pub expression_type: Option<view::graph_editor::Type>,
     /// A pointer to the method called by this expression.
     pub method_pointer:  Option<view::graph_editor::MethodPointer>,
-    /// A AST id of `self` argument associated with a method call represented by this expression.
+    /// A AST ID of `self` argument associated with a method call represented by this expression.
     pub target_id:       Option<ast::Id>,
 }
 
@@ -314,12 +314,12 @@ pub struct State {
 }
 
 impl State {
-    /// Get node's view id by the AST id.
+    /// Get node's view id by the AST ID.
     pub fn view_id_of_ast_node(&self, node: AstNodeId) -> Option<ViewNodeId> {
         self.nodes.borrow().get(node).and_then(|n| n.view_id)
     }
 
-    /// Get node's AST id by the view id.
+    /// Get node's AST ID by the view id.
     pub fn ast_node_id_of_view(&self, node: ViewNodeId) -> Option<AstNodeId> {
         self.nodes.borrow().ast_id_of_view(node)
     }
@@ -626,7 +626,7 @@ impl<'a> ControllerChange<'a> {
     }
 
     /// Set the new expression's method pointer. If the method pointer actually changes, the
-    /// to-be-updated view and target (`self` argument) AST id is returned.
+    /// to-be-updated view and target (`self` argument) AST ID is returned.
     pub fn set_expression_method_pointer(
         &self,
         id: ast::Id,
@@ -680,12 +680,12 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    /// Remove the node, and returns its AST id.
+    /// Remove the node, and returns its AST ID.
     pub fn remove_node(&self, id: ViewNodeId) -> Option<AstNodeId> {
         self.nodes.borrow_mut().remove_node(id)
     }
 
-    /// Set the new node visualization. If the visualization actually changes, the AST id of the
+    /// Set the new node visualization. If the visualization actually changes, the AST ID of the
     /// affected node is returned.
     pub fn set_node_visualization(
         &self,
@@ -703,7 +703,7 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    /// Mark the node as skipped and return its AST id. Returns `None` if no changes to the
+    /// Mark the node as skipped and return its AST ID. Returns `None` if no changes to the
     /// expression are needed.
     pub fn set_node_skip(&self, id: ViewNodeId, skip: bool) -> Option<AstNodeId> {
         let mut nodes = self.nodes.borrow_mut();
@@ -717,7 +717,7 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    /// Mark the node as frozen and return its AST id. Returns `None` if no changes to the
+    /// Mark the node as frozen and return its AST ID. Returns `None` if no changes to the
     /// expression are needed.
     pub fn set_node_freeze(&self, id: ViewNodeId, freeze: bool) -> Option<AstNodeId> {
         let mut nodes = self.nodes.borrow_mut();
@@ -748,7 +748,7 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    /// Set AST id of target argument (`self`) associated with a given call expression. Returns
+    /// Set AST ID of target argument (`self`) associated with a given call expression. Returns
     /// affected node id when the expression was found, even when the target id is not modified.
     pub fn set_call_expression_target_id(
         &self,
@@ -761,7 +761,7 @@ impl<'a> ViewChange<'a> {
         Some(displayed.node)
     }
 
-    /// Determine if an expression span change is valid and has any effect. Returns node AST id.
+    /// Determine if an expression span change is valid and has any effect. Returns node AST ID.
     /// Returns `None` if no changes to the expression are needed or when the span doesn't exist.
     pub fn check_node_expression_span_update(
         &self,

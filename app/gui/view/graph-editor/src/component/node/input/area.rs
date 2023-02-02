@@ -1072,7 +1072,7 @@ impl Area {
         expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
     }
 
-    /// A crumb by AST id.
+    /// A crumb by AST ID.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
@@ -1161,7 +1161,7 @@ struct CallInfoMap {
 /// Information about the call expression, which are derived from the span tree.
 #[derive(Debug, Default)]
 struct CallInfo {
-    /// The AST id associated with `This` span of the call expression.
+    /// The AST ID associated with `This` span of the call expression.
     target_id:     Option<ast::Id>,
     /// The crumbs of last argument span associated with the call expression.
     last_argument: Option<Crumbs>,

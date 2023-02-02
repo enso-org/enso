@@ -77,7 +77,7 @@ use crate::generate::Context;
 pub struct ArgumentInfo {
     pub name:       Option<String>,
     pub tp:         Option<String>,
-    /// The AST id of the call expression that this argument is passed to.
+    /// The AST ID of the call expression that this argument is passed to.
     /// See [`ApplicationBase`] for more details.
     pub call_id:    Option<ast::Id>,
     pub tag_values: Vec<String>,
