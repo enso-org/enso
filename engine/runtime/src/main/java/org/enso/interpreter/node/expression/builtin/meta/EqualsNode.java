@@ -455,7 +455,9 @@ public abstract class EqualsNode extends Node {
   boolean equalsArrays(Object selfArray, Object otherArray,
                        @CachedLibrary("selfArray") InteropLibrary selfInterop,
                        @CachedLibrary("otherArray") InteropLibrary otherInterop,
-                       @Cached EqualsNode equalsNode
+                       @Cached EqualsNode equalsNode,
+      @Cached HasCustomComparatorNode hasCustomComparatorNode,
+      @Cached InvokeAnyEqualsNode invokeAnyEqualsNode
   ) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
@@ -465,7 +467,15 @@ public abstract class EqualsNode extends Node {
       for (long i = 0; i < selfSize; i++) {
         Object selfElem = selfInterop.readArrayElement(selfArray, i);
         Object otherElem = otherInterop.readArrayElement(otherArray, i);
-        if (!equalsNode.execute(selfElem, otherElem)) {
+        boolean elemsAreEqual;
+        if (selfElem instanceof Atom selfAtomElem
+            && otherElem instanceof Atom otherAtomElem
+            && hasCustomComparatorNode.execute(selfAtomElem)) {
+          elemsAreEqual = invokeAnyEqualsNode.execute(selfAtomElem, otherAtomElem);
+        } else {
+          elemsAreEqual = equalsNode.execute(selfElem, otherElem);
+        }
+        if (!elemsAreEqual) {
           return false;
         }
       }
@@ -599,12 +609,6 @@ public abstract class EqualsNode extends Node {
       @Cached HasCustomComparatorNode hasCustomComparatorNode,
       @Cached InvokeAnyEqualsNode invokeAnyEqualsNode
   ) {
-    if (hasCustomComparatorNode.execute(self)) {
-      // We don't check whether `other` has the same type of comparator, that is checked in
-      // `Any.==` that we invoke here anyway.
-      return invokeAnyEqualsNode.execute(self, other);
-    }
-
     if (constructorsNotEqualProfile.profile(
         self.getConstructor() != other.getConstructor()
     )) {
@@ -618,10 +622,19 @@ public abstract class EqualsNode extends Node {
     if (enoughEqualNodesForFieldsProfile.profile(fieldsSize <= equalsNodeCountForFields)) {
       loopProfile.profileCounted(fieldsSize);
       for (int i = 0; loopProfile.inject(i < fieldsSize); i++) {
-        if (!fieldEqualsNodes[i].execute(
-            selfFields[i],
-            otherFields[i]
-        )) {
+        boolean fieldsAreEqual;
+        // We don't check whether `other` has the same type of comparator, that is checked in
+        // `Any.==` that we invoke here anyway.
+        if (selfFields[i] instanceof Atom selfAtomField
+            && otherFields[i] instanceof Atom otherAtomField
+            && hasCustomComparatorNode.execute(selfAtomField)) {
+          // If selfFields[i] has a custom comparator, we delegate to `Any.==` that deals with
+          // custom comparators. EqualsNode cannot deal with custom comparators.
+          fieldsAreEqual = invokeAnyEqualsNode.execute(selfAtomField, otherAtomField);
+        } else {
+          fieldsAreEqual = fieldEqualsNodes[i].execute(selfFields[i], otherFields[i]);
+        }
+        if (!fieldsAreEqual) {
           return false;
         }
       }
@@ -638,7 +651,7 @@ public abstract class EqualsNode extends Node {
       boolean areFieldsSame;
       if (selfFields[i] instanceof Atom selfFieldAtom
           && otherFields[i] instanceof Atom otherFieldAtom
-          && atomOverridesEquals(selfFieldAtom)) {
+          && HasCustomComparatorNode.getUncached().execute(selfFieldAtom)) {
         areFieldsSame = InvokeAnyEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
       } else {
         areFieldsSame = EqualsNodeGen.getUncached().execute(selfFields[i], otherFields[i]);

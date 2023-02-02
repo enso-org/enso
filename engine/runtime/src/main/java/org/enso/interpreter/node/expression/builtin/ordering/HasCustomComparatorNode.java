@@ -24,6 +24,11 @@ import org.enso.interpreter.runtime.state.State;
  */
 @GenerateUncached
 public abstract class HasCustomComparatorNode extends Node {
+
+  public static HasCustomComparatorNode getUncached() {
+    return HasCustomComparatorNodeGen.getUncached();
+  }
+
   /**
    * Returns true if the given atom has a custom comparator, that is a comparator that is different
    * than the default (internal) ones. The default comparators are {@code Default_Unordered_Comparator}

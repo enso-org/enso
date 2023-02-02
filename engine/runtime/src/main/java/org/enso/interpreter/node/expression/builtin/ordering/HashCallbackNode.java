@@ -24,6 +24,11 @@ import org.enso.interpreter.runtime.state.State;
  */
 @GenerateUncached
 public abstract class HashCallbackNode extends Node {
+
+  public static HashCallbackNode getUncached() {
+    return HashCallbackNodeGen.getUncached();
+  }
+
   /**
    * Dispatches to the appropriate comparator for the given atom and calls {@code hash}
    * method on it. Returns the value from that method.
@@ -41,18 +46,17 @@ public abstract class HashCallbackNode extends Node {
   long hashCallbackCached(
       Atom atom,
       @Cached(value = "getHashCallbackFunction()", allowUncached = true) Function hashCallbackFunc,
-      @Cached(value = "buildInvokeNodeWithAtomArgument()", allowUncached = true) InvokeFunctionNode hasCustomComparatorInvokeNode,
+      @Cached(value = "buildInvokeNodeWithAtomArgument()", allowUncached = true) InvokeFunctionNode hashCallbackInvokeNode,
       @CachedLibrary(limit = "5") InteropLibrary interop
   ) {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
-    Object res = hasCustomComparatorInvokeNode.execute(
+    Object res = hashCallbackInvokeNode.execute(
         hashCallbackFunc,
         null,
         State.create(ctx),
         new Object[]{comparableType, atom}
     );
-    assert interop.fitsInLong(res);
     try {
       return interop.asLong(res);
     } catch (UnsupportedMessageException e) {

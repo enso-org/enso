@@ -203,10 +203,6 @@ public abstract class HashCodeNode extends Node {
       return atom.getHashCode();
     }
 
-    if (hasCustomComparatorNode.execute(atom)) {
-      return hashCallbackNode.execute(atom);
-    }
-
     Object[] fields = structs.getFields(atom);
     int fieldsCount = fields.length;
 
@@ -215,7 +211,11 @@ public abstract class HashCodeNode extends Node {
     if (enoughHashCodeNodesForFields.profile(fieldsCount <= hashCodeNodeCountForFields)) {
       loopProfile.profileCounted(fieldsCount);
       for (int i = 0; loopProfile.inject(i < fieldsCount); i++) {
-        hashes[i] = (int) fieldHashCodeNodes[i].execute(fields[i]);
+        if (fields[i] instanceof Atom atomField && hasCustomComparatorNode.execute(atomField)) {
+          hashes[i] = (int) hashCallbackNode.execute(atomField);
+        } else {
+          hashes[i] = (int) fieldHashCodeNodes[i].execute(fields[i]);
+        }
       }
     } else {
       hashCodeForAtomFieldsUncached(fields, hashes);
@@ -232,7 +232,12 @@ public abstract class HashCodeNode extends Node {
   @TruffleBoundary
   private void hashCodeForAtomFieldsUncached(Object[] fields, int[] fieldHashes) {
     for (int i = 0; i < fields.length; i++) {
-      fieldHashes[i] = (int) HashCodeNodeGen.getUncached().execute(fields[i]);
+      if (fields[i] instanceof Atom atomField
+          && HasCustomComparatorNode.getUncached().execute(atomField)) {
+        fieldHashes[i] = (int) HashCallbackNode.getUncached().execute(atomField);
+      } else {
+        fieldHashes[i] = (int) HashCodeNodeGen.getUncached().execute(fields[i]);
+      }
     }
   }
 
@@ -397,14 +402,21 @@ public abstract class HashCodeNode extends Node {
       Object selfArray,
       @CachedLibrary("selfArray") InteropLibrary interop,
       @Cached HashCodeNode hashCodeNode,
-      @Cached("createCountingProfile()") LoopConditionProfile loopProfile) {
+      @Cached("createCountingProfile()") LoopConditionProfile loopProfile,
+      @Cached HashCallbackNode hashCallbackNode,
+      @Cached HasCustomComparatorNode hasCustomComparatorNode) {
     try {
       long arraySize = interop.getArraySize(selfArray);
       loopProfile.profileCounted(arraySize);
       int[] elemHashCodes = new int[(int) arraySize];
       for (int i = 0; loopProfile.inject(i < arraySize); i++) {
         if (interop.isArrayElementReadable(selfArray, i)) {
-          elemHashCodes[i] = (int) hashCodeNode.execute(interop.readArrayElement(selfArray, i));
+          Object elem = interop.readArrayElement(selfArray, i);
+          if (elem instanceof Atom atomElem && hasCustomComparatorNode.execute(atomElem)) {
+            elemHashCodes[i] = (int) hashCallbackNode.execute(atomElem);
+          } else {
+            elemHashCodes[i] = (int) hashCodeNode.execute(elem);
+          }
         }
       }
       return Arrays.hashCode(elemHashCodes);
