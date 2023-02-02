@@ -423,10 +423,18 @@ pub enum Shape<T> {
     },
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum TreeType {
-    Documentation { rendered: ImString },
+    #[default]
     Expression,
+    Documentation { rendered: ImString },
+    Import { module: Vec<ImString>, imported: ImportedNames }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ImportedNames {
+    Module { alias: Option<String> },
+    All { except: std::collections::BTreeSet<String> },
+    List { names: std::collections::BTreeSet<String> },
 }
 
 /// Represents the syntax tree, and its correspondence to the source text; with context information
@@ -1030,9 +1038,6 @@ impl Module<Ast> {
 // === AST ===
 
 impl Ast {
-    // TODO smart constructors for other cases
-    //  as part of https://github.com/enso-org/enso/issues/338
-
     /// Creates Blank ast node (underscore).
     pub fn blank() -> Ast {
         Ast::from(Blank {})

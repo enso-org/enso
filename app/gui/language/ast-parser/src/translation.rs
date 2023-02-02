@@ -3,7 +3,7 @@ use enso_parser::syntax;
 use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
-
+use enso_prelude::ImString;
 
 
 // =======================
@@ -111,20 +111,12 @@ impl Translate {
             }
             tree::Variant::Documented(tree::Documented { documentation, expression }) =>
                 self.translate(expression.as_ref().unwrap()).without_space(),
-            tree::Variant::Invalid(_)
-            | tree::Variant::AutoScope(_)
-            | tree::Variant::TextLiteral(_)
-            | tree::Variant::MultiSegmentApp(_)
-            | tree::Variant::TypeDef(_)
-            | tree::Variant::Import(_)
-            | tree::Variant::Export(_)
-            | tree::Variant::Group(_)
-            | tree::Variant::CaseOf(_)
-            | tree::Variant::Lambda(_)
-            | tree::Variant::Array(_)
-            | tree::Variant::Tuple(_)
-            | tree::Variant::Annotated(_)
-            | tree::Variant::ConstructorDefinition(_) => {
+            tree::Variant::Import(import) => {
+                let span_info = deconstruct_tree(tree, |t| self.translate(t));
+                let type_info = analyze_import(import).unwrap_or_default();
+                Ast::from(ast::Tree { span_info, type_info })
+            }
+            _ => {
                 let span_info = deconstruct_tree(tree, |t| self.translate(t));
                 let type_info = ast::TreeType::Expression;
                 Ast::from(ast::Tree { span_info, type_info })
@@ -383,6 +375,72 @@ impl Translate {
         // TODO: handle all the other optional fields
         term
     }
+}
+
+// TODO: In place of this analysis (and a similar analysis in Java [`TreeToIr`]),
+//  refactor [`tree::Import`] to a higher-level representation resembling
+//  [`ast::ImportedNames`] (but with concrete tokens).
+fn analyze_import(import: &tree::Import) -> Option<ast::TreeType> {
+    let tree::Import { polyglot, from, import, all, as_, hiding } = import;
+    fn parse_module(tree: &Tree) -> Option<Vec<ImString>> {
+        let mut segments = vec![];
+        for tree in tree.left_assoc_rev(".") {
+            match &*tree.variant {
+                tree::Variant::Ident(tree::Ident { token }) =>
+                    segments.push(token.code.to_string().into()),
+                _ => return None,
+            }
+        }
+        segments.reverse();
+        Some(segments)
+    }
+    fn parse_ident(tree: &Tree) -> Option<String> {
+        match &*tree.variant {
+            tree::Variant::Ident(tree::Ident { token }) => Some(token.code.to_string()),
+            _ => None,
+        }
+    }
+    fn parse_idents(tree: &Tree) -> Option<std::collections::BTreeSet<String>> {
+        let mut names = std::collections::BTreeSet::new();
+        for tree in tree.left_assoc_rev(",") {
+            match &*tree.variant {
+                tree::Variant::Ident(tree::Ident { token }) => {
+                    names.insert(token.code.to_string());
+                }
+                _ => return None,
+            }
+        }
+        Some(names)
+    }
+    let module;
+    let imported;
+    match (polyglot, from, all, as_, hiding) {
+        (None, None, None, None, None) => {
+            module = import.body.as_ref().and_then(parse_module)?;
+            imported = ast::ImportedNames::Module { alias: None };
+        }
+        (None, None, None, Some(as_), None) => {
+            module = import.body.as_ref().and_then(parse_module)?;
+            let alias = as_.body.as_ref().and_then(parse_ident);
+            imported = ast::ImportedNames::Module { alias };
+        }
+        (None, Some(from), None, None, None) => {
+            module = from.body.as_ref().and_then(parse_module)?;
+            let names = import.body.as_ref().and_then(parse_idents)?;
+            imported = ast::ImportedNames::List { names };
+        }
+        (None, Some(from), Some(_), None, None) => {
+            module = from.body.as_ref().and_then(parse_module)?;
+            imported = ast::ImportedNames::All { except: Default::default() };
+        }
+        (None, Some(from), Some(_), None, Some(hiding)) => {
+            module = from.body.as_ref().and_then(parse_module)?;
+            let except = hiding.body.as_ref().and_then(parse_idents)?;
+            imported = ast::ImportedNames::All { except };
+        }
+        _ => return None,
+    }
+    Some(ast::TreeType::Import { module, imported })
 }
 
 

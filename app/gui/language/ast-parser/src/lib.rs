@@ -1,5 +1,6 @@
 #![feature(extend_one)]
 #![feature(let_chains)]
+#![feature(if_let_guard)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

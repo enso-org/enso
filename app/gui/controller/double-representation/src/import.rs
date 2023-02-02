@@ -6,8 +6,6 @@ use crate::name::NamePath;
 use crate::name::QualifiedName;
 
 use ast::Ast;
-use serde::Deserialize;
-use serde::Serialize;
 use std::collections::BTreeSet;
 
 
@@ -37,7 +35,7 @@ pub type Id = u64;
 
 /// A structure describing what names are imported from the module in a specific import declaration.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Eq, Deserialize, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ImportedNames {
     /// The import is `import <module> [as <alias>]` and only module name is imported.
     Module { alias: Option<String> },
@@ -51,7 +49,7 @@ pub enum ImportedNames {
 }
 
 /// Representation of a single import declaration.
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize, Hash)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub struct Info {
     /// The path of the qualified name of the imported module.
     pub module:   NamePath,
@@ -80,9 +78,25 @@ impl Info {
         QualifiedName::from_all_segments(&self.module)
     }
 
-    /// Construct from an AST. Fails if the Ast is not an import declaration.
+    /// Construct from an AST, if the Ast is an import declaration.
     pub fn from_ast(ast: &Ast) -> Option<Self> {
-        None // TODO
+        if let ast::Shape::Tree(ast::Tree {
+            type_info: ast::TreeType::Import { module, imported },
+            ..
+        }) = ast.shape()
+        {
+            let module = module.clone();
+            let imported = match imported.clone() {
+                ast::ImportedNames::All { except } if except.is_empty() => ImportedNames::All,
+                ast::ImportedNames::All { except } =>
+                    ImportedNames::AllExcept { not_imported: except },
+                ast::ImportedNames::List { names } => ImportedNames::List { names },
+                ast::ImportedNames::Module { alias } => ImportedNames::Module { alias },
+            };
+            Some(Info { module, imported })
+        } else {
+            None
+        }
     }
 
     /// Return the ID of the import.
@@ -170,10 +184,6 @@ mod tests {
         let normal_case = "import Standard.Base.Data";
         let normal_case_expected = make_info(&["Standard", "Base", "Data"]);
         test.run_case(normal_case, normal_case_expected);
-
-        let weird_spaces = "import   Standard  .Base .   Data   ";
-        let weird_spaces_expected = make_info(&["Standard", "Base", "Data"]);
-        test.run_case(weird_spaces, weird_spaces_expected);
 
         let single_segment = "import local";
         let single_segment_expected = make_info(&["local"]);

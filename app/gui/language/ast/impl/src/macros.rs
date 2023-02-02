@@ -79,11 +79,6 @@ impl DocumentationCommentAst {
             None
         }
     }
-
-    /// Get the documentation comment's AST.
-    fn ast(&self) -> known::Tree {
-        self.ast.clone_ref()
-    }
 }
 
 
@@ -107,11 +102,6 @@ impl DocumentationCommentLine {
     /// Treat given documentation AST as the line with a given trailing whitespace.
     pub fn from_doc_ast(ast_doc: DocumentationCommentAst, off: usize) -> Self {
         Self { line: BlockLine { elem: ast_doc.ast, off }, rendered: ast_doc.rendered }
-    }
-
-    /// Get the documentation comment's AST.
-    fn ast(&self) -> known::Tree {
-        self.line.elem.clone_ref()
     }
 
     /// Get the line with this comment.
@@ -190,29 +180,6 @@ impl Display for DocumentationCommentInfo {
 /// Check if given Ast stores a documentation comment.
 pub fn is_documentation_comment(ast: &Ast) -> bool {
     DocumentationCommentAst::new(ast).is_some()
-}
-
-
-
-// ===============
-// === Imports ===
-// ===============
-
-/// If the given AST node is an import declaration, returns it as a Match (which is the only shape
-/// capable of storing import declarations). Returns `None` otherwise.
-pub fn ast_as_import_match(ast: &Ast) -> Option<known::Tree> {
-    None // TODO
-}
-
-/// Check if the given macro match node is an import declaration.
-pub fn is_match_import(ast: &known::Tree) -> bool {
-    //is_match_qualified_import(ast) || is_match_unqualified_import(ast)
-    false // TODO
-}
-
-/// Check if the given ast node is an import declaration.
-pub fn is_ast_import(ast: &Ast) -> bool {
-    ast_as_import_match(ast).is_some()
 }
 
 
