@@ -214,7 +214,7 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
         let popular_section =
             group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
         let top_modules = self.top_modules();
-        let groups = match top_modules {
+        let groups: Vec<_> = match top_modules {
             TopModules::All(modules) => {
                 let submodules = modules.iter().enumerate().flat_map(|(section, list)| {
                     group_list_to_grid_group_infos(
@@ -234,6 +234,15 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
         };
         let local_scope_entry_count = self.local_scope().matched_items.get();
         let namespace_section_count = self.namespace_section_count();
+        let groups = if self.is_filtered() {
+            groups
+                .into_iter()
+                .sorted_by_key(|group| ordered_float::OrderedFloat(group.best_match_score))
+                .rev()
+                .collect()
+        } else {
+            groups
+        };
         component_list_panel::grid::content::Info {
             groups,
             local_scope_entry_count,
@@ -278,6 +287,13 @@ fn controller_group_to_grid_group_info(
         height: group.matched_items.get(),
         original_height: group.len(),
         color: group.color,
+        best_match_score: group
+            .best_match()
+            .map(|m| {
+                // error!("BEST MATCH: {:?}:{:?}", m.label(), m.score());
+                m.score()
+            })
+            .unwrap_or_default(),
     }
 }
 
@@ -397,9 +413,15 @@ impl Component {
             grid.model_for_header <+ header_model;
         }
         let content = provider.create_grid_content_info();
+        let first_group = content.groups.first().map(|group| *group);
         grid.reset(content);
-        if provider.displaying_module() {
-            grid.switch_section_no_animation(component_grid::content::SectionId::LocalScope)
+        // error!("first_section: {:?}", first_group);
+        if let Some(group) = first_group {
+            if group.best_match_score > 0.0 {
+                grid.switch_section_no_animation(group.id.section);
+            }
+        } else if provider.displaying_module() {
+            grid.switch_section_no_animation(component_grid::content::SectionId::LocalScope);
         }
         Self { _network: network }
     }

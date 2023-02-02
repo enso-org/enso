@@ -162,6 +162,13 @@ impl Component {
             None => MatchInfo::DoesNotMatch,
         };
     }
+
+    pub(crate) fn score(&self) -> f32 {
+        match &*self.match_info.borrow() {
+            MatchInfo::DoesNotMatch => 0.0,
+            MatchInfo::Matches { subsequence } => subsequence.score,
+        }
+    }
 }
 
 impl From<Rc<hardcoded::Snippet>> for Component {
@@ -321,6 +328,10 @@ impl List {
     /// Get the number of namespace sections.
     pub fn top_module_section_count(&self) -> usize {
         self.top_module_sections.len()
+    }
+
+    pub fn is_filtered(&self) -> bool {
+        self.filtered.get()
     }
 }
 

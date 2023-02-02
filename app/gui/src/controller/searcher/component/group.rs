@@ -11,8 +11,8 @@ use crate::model::suggestion_database;
 
 use double_representation::name::project;
 use ensogl::data::color;
+use futures::future::err;
 use std::cmp;
-
 
 
 // ============
@@ -58,6 +58,17 @@ impl Data {
         let entries = self.entries.borrow();
         let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
         self.matched_items.set(matched_items);
+    }
+
+    fn best_match_score(&self) -> f32 {
+        use ordered_float::OrderedFloat;
+        self.entries
+            .borrow()
+            .iter()
+            .map(|c| OrderedFloat(c.score()))
+            .max()
+            .map(OrderedFloat::into_inner)
+            .unwrap_or(0.0)
     }
 }
 
@@ -236,6 +247,26 @@ impl Group {
     /// Get cloned-ref entry under the index.
     pub fn get_entry(&self, index: usize) -> Option<Component> {
         self.entries.borrow().get(index).map(|e| e.clone_ref())
+    }
+
+    pub fn best_match(&self) -> Option<Component> {
+        // self.sort_by_match_reverse();
+        // error!("----");
+        // self.entries.borrow().iter().for_each(|e| {
+        //     if e.score() > 0.0 {
+        //         error!("entry_match: {:?}: {:?}", e.label(), e.score())
+        //     }
+        // });
+        self.entries
+            .borrow()
+            .iter()
+            .max_by_key(|e| {
+                ordered_float::OrderedFloat(match e.match_info.borrow().clone() {
+                    MatchInfo::DoesNotMatch => 0.0,
+                    MatchInfo::Matches { subsequence } => subsequence.score,
+                })
+            })
+            .map(|e| e.clone_ref())
     }
 }
 

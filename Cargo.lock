@@ -2122,6 +2122,7 @@ dependencies = [
  "json-rpc",
  "mockall",
  "nalgebra",
+ "ordered-float",
  "parser-scala",
  "regex",
  "semver 1.0.14",
@@ -5080,9 +5081,9 @@ dependencies = [
 
 [[package]]
 name = "ordered-float"
-version = "3.1.0"
+version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98ffdb14730ed2ef599c65810c15b000896e21e8776b512de0db0c3d7335cc2a"
+checksum = "d84eb1409416d254e4a9c8fa56cc24701755025b458f0fcd8e59e1f5f40c23bf"
 dependencies = [
  "num-traits",
 ]
