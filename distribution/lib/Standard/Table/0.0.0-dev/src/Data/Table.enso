@@ -530,9 +530,9 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
-    aggregate : Vector Aggregate_Column -> Problem_Behavior -> Table
-    aggregate self columns (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
+    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table
+    aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
 
         on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
