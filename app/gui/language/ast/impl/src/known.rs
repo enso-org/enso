@@ -9,9 +9,6 @@ use crate::HasTokens;
 use crate::Shape;
 use crate::TokenConsumer;
 
-use serde::Serialize;
-use serde::Serializer;
-
 
 
 // =================
@@ -160,13 +157,6 @@ impl<T> From<KnownAst<T>> for Ast {
 impl<'a, T> From<&'a KnownAst<T>> for &'a Ast {
     fn from(known_ast: &'a KnownAst<T>) -> &'a Ast {
         &known_ast.ast
-    }
-}
-
-impl<T> Serialize for KnownAst<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer {
-        self.ast.serialize(serializer)
     }
 }
 

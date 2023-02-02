@@ -16,9 +16,6 @@ use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
 
-use serde::ser::SerializeStruct;
-use serde::ser::Serializer;
-use serde::Serialize;
 use uuid::Uuid;
 
 
@@ -116,7 +113,7 @@ pub struct NoSuchChild;
 // ===============
 
 /// A value of type `T` annotated with offset value `off`.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deref, DerefMut, Iterator)]
+#[derive(Clone, Eq, PartialEq, Debug, Deref, DerefMut, Iterator)]
 pub struct Shifted<T> {
     #[deref]
     #[deref_mut]
@@ -125,7 +122,7 @@ pub struct Shifted<T> {
 }
 
 /// A non-empty sequence of `T`s interspersed by offsets.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Iterator)]
+#[derive(Clone, Eq, PartialEq, Debug, Iterator)]
 pub struct ShiftedVec1<T> {
     pub head: T,
     pub tail: Vec<Shifted<T>>,
@@ -339,34 +336,6 @@ impl<T: Into<Shape<Ast>>> From<T> for Ast {
 }
 
 
-// === Serialization & Deserialization === //
-
-/// Literals used in `Ast` serialization and deserialization.
-pub mod ast_schema {
-    pub const STRUCT_NAME: &str = "Ast";
-    pub const SHAPE: &str = "shape";
-    pub const ID: &str = "id";
-    pub const LENGTH: &str = "span"; // scala parser is still using `span`
-    pub const FIELDS: [&str; 3] = [SHAPE, ID, LENGTH];
-    pub const COUNT: usize = FIELDS.len();
-}
-
-
-impl Serialize for Ast {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer {
-        use ast_schema::*;
-        let mut state = serializer.serialize_struct(STRUCT_NAME, COUNT)?;
-        state.serialize_field(SHAPE, &self.shape())?;
-        if self.id.is_some() {
-            state.serialize_field(ID, &self.id)?;
-        }
-        state.serialize_field(LENGTH, &self.length)?;
-        state.end()
-    }
-}
-
-
 
 // =============
 // === Shape ===
@@ -454,7 +423,7 @@ pub enum Shape<T> {
     },
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TreeType {
     Documentation { rendered: ImString },
     Expression,
@@ -462,7 +431,7 @@ pub enum TreeType {
 
 /// Represents the syntax tree, and its correspondence to the source text; with context information
 /// provided by an evaluator, this can be used to produce a complete [`SpanTree`].
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RawSpanTree {
     Space(usize),
     Token(String),
@@ -787,11 +756,10 @@ pub trait HasID {
     fn id(&self) -> Option<Id>;
 }
 
-#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize)]
+#[derive(Eq, PartialEq, Debug, Deref, DerefMut)]
 pub struct WithID<T> {
     #[deref]
     #[deref_mut]
-    #[serde(flatten)]
     pub wrapped: T,
     pub id:      Option<Id>,
 }
@@ -873,11 +841,10 @@ pub fn traverse_with_span(ast: &impl HasTokens, mut f: impl FnMut(enso_text::Ran
 ///
 /// Even if `T` is `Spanned`, keeping `length` variable is desired for performance
 /// purposes.
-#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize)]
+#[derive(Eq, PartialEq, Debug, Deref, DerefMut)]
 pub struct WithLength<T> {
     #[deref]
     #[deref_mut]
-    #[serde(flatten)]
     pub wrapped: T,
     pub length:  usize,
 }

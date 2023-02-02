@@ -45,7 +45,6 @@ pub fn ast_node(
     let output = quote! {
         #[derive(Clone,Eq,PartialEq,Debug)]
         #[derive(Iterator)]
-        #[derive(Serialize)]
         #input
     };
     output.into()

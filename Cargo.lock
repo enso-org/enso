@@ -136,7 +136,6 @@ dependencies = [
  "failure",
  "lazy_static",
  "regex",
- "serde",
  "uuid 0.8.2",
 ]
 
