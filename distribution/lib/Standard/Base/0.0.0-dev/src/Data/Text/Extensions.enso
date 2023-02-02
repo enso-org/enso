@@ -742,7 +742,7 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
     Case_Sensitivity.Default -> self.starts_with prefix Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.starts_with self prefix
     Case_Sensitivity.Insensitive locale ->
-            self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
+        self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
 
 ## ALIAS Check Suffix
 
@@ -770,7 +770,7 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
     Case_Sensitivity.Default -> self.ends_with suffix Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.ends_with self suffix
     Case_Sensitivity.Insensitive locale ->
-            self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
+        self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
 
 ## ALIAS Contains
 
@@ -812,7 +812,7 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
     Case_Sensitivity.Default -> self.contains term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.contains self term
     Case_Sensitivity.Insensitive locale ->
-            Text_Utils.contains_case_insensitive self term locale.java_locale
+        Text_Utils.contains_case_insensitive self term locale.java_locale
 
 ## Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.

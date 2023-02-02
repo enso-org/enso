@@ -161,7 +161,15 @@ impl QualifiedNameToIdMap {
 /// displays all Constructors and Methods defined for this type.
 #[derive(Clone, Debug, Default)]
 struct HierarchyIndex {
-    inner: HashMap<entry::Id, HashSet<entry::Id>>,
+    inner:   HashMap<entry::Id, HashSet<entry::Id>>,
+    /// Orphans are entries that are not yet in the index, but are referenced by other entries.
+    /// For example, if we have a Type entry, but we haven't yet received its Module entry, we
+    /// store the Type entry as an orphan of Module entry. When we receive the Module entry, we
+    /// add all orphans to the index. This way we do not rely on the order of updates from the
+    /// Engine.
+    ///
+    /// Key is the parent entry name, value is a set of orphan entries.
+    orphans: HashMap<QualifiedName, HashSet<entry::Id>>,
 }
 
 impl HierarchyIndex {
@@ -179,7 +187,7 @@ impl HierarchyIndex {
             if let Some(self_type_id) = qualified_name_to_id_map.get(self_type) {
                 self.inner.entry(self_type_id).or_default().insert(id);
             } else {
-                warn!("Could not find an id for self type {self_type}.");
+                self.orphans.entry(self_type.clone()).or_default().insert(id);
             }
         }
         if entry.kind == Kind::Type {
@@ -187,12 +195,16 @@ impl HierarchyIndex {
                 if let Some(parent_id) = qualified_name_to_id_map.get(&parent_module) {
                     self.inner.entry(parent_id).or_default().insert(id);
                 } else {
-                    warn!("Could not find an id for parent module {parent_module}.");
+                    let parent_module_name = parent_module.to_owned();
+                    self.orphans.entry(parent_module_name).or_default().insert(id);
                 }
             } else {
                 let entry_name = &entry.name;
                 warn!("Could not find a parent module for type {entry_name}.");
             }
+        }
+        if let Some(orphans) = self.orphans.remove(&entry.qualified_name()) {
+            self.inner.entry(id).or_default().extend(orphans);
         }
     }
 
@@ -1363,5 +1375,99 @@ pub mod test {
             "Standard.NewModule.Boolean",
             "Standard.NewModule.Number",
         ]);
+    }
+
+    /// Test that the hierarchy index does not depend on the order of received updates. For example,
+    /// we can receive a method entry before receiving a self type entry.
+    #[test]
+    fn hierarchy_index_does_not_depend_on_order_of_updates() {
+        // === Add a new method, then add a self type for it ===
+
+        let db = mock::standard_db_mock();
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![entry::Update::Add {
+                id:         20,
+                suggestion: Box::new(SuggestionEntry::Method {
+                    external_id:            None,
+                    name:                   "new_method".to_string(),
+                    module:                 "Standard.Base".to_string(),
+                    arguments:              vec![],
+                    self_type:              "Standard.Base.NewType".to_string(),
+                    return_type:            "Standard.Base.Maybe".to_string(),
+                    is_static:              false,
+                    reexport:               None,
+                    documentation:          None,
+                    documentation_html:     None,
+                    documentation_sections: vec![],
+                }),
+            }],
+            current_version: 1,
+        };
+        db.apply_update_event(update);
+        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![entry::Update::Add {
+                id:         21,
+                suggestion: Box::new(SuggestionEntry::Type {
+                    external_id:            None,
+                    name:                   "NewType".to_string(),
+                    module:                 "Standard.Base".to_string(),
+                    params:                 vec![],
+                    parent_type:            None,
+                    reexport:               None,
+                    documentation:          None,
+                    documentation_html:     None,
+                    documentation_sections: vec![],
+                }),
+            }],
+            current_version: 2,
+        };
+        db.apply_update_event(update);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
+        let new_type = lookup_id_by_name(&db, "Standard.Base.NewType").unwrap();
+        let new_method = lookup_id_by_name(&db, "Standard.Base.NewType.new_method").unwrap();
+        assert_eq!(db.lookup_hierarchy(new_type).unwrap(), HashSet::from([new_method]));
+
+
+        // === Add a new type, then add a parent module for it ===
+
+        let db = mock::standard_db_mock();
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![entry::Update::Add {
+                id:         20,
+                suggestion: Box::new(SuggestionEntry::Type {
+                    external_id:            None,
+                    name:                   "NewType".to_string(),
+                    module:                 "Standard.NewModule".to_string(),
+                    params:                 vec![],
+                    reexport:               None,
+                    documentation:          None,
+                    documentation_html:     None,
+                    documentation_sections: vec![],
+                    parent_type:            None,
+                }),
+            }],
+            current_version: 1,
+        };
+        db.apply_update_event(update);
+        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![entry::Update::Add {
+                id:         21,
+                suggestion: Box::new(SuggestionEntry::Module {
+                    module:                 "Standard.NewModule".to_string(),
+                    reexport:               None,
+                    documentation:          None,
+                    documentation_html:     None,
+                    documentation_sections: vec![],
+                }),
+            }],
+            current_version: 2,
+        };
+        db.apply_update_event(update);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
+        let new_module = lookup_id_by_name(&db, "Standard.NewModule").unwrap();
+        let new_type = lookup_id_by_name(&db, "Standard.NewModule.NewType").unwrap();
+        assert_eq!(db.lookup_hierarchy(new_module).unwrap(), HashSet::from([new_type]));
     }
 }

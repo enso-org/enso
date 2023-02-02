@@ -5,12 +5,11 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that sets sources for the module..
+/** A command that opens a file.
   *
   * @param request a request for a service
   */
-class SetModuleSourcesCmd(request: Api.SetModuleSourcesNotification)
-    extends Command(None) {
+class OpenFileCmd(request: Api.OpenFileNotification) extends Command(None) {
 
   /** @inheritdoc */
   override def execute(implicit

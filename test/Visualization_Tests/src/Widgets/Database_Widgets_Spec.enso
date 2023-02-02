@@ -37,7 +37,7 @@ spec =
             Widgets.get_full_annotations_json mock_table "at" ["selector"] . should_equal expect
 
         Test.specify "works for `filter`" <|
-            expect = [["column", Widget.Single_Choice (mock_table.column_names.map .pretty) Nothing Display.Always], ["filter", Nothing], ["on_problems", Nothing]] . to_json
-            Widgets.get_full_annotations_json mock_table "filter" ["column", "filter", "on_problems"] . should_equal expect
+            expect = [["column", Widget.Single_Choice (mock_table.column_names.map .pretty) Nothing Display.Always]] . to_json
+            Widgets.get_full_annotations_json mock_table "filter" ["column"] . should_equal expect
 
 main = Test_Suite.run_main spec

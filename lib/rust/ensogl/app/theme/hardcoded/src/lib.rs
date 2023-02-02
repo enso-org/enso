@@ -541,8 +541,9 @@ define_themes! { [light:0, dark:1]
                 edited    = Lcha::yellow(0.9,1.0), Lcha::yellow(0.9,1.0);
             }
             error {
-                dataflow     = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
-                panic        = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                dataflow     = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                panic        = Rgba(0.7,0.235,0.08,1.0), Rgba(0.7,0.235,0.08,1.0);
+                warning      = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
                 width        = 4.0  , 4.0;
                 repeat_x     = 20.0 , 20.0;
                 repeat_y     = 20.0 , 20.0;
@@ -564,8 +565,9 @@ define_themes! { [light:0, dark:1]
             text           = Lcha(0.0,0.0,0.0,0.7)   , Lcha(1.0,0.0,0.0,0.7);
             text.selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             error {
-                dataflow.text = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
-                panic.text    = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                dataflow.text = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                panic.text = Rgba(0.7,0.235,0.08,1.0), Rgba(0.7,0.235,0.08,1.0);
+                warning.text = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
             }
             action_bar {
                 // Original RGB values (for reference after fixing color-conversion issues)

@@ -3465,7 +3465,7 @@ impl Object for Instance {
     }
 }
 
-impl<T: Object> Object for &T {
+impl<T: Object + ?Sized> Object for &T {
     fn display_object(&self) -> &Instance {
         let t: &T = self;
         t.display_object()

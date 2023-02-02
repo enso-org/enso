@@ -7,7 +7,6 @@ import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.polyglot.RuntimeOptions
 import org.enso.text.Sha3_224VersionCalculator
 
-import java.util.concurrent.Executors
 import java.util.logging.Level
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
@@ -45,12 +44,8 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
       interpreterContext.executionService.getLogger.fine(
         "Executing commands in a separate command pool"
       )
-      Executors.newCachedThreadPool(
-        new TruffleThreadFactory(
-          interpreterContext.executionService.getContext,
-          "command-pool"
-        )
-      )
+      interpreterContext.executionService.getContext
+        .newCachedThreadPool("command-pool", false)
     }
 
   implicit private val commandExecutionContext: ExecutionContextExecutor =

@@ -326,9 +326,27 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     }
     if (invalidatedVisualisations.nonEmpty) {
       ctx.executionService.getLogger.log(
-        Level.FINE,
+        Level.FINEST,
         s"Invalidated visualisations [${invalidatedVisualisations.map(_.id)}]"
       )
+    }
+
+    // pending updates
+    val updates = changeset.invalidated.map { key =>
+      Api.ExpressionUpdate(
+        key,
+        None,
+        None,
+        Vector.empty,
+        true,
+        Api.ExpressionUpdate.Payload.Pending(None, None)
+      )
+    }
+    if (updates.nonEmpty) {
+      ctx.contextManager.getAllContexts.keys.foreach { contextId =>
+        val response = Api.Response(Api.ExpressionUpdates(contextId, updates))
+        ctx.endpoint.sendToClient(response)
+      }
     }
   }
 
