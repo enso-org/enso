@@ -25,7 +25,7 @@ type RowNumber = i32;
 // =======================
 
 fn with_timing_info(base: &str, [t1, t2]: [f64; 2]) -> String {
-    format!("{}\n[{:.2},{:.2}]", base, t1, t2)
+    format!("{base}\n[{t1:.2},{t2:.2}]")
 }
 
 // ==================

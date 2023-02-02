@@ -83,7 +83,7 @@ impl Example {
 
 /// Creates a pretty documentation from hardcoded inner text.
 pub fn documentation_html_from(inner: &str) -> String {
-    format!("<div class=\"doc\" style=\"font-size: 13px;\"><p>{}</p></div>", inner)
+    format!("<div class=\"doc\" style=\"font-size: 13px;\"><p>{inner}</p></div>")
 }
 
 // =========================

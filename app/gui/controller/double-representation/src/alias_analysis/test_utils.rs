@@ -35,7 +35,7 @@ impl Case {
     pub fn from_markdown(marked_code: impl Str) -> Case {
         // Regexp that matches either «sth» or »sth« into a group named `introduced` or `used`,
         // respectively. See: https://regex101.com/r/pboF8O/2 for detailed explanation.
-        let regex = format!(r"«(?P<{}>[^»]*)»|»(?P<{}>[^«]*)«", INTRODUCED, USED);
+        let regex = format!(r"«(?P<{INTRODUCED}>[^»]*)»|»(?P<{USED}>[^«]*)«");
         // As this is test utils, we don't try nicely handling failure nor reusing the compiled
         // regexp between calls to save some cycles.
         let regex = Regex::new(&regex).unwrap();
@@ -87,7 +87,7 @@ impl Replacer for MarkdownReplacer {
         } else if let Some(used) = captures.name(USED) {
             (Kind::Used, used)
         } else {
-            panic!("Unexpected capture: expected named capture `{}` or `{}`.", INTRODUCED, USED)
+            panic!("Unexpected capture: expected named capture `{INTRODUCED}` or `{USED}`.")
         };
 
         let span = self.processor.process_match(captures, &matched, dst);

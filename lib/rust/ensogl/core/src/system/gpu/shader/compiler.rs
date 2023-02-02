@@ -693,8 +693,8 @@ impl Error {
             Self::ProgramCreationError => "WebGl was unable to create a new program shader.".into(),
             Self::ProgramLinkingError(shader) => {
                 let unwrap_error = |name: &str, err: Option<String>| {
-                    let header = format!("----- {} Shader -----", name);
-                    err.map(|t| format!("\n\n{}\n\n{}", header, t)).unwrap_or_else(|| "".into())
+                    let header = format!("----- {name} Shader -----");
+                    err.map(|t| format!("\n\n{header}\n\n{t}")).unwrap_or_else(|| "".into())
                 };
 
                 let vertex = &shader.vertex;
@@ -709,7 +709,7 @@ impl Error {
                 let dbg_object = web::Reflect::get_nested_object_or_create(&web::window, dbg_path);
                 let dbg_object = dbg_object.unwrap();
                 let dbg_shaders_count = web::Object::keys(&dbg_object).length();
-                let dbg_var_name = format!("shader_{}", dbg_shaders_count);
+                let dbg_var_name = format!("shader_{dbg_shaders_count}");
                 let dbg_shader_object = web::Object::new();
                 let vertex_code = vertex.code.to_string().into();
                 let fragment_code = fragment.code.to_string().into();
@@ -718,16 +718,12 @@ impl Error {
                 web::Reflect::set(&dbg_shader_object, &"fragment".into(), &fragment_code).ok();
 
                 let dbg_js_path = format!("window.{}.{}", dbg_path.join("."), dbg_var_name);
-                let run_msg = |n| {
-                    format!("Run `console.log({}.{})` to inspect the {} shader.", dbg_js_path, n, n)
-                };
+                let run_msg =
+                    |n| format!("Run `console.log({dbg_js_path}.{n})` to inspect the {n} shader.");
 
                 let dbg_msg = format!("{}\n{}", run_msg("vertex"), run_msg("fragment"));
 
-                format!(
-                    "Unable to compile shader.\n{}\n{}{}",
-                    dbg_msg, vertex_error, fragment_error
-                )
+                format!("Unable to compile shader.\n{dbg_msg}\n{vertex_error}{fragment_error}")
             }
         }
     }

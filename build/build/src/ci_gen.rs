@@ -184,9 +184,7 @@ pub fn setup_customized_script_steps(
     steps.extend(customize(run(command_line)));
     steps.extend(list_everything_on_failure());
     steps.push(
-        clean_step
-            .with_if(format!("always() && {}", post_clean_condition))
-            .with_name("Clean after"),
+        clean_step.with_if(format!("always() && {post_clean_condition}")).with_name("Clean after"),
     );
     steps
 }

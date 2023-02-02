@@ -228,7 +228,7 @@ pub async fn check_response(
             .map_err(|e| anyhow!("Also failed to obtain the response body: {}", e))?;
 
         if let Ok(body_text) = std::str::from_utf8(body.as_ref()) {
-            err = err.context(format!("Error response body was: {}", body_text));
+            err = err.context(format!("Error response body was: {body_text}"));
         }
 
         let err = additional_context(status, err);

@@ -41,7 +41,7 @@ impl BucketContext {
         let path = path.as_ref();
         let normalized = path_slash::PathExt::to_slash_lossy(path);
         if let Some(prefix) = &self.key_prefix {
-            format!("{}/{}", prefix, normalized)
+            format!("{prefix}/{normalized}")
         } else {
             normalized.into()
         }

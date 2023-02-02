@@ -218,9 +218,9 @@ impl DeserializerBuilder {
                     }
                     value
                 }
-                FieldData::Primitive(Primitive::Int { .. }) => format!("{}.get32()", message),
-                FieldData::Primitive(Primitive::Long { .. }) => format!("{}.get64()", message),
-                FieldData::Primitive(Primitive::Bool) => format!("{}.getBoolean()", message),
+                FieldData::Primitive(Primitive::Int { .. }) => format!("{message}.get32()"),
+                FieldData::Primitive(Primitive::Long { .. }) => format!("{message}.get64()"),
+                FieldData::Primitive(Primitive::Bool) => format!("{message}.getBoolean()"),
             }
         };
         let expr = match self.mappers.remove(&field.id()) {

@@ -183,24 +183,20 @@ impl Display for Info {
         let from_kw = ast::macros::UNQUALIFIED_IMPORT_KEYWORD;
         match &self.imported {
             ImportedNames::Module { alias } => {
-                write!(f, "{} {}", import_kw, module)?;
+                write!(f, "{import_kw} {module}")?;
                 if let Some(alias) = alias {
-                    write!(f, " {} {}", ALIAS_KEYWORD, alias)?;
+                    write!(f, " {ALIAS_KEYWORD} {alias}")?;
                 }
                 Ok(())
             }
-            ImportedNames::All => write!(f, "{} {} {} {}", from_kw, module, import_kw, ALL_KEYWORD),
+            ImportedNames::All => write!(f, "{from_kw} {module} {import_kw} {ALL_KEYWORD}"),
             ImportedNames::List { names } => {
                 let names = names.iter().join(", ");
-                write!(f, "{} {} {} {}", from_kw, module, import_kw, names)
+                write!(f, "{from_kw} {module} {import_kw} {names}")
             }
             ImportedNames::AllExcept { not_imported: hidden_names } => {
                 let names = hidden_names.iter().join(", ");
-                write!(
-                    f,
-                    "{} {} {} {} {} {}",
-                    from_kw, module, import_kw, ALL_KEYWORD, HIDING_KEYWORD, names
-                )
+                write!(f, "{from_kw} {module} {import_kw} {ALL_KEYWORD} {HIDING_KEYWORD} {names}")
             }
         }
     }

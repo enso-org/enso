@@ -44,8 +44,8 @@ impl CodeGenerator {
     fn add_variable_font_definition(&mut self, family: &str, file: &str) {
         let key = format!("\"{family}\".into()");
         let family_def = format!("family::VariableDefinition::new(\"{file}\")");
-        let value = format!("family::Definition::Variable({})", family_def);
-        ln!(1, &mut self.definitions, "map.insert({},{});", key, value);
+        let value = format!("family::Definition::Variable({family_def})");
+        ln!(1, &mut self.definitions, "map.insert({key},{value});");
     }
 
     fn add_non_variable_font_definition(&mut self, family_name: &str, def: &str) {
@@ -99,7 +99,7 @@ mod deja_vu {
         let archive_file = ide_ci::fs::open(package_path)?;
         let mut archive = zip::ZipArchive::new(archive_file).unwrap();
         for file_name in FILE_NAMES {
-            let font_in_package_path = format!("{}/{}", PACKAGE_FONTS_PREFIX, file_name);
+            let font_in_package_path = format!("{PACKAGE_FONTS_PREFIX}/{file_name}");
             let mut input_stream = archive.by_name(&font_in_package_path).with_context(|| {
                 format!(
                     "Cannot find font file {} in the package {}",

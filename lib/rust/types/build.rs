@@ -148,7 +148,7 @@ fn gen_swizzling_macro(unique: bool) -> String {
     out.write_str("/// Swizzling data for the given dimension.\n").unwrap();
     out.write_str("/// See the [`build.rs`] file to learn more.\n").unwrap();
     out.write_str("#[macro_export]\n").unwrap();
-    out.write_str(&format!("macro_rules! with_swizzling_for_dim{} {{\n", sfx)).unwrap();
+    out.write_str(&format!("macro_rules! with_swizzling_for_dim{sfx} {{\n")).unwrap();
     out.write_str(&gen_swizzling_macro_branch(1, unique)).unwrap();
     out.write_str(&gen_swizzling_macro_branch(2, unique)).unwrap();
     out.write_str(&gen_swizzling_macro_branch(3, unique)).unwrap();
@@ -166,9 +166,9 @@ fn main() {
     let mut out = String::new();
     out.write_str("//! Macros allowing generation of swizzling getters and setters.\n").unwrap();
     out.write_str("//! See the docs of [`build.rs`] and usage places to learn more.\n").unwrap();
-    out.write_str(&format!("\n\n\n// {}\n", border)).unwrap();
+    out.write_str(&format!("\n\n\n// {border}\n")).unwrap();
     out.write_str("// THIS IS AN AUTO-GENERATED FILE. DO NOT EDIT IT DIRECTLY!\n").unwrap();
-    out.write_str(&format!("// {}\n\n\n", border)).unwrap();
+    out.write_str(&format!("// {border}\n\n\n")).unwrap();
     out.write_str(&gen_swizzling_macro(false)).unwrap();
     out.write_str("\n\n").unwrap();
     out.write_str(&gen_swizzling_macro(true)).unwrap();

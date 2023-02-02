@@ -179,9 +179,9 @@ impl Display for Component {
                 let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
                 if let Some(self_type) = self_type_not_here {
                     let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
-                    write!(f, "{} {}", self_name, entry_name)
+                    write!(f, "{self_name} {entry_name}")
                 } else {
-                    write!(f, "{}", entry_name)
+                    write!(f, "{entry_name}")
                 }
             }
             Data::Virtual { snippet } => write!(f, "{}", snippet.name),

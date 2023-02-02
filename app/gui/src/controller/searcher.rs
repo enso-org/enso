@@ -2275,7 +2275,7 @@ pub mod test {
                 let parser = Parser::new_or_panic();
                 let ast = parser.parse_line_ast(self.before).unwrap();
                 let new_ast = apply_this_argument("foo", &ast);
-                assert_eq!(new_ast.repr(), self.after, "Case {:?} failed: {:?}", self, ast);
+                assert_eq!(new_ast.repr(), self.after, "Case {self:?} failed: {ast:?}");
             }
         }
 
