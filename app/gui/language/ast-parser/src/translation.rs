@@ -149,7 +149,8 @@ impl Translate {
                 let tree::OperatorBlockApplication { lhs, expressions, excess } = app;
                 let func = self.translate(lhs.as_ref().unwrap()).expect_unspaced();
                 let arg = self.translate_operator_block(expressions);
-                self.finish_ast(ast::Prefix { func, off: 0, arg }, builder)
+                let off = 0; // TODO
+                self.finish_ast(ast::Prefix { func, off, arg }, builder)
             }
             tree::Variant::TemplateFunction(tree::TemplateFunction { ast, .. }) =>
                 self.translate(ast).expect_unspaced(),
@@ -158,7 +159,8 @@ impl Translate {
                 let tree::ArgumentBlockApplication { lhs, arguments } = app;
                 let func = self.translate(lhs.as_ref().unwrap()).expect_unspaced();
                 let arg = self.translate_block(arguments).unwrap().into();
-                self.finish_ast(ast::Prefix { func, off: 0, arg }, builder)
+                let off = 0; // TODO
+                self.finish_ast(ast::Prefix { func, off, arg }, builder)
             }
             tree::Variant::DefaultApp(tree::DefaultApp { func, default }) => {
                 let func = self.translate(func).expect_unspaced();
@@ -347,7 +349,7 @@ impl Translate {
                 if let Some(elem) = line.elem {
                     first_line = Some(ast::BlockLine { elem, off: line.off });
                 } else {
-                    empty_lines.push(0); // lossy
+                    empty_lines.push(line.off);
                 }
             } else {
                 lines.push(line);
@@ -366,12 +368,18 @@ impl Translate {
         let mut statement_lines = vec![];
         let mut initial_indent = None;
         for tree::block::Line { newline, expression } in tree_lines {
+            // Mapping from [`Tree`]'s leading offsets to [`Ast`]'s trailing offsets:
+            // Initially, we create each line with no trailing offset.
+            let off = 0;
+            // If we encounter a leading offset, we represent it by modifying the trailing offset of
+            // the previous line.
             let trailing_space = self.visit_token(&newline).space;
             if trailing_space != 0 {
                 if let Some(last) = ast_lines.last_mut() {
                     last.off = trailing_space;
                 } else {
-                    // TODO
+                    // TODO: This should be leading whitespace for the whole block.
+                    todo!()
                 }
             }
             match &expression {
@@ -382,10 +390,10 @@ impl Translate {
                     }
                     let new_lines = statement_lines
                         .drain(..)
-                        .map(|elem| ast::BlockLine { elem: Some(elem.without_space()), off: 0 });
+                        .map(|elem| ast::BlockLine { elem: Some(elem.without_space()), off });
                     ast_lines.extend(new_lines);
                 }
-                None => ast_lines.push(ast::BlockLine { elem: None, off: 0 }),
+                None => ast_lines.push(ast::BlockLine { elem: None, off }),
             }
         }
         (ast_lines, initial_indent)
@@ -406,6 +414,7 @@ impl Translate {
                 let (off, arg) = self.translate(&expression.expression).split();
                 Ast::from(ast::SectionRight { opr, off, arg })
             });
+            let off = 0; // TODO
             if first_line.is_none() {
                 // TODO: handle multiple-operator error; visit_token
                 if let Some(elem) = elem {
@@ -418,12 +427,12 @@ impl Translate {
                         .left_offset
                         .visible
                         .width_in_spaces;
-                    first_line = Some(ast::BlockLine { elem, off: 0 });
+                    first_line = Some(ast::BlockLine { elem, off });
                 } else {
-                    empty_lines.push(0); // lossy
+                    empty_lines.push(off);
                 }
             } else {
-                lines.push(ast::BlockLine { elem, off: 0 });
+                lines.push(ast::BlockLine { elem, off });
             }
         }
         let first_line = first_line.unwrap();
