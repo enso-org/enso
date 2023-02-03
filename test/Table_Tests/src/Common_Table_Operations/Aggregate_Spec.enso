@@ -1,9 +1,11 @@
 from Standard.Base import all hiding First, Last
 
 from Standard.Table import Table, Sort_Column, Column_Selector
-from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter
+from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
+import Standard.Table.Data.Expression.Expression_Error
+from Standard.Table.Errors import all
+
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -1185,16 +1187,48 @@ spec setup =
                 problems = [Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column."]
                 Problems.test_problem_handling action problems tester
 
+    Test.group prefix+"Table.aggregate+Expressions" <|
+        Test.specify "should allow expressions in aggregates" <|
+            table = table_builder [["Index", [1, 1, 2, 2]], ["Value", [1, 2, 3, 4]]]
+            t1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[Value]*[Value]"]
+            expect_column_names ["Index", "Sum Value", "Sum [Value]*[Value]"] t1
+            t1.at "Index" . to_vector . should_equal [1, 2]
+            t1.at "Sum Value" . to_vector . should_equal [3, 7]
+            t1.at "Sum [Value]*[Value]" . to_vector . should_equal [5, 25]
+
+        Test.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
+            action1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[MISSING]*[MISSING]"] on_problems=_
+            tester1 = expect_column_names ["Index", "Sum Value"]
+            problems1 = [No_Such_Column.Error "MISSING"]
+            Problems.test_problem_handling action1 problems1 tester1
+
+            t2 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Ignore
+            expect_column_names ["Index", "Sum Value"] t2
+            err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Report_Error
+            err3.should_fail_with Expression_Error.Syntax_Error
+
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling) <|
         table =
             col1 = ["Index", [1, 2, 3]]
             col2 = ["Value", [1, 2, 3]]
             table_builder [col1, col2]
 
-        Test.specify "should raise a warning when there are no output columns" <|
+        Test.specify "should fail if there are no output columns, and promote any warnings to errors" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
-                t = table.aggregate [] on_problems=pb
-                t.should_fail_with No_Output_Columns
+                t1 = table.aggregate [] on_problems=pb
+                t1.should_fail_with No_Output_Columns
+
+            t2 = table.aggregate [Sum "MISSING"]
+            t2 . should_fail_with Missing_Input_Columns
+            t2.catch.criteria.should_equal ["MISSING"]
+
+            t3 = table.aggregate [Sum 42]
+            t3 . should_fail_with Column_Indexes_Out_Of_Range
+            t3.catch.indexes.should_equal [42]
+
+            t4 = table.aggregate [Sum "[MISSING]*[MISSING]"]
+            t4 . should_fail_with No_Such_Column
+            t4.catch.column_name . should_equal "MISSING"
 
         Test.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in a Group_By" <|
             err1 = table.aggregate [Group_By "Missing", Group_By "Index", Group_By "Other_Missing"] on_problems=Problem_Behavior.Ignore
