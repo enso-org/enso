@@ -190,7 +190,7 @@ mod tests {
 
         fn from_block(code: impl Str) -> TestRun {
             let body = code.as_ref().lines().map(|line| format!("    {}", line.trim())).join("\n");
-            let definition_code = format!("main =\n{}", body);
+            let definition_code = format!("main =\n{body}");
             Self::from_main_def(definition_code)
         }
 

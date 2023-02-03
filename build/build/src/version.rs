@@ -233,7 +233,7 @@ pub fn same_core_version(a: &Version, b: &Version) -> bool {
 }
 
 pub fn generate_rc_prerelease(index: u32) -> Result<Prerelease> {
-    Prerelease::from_str(&format!("{}.{}", RC_BUILD_PREFIX, index))
+    Prerelease::from_str(&format!("{RC_BUILD_PREFIX}.{index}"))
 }
 
 #[instrument(ret)]

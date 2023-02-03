@@ -83,7 +83,7 @@ impl Model {
 
     fn create_project_list_entry(project_name: &str) -> ClickableElement {
         let element = web::document.create_element_or_panic("li");
-        element.set_inner_html(&format!(r#"<img src="assets/project.svg"/> {}"#, project_name));
+        element.set_inner_html(&format!(r#"<img src="assets/project.svg"/> {project_name}"#));
         ClickableElement::new(element)
     }
 }

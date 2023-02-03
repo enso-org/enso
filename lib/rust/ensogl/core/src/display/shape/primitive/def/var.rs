@@ -158,7 +158,7 @@ where T: Abs
     fn abs(&self) -> Self {
         match self {
             Self::Static(t) => Var::Static(t.abs()),
-            Self::Dynamic(t) => Var::Dynamic(format!("abs({})", t).into()),
+            Self::Dynamic(t) => Var::Dynamic(format!("abs({t})").into()),
         }
     }
 }
@@ -536,7 +536,7 @@ where T: Sin<Output = T>
     fn sin(&self) -> Self {
         match self {
             Self::Static(t) => Var::Static(t.sin()),
-            Self::Dynamic(t) => Var::Dynamic(format!("sin({})", t).into()),
+            Self::Dynamic(t) => Var::Dynamic(format!("sin({t})").into()),
         }
     }
 }
@@ -548,7 +548,7 @@ where T: Asin<Output = T>
     fn asin(&self) -> Self {
         match self {
             Self::Static(t) => Var::Static(t.asin()),
-            Self::Dynamic(t) => Var::Dynamic(format!("asin({})", t).into()),
+            Self::Dynamic(t) => Var::Dynamic(format!("asin({t})").into()),
         }
     }
 }
@@ -561,7 +561,7 @@ where T: Cos<Output = T>
     fn cos(&self) -> Self {
         match self {
             Self::Static(t) => Var::Static(t.cos()),
-            Self::Dynamic(t) => Var::Dynamic(format!("cos({})", t).into()),
+            Self::Dynamic(t) => Var::Dynamic(format!("cos({t})").into()),
         }
     }
 }
@@ -573,7 +573,7 @@ where T: Acos<Output = T>
     fn acos(&self) -> Self {
         match self {
             Self::Static(t) => Var::Static(t.acos()),
-            Self::Dynamic(t) => Var::Dynamic(format!("acos({})", t).into()),
+            Self::Dynamic(t) => Var::Dynamic(format!("acos({t})").into()),
         }
     }
 }
@@ -591,7 +591,7 @@ where T: Sqrt<Output = T>
     fn sqrt(&self) -> Self {
         match self {
             Self::Static(t) => Var::Static(t.sqrt()),
-            Self::Dynamic(t) => Var::Dynamic(format!("sqrt({})", t).into()),
+            Self::Dynamic(t) => Var::Dynamic(format!("sqrt({t})").into()),
         }
     }
 }
@@ -635,7 +635,7 @@ where T: Signum<Output = T>
     fn signum(self) -> Self {
         match self {
             Self::Static(t) => Var::Static(t.signum()),
-            Self::Dynamic(t) => Var::Dynamic(format!("sign({})", t).into()),
+            Self::Dynamic(t) => Var::Dynamic(format!("sign({t})").into()),
         }
     }
 }
@@ -705,7 +705,7 @@ impl From<Var<Vector4<f32>>> for Var<color::Rgba> {
     fn from(other: Var<Vector4<f32>>) -> Self {
         match other {
             Var::Static(t) => Var::Static(color::Rgba::new(t.x, t.y, t.z, t.w)),
-            Var::Dynamic(t) => Var::Dynamic(format!("srgba({0}.x,{0}.y,{0}.z,{0}.w)", t).into()),
+            Var::Dynamic(t) => Var::Dynamic(format!("srgba({t}.x,{t}.y,{t}.z,{t}.w)").into()),
         }
     }
 }
@@ -719,7 +719,7 @@ impl Var<color::Rgba> {
             (t, alpha) => {
                 let t = t.glsl();
                 let alpha = alpha.glsl();
-                let var = format!("srgba({0}.raw.x,{0}.raw.y,{0}.raw.z,{1})", t, alpha);
+                let var = format!("srgba({t}.raw.x,{t}.raw.y,{t}.raw.z,{alpha})");
                 Var::Dynamic(var.into())
             }
         }
@@ -737,7 +737,7 @@ impl Var<color::Rgba> {
             (t, alpha) => {
                 let t = t.glsl();
                 let alpha = alpha.glsl();
-                let var = format!("srgba({0}.raw.x,{0}.raw.y,{0}.raw.z,{0}.raw.w*{1})", t, alpha);
+                let var = format!("srgba({t}.raw.x,{t}.raw.y,{t}.raw.z,{t}.raw.w*{alpha})");
                 Var::Dynamic(var.into())
             }
         }

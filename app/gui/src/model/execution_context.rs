@@ -580,9 +580,13 @@ mod tests {
         let update2 = value_update_with_type(expr2, &typename2);
         registry.apply_updates(vec![update1, update2]);
         assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.clone().into()));
-        assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value));
+        assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value {
+            warnings: None,
+        }));
         assert_eq!(registry.get(&expr2).unwrap().typename, Some(typename2.into()));
-        assert!(matches!(registry.get(&expr2).unwrap().payload, ExpressionUpdatePayload::Value));
+        assert!(matches!(registry.get(&expr2).unwrap().payload, ExpressionUpdatePayload::Value {
+            warnings: None,
+        }));
         let notification = test.expect_completion(subscriber.next()).unwrap();
         assert_eq!(notification, vec![expr1, expr2]);
 
@@ -591,7 +595,9 @@ mod tests {
         let update2 = value_update_with_dataflow_panic(expr3, error_msg);
         registry.apply_updates(vec![update1, update2]);
         assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.into()));
-        assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value));
+        assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value {
+            warnings: None,
+        }));
         assert!(registry.get(&expr2).unwrap().typename.is_none());
         assert!(matches!(
             registry.get(&expr2).unwrap().payload,
