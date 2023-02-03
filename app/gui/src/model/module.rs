@@ -285,11 +285,11 @@ pub enum NotificationKind {
     },
     /// The metadata (e.g. some node's position) has been changed.
     MetadataChanged,
-    /// The whole content was reloaded from file.
+    /// The source file was changed by the language server and the module content is reloaded.
     Reloaded {
-        /// Content summary of the reloaded file.
+        /// Content summary of the changed file.
         summary: synchronized::ContentSummary,
-        /// The text change description due to parsing of the reloaded file.
+        /// The text change description due to parsing of the reloaded content.
         change:  engine_protocol::language_server::TextEdit,
     },
 }

@@ -197,7 +197,7 @@ async fn update_modules_on_file_change(
         let file_path = file_edit.path.clone();
         let module_path = module::Path::from_file_path(file_path).unwrap();
         if let Some(module) = module_registry.get(&module_path).await? {
-            module.apply_text_edit(file_edit.edits, &parser)?;
+            module.apply_text_change_from_ls(file_edit.edits, &parser)?;
         }
     }
     Ok(())

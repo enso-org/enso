@@ -195,16 +195,20 @@ impl Module {
         Rc::new(Module { model, language_server })
     }
 
-    /// Reload file from language server.
-    pub async fn reload_file(&self, parser: &Parser) -> FallibleResult {
+    /// Reload text file from the language server.
+    pub async fn reload_text_file_from_ls(&self, parser: &Parser) -> FallibleResult {
         let file_path = self.path();
         self.language_server.client.close_text_file(file_path).await?;
         let opened = self.language_server.client.open_text_file(file_path).await?;
-        self.reload_module_content(opened.content.into(), parser)
+        self.update_module_content(opened.content.into(), parser)
     }
 
-    /// Apply text changes from language server.
-    pub fn apply_text_edit(&self, edits: Vec<TextEdit>, parser: &Parser) -> FallibleResult {
+    /// Apply text changes received from the language server.
+    pub fn apply_text_change_from_ls(
+        &self,
+        edits: Vec<TextEdit>,
+        parser: &Parser,
+    ) -> FallibleResult {
         let mut content: text::Rope = self.serialized_content()?.content.into();
         for TextEdit { range, text } in edits {
             let start = content.location_of_utf16_code_unit_location_snapped(range.start.into());
@@ -215,10 +219,13 @@ impl Module {
             let change = TextChange { range, text };
             content.apply_change(change);
         }
-        self.reload_module_content(content, parser)
+        self.update_module_content(content, parser)
     }
 
-    fn reload_module_content(&self, content: text::Rope, parser: &Parser) -> FallibleResult {
+    /// Update the module content. The provided new content should match the current content of the
+    /// file on the language server. This function updates the module content to be in sync with the
+    /// language server file content.
+    fn update_module_content(&self, content: text::Rope, parser: &Parser) -> FallibleResult {
         let summary = ContentSummary::new(&content);
         let source = parser.parse_with_metadata(content.to_string())?;
         let new_content = source.serialize()?.content;
@@ -854,7 +861,7 @@ pub mod test {
             let file_edits = module.language_server.text_file_did_change().expect_ready().unwrap();
             fixture.run_until_stalled();
             let change = file_edits.edits[0].edits.clone();
-            module.apply_text_edit(change, &parser).unwrap();
+            module.apply_text_change_from_ls(change, &parser).unwrap();
             fixture.run_until_stalled();
         };
 
