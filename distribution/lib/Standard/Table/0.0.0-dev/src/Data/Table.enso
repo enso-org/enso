@@ -1426,7 +1426,7 @@ type Table
     cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
-        problem_builder = Problem_Builder.new
+        problem_builder = Problem_Builder.new error_on_missing_columns=True
 
         ## validate the name and group_by columns
         matched_name = columns_helper.select_columns_helper [name_column] True problem_builder
@@ -1443,7 +1443,7 @@ type Table
         if resolved_values.any is_group_by then problem_builder.report_other_warning (Illegal_Argument.Error "Cannot use group_by for a cross_tab value.")
         validated_values = resolved_values.filter c->((c!=Nothing) && (is_group_by c).not)
 
-        on_problems.attach_problems_before (problem_builder.build_problemset) <| Illegal_Argument.handle_java_exception <|
+        problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column
             index  = self.java_table.indexFromColumns java_key_columns.to_array
 

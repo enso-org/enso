@@ -1206,7 +1206,7 @@ spec setup =
             expect_column_names ["Index", "Sum Value"] t2
             err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Report_Error
             err3.should_fail_with Expression_Error.Syntax_Error
-            
+
             t4 = table.aggregate [Sum "[MISSING]*[MISSING]"]
             t4 . should_fail_with No_Such_Column
             t4.catch.column_name . should_equal "MISSING"
