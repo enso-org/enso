@@ -721,24 +721,20 @@ mod tests {
     fn list_definition_test() {
         let parser = ast_parser::Parser::new();
 
-        // TODO [mwu]
-        //  Due to a parser bug, extension methods defining operators cannot be currently
-        //  correctly recognized. When it is fixed, the following should be also supported
-        //  and covered in test: `Int.+ a = _` and `Int.+ = _`.
-        //  Issue link: https://github.com/enso-org/enso/issues/565
         let definition_lines = vec![
             "main = _",
             "Foo.Bar.foo = _",
             "Foo.Bar.baz a b = _",
-            "+ = _",
+            "+ a = _",
+            "Int.+ a = _",
             "bar = _",
             "add a b = 50",
             "* a b = _",
         ];
         let expected_def_names_in_module =
-            vec!["main", "Foo.Bar.foo", "Foo.Bar.baz", "+", "bar", "add", "*"];
+            vec!["main", "Foo.Bar.foo", "Foo.Bar.baz", "+", "Int.+", "bar", "add", "*"];
         // In definition there are no extension methods nor arg-less definitions.
-        let expected_def_names_in_def = vec!["add", "*"];
+        let expected_def_names_in_def = vec!["+", "add", "*"];
 
         // === Program with definitions in root ===
         let program = definition_lines.join("\n");
