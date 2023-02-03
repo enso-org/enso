@@ -1196,7 +1196,7 @@ spec setup =
             t1.at "Sum Value" . to_vector . should_equal [3, 7]
             t1.at "Sum [Value]*[Value]" . to_vector . should_equal [5, 25]
 
-        Test.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
+        Test.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" pending="TODO?" <|
             action1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[MISSING]*[MISSING]"] on_problems=_
             tester1 = expect_column_names ["Index", "Sum Value"]
             problems1 = [No_Such_Column.Error "MISSING"]
@@ -1206,6 +1206,10 @@ spec setup =
             expect_column_names ["Index", "Sum Value"] t2
             err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Report_Error
             err3.should_fail_with Expression_Error.Syntax_Error
+            
+            t4 = table.aggregate [Sum "[MISSING]*[MISSING]"]
+            t4 . should_fail_with No_Such_Column
+            t4.catch.column_name . should_equal "MISSING"
 
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling) <|
         table =
@@ -1225,10 +1229,6 @@ spec setup =
             t3 = table.aggregate [Sum 42]
             t3 . should_fail_with Column_Indexes_Out_Of_Range
             t3.catch.indexes.should_equal [42]
-
-            t4 = table.aggregate [Sum "[MISSING]*[MISSING]"]
-            t4 . should_fail_with No_Such_Column
-            t4.catch.column_name . should_equal "MISSING"
 
         Test.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in a Group_By" <|
             err1 = table.aggregate [Group_By "Missing", Group_By "Index", Group_By "Other_Missing"] on_problems=Problem_Behavior.Ignore

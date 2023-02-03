@@ -79,7 +79,14 @@ prepare_aggregate_columns aggregates table error_on_missing_columns =
 
         # Build Problems Output
         case renamed_columns.is_empty of
-            True -> Error.throw No_Output_Columns
+            True ->
+                ## First, we try to raise any warnings that may have caused the
+                   lack of columns, promoted to errors.
+                problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
+                    ## If none were found, we raise a generic error (this may
+                       happen primarily when an empty list is provided to the
+                       aggregate method).
+                    Error.throw No_Output_Columns
             False ->
                 problem_builder.report_unique_name_strategy unique
                 Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.get_problemset_throwing_distinguished_errors
