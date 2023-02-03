@@ -382,10 +382,38 @@ impl Translate {
             let body = Ast::from(ast::Infix { larg, loff, opr, roff, rarg });
             term = WithInitialSpace { space, body };
         }
+        if let Some(open) = open && let Some(close) = close {
+            let (space, body) = group(open, term, close).split();
+            term = WithInitialSpace { space, body };
+        }
         // TODO: handle all the other optional fields
         term
     }
 }
+
+fn group(
+    open: &syntax::token::OpenSymbol,
+    body: WithInitialSpace<Ast>,
+    close: &syntax::token::CloseSymbol,
+) -> WithInitialSpace<Ast> {
+    let space = open.left_offset.visible.width_in_spaces;
+    let (body_space, body) = body.split();
+    let min_elements = 3; // There is always at least an open, close, and body
+    let mut span_info = Vec::with_capacity(min_elements);
+    span_info.push(ast::RawSpanTree::Token(open.code.to_string()));
+    span_info.extend(ast::RawSpanTree::space(body_space));
+    span_info.push(ast::RawSpanTree::Child(body));
+    span_info.extend(ast::RawSpanTree::space(close.left_offset.visible.width_in_spaces));
+    span_info.push(ast::RawSpanTree::Token(close.code.to_string()));
+    let type_info = ast::TreeType::Expression;
+    let body = Ast::from(ast::Tree { span_info, type_info });
+    WithInitialSpace { space, body }
+}
+
+
+
+// === Semantic Analysis ===
+
 
 // TODO: In place of this analysis (and a similar analysis in Java [`TreeToIr`]),
 //  refactor [`tree::Import`] to a higher-level representation resembling
