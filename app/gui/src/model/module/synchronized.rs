@@ -571,6 +571,7 @@ pub mod test {
     use crate::test::Runner;
 
     use engine_protocol::language_server::FileEdit;
+    use engine_protocol::language_server::FileEditList;
     use engine_protocol::language_server::MockClient;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::TextRange;
@@ -701,17 +702,25 @@ pub mod test {
             TextRange { start: Position { line: 0, character: 0 }, end: end_of_file.into() }
         }
 
-        fn get_ls_content(&self) -> text::Rope {
-            self.current_ls_content.get()
-        }
-
-        fn update_ls_content(&self, content: impl Into<text::Rope>) {
-            let new_ls_content = content.into();
-            let new_ls_version =
-                Sha3_224::from_parts(new_ls_content.iter_chunks(..).map(|ch| ch.as_bytes()));
-            debug!("Updated content:\n===\n{new_ls_content}\n===");
-            self.current_ls_content.set(new_ls_content);
-            self.current_ls_version.set(new_ls_version);
+        /// Update the language server file content and return a `FileEditList` similar to the
+        /// response of a 'text/didChange' notification.
+        fn update_ls_content(
+            &self,
+            path: engine_protocol::language_server::Path,
+            edit: TextEdit,
+        ) -> FileEditList {
+            let old_content = self.current_ls_content.get();
+            let old_version =
+                Sha3_224::from_parts(old_content.iter_chunks(..).map(|s| s.as_bytes()));
+            let new_content = apply_edit(old_content, &edit);
+            let new_version =
+                Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
+            debug!("Updated content:\n===\n{new_content}\n===");
+            self.current_ls_content.set(new_content);
+            self.current_ls_version.set(new_version.clone());
+            FileEditList {
+                edits: vec![FileEdit { path, edits: vec![edit], old_version, new_version }],
+            }
         }
     }
 
@@ -789,12 +798,10 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn handling_language_server_file_changes() {
-        // The test starts with code as below. Then it replaces the whole AST to print "Test".
-        // Then the file is changed on the language server end and a `text/did_change` notification is provided and the changed content is updated in the module.
-        // Tested logic is:
-        // * there is an initial invalidation after opening the module
-        // * replacing AST causes invalidation
-        // * localized text edit emits similarly localized synchronization updates.
+        // The test starts with code as below, followed by a full invalidation replacing the whole
+        // AST to print "Test". Then the file is changed on the language server side, simulating a
+        // `text/did_change` notification. The returned `FileEditList` is then used to update the
+        // module content.
         let initial_code = "main =\n    println \"Hello World!\"";
         let mut data = crate::test::mock::Unified::new();
         data.set_code(initial_code);
@@ -812,30 +819,19 @@ pub mod test {
                     Ok(())
                 });
 
-                // Replacing `Test ` with `Test 2`
+                // Replace `Test` with `Test 2` and return a `FileEditList` with the applied
+                // changes.
                 let edit_handler_clone = edit_handler.clone();
                 let path = (*data.module_path.file_path).clone();
                 client.expect.text_file_did_change(move || {
                     let edit = TextEdit {
-                        text: "Test 2".into(),
+                        text:  "Test 2".into(),
                         range: TextRange {
                             start: Position { line: 1, character: 13 },
                             end:   Position { line: 1, character: 17 },
                         },
                     };
-                    let ls_content = edit_handler_clone.get_ls_content();
-                    let old_version = Sha3_224::from_parts(ls_content.iter_chunks(..).map(|s| s.as_bytes()));
-                    let ls_content = apply_edit(ls_content, &edit);
-                    let new_version = Sha3_224::from_parts(ls_content.iter_chunks(..).map(|s| s.as_bytes()));
-                    edit_handler_clone.update_ls_content(ls_content);
-                    Ok(engine_protocol::language_server::FileEditList{edits: vec![
-                        FileEdit {
-                            path,
-                            edits: vec![edit],
-                            old_version,
-                            new_version,
-                        }
-                    ]})
+                    Ok(edit_handler_clone.update_ls_content(path, edit))
                 });
 
                 // Expect an edit that changes metadata due to parsing of the restored content.
