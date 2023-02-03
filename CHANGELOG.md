@@ -86,6 +86,7 @@
   present only when the argument is of type that has a predefined set of values.
 - [Separate component browser navigator sections for modules imported from
   different namespaces][4044]
+- [The correct default visualisation for tables is shown on new nodes.][4120]
 
 #### EnsoGL (rendering engine)
 
@@ -462,6 +463,7 @@
 [4063]: https://github.com/enso-org/enso/pull/4063
 [4078]: https://github.com/enso-org/enso/pull/4078
 [4097]: https://github.com/enso-org/enso/pull/4097
+[4120]: https://github.com/enso-org/enso/pull/4120
 
 #### Enso Compiler
 
