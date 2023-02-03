@@ -770,17 +770,6 @@ pub mod test {
                     });
                     Ok(())
                 });
-
-                // Replacing `Test 2` with `Test 3`
-                edit_handler.expect_some_edit(client, |edits| {
-                    let edit_code = &edits.edits[0];
-                    assert_eq!(edit_code.text, "");
-                    assert_eq!(edit_code.range, TextRange {
-                        start: Position { line: 6, character: 46 },
-                        end:   Position { line: 6, character: 46 },
-                    });
-                    Ok(())
-                });
             });
 
             let parser = data.parser.clone();
@@ -793,25 +782,84 @@ pub mod test {
             let change = TextChange { range: (20..24).into(), text: "Test 2".to_string() };
             module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
+        };
 
-            // edits, should fail as version mismatch is detected
-            let edit = TextEdit {
-                text: "Test 3".into(),
-                range: TextRange {
-                    start: Position { line: 1, character: 13 },
-                    end:   Position { line: 1, character: 19 },
-                },
-            };
+        Runner::run(test);
+    }
 
+    #[wasm_bindgen_test]
+    fn handling_language_server_file_changes() {
+        // The test starts with code as below. Then it replaces the whole AST to print "Test".
+        // Then the file is changed on the language server end and a `text/did_change` notification is provided and the changed content is updated in the module.
+        // Tested logic is:
+        // * there is an initial invalidation after opening the module
+        // * replacing AST causes invalidation
+        // * localized text edit emits similarly localized synchronization updates.
+        let initial_code = "main =\n    println \"Hello World!\"";
+        let mut data = crate::test::mock::Unified::new();
+        data.set_code(initial_code);
+        let test = |_runner: &mut Runner| {
+            let module_path = data.module_path.clone();
+            let edit_handler = Rc::new(LsClientSetup::new(module_path, initial_code));
+            let mut fixture = data.fixture_customize(|data, client, _| {
+                data.expect_opening_module(client);
+                data.expect_closing_module(client);
+                // Opening module and metadata generation.
+                edit_handler.expect_full_invalidation(client);
+                // Explicit AST update.
+                edit_handler.expect_some_edit(client, |edit| {
+                    assert!(edit.edits.last().map_or(false, |edit| edit.text.contains("Test")));
+                    Ok(())
+                });
 
-            let ls_content = edit_handler.get_ls_content();
-            panic!("{ls_content:?}");
-            let ls_content = apply_edit(ls_content, &edit);
-            edit_handler.update_ls_content(ls_content);
+                // Replacing `Test ` with `Test 2`
+                let edit_handler_clone = edit_handler.clone();
+                let path = (*data.module_path.file_path).clone();
+                client.expect.text_file_did_change(move || {
+                    let edit = TextEdit {
+                        text: "Test 2".into(),
+                        range: TextRange {
+                            start: Position { line: 1, character: 13 },
+                            end:   Position { line: 1, character: 17 },
+                        },
+                    };
+                    let ls_content = edit_handler_clone.get_ls_content();
+                    let old_version = Sha3_224::from_parts(ls_content.iter_chunks(..).map(|s| s.as_bytes()));
+                    let ls_content = apply_edit(ls_content, &edit);
+                    let new_version = Sha3_224::from_parts(ls_content.iter_chunks(..).map(|s| s.as_bytes()));
+                    edit_handler_clone.update_ls_content(ls_content);
+                    Ok(engine_protocol::language_server::FileEditList{edits: vec![
+                        FileEdit {
+                            path,
+                            edits: vec![edit],
+                            old_version,
+                            new_version,
+                        }
+                    ]})
+                });
 
-            let change: Vec<TextEdit> = vec![edit];
-            module.apply_text_edit(change, &Parser::new_or_panic()).unwrap();
-            runner.perhaps_run_until_stalled(&mut fixture);
+                // Expect an edit that changes metadata due to parsing of the restored content.
+                edit_handler.expect_some_edit(client, |edits| {
+                    let edit_code = &edits.edits[0];
+                    // The metadata changed is on line 5.
+                    assert_eq!(edit_code.range.start.line, 5);
+                    assert_eq!(edit_code.range.end.line, 5);
+                    Ok(())
+                });
+            });
+
+            let parser = data.parser.clone();
+            let module = fixture.synchronized_module();
+
+            let new_content = "main =\n    println \"Test\"".to_string();
+            let new_ast = parser.parse_module(new_content, default()).unwrap();
+            module.update_ast(new_ast).unwrap();
+            fixture.run_until_stalled();
+            let file_edits = module.language_server.text_file_did_change().expect_ready().unwrap();
+            fixture.run_until_stalled();
+            let change = file_edits.edits[0].edits.clone();
+            module.apply_text_edit(change, &parser).unwrap();
+            fixture.run_until_stalled();
         };
 
         Runner::run(test);
