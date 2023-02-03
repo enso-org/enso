@@ -42,8 +42,8 @@ PremultipliedColor premultiply(Color t) {
 
 Color unpremultiply(PremultipliedColor c) {
     float alpha = c.repr.raw.a;
-    vec3 rgb = alpha > 0.0 ? c.repr.raw.rgb / alpha : c.repr.raw.rgb;
-    return color(rgb, alpha);
+    vec3 lch = alpha > 0.0 ? c.repr.raw.xyz / alpha : c.repr.raw.xyz;
+    return color(lch, alpha);
 }
 
 /// Implements glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
@@ -123,6 +123,10 @@ BoundingBox grow (BoundingBox a, float value) {
     float min_y = a.min_y - value;
     float max_y = a.max_y + value;
     return BoundingBox(min_x, max_x, min_y, max_y);
+}
+
+bool contains(BoundingBox box, vec2 point) {
+    return box.min_x <= point.x && box.max_x >= point.x && box.min_y <= point.y && box.max_y >= point.y;
 }
 
 
@@ -363,6 +367,22 @@ Shape with_infinite_bounds (Shape s) {
     BoundSdf sdf = s.sdf;
     sdf.bounds = infinite();
     return shape(s.id, sdf, s.color);
+}
+
+Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
+    BoundingBox texture_bbox = bounding_box(tex_bbox.x, tex_bbox.z, tex_bbox.y, tex_bbox.w);
+    vec2 texture_bbox_center = (tex_bbox.xy + tex_bbox.zw) / 2.0;
+    vec2 texture_position = texture_bbox_center + position;
+    vec2 texture_uv = (texture_position / vec2(textureSize(input_pass_cached_shapes, 0))) + vec2(0.5, 0.5);
+    Srgba color_from_tex = contains(texture_bbox, texture_position) ? srgba(texture(input_pass_cached_shapes, texture_uv)) : srgba(0.0, 0.0, 0.0, 0.0);
+//    Srgba color_from_tex = srgba(texture(input_pass_cached_shapes, texture_uv));
+//    Srgba color_from_tex = srgba(texture_uv.x, texture_uv.y, 0.0, 1.0);
+//    Srgba color_from_tex = srgba(1.0, 0.0, 0.0, 1.0);
+    float distance = color_from_tex.raw.a == 0.0 ? 1.0 : -1.0;
+//    float distance = -10.0;
+    BoundSdf sdf = bound_sdf(distance, infinite()); // TODO[ao]: should be finite
+//    return shape(id, sdf, premultiply(color(lcha(color_form_tex))));
+    return shape(id, sdf, PremultipliedColor(lcha(color_from_tex)));
 }
 
 

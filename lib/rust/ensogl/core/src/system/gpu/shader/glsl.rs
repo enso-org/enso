@@ -644,6 +644,29 @@ define_prim_type! {
     USampler2dArray { name = "usampler2DArray", layout_size = 0 },
 }
 
+impl PrimType {
+    pub fn uniform_or_function_parameter_only(&self) -> bool {
+        match self {
+            PrimType::Sampler2d => true,
+            PrimType::Sampler3d => true,
+            PrimType::SamplerCube => true,
+            PrimType::Sampler2dShadow => true,
+            PrimType::SamplerCubeShadow => true,
+            PrimType::Sampler2dArray => true,
+            PrimType::Sampler2dArrayShadow => true,
+            PrimType::ISampler2d => true,
+            PrimType::ISampler3d => true,
+            PrimType::ISamplerCube => true,
+            PrimType::ISampler2dArray => true,
+            PrimType::USampler2d => true,
+            PrimType::USampler3d => true,
+            PrimType::USamplerCube => true,
+            PrimType::USampler2dArray => true,
+            _ => false,
+        }
+    }
+}
+
 impl HasCodeRepr for PrimType {
     fn build(&self, builder: &mut CodeBuilder) {
         builder.add(self.glsl_name());

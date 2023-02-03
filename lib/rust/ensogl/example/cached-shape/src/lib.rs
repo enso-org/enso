@@ -40,6 +40,17 @@ mod icon2 {
     }
 }
 
+mod shape {
+    use super::*;
+    ensogl_core::shape! {
+        (_style: Style, shape_param: cached::Parameter) {
+            let bg = Rect((100.px(), 100.px())).fill(color::Rgba::white());
+            let param = cached::CachedShapeInstance(shape_param);
+            let with_bg = &bg + &param;
+            param.into()
+        }
+    }
+}
 
 
 // ======================
@@ -108,20 +119,32 @@ pub fn main() {
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
 
-    let background = background::View::new();
-    background.set_size(Vector2(1024.0, 1024.0));
-    background.set_xy(Vector2(100.0, 0.0));
-    world.default_scene.add_child(&background);
-    world.default_scene.layers.main.add(&background);
+    // let background = background::View::new();
+    // background.set_size(Vector2(1024.0, 1024.0));
+    // background.set_xy(Vector2(100.0, 0.0));
+    // world.default_scene.add_child(&background);
+    // world.default_scene.layers.main.add(&background);
+    //
+    // let texture_preview = texture::View::new();
+    // texture_preview.set_size(Vector2(1024.0, 1024.0));
+    // texture_preview.set_xy(Vector2(100.0, 0.0));
+    // world.default_scene.add_child(&texture_preview);
+    // world.default_scene.layers.main.add(&texture_preview);
 
-    let texture_preview = texture::View::new();
-    texture_preview.set_size(Vector2(1024.0, 1024.0));
-    texture_preview.set_xy(Vector2(100.0, 0.0));
-    world.default_scene.add_child(&texture_preview);
-    world.default_scene.layers.main.add(&texture_preview);
+    let shapes = [shape::View::new(), shape::View::new()];
+    for shape in &shapes {
+        shape.set_size(Vector2(100.0, 100.0));
+        world.default_scene.add_child(&shape);
+        world.default_scene.layers.main.add(&shape);
+    }
+    shapes[0].set_xy((-60.0, 0.0));
+    shapes[0].shape_param.set(icon1::as_param());
+    shapes[1].set_xy((60.0, 0.0));
+    shapes[1].shape_param.set(icon2::as_param());
 
     world.keep_alive_forever();
     mem::forget(navigator);
-    mem::forget(background);
-    mem::forget(texture_preview);
+    // mem::forget(background);
+    // mem::forget(texture_preview);
+    mem::forget(shapes);
 }

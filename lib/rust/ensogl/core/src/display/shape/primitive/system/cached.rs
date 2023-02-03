@@ -1,12 +1,19 @@
+use crate::prelude::*;
+
 use crate::data::bounding_box::BoundingBox;
+use crate::display::shape::canvas;
+use crate::display::shape::canvas::Canvas;
+use crate::display::shape::class::ShapeRef;
 use crate::display::shape::system::cached::arrange_on_texture::arrange_shapes_on_texture;
 use crate::display::shape::system::cached::arrange_on_texture::ShapeWithPosition;
 use crate::display::shape::system::cached::arrange_on_texture::ShapeWithSize;
-use crate::prelude::*;
-
 use crate::display::shape::system::Shape;
+use crate::display::shape::AnyShape;
+use crate::display::shape::Var;
 use crate::display::world::CACHED_SHAPES_DEFINITIONS;
+use crate::display::IntoGlsl;
 use crate::gui::component::ShapeView;
+use crate::system::gpu;
 
 pub mod arrange_on_texture;
 
@@ -52,16 +59,61 @@ pub trait CachedShape: Shape {
         shape
     }
 
-    fn uv_location_in_texture() -> BoundingBox {
+    fn location_in_texture() -> BoundingBox {
         let position = Self::get_position_in_texture();
-        let tex_size = TEXTURE_SIZE.get();
-        let into_u = |x: f32| (x / tex_size.x as f32) + 0.5;
-        let into_v = |x: f32| (x / tex_size.y as f32) + 0.5;
-        let left = into_u(position.x - Self::WIDTH as f32 / 2.0);
-        let right = into_u(position.x + Self::WIDTH as f32 / 2.0);
-        let bottom = into_v(position.y - Self::HEIGHT as f32 / 2.0);
-        let top = into_v(position.y + Self::HEIGHT as f32 / 2.0);
+        let left = position.x - Self::WIDTH as f32 / 2.0;
+        let right = position.x + Self::WIDTH as f32 / 2.0;
+        let bottom = position.y - Self::HEIGHT as f32 / 2.0;
+        let top = position.y + Self::HEIGHT as f32 / 2.0;
         BoundingBox::from_corners(Vector2(left, bottom), Vector2(right, top))
+    }
+}
+
+
+//TODO: can it be wrapper, not alias?
+pub type Parameter = Vector4;
+
+pub mod mutable {
+    use super::*;
+
+    #[derive(Debug)]
+    pub struct CachedShapeInstance {
+        pub parameter: Var<Parameter>,
+    }
+}
+
+pub type CachedShapeInstance = ShapeRef<mutable::CachedShapeInstance>;
+
+#[allow(non_snake_case)]
+pub fn CachedShapeInstance(parameter: Var<Parameter>) -> CachedShapeInstance {
+    ShapeRef::new(mutable::CachedShapeInstance { parameter })
+}
+
+impl AsOwned for CachedShapeInstance {
+    type Owned = CachedShapeInstance;
+}
+
+impl From<CachedShapeInstance> for AnyShape {
+    fn from(value: CachedShapeInstance) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&CachedShapeInstance> for AnyShape {
+    fn from(value: &CachedShapeInstance) -> Self {
+        Self::new(value.clone())
+    }
+}
+
+impl canvas::Draw for CachedShapeInstance {
+    fn draw(&self, canvas: &mut Canvas) -> canvas::Shape {
+        canvas.if_not_defined(self.id(), |canvas| {
+            canvas.new_shape_from_expr(&format!(
+                "return cached_shape(Id({}), position, {});",
+                self.id(),
+                self.parameter.glsl()
+            ))
+        })
     }
 }
 
@@ -109,6 +161,7 @@ macro_rules! cached_shape {
             use super::shape_system_definition::*;
             use super::shape_system_definition::Shape;
             use $crate::display::shape::primitive::system::cached::CachedShape;
+            use $crate::display::shape::primitive::system::cached::Parameter;
 
             thread_local! {
                 static POSITION_IN_TEXTURE: Cell<Vector2> = default();
@@ -123,6 +176,11 @@ macro_rules! cached_shape {
                 fn get_position_in_texture() -> Vector2 {
                     POSITION_IN_TEXTURE.with(|pos| pos.get())
                 }
+            }
+
+            pub fn as_param() -> Parameter {
+                let bbox = <Shape as CachedShape>::location_in_texture();
+                Vector4(bbox.left(), bbox.bottom(), bbox.right(), bbox.top())
             }
 
             //TODO[ao] fix before_main perhaps?
@@ -143,6 +201,7 @@ macro_rules! cached_shape {
                 });
             }
         }
+        pub use cached_shape_system_definition::as_param;
     };
 }
 
@@ -211,15 +270,15 @@ mod tests {
         assert_eq!(shape3::Shape::get_position_in_texture(), Vector2(64.0, 64.0));
 
         assert_eq!(
-            shape1::Shape::uv_location_in_texture(),
+            shape1::Shape::location_in_texture(),
             ((0.0, 0.0), (0.5, 256.0 / tex_height)).into()
         );
         assert_eq!(
-            shape2::Shape::uv_location_in_texture(),
+            shape2::Shape::location_in_texture(),
             ((0.5, 0.0), (1.0, 128.0 / tex_height)).into()
         );
         assert_eq!(
-            shape3::Shape::uv_location_in_texture(),
+            shape3::Shape::location_in_texture(),
             ((0.5, 128.0 / tex_height), (0.75, 1.0)).into()
         );
 

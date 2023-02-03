@@ -380,6 +380,7 @@ impl ShapeSystemModel {
         material.add_input_def::<Vector2<i32>>("mouse_position");
         material.add_input_def::<i32>("mouse_click_count");
         material.add_input("display_mode", 0);
+        material.add_input_def::<texture::FloatSampler>("pass_cached_shapes");
         material.add_output("id", Vector4::<f32>::zero());
         material
     }
