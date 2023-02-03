@@ -7,15 +7,13 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
-from Standard.Base.Metadata.Widget import Single_Choice
-import Standard.Base.Metadata.Display
-
 import project.Data.Column_Type_Selection.Auto
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Storage.Storage
 import project.Data.Table.Table
 import project.Data.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
+import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
 from project.Errors import No_Index_Set_Error
@@ -900,7 +898,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
-    @type (Single_Choice ['Auto','Integer','Decimal','Date','Date_Time','Time_Of_Day','Boolean'] display=Display.Always)
+    @type Widget_Helpers.parse_type_selector
     parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Nothing -> Problem_Behavior -> Column
     parse self type=Auto format=Nothing on_problems=Report_Warning =
         ensure_type ~fn = if [Auto, Integer, Decimal, Date, Date_Time, Time_Of_Day, Boolean].index_of type == Nothing then Error.throw (Illegal_Argument.Error "Unsupported target type "+type.to_text+".") else fn
