@@ -3,7 +3,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Sum, Count, Group_By
 import Standard.Table.Data.Expression.Expression_Error
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Such_Column
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Such_Column, Invalid_Aggregate_Column
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -93,12 +93,12 @@ spec setup =
 
         Test.specify "should fail if aggregate values contain missing columns" <|
             err1 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum "OTHER"]
-            err1.should_fail_with Missing_Input_Columns
-            err1.catch.criteria . should_equal ["Nonexistent Value", "OTHER"]
+            err1.should_fail_with Invalid_Aggregate_Column
+            err1.catch.name . should_equal "Nonexistent Value"
 
             err2 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum 42]
-            err2.should_fail_with Missing_Input_Columns
-            err2.catch.criteria . should_equal ["Nonexistent Value"]
+            err2.should_fail_with Invalid_Aggregate_Column
+            err2.catch.name . should_equal "Nonexistent Value"
 
             err3 = table.cross_tab values=[Count, Sum 42]
             err3.should_fail_with Column_Indexes_Out_Of_Range
@@ -106,11 +106,14 @@ spec setup =
 
         Test.specify "should fail if aggregate values contain invalid expressions" pending="TODO?" <|
             err1 = table.cross_tab values=[Sum "[MISSING]*10"]
-            err1.should_fail_with No_Such_Column
-            err1.catch.column_name . should_equal "MISSING"
+            err1.should_fail_with Invalid_Aggregate_Column
+            err1.catch.name . should_equal "[MISSING]*10"
+            err1.catch.expression_error . should_equal (No_Such_Column.Error "MISSING")
 
             err2 = table.cross_tab values=[Sum "[[[["]
-            err2.should_fail_with Expression_Error.Syntax_Error
+            err2.should_fail_with Invalid_Aggregate_Column
+            err2.catch.name . should_equal "[[[["
+            err1.catch.expression_error . should_be_a Expression_Error.Syntax_Error
 
         Test.specify "should not allow Group_By for values" <|
             action1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=_

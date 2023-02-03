@@ -1196,20 +1196,24 @@ spec setup =
             t1.at "Sum Value" . to_vector . should_equal [3, 7]
             t1.at "Sum [Value]*[Value]" . to_vector . should_equal [5, 25]
 
-        Test.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" pending="TODO?" <|
+        Test.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
             action1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[MISSING]*[MISSING]"] on_problems=_
             tester1 = expect_column_names ["Index", "Sum Value"]
-            problems1 = [No_Such_Column.Error "MISSING"]
+            problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
             Problems.test_problem_handling action1 problems1 tester1
 
             t2 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Ignore
             expect_column_names ["Index", "Sum Value"] t2
             err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Report_Error
-            err3.should_fail_with Expression_Error.Syntax_Error
+            err3.should_fail_with Invalid_Aggregate_Column
+            err3.catch.name . should_equal "[[["
+            err3.catch.expression_error . should_be_a Expression_Error.Syntax_Error
 
             t4 = table.aggregate [Sum "[MISSING]*[MISSING]"]
-            t4 . should_fail_with No_Such_Column
-            t4.catch.column_name . should_equal "MISSING"
+            t4 . should_fail_with Invalid_Aggregate_Column
+            err4 = t4.catch
+            err4.name.should_equal "[MISSING]*[MISSING]"
+            err4.expression_error.should_equal (No_Such_Column.Error "MISSING")
 
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling) <|
         table =
@@ -1223,8 +1227,8 @@ spec setup =
                 t1.should_fail_with No_Output_Columns
 
             t2 = table.aggregate [Sum "MISSING"]
-            t2 . should_fail_with Missing_Input_Columns
-            t2.catch.criteria.should_equal ["MISSING"]
+            t2 . should_fail_with Invalid_Aggregate_Column
+            t2.catch.name.should_equal "MISSING"
 
             t3 = table.aggregate [Sum 42]
             t3 . should_fail_with Column_Indexes_Out_Of_Range
@@ -1247,8 +1251,8 @@ spec setup =
             err2.catch.criteria.should_equal ["Unknown", "Other Missing"]
 
             err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
-            err3.should_fail_with Missing_Input_Columns
-            err3.catch.criteria.should_equal ["Missing"]
+            err3.should_fail_with Invalid_Aggregate_Column
+            err3.catch.name.should_equal "Missing"
 
             err4 = table.aggregate [Group_By 100, Group_By "Index", Group_By -42] on_problems=Problem_Behavior.Ignore
             err4.should_fail_with Column_Indexes_Out_Of_Range
