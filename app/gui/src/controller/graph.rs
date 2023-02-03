@@ -1102,7 +1102,6 @@ pub mod tests {
             self.module_path.method_pointer(self.project_name.clone(), self.graph_id.to_string())
         }
 
-        #[profile(Debug)]
         pub fn suggestion_db(&self) -> Rc<model::SuggestionDatabase> {
             use model::suggestion_database::SuggestionDatabase;
             let entries = self.suggestions.iter();

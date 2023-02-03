@@ -672,7 +672,7 @@ impl Entry {
             docs_html
         } else {
             docs.map(|docs| {
-                let parser = ast_parser::DocParser::new();
+                let parser = parser_scala::DocParser::new();
                 match parser {
                     Ok(p) => {
                         let output = p.generate_html_doc_pure((*docs).to_string());

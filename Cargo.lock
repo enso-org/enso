@@ -160,9 +160,9 @@ dependencies = [
  "enso-prelude",
  "enso-text",
  "failure",
- "parser-scala",
  "serde",
  "serde_json",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -2181,6 +2181,7 @@ dependencies = [
  "json-rpc",
  "mockall",
  "nalgebra",
+ "parser-scala",
  "regex",
  "semver 1.0.16",
  "serde",
@@ -2510,6 +2511,7 @@ dependencies = [
  "failure",
  "flo_stream",
  "futures 0.3.26",
+ "parser-scala",
  "span-tree",
  "wasm-bindgen-test",
 ]

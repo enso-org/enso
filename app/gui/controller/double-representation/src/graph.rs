@@ -263,7 +263,7 @@ mod tests {
     }
 
     fn new_expression_node(parser: &ast_parser::Parser, expression: &str) -> NodeInfo {
-        let node_ast = parser.parse(expression.to_string(), default()).unwrap();
+        let node_ast = parser.parse(expression.to_string(), default());
         let line_ast = expect_single_line(&node_ast).clone();
         NodeInfo::from_main_line_ast(&line_ast).unwrap()
     }
@@ -490,7 +490,7 @@ main =
 main =
     foo = 2 + 2
     bar = 3 + 17";
-        let new_expression = parser.parse("print \"HELLO\"".to_string(), default()).unwrap();
+        let new_expression = parser.parse("print \"HELLO\"".to_string(), default());
         let new_expression = expect_single_line(&new_expression).clone();
 
         let mut graph = main_graph(&parser, program);

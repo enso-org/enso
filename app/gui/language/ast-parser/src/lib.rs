@@ -19,7 +19,6 @@ mod translation;
 // ==============
 
 pub use ast::IdMap;
-pub use parser_scala::DocParser;
 
 pub mod api;
 
@@ -38,28 +37,27 @@ impl Parser {
         Self { parser }
     }
 
-    pub fn parse(&self, program: String, ids: IdMap) -> api::Result<ast::Ast> {
+    pub fn parse(&self, program: String, ids: IdMap) -> ast::Ast {
         let tree = self.parser.run(&program);
-        Ok(translation::to_legacy_ast(&tree))
+        let ids = ids
+            .vec
+            .into_iter()
+            .map(|(range, id)| ((range.start.value, range.end.value), id))
+            .collect();
+        translation::to_legacy_ast(&tree, ids)
     }
 
     pub fn parse_with_metadata<M: api::Metadata>(
         &self,
         program: String,
-    ) -> api::Result<api::ParsedSourceFile<M>> {
+    ) -> api::ParsedSourceFile<M> {
         let (code, meta) = enso_parser::metadata::extract(&program);
         let tree = self.parser.run(code);
         // TODO: Log errors.
         let metadata = meta.and_then(|meta| serde_json::from_str(meta).ok()).unwrap_or_default();
-        let ast = ast::known::Module::try_from(translation::to_legacy_ast_module(&tree).unwrap())
-            .unwrap();
-        Ok(api::ParsedSourceFile { ast, metadata })
-    }
-
-    pub fn parse_module(&self, program: impl Str, ids: IdMap) -> api::Result<ast::known::Module> {
-        let tree = self.parser.run(program.as_ref());
-        let ast = translation::to_legacy_ast_module(&tree).unwrap();
-        ast::known::Module::try_from(ast).map_err(|_| api::Error::NonModuleRoot)
+        let ids = Default::default(); // TODO?
+        let ast = ast::known::Module::try_from(translation::to_legacy_ast(&tree, ids)).unwrap();
+        api::ParsedSourceFile { ast, metadata }
     }
 }
 
@@ -67,6 +65,11 @@ impl Parser {
 // === Convenience methods ===
 
 impl Parser {
+    pub fn parse_module(&self, program: impl Str, ids: IdMap) -> api::Result<ast::known::Module> {
+        let ast = self.parse(program.into(), ids);
+        ast::known::Module::try_from(ast).map_err(|_| api::Error::NonModuleRoot)
+    }
+
     pub fn parse_line_ast(&self, program: impl Str) -> FallibleResult<ast::Ast> {
         self.parse_line(program).map(|line| line.elem)
     }

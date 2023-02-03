@@ -244,10 +244,8 @@ mod test {
         fn assert_edit_keeps_main_node_ids(&self, parser: &Parser) {
             let ast1 = parser.parse_module(&self.code, default()).unwrap();
             let mut id_map = ast1.id_map();
-
             apply_code_change_to_id_map(&mut id_map, &self.change, &self.code);
             let code2 = self.resulting_code();
-
             let ast2 = parser.parse_module(code2, id_map.clone()).unwrap();
             self.assert_same_node_ids(&ast1, &ast2);
         }
@@ -257,8 +255,17 @@ mod test {
         fn assert_same_node_ids(&self, ast1: &ast::known::Module, ast2: &ast::known::Module) {
             let ids1 = main_nodes(ast1);
             let ids2 = main_nodes(ast2);
-            debug!("IDs1: {ids1:?}");
-            debug!("IDs2: {ids2:?}");
+            eprintln!("repr1: {:?}", ast1.repr());
+            eprintln!("repr2: {:?}", ast2.repr());
+            eprintln!("ast1: {:?}", ast1);
+            eprintln!("ast2: {:?}", ast2);
+            let ids = |idmap: IdMap| idmap
+                .vec
+                .into_iter()
+                .map(|(range, id)| ((range.start.value, range.end.value), id))
+                .collect::<Vec<_>>();
+            eprintln!("IDs1: {:?}", ids(ast1.id_map()));
+            eprintln!("IDs2: {:?}", ids(ast2.id_map()));
             assert_eq!(ids1, ids2, "Node ids mismatch in {self:?}");
         }
     }
