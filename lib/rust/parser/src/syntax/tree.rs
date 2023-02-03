@@ -537,9 +537,9 @@ impl<'s> DocComment<'s> {
         }
         for element in &self.elements {
             match element {
-                TextElement::Section { text } => emit_token!(buf, text),
+                TextElement::Section { text } => buf.push_str(&text.code.repr),
                 TextElement::Escape { token } => emit_token!(buf, token),
-                TextElement::Newline { newline } => buf.push_str(&newline.code.repr),
+                TextElement::Newline { newline } => emit_token!(buf, newline),
                 // Unreachable.
                 TextElement::Splice { .. } => continue,
             }

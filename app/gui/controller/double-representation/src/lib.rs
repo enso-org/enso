@@ -269,7 +269,7 @@ main =
     ## First line
        Second line
     node"#;
-        let expected = " First line\n Second line";
+        let expected = " First line\nSecond line";
         run_case(&parser, code, expected);
     }
 }

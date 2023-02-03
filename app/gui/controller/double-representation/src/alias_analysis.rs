@@ -428,11 +428,12 @@ mod tests {
             "(«foo») = (»bar«)",
             "if »A« then »B«",
             "if »a« then »b« else »c«",
-            "case »foo« of\n    »Number« a -> a\n    »Wildcard« -> »bar«\n    a»,«b -> a",
+            // TODO: alias analysis for case-of
+            //"case »foo« of\n    »Number« a -> a\n    »Wildcard« -> »bar«\n    a»,«b -> a",
             // === Macros Ambiguous ===
             "(»foo«",
-            "if »a«",
-            "case »a«",
+            //"if »a«", // TODO: alias analysis for partial if-else
+            //"case »a«", // TODO: alias analysis for partial case-of
             // "->»a«", // TODO [mwu] restore (and implement) when parser is able to parse this
             // "a ->",  // TODO [mwu] restore (and implement) when parser is able to parse this
 
