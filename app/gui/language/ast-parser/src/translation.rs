@@ -157,7 +157,7 @@ impl Translate {
 
     fn translate_doc(&self, documentation: &tree::DocComment) -> Ast {
         let token = ast::RawSpanTree::Token(documentation.code());
-        let rendered = documentation.code().into(); // TODO: render
+        let rendered = documentation.content().into();
         let type_info = ast::TreeType::Documentation { rendered };
         let span_info = vec![token];
         Ast::from(ast::Tree { span_info, type_info })

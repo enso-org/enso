@@ -162,12 +162,6 @@ impl DocumentationCommentInfo {
     }
 }
 
-impl Display for DocumentationCommentInfo {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.pretty_text())
-    }
-}
-
 /// Check if given Ast stores a documentation comment.
 pub fn is_documentation_comment(ast: &Ast) -> bool {
     DocumentationCommentAst::new(ast).is_some()

@@ -519,8 +519,30 @@ impl<'s> DocComment<'s> {
                 TextElement::Splice { .. } => continue,
             }
         }
-        for token in &self.newlines[1..] {
+        for token in self.newlines.iter().skip(1) {
             emit_token!(buf, token);
+        }
+        buf
+    }
+
+    /// Return the contents of the comment, with leading whitespace, the `##` token, and following
+    /// empty lines removed.
+    pub fn content(&self) -> String {
+        let mut buf = String::new();
+        macro_rules! emit_token {
+            ($buf:expr, $token:expr) => {{
+                $buf.push_str(&$token.left_offset.code.repr);
+                $buf.push_str(&$token.code.repr);
+            }};
+        }
+        for element in &self.elements {
+            match element {
+                TextElement::Section { text } => emit_token!(buf, text),
+                TextElement::Escape { token } => emit_token!(buf, token),
+                TextElement::Newline { newline } => buf.push_str(&newline.code.repr),
+                // Unreachable.
+                TextElement::Splice { .. } => continue,
+            }
         }
         buf
     }

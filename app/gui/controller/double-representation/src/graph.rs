@@ -278,8 +278,8 @@ mod tests {
     fn assert_same(left: &NodeInfo, right: &NodeInfo) {
         assert_eq!(left.id(), right.id());
         assert_eq!(
-            left.documentation.as_ref().map(DocumentationCommentInfo::to_string),
-            right.documentation.as_ref().map(DocumentationCommentInfo::to_string)
+            left.documentation.as_ref().map(DocumentationCommentInfo::pretty_text),
+            right.documentation.as_ref().map(DocumentationCommentInfo::pretty_text)
         );
         assert_eq!(left.main_line.repr(), right.main_line.repr());
     }
