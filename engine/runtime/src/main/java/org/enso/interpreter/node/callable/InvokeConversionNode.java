@@ -8,8 +8,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.ConversionResolverNode;
@@ -18,8 +16,6 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.data.EnsoDate;
-import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
@@ -210,8 +206,8 @@ public abstract class InvokeConversionNode extends BaseNode {
   @Specialization(guards = {
       "!typesLib.hasType(that)",
       "!typesLib.hasSpecialDispatch(that)",
+      "!interop.isTime(that)",
       "interop.isDate(that)",
-      "!interop.isTime(that)"
   })
   Object doConvertDate(
       VirtualFrame frame,
@@ -223,30 +219,22 @@ public abstract class InvokeConversionNode extends BaseNode {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "10") TypesLibrary typesLib,
       @Cached ConversionResolverNode conversionResolverNode) {
-    try {
-      LocalDate date = interop.asDate(that);
-      var ensoDate = new EnsoDate(date);
-      Function function =
-          conversionResolverNode.expectNonNull(
-              ensoDate,
-              extractConstructor(self),
-              EnsoContext.get(this).getBuiltins().date(),
-              conversion);
-      arguments[0] = ensoDate;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, that is guaranteed to be a date.");
-    }
+    Function function =
+        conversionResolverNode.expectNonNull(
+            that,
+            extractConstructor(self),
+            EnsoContext.get(this).getBuiltins().date(),
+            conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(guards = {
       "!typesLib.hasType(that)",
       "!typesLib.hasSpecialDispatch(that)",
-      "interop.isDate(that)",
       "interop.isTime(that)",
-      "interop.isTimeZone(that)"
+      "!interop.isDate(that)",
   })
-  Object doConvertZonedDateTime(
+  Object doConvertTime(
       VirtualFrame frame,
       State state,
       UnresolvedConversion conversion,
@@ -256,22 +244,62 @@ public abstract class InvokeConversionNode extends BaseNode {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "10") TypesLibrary typesLib,
       @Cached ConversionResolverNode conversionResolverNode) {
-    try {
-      var date = interop.asDate(that);
-      var time = interop.asTime(that);
-      var timeZone = interop.asTimeZone(that);
-      var ensoDateTime = new EnsoDateTime(ZonedDateTime.of(date, time, timeZone));
-      Function function =
+    Function function =
           conversionResolverNode.expectNonNull(
-              ensoDateTime,
+              that,
+              extractConstructor(self),
+              EnsoContext.get(this).getBuiltins().timeOfDay(),
+              conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(guards = {
+      "!typesLib.hasType(that)",
+      "!typesLib.hasSpecialDispatch(that)",
+      "interop.isTime(that)",
+      "interop.isDate(that)",
+  })
+  Object doConvertDateTime(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+          conversionResolverNode.expectNonNull(
+              that,
               extractConstructor(self),
               EnsoContext.get(this).getBuiltins().dateTime(),
               conversion);
-      arguments[0] = ensoDateTime;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, that is guaranteed to be a zoned date time.");
-    }
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(guards = {
+      "!typesLib.hasType(that)",
+      "!typesLib.hasSpecialDispatch(that)",
+      "interop.isDuration(that)",
+  })
+  Object doConvertDuration(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+        conversionResolverNode.expectNonNull(
+            that,
+            extractConstructor(self),
+            EnsoContext.get(this).getBuiltins().duration(),
+            conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(guards = {
@@ -295,7 +323,6 @@ public abstract class InvokeConversionNode extends BaseNode {
               extractConstructor(self),
               EnsoContext.get(this).getBuiltins().map(),
               conversion);
-    arguments[0] = thatMap;
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
