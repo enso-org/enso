@@ -712,9 +712,8 @@ impl SymbolData {
                 Some(ScopeType::Global) => global_variables.get(name),
                 _ => todo!(),
             };
-            let uniform = uniform.unwrap_or_else(|| {
-                panic!("Internal error. Variable {} not found in program.", name)
-            });
+            let uniform = uniform
+                .unwrap_or_else(|| panic!("Internal error. Variable {name} not found in program."));
             match uniform {
                 AnyUniform::Prim(uniform) => self
                     .bindings

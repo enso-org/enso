@@ -228,8 +228,7 @@ impl Display for UnsupportedEngineVersion {
         write!(
             f,
             "Failed to open project: unsupported engine version. Please update \
-            engine_version in {} to {}.",
-            package_yaml_path, version_supported
+            engine_version in {package_yaml_path} to {version_supported}."
         )
     }
 }

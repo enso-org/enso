@@ -639,7 +639,7 @@ mod tests {
         let attached_id = if let ExecutionContextRequest::Attach(vis) = request {
             vis.id
         } else {
-            panic!("Expected request to be `ExecutionContextRequest::Attach`, found {:?}", request)
+            panic!("Expected request to be `ExecutionContextRequest::Attach`, found {request:?}")
         };
 
         // Multiple detach-attach requests are collapsed into a single modify request.
@@ -678,7 +678,7 @@ mod tests {
         match requests.expect_next() {
             ExecutionContextRequest::Detach(id) =>
                 assert_eq!(id, visualization_so_far.latest_id().unwrap()),
-            other => panic!("Expected a detach request, got: {:?}", other),
+            other => panic!("Expected a detach request, got: {other:?}"),
         }
         assert_matches!(requests.expect_next(), ExecutionContextRequest::Attach(vis)
             if matching_metadata(&vis,&desired_vis_3.metadata));

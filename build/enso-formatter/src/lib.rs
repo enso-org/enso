@@ -207,7 +207,7 @@ impl HeaderElement {
 /// Regex constructor that starts on the beginning of a line, can be surrounded by whitespaces and
 /// ends with a line break.
 fn header_line_regex(input: &str) -> Regex {
-    let str = format!(r"^ *{} *(; *)?((\r\n?)|\n)", input);
+    let str = format!(r"^ *{input} *(; *)?((\r\n?)|\n)");
     Regex::new(&str).unwrap()
 }
 
@@ -274,7 +274,7 @@ fn print_h1(
     if tokens.iter().any(|tok| map.contains_key(tok)) {
         writeln!(out).unwrap();
         writeln!(out, "// ===={}====", "=".repeat(str.len())).unwrap();
-        writeln!(out, "// === {} ===", str).unwrap();
+        writeln!(out, "// === {str} ===").unwrap();
         writeln!(out, "// ===={}====", "=".repeat(str.len())).unwrap();
         writeln!(out).unwrap();
     }
@@ -290,7 +290,7 @@ fn print_h2(
     use std::fmt::Write;
 
     if tokens.iter().map(|tok| map.contains_key(tok)).any(|t| t) {
-        writeln!(out, "// === {} ===", str).unwrap()
+        writeln!(out, "// === {str} ===").unwrap()
     }
 }
 
@@ -440,7 +440,7 @@ pub async fn process_file(
     let (hash, input) = read_file_with_hash(path).await?;
     let out = process_file_content(input, is_main_file)?;
     if action == Action::DryRun {
-        println!("{}", out)
+        println!("{out}")
     } else if action == Action::Format || action == Action::FormatAndCheck {
         fs::write(path, out).await?;
     }
@@ -542,7 +542,7 @@ pub fn process_file_content(input: String, is_main_file: bool) -> Result<String>
             map.remove(&ModuleAttribWarn);
         }
 
-        let std_linter_attribs = STD_LINTER_ATTRIBS.iter().map(|t| format!("#![{}]\n", t));
+        let std_linter_attribs = STD_LINTER_ATTRIBS.iter().map(|t| format!("#![{t}]\n"));
         map.entry(StandardLinterConfig).or_default().extend(std_linter_attribs);
     }
 

@@ -2639,6 +2639,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-cached-shape"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-complex-shape-system"
 version = "0.1.0"
 dependencies = [
@@ -2853,6 +2862,7 @@ version = "0.1.0"
 dependencies = [
  "ensogl-example-animation",
  "ensogl-example-auto-layout",
+ "ensogl-example-cached-shape",
  "ensogl-example-complex-shape-system",
  "ensogl-example-custom-shape-system",
  "ensogl-example-dom-symbols",

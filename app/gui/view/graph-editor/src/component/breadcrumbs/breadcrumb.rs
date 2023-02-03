@@ -82,7 +82,7 @@ mod icon {
             let arrow         = Triangle(size.px(),size.px()).rotate((PI/2.0).radians());
             let arrow         = arrow.translate_x(0.5.px());
             let shape         = ring + arrow;
-            let color         = format!("vec4({},{},{},{})",red,green,blue,alpha);
+            let color         = format!("vec4({red},{green},{blue},{alpha})");
             let color : Var<color::Rgba> = color.into();
             shape.fill(color).into()
         }
@@ -104,7 +104,7 @@ mod separator {
             let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
             let triangle = Triangle(size.px(),size.px()).rotate(angle.radians());
-            let color    = format!("vec4({},{},{},{})",red,green,blue,alpha);
+            let color    = format!("vec4({red},{green},{blue},{alpha})");
             let color : Var<color::Rgba> = color.into();
             triangle.fill(color).into()
         }

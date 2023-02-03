@@ -17,6 +17,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.{RevCommit, RevWalk}
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.{CanonicalTreeParser, FileTreeIterator}
+import org.eclipse.jgit.util.FS.FileStoreAttributes
 import org.eclipse.jgit.util.SystemReader
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
@@ -53,6 +54,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
   override def init(root: Path): BlockingIO[VcsFailure, Unit] = {
     effectBlocking {
+      FileStoreAttributes.setBackground(true)
       val rootFile = root.toFile
       if (!rootFile.exists()) {
         throw new FileNotFoundException("unable to find project repo: " + root)
@@ -110,6 +112,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         .setAll(true)
         .setMessage("Initial commit")
         .setAuthor(AuthorName, AuthorEmail)
+        .setNoVerify(true)
         .call()
       ()
     }.mapError(errorHandling)

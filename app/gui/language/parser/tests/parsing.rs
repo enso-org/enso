@@ -43,7 +43,7 @@ fn assert_opr<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
 
 fn roundtrip_program_with(parser: &parser_scala::Parser, program: &str) {
     let ast = parser.parse(program.to_string(), Default::default()).unwrap();
-    assert_eq!(ast.repr(), program, "{:#?}", ast);
+    assert_eq!(ast.repr(), program, "{ast:#?}");
 }
 
 fn roundtrip_program(program: &str) {
@@ -414,9 +414,9 @@ impl Fixture {
         ];
 
         for macro_usage in macro_usages.iter() {
-            println!(">>>>>>>>>> {}", macro_usage);
+            println!(">>>>>>>>>> {macro_usage}");
             let ast = self.parser.parse_line_ast(*macro_usage).unwrap();
-            println!("{:?}", ast);
+            println!("{ast:?}");
             expect_shape::<Match<Ast>>(&ast);
         }
     }

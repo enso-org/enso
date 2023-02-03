@@ -49,7 +49,7 @@ impl DisplayModes {
 
     /// Name of the code.
     pub fn name(self) -> String {
-        format!("display_mode_{:?}", self).to_snake_case()
+        format!("display_mode_{self:?}").to_snake_case()
     }
 
     /// Check if the display mode allows mouse interactions in GUI. The display modes that do not
