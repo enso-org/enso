@@ -86,6 +86,7 @@
   present only when the argument is of type that has a predefined set of values.
 - [Separate component browser navigator sections for modules imported from
   different namespaces][4044]
+- [Added restoring of last project snapshot on shortcut.][4050]
 
 #### EnsoGL (rendering engine)
 
@@ -462,6 +463,7 @@
 [4063]: https://github.com/enso-org/enso/pull/4063
 [4078]: https://github.com/enso-org/enso/pull/4078
 [4097]: https://github.com/enso-org/enso/pull/4097
+[4050]: https://github.com/enso-org/enso/pull/4050
 
 #### Enso Compiler
 
