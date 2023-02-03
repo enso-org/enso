@@ -688,13 +688,20 @@ type Table
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If no valid columns are selected, a `No_Input_Columns_Selected`.
+       ! Error Conditions
+
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`, is
+           reported as a dataflow error regardless of setting.
          - If floating points values are present in the distinct columns, a
-           `Floating_Point_Grouping` warning.
+           `Floating_Point_Grouping` is reported according to the `on_problems`
+           setting.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
         key_columns = self.columns_helper.select_columns selector=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
