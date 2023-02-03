@@ -172,9 +172,7 @@ impl Module {
         info!("Read content of the module {path}, digest is {:?}", opened.current_version);
         let end_of_file_byte = content.last_line_end_location();
         let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
-        // TODO[ao] We should not fail here when metadata are malformed, but discard them and set
-        //  default instead.
-        let source = parser.parse_with_metadata(opened.content)?;
+        let source = parser.parse_with_metadata(opened.content);
         let digest = opened.current_version;
         let summary = ContentSummary { digest, end_of_file };
         let model = model::module::Plain::new(path, source.ast, source.metadata, repository);

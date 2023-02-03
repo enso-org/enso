@@ -89,7 +89,7 @@ impl Handle {
                 "The module controller ast was not synchronized with text editor \
                 content!\n >>> Module: {my_code}\n >>> Editor: {code}"
             );
-            let actual_ast = self.parser.parse(code, default())?.try_into()?;
+            let actual_ast = self.parser.parse(code, default()).try_into()?;
             self.model.update_ast(actual_ast)?;
         }
         Ok(())
@@ -171,7 +171,7 @@ impl Handle {
         parser: Parser,
         repository: Rc<model::undo_redo::Repository>,
     ) -> FallibleResult<Self> {
-        let ast = parser.parse(code.to_string(), id_map)?.try_into()?;
+        let ast = parser.parse(code.to_string(), id_map).try_into()?;
         let metadata = default();
         let model = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
         Ok(Handle { model, language_server, parser })
