@@ -628,9 +628,9 @@ impl Crumbable for crate::Tree {
     }
 
     fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        Box::new(self.span_info.iter().enumerate().filter_map(|(index, thing)|
+        Box::new(self.span_info.iter().enumerate().filter_map(|(index, thing)| {
             matches!(thing, RawSpanTree::Child(_)).as_some(TreeCrumb { index })
-        ))
+        }))
     }
 }
 

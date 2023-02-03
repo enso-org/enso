@@ -1447,12 +1447,15 @@ impl<'s> Tree<'s> {
 
 impl<'s> Tree<'s> {
     /// Apply the provided function to each [`Token`] or [`Tree`] that is a child of the node.
-    pub fn visit_items<F>(&self, f: F) where F: for<'a> FnMut(item::Ref<'s, 'a>) {
+    pub fn visit_items<F>(&self, f: F)
+    where F: for<'a> FnMut(item::Ref<'s, 'a>) {
         struct ItemFnVisitor<F> {
             f: F,
         }
         impl<F> Visitor for ItemFnVisitor<F> {}
-        impl<'a, 's: 'a, F> ItemVisitor<'s, 'a> for ItemFnVisitor<F> where F: FnMut(item::Ref<'s, 'a>) {
+        impl<'a, 's: 'a, F> ItemVisitor<'s, 'a> for ItemFnVisitor<F>
+        where F: FnMut(item::Ref<'s, 'a>)
+        {
             fn visit_item(&mut self, item: item::Ref<'s, 'a>) -> bool {
                 (self.f)(item);
                 false

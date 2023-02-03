@@ -427,8 +427,13 @@ pub enum Shape<T> {
 pub enum TreeType {
     #[default]
     Expression,
-    Documentation { rendered: ImString },
-    Import { module: Vec<ImString>, imported: ImportedNames },
+    Documentation {
+        rendered: ImString,
+    },
+    Import {
+        module:   Vec<ImString>,
+        imported: ImportedNames,
+    },
     Lambda,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]

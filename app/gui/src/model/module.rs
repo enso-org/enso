@@ -481,9 +481,9 @@ impl AddAssign for Position {
 }
 
 impl<T> Div<T> for Position
-    where
-        f32: Div<T, Output = f32>,
-        T: Copy,
+where
+    f32: Div<T, Output = f32>,
+    T: Copy,
 {
     type Output = Position;
     fn div(self, rhs: T) -> Self::Output {

@@ -183,7 +183,8 @@ pub struct LambdaInfo<'a> {
 
 /// Describes the given Ast as lambda, if this is a matched `->` builtin macro.
 pub fn as_lambda(ast: &Ast) -> Option<LambdaInfo> {
-    if let crate::Shape::Tree(crate::Tree { type_info: crate::TreeType::Lambda, .. }) = ast.shape() {
+    if let crate::Shape::Tree(crate::Tree { type_info: crate::TreeType::Lambda, .. }) = ast.shape()
+    {
         let mut iter = ast.iter_subcrumbs().map(|crumb| ast.get_located(crumb).unwrap());
         let arg = iter.next().unwrap();
         let body = iter.next().unwrap();

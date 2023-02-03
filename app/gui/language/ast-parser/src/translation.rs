@@ -1,10 +1,10 @@
-use std::collections::BTreeMap;
 use ast::Ast;
 use enso_parser::syntax;
 use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
 use enso_prelude::ImString;
+use std::collections::BTreeMap;
 
 
 
@@ -13,10 +13,7 @@ use enso_prelude::ImString;
 // =======================
 
 fn to_legacy_ast_module(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Result<Ast, ()> {
-    let mut context = Translate {
-        offset: Default::default(),
-        ids,
-    };
+    let mut context = Translate { offset: Default::default(), ids };
     match &*tree.variant {
         tree::Variant::BodyBlock(block) => Ok(context.translate_module(&block).into()),
         _ => Err(()),
@@ -36,7 +33,7 @@ pub fn to_legacy_ast(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> 
 #[derive(Debug)]
 struct Translate {
     offset: usize,
-    ids: BTreeMap<(usize, usize), uuid::Uuid>,
+    ids:    BTreeMap<(usize, usize), uuid::Uuid>,
 }
 
 impl Translate {
@@ -127,11 +124,11 @@ impl Translate {
             tree::Variant::Function(func) => {
                 let func = self.translate_function(func);
                 self.finish_ast(func, builder)
-            },
+            }
             tree::Variant::ForeignFunction(func) => {
                 let func = self.translate_foreign_function(func);
                 self.finish_ast(func, builder)
-            },
+            }
             tree::Variant::UnaryOprApp(tree::UnaryOprApp { opr, rhs }) => {
                 let opr_builder = self.start_ast();
                 let name = self.visit_token(opr).expect_unspaced();
@@ -364,7 +361,8 @@ impl Translate {
         tree_lines: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
     ) -> (Vec<ast::BlockLine<Option<Ast>>>, Option<usize>) {
         let tree_lines = tree_lines.into_iter();
-        let mut ast_lines: Vec<ast::BlockLine<Option<Ast>>> = Vec::with_capacity(tree_lines.size_hint().0);
+        let mut ast_lines: Vec<ast::BlockLine<Option<Ast>>> =
+            Vec::with_capacity(tree_lines.size_hint().0);
         let mut statement_lines = vec![];
         let mut initial_indent = None;
         for tree::block::Line { newline, expression } in tree_lines {
@@ -487,29 +485,23 @@ impl Translate {
     /// Analyze a [`Tree`] and produce a representation used by the graph editor.
     fn translate_items(&mut self, tree: &syntax::tree::Tree<'_>) -> Vec<ast::RawSpanTree> {
         let mut span_info = vec![];
-        tree.visit_items(|item| {
-            match item {
-                syntax::item::Ref::Token(token) => {
-                    let (space, token) = self.visit_token_ref(token).split();
-                    span_info.extend(ast::RawSpanTree::space(space));
-                    span_info.push(ast::RawSpanTree::Token(token));
-                }
-                syntax::item::Ref::Tree(tree) => {
-                    let (space, ast) = self.translate(tree).split();
-                    span_info.extend(ast::RawSpanTree::space(space));
-                    span_info.push(ast::RawSpanTree::Child(ast));
-                }
+        tree.visit_items(|item| match item {
+            syntax::item::Ref::Token(token) => {
+                let (space, token) = self.visit_token_ref(token).split();
+                span_info.extend(ast::RawSpanTree::space(space));
+                span_info.push(ast::RawSpanTree::Token(token));
+            }
+            syntax::item::Ref::Tree(tree) => {
+                let (space, ast) = self.translate(tree).split();
+                span_info.extend(ast::RawSpanTree::space(space));
+                span_info.push(ast::RawSpanTree::Child(ast));
             }
         });
         span_info
     }
 }
 
-fn group(
-    open: String,
-    body: WithInitialSpace<Ast>,
-    close: WithInitialSpace<String>,
-) -> Ast {
+fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<String>) -> Ast {
     let (body_space, body) = body.split();
     let (close_space, close) = close.split();
     let min_elements = 3; // There are always at least 3 elements: open, close, and body
