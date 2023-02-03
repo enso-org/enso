@@ -46,6 +46,7 @@ ensogl::read_args! {
     email: Option<String>,
     emit_user_timing_measurements: bool,
     enable_new_component_browser: bool,
+    enable_skip_and_freeze: bool,
     enable_spector:bool,
     entry: String,
     frame: bool,
