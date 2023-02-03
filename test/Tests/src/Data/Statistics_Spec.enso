@@ -163,8 +163,8 @@ spec =
 
         Test.specify "should be able to do Count, Minimum and Maximum on custom type with custom ordered comparator" <|
             ord_set.compute . should_equal 3
-            ord_set.compute Statistic.Minimum . should_equal (Ord.Value 10)
-            ord_set.compute Statistic.Maximum . should_equal (Ord.Value 2)
+            ord_set.compute Statistic.Minimum . should_equal (Ord.Value 2)
+            ord_set.compute Statistic.Maximum . should_equal (Ord.Value 10)
 
         Test.specify "should fail with Incomparable_Values on custom incomparable type" <|
             no_ord_set.compute . should_equal 3

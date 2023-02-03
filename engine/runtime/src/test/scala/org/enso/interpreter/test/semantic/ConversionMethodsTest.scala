@@ -11,6 +11,7 @@ class ConversionMethodsTest extends InterpreterTest {
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(_
       .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, "../../distribution/component")
+      .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
     )
 
   override def specify(implicit
@@ -68,6 +69,22 @@ class ConversionMethodsTest extends InterpreterTest {
           |   Foo.from jdate . date . quarter
           |""".stripMargin
       eval(code) shouldEqual 1
+    }
+
+    "dispatch on polyglot time value" in {
+      val code =
+        """
+          |polyglot java import java.time.LocalTime as Java_Time
+          |import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
+          |
+          |type Foo
+          |   Mk_Foo foo
+          |
+          |Foo.from (that:Time_Of_Day) = Foo.Mk_Foo that
+          |
+          |main = Foo.from (Java_Time.of 23 59) . foo . minute
+          |""".stripMargin
+      eval(code) shouldEqual 59
     }
   }
 }
