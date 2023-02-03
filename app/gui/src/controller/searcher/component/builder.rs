@@ -557,7 +557,7 @@ mod tests {
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(1));
         let list = builder.build();
         let favorites = list.favorites;
-        assert_eq!(favorites.len(), 1, "Expected one group of favorites, got: {:?}.", favorites);
+        assert_eq!(favorites.len(), 1, "Expected one group of favorites, got: {favorites:?}.");
         let expected_entry_names = ["test snippet", qn_of_db_entry_1.name()];
         check_names_and_order_of_group_entries(&favorites[0], &expected_entry_names);
     }
@@ -585,7 +585,7 @@ mod tests {
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(1));
         let list = builder.build();
         let favorites = list.favorites;
-        assert_eq!(favorites.len(), 2, "Expected two groups of favorites, got: {:?}.", favorites);
+        assert_eq!(favorites.len(), 2, "Expected two groups of favorites, got: {favorites:?}.");
         let group_at_0 = &favorites[0];
         assert_eq!(group_at_0.name, "Group 2");
         check_names_and_order_of_group_entries(group_at_0, &["test snippet"]);

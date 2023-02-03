@@ -318,7 +318,7 @@ fn init(app: &Application) {
 
 pub fn expression_mock_string(label: &str) -> Expression {
     let pattern = Some(label.to_string());
-    let code = format!("\"{}\"", label);
+    let code = format!("\"{label}\"");
     let parser = Parser::new();
     let parameters = vec![];
     let ast = parser.parse_line_ast(&code).unwrap();

@@ -1164,7 +1164,7 @@ mod tests {
         let v = Ast::var(name.clone());
         match v.shape() {
             Shape::Var(var) if *var.name == name => (),
-            _ => panic!("expected Var with name `{}`", name),
+            _ => panic!("expected Var with name `{name}`"),
         }
     }
 

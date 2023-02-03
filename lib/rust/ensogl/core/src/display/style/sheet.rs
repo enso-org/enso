@@ -694,7 +694,7 @@ impl SheetData {
                 }
             }
         }
-        format!("digraph G {{\nnode [shape=box style=rounded]\n{}\n}}", dot)
+        format!("digraph G {{\nnode [shape=box style=rounded]\n{dot}\n}}")
     }
 
     fn sheet_node_map_to_graphviz(&self, dot: &mut String, node_map: &NodeMap) {

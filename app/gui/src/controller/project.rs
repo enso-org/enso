@@ -30,7 +30,7 @@ pub const MAIN_DEFINITION_NAME: &str = "main";
 
 /// The code with definition of the default `main` method.
 pub fn default_main_method_code() -> String {
-    format!(r#"{} = "Hello, World!""#, MAIN_DEFINITION_NAME)
+    format!(r#"{MAIN_DEFINITION_NAME} = "Hello, World!""#)
 }
 
 /// The default content of the newly created initial main module file.
@@ -57,10 +57,10 @@ pub fn main_method_ptr(
 pub fn package_yaml_path(project_name: &str) -> String {
     match platform::current() {
         Some(Platform::Linux) | Some(Platform::MacOS) =>
-            format!("~/enso/projects/{}/package.yaml", project_name),
+            format!("~/enso/projects/{project_name}/package.yaml"),
         Some(Platform::Windows) =>
-            format!("%userprofile%\\enso\\projects\\{}\\package.yaml", project_name),
-        _ => format!("<path-to-enso-projects>/{}/package.yaml", project_name),
+            format!("%userprofile%\\enso\\projects\\{project_name}\\package.yaml"),
+        _ => format!("<path-to-enso-projects>/{project_name}/package.yaml"),
     }
 }
 
@@ -300,7 +300,7 @@ mod tests {
             assert_eq!(code, module.ast().repr());
         };
         expect_intact("main = 5");
-        expect_intact(&format!("{}.main = 5", module_name));
+        expect_intact(&format!("{module_name}.main = 5"));
     }
 
 

@@ -385,7 +385,7 @@ pub fn is_newline_char(t: char) -> bool {
 /// Check whether the provided character is a decimal digit.
 #[inline(always)]
 fn is_decimal_digit(t: char) -> bool {
-    ('0'..='9').contains(&t)
+    t.is_ascii_digit()
 }
 
 /// Check whether the provided character is a binary digit.
@@ -900,8 +900,7 @@ impl<'s> Lexer<'s> {
         text_type: TextType,
     ) {
         let open_quote_end = self.mark();
-        let token =
-            self.make_token(open_quote_start, open_quote_end.clone(), token::Variant::text_start());
+        let token = self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
         self.output.push(token);
         let mut initial_indent = None;
         if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {
@@ -1049,7 +1048,7 @@ impl<'s> Lexer<'s> {
                 let splice_quote_end = self.mark();
                 let token = self.make_token(
                     splice_quote_start,
-                    splice_quote_end.clone(),
+                    splice_quote_end,
                     token::Variant::open_symbol(),
                 );
                 self.output.push(token);
@@ -1516,7 +1515,7 @@ mod tests {
             "a'b''",
         ]));
         for zero_space in UNICODE_ZERO_SPACES.chars() {
-            let var = format!("pre{}post", zero_space);
+            let var = format!("pre{zero_space}post");
             test_lexer(&var, vec![ident_("", &var)])
         }
     }
