@@ -252,6 +252,12 @@ optParser.options('emit-user-timing-measurements', {
     type: 'boolean',
 })
 
+optParser.options('enable-skip-and-freeze', {
+    describe: 'Enable experimental support for skipping and freezing nodes.',
+    type: 'boolean',
+    default: false,
+})
+
 // === Parsing ===
 
 let args = optParser.parse()
