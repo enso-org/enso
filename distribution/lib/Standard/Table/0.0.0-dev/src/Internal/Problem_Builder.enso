@@ -3,7 +3,7 @@ import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
 
-from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregate_Column
 
 type Problem_Builder
     Value types_to_always_throw oob_indices missing_input_columns other
@@ -84,7 +84,7 @@ type Problem_Builder
          problem types to `types_to_always_throw`.
     new : Vector -> Problem_Builder
     new types_to_always_throw=[] error_on_missing_columns=False =
-        additional_types_to_throw = if error_on_missing_columns then [Missing_Input_Columns, Column_Indexes_Out_Of_Range] else []
+        additional_types_to_throw = if error_on_missing_columns then [Missing_Input_Columns, Column_Indexes_Out_Of_Range, Invalid_Aggregate_Column] else []
         Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
 
 ## PRIVATE

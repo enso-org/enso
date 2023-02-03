@@ -1236,19 +1236,21 @@ spec setup =
 
         Test.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in a Group_By" <|
             err1 = table.aggregate [Group_By "Missing", Group_By "Index", Group_By "Other_Missing"] on_problems=Problem_Behavior.Ignore
-            err1.should_fail_with Missing_Input_Columns
-            err1.catch.criteria.should_equal ["Missing", "Other_Missing"]
+            err1.should_fail_with Invalid_Aggregate_Column
+            err1.catch.name . should_equal "Missing"
 
-            action1 = table.aggregate [Group_By "Index", Sum "Value", Sum "Missing"] on_problems=_
-            problems1 = [Missing_Input_Columns.Error ["Missing"]]
-            tester1 = expect_column_names ["Index", "Sum Value"]
-            Problems.test_problem_handling action1 problems1 tester1
+            t1 = table.aggregate [Group_By "Index", Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Report_Warning
+            t1.column_names . should_equal ["Index", "Sum Value"]
+            warnings = Problems.get_attached_warnings t1
+            warnings.not_empty . should_be_true
+            warnings.first.should_be_a Invalid_Aggregate_Column
+            warnings.first.name.should_equal "Missing"
 
             ## Even if there are missing columns both for group-by and
                aggregations, the groupby errors are reported separately.
             err2 = table.aggregate [Group_By "Index", Group_By "Unknown", Sum "Value", Sum "Missing", Group_By "Other Missing"] on_problems=Problem_Behavior.Report_Error
-            err2.should_fail_with Missing_Input_Columns
-            err2.catch.criteria.should_equal ["Unknown", "Other Missing"]
+            err2.should_fail_with Invalid_Aggregate_Column
+            err2.catch.name.should_equal "Unknown"
 
             err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
             err3.should_fail_with Invalid_Aggregate_Column
@@ -1270,12 +1272,6 @@ spec setup =
 
             err6 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
             err6.catch . should_equal (Column_Indexes_Out_Of_Range.Error [42])
-
-            # Prefer missing columns over out of range columns.
-            err7 = table.aggregate [Group_By "Index", Group_By "NOTFOUND", Sum "Value", Sum "Missing", Group_By -33] on_problems=Problem_Behavior.Ignore
-            err7.catch . should_equal (Missing_Input_Columns.Error ["NOTFOUND"])
-            err8 = table.aggregate [Group_By "Index", Sum "Value", Sum 42, Sum "Missing"] on_problems=Problem_Behavior.Report_Error
-            err8.catch . should_equal (Missing_Input_Columns.Error ["Missing"])
 
         Test.specify "should raise a warning when an invalid output name" <|
             action = table.aggregate [Group_By "Index" ""] on_problems=_

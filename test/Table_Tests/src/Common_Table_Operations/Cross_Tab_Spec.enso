@@ -97,12 +97,8 @@ spec setup =
             err1.catch.name . should_equal "Nonexistent Value"
 
             err2 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum 42]
-            err2.should_fail_with Invalid_Aggregate_Column
-            err2.catch.name . should_equal "Nonexistent Value"
-
-            err3 = table.cross_tab values=[Count, Sum 42]
-            err3.should_fail_with Column_Indexes_Out_Of_Range
-            err3.catch.indexes . should_equal [42]
+            err2.should_fail_with Column_Indexes_Out_Of_Range
+            err2.catch.indexes . should_equal [42]
 
         Test.specify "should fail if aggregate values contain invalid expressions" pending="TODO?" <|
             err1 = table.cross_tab values=[Sum "[MISSING]*10"]

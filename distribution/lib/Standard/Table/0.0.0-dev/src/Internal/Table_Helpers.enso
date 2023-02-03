@@ -15,7 +15,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch, Ambiguous_Column_Rename
+from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch, Ambiguous_Column_Rename, Invalid_Aggregate_Column
 
 polyglot java import java.util.HashSet
 
@@ -205,27 +205,25 @@ type Table_Column_Helper
                     _ -> Panic.throw (Illegal_State.Error "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
 
     ## PRIVATE
-       A helper function which selects a single column from the table. It is aligned
-       with the `select_columns_helper`, apart from Blank_Columns selector which is
-       only handled by the other method but not this one.
-    resolve_column_helper : (Integer | Text | Column) -> Problem_Builder -> Any | Nothing
-    resolve_column_helper self selector problem_builder = case selector of
+       A helper function which selects a single column from the table.
+
+       It may allow selection of columns by index, name or computing a derived
+       expression.
+    resolve_column_or_expression : (Integer | Text | Column) -> Problem_Builder -> Any | Nothing
+    resolve_column_or_expression self selector problem_builder = case selector of
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
-                if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
-                    expression = (self.table.compute selector).catch Any _->Nothing
-                    if Nothing != expression then expression else
-                        problem_builder.report_missing_input_columns [selector]
+                if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "Bug in Table library: A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
+                    (self.table.compute selector).catch Any expression_error->
+                        invalid_column = Invalid_Aggregate_Column.Error selector expression_error
+                        problem_builder.report_other_warning invalid_column
                         Nothing
         _ : Integer -> case is_index_valid self.internal_columns.length selector of
             True -> self.internal_columns.at selector
             False ->
                 problem_builder.report_oob_indices [selector]
                 Nothing
-        ## A wildcard to match any backend's column.
-        _ ->
-            self.resolve_column_helper selector.name problem_builder=problem_builder
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
