@@ -3,7 +3,6 @@
 
 use crate::prelude::*;
 use enso_web::traits::*;
-use view::graph_editor::WidgetUpdates;
 
 use crate::controller::graph::widget::Request as WidgetRequest;
 use crate::controller::upload::NodeFromDroppedFileHandler;
@@ -17,6 +16,7 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+use view::graph_editor::WidgetUpdates;
 
 
 // ==============
@@ -29,6 +29,7 @@ pub mod visualization;
 
 pub use call_stack::CallStack;
 pub use visualization::Visualization;
+
 
 
 // ===============

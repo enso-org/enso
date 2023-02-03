@@ -3,13 +3,13 @@
 //! The Widget Controller is responsible for querying the language server for information about
 //! the node's widget metadata or resolving it from local cache.
 
-use crate::model::execution_context::VisualizationUpdateData;
 use crate::prelude::*;
 
 use crate::controller::visualization::manager::Manager;
 use crate::controller::visualization::manager::Notification;
 use crate::controller::ExecutedGraph;
 use crate::executor::global::spawn_stream_handler;
+use crate::model::execution_context::VisualizationUpdateData;
 
 use engine_protocol::language_server::SuggestionId;
 use ensogl::define_endpoints_2;
