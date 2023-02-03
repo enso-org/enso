@@ -642,7 +642,7 @@ last def = inline expression";
 
         let id = definition::Id::new_plain_name("other");
         let span = definition_span(&module.ast, &id).unwrap();
-        assert!(code[span].ends_with("last line of other def\n"));
+        assert!(code[span].ends_with("last line of other def"));
 
         let id = definition::Id::new_plain_name("last");
         let span = definition_span(&module.ast, &id).unwrap();

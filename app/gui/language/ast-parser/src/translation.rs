@@ -149,7 +149,9 @@ impl Translate {
                 let space = tree.span.left_offset.visible.width_in_spaces;
                 let body = self.translate_doc(documentation);
                 out.extend_one(WithInitialSpace { space, body });
-                out.extend(expression.as_ref().map(|e| self.translate(e)));
+                if let Some(expression) = expression {
+                    self.translate_lines(expression, out);
+                }
             }
             _ => out.extend_one(self.translate(tree)),
         }
