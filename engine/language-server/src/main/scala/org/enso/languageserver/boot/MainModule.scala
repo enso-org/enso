@@ -253,7 +253,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     system.actorOf(
       ContextRegistry
         .props(
-          suggestionsRepo,
           languageServerConfig,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,

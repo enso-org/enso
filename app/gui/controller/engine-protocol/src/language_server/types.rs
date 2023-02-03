@@ -211,7 +211,7 @@ pub struct ExpressionUpdate {
     pub expression_id:  ExpressionId,
     #[serde(rename = "type")] // To avoid collision with the `type` keyword.
     pub typename: Option<String>,
-    pub method_pointer: Option<SuggestionId>,
+    pub method_pointer: Option<MethodPointer>,
     pub profiling_info: Vec<ProfilingInfo>,
     pub from_cache:     bool,
     pub payload:        ExpressionUpdatePayload,
@@ -724,6 +724,12 @@ pub struct MethodPointer {
     pub module:          String,
     pub defined_on_type: String,
     pub name:            String,
+}
+
+impl Display for MethodPointer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}::{}::{}", self.module, self.defined_on_type, self.name)
+    }
 }
 
 /// Used for entering a method. The first item on the execution context stack should always be
@@ -1250,7 +1256,7 @@ pub mod test {
     /// method pointer.
     pub fn value_update_with_method_ptr(
         id: ExpressionId,
-        method_pointer: SuggestionId,
+        method_pointer: MethodPointer,
     ) -> ExpressionUpdate {
         ExpressionUpdate {
             expression_id:  id,

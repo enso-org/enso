@@ -241,8 +241,8 @@ impl Handle {
     ) -> FallibleResult<Rc<MethodPointer>> {
         let registry = self.execution_ctx.computed_value_info_registry();
         let node_info = registry.get(&node).ok_or(NotEvaluatedYet(node))?;
-        let entry_id = *node_info.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
-        self.project.suggestion_db().lookup_method_ptr(entry_id).map(Rc::new)
+        let method_pointer = node_info.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
+        Ok(Rc::new(method_pointer.clone()))
     }
 
     /// Enter node by given ID.
@@ -336,8 +336,12 @@ impl Handle {
 impl Context for Handle {
     fn call_info(&self, id: ast::Id, name: Option<&str>) -> Option<CalledMethodInfo> {
         let lookup_registry = || {
-            let method_call = self.computed_value_info_registry().get_method_call(&id)?;
-            let entry = self.project.suggestion_db().lookup(method_call).ok()?;
+            let info = self.computed_value_info_registry().get(&id)?;
+            let entry = self
+                .project
+                .suggestion_db()
+                .lookup_by_method_pointer(&info.method_call.clone()?)
+                .ok()?;
             Some(entry.invocation_info())
         };
         let fallback = || self.graph.borrow().call_info(id, name);
@@ -480,7 +484,12 @@ pub mod tests {
 
         // Now send update that expression actually was computed to be a call to the second
         // suggestion entry and check that executed graph provides this info over the metadata one.
-        let update = value_update_with_method_ptr(id, 2);
+        let method_pointer = MethodPointer {
+            module:          "Main".to_owned(),
+            defined_on_type: "Main".to_owned(),
+            name:            "main".to_owned(),
+        };
+        let update = value_update_with_method_ptr(id, method_pointer);
         executed_graph.computed_value_info_registry().apply_updates(vec![update]);
         let info = get_invocation_info().unwrap();
         assert_call_info(info, &entry2);

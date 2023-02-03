@@ -254,6 +254,11 @@ impl HierarchyIndex {
 #[fail(display = "The suggestion with id {} has not been found in the database.", _0)]
 pub struct NoSuchEntry(pub SuggestionId);
 
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Eq, Fail, PartialEq)]
+#[fail(display = "The suggestion with method pointer {} has not been found in the database.", _0)]
+pub struct NoSuchMethodPointer(pub language_server::MethodPointer);
+
 
 
 // ====================
@@ -283,6 +288,7 @@ pub enum Notification {
 pub struct SuggestionDatabase {
     entries:                  RefCell<HashMap<entry::Id, Rc<Entry>>>,
     qualified_name_to_id_map: RefCell<QualifiedNameToIdMap>,
+    method_pointer_to_id_map: RefCell<HashMap<language_server::MethodPointer, entry::Id>>,
     hierarchy_index:          RefCell<HierarchyIndex>,
     examples:                 RefCell<Vec<Rc<Example>>>,
     version:                  Cell<SuggestionsDatabaseVersion>,
@@ -317,10 +323,14 @@ impl SuggestionDatabase {
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
         let mut entries = HashMap::new();
         let mut qualified_name_to_id_map = QualifiedNameToIdMap::default();
+        let mut method_pointer_to_id_map = HashMap::new();
         let mut hierarchy_index = HierarchyIndex::default();
         for ls_entry in response.entries {
             let id = ls_entry.id;
             let entry = Entry::from_ls_entry(ls_entry.suggestion);
+            if let Ok(method_pointer) = (&entry).try_into() {
+                method_pointer_to_id_map.insert(method_pointer, id);
+            }
             qualified_name_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
             entries.insert(id, Rc::new(entry));
         }
@@ -333,6 +343,7 @@ impl SuggestionDatabase {
         Self {
             entries:                  RefCell::new(entries),
             qualified_name_to_id_map: RefCell::new(qualified_name_to_id_map),
+            method_pointer_to_id_map: RefCell::new(method_pointer_to_id_map),
             hierarchy_index:          RefCell::new(hierarchy_index),
             examples:                 RefCell::new(examples),
             version:                  Cell::new(response.current_version),
@@ -350,16 +361,34 @@ impl SuggestionDatabase {
         self.entries.borrow().get(&id).cloned().ok_or(NoSuchEntry(id))
     }
 
+    /// Get suggestion entry by method pointer.
+    pub fn lookup_by_method_pointer(
+        &self,
+        method_pointer: &language_server::MethodPointer,
+    ) -> FallibleResult<Rc<Entry>> {
+        if let Some(id) = self.method_pointer_to_id_map.borrow().get(method_pointer) {
+            let entry = self.entries.borrow().get(id).cloned().ok_or(NoSuchEntry(*id))?;
+            Ok(entry)
+        } else {
+            let err = Err(NoSuchMethodPointer(method_pointer.clone()))?;
+            Ok(err)
+        }
+    }
+
     /// Apply the update event to the database.
     pub fn apply_update_event(&self, event: SuggestionDatabaseUpdatesEvent) {
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
             let mut qn_to_id_map = self.qualified_name_to_id_map.borrow_mut();
+            let mut mp_to_id_map = self.method_pointer_to_id_map.borrow_mut();
             let mut hierarchy_index = self.hierarchy_index.borrow_mut();
             match update {
                 entry::Update::Add { id, suggestion } => match (*suggestion).try_into() {
                     Ok(entry) => {
                         qn_to_id_map.set_and_warn_if_existed(&Entry::qualified_name(&entry), id);
+                        if let Ok(method_pointer) = (&entry).try_into() {
+                            mp_to_id_map.insert(method_pointer, id);
+                        }
                         hierarchy_index.add(id, &entry, &qn_to_id_map);
                         entries.insert(id, Rc::new(entry));
                     }
@@ -372,6 +401,9 @@ impl SuggestionDatabase {
                     match removed {
                         Some(entry) => {
                             qn_to_id_map.remove_and_warn_if_did_not_exist(&entry.qualified_name());
+                            if let Ok(method_pointer) = entry.as_ref().try_into() {
+                                mp_to_id_map.insert(method_pointer, id);
+                            }
                             hierarchy_index.remove(id);
                         }
 
@@ -403,16 +435,6 @@ impl SuggestionDatabase {
         }
         self.version.set(event.current_version);
         self.notifications.notify(Notification::Updated);
-    }
-
-    /// Look up given id in the suggestion database and if it is a known method obtain a pointer to
-    /// it.
-    pub fn lookup_method_ptr(
-        &self,
-        id: SuggestionId,
-    ) -> FallibleResult<language_server::MethodPointer> {
-        let entry = self.lookup(id)?;
-        language_server::MethodPointer::try_from(entry.as_ref())
     }
 
     /// Search the database for an entry of method identified by given id.
