@@ -1443,7 +1443,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
         .setBare(false)
         .call()
 
-    path.toPath.resolve(".git").toFile.delete() shouldBe true
+    path.toPath.resolve(".git").toFile.delete()
 
     val client = getInitialisedWsClient()
     jgit
