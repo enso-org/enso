@@ -224,6 +224,9 @@ type Table_Column_Helper
             False ->
                 problem_builder.report_oob_indices [selector]
                 Nothing
+        ## A wildcard to match any backend's column.
+        _ ->
+            self.resolve_column_helper selector.name problem_builder=problem_builder
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
