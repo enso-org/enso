@@ -53,8 +53,68 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     this.env = env;
   }
 
-  /** The listener class used by this instrument. */
-  private static class IdExecutionEventListener implements ExecutionEventListener {
+  /** Factory for creating new id event nodes **/
+  private static class IdEventNodeFactory implements ExecutionEventNodeFactory {
+
+      private final CallTarget entryCallTarget;
+      private final Consumer<ExpressionCall> functionCallCallback;
+      private final Consumer<ExpressionValue> onComputedCallback;
+      private final Consumer<ExpressionValue> onCachedCallback;
+      private final Consumer<Exception> onExceptionalCallback;
+      private final RuntimeCache cache;
+      private final MethodCallsCache methodCallsCache;
+      private final UpdatesSynchronizationState syncState;
+      private final UUID nextExecutionItem;
+      private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
+      private final Timer timer;
+
+      /**
+       * Creates a new event node factory.
+       *
+       * @param entryCallTarget the call target being observed.
+       * @param cache the precomputed expression values.
+       * @param methodCallsCache the storage tracking the executed method calls.
+       * @param syncState the synchronization state of runtime updates.
+       * @param nextExecutionItem the next item scheduled for execution.
+       * @param functionCallCallback the consumer of function call events.
+       * @param onComputedCallback the consumer of the computed value events.
+       * @param onCachedCallback the consumer of the cached value events.
+       * @param onExceptionalCallback the consumer of the exceptional events.
+       * @param timer the timer for timing execution
+       */
+      public IdEventNodeFactory(
+              CallTarget entryCallTarget,
+              RuntimeCache cache,
+              MethodCallsCache methodCallsCache,
+              UpdatesSynchronizationState syncState,
+              UUID nextExecutionItem, // The expression ID
+              Consumer<ExpressionCall> functionCallCallback,
+              Consumer<ExpressionValue> onComputedCallback,
+              Consumer<ExpressionValue> onCachedCallback,
+              Consumer<Exception> onExceptionalCallback,
+              Timer timer) {
+          this.entryCallTarget = entryCallTarget;
+          this.cache = cache;
+          this.methodCallsCache = methodCallsCache;
+          this.syncState = syncState;
+          this.nextExecutionItem = nextExecutionItem;
+          this.functionCallCallback = functionCallCallback;
+          this.onComputedCallback = onComputedCallback;
+          this.onCachedCallback = onCachedCallback;
+          this.onExceptionalCallback = onExceptionalCallback;
+          this.timer = timer;
+      }
+
+      @Override
+      public ExecutionEventNode create(EventContext context) {
+          return new IdExecutionEventNode(context, entryCallTarget, cache, methodCallsCache, syncState,
+                  nextExecutionItem, calls, functionCallCallback, onComputedCallback, onCachedCallback, onExceptionalCallback, timer);
+      }
+  }
+
+  /** The execution event node class used by this instrument. */
+  private static class IdExecutionEventNode extends ExecutionEventNode {
+    private final EventContext context;
     private final CallTarget entryCallTarget;
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> onComputedCallback;
@@ -64,13 +124,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     private final MethodCallsCache callsCache;
     private final UpdatesSynchronizationState syncState;
     private final UUID nextExecutionItem;
-    private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
+    private final Map<UUID, FunctionCallInfo> calls;
     private final Timer timer;
-    private final TypeOfNode typeOfNode;
     private long nanoTimeElapsed = 0;
+    private @Child TypeOfNode typeOfNode = TypeOfNode.build();
 
     /**
-     * Creates a new listener.
+     * Creates a new event node.
      *
      * @param entryCallTarget the call target being observed.
      * @param cache the precomputed expression values.
@@ -83,19 +143,23 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      * @param onExceptionalCallback the consumer of the exceptional events.
      * @param timer the timer for timing execution
      */
-    public IdExecutionEventListener(
+    public IdExecutionEventNode(
+        EventContext context,
         CallTarget entryCallTarget,
         RuntimeCache cache,
         MethodCallsCache methodCallsCache,
         UpdatesSynchronizationState syncState,
         UUID nextExecutionItem, // The expression ID
+        Map<UUID, FunctionCallInfo> calls,
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> onComputedCallback,
         Consumer<ExpressionValue> onCachedCallback,
         Consumer<Exception> onExceptionalCallback,
         Timer timer) {
+      this.context = context;
       this.entryCallTarget = entryCallTarget;
       this.cache = cache;
+      this.calls = calls;
       this.callsCache = methodCallsCache;
       this.syncState = syncState;
       this.nextExecutionItem = nextExecutionItem;
@@ -104,24 +168,23 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       this.onCachedCallback = onCachedCallback;
       this.onExceptionalCallback = onExceptionalCallback;
       this.timer = timer;
-      this.typeOfNode = TypeOfNode.build();
     }
 
     @Override
-    public Object onUnwind(EventContext context, VirtualFrame frame, Object info) {
+    public Object onUnwind(VirtualFrame frame, Object info) {
       return info;
     }
 
     @Override
-    public void onEnter(EventContext context, VirtualFrame frame) {
+    public void onEnter(VirtualFrame frame) {
       if (!isTopFrame(entryCallTarget)) {
         return;
       }
-      onEnterImpl(context);
+      onEnterImpl();
     }
 
     @CompilerDirectives.TruffleBoundary
-    private void onEnterImpl(EventContext context) {
+    private void onEnterImpl() {
       UUID nodeId = getNodeId(context.getInstrumentedNode());
 
       // Add a flag to say it was cached.
@@ -152,12 +215,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      * Triggered when a node (either a function call sentry or an identified expression) finishes
      * execution.
      *
-     * @param context the event context.
      * @param frame the current execution frame.
      * @param result the result of executing the node this method was triggered for.
      */
     @Override
-    public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
+    public void onReturnValue(VirtualFrame frame, Object result) {
       nanoTimeElapsed = timer.getTime() - nanoTimeElapsed;
       if (!isTopFrame(entryCallTarget)) {
         return;
@@ -174,19 +236,18 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     }
 
     @Override
-    public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
+    public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
       if (exception instanceof TailCallException) {
-        onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()), context);
+        onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()));
       } else if (exception instanceof PanicException) {
         PanicException panicException = (PanicException) exception;
-        onReturnValue(
-            context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
+        onReturnValue(frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof PanicSentinel) {
-        onReturnValue(context, frame, exception);
+        onReturnValue(frame, exception);
       }
     }
 
-    @CompilerDirectives.TruffleBoundary
+    //@CompilerDirectives.TruffleBoundary
     private void onExpressionReturn(Object result, Node node, EventContext context) throws ThreadDeath {
         boolean isPanic = result instanceof PanicSentinel;
         UUID nodeId = ((ExpressionNode) node).getId();
@@ -200,7 +261,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
 
         String cachedType = cache.getType(nodeId);
-        FunctionCallInfo call = calls.get(nodeId);
+        FunctionCallInfo call = functionCallInfoById(nodeId);
         FunctionCallInfo cachedCall = cache.getCall(nodeId);
         ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
 
@@ -219,12 +280,21 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         cache.putType(nodeId, resultType);
         cache.putCall(nodeId, call);
 
-        onComputedCallback.accept(expressionValue);
+        passExpressionValueToCallback(expressionValue);
         if (isPanic) {
             throw context.createUnwind(result);
         }
     }
 
+    @CompilerDirectives.TruffleBoundary
+    private void passExpressionValueToCallback(ExpressionValue expressionValue) {
+        onComputedCallback.accept(expressionValue);
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private FunctionCallInfo functionCallInfoById(UUID nodeId) {
+        return calls.get(nodeId);
+    }
 
     @CompilerDirectives.TruffleBoundary
     private void onFunctionReturn(UUID nodeId, Object result, EventContext context) throws ThreadDeath {
@@ -241,7 +311,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     }
 
     @CompilerDirectives.TruffleBoundary
-    private void onTailCallReturn(Throwable exception, State state, EventContext context) {
+    private void onTailCallReturn(Throwable exception, State state) {
         try {
             TailCallException tailCallException = (TailCallException) exception;
             FunctionCallInstrumentationNode.FunctionCall functionCall =
@@ -250,7 +320,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                         state,
                         tailCallException.getArguments());
             Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
-            onReturnValue(context, null, result);
+            onReturnValue(null, result);
         } catch (InteropException e) {
             onExceptionalCallback.accept(e);
         }
@@ -298,7 +368,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
   }
 
   /**
-   * Attach a new listener to observe identified nodes within given function.
+   * Attach a new event node factory to observe identified nodes within given function.
    *
    * @param module module that contains the code
    * @param entryCallTarget the call target being observed.
@@ -311,10 +381,10 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
    * @param onExceptionalCallback the consumer of the exceptional events.
-   * @return a reference to the attached event listener.
+   * @return a reference to the attached event node factory.
    */
   @Override
-  public EventBinding<ExecutionEventListener> bind(
+  public EventBinding<ExecutionEventNodeFactory> bind(
       Module module,
       CallTarget entryCallTarget,
       RuntimeCache cache,
@@ -340,9 +410,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     SourceSectionFilter filter = builder.build();
 
     return env.getInstrumenter()
-        .attachExecutionEventListener(
+        .attachExecutionEventFactory(
             filter,
-            new IdExecutionEventListener(
+            new IdEventNodeFactory(
                 entryCallTarget,
                 cache,
                 methodCallsCache,
