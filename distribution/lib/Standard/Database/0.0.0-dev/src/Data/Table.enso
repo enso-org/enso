@@ -222,17 +222,25 @@ type Table
        either the start or the end in the specified order.
 
        Arguments:
-       - columns: Criteria specifying which columns should be reordered and
-         specifying their order.
+       - columns: Column selection criteria or vector of column names which
+         should be reordered and specifying their order.
        - position: Specifies how to place the selected columns in relation to
          the remaining columns which were not matched by `columns` (if any).
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `False`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+       ! Error Conditions
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is reported according to the `on_problems`
+           setting, unless `error_on_missing_columns` is set to `True`, in which
+           case it is raised as an error.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           reported according to the `on_problems` setting, unless
+           `error_on_missing_columns` is set to `True`, in which case it is
+           raised as an error.
 
        > Example
          Move a column with a specified name to back.
@@ -300,16 +308,24 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If a column is matched by two selectors resulting in a different name
-           mapping, a `Ambiguous_Column_Rename`.
-         - If any of the new names are invalid, an
-           `Invalid_Output_Column_Names`.
-         - If any of the new names clash either with existing names or each
-           other, a `Duplicate_Output_Column_Names`.
+       ! Error Conditions
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error, unless `error_on_missing_columns` is set to
+           `False`, in which case the problem is reported according to the
+           `on_problems` setting.
+         - Other problems are reported according to the `on_problems` setting:
+             - If a column is matched by two selectors resulting in a different
+               name mapping, a `Ambiguous_Column_Rename`.
+             - If in `By_Position` mode and more names than columns are
+               provided, a `Too_Many_Column_Names_Provided`.
+             - If any of the new names are invalid, an
+               `Invalid_Output_Column_Names`.
+             - If any of the new names clash either with existing names or each
+               other, a `Duplicate_Output_Column_Names`.
 
        > Example
          Rename the first column to "FirstColumn"
