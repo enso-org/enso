@@ -225,6 +225,7 @@ impl Model {
         self.label.set_single_line_mode(true);
         self.label.disable_command("cursor_move_up");
         self.label.disable_command("cursor_move_down");
+        self.label.disable_command("add_cursor_at_mouse_position");
         self.label.set_property_default(text_color);
         self.label.set_property_default(text::Size(TEXT_SIZE));
         self.label.remove_all_cursors();
