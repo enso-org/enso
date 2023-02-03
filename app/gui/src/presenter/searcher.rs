@@ -367,6 +367,8 @@ impl Searcher {
                     graph.set_node_expression <+ new_input;
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
+                    selected_entry_changed <- entry_selected.on_change().constant(());
+                    grid.unhover_element <+ selected_entry_changed;
                     hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
                         match (h, s) {
                             (Some(h), Some(s)) => h != s,

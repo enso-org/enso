@@ -234,7 +234,7 @@ impl DerivingIterator<'_> {
         let data = &decl.data;
         let params = decl.generics.params.iter().collect();
         let ident = &decl.ident;
-        let t_iterator = format!("{}Iterator{}", ident, mut_or_not);
+        let t_iterator = format!("{ident}Iterator{mut_or_not}");
         let iterator = t_iterator.to_snake_case();
         let t_iterator = syn::Ident::new(&t_iterator, Span::call_site());
         let iterator = syn::Ident::new(&iterator, Span::call_site());

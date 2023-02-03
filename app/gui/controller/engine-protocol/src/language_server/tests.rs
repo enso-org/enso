@@ -329,7 +329,7 @@ fn test_computed_value_update() {
                 "methodPointer" : null,
                 "profilingInfo" : [],
                 "fromCache"     : true,
-                "payload"       : ExpressionUpdatePayload::Value,
+                "payload"       : ExpressionUpdatePayload::Value { warnings: None },
             }]
         }
     });
@@ -350,7 +350,7 @@ fn test_computed_value_update() {
             assert_eq!(update.typename.as_deref(), Some(typename));
             assert!(update.method_pointer.is_none());
             assert!(update.from_cache);
-            assert!(matches!(update.payload, ExpressionUpdatePayload::Value))
+            assert!(matches!(update.payload, ExpressionUpdatePayload::Value { warnings: None }))
         }
         _ => panic!("Expected Notification::ExpressionUpdates"),
     }

@@ -129,11 +129,11 @@ impl BlockingGetErrorLog for WebGl2RenderingContext {
                 let preview_line_start = std::cmp::max(0, line_num.saturating_sub(preview_radius));
                 let preview_line_end = std::cmp::min(lines_num, line_num + preview_radius);
                 let preview = lines_with_num[preview_line_start..preview_line_end].join("\n");
-                format!("...\n{}\n...", preview)
+                format!("...\n{preview}\n...")
             } else {
                 code_with_num
             };
-            format!("{}\n{}", message, preview_code)
+            format!("{message}\n{preview_code}")
         })
     }
 }

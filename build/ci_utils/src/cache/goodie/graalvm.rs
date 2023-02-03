@@ -113,7 +113,7 @@ impl GraalVM {
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };
         let java_version = format!("java{}", java_version.0);
-        format!("{}-{}-{}-{}", PACKAGE_PREFIX, java_version, os_name, arch_name)
+        format!("{PACKAGE_PREFIX}-{java_version}-{os_name}-{arch_name}")
     }
 
     pub fn root_directory_name(&self) -> PathBuf {

@@ -285,7 +285,7 @@ impl TryFrom<visualization::Data> for LazyGridDataUpdate {
                         serde_json::to_string_pretty(&*content)
                     };
                     let data_str =
-                        data_str.unwrap_or_else(|e| format!("<Cannot render data: {}.>", e));
+                        data_str.unwrap_or_else(|e| format!("<Cannot render data: {e}.>"));
                     (data_str.into(), UpdateType::FullUpdate)
                 }
             };

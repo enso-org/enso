@@ -7,11 +7,17 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
-import project.Data.Table.Table
-import project.Data.Storage.Storage
-import project.Data.Value_Type.Value_Type
-from project.Data.Table import print_table
+from Standard.Base.Metadata.Widget import Single_Choice
+import Standard.Base.Metadata.Display
 
+import project.Data.Column_Type_Selection.Auto
+import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Storage.Storage
+import project.Data.Table.Table
+import project.Data.Value_Type.Value_Type
+import project.Internal.Parse_Values_Helper
+
+from project.Data.Table import print_table
 from project.Errors import No_Index_Set_Error
 
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
@@ -715,6 +721,8 @@ type Column
        - other: The value to compare `self` with. If `other` is a column, the
          operation is performed pairwise between corresponding elements of
          `self` and `other`.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
 
        > Example
          Check the elements of a column for starting with the elements of
@@ -731,9 +739,16 @@ type Column
              import Standard.Examples
 
              example_starts_with = Examples.text_column_1.starts_with "hell"
-    starts_with : Column | Text -> Column
-    starts_with self other =
-        run_vectorized_binary_op self "starts_with" (a -> b -> a.starts_with b) other
+
+       > Example
+         Check the elements of a column for starting with a value comparing case insensitively.
+
+             import Standard.Examples
+
+             example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
+    starts_with : Column | Text -> Case_Sensitivity -> Column
+    starts_with self other case_sensitivity=Case_Sensitivity.Default =
+        run_vectorized_binary_case_text_op self Java_Storage.Maps.STARTS_WITH other case_sensitivity (a -> b -> a.starts_with b case_sensitivity)
 
     ## Checks for each element of the column if it ends with `other`.
 
@@ -741,6 +756,8 @@ type Column
        - other: The value to compare `self` with. If `other` is a column, the
          operation is performed pairwise between corresponding elements of
          `self` and `other`.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
 
        > Example
          Check the elements of a column for ending with the elements of another
@@ -757,9 +774,9 @@ type Column
              import Standard.Examples
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
-    ends_with : Column | Text -> Column
-    ends_with self other =
-        run_vectorized_binary_op self "ends_with" (a -> b -> a.ends_with b) other
+    ends_with : Column | Text -> Case_Sensitivity -> Column
+    ends_with self other case_sensitivity=Case_Sensitivity.Default =
+        run_vectorized_binary_case_text_op self Java_Storage.Maps.ENDS_WITH other case_sensitivity (a -> b -> a.ends_with b case_sensitivity)
 
     ## Checks for each element of the column if it contains `other`.
 
@@ -767,6 +784,8 @@ type Column
        - other: The value to compare `self` with. If `other` is a column, the
          operation is performed pairwise between corresponding elements of
          `self` and `other`.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
 
        > Example
          Check the elements of a column for containing the elements of another
@@ -784,8 +803,8 @@ type Column
 
              example_contains = Examples.text_column_1.contains "hell"
     contains : Column | Text -> Column
-    contains self other =
-        run_vectorized_binary_op self "contains" (a -> b -> a.contains b) other
+    contains self other case_sensitivity=Case_Sensitivity.Default =
+        run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity)
 
     ## Checks for each element of the column if it matches an SQL-like pattern.
 
@@ -848,6 +867,66 @@ type Column
                     column : Column -> column.to_vector
                 new_vector = self.to_vector.map (Filter_Condition.Is_In true_vector).to_predicate
                 Column.from_vector result_name new_vector
+
+    ## Parses a text column into values
+
+       Arguments:
+       - type: Target type to parse the value to.
+         If `Auto`, will attempt to deduce the type automatically.
+       - format: For date/time types, the format to parse the value with.
+         For boolean types, two values that represent true and false separated
+         by `|`.
+       - on_problems: What to do if the value cannot be parsed.
+         By default, an `Invalid_Format` warning is attached and the value is
+         set to `Nothing`.
+
+       > Example
+         Parse dates in a column in the format `yyyy-MM-dd` (the default format).
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.parse Date
+
+       > Example
+         Parse dates in a column in the format `dd/MM/yyyy`
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.parse Date 'dd/MM/yyyy'
+
+       > Example
+         Parse a Yes/No column into a boolean column.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
+    @type (Single_Choice ['Auto','Integer','Decimal','Date','Date_Time','Time_Of_Day','Boolean'] display=Display.Always)
+    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Nothing -> Problem_Behavior -> Column
+    parse self type=Auto format=Nothing on_problems=Report_Warning =
+        ensure_type ~fn = if [Auto, Integer, Decimal, Date, Date_Time, Time_Of_Day, Boolean].index_of type == Nothing then Error.throw (Illegal_Argument.Error "Unsupported target type "+type.to_text+".") else fn
+
+        Value_Type.expect_text self.value_type <| ensure_type <|
+            formatter = if format.is_nothing then Data_Formatter.Value else case type of
+                Auto -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Auto`.")
+                Integer -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Integer`.")
+                Decimal -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Decimal`.")
+                Date -> Data_Formatter.Value.with_datetime_formats date_formats=[format]
+                Date_Time -> Data_Formatter.Value.with_datetime_formats datetime_formats=[format]
+                Time_Of_Day -> Data_Formatter.Value.with_datetime_formats time_formats=[format]
+                Boolean ->
+                    formats = format.split "|"
+                    if formats.length != 2 then Error.throw (Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`, for example: 'Yes|No'.") else
+                        Data_Formatter.Value.with_boolean_values true_values=[formats.at 0] false_values=[formats.at 1]
+
+            parser = if type == Auto then formatter.make_auto_parser else formatter.make_datatype_parser type
+            storage = self.java_column.getStorage
+            new_storage_and_problems = parser.parseColumn self.name storage
+
+            new_storage = new_storage_and_problems.value
+            problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem type)
+
+            output = Column.Value (Java_Column.new self.name new_storage)
+            on_problems.attach_problems_after output problems
 
     ## ALIAS Transform Column
 
@@ -1361,3 +1440,18 @@ make_storage_builder_for_type value_type initial_size=128 =
         Value_Type.Mixed -> Storage.Any
         _ -> Storage.Any
     Storage.make_builder closest_storage_type initial_size
+
+## PRIVATE
+   Helper for case case_sensitivity based text operations
+run_vectorized_binary_case_text_op : Column -> Text -> (Text | Column) -> Case_Sensitivity -> (Text -> Text -> Any) -> Column
+run_vectorized_binary_case_text_op left op other case_sensitivity fallback =
+    Value_Type.expect_text left.value_type <| case case_sensitivity of
+        Case_Sensitivity.Default -> run_vectorized_binary_op left op fallback other
+        Case_Sensitivity.Sensitive -> run_vectorized_binary_op left op fallback other
+        Case_Sensitivity.Insensitive _ ->
+            ## TODO currently this always runs the fallback which is slow due to the
+               cost of Java-to-Enso calls. We want to have a vectorized
+               implementation, but we need to extend the architecture to allow
+               passing the locale to it.
+               See: https://www.pivotaltracker.com/n/projects/2539304/stories/184093260
+            run_vectorized_binary_op left Nothing fallback other

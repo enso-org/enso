@@ -178,7 +178,7 @@ pub mod background {
     ensogl_core::shape! {
         below = [grid::entry::background, grid_view::entry::overlay, grid_view::selectable::highlight::shape];
         (style:Style,bg_color:Vector4) {
-            let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
+            let alpha = Var::<f32>::from(format!("({bg_color}.w)"));
             let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
 
             let grid_padding = style.get_number(theme::grid::padding);

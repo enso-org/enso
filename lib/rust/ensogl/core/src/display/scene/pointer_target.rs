@@ -228,7 +228,7 @@ impl Display for DecodeError {
             Self::WrongAlpha(alpha) => {
                 let err1 = "Failed to decode mouse target.";
                 let err2 = "The alpha channel should be either 0 or 255, got";
-                write!(f, "{} {} {}.", err1, err2, alpha)
+                write!(f, "{err1} {err2} {alpha}.")
             }
             Self::Overflow => {
                 write!(f, "ID overflow error, too many objects on the scene.")

@@ -525,7 +525,7 @@ fn arguments_list<'a>(arguments: &'a [Argument]) -> Box<dyn Render + 'a> {
 fn single_argument(argument: &Argument) -> impl Render {
     let Argument { name, default_value, .. } = argument;
     let text = if let Some(default_value) = default_value {
-        format!("{} = {},", name, default_value)
+        format!("{name} = {default_value},")
     } else {
         name.to_string()
     };
