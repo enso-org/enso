@@ -11,7 +11,7 @@ loadStyleFromString(scrollbarStyle)
 // ===========================
 
 class TableVisualization extends Visualization {
-    static inputType = 'Any'
+    static inputType = 'Standard.Table.Data.Table.Table'
     static label = 'Table'
 
     constructor(data) {
