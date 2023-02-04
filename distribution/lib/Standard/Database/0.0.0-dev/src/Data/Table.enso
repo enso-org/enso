@@ -138,17 +138,25 @@ type Table
          output table will match the order in the columns list. If a column is
          matched by multiple selectors in reorder mode, it will be placed at
          the position of the first one matched.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+       ! Error Conditions
+
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
-
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error, unless `error_on_missing_columns` is set to
+           `False`, in which case the problem is reported according to the
+           `on_problems` setting.
        > Example
          Select columns by name.
 
@@ -182,16 +190,25 @@ type Table
 
        Arguments:
        - columns: Column selection criteria or vector of column names to remove.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `False`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+       ! Error Conditions
+
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is reported according to the `on_problems`
+           setting, unless `error_on_missing_columns` is set to `True`, in which
+           case it is raised as an error.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           reported according to the `on_problems` setting, unless
+           `error_on_missing_columns` is set to `True`, in which case it is
+           raised as an error.
 
        > Example
          Remove columns with given names.
@@ -233,6 +250,7 @@ type Table
          them as warnings by default.
 
        ! Error Conditions
+
          - If a column in `columns` is not in the input table, a
            `Missing_Input_Columns` is reported according to the `on_problems`
            setting, unless `error_on_missing_columns` is set to `True`, in which
@@ -305,10 +323,14 @@ type Table
        Arguments:
        - column_map: Mapping from old column names to new or a vector of new
          column names to apply by position.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
        ! Error Conditions
+
          - If a column in `columns` is not in the input table, a
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
@@ -610,15 +632,29 @@ type Table
        Arguments:
        - columns: The columns and order to sort the table.
        - text_ordering: The ordering method to use on text values.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
 
-       This method may raise the following errors:
-       - If a column in `columns` is not present in the input table, a
-         `Missing_Input_Columns`.
-       - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-       - If no valid columns are selected, a `No_Input_Columns_Selected`.
-       - If values do not implement an ordering, an `Incomparable_Values`.
+       ! Error Conditions
 
-       Missing (`Nothing`) values are sorted as less than any other object.
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error, unless `error_on_missing_columns` is set to
+           `False`, in which case the problem is reported according to the
+           `on_problems` setting.
+         - If no columns have been selected for ordering,
+           a `No_Input_Columns_Selected` is raised as dataflow error regardless
+           of any settings.
+
+       ? Missing Values
+
+         Missing (`Nothing`) values are sorted as less than any other object.
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.

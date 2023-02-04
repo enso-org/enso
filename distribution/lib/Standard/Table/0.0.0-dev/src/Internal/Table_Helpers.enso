@@ -226,7 +226,7 @@ type Table_Column_Helper
                 Nothing
         ## A wildcard to match any backend's column.
         _ ->
-            self.resolve_column_helper selector.name problem_builder=problem_builder
+            self.resolve_column_or_expression selector.name problem_builder=problem_builder
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
