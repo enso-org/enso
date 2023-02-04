@@ -118,7 +118,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 use node::InsertionPointType::*;
                 let kind = &ins_point.kind;
                 let ast = root.get_traversing(&self.ast_crumbs)?;
-                let expect_arg = matches!(kind, ExpectedArgument(_));
+                let expect_arg = kind.is_expected_argument();
                 let extended_infix =
                     (!expect_arg).and_option_from(|| ast::opr::Chain::try_new(ast));
                 let new_ast = modify_preserving_id(ast, |ast| {
@@ -256,7 +256,7 @@ mod test {
             fn run(&self, parser: &Parser) {
                 let ast = parser.parse_line_ast(self.expr).unwrap();
                 let ast_id = ast.id;
-                let tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+                let tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
                 let node = tree.root_ref().find_by_span(&self.span.clone().into());
                 let node = node.unwrap_or_else(|| {
                     panic!("Invalid case {:?}: no node with span {:?}", self, self.span)
@@ -269,7 +269,7 @@ mod test {
                 .unwrap();
                 let result_repr = result.repr();
                 assert_eq!(result_repr, self.expected, "Wrong answer for case {self:?}");
-                assert_eq!(ast_id, result.id, "Changed AST id in case {self:?}");
+                assert_eq!(ast_id, result.id, "Changed AST ID in case {self:?}");
             }
         }
 
@@ -401,7 +401,7 @@ mod test {
         // Consider Span Tree for `foo bar` where `foo` is a method known to take 3 parameters.
         // We can try setting each of 3 arguments to `baz`.
         let tree = TreeBuilder::<()>::new(7)
-            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
+            .add_leaf(0, 3, node::Kind::operation(), PrefixCrumb::Func)
             .add_leaf(4, 7, node::Kind::this(), PrefixCrumb::Arg)
             .add_empty_child(7, ExpectedArgument(1))
             .add_empty_child(7, ExpectedArgument(2))
@@ -427,7 +427,7 @@ mod test {
         // parameters. We can try setting each of 2 arguments to `baz`.
         let tree: SpanTree = TreeBuilder::new(10)
             .add_leaf(0, 4, node::Kind::this(), InfixCrumb::LeftOperand)
-            .add_leaf(5, 6, node::Kind::Operation, InfixCrumb::Operator)
+            .add_leaf(5, 6, node::Kind::operation(), InfixCrumb::Operator)
             .add_leaf(7, 10, node::Kind::argument(), InfixCrumb::RightOperand)
             .add_empty_child(10, ExpectedArgument(0))
             .add_empty_child(10, ExpectedArgument(1))

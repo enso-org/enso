@@ -365,7 +365,7 @@ pub fn expression_mock2() -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::builder::TreeBuilder::new(36)
         .add_child(0, 14, span_tree::node::Kind::Chained, PrefixCrumb::Func)
-        .add_child(0, 9, span_tree::node::Kind::Operation, PrefixCrumb::Func)
+        .add_child(0, 9, span_tree::node::Kind::operation(), PrefixCrumb::Func)
         .set_ast_id(Uuid::new_v4())
         .done()
         .add_empty_child(10, span_tree::node::InsertionPointType::BeforeTarget)
@@ -379,7 +379,7 @@ pub fn expression_mock2() -> Expression {
         .set_ast_id(Uuid::new_v4())
         .add_child(1, 19, span_tree::node::Kind::argument(), parens_cr)
         .set_ast_id(Uuid::new_v4())
-        .add_child(0, 12, span_tree::node::Kind::Operation, PrefixCrumb::Func)
+        .add_child(0, 12, span_tree::node::Kind::operation(), PrefixCrumb::Func)
         .set_ast_id(Uuid::new_v4())
         .done()
         .add_empty_child(13, span_tree::node::InsertionPointType::BeforeTarget)
@@ -447,13 +447,14 @@ pub fn expression_mock_trim() -> Expression {
         ..default()
     };
     let param0 = span_tree::ArgumentInfo {
-        name:       Some("where".to_owned()),
-        tp:         Some("Location".to_owned()),
+        name: Some("where".to_owned()),
+        tp: Some("Location".to_owned()),
         tag_values: vec![
             "Location.Start".to_owned(),
             "Location.End".to_owned(),
             "Location.Both".to_owned(),
         ],
+        ..default()
     };
     let param1 = span_tree::ArgumentInfo {
         name: Some("what".to_owned()),

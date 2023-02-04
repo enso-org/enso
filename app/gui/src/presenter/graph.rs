@@ -4,16 +4,19 @@
 use crate::prelude::*;
 use enso_web::traits::*;
 
+use crate::controller::graph::widget::Request as WidgetRequest;
 use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
+use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+use view::graph_editor::WidgetUpdates;
 
 
 // ==============
@@ -81,6 +84,7 @@ struct Model {
     view:             view::graph_editor::GraphEditor,
     state:            Rc<State>,
     _visualization:   Visualization,
+    widget:           controller::Widget,
     _execution_stack: CallStack,
 }
 
@@ -97,6 +101,7 @@ impl Model {
             view.clone_ref(),
             state.clone_ref(),
         );
+        let widget = controller::Widget::new(controller.clone_ref());
         let execution_stack =
             CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
         Self {
@@ -105,6 +110,7 @@ impl Model {
             view,
             state,
             _visualization: visualization,
+            widget,
             _execution_stack: execution_stack,
         }
     }
@@ -185,11 +191,43 @@ impl Model {
         );
     }
 
+    /// Update the widget target expression of a node. When this widget can be requested right now,
+    /// return the request structure.
+    fn update_widget_request_data(
+        &self,
+        call_expression: ast::Id,
+        target_expression: ast::Id,
+    ) -> Option<WidgetRequest> {
+        let node_id = self
+            .state
+            .update_from_view()
+            .set_call_expression_target_id(call_expression, Some(target_expression))?;
+        let method_id = self.expression_method_suggestion(call_expression)?;
+
+        Some(WidgetRequest {
+            node_id,
+            call_expression,
+            target_expression,
+            call_suggestion: method_id,
+        })
+    }
+
+    /// Map widget controller update data to the node views.
+    fn map_widget_update_data(
+        &self,
+        node_id: AstNodeId,
+        updates: WidgetUpdates,
+    ) -> Option<(ViewNodeId, WidgetUpdates)> {
+        let node_id = self.state.view_id_of_ast_node(node_id)?;
+        Some((node_id, updates))
+    }
+
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
         self.log_action(
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
+                self.widget.remove_all_node_widgets(ast_id);
                 Some(self.controller.graph().remove_node(ast_id))
             },
             "remove node",
@@ -252,23 +290,13 @@ impl Model {
     ) -> Vec<(ViewNodeId, ast::Id, Option<view::graph_editor::Type>)> {
         let subexpressions = self.state.expressions_of_node(node);
         subexpressions
-            .iter()
+            .into_iter()
             .map(|id| {
-                let a_type = self.expression_type(*id);
-                self.state.update_from_controller().set_expression_type(*id, a_type.clone());
-                (node, *id, a_type)
+                let a_type = self.expression_type(id);
+                self.state.update_from_controller().set_expression_type(id, a_type.clone());
+                (node, id, a_type)
             })
             .collect()
-    }
-
-    /// Extract all method pointers for subexpressions, update the state, and return events updating
-    /// view for expressions where method pointer actually changed.
-    fn all_method_pointers_of_node(
-        &self,
-        node: ViewNodeId,
-    ) -> Vec<(ast::Id, Option<view::graph_editor::MethodPointer>)> {
-        let subexpressions = self.state.expressions_of_node(node);
-        subexpressions.iter().filter_map(|id| self.refresh_expression_method_pointer(*id)).collect()
     }
 
     /// Refresh type of the given expression.
@@ -284,18 +312,34 @@ impl Model {
         Some((node_view, id, a_type))
     }
 
-    /// Refresh method pointer of the given expression.
+    /// Refresh method pointer of the given expression in order to check if its widgets require an
+    /// update and should be queried.
     ///
-    /// If the view update is required, the GraphEditor's FRP input event is returned.
-    fn refresh_expression_method_pointer(
-        &self,
-        id: ast::Id,
-    ) -> Option<(ast::Id, Option<view::graph_editor::MethodPointer>)> {
-        let method_pointer = self.expression_method(id);
-        self.state
+    /// If the view update is required, the widget query data is returned.
+    fn refresh_expression_widgets(&self, expr_id: ast::Id) -> Option<(ast::Id, ast::Id)> {
+        let suggestion_id = self.expression_method_suggestion(expr_id)?;
+        let method_pointer = self.suggestion_method_pointer(suggestion_id);
+        let (_, method_target_id) = self
+            .state
             .update_from_controller()
-            .set_expression_method_pointer(id, method_pointer.clone())?;
-        Some((id, method_pointer))
+            .set_expression_method_pointer(expr_id, method_pointer)?;
+        Some((expr_id, method_target_id?))
+    }
+
+    /// Extract all widget queries for all node subexpressions that require an update. Returns all
+    fn refresh_all_widgets_of_node(
+        &self,
+        node: ViewNodeId,
+    ) -> (Option<(AstNodeId, HashSet<ast::Id>)>, Vec<(ast::Id, ast::Id)>) {
+        let subexpressions = self.state.expressions_of_node(node);
+        let expressions_map = subexpressions.iter().cloned().collect();
+        let node_id = self.state.ast_node_id_of_view(node);
+        let node_expressions = node_id.map(|id| (id, expressions_map));
+        let queries = subexpressions
+            .into_iter()
+            .filter_map(|id| self.refresh_expression_widgets(id))
+            .collect();
+        (node_expressions, queries)
     }
 
     fn refresh_node_error(
@@ -314,11 +358,18 @@ impl Model {
         Some(view::graph_editor::Type(info.typename.as_ref()?.clone_ref()))
     }
 
-    /// Extract the expression's current method pointer from controllers.
-    fn expression_method(&self, id: ast::Id) -> Option<view::graph_editor::MethodPointer> {
+    /// Extract the expression's current suggestion entry from controllers.
+    fn expression_method_suggestion(&self, id: ast::Id) -> Option<SuggestionId> {
         let registry = self.controller.computed_value_info_registry();
-        let method_id = registry.get(&id)?.method_call?;
-        let suggestion_db = self.controller.graph().suggestion_db.clone_ref();
+        registry.get(&id)?.method_call
+    }
+
+    /// Extract the expression's current method pointer from controllers.
+    fn suggestion_method_pointer(
+        &self,
+        method_id: SuggestionId,
+    ) -> Option<view::graph_editor::MethodPointer> {
+        let suggestion_db = self.controller.suggestion_db();
         let method = suggestion_db.lookup_method_ptr(method_id).ok()?;
         Some(view::graph_editor::MethodPointer(Rc::new(method)))
     }
@@ -555,7 +606,8 @@ impl Graph {
     fn init(self, project_view: &view::project::View) -> Self {
         let network = &self.network;
         let model = &self.model;
-        let view = &self.model.view.frp;
+        let view = &model.view.frp;
+
         frp::extend! { network
             update_view <- source::<()>();
             // Position initialization should go before emitting `update_data` event.
@@ -613,16 +665,14 @@ impl Graph {
 
             reset_node_types <- any(update_node_expression, init_node_expression)._0();
             set_expression_type <= reset_node_types.map(f!((view_id) model.all_types_of_node(*view_id)));
-            set_method_pointer <= reset_node_types.map(f!((view_id) model.all_method_pointers_of_node(*view_id)));
             view.set_expression_usage_type <+ set_expression_type;
-            view.set_method_pointer <+ set_method_pointer;
 
             update_expressions <- source::<Vec<ast::Id>>();
             update_expression <= update_expressions;
             view.set_expression_usage_type <+ update_expression.filter_map(f!((id) model.refresh_expression_type(*id)));
-            view.set_method_pointer <+ update_expression.filter_map(f!((id) model.refresh_expression_method_pointer(*id)));
             view.set_node_error_status <+ update_expression.filter_map(f!((id) model.refresh_node_error(*id)));
 
+            self.init_widgets(reset_node_types, update_expression.clone_ref());
 
             // === Changes from the View ===
 
@@ -649,6 +699,46 @@ impl Graph {
         self.setup_controller_notification_handlers(update_view, update_expressions);
 
         self
+    }
+
+    /// Initialize the FRP network for querying and updating expression widgets.
+    fn init_widgets(
+        &self,
+        reset_node_types: frp::Stream<ViewNodeId>,
+        update_expression: frp::Stream<ast::Id>,
+    ) {
+        let network = &self.network;
+        let model = &self.model;
+        let view = &model.view.frp;
+        let widget = &model.widget;
+
+        frp::extend! { network
+            widget_refresh <- reset_node_types.map(
+                f!((view_id) model.refresh_all_widgets_of_node(*view_id))
+            );
+        }
+        frp::extend! { network
+            widgets_to_update <- any(...);
+            widgets_to_update <+ widget_refresh._1().iter();
+        }
+        frp::extend! { network
+            widgets_to_update <+ update_expression.filter_map(
+                f!((id) model.refresh_expression_widgets(*id))
+            );
+            widgets_to_update <+ view.widgets_requested.map(|(_, call, target)| (*call, *target));
+        }
+        frp::extend! { network
+            widget_request <- widgets_to_update.filter_map(
+                f!(((call, target)) model.update_widget_request_data(*call, *target))
+            );
+            widget.request_widgets <+ widget_request;
+        }
+        frp::extend! { network
+            widget.retain_node_expressions <+ widget_refresh._0().unwrap();
+            view.update_node_widgets <+ widget.widget_data.filter_map(
+                f!(((id, updates)) model.map_widget_update_data(*id, updates.clone()))
+            );
+        }
     }
 
     fn setup_controller_notification_handlers(
@@ -686,12 +776,12 @@ impl Graph {
         self.model.state.view_id_of_ast_node(id)
     }
 
-    /// Get the ast id of given node view.
+    /// Get the AST ID of given node view.
     pub fn ast_node_of_view(&self, id: ViewNodeId) -> Option<AstNodeId> {
         self.model.state.ast_node_id_of_view(id)
     }
 
-    /// Assign a node view to the given AST id. Since next update, the presenter will share the
+    /// Assign a node view to the given AST ID. Since next update, the presenter will share the
     /// node content between the controllers and the view.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) {
         self.model.state.assign_node_view_explicitly(view_id, ast_id);
