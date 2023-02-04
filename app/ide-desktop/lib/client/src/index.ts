@@ -191,413 +191,360 @@ function wordWrap(str: string, width: number): string[] {
 // === Config ===
 // ==============
 
-class OptionGroups extends content.OptionGroups {
-    static electron = 'electron'
-    static window = 'window'
-    static server = 'server'
-    static performance = 'performance'
-}
-
-let configOptionsGroup = 'Config Options'
-
 // @ts-ignore
-export class Options extends content.Options {
+const options = content.options.merge({
     // === Window Options ===
 
     // @ts-ignore
-    window: content.Option<boolean> = new content.Option({
-        group: OptionGroups.window,
+    window: (content.Option<boolean> = new content.Option({
         type: 'boolean',
         default: true,
         description:
             'Show the window. If set to false, only the server will be run. You can use another ' +
             'client or a browser to connect to it.',
-    })
+    })),
     // @ts-ignore
-    windowSize: content.Option<null | string> = new content.Option({
-        group: OptionGroups.window,
+    windowSize: (content.Option<null | string> = new content.Option({
         type: 'string',
         default: `${windowSize.width}x${windowSize.height}`,
         description: `The initial window size.`,
-    })
+    })),
     // @ts-ignore
-    frame: content.Option<boolean> = new content.Option({
-        group: OptionGroups.window,
+    frame: (content.Option<boolean> = new content.Option({
         type: 'boolean',
         default: true,
         defaultDescription: 'false on MacOS, true otherwise',
         description: 'Draw window frame.',
-    })
+    })),
     // @ts-ignore
-    vibrancy: content.Option<boolean> = new content.Option({
-        group: OptionGroups.window,
+    vibrancy: (content.Option<boolean> = new content.Option({
         type: 'boolean',
         default: false,
         description: 'Use the vibrancy effect.',
-    })
+    })),
 
     // === Server Options ===
 
     // @ts-ignore
-    server: content.Option<boolean> = new content.Option({
-        group: OptionGroups.server,
+    server: (content.Option<boolean> = new content.Option({
         type: 'boolean',
         default: true,
         description:
             'Run the server. If set to false, you can connect to an existing server on the ' +
             'provided `port`.',
-    })
+    })),
 
     // @ts-ignore
-    port: content.Option<string | null> = new content.Option({
-        group: OptionGroups.server,
+    port: (content.Option<string | null> = new content.Option({
         type: 'string',
         default: Server.DEFAULT_PORT,
         description: `Port to use. In case the port is unavailable, next free port will be found.`,
-    })
+    })),
 
     // === Startup Options ===
 
     // @ts-ignore
-    project: content.Option<string | null> = new content.Option({
+    project: (content.Option<string | null> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.startup,
         type: 'string',
         default: null,
         description:
             'Project name to open on startup. If not provided, the welcome screen will be ' +
             'displayed.',
-    })
+    })),
 
     // === Performance Options ===
 
     // @ts-ignore
-    backgroundThrottling: content.Option<boolean> = new content.Option({
-        group: OptionGroups.performance,
+    backgroundThrottling: (content.Option<boolean> = new content.Option({
         type: 'boolean',
         default: false,
         description: 'Throttle animations when run in background.',
-    })
+    })),
     // @ts-ignore
-    loadProfile: content.Option<null | string[]> = new content.Option({
+    loadProfile: (content.Option<null | string[]> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.performance,
         type: 'array',
         default: null,
         description:
             'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
-    })
+    })),
     // @ts-ignore
-    saveProfile: content.Option<null | string> = new content.Option({
+    saveProfile: (content.Option<null | string> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.performance,
         type: 'string',
         default: null,
         description: 'Record a performance profile and write to a file.',
-    })
+    })),
     // @ts-ignore
-    workflow: content.Option<null | string> = new content.Option({
+    workflow: (content.Option<null | string> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.performance,
         type: 'string',
         default: null,
         description: 'Specify a workflow for profiling. Must be used with -entry-point=profile.',
-    })
+    })),
 
     // === Engine Options ===
 
     // @ts-ignore
-    backend: content.Option<boolean> = new content.Option({
-        group: OptionGroups.engine,
+    backend: (content.Option<boolean> = new content.Option({
         type: 'boolean',
         default: true,
         description: 'Start the backend process.',
-    })
+    })),
     // @ts-ignore
-    backendPath: content.Option<string | null> = new content.Option({
-        group: OptionGroups.engine,
+    backendPath: (content.Option<string | null> = new content.Option({
         type: 'string',
         default: null,
         description: 'Set the path of a local project manager to use for running projects',
-    })
+    })),
 
     // === Debug Options ===
 
     // @ts-ignore
-    verbose: content.Option<boolean> = new content.Option({
+    verbose: (content.Option<boolean> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.debug,
         type: 'boolean',
         default: false,
         description: `Increase logs verbosity. Affects both IDE and the backend.`,
-    })
+    })),
     // @ts-ignore
-    dev: content.Option<boolean> = new content.Option({
+    dev: (content.Option<boolean> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.debug,
         type: 'boolean',
         default: false,
         description: 'Run the application in development mode.',
-    })
+    })),
     // @ts-ignore
-    devtron: content.Option<boolean> = new content.Option({
+    devtron: (content.Option<boolean> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.debug,
         type: 'boolean',
         default: false,
         description: 'Install the Devtron Developer Tools extension.',
-    })
+    })),
 
     // @ts-ignore
-    showElectronOptions: content.Option<boolean> = new content.Option({
+    showElectronOptions: (content.Option<boolean> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.debug,
         type: 'boolean',
         default: false,
         description: 'Show Electron options in the help. Should be used together with `-help`.',
-    })
+    })),
     // @ts-ignore
-    info: content.Option<boolean> = new content.Option({
+    info: (content.Option<boolean> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.debug,
         type: 'boolean',
         default: false,
         description: `Print the system debug info.`,
-    })
+    })),
     // @ts-ignore
-    version: content.Option<boolean> = new content.Option({
+    version: (content.Option<boolean> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.debug,
         type: 'boolean',
         default: false,
         description: `Print the version.`,
-    })
+    })),
     // @ts-ignore
-    help: content.Option<boolean> = new content.Option({
+    help: (content.Option<boolean> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.debug,
         type: 'boolean',
         default: false,
         description:
             'Show the common configuration options help page. ' +
             'To see all options, use `-full-help`.',
-    })
+    })),
     // @ts-ignore
-    fullHelp: content.Option<boolean> = new content.Option({
+    fullHelp: (content.Option<boolean> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.debug,
         type: 'boolean',
         default: false,
         description: 'Show all the configuration options help page.',
-    })
+    })),
 
     // === Style Options ===
 
     // @ts-ignore
-    theme: content.Option<null | string> = new content.Option({
+    theme: (content.Option<null | string> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.style,
         type: 'string',
         default: 'light',
         description: 'Theme to use.',
-    })
+    })),
     // @ts-ignore
-    nodeLabels: content.Option<boolean> = new content.Option({
+    nodeLabels: (content.Option<boolean> = new content.Option({
         // @ts-ignore
-        group: OptionGroups.style,
         type: 'boolean',
         default: true,
         description: 'Show node labels.',
-    })
+    })),
 
     // === Electron Options ===
     // https://www.electronjs.org/docs/latest/api/command-line-switches
 
     // @ts-ignore
-    electronAuthServerWhitelist: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronAuthServerWhitelist: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description:
             'A comma-separated list of servers for which integrated authentication is ' +
             'enabled.',
-    })
+    })),
     // @ts-ignore
-    electronAuthNegotiateDelegateWhitelist: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronAuthNegotiateDelegateWhitelist: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description:
             'A comma-separated list of servers for which delegation of user credentials is ' +
             "required. Without '*' prefix the URL has to match exactly.",
-    })
+    })),
     // @ts-ignore
-    electronDisableNtlmV2: content.Option<null | boolean> = new content.Option({
-        group: OptionGroups.electron,
+    electronDisableNtlmV2: (content.Option<null | boolean> = new content.Option({
         hidden: true,
         type: 'boolean',
         default: null,
         description: 'Disables NTLM v2 for posix platforms, no effect elsewhere.',
-    })
+    })),
     // @ts-ignore
-    electronDisableHttpCache: content.Option<null | boolean> = new content.Option({
-        group: OptionGroups.electron,
+    electronDisableHttpCache: (content.Option<null | boolean> = new content.Option({
         hidden: true,
         type: 'boolean',
         default: null,
         description: 'Disables the disk cache for HTTP requests.',
-    })
+    })),
     // @ts-ignore
-    electronDisableHttp2: content.Option<null | boolean> = new content.Option({
-        group: OptionGroups.electron,
+    electronDisableHttp2: (content.Option<null | boolean> = new content.Option({
         hidden: true,
         type: 'boolean',
         default: null,
         description: 'Disable HTTP/2 and SPDY/3.1 protocols.',
-    })
+    })),
     // @ts-ignore
-    electronDisableRendererBackgrounding: content.Option<null | boolean> = new content.Option({
-        group: OptionGroups.electron,
+    electronDisableRendererBackgrounding: (content.Option<null | boolean> = new content.Option({
         hidden: true,
         type: 'boolean',
         default: null,
         description:
             "Prevents Chromium from lowering the priority of invisible pages' renderer " +
             'processes.',
-    })
+    })),
     // @ts-ignore
-    electronDiskCacheSize: content.Option<null | number> = new content.Option({
-        group: OptionGroups.electron,
+    electronDiskCacheSize: (content.Option<null | number> = new content.Option({
         hidden: true,
         type: 'number',
         default: null,
         description: 'Forces the maximum disk space to be used by the disk cache, in bytes.',
-    })
+    })),
     // @ts-ignore
-    electronEnableLogging: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronEnableLogging: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         requiresArg: false, // FIXME: support this
         description:
             "Prints Chromium's logging to stderr (or a log file, if provided as argument).",
-    })
+    })),
     // @ts-ignore
-    electronForceFieldtrials: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronForceFieldtrials: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description:
             'Field trials to be forcefully enabled or disabled. For example, ' +
             "'WebRTC-Audio-Red-For-Opus/Enabled/'.",
-    })
+    })),
     // @ts-ignore
-    electronHostRules: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronHostRules: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description:
             'A comma-separated list of rules that control how hostnames are mapped. For ' +
             "example, 'MAP * 127.0.0.1'.",
-    })
+    })),
     // @ts-ignore
-    electronHostResolverRules: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronHostResolverRules: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description: "Like '--host-rules' but these rules only apply to the host resolver.",
-    })
+    })),
     // @ts-ignore
-    electronIgnoreCertificateErrors: content.Option<null | boolean> = new content.Option({
-        group: OptionGroups.electron,
+    electronIgnoreCertificateErrors: (content.Option<null | boolean> = new content.Option({
         hidden: true,
         type: 'boolean',
         default: null,
         description: 'Ignores certificate related errors.',
-    })
+    })),
     // @ts-ignore
-    electronIgnoreConnectionsLimit: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronIgnoreConnectionsLimit: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description: "Ignore the connections limit for domains list separated by ','.",
-    })
+    })),
     // @ts-ignore
-    electronJsFlags: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronJsFlags: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description:
             'Specifies the flags passed to the Node.js engine. For example, ' +
             '\'-electron-js-flags="--harmony_proxies --harmony_collections"\'.',
-    })
+    })),
     // @ts-ignore
-    electronLang: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronLang: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description: 'Set a custom locale.',
-    })
+    })),
     // @ts-ignore
-    electronLogFile: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronLogFile: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description:
             "If '-electron-enable-logging' is specified, logs will be written to the given path. " +
             'The parent directory must exist.',
-    })
+    })),
     // @ts-ignore
-    electronLogNetLog: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronLogNetLog: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description: 'Enables net log events to be saved and writes them to the provided path.',
-    })
+    })),
     // @ts-ignore
-    electronLogLevel: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronLogLevel: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description:
             "Sets the verbosity of logging when used together with '-electron-enable-logging'. " +
             "The argument should be one of Chrome's LogSeverities.",
-    })
+    })),
     // @ts-ignore
-    electronNoProxyServer: content.Option<null | boolean> = new content.Option({
-        group: OptionGroups.electron,
+    electronNoProxyServer: (content.Option<null | boolean> = new content.Option({
         hidden: true,
         type: 'boolean',
         default: null,
         description:
             "Don't use a proxy server and always make direct connections. Overrides " +
             'any other proxy server flags that are passed.',
-    })
+    })),
     // @ts-ignore
-    electronNoSandbox: content.Option<null | boolean> = new content.Option({
-        group: OptionGroups.electron,
+    electronNoSandbox: (content.Option<null | boolean> = new content.Option({
         hidden: true,
         type: 'boolean',
         default: null,
         description:
             'Disables the Chromium sandbox. Forces renderer process and Chromium helper ' +
             'processes to run un-sandboxed. Should only be used for testing.',
-    })
+    })),
     // @ts-ignore
-    electronProxyBypassList: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronProxyBypassList: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
@@ -606,18 +553,16 @@ export class Options extends content.Options {
             'semi-colon-separated list of hosts. This flag has an effect only if used in tandem ' +
             "with '--proxy-server'. For example, " +
             '\'--proxy-bypass-list "<local>;*.google.com;*foo.com;1.2.3.4:5678"\'.',
-    })
+    })),
     // @ts-ignore
-    electronProxyPacUrl: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronProxyPacUrl: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description: 'Uses the PAC script at the specified url.',
-    })
+    })),
     // @ts-ignore
-    electronProxyServer: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronProxyServer: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
@@ -628,18 +573,16 @@ export class Options extends content.Options {
             'and WebSocket requests. The proxy URL does not support username and password ' +
             'authentication per ' +
             '[Chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).',
-    })
+    })),
     // @ts-ignore
-    electronRemoteDebuggingPort: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronRemoteDebuggingPort: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
         description: 'Enables remote debugging over HTTP on the specified port.',
-    })
+    })),
     // @ts-ignore
-    electronV: content.Option<null | number> = new content.Option({
-        group: OptionGroups.electron,
+    electronV: (content.Option<null | number> = new content.Option({
         hidden: true,
         type: 'number',
         default: null,
@@ -647,10 +590,9 @@ export class Options extends content.Options {
             'Gives the default maximal active V-logging level; 0 is the default. Normally ' +
             'positive values are used for V-logging levels. This switch only works when ' +
             "'-electron-enable-logging' is also passed.",
-    })
+    })),
     // @ts-ignore
-    electronVmodule: content.Option<null | string> = new content.Option({
-        group: OptionGroups.electron,
+    electronVmodule: (content.Option<null | string> = new content.Option({
         hidden: true,
         type: 'string',
         default: null,
@@ -660,24 +602,22 @@ export class Options extends content.Options {
             "source files 'my_module.*' and 'foo*.*'. Any pattern containing a forward or " +
             'backward slash will be tested against the whole pathname and not only the module. ' +
             "This switch only works when '-electron-enable-logging' is also passed.",
-    })
+    })),
     // @ts-ignore
-    electronForce_high_performance_gpu: content.Option<null | boolean> = new content.Option({
-        group: OptionGroups.electron,
+    electronForce_high_performance_gpu: (content.Option<null | boolean> = new content.Option({
         hidden: true,
         type: 'boolean',
         default: null,
         description: 'Force using discrete GPU when there are multiple GPUs available.',
-    })
+    })),
     // @ts-ignore
-    electronForce_low_power_gpu: content.Option<null | boolean> = new content.Option({
-        group: OptionGroups.electron,
+    electronForce_low_power_gpu: (content.Option<null | boolean> = new content.Option({
         hidden: true,
         type: 'boolean',
         default: null,
         description: 'Force using integrated GPU when there are multiple GPUs available.',
-    })
-}
+    })),
+})
 
 // =============
 // === Utils ===
@@ -688,17 +628,13 @@ export class Options extends content.Options {
 // =====================
 
 let argv = hideBin(process.argv)
-const config = new Options()
 
-// FIXME:
-new content.Config(config)
-
-const yargOptions = Object.entries(config).reduce((opts: { [key: string]: any }, [key, param]) => {
-    const yargsParam = Object.assign({}, param)
+const yargOptions = options.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
+    const yargsParam = Object.assign({}, option)
     yargsParam.requiresArg = ['string', 'array'].includes(yargsParam.type)
     yargsParam.default = undefined
     const group = yargsParam.group ? yargsParam.group + '.' : ''
-    opts[group + camelToKebabCase(key)] = yargsParam
+    opts[group + camelToKebabCase(option.qualifiedName())] = yargsParam
     return opts
 }, {})
 
@@ -717,7 +653,7 @@ let optParser = yargs(argv)
 let args = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
     if (help) {
         printHelp({
-            config,
+            options,
             groupsOrdering: [],
             secondaryGroups: ['Electron Options'],
             fullHelp: args[FULL_HELP_OPTION],

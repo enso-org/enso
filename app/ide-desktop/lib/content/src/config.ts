@@ -65,12 +65,12 @@ export const options = config.options.merge(
                             'For example, on macOS, the window close buttons are integrated to the top app panel.',
                         primary: false,
                     }),
-                    // @ts-ignore
-                    isInCloud: new config.Option({
-                        default: false,
-                        description: 'Information if the app is running in the cloud.',
-                        primary: false,
-                    }),
+                    // // @ts-ignore
+                    // isInCloud: new config.Option({
+                    //     default: false,
+                    //     description: 'Information if the app is running in the cloud.',
+                    //     primary: false,
+                    // }),
                 },
             }),
 
