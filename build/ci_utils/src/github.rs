@@ -172,7 +172,7 @@ pub async fn latest_runner_url(octocrab: &Octocrab, os: OS) -> Result<Url> {
         other_arch => unimplemented!("Architecture `{}` is not yet supported!", other_arch),
     };
 
-    let platform_name = format!("{}-{}", os_name, arch_name);
+    let platform_name = format!("{os_name}-{arch_name}");
     find_asset_url_by_text(&latest_release, &platform_name).cloned()
 }
 

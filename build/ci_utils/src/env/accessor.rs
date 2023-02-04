@@ -119,7 +119,7 @@ impl TypedVariable for PathBufVariable {
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         value
             .to_str()
-            .with_context(|| format!("Path is not a valid string: {:?}.", value))
+            .with_context(|| format!("Path is not a valid string: {value:?}."))
             .map(ToString::to_string)
     }
 }

@@ -28,6 +28,7 @@ use serde::Serialize;
 pub enum Kind {
     Panic,
     Dataflow,
+    Warning,
 }
 
 /// Additional error information (beside the error value itself) for some erroneous node.
@@ -50,6 +51,11 @@ impl Error {
             kind:    Some(*self.kind),
             message: self.message.as_ref().as_ref()?.clone(),
         })
+    }
+
+    /// Whether we should display the error in a special error visualization attached to the node.
+    pub fn should_display(&self) -> bool {
+        !matches!(*self.kind, Kind::Warning)
     }
 }
 
@@ -116,10 +122,10 @@ impl Container {
         let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
         let (width, height) = SIZE;
-        let width = format!("{}.px", width);
-        let height = format!("{}.px", height);
+        let width = format!("{width}.px");
+        let height = format!("{height}.px");
         let z_index = Z_INDEX.to_string();
-        let border_radius = format!("{}.px", BORDER_RADIUS);
+        let border_radius = format!("{BORDER_RADIUS}.px");
         background_dom.dom().set_style_or_warn("width", width);
         background_dom.dom().set_style_or_warn("height", height);
         background_dom.dom().set_style_or_warn("z-index", z_index);

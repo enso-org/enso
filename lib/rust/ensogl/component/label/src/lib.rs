@@ -49,7 +49,7 @@ mod background {
             let radius     = &height / 2.0;
             let base_shape = Rect((&width,&height)).corners_radius(radius);
             let shape      = base_shape.fill(Var::<color::Rgba>::from(bg_color.clone()));
-            let alpha      = Var::<f32>::from(format!("({0}.w)",bg_color));
+            let alpha      = Var::<f32>::from(format!("({bg_color}.w)"));
             let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
 
             (shadow+shape).into()

@@ -13,6 +13,7 @@ use crate::display::shape::primitive::system::Shape;
 use crate::display::shape::primitive::system::ShapeInstance;
 use crate::display::symbol;
 use crate::display::world;
+use crate::display::Sprite;
 use crate::frp;
 
 
@@ -30,21 +31,26 @@ pub use crate::display::scene::PointerTarget;
 
 /// Generalization for any shape view. Allows storing different user-defined shapes in a single
 /// collection.
-pub trait AnyShapeView {
+pub trait AnyShapeView: display::Object {
     /// Get the shape's shader code in GLSL 330 format. The shader parameters will not be bound to
     /// any particular mesh and thus this code can be used for optimization purposes only.
-    fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code;
+    fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
+        self.sprite().symbol.shader().abstract_shader_code_in_glsl_310()
+    }
     /// The shape definition path (file:line:column).
     fn definition_path(&self) -> &'static str;
+
+    /// Get the sprite of given shape.
+    fn sprite(&self) -> Sprite;
 }
 
 impl<S: Shape> AnyShapeView for ShapeView<S> {
-    fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
-        self.sprite.borrow().symbol.shader().abstract_shader_code_in_glsl_310()
-    }
-
     fn definition_path(&self) -> &'static str {
         S::definition_path()
+    }
+
+    fn sprite(&self) -> Sprite {
+        self.sprite.borrow().clone_ref()
     }
 }
 

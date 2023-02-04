@@ -408,7 +408,7 @@ pub mod test {
             expect_call!(ls.push_to_execution_context(id,stack_item) => Ok(()));
         }
 
-        /// Generates a mock update for a random expression id.
+        /// Generates a mock update for a random expression ID.
         ///
         /// It will set the typename of the expression to mock typename.
         pub fn mock_expression_update() -> language_server::ExpressionUpdate {
@@ -419,7 +419,7 @@ pub mod test {
 
         /// Generates a mock update for a single expression.
         ///
-        /// The updated expression id will be random. The typename will be mock typename.
+        /// The updated expression ID will be random. The typename will be mock typename.
         pub fn mock_expression_updates(data: &MockData) -> ExpressionUpdates {
             ExpressionUpdates {
                 context_id: data.context_id,

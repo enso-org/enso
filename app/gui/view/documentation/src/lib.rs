@@ -87,7 +87,7 @@ pub use visualization::container::overlay;
 /// The caption is hidden if its height is less than this value.
 const MIN_CAPTION_HEIGHT: f32 = 1.0;
 /// Delay before updating the displayed documentation.
-const DISPLAY_DELAY_MS: i32 = 300;
+const DISPLAY_DELAY_MS: i32 = 0;
 
 // === Style ===
 

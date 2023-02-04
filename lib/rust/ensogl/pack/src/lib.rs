@@ -292,14 +292,17 @@ impl Paths {
 }
 
 pub async fn workspace_dir() -> Result<PathBuf> {
-    let output = Command::new(env!("CARGO"))
-        .arg("locate-project")
-        .arg("--workspace")
-        .arg("--message-format=plain")
+    use ide_ci::programs::cargo;
+    use ide_ci::programs::Cargo;
+    let output = Cargo
+        .cmd()?
+        .apply(&cargo::Command::LocateProject)
+        .apply(&cargo::LocateProjectOption::Workspace)
+        .apply(&cargo::LocateProjectOption::MessageFormat(cargo::MessageFormat::Plain))
         .output_ok()
         .await?
-        .stdout;
-    let cargo_path = Path::new(std::str::from_utf8(&output)?.trim());
+        .into_stdout_string()?;
+    let cargo_path = Path::new(output.trim());
     Ok(cargo_path.try_parent()?.to_owned())
 }
 
@@ -506,7 +509,7 @@ fn extract_main_shader_code(code: &str) -> Result<String> {
         .collect();
     let declarations = declarations.join("\n");
     let main_content = &code[main_start + main_start_str.len()..main_end];
-    Ok(format!("{}\n{}", declarations, main_content))
+    Ok(format!("{declarations}\n{main_content}"))
 }
 
 /// Wrapper over `wasm-pack build` command.

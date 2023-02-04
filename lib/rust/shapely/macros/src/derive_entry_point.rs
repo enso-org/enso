@@ -16,7 +16,7 @@ fn crate_name_to_base_name(name: &str) -> String {
 }
 
 fn base_name_to_fn_name(name: &str) -> String {
-    format!("entry_point_{}", name)
+    format!("entry_point_{name}")
 }
 
 pub fn derive(

@@ -955,7 +955,7 @@ pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> 
     let submodules_workaround_win = Step {
         // We can't add git-bash to PATH because this would break the Rust build.
         // Instead we manually spawn the bash with a given command from CMD shell.
-        run: Some(format!(r#""c:\Program Files\Git\bin\bash.exe" -c "{}""#, git_bash_command)),
+        run: Some(format!(r#""c:\Program Files\Git\bin\bash.exe" -c "{git_bash_command}""#)),
         shell: Some(Shell::Cmd),
         r#if: Some(is_windows_runner()),
         name: Some(
