@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
+from Standard.Table import Column_Selector
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Sum, Count, Group_By
 import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Such_Column, Invalid_Aggregate_Column
@@ -51,6 +52,13 @@ spec setup =
             t1.at "x" . to_vector . should_equal [4]
             t1.at "y" . to_vector . should_equal [3]
             t1.at "z" . to_vector . should_equal [2]
+
+            t2 = t.cross_tab [] 1
+            t2.row_count . should_equal 1
+            t2.column_count . should_equal 3
+            t2.at "x" . to_vector . should_equal [4]
+            t2.at "y" . to_vector . should_equal [3]
+            t2.at "z" . to_vector . should_equal [2]
 
         Test.specify "should allow a grouping" <|
             t1 = table2.cross_tab ["Group"] "Key"
