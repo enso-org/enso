@@ -47,3 +47,9 @@ type Expression_Error
 ## PRIVATE
 handle_java_error java_type enso_constructor =
     Panic.catch java_type handler=(cause-> Error.throw (enso_constructor cause.payload.getMessage))
+
+## PRIVATE
+   Converts an expression into a compatible column name.
+to_column_name : Text -> Text
+to_column_name expression =
+    expression.replace "[^A-Za-z_0-9]" "_" matcher=Regex_Matcher.Value

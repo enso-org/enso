@@ -839,23 +839,21 @@ type Table
        `filter`.
 
        Arguments:
-       - column: The column to use for filtering.
-         Can be a column name, index or the `Column` object itself.
+       - column: The column to use for filtering. Can be a column name, index or
+         the `Column` object itself.
        - filter: The filter to apply to the column. It can either be an instance
          of `Filter_Condition` or a predicate taking a cell value and returning
          a boolean value indicating whether the corresponding row should be kept
          or not.
-       - on_problems: is the behavior to take when the filter cannot be applied.
-         The following happens in warning mode:
-         If a column name cannot be found, a `No_Such_Column` warning is
-         raised and the original table is returned.
-         If a column index is invalid, an `Index_Out_Of_Bounds` warning is
-         raised and the original table is returned.
-         If the column is an invalid type for the filter, an
-         `Invalid_Value_Type` warning is raised and an empty table is returned.
-         In error mode, the first warning is returned as a dataflow error. In
-         ignore mode the same values are returned but without the warnings
-         attached.
+
+       ! Error Conditions
+
+         - If a column name cannot be found, a `No_Such_Column` dataflow error
+           is raised.
+         - If a column index is invalid, an `Index_Out_Of_Bounds` dataflow error
+           is raised.
+         - If the column is an invalid type for the filter, an
+           `Invalid_Value_Type` dataflow error is raised.
 
        > Example
          Get people older than 30.
@@ -879,14 +877,12 @@ type Table
     @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     @filter Filter_Condition.widget_for_filter_condition
     @on_problems (Single_Choice ["Report_Error", "Report_Warning", "Ignore"] display=Display.Expanded_Only)
-    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
-    filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table
+    filter self column filter=(Filter_Condition.Is_True) = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
-                _ : Filter_Condition ->
-                    on_problems.handle_errors fallback=self.with_no_rows <|
-                        mask (make_filter_column column filter)
+                _ : Filter_Condition -> mask (make_filter_column column filter)
                 _ : Function -> mask (column.map filter)
         _ ->
             table_at = self.at column
@@ -900,15 +896,21 @@ type Table
        Arguments:
        - expression: The expression to evaluate to filter the rows.
 
+       ! Error Conditions
+
+         - If a column name cannot be found, a `No_Such_Column` dataflow error
+           is raised.
+         - If the expression returns a column that does not have a boolean type,
+           an `Invalid_Value_Type` dataflow error is raised.
+
        > Example
          Select people celebrating a jubilee.
 
              people.filter_by_expression "[age] % 10 == 0"
-    filter_by_expression : Text -> Problem_Behavior -> Table
-    filter_by_expression self expression on_problems=Report_Warning =
-        column = self.compute expression on_problems=on_problems
-        if column.value_type != Value_Type.Boolean then Error.throw (Illegal_Argument.Error "Expression must evaluate to a boolean value.") else
-            self.filter column on_problems=on_problems
+    filter_by_expression : Text -> Table
+    filter_by_expression self expression =
+        column = self.compute expression
+        self.filter column Filter_Condition.Is_True
 
     ## PRIVATE
     with_no_rows self = self.take (First 0)
@@ -1003,17 +1005,13 @@ type Table
 
        Arguments:
        - expression: The expression to evaluate.
-       - on_problems: Specifies how to handle problems with expression
-         evaluation.
-    compute : Text -> Problem_Behavior -> Column
-    compute self expression on_problems=Report_Warning =
+    compute : Text -> Column
+    compute self expression =
         get_column name = self.at name
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
-        if new_column.is_error then new_column else
-            warnings = Warning.get_all new_column
-            rename = new_column.rename expression
-            on_problems.attach_problems_after (Warning.set rename []) warnings
+        new_name = Expression.to_column_name expression
+        new_column.rename new_name
 
     ## Returns the vector of columns contained in this table.
 
