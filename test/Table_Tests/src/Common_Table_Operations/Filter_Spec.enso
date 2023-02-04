@@ -25,12 +25,6 @@ spec setup =
     table_builder = setup.table_builder
     test_selection = setup.test_selection
 
-    check_empty expected_column_names table =
-        table.columns.map .name . should_equal expected_column_names
-        expected_column_names.each x->
-            table.at x . to_vector . should_equal []
-        table.row_count . should_equal 0
-
     Test.group prefix+"Table.filter" <|
         Test.specify "by integer comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
@@ -257,10 +251,9 @@ spec setup =
 
         Test.specify "should check types of boolean operations" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
-            tester = check_empty ["ix", "b"]
-            check_problem problem =
-                problem.should_be_a Invalid_Value_Type.Error
-                problem.expected . should_equal Value_Type.Boolean
+            check_problem result =
+                result.should_fail_with Invalid_Value_Type.Error
+                result.catch.expected . should_equal Value_Type.Boolean
 
             check_problem <| t.filter "ix" Filter_Condition.Is_True
             check_problem <| t.filter "ix" Filter_Condition.Is_False
@@ -296,4 +289,4 @@ spec setup =
             t.filter_by_expression "NOT(b,False)" . should_fail_with Expression_Error.Argument_Mismatch
             t.filter_by_expression "Starts_With(b)" . should_fail_with Expression_Error.Argument_Mismatch
             t.filter_by_expression "[missing]" . should_fail_with No_Such_Column.Error
-            t.filter_by_expression "[ix]" . should_fail_with Illegal_Argument.Error
+            t.filter_by_expression "[ix]" . should_fail_with Invalid_Value_Type.Error

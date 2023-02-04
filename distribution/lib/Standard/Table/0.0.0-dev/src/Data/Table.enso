@@ -886,7 +886,7 @@ type Table
                 _ : Function -> mask (column.map filter)
         _ ->
             table_at = self.at column
-            self.filter table_at filter on_problems
+            self.filter table_at filter
 
     ## ALIAS Filter Rows
 
@@ -959,20 +959,27 @@ type Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
-    ## ALIAS Add Column, Update Column
+    ## UNSTABLE
+       ALIAS Add Column, Update Column
 
-       Adds or updates the column in the table.
+       Sets the column value at the given name.
 
        Arguments:
        - column: The new column or expression to create column.
        - new_name: Optional new name for the column.
-       - set_mode: Specifies how to handle the new column.
-         If `Add_Or_Update`, the column will be added if not present, updated
-         if present. If `Add`, the column will be added if not present, error
-         if already present. If `Update`, the column will be updated if
-         present, error if missing.
+       - set_mode: Specifies the expected behaviour in regards to existing
+         column with the same name.
        - on_problems: Specifies how to handle problems with expression
          evaluation.
+
+       ! Error Conditions
+
+         - In the Database backend, if the column name is not valid, an
+           `Unsupported_Name` dataflow error is raised.
+         - If the column name is already present and `set_mode` is `Add`, a
+           `Existing_Column` dataflow error is raised.
+         - If the column name is not present and `set_mode` is `Update`, a
+           `Missing_Column` dataflow error is raised.
 
        > Example
          Create a table where the values of the total stock in the inventory is
@@ -985,10 +992,10 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
-    set : Text -> Column | Text -> Problem_Behavior -> Table ! Existing_Column | Missing_Column
-    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    set : Text -> Column | Text -> Table ! Existing_Column | Missing_Column
+    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update =
         resolved = case column of
-            _ : Text -> self.compute column on_problems
+            _ : Text -> self.compute column
             _ : Column -> column
         renamed = if new_name.is_nothing then resolved else resolved.rename new_name
         to_add = case set_mode of
