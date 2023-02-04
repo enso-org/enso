@@ -417,7 +417,7 @@ impl SuggestionDatabase {
 
     /// Search the database for an entry of method identified by given id.
     pub fn lookup_method(&self, id: MethodId) -> Option<Rc<Entry>> {
-        self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
+        self.entries.borrow().values().find(|entry| entry.method_id().contains(&id)).cloned()
     }
 
     /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
