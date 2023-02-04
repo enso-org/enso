@@ -101,17 +101,16 @@ class Main {
         })
 
         if (appInstance.initialized) {
-            if (appInstance.config.options.groups.runtimeMetrics.options.dataGathering.value) {
+            if (appInstance.config.options.dataCollection.value) {
                 // TODO: Add remote-logging here.
             }
-            if (!(await checkMinSupportedVersion(appInstance.config.options))) {
+            if (!(await checkMinSupportedVersion(appInstance.config))) {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    appInstance.config.options.groups.runtimeMetrics.options.authenticationEnabled
-                        .value &&
-                    appInstance.config.options.groups.startup.options.entry.value !=
-                        appInstance.config.options.groups.startup.options.entry.default
+                    appInstance.config.options.authentication.value &&
+                    appInstance.config.groups.startup.options.entry.value !=
+                        appInstance.config.groups.startup.options.entry.default
                 ) {
                     // TODO: authentication here
                     // appInstance.config.email.value = user.email
@@ -119,10 +118,9 @@ class Main {
                 } else {
                     appInstance.run()
                 }
-                if (appInstance.config.options.runtimeMetrics.email.value) {
-                    logger.log(
-                        `User identified as '${appInstance.config.options.groups.runtimeMetrics.options.email.value}'.`
-                    )
+                const email = appInstance.config.groups.authentication.options.email.value
+                if (email != null) {
+                    logger.log(`User identified as '${email}'.`)
                 }
             }
         } else {

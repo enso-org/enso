@@ -7,7 +7,14 @@ import * as dom from '../dom/dom'
 // =========================
 
 export class HelpScreenSection {
-    constructor(public name: string, public entries: HelpScreenEntry[]) {}
+    description?: string
+    name: string
+    entries: HelpScreenEntry[]
+    constructor(cfg: { name: string; description?: string; entries: HelpScreenEntry[] }) {
+        this.name = cfg.name
+        this.description = cfg.description
+        this.entries = cfg.entries
+    }
 }
 
 // =======================
@@ -67,22 +74,38 @@ export class HelpScreen {
 
         for (const section of cfg.sections) {
             const sectionDiv = document.createElement('div')
-            sectionDiv.style.marginTop = '10px'
+            sectionDiv.style.marginTop = '16px'
             sectionDiv.style.padding = `${sectionPaddingPx}px`
-            sectionDiv.style.border = '3px solid #2382cd'
+            sectionDiv.style.border = '3px solid #000000c9'
+            // sectionDiv.style.background = '#00000010'
             sectionDiv.style.borderRadius = sectionBackgroundRadius
+            sectionDiv.style.maxWidth = '800px'
 
             const sectionTitleDiv = document.createElement('div')
             const sectionTitle = document.createTextNode(section.name)
-            const table = document.createElement('table')
             sectionTitleDiv.style.fontWeight = 'bold'
             sectionTitleDiv.style.fontSize = '16px'
             sectionTitleDiv.style.marginBottom = '6px'
             sectionTitleDiv.style.marginLeft = '2px'
-            sectionTitleDiv.style.color = '#2382cd'
+            // sectionTitleDiv.style.color = '#2382cd'
+            sectionDiv.appendChild(sectionTitleDiv)
+            sectionTitleDiv.appendChild(sectionTitle)
+
+            if (section.description) {
+                const sectionDescriptionDiv = document.createElement('div')
+                const sectionDescription = document.createTextNode(section.description)
+                // sectionDescriptionDiv.style.fontWeight = 'bold'
+                // sectionDescriptionDiv.style.fontSize = '16px'
+                sectionDescriptionDiv.style.marginBottom = '16px'
+                sectionDescriptionDiv.style.marginLeft = '2px'
+                // sectionDescriptionDiv.style.color = '#2382cd'
+                sectionDiv.appendChild(sectionDescriptionDiv)
+                sectionDescriptionDiv.appendChild(sectionDescription)
+            }
+
+            const table = document.createElement('table')
             table.style.paddingTop = '20px'
             table.style.borderCollapse = 'collapse'
-            table.style.maxWidth = '800px'
 
             const tr = document.createElement('tr')
             for (const header of cfg.headers) {
@@ -94,8 +117,6 @@ export class HelpScreen {
             }
             table.appendChild(tr)
 
-            sectionDiv.appendChild(sectionTitleDiv)
-            sectionTitleDiv.appendChild(sectionTitle)
             sectionDiv.appendChild(table)
             div2.appendChild(sectionDiv)
 

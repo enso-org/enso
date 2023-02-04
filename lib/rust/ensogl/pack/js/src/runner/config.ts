@@ -38,6 +38,8 @@ export type OptionValue = string | boolean | number
 /** A valid configuration option type. */
 export type OptionType = 'string' | 'boolean' | 'number'
 
+export type AnyOption = Option<OptionValue>
+
 /** Configuration option. */
 export class Option<T> {
     name = 'unnamed'
@@ -122,13 +124,14 @@ export interface StringConfig {
 }
 
 /** Record containing options. */
-type OptionsRecord = Record<string, Option<OptionValue>>
+type OptionsRecord = Record<string, AnyOption>
 
 /** Record containing option groups. */
 type GroupsRecord = Record<string, AnyGroup>
 
 /** Options group. The same as `Group` but with elided generic parameters. */
 interface AnyGroup {
+    description: string
     options: OptionsRecord
     groups: GroupsRecord
     setPath(path: string[]): void
@@ -136,14 +139,17 @@ interface AnyGroup {
     load(config: StringConfig, stack?: string[]): string[]
     stringify(): StringConfig
     prettyPrint(indent: number): string
+    optionsRecursive(): AnyOption[]
 }
 
 /** Options group. Allows defining nested options. The class is generic in order to allow TypeScript
  * to infer the types of its children and thus allow accessing them in a type-safe way. */
 export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
+    description: string
     options: Options = {} as Options
     groups: Groups = {} as Groups
-    constructor(cfg?: { options?: Options; groups?: Groups }) {
+    constructor(cfg?: { description?: string; options?: Options; groups?: Groups }) {
+        this.description = cfg?.description ?? 'No description.'
         const options = cfg?.options
         if (options != null) {
             for (const [name, option] of Object.entries(options)) {
@@ -158,7 +164,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
         }
     }
 
-    addOption(name: string, option: Option<OptionValue>) {
+    addOption(name: string, option: AnyOption) {
         const existingOption = this.options[name]
         if (existingOption != null) {
             logger.error(`Duplicate config option found '${existingOption.qualifiedName()}'.`)
@@ -214,6 +220,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
                 }
                 result.options[otherOptionName] = otherOption
             }
+            result.description = this.description
             return result as this & Other
         }
     }
@@ -293,6 +300,17 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
             .map(([name, _, value]) => ' '.repeat(2 * indent) + name + ': ' + value)
             .join('\n')
     }
+
+    optionsRecursive(): AnyOption[] {
+        const options: AnyOption[] = []
+        for (const option of Object.values(this.options)) {
+            options.push(option)
+        }
+        for (const group of Object.values(this.groups)) {
+            options.push(...group.optionsRecursive())
+        }
+        return options
+    }
 }
 
 // ===============
@@ -309,21 +327,24 @@ export const options = new Group({
         debug: new Option({
             default: false,
             description:
-                'Controls whether the application should be run in the debug mode. In this mode all ' +
-                'logs are printed to the console. Otherwise, the logs are hidden unless explicitly ' +
-                'shown by calling `showLogs`. Moreover, EnsoGL extensions are loaded in the debug ' +
-                'mode which may cause additional logs to be printed.',
+                'Controls whether the application should be run in the debug mode. In this mode ' +
+                'all logs are printed to the console. Otherwise, the logs are hidden unless ' +
+                'explicitly shown by calling `showLogs`. Moreover, EnsoGL extensions are loaded  ' +
+                'in the debug mode which may cause additional logs to be printed.',
         }),
     },
     groups: {
         loader: new Group({
+            description:
+                'Options of the application loader responsible for downloading the application ' +
+                'data at startup. The loader downloads the WASM and JavaScript sources, compiles ' +
+                'the WASM file, and displays a visual progress bar.',
             options: {
                 spinner: new Option({
                     default: true,
                     description:
                         'Controls whether the visual loader should be visible on the screen when ' +
-                        'downloading and compiling WASM sources. By default, the loader is used only if ' +
-                        `the \`entry\` is set to ${DEFAULT_ENTRY_POINT}.`,
+                        'downloading and compiling WASM sources.',
                     primary: false,
                 }),
                 wasmUrl: new Option({
@@ -345,38 +366,46 @@ export const options = new Group({
                     default: 1.0,
                     description:
                         'The (time needed for WASM download) / (total time including WASM ' +
-                        'download and WASM app initialization). In case of small WASM apps, this can be set ' +
-                        'to 1.0. In case of bigger WASM apps, it is desired to show the progress bar growing ' +
-                        'up to e.g. 70% and leaving the last 30% for WASM app init.',
+                        'download and WASM app initialization). In case of small WASM apps, this ' +
+                        'can be set to 1.0. In case of bigger WASM apps, it is desired to show ' +
+                        'the progress bar growing up to e.g. 70% and leaving the last 30% for ' +
+                        'WASM app init.',
                     primary: false,
                 }),
             },
         }),
 
         startup: new Group({
+            description:
+                'Options controlling the behavior of the application at startup. For example, ' +
+                'they allow choosing the application entry point to be run.',
             options: {
                 entry: new Option({
                     default: DEFAULT_ENTRY_POINT,
                     description:
-                        'The application entry point. Use `entry=_` to list available entry points.',
+                        'The application entry point. Most of the entry points are debug ' +
+                        'utilities allowing testing the look and feel of graphical interface ' +
+                        'components. Use `_` to list available entry points.',
                 }),
                 maxBeforeMainTimeMs: new Option({
                     default: 300,
                     description:
-                        'The maximum time in milliseconds a before main entry point is allowed to run. After ' +
-                        'this time, an error will be printed, but the execution will continue.',
+                        'The maximum time in milliseconds before main entry points are allowed ' +
+                        'to run. After this time, an error will be printed, but the execution ' +
+                        'will continue.',
                     primary: false,
                 }),
             },
         }),
 
         debug: new Group({
+            description: 'Options allowing checking for diagnosing application errors.',
             options: {
                 enableSpector: new Option({
                     default: false,
                     description:
-                        'Enables SpectorJS. This is a temporary flag to test Spector. It will be removed ' +
-                        'after all Spector integration issues are resolved. See: ' +
+                        'Enables SpectorJS. This is a temporary flag to test Spector. It will be ' +
+                        'removed after all Spector integration issues are resolved. See: ' +
                         'https://github.com/BabylonJS/Spector.js/issues/252.',
                     primary: false,
                 }),

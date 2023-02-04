@@ -440,10 +440,11 @@ export class App {
                     description = rustDocs
                 }
             }
-            const href = '?entry=' + entryPoint.strippedName
+            const href = '?startup.entry=' + entryPoint.strippedName
             return new debug.HelpScreenEntry(entryPoint.strippedName, [description], href)
         })
-        const sections = [new debug.HelpScreenSection('Entry points', entries)]
+        const name = 'Entry points'
+        const sections = [new debug.HelpScreenSection({ name, entries })]
 
         const headers = ['Name', 'Description']
         new debug.HelpScreen().display({ title, headers, sections })
@@ -456,19 +457,56 @@ export class App {
             const optionLabel = unknownOptions.length > 1 ? 'options' : 'option'
             msg = `Unknown config ${optionLabel}: ${unknownOptions.map(t => `'${t}'`).join(', ')}. `
         }
-        const title = msg + 'Available options:'
-        // FIXME: handle more generic cases
-        const sections = Array.from(Object.entries(this.config.groups)).map(([group, options]) => {
-            const entries = Array.from(Object.entries(options.options)).map(([key, option]) => {
-                const name = group === key ? group : group + '.' + key
-                return new debug.HelpScreenEntry(name, [option.description, String(option.default)])
+        const sectionsData: [string, string, debug.HelpScreenEntry[]][] = Object.entries(
+            this.config.groups
+        ).map(([groupName, group]) => {
+            const groupOptions = group.optionsRecursive()
+            const entriesData: [string, string, string][] = groupOptions.map(opt => [
+                opt.qualifiedName(),
+                opt.description,
+                String(opt.default),
+            ])
+            entriesData.sort()
+            const entries = entriesData.map(([name, description, def]) => {
+                return new debug.HelpScreenEntry(name, [description, def])
             })
-            const label =
-                group.charAt(0).toUpperCase() +
-                group.slice(1).replace(/([A-Z])/g, ' $1') +
+            const option = this.config.options[groupName]
+            if (option != null) {
+                const entry = new debug.HelpScreenEntry(groupName, [
+                    option.description,
+                    String(option.default),
+                ])
+                entries.unshift(entry)
+            }
+            const name =
+                groupName.charAt(0).toUpperCase() +
+                groupName.slice(1).replace(/([A-Z])/g, ' $1') +
                 ' Options'
-            return new debug.HelpScreenSection(label, entries)
+            const description = group.description
+            return [name, description, entries]
         })
+        sectionsData.sort()
+        const sections = sectionsData.map(
+            ([name, description, entries]) =>
+                new debug.HelpScreenSection({ name, description, entries })
+        )
+
+        const rootEntries = Object.entries(this.config.options).flatMap(([optionName, option]) => {
+            if (optionName in this.config.groups) {
+                return []
+            }
+            const entry = new debug.HelpScreenEntry(optionName, [
+                option.description,
+                String(option.default),
+            ])
+            return [entry]
+        })
+        if (rootEntries.length > 0) {
+            const name = 'Other Options'
+            sections.push(new debug.HelpScreenSection({ name, entries: rootEntries }))
+        }
+
+        const title = msg + 'Available options:'
         const headers = ['Name', 'Description', 'Default']
         new debug.HelpScreen().display({ title, headers, sections })
     }

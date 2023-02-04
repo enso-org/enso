@@ -39,14 +39,14 @@ export const options = config.options.merge(
             authentication: new config.Option({
                 default: true,
                 description:
-                    'Controls whether user authentication is enabled. This option \
-                is ignored if the app is run in the cloud.',
+                    'Controls whether user authentication is enabled. This option is ignored if ' +
+                    'the app is run in the cloud.',
             }),
 
             // @ts-ignore
             dataCollection: new config.Option({
                 default: true,
-                description: 'Controls whether anonymous data collection should be enabled.',
+                description: 'Controls whether anonymous usage data should be collected.',
             }),
         },
         groups: {
@@ -75,6 +75,7 @@ export const options = config.options.merge(
             }),
 
             engine: new config.Group({
+                description: 'Options controlling the Enso Engine, the data processing backend.',
                 options: {
                     // @ts-ignore
                     projectManagerUrl: new config.Option({
@@ -143,6 +144,8 @@ export const options = config.options.merge(
             }),
 
             featurePreview: new config.Group({
+                description:
+                    'Options allowing enabling experimental features that are not stable yet.',
                 options: {
                     // @ts-ignore
                     newComponentBrowser: new config.Option({
@@ -154,6 +157,8 @@ export const options = config.options.merge(
             }),
 
             authentication: new config.Group({
+                description:
+                    'Options allowing controlling the application authentication properties.',
                 options: {
                     // @ts-ignore
                     email: new config.Option({
@@ -164,21 +169,23 @@ export const options = config.options.merge(
             }),
 
             profile: new config.Group({
+                description: 'Options allowing diagnosing the application performance problems.',
                 options: {
                     // @ts-ignore
                     testWorkflow: new config.Option({
                         default: '',
                         description:
-                            'When profiling the application (e.g. with the `./run profile` command), this ' +
-                            'argument chooses what is profiled.',
+                            'When profiling the application (e.g. with the `./run profile` ' +
+                            'command), this argument chooses what is profiled.',
                     }),
                     // @ts-ignore
                     emitUserTimingMeasurements: new config.Option({
                         default: false,
                         description:
-                            'When enabled, profiling measurements will be continually submitted to the User ' +
-                            'Timing Web API so that they can be viewed with standard developer tools. Note that ' +
-                            'this mode has a significant performance impact.',
+                            'When enabled, profiling measurements will be continually submitted ' +
+                            'to the User Timing Web API so that they can be viewed with standard ' +
+                            'developer tools. Note that this mode has a significant performance ' +
+                            'impact.',
                     }),
                 },
             }),
