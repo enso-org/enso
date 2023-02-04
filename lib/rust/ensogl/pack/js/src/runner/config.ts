@@ -32,12 +32,13 @@ function parseBoolean(value: any): boolean | null {
 // === Option ===
 // ==============
 
-/** A valid parameter value. */
+/** A valid configuration option value. */
 export type OptionValue = string | boolean | number
 
+/** A valid configuration option type. */
 export type OptionType = 'string' | 'boolean' | 'number'
 
-/** Configuration parameter. */
+/** Configuration option. */
 export class Option<T> {
     name = 'unnamed'
     path: string[] = []
@@ -116,31 +117,70 @@ export class Option<T> {
 // === Options ===
 // ==============
 
-type OptionsRecord = Record<string, Option<OptionValue>>
-type GroupsRecord = Record<string, GroupLike>
+export interface StringConfig {
+    [key: string]: string | StringConfig
+}
 
-interface GroupLike {
+/** Record containing options. */
+type OptionsRecord = Record<string, Option<OptionValue>>
+
+/** Record containing option groups. */
+type GroupsRecord = Record<string, AnyGroup>
+
+/** Options group. The same as `Group` but with elided generic parameters. */
+interface AnyGroup {
     options: OptionsRecord
     groups: GroupsRecord
     setPath(path: string[]): void
-    merge<Other extends GroupLike>(other: Other): this & Other
-    load(config: unknown): string[]
+    merge<Other extends AnyGroup>(other: Other): this & Other
+    load(config: StringConfig, stack?: string[]): string[]
+    stringify(): StringConfig
+    prettyPrint(indent: number): string
 }
 
+/** Options group. Allows defining nested options. The class is generic in order to allow TypeScript
+ * to infer the types of its children and thus allow accessing them in a type-safe way. */
 export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
-    options: Options
-    groups: Groups
+    options: Options = {} as Options
+    groups: Groups = {} as Groups
     constructor(cfg?: { options?: Options; groups?: Groups }) {
-        this.options = cfg?.options ?? ({} as Options)
-        this.groups = cfg?.groups ?? ({} as Groups)
-        for (const [name, option] of Object.entries(this.options)) {
-            option.name = name
+        const options = cfg?.options
+        if (options != null) {
+            for (const [name, option] of Object.entries(options)) {
+                this.addOption(name, option)
+            }
         }
-        for (const [name, group] of Object.entries(this.groups)) {
-            group.setPath([name])
+        const groups = cfg?.groups
+        if (groups != null) {
+            for (const [name, group] of Object.entries(groups)) {
+                this.addGroup(name, group)
+            }
         }
     }
 
+    addOption(name: string, option: Option<OptionValue>) {
+        const existingOption = this.options[name]
+        if (existingOption != null) {
+            logger.error(`Duplicate config option found '${existingOption.qualifiedName()}'.`)
+        }
+        const options = this.options as OptionsRecord
+        options[name] = option
+        option.name = name
+    }
+
+    addGroup(name: string, group: AnyGroup) {
+        const existingGroup = this.groups[name]
+        if (existingGroup != null) {
+            existingGroup.merge(group)
+        } else {
+            const groups = this.groups as GroupsRecord
+            groups[name] = group
+        }
+        group.setPath([name])
+    }
+
+    /** Set the path of this group. If this group was placed in another group, the path will contain
+     * all the parent group names. */
     setPath(path: string[]) {
         for (const option of Object.values(this.options)) {
             option.path = path
@@ -150,65 +190,135 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
         }
     }
 
-    merge<Other extends GroupLike>(other: Other): this & Other {
-        const result: GroupLike = new Group()
-
-        Object.assign(result.groups, this.groups)
-        for (const [otherGroupName, otherGroup] of Object.entries(other.groups)) {
-            const group = result.groups[otherGroupName]
-            if (group == null) {
-                result.groups[otherGroupName] = otherGroup
-            } else {
-                result.groups[otherGroupName] = group.merge(otherGroup)
-            }
-        }
-        Object.assign(result.options, this.options)
-        for (const [otherOptionName, otherOption] of Object.entries(other.options)) {
-            const option = result.options[otherOptionName]
-            if (option != null) {
-                // TODO warning
-            }
-            result.options[otherOptionName] = otherOption
-        }
-        return result as this & Other
-    }
-
-    load(config: unknown): string[] {
-        let unrecognized: string[] = []
-        if (typeof config === 'object' && config != null) {
-            for (const [key, value] of Object.entries(config)) {
-                if (typeof value === 'string') {
-                    const option = this.options[key]
-                    if (option == null) {
-                        unrecognized.push(key)
-                    } else {
-                        option.load(value)
-                    }
-                } else if (typeof value === 'object' && value != null) {
-                    const group = this.groups[key]
-                    if (group == null) {
-                        unrecognized.push(key)
-                    } else {
-                        unrecognized = unrecognized.concat(group.load(value))
-                    }
+    /** Merge this group definition with another group definition. Returns a deeply merged group. In
+     * case the argument will override some options, errors will be logged. */
+    merge<Other extends AnyGroup>(other?: Other | null): this & Other {
+        if (other == null) {
+            return this as this & Other
+        } else {
+            const result: AnyGroup = new Group()
+            Object.assign(result.groups, this.groups)
+            for (const [otherGroupName, otherGroup] of Object.entries(other.groups)) {
+                const group = result.groups[otherGroupName]
+                if (group == null) {
+                    result.groups[otherGroupName] = otherGroup
                 } else {
-                    unrecognized.push(key)
+                    result.groups[otherGroupName] = group.merge(otherGroup)
                 }
             }
-        } else {
-            console.error('TODO')
+            Object.assign(result.options, this.options)
+            for (const [otherOptionName, otherOption] of Object.entries(other.options)) {
+                const option = result.options[otherOptionName]
+                if (option != null) {
+                    logger.error(`Duplicate config option found '${option.qualifiedName()}'.`)
+                }
+                result.options[otherOptionName] = otherOption
+            }
+            return result as this & Other
+        }
+    }
+
+    load(config: StringConfig, stack: string[] = []): string[] {
+        let unrecognized: string[] = []
+        const addUnrecognized = (name: string) => {
+            unrecognized.push(stack.concat([name]).join('.'))
+        }
+        for (const [key, value] of Object.entries(config)) {
+            if (typeof value === 'string') {
+                const option = this.options[key]
+                if (option == null) {
+                    addUnrecognized(key)
+                } else {
+                    option.load(value)
+                }
+            } else {
+                const group = this.groups[key]
+                if (group == null) {
+                    addUnrecognized(key)
+                } else {
+                    const subStack = stack.concat([key])
+                    unrecognized = unrecognized.concat(group.load(value, subStack))
+                }
+            }
         }
         return unrecognized
     }
+
+    loadAll(configs: (StringConfig | null | undefined)[]): string[] {
+        let unrecognized: string[] = []
+        for (const config of configs) {
+            if (config != null) {
+                unrecognized = unrecognized.concat(this.load(config))
+            }
+        }
+        return unrecognized
+    }
+
+    stringify(): StringConfig {
+        const config: StringConfig = {}
+        const groupsEntries = Object.entries(this.groups)
+        if (groupsEntries.length > 0) {
+            config.groups = {}
+            for (const [name, group] of groupsEntries) {
+                config.groups[name] = group.stringify()
+            }
+        }
+        const optionsEntries = Object.entries(this.options)
+        if (optionsEntries.length > 0) {
+            config.options = {}
+            for (const [name, option] of optionsEntries) {
+                config.options[name] = option.value.toString()
+            }
+        }
+        return config
+    }
+
+    prettyPrint(indent = 0): string {
+        // The number is used for sorting in ordering to put options before groups.
+        const entries: [string, number, string][] = []
+        const optionsEntries = Object.entries(this.options)
+        if (optionsEntries.length > 0) {
+            for (const [name, option] of optionsEntries) {
+                entries.push([name, 0, option.value.toString()])
+            }
+        }
+        const groupsEntries = Object.entries(this.groups)
+        if (groupsEntries.length > 0) {
+            for (const [name, group] of groupsEntries) {
+                entries.push([name, 1, '\n' + group.prettyPrint(indent + 1)])
+            }
+        }
+        entries.sort()
+        return entries
+            .map(([name, _, value]) => ' '.repeat(2 * indent) + name + ': ' + value)
+            .join('\n')
+    }
 }
 
-/** Application default configuration. Users of this library can extend it with their own
- * options. */
+// ===============
+// === Options ===
+// ===============
+
+/** The configuration of the EnsoGL application. The options can be overriden by the user. The
+ * implementation automatically casts the values to the correct types. For example, if an option
+ * override for type boolean was provided as `'true'`, it will be parsed automatically. Moreover,
+ * it is possible to extend the provided option list with custom options. See the `extend` method
+ * to learn more. */
 export const options = new Group({
+    options: {
+        debug: new Option({
+            default: false,
+            description:
+                'Controls whether the application should be run in the debug mode. In this mode all ' +
+                'logs are printed to the console. Otherwise, the logs are hidden unless explicitly ' +
+                'shown by calling `showLogs`. Moreover, EnsoGL extensions are loaded in the debug ' +
+                'mode which may cause additional logs to be printed.',
+        }),
+    },
     groups: {
         loader: new Group({
             options: {
-                enabled: new Option({
+                spinner: new Option({
                     default: true,
                     description:
                         'Controls whether the visual loader should be visible on the screen when ' +
@@ -216,12 +326,12 @@ export const options = new Group({
                         `the \`entry\` is set to ${DEFAULT_ENTRY_POINT}.`,
                     primary: false,
                 }),
-                pkgWasmUrl: new Option({
+                wasmUrl: new Option({
                     default: 'pkg.wasm',
                     description: 'The URL of the WASM pkg file generated by ensogl-pack.',
                     primary: false,
                 }),
-                pkgJsUrl: new Option({
+                jsUrl: new Option({
                     default: 'pkg.js',
                     description: 'The URL of the JS pkg file generated by ensogl-pack.',
                     primary: false,
@@ -231,20 +341,13 @@ export const options = new Group({
                     description: 'The URL of pre-compiled the shaders directory.',
                     primary: false,
                 }),
-                loaderDownloadToInitRatio: new Option({
+                downloadToInitRatio: new Option({
                     default: 1.0,
                     description:
                         'The (time needed for WASM download) / (total time including WASM ' +
                         'download and WASM app initialization). In case of small WASM apps, this can be set ' +
                         'to 1.0. In case of bigger WASM apps, it is desired to show the progress bar growing ' +
                         'up to e.g. 70% and leaving the last 30% for WASM app init.',
-                    primary: false,
-                }),
-                maxBeforeMainTimeMs: new Option({
-                    default: 300,
-                    description:
-                        'The maximum time in milliseconds a before main entry point is allowed to run. After ' +
-                        'this time, an error will be printed, but the execution will continue.',
                     primary: false,
                 }),
             },
@@ -257,23 +360,18 @@ export const options = new Group({
                     description:
                         'The application entry point. Use `entry=_` to list available entry points.',
                 }),
-                theme: new Option({
-                    default: 'default',
-                    description: 'The EnsoGL theme to be used.',
+                maxBeforeMainTimeMs: new Option({
+                    default: 300,
+                    description:
+                        'The maximum time in milliseconds a before main entry point is allowed to run. After ' +
+                        'this time, an error will be printed, but the execution will continue.',
+                    primary: false,
                 }),
             },
         }),
 
         debug: new Group({
             options: {
-                debug: new Option({
-                    default: false,
-                    description:
-                        'Controls whether the application should be run in the debug mode. In this mode all ' +
-                        'logs are printed to the console. Otherwise, the logs are hidden unless explicitly ' +
-                        'shown by calling `showLogs`. Moreover, EnsoGL extensions are loaded in the debug ' +
-                        'mode which may cause additional logs to be printed.',
-                }),
                 enableSpector: new Option({
                     default: false,
                     description:
@@ -287,87 +385,4 @@ export const options = new Group({
     },
 })
 
-export type Options = typeof options & GroupLike
-
-// ==============
-// === Config ===
-// ==============
-
-/** The configuration of the EnsoGL application. The options can be overriden by the user. The
- * implementation automatically casts the values to the correct types. For example, if an option
- * override for type boolean was provided as `'true'`, it will be parsed automatically. Moreover,
- * it is possible to extend the provided option list with custom options. See the `extend` method
- * to learn more. */
-export class Config {
-    options: Options
-
-    constructor(inputOptions?: Options) {
-        if (inputOptions != null) {
-            this.options = options.merge(inputOptions)
-        } else {
-            this.options = options
-        }
-    }
-
-    /** Resolve the configuration from the provided record list.
-     * @returns list of unrecognized parameters. */
-    resolve(overrides: (Record<string, Record<string, any>> | undefined)[]): string[] {
-        const allOverrides: Record<string, Record<string, any>> = {}
-        for (const override of overrides) {
-            if (override != null) {
-                for (const [group, options] of Object.entries(override)) {
-                    const overridesGroup = allOverrides[group] || {}
-                    allOverrides[group] = Object.assign(overridesGroup, options)
-                }
-            }
-        }
-        const unrecognizedParams = this.resolveFromObject(allOverrides)
-        this.finalize()
-        return unrecognizedParams
-    }
-
-    /** Resolve the configuration from the provided record.
-     * @returns list of unrecognized parameters. */
-
-    resolveFromObject(config: Record<string, unknown>): string[] {
-        return this.options.load(config)
-    }
-
-    /** Finalize the configuration. Set some default options based on the provided values. */
-    finalize() {
-        if (
-            !this.options.groups.loader.options.enabled.setByUser &&
-            this.options.groups.startup.options.entry.value !== DEFAULT_ENTRY_POINT
-        ) {
-            this.options.groups.loader.options.enabled.value = false
-        }
-    }
-
-    printValueUpdateError(key: string, selfVal: any, otherVal: any) {
-        console.error(
-            `The provided value for Config.${key} is invalid. Expected boolean, got '${otherVal}'. \
-            Using the default value '${selfVal}' instead.`
-        )
-    }
-
-    strigifiedKeyValueMap(): Record<string, Record<string, any>> {
-        // const config: Record<string, Record<string, any>> = {}
-        // for (const [group, options] of Object.entries(this.options)) {
-        //     const configGroup: Record<string, any> = {}
-        //     config[group] = configGroup
-        //     for (const [key, option] of Object.entries(options)) {
-        //         if (option.value != null) {
-        //             configGroup[key] = option.value.toString()
-        //         } else {
-        //             configGroup[key] = option.value
-        //         }
-        //     }
-        // }
-        // return config
-        return {}
-    }
-
-    print() {
-        logger.log(`Resolved config:`, this.strigifiedKeyValueMap())
-    }
-}
+export type Options = typeof options & AnyGroup

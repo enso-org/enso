@@ -83,8 +83,8 @@ class Main {
         // FIXME: use inputConfig
         const config = {
             loader: {
-                pkgWasmUrl: 'assets/pkg-opt.wasm',
-                pkgJsUrl: 'assets/pkg.js',
+                wasmUrl: 'assets/pkg-opt.wasm',
+                jsUrl: 'assets/pkg.js',
                 shadersUrl: 'assets/shaders',
             },
         }

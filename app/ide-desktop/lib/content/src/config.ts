@@ -34,6 +34,21 @@ export class Version {
 
 export const options = config.options.merge(
     new config.Group({
+        options: {
+            // @ts-ignore
+            authentication: new config.Option({
+                default: true,
+                description:
+                    'Controls whether user authentication is enabled. This option \
+                is ignored if the app is run in the cloud.',
+            }),
+
+            // @ts-ignore
+            dataCollection: new config.Option({
+                default: true,
+                description: 'Controls whether anonymous data collection should be enabled.',
+            }),
+        },
         groups: {
             startup: new config.Group({
                 options: {
@@ -62,35 +77,35 @@ export const options = config.options.merge(
             engine: new config.Group({
                 options: {
                     // @ts-ignore
-                    projectManager: new config.Option({
+                    projectManagerUrl: new config.Option({
                         default: '',
                         description: 'An address of the Project Manager service.',
                     }),
                     // @ts-ignore
-                    languageServerRpc: new config.Option({
+                    rpcUrl: new config.Option({
                         default: '',
                         description:
                             'An address of the Language Server RPC endpoint. This argument should be provided ' +
-                            'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
+                            'together with `dataUrl` ,`namespace`, and `project` options. They make ' +
                             'Enso connect directly to the already spawned Language Server of some project.',
                     }),
                     // @ts-ignore
-                    languageServerData: new config.Option({
+                    dataUrl: new config.Option({
                         default: '',
                         description:
                             'An address of the Language Server Data endpoint. This argument should be provided ' +
-                            'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
+                            'together with `dataUrl` ,`namespace`, and `project` options. They make ' +
                             'Enso connect directly to the already spawned Language Server of some project.',
                     }),
                     // @ts-ignore
                     namespace: new config.Option({
-                        default: '',
+                        default: 'local',
                         description:
-                            'Informs Enso about namespace of the opened project. May be used when connecting to ' +
-                            'existing Language Server process. Defaults to "local".',
+                            'Namespace of the opened project. May be used when connecting to ' +
+                            'existing Language Server process.',
                     }),
                     // @ts-ignore
-                    applicationConfigUrl: new config.Option({
+                    configUrl: new config.Option({
                         default:
                             'https://raw.githubusercontent.com/enso-org/ide/develop/config.json',
                         description:
@@ -99,12 +114,12 @@ export const options = config.options.merge(
                     // @ts-ignore
                     skipMinVersionCheck: new config.Option({
                         default: Version.isDev(),
+                        defaultDescription: 'true in local builds, false otherwise.',
                         description:
-                            'Controls whether the minimum engine version check should be performed. It is set to ' +
-                            '`true` in local builds.',
+                            'Controls whether the minimum engine version check should be performed.',
                     }),
                     // @ts-ignore
-                    preferredEngineVersion: new config.Option({
+                    preferredVersion: new config.Option({
                         default: Version.ide,
                         description: `The preferred engine version.`,
                     }),
@@ -113,26 +128,24 @@ export const options = config.options.merge(
 
             style: new config.Group({
                 options: {
-                    // @ts-ignore
-                    frame: new config.Option({
-                        default: false,
-                        description:
-                            'Controls whether a window frame should be visible. Works in native app only.',
-                    }),
-                    // @ts-ignore
-                    darkTheme: new config.Option({
-                        default: false,
-                        description:
-                            'Controls whether the dark theme should be used. Please note that the dark theme is ' +
-                            'not fully implemented yet.',
-                    }),
+                    // // @ts-ignore
+                    // frame: new config.Option({
+                    //     default: false,
+                    //     description:
+                    //         'Controls whether a window frame should be visible. Works in native app only.',
+                    // }),
                     // @ts-ignore
                     nodeLabels: new config.Option({
                         default: true,
                         description: `Controls whether node labels should be visible.`,
                     }),
+                },
+            }),
+
+            featurePreview: new config.Group({
+                options: {
                     // @ts-ignore
-                    enableNewComponentBrowser: new config.Option({
+                    newComponentBrowser: new config.Option({
                         default: true,
                         description:
                             'Controls whether the new component browser should be enabled.',
@@ -140,18 +153,8 @@ export const options = config.options.merge(
                 },
             }),
 
-            runtimeMetrics: new config.Group({
+            authentication: new config.Group({
                 options: {
-                    // @ts-ignore
-                    dataGathering: new config.Option({
-                        default: true,
-                        description: 'Controls whether anonymous data gathering should be enabled.',
-                    }),
-                    // @ts-ignore
-                    authenticationEnabled: new config.Option({
-                        default: true,
-                        description: 'Controls whether user authentication is enabled.',
-                    }),
                     // @ts-ignore
                     email: new config.Option({
                         default: '',
@@ -160,7 +163,7 @@ export const options = config.options.merge(
                 },
             }),
 
-            debug: new config.Group({
+            profile: new config.Group({
                 options: {
                     // @ts-ignore
                     testWorkflow: new config.Option({
@@ -168,15 +171,6 @@ export const options = config.options.merge(
                         description:
                             'When profiling the application (e.g. with the `./run profile` command), this ' +
                             'argument chooses what is profiled.',
-                    }),
-                    // @ts-ignore
-                    debug: new config.Option({
-                        default: Version.isDev(),
-                        description:
-                            'Controls whether the application should be run in the debug mode. In this mode all ' +
-                            'logs are printed to the console. Otherwise, the logs are hidden unless explicitly ' +
-                            'shown by calling `showLogs`. Moreover, additional logs from libraries are printed ' +
-                            'in this mode. The debug mode is set to `true` by default in local builds.',
                     }),
                     // @ts-ignore
                     emitUserTimingMeasurements: new config.Option({

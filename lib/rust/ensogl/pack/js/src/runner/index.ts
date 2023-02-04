@@ -194,7 +194,7 @@ class Scheduler {
 /** The main application class. */
 export class App {
     packageInfo: debug.PackageInfo
-    config: config.Config
+    config: config.Options
     wasm: any = null
     loader: wasm.Loader | null = null
     shaders: Shaders<string> | null = null
@@ -206,18 +206,21 @@ export class App {
     constructor(opts?: {
         configOptions?: config.Options
         packageInfo?: Record<string, string>
-        config?: Record<string, any>
+        config?: config.StringConfig
     }) {
-        console.log('opts', opts)
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
-        this.config = new config.Config(opts?.configOptions)
-        console.log('!!', host.urlParams())
-        const unrecognizedParams = this.config.resolve([opts?.config, host.urlParams()])
-        if (unrecognizedParams.length > 0) {
-            this.config.print()
-            // FIXME:
-            console.log('Unrecognized parameters:', unrecognizedParams)
-            this.showConfigOptions(unrecognizedParams)
+        this.config = config.options
+        const unrecognized = log.Task.runCollapsed('Resolving application configuration.', () => {
+            const inputConfig = opts?.configOptions
+            if (inputConfig != null) {
+                this.config = inputConfig
+            }
+            logger.log(this.config.prettyPrint())
+            return this.config.loadAll([opts?.config, host.urlParams()])
+        })
+        if (unrecognized.length > 0) {
+            logger.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
+            this.showConfigOptions(unrecognized)
         } else {
             this.initBrowser()
             this.initialized = true
@@ -248,7 +251,7 @@ export class App {
         if (host.browser) {
             this.styleRoot()
             dom.disableContextMenu()
-            if (this.config.options.groups.debug.options.debug.value) {
+            if (this.config.options.debug.value) {
                 logger.log('Application is run in debug mode. Logs will not be hidden.')
             } else {
                 this.printScamWarning()
@@ -272,7 +275,6 @@ export class App {
         if (!this.initialized) {
             logger.log("App wasn't initialized properly. Skipping run.")
         } else {
-            this.config.print()
             await this.loadAndInitWasm()
             await this.runEntryPoints()
         }
@@ -294,7 +296,7 @@ export class App {
                  return module.exports`
             )()
             const out: unknown = await snippetsFn.init(wasm)
-            if (this.config.options.groups.debug.options.enableSpector.value) {
+            if (this.config.groups.debug.options.enableSpector.value) {
                 /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
                 /* eslint @typescript-eslint/no-unsafe-call: "off" */
                 if (host.browser) {
@@ -314,7 +316,7 @@ export class App {
     async loadWasm() {
         const loader = new wasm.Loader(this.config)
 
-        const shadersUrl = this.config.options.groups.loader.options.shadersUrl.value
+        const shadersUrl = this.config.groups.loader.options.shadersUrl.value
         const shadersNames = await log.Task.asyncRunCollapsed(
             'Downloading shaders list.',
             async () => {
@@ -325,8 +327,8 @@ export class App {
         )
 
         const files = new Files(
-            this.config.options.groups.loader.options.pkgJsUrl.value,
-            this.config.options.groups.loader.options.pkgWasmUrl.value
+            this.config.groups.loader.options.jsUrl.value,
+            this.config.groups.loader.options.wasmUrl.value
         )
         for (const mangledName of shadersNames) {
             const unmangledName = name.unmangle(mangledName)
@@ -392,7 +394,7 @@ export class App {
     /** Check whether the time needed to run before main entry points is reasonable. Print a warning
      * message otherwise. */
     checkBeforeMainEntryPointsTime(time: number) {
-        if (time > this.config.options.groups.loader.options.maxBeforeMainTimeMs.value) {
+        if (time > this.config.groups.startup.options.maxBeforeMainTimeMs.value) {
             logger.error(
                 `Entry points took ${time} milliseconds to run. This is too long. ` +
                     'Before main entry points should be used for fast initialization only.'
@@ -402,7 +404,7 @@ export class App {
 
     /** Run both before main entry points and main entry point. */
     async runEntryPoints() {
-        const entryPointName = this.config.options.groups.startup.options.entry.value
+        const entryPointName = this.config.groups.startup.options.entry.value
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             await this.runBeforeMainEntryPoints()
@@ -456,22 +458,17 @@ export class App {
         }
         const title = msg + 'Available options:'
         // FIXME: handle more generic cases
-        const sections = Array.from(Object.entries(this.config.options.groups)).map(
-            ([group, options]) => {
-                const entries = Array.from(Object.entries(options.options)).map(([key, option]) => {
-                    const name = group === key ? group : group + '.' + key
-                    return new debug.HelpScreenEntry(name, [
-                        option.description,
-                        String(option.default),
-                    ])
-                })
-                const label =
-                    group.charAt(0).toUpperCase() +
-                    group.slice(1).replace(/([A-Z])/g, ' $1') +
-                    ' Options'
-                return new debug.HelpScreenSection(label, entries)
-            }
-        )
+        const sections = Array.from(Object.entries(this.config.groups)).map(([group, options]) => {
+            const entries = Array.from(Object.entries(options.options)).map(([key, option]) => {
+                const name = group === key ? group : group + '.' + key
+                return new debug.HelpScreenEntry(name, [option.description, String(option.default)])
+            })
+            const label =
+                group.charAt(0).toUpperCase() +
+                group.slice(1).replace(/([A-Z])/g, ' $1') +
+                ' Options'
+            return new debug.HelpScreenSection(label, entries)
+        })
         const headers = ['Name', 'Description', 'Default']
         new debug.HelpScreen().display({ title, headers, sections })
     }
