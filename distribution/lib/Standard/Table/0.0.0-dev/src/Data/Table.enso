@@ -530,21 +530,46 @@ type Table
        - columns: Vector of `Aggregate_Column` specifying the aggregated table.
          Expressions can be used within the aggregate column to perform more
          complicated calculations.
+       - error_on_missing_columns: Specifies if a missing columns in aggregates
+         should result in an error regardless of the `on_problems` settings.
+         Defaults to `False`, meaning that problematic aggregate will not be
+         included in the result and the problem reported according to the
+         `on_problems` setting.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column name is not in the input table, a `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+       ! Error Conditions
+
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
-         - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
-         - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
-         - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation`.
-         - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
-         - If there are more than 10 issues with a single column, an `Additional_Warnings`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           reported according to the `on_problems` setting, unless
+           `error_on_missing_columns` is set to `True`, in which case it is
+           raised as an error. Problems resolving `Group_By` columns are
+           reported as dataflow errors regardless of these settings, as a
+           missing grouping will completely change semantics of the query.
+         - If a column selector is given as a `Text` and it does not match any
+           columns in the input table nor is it a valid expression, an
+           `Invalid_Aggregate_Column` error is raised according to the
+           `on_problems` settings (unless `error_on_missing_columns` is set to
+           `True` in which case it will always be an error). Problems resolving
+           `Group_By` columns are reported as dataflow errors regardless of
+           these settings, as a missing grouping will completely change
+           semantics of the query.
+         - The following additional problems may be reported according to the
+           `on_problems` settings:
+           - If there are invalid column names in the output table,
+             a `Invalid_Output_Column_Names`.
+           - If there are duplicate column names in the output table,
+             a `Duplicate_Output_Column_Names`.
+           - If grouping on or computing the `Mode` on a floating point number,
+             a `Floating_Point_Grouping`.
+           - If an aggregation fails, an `Invalid_Aggregation`.
+           - If when concatenating values there is an quoted delimited,
+             an `Unquoted_Delimiter`
+           - If there are more than 10 issues with a single column,
+             an `Additional_Warnings`.
 
        > Example
          Group by the Key column, count the rows

@@ -1188,6 +1188,8 @@ spec setup =
                 Problems.test_problem_handling action problems tester
 
     Test.group prefix+"Table.aggregate+Expressions" <|
+        ## TODO we probably should check all kinds of aggregate columns
+           to verify that  all of them correctly support expressions.
         Test.specify "should allow expressions in aggregates" <|
             table = table_builder [["Index", [1, 1, 2, 2]], ["Value", [1, 2, 3, 4]]]
             t1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[Value]*[Value]"]
