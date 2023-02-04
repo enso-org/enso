@@ -69,9 +69,9 @@ final class ApiEventsMonitor(path: Path, clock: Clock) extends EventsMonitor {
     val requestIdEntry = requestId.fold("")(_.toString)
     val payloadEntry   = payload.getSimpleName
     val timeEntry      = clock.instant()
-    val msg =
-      s"$timeEntry,$direction,$requestIdEntry,$payloadEntry${System.lineSeparator()}"
-    val record = new LogRecord(Level.INFO, msg)
+    val msg            = s"$direction,$requestIdEntry,$payloadEntry"
+    val record         = new LogRecord(Level.INFO, msg)
+    record.setInstant(timeEntry)
     fmt.format(record).getBytes(StandardCharsets.UTF_8)
   }
 }
