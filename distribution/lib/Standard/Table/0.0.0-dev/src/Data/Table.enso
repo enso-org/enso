@@ -551,14 +551,14 @@ type Table
            missing grouping will completely change semantics of the query.
          - If a column selector is given as a `Text` and it does not match any
            columns in the input table nor is it a valid expression, an
-           `Invalid_Aggregate_Column` error is raised according to the
+           `Invalid_Aggregate_Column` problem is raised according to the
            `on_problems` settings (unless `error_on_missing_columns` is set to
            `True` in which case it will always be an error). Problems resolving
            `Group_By` columns are reported as dataflow errors regardless of
            these settings, as a missing grouping will completely change
            semantics of the query.
-         - The following additional problems may be reported according to the
-           `on_problems` settings:
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
            - If there are invalid column names in the output table,
              a `Invalid_Output_Column_Names`.
            - If there are duplicate column names in the output table,
@@ -1497,16 +1497,25 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in the input is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If grouping on, using as the column name, or computing the `Mode` on
-           a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation`.
-         - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
-         - If there are more than 10 issues with a single column, an `Additional_Warnings`.
-    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table
+       ! Error Conditions
+
+         - If a column in `group_by` or `name_field` is not in the input table,
+           a `Missing_Input_Columns` is raised as a dataflow error.
+         - If a column index in `group_by`, `name_field` or `values` is out of
+           range, a `Column_Indexes_Out_Of_Range` is raised as a dataflow error.
+         - If a column selector in `values` given as a `Text` and it does not
+           match any columns in the input table nor is it a valid expression, an
+           `Invalid_Aggregate_Column` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If grouping on, using as the column name, or computing the `Mode` on
+             a floating point number, a `Floating_Point_Grouping`.
+           - If an aggregation fails, an `Invalid_Aggregation`.
+           - If when concatenating values there is an quoted delimited,
+             an `Unquoted_Delimiter`
+           - If there are more than 10 issues with a single column,
+             an `Additional_Warnings`.
+    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Grouping | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
@@ -1523,8 +1532,8 @@ type Table
         is_group_by c = case c of
             Aggregate_Column.Group_By _ _ -> True
             _ -> False
-        if resolved_values.any is_group_by then problem_builder.report_other_warning (Illegal_Argument.Error "Cannot use group_by for a cross_tab value.")
-        validated_values = resolved_values.filter c->((c!=Nothing) && (is_group_by c).not)
+        validated_values = if resolved_values.any is_group_by then Error.throw (Illegal_Argument.Error "Cannot use group_by for a cross_tab value.") else
+            resolved_values.filter c->(c!=Nothing)
 
         problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column

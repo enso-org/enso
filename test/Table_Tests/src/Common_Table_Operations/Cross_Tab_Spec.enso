@@ -5,7 +5,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Sum, Count, Gr
 import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Such_Column, Invalid_Aggregate_Column
 
-from Standard.Test import Test, Problems
+from Standard.Test import Test
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -86,10 +86,18 @@ spec setup =
             err1.should_fail_with Missing_Input_Columns
             err1.catch.criteria . should_equal ["Name"]
 
+            err2 = table.cross_tab [] 42
+            err2.should_fail_with Column_Indexes_Out_Of_Range
+            err2.catch.indexes . should_equal [42]
+
         Test.specify "should fail if group-by contains missing columns" <|
             err1 = table2.cross_tab ["Group", "Nonexistent Group", "OTHER"] "Key"
             err1.should_fail_with Missing_Input_Columns
             err1.catch.criteria . should_equal ["Nonexistent Group", "OTHER"]
+
+            err2 = table2.cross_tab (Column_Selector.By_Index [0, 42]) "Key"
+            err2.should_fail_with Column_Indexes_Out_Of_Range
+            err2.catch.indexes . should_equal [42]
 
         Test.specify "should fail if aggregate values contain missing columns" <|
             err1 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum "OTHER"]
@@ -112,8 +120,5 @@ spec setup =
             err1.catch.expression_error . should_be_a Expression_Error.Syntax_Error
 
         Test.specify "should not allow Group_By for values" <|
-            action1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=_
-            tester1 table =
-                table.column_names.should_equal ["x", "y", "z"]
-            problems1 = [Illegal_Argument.Error "Cannot use group_by for a cross_tab value."]
-            Problems.test_problem_handling action1 problems1 tester1
+            err1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=Problem_Behavior.Ignore
+            err1.should_fail_with Illegal_Argument.Error
