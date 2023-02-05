@@ -370,7 +370,6 @@ impl Model {
         let code = &expression.viz_code;
 
         expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
-            let is_parensed = node.is_parensed();
             let skip_opr = if SKIP_OPERATIONS {
                 node.is_operation() && !is_header
             } else {
@@ -382,8 +381,7 @@ impl Model {
                 || node.is_chained()
                 || (node.is_root() && !node.children.is_empty())
                 || skip_opr
-                || node.is_token()
-                || builder.parent_parensed;
+                || node.is_token();
 
             if let Some(id) = node.ast_id {
                 if DEBUG {
@@ -560,7 +558,7 @@ impl Model {
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
             let new_shift = if !not_a_port { 0 } else { builder.shift + local_char_offset };
-            builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
+            builder.nested(new_parent, new_parent_frp, new_shift)
         });
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
         *self.widgets_map.borrow_mut() = widgets_map;
@@ -1099,8 +1097,6 @@ struct PortLayerBuilder {
     parent_frp:      Option<port::FrpEndpoints>,
     /// Parent port display object.
     parent:          display::object::Instance,
-    /// Information whether the parent port was a parensed expression.
-    parent_parensed: bool,
     /// The number of chars the expression should be shifted. For example, consider
     /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
     /// shift should be applied when considering its children.
@@ -1115,16 +1111,15 @@ impl PortLayerBuilder {
     fn new(
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
-        parent_parensed: bool,
         shift: usize,
         depth: usize,
     ) -> Self {
         let parent = parent.display_object().clone_ref();
-        Self { parent_frp, parent, parent_parensed, shift, depth }
+        Self { parent_frp, parent, shift, depth }
     }
 
     fn empty(parent: impl display::Object) -> Self {
-        Self::new(parent, default(), default(), default(), default())
+        Self::new(parent, default(), default(), default())
     }
 
     /// Create a nested builder with increased depth and updated `parent_frp`.
@@ -1133,12 +1128,11 @@ impl PortLayerBuilder {
         &self,
         parent: display::object::Instance,
         new_parent_frp: Option<port::FrpEndpoints>,
-        parent_parensed: bool,
         shift: usize,
     ) -> Self {
         let depth = self.depth + 1;
         let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
-        Self::new(parent, parent_frp, parent_parensed, shift, depth)
+        Self::new(parent, parent_frp, shift, depth)
     }
 }
 

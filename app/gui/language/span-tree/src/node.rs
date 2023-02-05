@@ -86,10 +86,6 @@ impl<T: Payload> Node<T> {
 
 #[allow(missing_docs)]
 impl<T: Payload> Node<T> {
-    /// Check whether the node is a parensed expression.
-    pub fn is_parensed(&self) -> bool {
-        self.kind.is_parensed()
-    }
     pub fn is_root(&self) -> bool {
         self.kind.is_root()
     }

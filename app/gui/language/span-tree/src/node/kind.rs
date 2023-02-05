@@ -59,9 +59,6 @@ impl Kind {
 
 #[allow(missing_docs)]
 impl Kind {
-    pub fn is_parensed(&self) -> bool {
-        matches!(self, Self::Group { .. })
-    }
     pub fn is_root(&self) -> bool {
         matches!(self, Self::Root { .. })
     }
