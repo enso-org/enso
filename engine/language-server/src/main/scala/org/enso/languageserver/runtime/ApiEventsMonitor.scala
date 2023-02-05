@@ -7,16 +7,28 @@ import org.enso.polyglot.runtime.Runtime.Api
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, StandardOpenOption}
 import java.time.Clock
+import java.util.logging.XMLFormatter
 
 import scala.util.Try
+import java.util.logging.LogRecord
+import java.util.logging.Level
 
 /** Gather messages between the language server and the runtime and write them
-  * to the provided file in CSV format.
+  * to the provided file in XML format.
   *
   * @param path the path where to write the events
   * @param clock the system clock
   */
 final class ApiEventsMonitor(path: Path, clock: Clock) extends EventsMonitor {
+  private lazy val fmt = {
+    Files.write(
+      path,
+      "<?xml version='1.0'?>\n<records>".getBytes(StandardCharsets.UTF_8),
+      StandardOpenOption.APPEND,
+      StandardOpenOption.SYNC
+    )
+    new XMLFormatter()
+  }
 
   import ApiEventsMonitor.Direction
 
@@ -57,8 +69,10 @@ final class ApiEventsMonitor(path: Path, clock: Clock) extends EventsMonitor {
     val requestIdEntry = requestId.fold("")(_.toString)
     val payloadEntry   = payload.getSimpleName
     val timeEntry      = clock.instant()
-    s"$timeEntry,$direction,$requestIdEntry,$payloadEntry${System.lineSeparator()}"
-      .getBytes(StandardCharsets.UTF_8)
+    val msg            = s"$direction,$requestIdEntry,$payloadEntry"
+    val record         = new LogRecord(Level.INFO, msg)
+    record.setInstant(timeEntry)
+    fmt.format(record).getBytes(StandardCharsets.UTF_8)
   }
 }
 object ApiEventsMonitor {

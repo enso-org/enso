@@ -242,7 +242,7 @@ impl Frp {
 // === BreadcrumbInfo ===
 // ======================
 
-/// Breadcrumb information such as name and expression id.
+/// Breadcrumb information such as name and expression ID.
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct BreadcrumbInfo {
@@ -266,7 +266,7 @@ pub struct BreadcrumbModel {
     label:             text::Text,
     animations:        Animations,
     style:             StyleWatch,
-    /// Breadcrumb information such as name and expression id.
+    /// Breadcrumb information such as name and expression ID.
     pub info:          Rc<BreadcrumbInfo>,
     relative_position: Rc<Cell<Option<RelativePosition>>>,
     outputs:           FrpOutputs,

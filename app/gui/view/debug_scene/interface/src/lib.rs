@@ -402,13 +402,14 @@ pub fn expression_mock_trim() -> Expression {
         ..default()
     };
     let param0 = span_tree::ArgumentInfo {
-        name:       Some("where".to_owned()),
-        tp:         Some("Location".to_owned()),
+        name: Some("where".to_owned()),
+        tp: Some("Location".to_owned()),
         tag_values: vec![
             "Location.Start".to_owned(),
             "Location.End".to_owned(),
             "Location.Both".to_owned(),
         ],
+        ..default()
     };
     let param1 = span_tree::ArgumentInfo {
         name: Some("what".to_owned()),

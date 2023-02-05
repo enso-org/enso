@@ -19,6 +19,7 @@ use enso_text::unit::*;
 use uuid::Uuid;
 
 
+
 // ==============
 // === Export ===
 // ==============
@@ -1139,6 +1140,24 @@ impl Ast {
     pub fn infix_var(larg: impl Str, opr: impl Str, rarg: impl Str) -> Ast {
         let infix = Infix::from_vars(larg, opr, rarg);
         Ast::from(infix)
+    }
+
+    /// Creates a raw text literal that evaluates to the given string.
+    pub fn raw_text_literal(value: impl Str) -> Ast {
+        let value: &str = value.as_ref();
+        let mut escaped = String::with_capacity(value.len());
+        for char in value.chars() {
+            match char {
+                '\'' => escaped.push_str("\'"),
+                char => escaped.push(char),
+            }
+        }
+        let span_info = vec![
+            RawSpanTree::Token("'".into()),
+            RawSpanTree::Token(escaped),
+            RawSpanTree::Token("'".into()),
+        ];
+        Self::from(Tree { span_info, type_info: TreeType::Expression })
     }
 }
 
