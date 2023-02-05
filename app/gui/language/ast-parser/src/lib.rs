@@ -8,10 +8,13 @@
 #![allow(clippy::let_and_return)]
 
 use enso_prelude::*;
+use enso_profiler as profiler;
+use enso_profiler::prelude::*;
 
 use ast::prelude::FallibleResult;
 
 mod translation;
+
 
 
 // ==============
@@ -37,6 +40,7 @@ impl Parser {
         Self { parser }
     }
 
+    #[profile(Task)]
     pub fn parse(&self, program: String, ids: IdMap) -> ast::Ast {
         let tree = self.parser.run(&program);
         let ids = ids
@@ -44,9 +48,10 @@ impl Parser {
             .into_iter()
             .map(|(range, id)| ((range.start.value, range.end.value), id))
             .collect();
-        translation::to_legacy_ast(&tree, ids)
+        translation::tree_to_ast(&tree, ids)
     }
 
+    #[profile(Task)]
     pub fn parse_with_metadata<M: api::Metadata>(
         &self,
         program: String,
@@ -56,7 +61,7 @@ impl Parser {
         // TODO: Log errors.
         let metadata = meta.and_then(|meta| serde_json::from_str(meta).ok()).unwrap_or_default();
         let ids = Default::default(); // TODO?
-        let ast = ast::known::Module::try_from(translation::to_legacy_ast(&tree, ids)).unwrap();
+        let ast = ast::known::Module::try_from(translation::tree_to_ast(&tree, ids)).unwrap();
         api::ParsedSourceFile { ast, metadata }
     }
 }

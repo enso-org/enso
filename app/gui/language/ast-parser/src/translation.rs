@@ -3,28 +3,26 @@ use enso_parser::syntax;
 use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
-use enso_prelude::warn;
-use enso_prelude::ImString;
+use enso_prelude::*;
+use enso_profiler as profiler;
+use enso_profiler::prelude::*;
 use std::collections::BTreeMap;
+
 
 
 // =======================
 // === Translation API ===
 // =======================
 
-fn to_legacy_ast_module(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Result<Ast, ()> {
+#[profile(Detail)]
+pub fn tree_to_ast(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Ast {
+    use ast::HasRepr;
     let mut context = Translate { ids, ..Default::default() };
     match &*tree.variant {
-        tree::Variant::BodyBlock(block) => Ok(context.translate_module(block)),
-        _ => Err(()),
+        tree::Variant::BodyBlock(block) => context.translate_module(block),
+        _ => panic!(),
     }
-}
-
-pub fn to_legacy_ast(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Ast {
-    use ast::HasRepr;
-    let ast = to_legacy_ast_module(tree, ids).unwrap();
     debug_assert_eq!(ast.repr(), tree.code());
-    ast
 }
 
 
