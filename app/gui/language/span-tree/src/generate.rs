@@ -586,7 +586,7 @@ mod test {
             let (span, id) = id_map_entry;
             let node = tree.root_ref().find_by_span(&span);
             assert!(node.is_some(), "Node with span {span} not found");
-            assert_eq!(node.unwrap().node.ast_id, Some(id));
+            assert_eq!(node.unwrap().node.ast_id, Some(id), "Span: {span}");
         }
 
         // Check the other fields:

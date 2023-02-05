@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 // =======================
 
 fn to_legacy_ast_module(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Result<Ast, ()> {
-    let mut context = Translate { offset: Default::default(), ids };
+    let mut context = Translate { ids, ..Default::default() };
     match &*tree.variant {
         tree::Variant::BodyBlock(block) => Ok(context.translate_module(block)),
         _ => Err(()),
@@ -30,31 +30,36 @@ pub fn to_legacy_ast(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> 
 
 // === Implementation ===
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Translate {
-    offset: usize,
-    ids:    BTreeMap<(usize, usize), uuid::Uuid>,
+    offset:      usize,
+    ids:         BTreeMap<(usize, usize), uuid::Uuid>,
+    space_after: BTreeMap<usize, usize>,
 }
 
 impl Translate {
     fn visit_space(&mut self, span: &enso_parser::source::Span) -> usize {
-        self.offset += span.left_offset.code.repr.len();
+        let space = span.left_offset.code.repr.len();
+        self.space_after.insert(self.offset, space);
+        self.offset += space;
         span.left_offset.visible.width_in_spaces
     }
 
     fn visit_token<T>(&mut self, token: &syntax::Token<T>) -> WithInitialSpace<String> {
-        self.offset += token.left_offset.code.repr.len();
-        self.offset += token.code.repr.len();
         let space = token.left_offset.visible.width_in_spaces;
         let body = token.code.to_string();
+        self.space_after.insert(self.offset, space);
+        self.offset += token.left_offset.code.repr.len();
+        self.offset += token.code.repr.len();
         WithInitialSpace { space, body }
     }
 
     fn visit_token_ref<T>(&mut self, token: syntax::token::Ref<T>) -> WithInitialSpace<String> {
-        self.offset += token.left_offset.code.repr.len();
-        self.offset += token.code.repr.len();
         let space = token.left_offset.visible.width_in_spaces;
         let body = token.code.to_string();
+        self.space_after.insert(self.offset, space);
+        self.offset += token.left_offset.code.repr.len();
+        self.offset += token.code.repr.len();
         WithInitialSpace { space, body }
     }
 }
@@ -70,6 +75,7 @@ impl Translate {
 
     fn finish_ast<S: Into<ast::Shape<Ast>>>(&mut self, shape: S, builder: AstBuilder) -> Ast {
         let AstBuilder { start } = builder;
+        let start = start + self.space_after.get(&start).copied().unwrap_or_default();
         let end = self.offset;
         let id = self.ids.get(&(start, end)).cloned();
         Ast::new(shape, id)
