@@ -339,10 +339,12 @@ impl Translate {
     }
 
     fn translate_opr(&mut self, opr: &tree::OperatorOrError) -> WithInitialSpace<Ast> {
-        match opr {
-            Ok(name) => self.visit_token(name).map(|name| Ast::from(ast::Opr { name })),
+        let opr_builder = self.start_ast();
+        let opr = match opr {
+            Ok(name) => self.visit_token(name).map(|name| ast::Shape::from(ast::Opr { name })),
             Err(_names) => todo!(),
-        }
+        };
+        opr.map(|opr| self.finish_ast(opr, opr_builder))
     }
 
     fn translate_opr_app(
@@ -352,8 +354,9 @@ impl Translate {
         rhs: Option<&Tree>,
     ) -> ast::Shape<Ast> {
         let larg = lhs.map(|a| self.translate(a)).map(|e| e.expect_unspaced());
-        let (loff, opr) = self.translate_opr(opr).split();
+        let opr = self.translate_opr(opr);
         let rarg = rhs.map(|a| self.translate(a)).map(|e| e.split());
+        let (loff, opr) = opr.split();
         match (larg, rarg) {
             (Some(larg), Some((roff, rarg))) =>
                 ast::Shape::from(ast::Infix { larg, loff, opr, roff, rarg }),
