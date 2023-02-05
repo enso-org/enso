@@ -274,11 +274,40 @@ impl Translate {
     }
 
     fn translate_doc(&mut self, documentation: &tree::DocComment) -> Ast {
-        // TODO: advance `offset`
-        let token = ast::RawSpanTree::Token(documentation.code());
+        let open = self.visit_token(&documentation.open).expect_unspaced();
+        let mut span_info = vec![ast::RawSpanTree::Token(open)];
+        for element in &documentation.elements {
+            match element {
+                tree::TextElement::Section { text } => {
+                    let (space, token) = self.visit_token(text).split();
+                    span_info.extend(ast::RawSpanTree::space(space));
+                    span_info.push(ast::RawSpanTree::Token(token));
+                }
+                tree::TextElement::Escape { token } => {
+                    let (space, token) = self.visit_token(token).split();
+                    span_info.extend(ast::RawSpanTree::space(space));
+                    span_info.push(ast::RawSpanTree::Token(token));
+                }
+                tree::TextElement::Newline { newline } => {
+                    let (space, token) = self.visit_token(newline).split();
+                    span_info.extend(ast::RawSpanTree::space(space));
+                    span_info.push(ast::RawSpanTree::Token(token));
+                }
+                tree::TextElement::Splice { .. } => {
+                    let error = "Lexer must not emit splices in documentation comments.";
+                    debug_assert!(false, "{error}");
+                    error!("{error}");
+                    continue
+                },
+            }
+        }
+        for newline in &documentation.newlines {
+            let (space, token) = self.visit_token(newline).split();
+            span_info.extend(ast::RawSpanTree::space(space));
+            span_info.push(ast::RawSpanTree::Token(token));
+        }
         let rendered = documentation.content().into();
         let type_info = ast::TreeType::Documentation { rendered };
-        let span_info = vec![token];
         Ast::from(ast::Tree { span_info, type_info })
     }
 

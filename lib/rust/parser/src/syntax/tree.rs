@@ -499,34 +499,8 @@ pub struct DocComment<'s> {
 }
 
 impl<'s> DocComment<'s> {
-    /// Return the source code for the comment, excluding any initial indent, and the one mandatory
-    /// newline. If blank lines occur between the comment and the item, they will be represented.
-    pub fn code(&self) -> String {
-        let mut buf = String::new();
-        macro_rules! emit_token {
-            ($buf:expr, $token:expr) => {{
-                $buf.push_str(&$token.left_offset.code.repr);
-                $buf.push_str(&$token.code.repr);
-            }};
-        }
-        buf.push_str(&self.open.code.repr);
-        for element in &self.elements {
-            match element {
-                TextElement::Section { text } => emit_token!(buf, text),
-                TextElement::Escape { token } => emit_token!(buf, token),
-                TextElement::Newline { newline } => emit_token!(buf, newline),
-                // Unreachable.
-                TextElement::Splice { .. } => continue,
-            }
-        }
-        for token in self.newlines.iter().skip(1) {
-            emit_token!(buf, token);
-        }
-        buf
-    }
-
     /// Return the contents of the comment, with leading whitespace, the `##` token, and following
-    /// empty lines removed.
+    /// empty lines removed; newlines will be normalized.
     pub fn content(&self) -> String {
         let mut buf = String::new();
         macro_rules! emit_token {
@@ -539,7 +513,10 @@ impl<'s> DocComment<'s> {
             match element {
                 TextElement::Section { text } => buf.push_str(&text.code.repr),
                 TextElement::Escape { token } => emit_token!(buf, token),
-                TextElement::Newline { newline } => emit_token!(buf, newline),
+                TextElement::Newline { newline } => {
+                    buf.push_str(&newline.left_offset.code.repr);
+                    buf.push_str("\n");
+                }
                 // Unreachable.
                 TextElement::Splice { .. } => continue,
             }
