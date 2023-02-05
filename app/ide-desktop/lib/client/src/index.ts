@@ -34,12 +34,7 @@ let windowSize = {
 }
 
 /** The list of hosts that the app can access. They are required for user authentication to work. */
-const trustedHosts = [
-    'enso-org.firebaseapp.com',
-    'accounts.google.com',
-    'accounts.youtube.com',
-    'github.com',
-]
+const trustedHosts = ['accounts.google.com', 'accounts.youtube.com', 'github.com']
 
 // =============
 // === Paths ===
@@ -89,61 +84,61 @@ Usage: enso [options] [--] [backend args]`
  *    https://github.com/yargs/yargs/issues/251
  */
 function printHelp(cfg: {
-    config: typeof content.options
+    config: typeof options
     groupsOrdering: string[]
     secondaryGroups: string[]
     fullHelp: boolean
 }) {
     console.log(usage)
-    const terminalWidth = yargs.terminalWidth()
-    const indentSize = 2
-    const optionPrefix = '-'
-    const spacing = 2
-    const groups: { [key: string]: any[] } = {}
-    for (const groupName of cfg.groupsOrdering) {
-        if (cfg.fullHelp || !cfg.secondaryGroups.includes(groupName)) {
-            groups[groupName] = []
-        }
-    }
-    let maxOptionLength = 0
-    for (const [key, option] of Object.entries(cfg.config)) {
-        const group = option.group || 'Other Options'
-        if (cfg.fullHelp || !cfg.secondaryGroups.includes(group)) {
-            const cmdOption = camelToKebabCase(option.qualifiedName())
-            maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
-            if (!groups[group]) {
-                groups[group] = []
-            }
-            groups[group].push([cmdOption, option])
-        }
-    }
-    const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
-    const rightWidth = terminalWidth - leftWidth
+    // const terminalWidth = yargs.terminalWidth()
+    // const indentSize = 2
+    // const optionPrefix = '-'
+    // const spacing = 2
+    // const groups: { [key: string]: any[] } = {}
+    // for (const groupName of cfg.groupsOrdering) {
+    //     if (cfg.fullHelp || !cfg.secondaryGroups.includes(groupName)) {
+    //         groups[groupName] = []
+    //     }
+    // }
+    // let maxOptionLength = 0
+    // for (const [key, option] of Object.entries(cfg.config)) {
+    //     const group = option.group || 'Other Options'
+    //     if (cfg.fullHelp || !cfg.secondaryGroups.includes(group)) {
+    //         const cmdOption = camelToKebabCase(option.qualifiedName())
+    //         maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
+    //         if (!groups[group]) {
+    //             groups[group] = []
+    //         }
+    //         groups[group].push([cmdOption, option])
+    //     }
+    // }
+    // const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
+    // const rightWidth = terminalWidth - leftWidth
 
-    for (const [group, options] of Object.entries(groups)) {
-        console.log(chalk.bold(`\n\n${group}:`))
-        for (const [cmdOption, option] of options) {
-            if (cfg.fullHelp || option.primary) {
-                const indent = ' '.repeat(indentSize)
-                let left = indent + chalk.bold(chalk.ansi256(191)(optionPrefix + cmdOption))
-                const spaces = ' '.repeat(leftWidth - stringLength(left))
-                left += spaces
+    // for (const [group, options] of Object.entries(groups)) {
+    //     console.log(chalk.bold(`\n\n${group}:`))
+    //     for (const [cmdOption, option] of options) {
+    //         if (cfg.fullHelp || option.primary) {
+    //             const indent = ' '.repeat(indentSize)
+    //             let left = indent + chalk.bold(chalk.ansi256(191)(optionPrefix + cmdOption))
+    //             const spaces = ' '.repeat(leftWidth - stringLength(left))
+    //             left += spaces
 
-                let firstSentenceSplit = option.description.indexOf('. ')
-                let firstSentence =
-                    firstSentenceSplit == -1
-                        ? option.description
-                        : option.description.slice(0, firstSentenceSplit + 1)
-                let otherSentences = option.description.slice(firstSentence.length)
+    //             let firstSentenceSplit = option.description.indexOf('. ')
+    //             let firstSentence =
+    //                 firstSentenceSplit == -1
+    //                     ? option.description
+    //                     : option.description.slice(0, firstSentenceSplit + 1)
+    //             let otherSentences = option.description.slice(firstSentence.length)
 
-                const def = option.defaultDescription ?? option.default
-                let defaults = def == null ? '' : ` Defaults to ${chalk.ansi256(191)(def)}.`
-                let description = firstSentence + defaults + chalk.ansi256(245)(otherSentences)
-                const right = wordWrap(description, rightWidth).join('\n' + ' '.repeat(leftWidth))
-                console.log(left + right)
-            }
-        }
-    }
+    //             const def = option.defaultDescription ?? option.default
+    //             let defaults = def == null ? '' : ` Defaults to ${chalk.ansi256(191)(def)}.`
+    //             let description = firstSentence + defaults + chalk.ansi256(245)(otherSentences)
+    //             const right = wordWrap(description, rightWidth).join('\n' + ' '.repeat(leftWidth))
+    //             console.log(left + right)
+    //         }
+    //     }
+    // }
 }
 
 function wordWrap(str: string, width: number): string[] {
@@ -257,16 +252,6 @@ const options = content.options.merge(
                     }),
                 },
             }),
-            startup: new content.Group({
-                options: {
-                    project: new content.Option({
-                        default: null,
-                        description:
-                            'Project name to open on startup. If not provided, the welcome screen will be ' +
-                            'displayed.',
-                    }),
-                },
-            }),
 
             performance: new content.Group({
                 options: {
@@ -322,17 +307,6 @@ const options = content.options.merge(
                     }),
                 },
             }),
-            style: new content.Group({
-                options: {
-                    // @ts-ignore
-                    nodeLabels: (content.Option<boolean> = new content.Option({
-                        // @ts-ignore
-                        type: 'boolean',
-                        default: true,
-                        description: 'Show node labels.',
-                    })),
-                },
-            }),
             electron: new content.Group({
                 options: {
                     // === Electron Options ===
@@ -347,7 +321,7 @@ const options = content.options.merge(
                     }),
                     authNegotiateDelegateWhitelist: new content.Option({
                         hidden: true,
-                        default: null,
+                        default: '',
                         description:
                             'A comma-separated list of servers for which delegation of user credentials is ' +
                             "required. Without '*' prefix the URL has to match exactly.",
@@ -358,13 +332,13 @@ const options = content.options.merge(
                         description: 'Disables NTLM v2 for posix platforms, no effect elsewhere.',
                     }),
                     disableHttpCache: new content.Option({
-                        hidden: false,
-                        default: null,
+                        hidden: true,
+                        default: false,
                         description: 'Disables the disk cache for HTTP requests.',
                     }),
                     disableHttp2: new content.Option({
-                        hidden: false,
-                        default: null,
+                        hidden: true,
+                        default: false,
                         description: 'Disable HTTP/2 and SPDY/3.1 protocols.',
                     }),
                     disableRendererBackgrounding: new content.Option({
@@ -541,8 +515,11 @@ let argv = hideBin(process.argv)
 
 const yargOptions = options.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
     const yargsParam = Object.assign({}, option)
+    // @ts-ignore
     yargsParam.requiresArg = ['string', 'array'].includes(yargsParam.type)
+    // @ts-ignore
     yargsParam.default = undefined
+    // @ts-ignore
     const group = yargsParam.group ? yargsParam.group + '.' : ''
     opts[group + camelToKebabCase(option.qualifiedName())] = yargsParam
     return opts
@@ -563,7 +540,7 @@ let optParser = yargs(argv)
 let args = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
     if (help) {
         printHelp({
-            options,
+            config: options,
             groupsOrdering: [],
             secondaryGroups: ['Electron Options'],
             fullHelp: args[FULL_HELP_OPTION],
@@ -572,21 +549,21 @@ let args = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
     }
 })
 
-for (const key of Object.keys(config)) {
+for (const key of Object.keys(options)) {
     if (args[key] !== undefined) {
         // @ts-ignore
-        config[key].value = args[key]
+        options[key].value = args[key]
         // @ts-ignore
-        config[key].setByUser = true
+        options[key].setByUser = true
     }
 }
 
-if (config.help.value || config.fullHelp.value) {
+if (options.options.help.value || options.options.fullHelp.value) {
     printHelp({
-        config,
+        config: options,
         groupsOrdering: [],
         secondaryGroups: ['Electron Options'],
-        fullHelp: config.fullHelp.value,
+        fullHelp: options.options.fullHelp.value,
     })
     process.exit()
 }
@@ -688,6 +665,7 @@ let urlWhitelist: string[] = []
 Electron.app.on('web-contents-created', (event, contents) => {
     contents.on('will-attach-webview', (event, webPreferences, params) => {
         secureWebPreferences(webPreferences)
+        // @ts-ignore
         if (!urlWhitelist.includes(params.src)) {
             console.error(`Blocked the creation of WebView pointing to '${params.src}'`)
             event.preventDefault()
@@ -821,12 +799,17 @@ async function main() {
         if (args.window !== false) {
             console.log('Starting the IDE client.')
             mainWindow = createWindow()
-            mainWindow.on('close', evt => {
-                if (hideInsteadOfQuit) {
-                    evt.preventDefault()
-                    mainWindow.hide()
-                }
-            })
+            if (mainWindow == null) {
+                // FIXME
+            } else {
+                const window = mainWindow
+                mainWindow.on('close', evt => {
+                    if (hideInsteadOfQuit) {
+                        evt.preventDefault()
+                        window.hide()
+                    }
+                })
+            }
         }
     } catch (err) {
         // Note [Main error handling]
@@ -871,7 +854,7 @@ function createWindow() {
     }
 
     if (args.dev) {
-        windowPreferences.webPreferences.devTools = true
+        webPreferences.devTools = true
     }
 
     if (args.frame === false && process.platform === 'darwin') {
@@ -879,7 +862,7 @@ function createWindow() {
     }
 
     if (args['background-throttling']) {
-        windowPreferences.webPreferences.backgroundThrottling = true
+        webPreferences.backgroundThrottling = true
     }
 
     if (args.vibrancy === true) {
@@ -976,7 +959,11 @@ function setupPermissions() {
 
 Electron.app.on('activate', () => {
     if (process.platform === 'darwin') {
-        mainWindow.show()
+        if (mainWindow != null) {
+            mainWindow.show()
+        } else {
+            // FIXME
+        }
     }
 })
 
@@ -1036,10 +1023,18 @@ Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) =
             return
         }
         if (control && alt && shift && !meta && code === 'KeyI') {
-            Electron.BrowserWindow.getFocusedWindow().webContents.toggleDevTools()
+            const focusedWindow = Electron.BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+                focusedWindow.webContents.toggleDevTools()
+                // FIXME: what if not
+            }
         }
         if (control && alt && shift && !meta && code === 'KeyR') {
-            Electron.BrowserWindow.getFocusedWindow().reload()
+            const focusedWindow = Electron.BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+                focusedWindow.reload()
+                // FIXME: what if not
+            }
         }
 
         let cmd_q = meta && !control && !alt && !shift && code === 'KeyQ'
