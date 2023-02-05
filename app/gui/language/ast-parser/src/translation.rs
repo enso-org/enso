@@ -18,11 +18,12 @@ use std::collections::BTreeMap;
 pub fn tree_to_ast(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Ast {
     use ast::HasRepr;
     let mut context = Translate { ids, ..Default::default() };
-    match &*tree.variant {
+    let ast = match &*tree.variant {
         tree::Variant::BodyBlock(block) => context.translate_module(block),
         _ => panic!(),
-    }
+    };
     debug_assert_eq!(ast.repr(), tree.code());
+    ast
 }
 
 
@@ -329,7 +330,19 @@ impl Translate {
         let opr_builder = self.start_ast();
         let opr = match opr {
             Ok(name) => self.visit_token(name).map(|name| ast::Shape::from(ast::Opr { name })),
-            Err(_names) => todo!(),
+            Err(names) => {
+                let mut span_info = vec![];
+                let (space, first) = self.visit_token(names.operators.first()).split();
+                span_info.push(ast::RawSpanTree::Token(first));
+                for token in names.operators.tail() {
+                    let (space, token) = self.visit_token(token).split();
+                    span_info.extend(ast::RawSpanTree::space(space));
+                    span_info.push(ast::RawSpanTree::Token(token));
+                }
+                let type_info = ast::TreeType::Expression;
+                let body = ast::Shape::from(ast::Tree { span_info, type_info });
+                WithInitialSpace { space, body }
+            }
         };
         opr.map(|opr| self.finish_ast(opr, opr_builder))
     }
