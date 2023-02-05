@@ -271,9 +271,9 @@ fn generate_node_for_ast<T: Payload>(
         match ast.shape() {
             ast::Shape::Prefix(_) =>
                 ast::prefix::Chain::from_ast(ast).unwrap().generate_node(kind, context),
-            // Lambdas should fall in _ case, because we don't want to create subports for
-            // them
-            ast::Shape::Tree(tree) => tree_generate_node(tree, kind, context),
+            // FIXME?: Lambdas should fall in _ case, because we don't want to create subports for
+            //  them
+            ast::Shape::Tree(tree) => tree_generate_node(tree, kind, context, ast.id.clone()),
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
@@ -506,26 +506,13 @@ fn tree_generate_node<T: Payload>(
     tree: &ast::Tree,
     kind: impl Into<node::Kind>,
     context: &impl Context,
+    ast_id: Option<Id>,
 ) -> FallibleResult<Node<T>> {
-    let mut kind = kind.into();
+    let kind = kind.into();
     let mut offset = ByteDiff::from(0);
     let mut children = vec![];
-    let mut is_group = false;
-    for thing in &tree.span_info {
-        match thing {
-            RawSpanTree::Space(_) => continue,
-            RawSpanTree::Token(s) => {
-                is_group = s == "(";
-                break;
-            }
-            RawSpanTree::Child(_) => break,
-        }
-    }
-    if is_group {
-        kind = node::Kind::Group;
-    }
-    for (index, thing) in tree.span_info.iter().enumerate() {
-        match thing {
+    for (index, raw_span_info) in tree.span_info.iter().enumerate() {
+        match raw_span_info {
             RawSpanTree::Space(n) => offset += ByteDiff::from(n),
             RawSpanTree::Token(s) => {
                 let kind = node::Kind::Token;
@@ -535,9 +522,15 @@ fn tree_generate_node<T: Payload>(
                 children.push(node::Child { node, offset, ast_crumbs });
                 offset += size;
             }
-            RawSpanTree::Child(a) => {
-                // TODO: Set `kind` properly
-                let node = a.generate_node(kind.clone(), context)?;
+            RawSpanTree::Child(ast) => {
+                let kind = node::Kind::Argument(node::Argument {
+                    removable: false,
+                    name: None,
+                    tp: None,
+                    call_id: None,
+                    tag_values: vec![],
+                });
+                let node = ast.generate_node(kind, context)?;
                 let child_size = node.size;
                 let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
                 children.push(node::Child { node, offset, ast_crumbs });
@@ -546,7 +539,6 @@ fn tree_generate_node<T: Payload>(
         }
     }
     let size = offset;
-    let ast_id = default(); // TODO
     let payload = default();
     Ok(Node { kind, size, children, ast_id, payload })
 }
