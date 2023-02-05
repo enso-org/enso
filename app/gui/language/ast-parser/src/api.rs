@@ -58,7 +58,7 @@ impl<M: Metadata> ParsedSourceFile<M> {
 impl<M: Metadata> Display for ParsedSourceFile<M> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.serialize() {
-            Ok(serialized) => write!(f, "{}", serialized),
+            Ok(serialized) => write!(f, "{serialized}"),
             Err(_) => write!(f, "[UNREPRESENTABLE SOURCE FILE]"),
         }
     }

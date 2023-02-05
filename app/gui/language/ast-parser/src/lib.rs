@@ -23,7 +23,7 @@ pub use ast::IdMap;
 pub mod api;
 
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Default, Clone, CloneRef)]
 pub struct Parser {
     parser: Rc<enso_parser::Parser>,
 }
@@ -244,6 +244,6 @@ main =
     #[test]
     fn test_as_lambda() {
         let ast = Parser::new().parse_line_ast("a->4").unwrap();
-        assert!(ast::macros::as_lambda(&ast).is_some(), "{:?}", ast);
+        assert!(ast::macros::as_lambda(&ast).is_some(), "{ast:?}");
     }
 }

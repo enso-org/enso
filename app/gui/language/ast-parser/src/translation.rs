@@ -3,7 +3,8 @@ use enso_parser::syntax;
 use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
-use enso_prelude::{ImString, warn};
+use enso_prelude::warn;
+use enso_prelude::ImString;
 use std::collections::BTreeMap;
 
 
@@ -14,7 +15,7 @@ use std::collections::BTreeMap;
 fn to_legacy_ast_module(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Result<Ast, ()> {
     let mut context = Translate { offset: Default::default(), ids };
     match &*tree.variant {
-        tree::Variant::BodyBlock(block) => Ok(context.translate_module(&block).into()),
+        tree::Variant::BodyBlock(block) => Ok(context.translate_module(block)),
         _ => Err(()),
     }
 }
@@ -192,7 +193,7 @@ impl Translate {
             }) => {
                 let at = self.visit_token(token).expect_unspaced();
                 let func = self.visit_token(annotation).expect_unspaced();
-                let func = Ast::from(ast::Annotation { name: format!("{}{}", at, func) });
+                let func = Ast::from(ast::Annotation { name: format!("{at}{func}") });
                 let (off, arg) = self.translate(expression.as_ref().unwrap()).split();
                 debug_assert!(
                     newlines.is_empty(),
@@ -224,7 +225,11 @@ impl Translate {
         WithInitialSpace { space, body }
     }
 
-    fn translate_lines(&mut self, tree: &Tree, out: &mut impl Extend<WithInitialSpace<Option<Ast>>>) {
+    fn translate_lines(
+        &mut self,
+        tree: &Tree,
+        out: &mut impl Extend<WithInitialSpace<Option<Ast>>>,
+    ) {
         match &*tree.variant {
             tree::Variant::AnnotatedBuiltin(tree::AnnotatedBuiltin {
                 token,
@@ -235,14 +240,16 @@ impl Translate {
                 let space = self.visit_space(&tree.span);
                 let at = self.visit_token(token).expect_unspaced();
                 let annotation = self.visit_token(annotation).expect_unspaced();
-                let body = Some(Ast::from(ast::Annotation { name: format!("{}{}", at, annotation) }));
+                let body = Some(Ast::from(ast::Annotation { name: format!("{at}{annotation}") }));
                 out.extend_one(WithInitialSpace { space, body });
                 out.extend(newlines.iter().map(|token| {
                     let (space, _) = self.visit_token(token).split();
                     let body = None;
                     WithInitialSpace { space, body }
                 }));
-                out.extend(expression.as_ref().map(|expression| self.translate(expression).map(Some)));
+                out.extend(
+                    expression.as_ref().map(|expression| self.translate(expression).map(Some)),
+                );
             }
             tree::Variant::Annotated(_) => todo!(),
             tree::Variant::Documented(tree::Documented { documentation, expression }) => {
@@ -270,7 +277,7 @@ impl Translate {
         let tree::Function { name, args, equals, body } = function;
         let name = self.translate(name);
         let mut lhs_terms = vec![name];
-        lhs_terms.extend(args.into_iter().map(|a| self.translate_argument_definition(a)));
+        lhs_terms.extend(args.iter().map(|a| self.translate_argument_definition(a)));
         let larg = lhs_terms
             .into_iter()
             .reduce(|func, arg| {
@@ -300,7 +307,7 @@ impl Translate {
                 WithInitialSpace { space, body }
             })
             .collect();
-        lhs_terms.extend(args.into_iter().map(|a| self.translate_argument_definition(a)));
+        lhs_terms.extend(args.iter().map(|a| self.translate_argument_definition(a)));
         let larg = lhs_terms
             .into_iter()
             .reduce(|func, arg| {
@@ -315,7 +322,12 @@ impl Translate {
         ast::Shape::from(ast::Infix { larg, loff, opr, roff, rarg })
     }
 
-    fn opr_app(&mut self, lhs: &Tree, opr: &syntax::token::Operator, rhs: &Tree) -> WithInitialSpace<Ast> {
+    fn opr_app(
+        &mut self,
+        lhs: &Tree,
+        opr: &syntax::token::Operator,
+        rhs: &Tree,
+    ) -> WithInitialSpace<Ast> {
         let builder = self.start_ast();
         self.translate(lhs).map(|larg| {
             let (loff, name) = self.visit_token(opr).split();
@@ -395,7 +407,7 @@ impl Translate {
             let off = 0;
             // If we encounter a leading offset, we represent it by modifying the trailing offset of
             // the previous line.
-            let trailing_space = self.visit_token(&newline).space;
+            let trailing_space = self.visit_token(newline).space;
             if trailing_space != 0 {
                 if let Some(last) = ast_lines.last_mut() {
                     last.off = trailing_space;
@@ -495,7 +507,7 @@ impl Translate {
             term = term.map(|larg| {
                 let (loff, name) = self.visit_token(operator).split();
                 let opr = Ast::from(ast::Opr { name });
-                let (roff, rarg) = self.translate(&type_).split();
+                let (roff, rarg) = self.translate(type_).split();
                 Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
             })
         }
@@ -507,7 +519,7 @@ impl Translate {
             term = term.map(|larg| {
                 let (loff, name) = self.visit_token(equals).split();
                 let opr = Ast::from(ast::Opr { name });
-                let (roff, rarg) = self.translate(&expression).split();
+                let (roff, rarg) = self.translate(expression).split();
                 Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
             })
         }

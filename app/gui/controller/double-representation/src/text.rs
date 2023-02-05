@@ -257,8 +257,8 @@ mod test {
             let ids2 = main_nodes(ast2);
             eprintln!("repr1: {:?}", ast1.repr());
             eprintln!("repr2: {:?}", ast2.repr());
-            eprintln!("ast1: {:?}", ast1);
-            eprintln!("ast2: {:?}", ast2);
+            eprintln!("ast1: {ast1:?}");
+            eprintln!("ast2: {ast2:?}");
             let ids = |idmap: IdMap| {
                 idmap
                     .vec
