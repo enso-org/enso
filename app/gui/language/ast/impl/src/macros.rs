@@ -35,7 +35,7 @@ pub const UNQUALIFIED_IMPORT_KEYWORD: &str = "from";
 // ========================
 
 /// Try Interpreting the line as disabling comment. Return the text after `#`.
-pub fn as_disable_comment(ast: &Ast) -> Option<String> {
+pub fn as_disable_comment(_ast: &Ast) -> Option<String> {
     None // TODO
 }
 

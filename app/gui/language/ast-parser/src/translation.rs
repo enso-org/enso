@@ -3,9 +3,8 @@ use enso_parser::syntax;
 use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
-use enso_prelude::ImString;
+use enso_prelude::{ImString, warn};
 use std::collections::BTreeMap;
-
 
 
 // =======================
@@ -106,11 +105,9 @@ impl Translate {
                 let (off, arg) = self.translate(arg).split();
                 self.finish_ast(ast::Prefix { func, off, arg }, builder)
             }
-            tree::Variant::OprApp(tree::OprApp {
-                lhs: Some(lhs),
-                opr: Ok(opr),
-                rhs: Some(rhs),
-            }) if opr.properties.is_arrow() => {
+            tree::Variant::OprApp(tree::OprApp { lhs: Some(_), opr: Ok(opr), rhs: Some(_) })
+                if opr.properties.is_arrow() =>
+            {
                 let span_info = self.translate_items(tree);
                 let type_info = ast::TreeType::Lambda;
                 self.finish_ast(ast::Tree { span_info, type_info }, builder)
@@ -141,12 +138,12 @@ impl Translate {
                 }
             }
             tree::Variant::Assignment(tree::Assignment { pattern, equals, expr }) =>
-                self.opr_app(pattern, equals, expr),
+                self.opr_app(pattern, equals, expr).expect_unspaced(),
             tree::Variant::OperatorBlockApplication(app) => {
                 let tree::OperatorBlockApplication { lhs, expressions, excess } = app;
                 let func = self.translate(lhs.as_ref().unwrap()).expect_unspaced();
-                let arg = self.translate_operator_block(expressions);
-                let off = 0; // TODO
+                let block = self.translate_operator_block(expressions, excess);
+                let (off, arg) = block.split();
                 self.finish_ast(ast::Prefix { func, off, arg }, builder)
             }
             tree::Variant::TemplateFunction(tree::TemplateFunction { ast, .. }) =>
@@ -168,31 +165,45 @@ impl Translate {
             }
             tree::Variant::NamedApp(tree::NamedApp { func, open, name, equals, arg, close }) => {
                 let func = self.translate(func).expect_unspaced();
-                let (off, name) = self.visit_token(name).split();
-                let larg = Ast::from(ast::Var { name });
+                let open = open.as_ref().map(|token| self.visit_token(token));
+                let name = self.visit_token(name);
+                let larg = name.map(|name| Ast::from(ast::Var { name }));
                 let (loff, name) = self.visit_token(equals).split();
                 let opr = Ast::from(ast::Opr { name });
                 let (roff, rarg) = self.translate(arg).split();
-                let arg = Ast::from(ast::Infix { larg, loff, opr, roff, rarg });
+                let mut arg =
+                    larg.map(|larg| Ast::from(ast::Infix { larg, loff, opr, roff, rarg }));
+                let close = close.as_ref().map(|token| self.visit_token(token));
+                if let Some(open) = open && let Some(close) = close {
+                    arg = open.map(|open| group(open, arg, close));
+                }
+                let (off, arg) = arg.split();
                 self.finish_ast(ast::Prefix { func, off, arg }, builder)
             }
             tree::Variant::TypeSignature(tree::TypeSignature { variable, operator, type_ }) =>
-                self.opr_app(variable, operator, type_),
+                self.opr_app(variable, operator, type_).expect_unspaced(),
             tree::Variant::TypeAnnotated(tree::TypeAnnotated { expression, operator, type_ }) =>
-                self.opr_app(expression, operator, type_),
+                self.opr_app(expression, operator, type_).expect_unspaced(),
             tree::Variant::AnnotatedBuiltin(tree::AnnotatedBuiltin {
                 token,
                 annotation,
                 newlines,
                 expression,
             }) => {
+                let at = self.visit_token(token).expect_unspaced();
                 let func = self.visit_token(annotation).expect_unspaced();
-                let func = Ast::from(ast::Annotation { name: format!("@{}", func) });
+                let func = Ast::from(ast::Annotation { name: format!("{}{}", at, func) });
                 let (off, arg) = self.translate(expression.as_ref().unwrap()).split();
+                debug_assert!(
+                    newlines.is_empty(),
+                    "Multiline expression must be handled in translate_lines."
+                );
                 self.finish_ast(ast::Prefix { func, off, arg }, builder)
             }
-            tree::Variant::Documented(tree::Documented { documentation, expression }) =>
-                self.translate(expression.as_ref().unwrap()).without_space(),
+            tree::Variant::Documented(tree::Documented { documentation: _, expression }) => {
+                warn!("Multiline expression should have been handled in translate_lines.");
+                self.translate(expression.as_ref().unwrap()).without_space()
+            }
             tree::Variant::Import(import) => {
                 let span_info = self.translate_items(tree);
                 let type_info = analyze_import(import).unwrap_or_default();
@@ -213,24 +224,36 @@ impl Translate {
         WithInitialSpace { space, body }
     }
 
-    fn translate_lines(&mut self, tree: &Tree, out: &mut impl Extend<WithInitialSpace<Ast>>) {
+    fn translate_lines(&mut self, tree: &Tree, out: &mut impl Extend<WithInitialSpace<Option<Ast>>>) {
         match &*tree.variant {
             tree::Variant::AnnotatedBuiltin(tree::AnnotatedBuiltin {
                 token,
                 annotation,
                 newlines,
                 expression,
-            }) if !newlines.is_empty() => todo!(),
+            }) if !newlines.is_empty() => {
+                let space = self.visit_space(&tree.span);
+                let at = self.visit_token(token).expect_unspaced();
+                let annotation = self.visit_token(annotation).expect_unspaced();
+                let body = Some(Ast::from(ast::Annotation { name: format!("{}{}", at, annotation) }));
+                out.extend_one(WithInitialSpace { space, body });
+                out.extend(newlines.iter().map(|token| {
+                    let (space, _) = self.visit_token(token).split();
+                    let body = None;
+                    WithInitialSpace { space, body }
+                }));
+                out.extend(expression.as_ref().map(|expression| self.translate(expression).map(Some)));
+            }
             tree::Variant::Annotated(_) => todo!(),
             tree::Variant::Documented(tree::Documented { documentation, expression }) => {
                 let space = self.visit_space(&tree.span);
-                let body = self.translate_doc(documentation);
+                let body = Some(self.translate_doc(documentation));
                 out.extend_one(WithInitialSpace { space, body });
                 if let Some(expression) = expression {
                     self.translate_lines(expression, out);
                 }
             }
-            _ => out.extend_one(self.translate(tree)),
+            _ => out.extend_one(self.translate(tree).map(Some)),
         }
     }
 
@@ -292,20 +315,21 @@ impl Translate {
         ast::Shape::from(ast::Infix { larg, loff, opr, roff, rarg })
     }
 
-    fn opr_app(&mut self, lhs: &Tree, opr: &syntax::token::Operator, rhs: &Tree) -> Ast {
+    fn opr_app(&mut self, lhs: &Tree, opr: &syntax::token::Operator, rhs: &Tree) -> WithInitialSpace<Ast> {
         let builder = self.start_ast();
-        let larg = self.translate(lhs).expect_unspaced();
-        let (loff, name) = self.visit_token(opr).split();
-        let opr = Ast::from(ast::Opr { name });
-        let (roff, rarg) = self.translate(rhs).split();
-        let opr_app = ast::Infix { larg, loff, opr, roff, rarg };
-        self.finish_ast(opr_app, builder)
+        self.translate(lhs).map(|larg| {
+            let (loff, name) = self.visit_token(opr).split();
+            let opr = Ast::from(ast::Opr { name });
+            let (roff, rarg) = self.translate(rhs).split();
+            let opr_app = ast::Infix { larg, loff, opr, roff, rarg };
+            self.finish_ast(opr_app, builder)
+        })
     }
 
     fn translate_opr(&mut self, opr: &tree::OperatorOrError) -> WithInitialSpace<Ast> {
         match opr {
             Ok(name) => self.visit_token(name).map(|name| Ast::from(ast::Opr { name })),
-            Err(names) => todo!(),
+            Err(_names) => todo!(),
         }
     }
 
@@ -388,7 +412,7 @@ impl Translate {
                     }
                     let new_lines = statement_lines
                         .drain(..)
-                        .map(|elem| ast::BlockLine { elem: Some(elem.without_space()), off });
+                        .map(|elem| ast::BlockLine { elem: elem.without_space(), off });
                     ast_lines.extend(new_lines);
                 }
                 None => ast_lines.push(ast::BlockLine { elem: None, off }),
@@ -400,7 +424,8 @@ impl Translate {
     fn translate_operator_block<'a, 's: 'a>(
         &mut self,
         operator_lines: impl IntoIterator<Item = &'a tree::block::OperatorLine<'s>>,
-    ) -> Ast {
+        excess: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
+    ) -> WithInitialSpace<Ast> {
         // TODO: support doc comments
         let mut indent = 0;
         let mut empty_lines = vec![];
@@ -433,8 +458,13 @@ impl Translate {
                 lines.push(ast::BlockLine { elem, off });
             }
         }
+        for _line in excess {
+            todo!();
+        }
         let first_line = first_line.unwrap();
-        Ast::from(ast::Block { indent, empty_lines, first_line, lines })
+        let space = 0; // TODO
+        let body = Ast::from(ast::Block { indent, empty_lines, first_line, lines });
+        WithInitialSpace { space, body }
     }
 
     fn translate_argument_definition(
@@ -456,24 +486,30 @@ impl Translate {
         let suspension = suspension.as_ref().map(|token| self.visit_token(token));
         let mut term = self.translate(pattern);
         if let Some(opr) = suspension {
-            let (space, name) = opr.split();
-            let opr = Ast::from(ast::Opr { name });
-            let (off, arg) = term.split();
-            let body = Ast::from(ast::SectionRight { opr, off, arg });
-            term = WithInitialSpace { space, body };
+            term = opr.map(Ast::opr).map(|opr| {
+                let (off, arg) = term.split();
+                Ast::from(ast::SectionRight { opr, off, arg })
+            });
         }
-        // TODO: type_
+        if let Some(tree::ArgumentType { operator, type_ }) = type_ {
+            term = term.map(|larg| {
+                let (loff, name) = self.visit_token(operator).split();
+                let opr = Ast::from(ast::Opr { name });
+                let (roff, rarg) = self.translate(&type_).split();
+                Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
+            })
+        }
         let close2 = close2.as_ref().map(|token| self.visit_token(token));
         if let Some(open) = open2 && let Some(close) = close2 {
             term = open.map(|open| group(open, term, close));
         }
         if let Some(tree::ArgumentDefault { equals, expression }) = default {
-            let (space, larg) = term.split();
-            let (loff, name) = self.visit_token(equals).split();
-            let opr = Ast::from(ast::Opr { name });
-            let (roff, rarg) = self.translate(&expression).split();
-            let body = Ast::from(ast::Infix { larg, loff, opr, roff, rarg });
-            term = WithInitialSpace { space, body };
+            term = term.map(|larg| {
+                let (loff, name) = self.visit_token(equals).split();
+                let opr = Ast::from(ast::Opr { name });
+                let (roff, rarg) = self.translate(&expression).split();
+                Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
+            })
         }
         let close = close.as_ref().map(|token| self.visit_token(token));
         if let Some(open) = open && let Some(close) = close {
@@ -600,11 +636,6 @@ impl<T: core::fmt::Debug> WithInitialSpace<T> {
     /// Return the value, ignoring any initial space.
     fn without_space(self) -> T {
         self.body
-    }
-
-    /// Return the value if there is no initial space.
-    fn into_unspaced(self) -> Option<T> {
-        (self.space == 0).then_some(self.body)
     }
 
     /// If any initial space is present, emit a warning; forget the space and return the value.
