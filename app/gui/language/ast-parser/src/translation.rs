@@ -274,40 +274,28 @@ impl Translate {
     }
 
     fn translate_doc(&mut self, documentation: &tree::DocComment) -> Ast {
-        let open = self.visit_token(&documentation.open).expect_unspaced();
-        let mut span_info = vec![ast::RawSpanTree::Token(open)];
+        let open = self.visit_token(&documentation.open);
+        let mut span_info = RawSpanTreeBuilder::new();
+        span_info.token(open);
         for element in &documentation.elements {
-            match element {
-                tree::TextElement::Section { text } => {
-                    let (space, token) = self.visit_token(text).split();
-                    span_info.extend(ast::RawSpanTree::space(space));
-                    span_info.push(ast::RawSpanTree::Token(token));
-                }
-                tree::TextElement::Escape { token } => {
-                    let (space, token) = self.visit_token(token).split();
-                    span_info.extend(ast::RawSpanTree::space(space));
-                    span_info.push(ast::RawSpanTree::Token(token));
-                }
-                tree::TextElement::Newline { newline } => {
-                    let (space, token) = self.visit_token(newline).split();
-                    span_info.extend(ast::RawSpanTree::space(space));
-                    span_info.push(ast::RawSpanTree::Token(token));
-                }
+            span_info.token(match element {
+                tree::TextElement::Section { text } => self.visit_token(text),
+                tree::TextElement::Escape { token } => self.visit_token(token),
+                tree::TextElement::Newline { newline } => self.visit_token(newline),
                 tree::TextElement::Splice { .. } => {
                     let error = "Lexer must not emit splices in documentation comments.";
                     debug_assert!(false, "{error}");
                     error!("{error}");
-                    continue
-                },
-            }
+                    continue;
+                }
+            })
         }
         for newline in &documentation.newlines {
-            let (space, token) = self.visit_token(newline).split();
-            span_info.extend(ast::RawSpanTree::space(space));
-            span_info.push(ast::RawSpanTree::Token(token));
+            span_info.token(self.visit_token(newline));
         }
         let rendered = documentation.content().into();
         let type_info = ast::TreeType::Documentation { rendered };
+        let span_info = span_info.build().expect_unspaced();
         Ast::from(ast::Tree { span_info, type_info })
     }
 
@@ -360,17 +348,14 @@ impl Translate {
         let opr = match opr {
             Ok(name) => self.visit_token(name).map(|name| ast::Shape::from(ast::Opr { name })),
             Err(names) => {
-                let mut span_info = vec![];
-                let (space, first) = self.visit_token(names.operators.first()).split();
-                span_info.push(ast::RawSpanTree::Token(first));
-                for token in names.operators.tail() {
-                    let (space, token) = self.visit_token(token).split();
-                    span_info.extend(ast::RawSpanTree::space(space));
-                    span_info.push(ast::RawSpanTree::Token(token));
+                let mut span_info = RawSpanTreeBuilder::new();
+                for token in &names.operators {
+                    span_info.token(self.visit_token(token));
                 }
                 let type_info = ast::TreeType::Expression;
-                let body = ast::Shape::from(ast::Tree { span_info, type_info });
-                WithInitialSpace { space, body }
+                span_info
+                    .build()
+                    .map(|span_info| ast::Shape::from(ast::Tree { span_info, type_info }))
             }
         };
         opr.map(|opr| self.finish_ast(opr, opr_builder))
@@ -550,20 +535,12 @@ impl Translate {
 
     /// Analyze a [`Tree`] and produce a representation used by the graph editor.
     fn translate_items(&mut self, tree: &syntax::tree::Tree<'_>) -> Vec<ast::RawSpanTree> {
-        let mut span_info = vec![];
+        let mut span_info = RawSpanTreeBuilder::new();
         tree.visit_items(|item| match item {
-            syntax::item::Ref::Token(token) => {
-                let (space, token) = self.visit_token_ref(token).split();
-                span_info.extend(ast::RawSpanTree::space(space));
-                span_info.push(ast::RawSpanTree::Token(token));
-            }
-            syntax::item::Ref::Tree(tree) => {
-                let (space, ast) = self.translate(tree).split();
-                span_info.extend(ast::RawSpanTree::space(space));
-                span_info.push(ast::RawSpanTree::Child(ast));
-            }
+            syntax::item::Ref::Token(token) => span_info.token(self.visit_token_ref(token)),
+            syntax::item::Ref::Tree(tree) => span_info.child(self.translate(tree)),
         });
-        span_info
+        span_info.build().expect_unspaced()
     }
 }
 
@@ -735,4 +712,45 @@ fn infix(
         let (roff, rarg) = rarg.split();
         (ast::Infix { larg, loff, opr, roff, rarg }).into()
     })
+}
+
+
+// === RawSpanTreeBuilder ===
+
+#[derive(Debug, Default)]
+pub struct RawSpanTreeBuilder {
+    space: Option<usize>,
+    spans: Vec<ast::RawSpanTree>,
+}
+
+impl RawSpanTreeBuilder {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn token(&mut self, value: WithInitialSpace<String>) {
+        let (space, value) = value.split();
+        if self.space.is_none() {
+            self.space = Some(space);
+        } else {
+            self.spans.extend(ast::RawSpanTree::space(space));
+        }
+        self.spans.push(ast::RawSpanTree::Token(value));
+    }
+
+    fn child(&mut self, value: WithInitialSpace<Ast>) {
+        let (space, value) = value.split();
+        if self.space.is_none() {
+            self.space = Some(space);
+        } else {
+            self.spans.extend(ast::RawSpanTree::space(space));
+        }
+        self.spans.push(ast::RawSpanTree::Child(value));
+    }
+
+    fn build(self) -> WithInitialSpace<Vec<ast::RawSpanTree>> {
+        let space = self.space.unwrap_or_default();
+        let body = self.spans;
+        WithInitialSpace { space, body }
+    }
 }

@@ -444,6 +444,23 @@ pub enum ImportedNames {
     List { names: std::collections::BTreeSet<String> },
 }
 
+/// Macro that calls its argument (possibly other macro
+#[macro_export]
+macro_rules! with_shape_variants {
+    ($f:ident) => {
+        $f! {
+          [Blank] [Var] [Cons] [Opr] [Annotation] [Mod]
+          [Number]
+          [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
+          [Module Ast] [Block Ast]
+          [Tree]
+        }
+    };
+}
+
+
+//  === RawSpanTree ===
+
 /// Represents the syntax tree, and its correspondence to the source text; with context information
 /// provided by an evaluator, this can be used to produce a complete [`SpanTree`].
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -470,20 +487,6 @@ impl<'a> From<&'a RawSpanTree> for Token<'a> {
             RawSpanTree::Child(a) => Token::Ast(a),
         }
     }
-}
-
-/// Macro that calls its argument (possibly other macro
-#[macro_export]
-macro_rules! with_shape_variants {
-    ($f:ident) => {
-        $f! {
-          [Blank] [Var] [Cons] [Opr] [Annotation] [Mod]
-          [Number]
-          [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
-          [Module Ast] [Block Ast]
-          [Tree]
-        }
-    };
 }
 
 
