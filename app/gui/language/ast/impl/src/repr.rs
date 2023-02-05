@@ -53,18 +53,6 @@ pub const FMT_BLOCK_QUOTES: &str = "'''";
 
 
 
-// ===============
-// === Builder ===
-// ===============
-
-has_tokens!(Empty);
-has_tokens!(Letter, self.char);
-has_tokens!(Space, self);
-has_tokens!(Text, self.str);
-has_tokens!(Seq, self.first, self.second);
-
-
-
 // =============
 // === Block ===
 // =============

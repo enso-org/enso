@@ -488,22 +488,6 @@ macro_rules! with_shape_variants {
 
 
 
-// ===============
-// === Builder ===
-// ===============
-
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum Builder {
-    Empty,
-    Letter { char: char },
-    Space { span: usize },
-    Text { str: String },
-    Seq { first: Rc<Builder>, second: Rc<Builder> },
-}
-
-
-
 // =============
 // === Block ===
 // =============
