@@ -15,7 +15,7 @@
   },
   "name": "enso",
   "description": "Enso Data Processing Environment.",
-  "main": "index.cjs",
+  "main": "index.js",
   "dependencies": {
     "@electron/remote": "^2.0.8",
     "chalk": "^5.2.0",

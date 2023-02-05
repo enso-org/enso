@@ -33,10 +33,10 @@ function parseBoolean(value: any): boolean | null {
 // ==============
 
 /** A valid configuration option value. */
-export type OptionValue = string | boolean | number
+export type OptionValue = string | boolean | number | string[]
 
 /** A valid configuration option type. */
-export type OptionType = 'string' | 'boolean' | 'number'
+export type OptionType = 'string' | 'boolean' | 'number' | 'string[]'
 
 export type AnyOption = Option<OptionValue>
 
@@ -74,6 +74,8 @@ export class Option<T> {
             this.type = 'boolean'
         } else if (typeof this.value === 'number') {
             this.type = 'number'
+        } else if (Array.isArray(this.value)) {
+            this.type = 'string[]'
         } else {
             this.type = 'string'
         }
@@ -130,7 +132,7 @@ type OptionsRecord = Record<string, AnyOption>
 type GroupsRecord = Record<string, AnyGroup>
 
 /** Options group. The same as `Group` but with elided generic parameters. */
-interface AnyGroup {
+export interface AnyGroup {
     description: string
     options: OptionsRecord
     groups: GroupsRecord

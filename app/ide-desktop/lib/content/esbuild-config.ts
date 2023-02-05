@@ -153,7 +153,13 @@ export async function watch(onRebuild?: () => void, inject?: esbuild.BuildOption
  * Bundles the package.
  */
 export async function bundle() {
-    return esbuild.build({ ...config, watch: false, incremental: false })
+    try {
+        return esbuild.build({ ...config, watch: false, incremental: false })
+    } catch (error) {
+        console.error('ERROR!!!!!!!')
+        console.error(error)
+        throw error
+    }
 }
 
 export default { watch, bundle, output_path }

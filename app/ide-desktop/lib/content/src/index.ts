@@ -6,9 +6,9 @@
 import globalConfig from '../../../../gui/config.yaml'
 import buildCfg from '../../../build.json'
 // @ts-ignore
-import * as app from 'ensogl_app'
+import * as app from '../../../../../target/ensogl-pack/dist/index'
 import * as semver from 'semver'
-import { Config, Version, options } from './config'
+import { Version, options } from './config'
 
 const logger = app.log.logger
 const config = app.config
@@ -42,15 +42,12 @@ async function fetchTimeout(url: string, timeout: number): Promise<any> {
 /// package. When the function is unable to download the application config, or
 /// one of the compared versions does not match the semver scheme, it returns
 /// `true`.
-async function checkMinSupportedVersion(config: Config) {
+async function checkMinSupportedVersion(config: typeof options) {
     if (config.groups.engine.options.skipMinVersionCheck.value === true) {
         return true
     }
     try {
-        const appConfig: any = await fetchTimeout(
-            config.groups.engine.options.applicationConfigUrl.value,
-            300
-        )
+        const appConfig: any = await fetchTimeout(config.groups.engine.options.configUrl.value, 300)
         const minSupportedVersion = appConfig.minimumSupportedVersion
         const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
         return comparator.test(Version.ide)
@@ -71,7 +68,11 @@ function displayDeprecatedVersionDialog() {
     versionCheckDiv.className = 'auth-info'
     versionCheckDiv.style.display = 'block'
     versionCheckDiv.appendChild(versionCheckText)
-    root.appendChild(versionCheckDiv)
+    if (root == null) {
+        console.error('Cannot find the root DOM element.')
+    } else {
+        root.appendChild(versionCheckDiv)
+    }
 }
 
 // ========================
@@ -101,16 +102,16 @@ class Main {
         })
 
         if (appInstance.initialized) {
-            if (appInstance.config.options.dataCollection.value) {
+            if (options.options.dataCollection.value) {
                 // TODO: Add remote-logging here.
             }
-            if (!(await checkMinSupportedVersion(appInstance.config))) {
+            if (!(await checkMinSupportedVersion(options))) {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    appInstance.config.options.authentication.value &&
-                    appInstance.config.groups.startup.options.entry.value !=
-                        appInstance.config.groups.startup.options.entry.default
+                    options.options.authentication.value &&
+                    options.groups.startup.options.entry.value !=
+                        options.groups.startup.options.entry.default
                 ) {
                     // TODO: authentication here
                     // appInstance.config.email.value = user.email
@@ -118,7 +119,7 @@ class Main {
                 } else {
                     appInstance.run()
                 }
-                const email = appInstance.config.groups.authentication.options.email.value
+                const email = options.groups.authentication.options.email.value
                 if (email != null) {
                     logger.log(`User identified as '${email}'.`)
                 }

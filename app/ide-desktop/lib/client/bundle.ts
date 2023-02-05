@@ -22,7 +22,7 @@ const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION'
 export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
 
 /** The main JS bundle to load WASM and JS wasm-pack bundles. */
-export const ensogl_app_path = `/Users/wdanilo/Dev/enso/target/ensogl-pack/dist/index.cjs`
+export const ensogl_app_path = `/Users/wdanilo/Dev/enso/target/ensogl-pack/dist/index.js`
 
 // ================
 // === Bundling ===

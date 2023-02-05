@@ -416,7 +416,7 @@ impl Artifact {
 
     /// The main JS bundle to load WASM and JS wasm-pack bundles.
     pub fn ensogl_app(&self) -> &Path {
-        &self.0.index_cjs
+        &self.0.index_js
     }
 
     /// Files that should be shipped in the Gui bundle.
@@ -426,7 +426,7 @@ impl Artifact {
         let RepoRootDistWasm {
             path: _,
             shaders,
-            index_cjs: _,
+            index_js: _,
             index_d_ts: _,
             pkg_js,
             pkg_wasm: _,

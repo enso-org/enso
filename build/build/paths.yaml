@@ -54,7 +54,7 @@
     # Final WASM artifacts in `dist` directory.
     wasm/:
       shaders/: # Optimized shaders that contain main function code only.
-      index.cjs: # The main JS bundle to load WASM and JS wasm-pack bundles.
+      index.js: # The main JS bundle to load WASM and JS wasm-pack bundles.
       index.d.ts: # TypeScript types interface file.
       pkg.js: # The `pks.js` artifact of wasm-pack WITH bundled snippets.
       pkg.wasm: # The `pks_bg.wasm` artifact of wasm-pack.

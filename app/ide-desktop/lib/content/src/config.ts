@@ -1,12 +1,13 @@
 import * as semver from 'semver'
-// @ts-ignore
-import * as app from 'ensogl_app'
+// import * as app from '../../../../../target/ensogl-pack/dist/index.js'
+import { log, config, App } from '../../../../../target/ensogl-pack/dist/index'
 import buildCfg from '../../../build.json'
 
-const config = app.config
+// const config = app.config
 const Option = config.Option
-const Config = config.Config
-export { Option, Config }
+const Group = config.Group
+// const Options = config.Options
+export { Option, Group }
 
 // ===============
 // === Version ===
@@ -31,11 +32,10 @@ export class Version {
 // ===============
 // === Options ===
 // ===============
-
+//
 export const options = config.options.merge(
     new config.Group({
         options: {
-            // @ts-ignore
             authentication: new config.Option({
                 default: true,
                 description:
@@ -43,7 +43,6 @@ export const options = config.options.merge(
                     'the app is run in the cloud.',
             }),
 
-            // @ts-ignore
             dataCollection: new config.Option({
                 default: true,
                 description: 'Controls whether anonymous usage data should be collected.',
@@ -52,12 +51,10 @@ export const options = config.options.merge(
         groups: {
             startup: new config.Group({
                 options: {
-                    // @ts-ignore
                     project: new config.Option({
                         default: '',
                         description: 'Project name to open on startup.',
                     }),
-                    // @ts-ignore
                     platform: new config.Option({
                         default: '',
                         description:
@@ -77,12 +74,10 @@ export const options = config.options.merge(
             engine: new config.Group({
                 description: 'Options controlling the Enso Engine, the data processing backend.',
                 options: {
-                    // @ts-ignore
                     projectManagerUrl: new config.Option({
                         default: '',
                         description: 'An address of the Project Manager service.',
                     }),
-                    // @ts-ignore
                     rpcUrl: new config.Option({
                         default: '',
                         description:
@@ -90,7 +85,6 @@ export const options = config.options.merge(
                             'together with `dataUrl` ,`namespace`, and `project` options. They make ' +
                             'Enso connect directly to the already spawned Language Server of some project.',
                     }),
-                    // @ts-ignore
                     dataUrl: new config.Option({
                         default: '',
                         description:
@@ -98,44 +92,40 @@ export const options = config.options.merge(
                             'together with `dataUrl` ,`namespace`, and `project` options. They make ' +
                             'Enso connect directly to the already spawned Language Server of some project.',
                     }),
-                    // @ts-ignore
                     namespace: new config.Option({
                         default: 'local',
                         description:
                             'Namespace of the opened project. May be used when connecting to ' +
                             'existing Language Server process.',
                     }),
-                    // @ts-ignore
                     configUrl: new config.Option({
                         default:
                             'https://raw.githubusercontent.com/enso-org/ide/develop/config.json',
                         description:
                             'The application config URL. Used to check for available updates.',
                     }),
-                    // @ts-ignore
                     skipMinVersionCheck: new config.Option({
                         default: Version.isDev(),
                         defaultDescription: 'true in local builds, false otherwise.',
                         description:
                             'Controls whether the minimum engine version check should be performed.',
                     }),
-                    // @ts-ignore
-                    preferredVersion: new config.Option({
-                        default: Version.ide,
-                        description: `The preferred engine version.`,
-                    }),
+                    // //FIXME:
+                    // // @ts-ignore
+                    // preferredVersion: new config.Option({
+                    //     default: Version.ide,
+                    //     description: `The preferred engine version.`,
+                    // }),
                 },
             }),
 
             style: new config.Group({
                 options: {
-                    // // @ts-ignore
                     // frame: new config.Option({
                     //     default: false,
                     //     description:
                     //         'Controls whether a window frame should be visible. Works in native app only.',
                     // }),
-                    // @ts-ignore
                     nodeLabels: new config.Option({
                         default: true,
                         description: `Controls whether node labels should be visible.`,
@@ -147,7 +137,6 @@ export const options = config.options.merge(
                 description:
                     'Options allowing enabling experimental features that are not stable yet.',
                 options: {
-                    // @ts-ignore
                     newComponentBrowser: new config.Option({
                         default: true,
                         description:
@@ -160,7 +149,6 @@ export const options = config.options.merge(
                 description:
                     'Options allowing controlling the application authentication properties.',
                 options: {
-                    // @ts-ignore
                     email: new config.Option({
                         default: '',
                         description: 'The user email, if any.',
@@ -171,14 +159,12 @@ export const options = config.options.merge(
             profile: new config.Group({
                 description: 'Options allowing diagnosing the application performance problems.',
                 options: {
-                    // @ts-ignore
                     testWorkflow: new config.Option({
                         default: '',
                         description:
                             'When profiling the application (e.g. with the `./run profile` ' +
                             'command), this argument chooses what is profiled.',
                     }),
-                    // @ts-ignore
                     emitUserTimingMeasurements: new config.Option({
                         default: false,
                         description:
