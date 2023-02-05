@@ -86,7 +86,7 @@ impl Translate {
         let builder = self.start_ast();
         let body = match &*tree.variant {
             tree::Variant::BodyBlock(block) => {
-                let block = self.translate_block(&block.statements).unwrap();
+                let block = self.translate_block(&block.statements).unwrap().expect_unspaced();
                 self.finish_ast(block, builder)
             }
             tree::Variant::Ident(tree::Ident { token }) if token.is_type => {
@@ -160,9 +160,7 @@ impl Translate {
             tree::Variant::ArgumentBlockApplication(app) => {
                 let tree::ArgumentBlockApplication { lhs, arguments } = app;
                 let func = self.translate(lhs.as_ref().unwrap());
-                let space = 0; // TODO
-                let body = Ast::from(self.translate_block(arguments).unwrap());
-                let arg = WithInitialSpace { space, body };
+                let arg = self.translate_block(arguments).unwrap().map(Ast::from);
                 let app = prefix(func, arg).expect_unspaced();
                 self.finish_ast(app, builder)
             }
@@ -307,10 +305,8 @@ impl Translate {
             .map(|ident| self.visit_token(ident).map(|name| Ast::from(ast::Var { name })))
             .collect();
         lhs_terms.extend(args.iter().map(|a| self.translate_argument_definition(a)));
-        let lhs = lhs_terms
-            .into_iter()
-            .reduce(|func, arg| prefix(func, arg).map(Ast::from))
-            .unwrap();
+        let lhs =
+            lhs_terms.into_iter().reduce(|func, arg| prefix(func, arg).map(Ast::from)).unwrap();
         let equals = self.visit_token(equals).map(|name| Ast::from(ast::Opr { name }));
         let body = self.translate(body);
         infix(lhs, equals, body).expect_unspaced()
@@ -352,20 +348,21 @@ impl Translate {
             (Some(larg), None) => section_left(larg, opr),
             (None, Some(rarg)) => section_right(opr, rarg),
             (None, None) => section_sides(opr),
-        }).expect_unspaced()
+        })
+        .expect_unspaced()
     }
 
     fn translate_module(&mut self, block: &tree::BodyBlock) -> Ast {
-        let (lines, _) = self.translate_block_raw(&block.statements);
+        let (lines, _) =
+            self.translate_block_raw(&block.statements).unwrap_or_default().expect_unspaced();
         Ast::from(ast::Module { lines })
     }
 
     fn translate_block<'a, 's: 'a>(
         &mut self,
         tree_lines: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
-    ) -> Option<ast::Block<Ast>> {
-        let (ast_lines, indent) = self.translate_block_raw(tree_lines);
-        let indent = indent?;
+    ) -> Option<WithInitialSpace<ast::Block<Ast>>> {
+        let (space, (ast_lines, indent)) = self.translate_block_raw(tree_lines)?.split();
         let mut empty_lines = vec![];
         let mut first_line = None;
         let mut lines = vec![];
@@ -381,33 +378,28 @@ impl Translate {
             }
         }
         let first_line = first_line?;
-        Some(ast::Block { indent, empty_lines, first_line, lines })
+        let body = ast::Block { indent, empty_lines, first_line, lines };
+        Some(WithInitialSpace { space, body })
     }
 
     fn translate_block_raw<'a, 's: 'a>(
         &mut self,
         tree_lines: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
-    ) -> (Vec<ast::BlockLine<Option<Ast>>>, Option<usize>) {
+    ) -> Option<WithInitialSpace<(Vec<ast::BlockLine<Option<Ast>>>, usize)>> {
         let tree_lines = tree_lines.into_iter();
         let mut ast_lines: Vec<ast::BlockLine<Option<Ast>>> =
             Vec::with_capacity(tree_lines.size_hint().0);
         let mut statement_lines = vec![];
         let mut initial_indent = None;
+        let mut space = 0;
         for tree::block::Line { newline, expression } in tree_lines {
             // Mapping from [`Tree`]'s leading offsets to [`Ast`]'s trailing offsets:
             // Initially, we create each line with no trailing offset.
             let off = 0;
-            // If we encounter a leading offset, we represent it by modifying the trailing offset of
-            // the previous line.
+            // We write each line's leading offset into the trailing offset of the previous line
+            // (or, for the first line, the initial offset).
             let trailing_space = self.visit_token(newline).space;
-            if trailing_space != 0 {
-                if let Some(last) = ast_lines.last_mut() {
-                    last.off = trailing_space;
-                } else {
-                    // TODO: This should be leading whitespace for the whole block.
-                    todo!()
-                }
-            }
+            *ast_lines.last_mut().map(|line| &mut line.off).unwrap_or(&mut space) = trailing_space;
             match &expression {
                 Some(statement) => {
                     self.translate_lines(statement, &mut statement_lines);
@@ -422,7 +414,8 @@ impl Translate {
                 None => ast_lines.push(ast::BlockLine { elem: None, off }),
             }
         }
-        (ast_lines, initial_indent)
+        let body = (ast_lines, initial_indent?);
+        Some(WithInitialSpace { space, body })
     }
 
     fn translate_operator_block<'a, 's: 'a>(
@@ -622,12 +615,13 @@ fn analyze_import(import: &tree::Import) -> Option<ast::TreeType> {
 
 /// Helper for propagating spacing from children (Tree-style left offsets) to parents (Ast-style
 /// top-down spacing).
+#[derive(Debug, Default)]
 struct WithInitialSpace<T> {
     space: usize,
     body:  T,
 }
 
-impl<T: core::fmt::Debug> WithInitialSpace<T> {
+impl<T: Debug> WithInitialSpace<T> {
     /// Return the value, ignoring any initial space.
     fn without_space(self) -> T {
         self.body
