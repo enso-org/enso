@@ -224,10 +224,9 @@ impl Translate {
                 let func =
                     func.map(|func| Ast::from(ast::Annotation { name: format!("{at}{func}") }));
                 let arg = self.translate(expression.as_ref().unwrap());
-                debug_assert!(
-                    newlines.is_empty(),
-                    "Multiline expression must be handled in translate_lines."
-                );
+                if !newlines.is_empty() {
+                    error!("Multiline expression must be handled in translate_lines.");
+                }
                 let app = prefix(func, arg).expect_unspaced();
                 self.finish_ast(app, builder)
             }
@@ -279,16 +278,40 @@ impl Translate {
                 let annotation = self.visit_token(annotation).expect_unspaced();
                 let body = Some(Ast::from(ast::Annotation { name: format!("{at}{annotation}") }));
                 out.extend_one(WithInitialSpace { space, body });
-                out.extend(newlines.iter().map(|token| {
+                out.extend(newlines.iter().skip(1).map(|token| {
                     let (space, _) = self.visit_token(token).split();
                     let body = None;
                     WithInitialSpace { space, body }
                 }));
-                out.extend(
-                    expression.as_ref().map(|expression| self.translate(expression).map(Some)),
-                );
+                if let Some(expression) = expression {
+                    self.translate_lines(expression, out);
+                }
             }
-            tree::Variant::Annotated(_) => todo!(),
+            tree::Variant::Annotated(tree::Annotated {
+                token,
+                annotation,
+                argument,
+                newlines,
+                expression,
+            }) => {
+                let space = self.visit_space(&tree.span);
+                let at = self.visit_token(token).expect_unspaced();
+                let annotation = self.visit_token(annotation).expect_unspaced();
+                let body = Ast::from(ast::Annotation { name: format!("{at}{annotation}") });
+                let mut annotation = WithInitialSpace { space, body };
+                if let Some(argument) = argument {
+                    annotation = prefix(annotation, self.translate(argument)).map(Ast::from);
+                }
+                out.extend_one(annotation.map(Some));
+                out.extend(newlines.iter().skip(1).map(|token| {
+                    let (space, _) = self.visit_token(token).split();
+                    let body = None;
+                    WithInitialSpace { space, body }
+                }));
+                if let Some(expression) = expression {
+                    self.translate_lines(expression, out);
+                }
+            }
             tree::Variant::Documented(tree::Documented { documentation, expression }) => {
                 let space = self.visit_space(&tree.span);
                 let body = Some(self.translate_doc(documentation));
