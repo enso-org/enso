@@ -30,7 +30,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Errors import Column_Count_Mismatch, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Existing_Column, Missing_Column
+from Standard.Table.Errors import all
 
 import project.Data.Column.Column
 import project.Data.SQL_Statement.SQL_Statement
@@ -138,17 +138,25 @@ type Table
          output table will match the order in the columns list. If a column is
          matched by multiple selectors in reorder mode, it will be placed at
          the position of the first one matched.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+       ! Error Conditions
+
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
-
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error, unless `error_on_missing_columns` is set to
+           `False`, in which case the problem is reported according to the
+           `on_problems` setting.
        > Example
          Select columns by name.
 
@@ -169,15 +177,10 @@ type Table
 
              table.select_columns (Column_Selector.By_Index [-1, 0, 1]) reorder=True
 
-       > Example
-         Select columns with the same names as the ones provided.
-
-             table.select_columns (Column_Selector.By_Column [column1, column2])
-
        Icon: select_column
-    select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
-    select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.select_columns selector=columns reorder=reorder on_problems=on_problems
+    select_columns : Vector Text | Column_Selector -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
+        new_columns = self.columns_helper.select_columns selector=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
@@ -187,16 +190,25 @@ type Table
 
        Arguments:
        - columns: Column selection criteria or vector of column names to remove.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `False`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+       ! Error Conditions
+
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is reported according to the `on_problems`
+           setting, unless `error_on_missing_columns` is set to `True`, in which
+           case it is raised as an error.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           reported according to the `on_problems` setting, unless
+           `error_on_missing_columns` is set to `True`, in which case it is
+           raised as an error.
 
        > Example
          Remove columns with given names.
@@ -218,30 +230,35 @@ type Table
 
              table.remove_columns (Column_Selector.By_Index [-1, 0, 1])
 
-       > Example
-         Remove columns with the same names as the ones provided.
-
-             table.remove_columns (Column_Selector.By_Column [column1, column2])
-    remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
-    remove_columns self (columns = Column_Selector.By_Index [0]) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.remove_columns selector=columns on_problems=on_problems
+    remove_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    remove_columns self (columns = Column_Selector.By_Index [0]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
+        new_columns = self.columns_helper.remove_columns selector=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
 
        Arguments:
-       - columns: Criteria specifying which columns should be reordered and
-         specifying their order.
+       - columns: Column selection criteria or vector of column names which
+         should be reordered and specifying their order.
        - position: Specifies how to place the selected columns in relation to
          the remaining columns which were not matched by `columns` (if any).
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `False`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+       ! Error Conditions
+
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is reported according to the `on_problems`
+           setting, unless `error_on_missing_columns` is set to `True`, in which
+           case it is raised as an error.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           reported according to the `on_problems` setting, unless
+           `error_on_missing_columns` is set to `True`, in which case it is
+           raised as an error.
 
        > Example
          Move a column with a specified name to back.
@@ -268,13 +285,9 @@ type Table
 
              table.reorder_columns (Column_Selector.By_Index [0]) position=After_Other_Columns
 
-       > Example
-         Move the columns with names matching the provided columns to the front.
-
-             table.reorder_columns (Column_Selector.By_Column [column1, column2])
-    reorder_columns : Vector Text | Column_Selector -> Position -> Problem_Behavior -> Table
-    reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
+    reorder_columns : Vector Text | Column_Selector -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
+        new_columns = self.columns_helper.reorder_columns selector=columns position=position error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -310,19 +323,31 @@ type Table
        Arguments:
        - column_map: Mapping from old column names to new or a vector of new
          column names to apply by position.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If a column is matched by two selectors resulting in a different name
-           mapping, a `Ambiguous_Column_Rename`.
-         - If any of the new names are invalid, an
-           `Invalid_Output_Column_Names`.
-         - If any of the new names clash either with existing names or each
-           other, a `Duplicate_Output_Column_Names`.
+       ! Error Conditions
+
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error, unless `error_on_missing_columns` is set to
+           `False`, in which case the problem is reported according to the
+           `on_problems` setting.
+         - Other problems are reported according to the `on_problems` setting:
+             - If a column is matched by two selectors resulting in a different
+               name mapping, a `Ambiguous_Column_Rename`.
+             - If in `By_Position` mode and more names than columns are
+               provided, a `Too_Many_Column_Names_Provided`.
+             - If any of the new names are invalid, an
+               `Invalid_Output_Column_Names`.
+             - If any of the new names clash either with existing names or each
+               other, a `Duplicate_Output_Column_Names`.
 
        > Example
          Rename the first column to "FirstColumn"
@@ -343,14 +368,14 @@ type Table
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
               table.rename_columns (Column_Name_Mapping.By_Name (Map.from_vector [["name=(.*)", "key:$1"]]) Regex_Matcher.Value)
-    rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
-    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
+    rename_columns : Map | Vector Text | Column_Name_Mapping -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
+    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (error_on_missing_columns=True) (on_problems=Report_Warning) = case column_map of
         _ : Vector ->
-            self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
+            self.rename_columns (Column_Name_Mapping.By_Position column_map) error_on_missing_columns on_problems
         _ : Map ->
-            self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
+            self.rename_columns (Column_Name_Mapping.By_Name column_map) error_on_missing_columns on_problems
         _ ->
-            case Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map on_problems=on_problems of
+            case Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems of
                 new_names ->
                     new_columns = self.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
                     self.updated_columns new_columns
@@ -383,17 +408,15 @@ type Table
          of `Filter_Condition` or a predicate taking a cell value and returning
          a boolean value indicating whether the corresponding row should be kept
          or not.
-       - on_problems: is the behavior to take when the filter cannot be applied.
-         The following happens in warning mode:
-         If a column name cannot be found, a `No_Such_Column` warning is raised
-         and the original table is returned.
-         If a column index is invalid, an `Index_Out_Of_Bounds` warning is
-         raised and the original table is returned.
-         If the column is an invalid type for the filter, an
-         `Invalid_Value_Type` warning is raised and an empty table is returned.
-         In error mode, the first warning is returned as a dataflow error. In
-         ignore mode the same values are returned but without the warnings
-         attached.
+
+       ! Error Conditions
+
+         - If a column name cannot be found, a `No_Such_Column` dataflow error
+           is raised.
+         - If a column index is invalid, an `Index_Out_Of_Bounds` dataflow error
+           is raised.
+         - If the column is an invalid type for the filter, an
+           `Invalid_Value_Type` dataflow error is raised.
 
        > Example
          Get people older than 30.
@@ -415,8 +438,8 @@ type Table
 
              people.filter "age" (age -> (age%10 == 0))
     @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
-    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
-    filter self column filter=Filter_Condition.Is_True on_problems=Report_Warning = case column of
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
+    filter self column filter=Filter_Condition.Is_True = case column of
        _ : Column ->
            mask filter_column = case Helpers.check_integrity self filter_column of
                False ->
@@ -426,13 +449,11 @@ type Table
                    new_ctx = self.context.set_where_filters new_filters
                    self.updated_context new_ctx
            case filter of
-               _ : Filter_Condition ->
-                    on_problems.handle_errors fallback=self.with_no_rows <|
-                        mask (make_filter_column column filter)
+               _ : Filter_Condition -> mask (make_filter_column column filter)
                _ : Function -> Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
        _ ->
            table_at = self.at column
-           self.filter table_at filter on_problems
+           self.filter table_at filter
 
     ## ALIAS Filter Rows
 
@@ -442,15 +463,23 @@ type Table
        Arguments:
        - expression: The expression to evaluate to filter the rows.
 
+       ! Error Conditions
+
+         - If a column name cannot be found, a `No_Such_Column` dataflow error
+           is raised.
+         - If the provided expression is invalid, a corresponding
+           `Expression_Error` dataflow error is raised.
+         - If the expression returns a column that does not have a boolean type,
+           an `Invalid_Value_Type` dataflow error is raised.
+
        > Example
          Select people celebrating a jubilee.
 
              people.filter_by_expression "[age] % 10 == 0"
-    filter_by_expression : Text -> Problem_Behavior -> Table
-    filter_by_expression self expression on_problems=Report_Warning =
+    filter_by_expression : Text -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    filter_by_expression self expression =
         column = self.compute expression
-        if column.value_type != Value_Type.Boolean then Error.throw (Illegal_Argument.Error "Expression must evaluate to a boolean value.") else
-            self.filter column on_problems=on_problems
+        self.filter column Filter_Condition.Is_True
 
     ## PRIVATE
     with_no_rows self =
@@ -527,17 +556,35 @@ type Table
        Arguments:
        - column: The new column or expression to create column.
        - new_name: Optional new name for the column.
-       - set_mode: Specifies how to handle the new column.
-         If `Add_Or_Update`, the column will be added if not present, updated
-         if present. If `Add`, the column will be added if not present, error
-         if already present. If `Update`, the column will be updated if
-         present, error if missing.
+       - set_mode: Specifies the expected behaviour in regards to existing
+         column with the same name.
        - on_problems: Specifies how to handle problems with expression
          evaluation.
-    set : Text -> Column | Text -> Problem_Behavior -> Table ! Unsupported_Name | Existing_Column | Missing_Column
-    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+
+       ! Error Conditions
+
+         - In the Database backend, if the column name is not valid, an
+           `Unsupported_Name` dataflow error is raised.
+         - If the column name is already present and `set_mode` is `Add`, a
+           `Existing_Column` dataflow error is raised.
+         - If the column name is not present and `set_mode` is `Update`, a
+           `Missing_Column` dataflow error is raised.
+
+       > Example
+         Create a table where the values of the total stock in the inventory is
+         doubled.
+
+             import Standard.Examples
+
+             example_set =
+                 table = Examples.inventory_table
+                 double_inventory = table.at "total_stock" * 2
+                 table.set double_inventory new_name="total_stock"
+                 table.set "2 * [total_stock]" new_name="total_stock_expr"
+    set : Text -> Column | Text -> Table ! Unsupported_Name | Existing_Column | Missing_Column
+    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update =
         resolved = case column of
-            _ : Text -> self.compute column on_problems
+            _ : Text -> self.compute column
             _ -> column
         renamed = if new_name.is_nothing then resolved else resolved.rename new_name
 
@@ -558,20 +605,16 @@ type Table
 
        Arguments:
        - expression: The expression to evaluate.
-       - on_problems: Specifies how to handle problems with expression
-         evaluation.
-    compute : Text -> Problem_Behavior -> Column
-    compute self expression on_problems=Report_Warning =
+    compute : Text -> Column
+    compute self expression =
         get_column name = self.at name
         make_constant value =
             new_type = SQL_Type.approximate_type value
             other = SQL_Expression.Constant new_type value
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
         new_column = Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
-        if new_column.is_error then new_column else
-            warnings = Warning.get_all new_column
-            rename = new_column.rename (expression.replace "[^A-Za-z_0-9]" "_" matcher=Regex_Matcher.Value)
-            on_problems.attach_problems_after (Warning.set rename []) warnings
+        new_name = Expression.to_column_name expression
+        new_column.rename new_name
 
     ## UNSTABLE
 
@@ -607,15 +650,31 @@ type Table
        Arguments:
        - columns: The columns and order to sort the table.
        - text_ordering: The ordering method to use on text values.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
 
-       This method may raise the following errors:
-       - If a column in `columns` is not present in the input table, a
-         `Missing_Input_Columns`.
-       - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-       - If no valid columns are selected, a `No_Input_Columns_Selected`.
-       - If values do not implement an ordering, an `Incomparable_Values`.
+       ! Error Conditions
 
-       Missing (`Nothing`) values are sorted as less than any other object.
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error, unless `error_on_missing_columns` is set to
+           `False`, in which case the problem is reported according to the
+           `on_problems` setting.
+         - If no columns have been selected for ordering,
+           a `No_Input_Columns_Selected` is raised as dataflow error regardless
+           of any settings.
+         - If a column used for ordering contains values that cannot be
+           compared, an `Incomparable_Values` error is raised.
+
+       ? Missing Values
+
+         Missing (`Nothing`) values are sorted as less than any other object.
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
@@ -651,11 +710,11 @@ type Table
          Sort the table by columns whose names start with letter `a`.
 
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
-    order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Table ! Incomparable_Values
-    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default = Panic.handle_wrapped_dataflow_error <|
-        problem_builder = Problem_Builder.new
+    order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning = Panic.handle_wrapped_dataflow_error <|
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
-        problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
+        problem_builder.attach_problems_before on_problems <|
             new_order_descriptors = columns_for_ordering.map selected_column->
                 internal_column = selected_column.column
                 associated_selector = selected_column.associated_selector
@@ -685,16 +744,23 @@ type Table
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If no valid columns are selected, a `No_Input_Columns_Selected`.
+       ! Error Conditions
+
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`, is
+           reported as a dataflow error regardless of setting.
          - If floating points values are present in the distinct columns, a
-           `Floating_Point_Grouping` warning.
-    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
-    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default on_problems=Report_Warning =
-        key_columns = self.columns_helper.select_columns selector=columns reorder=True on_problems=Problem_Behavior.Report_Error . catch No_Output_Columns _->
+           `Floating_Point_Grouping` is reported according to the `on_problems`
+           setting.
+    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Grouping
+    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
+        key_columns = self.columns_helper.select_columns selector=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         problem_builder = Problem_Builder.new
         new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
@@ -993,29 +1059,56 @@ type Table
 
        Arguments:
        - columns: Vector of `Aggregate_Column` specifying the aggregated table.
+         Expressions can be used within the aggregate column to perform more
+         complicated calculations.
+       - error_on_missing_columns: Specifies if a missing columns in aggregates
+         should result in an error regardless of the `on_problems` settings.
+         Defaults to `False`, meaning that problematic aggregate will not be
+         included in the result and the problem reported according to the
+         `on_problems` setting.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column name is not in the input table, a `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+       ! Error Conditions
+
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
-         - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
-         - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
-         - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation`.
-         - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
-         - If there are more than 10 issues with a single column, an `Additional_Warnings`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           reported according to the `on_problems` setting, unless
+           `error_on_missing_columns` is set to `True`, in which case it is
+           raised as an error. Problems resolving `Group_By` columns are
+           reported as dataflow errors regardless of these settings, as a
+           missing grouping will completely change semantics of the query.
+         - If a column selector is given as a `Text` and it does not match any
+           columns in the input table nor is it a valid expression, an
+           `Invalid_Aggregate_Column` error is raised according to the
+           `on_problems` settings (unless `error_on_missing_columns` is set to
+           `True` in which case it will always be an error). Problems resolving
+           `Group_By` columns are reported as dataflow errors regardless of
+           these settings, as a missing grouping will completely change
+           semantics of the query.
+         - The following additional problems may be reported according to the
+           `on_problems` settings:
+           - If there are invalid column names in the output table,
+             a `Invalid_Output_Column_Names`.
+           - If there are duplicate column names in the output table,
+             a `Duplicate_Output_Column_Names`.
+           - If grouping on or computing the `Mode` on a floating point number,
+             a `Floating_Point_Grouping`.
+           - If an aggregation fails, an `Invalid_Aggregation`.
+           - If when concatenating values there is an quoted delimited,
+             an `Unquoted_Delimiter`
+           - If there are more than 10 issues with a single column,
+             an `Additional_Warnings`.
 
        > Example
          Group by the Key column, count the rows
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
-    aggregate : Vector Aggregate_Column -> Problem_Behavior -> Table
-    aggregate self columns (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
+    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Grouping | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
         on_problems.attach_problems_before validated.problems <|
             key_columns = validated.key_columns
             resolved_aggregates = validated.valid_columns
@@ -1053,16 +1146,27 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in columns is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If there are no columns to transpose, a `No_Input_Columns`.
-    transpose : Vector Text | Column_Selector -> Text -> Text -> Problem_Behavior -> Table
-    transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (on_problems = Report_Warning) =
+       ! Error Conditions
+
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error, unless `error_on_missing_columns` is set to
+           `False`, in which case the problem is reported according to the
+           `on_problems` setting.
+         - If any column names in the new table are clashing, a
+           `Duplicate_Output_Column_Names` is reported according to the
+           `on_problems` setting.
+    transpose : Vector Text | Column_Selector -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range | Duplicate_Output_Column_Names
+    transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
-        _ = [id_fields, name_field, value_field, on_problems]
+        _ = [id_fields, name_field, value_field, error_on_missing_columns, on_problems]
         msg = "Transposing columns is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
@@ -1081,16 +1185,25 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If a column in the input is not in the input table, a
-           `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If grouping on, using as the column name, or computing the `Mode` on
-           a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation`.
-         - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
-         - If there are more than 10 issues with a single column, an `Additional_Warnings`.
-    cross_tab : Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table
+       ! Error Conditions
+
+         - If a column in `group_by` or `name_field` is not in the input table,
+           a `Missing_Input_Columns` is raised as a dataflow error.
+         - If a column index in `group_by`, `name_field` or `values` is out of
+           range, a `Column_Indexes_Out_Of_Range` is raised as a dataflow error.
+         - If a column selector in `values` given as a `Text` and it does not
+           match any columns in the input table nor is it a valid expression, an
+           `Invalid_Aggregate_Column` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If grouping on, using as the column name, or computing the `Mode` on
+             a floating point number, a `Floating_Point_Grouping`.
+           - If an aggregation fails, an `Invalid_Aggregation`.
+           - If when concatenating values there is an quoted delimited,
+             an `Unquoted_Delimiter`
+           - If there are more than 10 issues with a single column,
+             an `Additional_Warnings`.
+    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Grouping | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.

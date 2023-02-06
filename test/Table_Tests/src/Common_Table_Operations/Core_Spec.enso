@@ -4,6 +4,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Set_Mode
 from Standard.Table.Errors import all
+import Standard.Table.Data.Expression.Expression_Error
 
 from Standard.Test import Test
 import Standard.Test.Extensions
@@ -117,6 +118,11 @@ spec setup =
             t4.at "X" . to_vector . should_equal [1001, 1002, 1003]
             t4.at "Y" . to_vector . should_equal [100, 200, 300]
             t4.at "Z" . to_vector . should_equal [11, 12, 13]
+
+        Test.specify "should gracefully handle expression failures" <|
+            t1 = table_builder [["X", [1,2,3]]]
+            t1.set "[unknown] + 10" new_name="Z" . should_fail_with No_Such_Column
+            t1.set "[[[[" . should_fail_with Expression_Error.Syntax_Error
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
