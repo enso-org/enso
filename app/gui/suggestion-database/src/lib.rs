@@ -254,11 +254,6 @@ impl HierarchyIndex {
 #[fail(display = "The suggestion with id {} has not been found in the database.", _0)]
 pub struct NoSuchEntry(pub SuggestionId);
 
-#[allow(missing_docs)]
-#[derive(Debug, Clone, Eq, Fail, PartialEq)]
-#[fail(display = "The suggestion with method pointer {} has not been found in the database.", _0)]
-pub struct NoSuchMethodPointer(pub language_server::MethodPointer);
-
 
 
 // ====================
@@ -365,14 +360,11 @@ impl SuggestionDatabase {
     pub fn lookup_by_method_pointer(
         &self,
         method_pointer: &language_server::MethodPointer,
-    ) -> FallibleResult<Rc<Entry>> {
-        if let Some(id) = self.method_pointer_to_id_map.borrow().get(method_pointer) {
-            let entry = self.entries.borrow().get(id).cloned().ok_or(NoSuchEntry(*id))?;
-            Ok(entry)
-        } else {
-            let err = Err(NoSuchMethodPointer(method_pointer.clone()))?;
-            Ok(err)
-        }
+    ) -> Option<Rc<Entry>> {
+        self.method_pointer_to_id_map
+            .borrow()
+            .get(method_pointer)
+            .and_then(|id| self.entries.borrow().get(id).cloned())
     }
 
     /// Apply the update event to the database.
@@ -750,8 +742,8 @@ pub mod test {
         method_pointer: &language_server::MethodPointer,
     ) {
         let lookup = db.lookup_by_method_pointer(method_pointer);
-        let lookup_method_pointer: FallibleResult<language_server::MethodPointer> =
-            lookup.unwrap().deref().try_into();
+        let lookup_method_pointer: Option<language_server::MethodPointer> =
+            lookup.and_then(|method_pointer| method_pointer.deref().try_into().ok());
         assert_eq!(lookup_method_pointer.unwrap(), method_pointer.clone());
     }
 
@@ -761,7 +753,7 @@ pub mod test {
         db: &SuggestionDatabase,
         method_pointer: &language_server::MethodPointer,
     ) {
-        let lookup = db.lookup_by_method_pointer(method_pointer).ok();
+        let lookup = db.lookup_by_method_pointer(method_pointer);
         assert_eq!(lookup, None);
     }
 

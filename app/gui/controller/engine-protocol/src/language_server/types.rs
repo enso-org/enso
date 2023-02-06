@@ -726,12 +726,6 @@ pub struct MethodPointer {
     pub name:            String,
 }
 
-impl Display for MethodPointer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}::{}::{}", self.module, self.defined_on_type, self.name)
-    }
-}
-
 /// Used for entering a method. The first item on the execution context stack should always be
 /// an `ExplicitCall`.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
