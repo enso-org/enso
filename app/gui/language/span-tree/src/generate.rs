@@ -20,7 +20,6 @@ use ast::RawSpanTree;
 use std::collections::VecDeque;
 
 
-
 // ==============
 // === Export ===
 // ==============
@@ -503,42 +502,48 @@ fn generate_expected_arguments<T: Payload>(
 // =========================
 
 fn tree_generate_node<T: Payload>(
-    tree: &ast::Tree,
+    tree: &ast::Tree<Ast>,
     kind: impl Into<node::Kind>,
     context: &impl Context,
     ast_id: Option<Id>,
 ) -> FallibleResult<Node<T>> {
     let kind = kind.into();
-    let mut offset = ByteDiff::from(0);
     let mut children = vec![];
-    for (index, raw_span_info) in tree.span_info.iter().enumerate() {
-        match raw_span_info {
-            RawSpanTree::Space(n) => offset += ByteDiff::from(n),
-            RawSpanTree::Token(s) => {
-                let kind = node::Kind::Token;
-                let size = ByteDiff::from(s.len());
-                let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
-                let node = Node { kind, size, ..default() };
-                children.push(node::Child { node, offset, ast_crumbs });
-                offset += size;
-            }
-            RawSpanTree::Child(ast) => {
-                let kind = node::Kind::Argument(node::Argument {
-                    removable: false,
-                    name: None,
-                    tp: None,
-                    call_id: None,
-                    tag_values: vec![],
-                });
-                let node = ast.generate_node(kind, context)?;
-                let child_size = node.size;
-                let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
-                children.push(node::Child { node, offset, ast_crumbs });
-                offset += child_size;
+    let size;
+    if let Some(leaf_info) = &tree.leaf_info {
+        size = ByteDiff::from(leaf_info.len());
+    } else {
+        let mut offset = ByteDiff::from(0);
+        for (index, raw_span_info) in tree.span_info.iter().enumerate() {
+            match raw_span_info {
+                RawSpanTree::Space(ast::RawSpanTreeSpace { space }) =>
+                    offset += ByteDiff::from(space),
+                RawSpanTree::Token(ast::RawSpanTreeToken { token }) => {
+                    let kind = node::Kind::Token;
+                    let size = ByteDiff::from(token.len());
+                    let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
+                    let node = Node { kind, size, ..default() };
+                    children.push(node::Child { node, offset, ast_crumbs });
+                    offset += size;
+                }
+                RawSpanTree::Child(ast::RawSpanTreeChild { node }) => {
+                    let kind = node::Kind::Argument(node::Argument {
+                        removable:  false,
+                        name:       None,
+                        tp:         None,
+                        call_id:    None,
+                        tag_values: vec![],
+                    });
+                    let node = node.generate_node(kind, context)?;
+                    let child_size = node.size;
+                    let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
+                    children.push(node::Child { node, offset, ast_crumbs });
+                    offset += child_size;
+                }
             }
         }
+        size = offset;
     }
-    let size = offset;
     let payload = default();
     Ok(Node { kind, size, children, ast_id, payload })
 }

@@ -152,7 +152,7 @@ impl Nodes {
         removed_views
     }
 
-    /// Remove node represented by given view (if any) and return it's AST ID.
+    /// Remove node represented by given view (if any) and return its AST ID.
     pub fn remove_node(&mut self, node: ViewNodeId) -> Option<AstNodeId> {
         let ast_id = self.ast_node_by_view_id.remove(&node)?;
         self.nodes.remove(&ast_id);

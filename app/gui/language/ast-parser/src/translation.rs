@@ -1,12 +1,17 @@
+use enso_prelude::*;
+use enso_profiler::prelude::*;
+
 use ast::Ast;
 use enso_parser::syntax;
 use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
-use enso_prelude::*;
 use enso_profiler as profiler;
-use enso_profiler::prelude::*;
 use std::collections::BTreeMap;
+
+
+
+const DEBUG: bool = false;
 
 
 
@@ -22,7 +27,15 @@ pub fn tree_to_ast(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> As
         tree::Variant::BodyBlock(block) => context.translate_module(block),
         _ => panic!(),
     };
-    debug_assert_eq!(ast.repr(), tree.code());
+    if DEBUG {
+        debug_assert_eq!(ast.repr(), tree.code());
+        if !context.ids.is_empty() || !context.ids_missed.is_empty() {
+            warn!(
+                "ids not matched: {:?}\nids missed: {:?}\nids assigned: {:?}",
+                &context.ids, &context.ids_missed, &context.ids_assigned
+            );
+        }
+    }
     ast
 }
 
@@ -31,9 +44,12 @@ pub fn tree_to_ast(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> As
 
 #[derive(Debug, Default)]
 struct Translate {
-    offset:      usize,
-    ids:         BTreeMap<(usize, usize), uuid::Uuid>,
-    space_after: BTreeMap<usize, usize>,
+    offset:       usize,
+    ids:          BTreeMap<(usize, usize), uuid::Uuid>,
+    space_after:  BTreeMap<usize, usize>,
+    // Debugging
+    ids_assigned: Vec<((usize, usize), uuid::Uuid)>,
+    ids_missed:   Vec<(usize, usize)>,
 }
 
 impl Translate {
@@ -76,7 +92,13 @@ impl Translate {
         let AstBuilder { start } = builder;
         let start = start + self.space_after.get(&start).copied().unwrap_or_default();
         let end = self.offset;
-        let id = self.ids.get(&(start, end)).cloned();
+        let id = self.ids.remove(&(start, end));
+        if DEBUG {
+            match id {
+                Some(id) => self.ids_assigned.push(((start, end), id)),
+                None => self.ids_missed.push((start, end)),
+            }
+        }
         Ast::new(shape, id)
     }
 }
@@ -90,13 +112,12 @@ impl Translate {
                 let block = self.translate_block(&block.statements).unwrap().expect_unspaced();
                 self.finish_ast(block, builder)
             }
-            tree::Variant::Ident(tree::Ident { token }) if token.is_type => {
+            tree::Variant::Ident(tree::Ident { token }) => {
                 let name = self.visit_token(token).expect_unspaced();
-                self.finish_ast(ast::Cons { name }, builder)
-            }
-            tree::Variant::Ident(ident) => {
-                let name = self.visit_token(&ident.token).expect_unspaced();
-                self.finish_ast(ast::Var { name }, builder)
+                match token.is_type {
+                    true => self.finish_ast(ast::Cons { name }, builder),
+                    false => self.finish_ast(ast::Var { name }, builder),
+                }
             }
             tree::Variant::Number(tree::Number { base, integer, .. }) => {
                 let base = base.as_ref().map(|base| self.visit_token(base).expect_unspaced());
@@ -117,7 +138,7 @@ impl Translate {
             {
                 let span_info = self.translate_items(tree);
                 let type_info = ast::TreeType::Lambda;
-                self.finish_ast(ast::Tree { span_info, type_info }, builder)
+                self.finish_ast(ast::Tree { span_info, type_info, leaf_info: None }, builder)
             }
             tree::Variant::OprApp(tree::OprApp { lhs, opr, rhs }) => {
                 let opr_app = self.translate_opr_app(lhs.as_ref(), opr, rhs.as_ref());
@@ -217,18 +238,25 @@ impl Translate {
             tree::Variant::Import(import) => {
                 let span_info = self.translate_items(tree);
                 let type_info = analyze_import(import).unwrap_or_default();
-                self.finish_ast(ast::Tree { span_info, type_info }, builder)
+                self.finish_ast(ast::Tree { span_info, type_info, leaf_info: None }, builder)
             }
             tree::Variant::CaseOf(_) => {
                 // TODO: Analyzed-representation to support alias analysis.
                 let span_info = self.translate_items(tree);
                 let type_info = ast::TreeType::Expression;
-                self.finish_ast(ast::Tree { span_info, type_info }, builder)
+                self.finish_ast(ast::Tree { span_info, type_info, leaf_info: None }, builder)
+            }
+            tree::Variant::TextLiteral(_) => {
+                self.translate_items(tree);
+                let type_info = ast::TreeType::Expression;
+                let span_info = vec![];
+                let leaf_info = Some(tree.trimmed_code());
+                self.finish_ast(ast::Tree { span_info, type_info, leaf_info }, builder)
             }
             _ => {
                 let span_info = self.translate_items(tree);
                 let type_info = ast::TreeType::Expression;
-                self.finish_ast(ast::Tree { span_info, type_info }, builder)
+                self.finish_ast(ast::Tree { span_info, type_info, leaf_info: None }, builder)
             }
         };
         WithInitialSpace { space, body }
@@ -290,13 +318,19 @@ impl Translate {
                 }
             })
         }
+        // One newline is implicit.
+        let mut skipped_one = false;
         for newline in &documentation.newlines {
-            span_info.token(self.visit_token(newline));
+            let token = self.visit_token(newline);
+            if skipped_one {
+                span_info.token(token);
+            }
+            skipped_one = true;
         }
         let rendered = documentation.content().into();
         let type_info = ast::TreeType::Documentation { rendered };
         let span_info = span_info.build().expect_unspaced();
-        Ast::from(ast::Tree { span_info, type_info })
+        Ast::from(ast::Tree { span_info, type_info, leaf_info: None })
     }
 
     fn translate_function(&mut self, function: &tree::Function) -> ast::Shape<Ast> {
@@ -338,7 +372,9 @@ impl Translate {
     ) -> WithInitialSpace<Ast> {
         let builder = self.start_ast();
         let lhs = self.translate(lhs);
-        let opr = self.visit_token(opr).map(|name| Ast::from(ast::Opr { name }));
+        let opr_builder = self.start_ast();
+        let opr = self.visit_token(opr).map(|name| ast::Shape::from(ast::Opr { name }));
+        let opr = opr.map(|opr| self.finish_ast(opr, opr_builder));
         let rhs = self.translate(rhs);
         infix(lhs, opr, rhs).map(|opr_app| self.finish_ast(opr_app, builder))
     }
@@ -346,16 +382,22 @@ impl Translate {
     fn translate_opr(&mut self, opr: &tree::OperatorOrError) -> WithInitialSpace<Ast> {
         let opr_builder = self.start_ast();
         let opr = match opr {
-            Ok(name) => self.visit_token(name).map(|name| ast::Shape::from(ast::Opr { name })),
+            Ok(name) => {
+                let token = self.visit_token(name);
+                match name.code.repr.ends_with('=') {
+                    true => token.map(|name| ast::Shape::from(ast::Mod { name })),
+                    false => token.map(|name| ast::Shape::from(ast::Opr { name })),
+                }
+            }
             Err(names) => {
                 let mut span_info = RawSpanTreeBuilder::new();
                 for token in &names.operators {
                     span_info.token(self.visit_token(token));
                 }
                 let type_info = ast::TreeType::Expression;
-                span_info
-                    .build()
-                    .map(|span_info| ast::Shape::from(ast::Tree { span_info, type_info }))
+                span_info.build().map(|span_info| {
+                    ast::Shape::from(ast::Tree { span_info, type_info, leaf_info: None })
+                })
             }
         };
         opr.map(|opr| self.finish_ast(opr, opr_builder))
@@ -380,9 +422,10 @@ impl Translate {
     }
 
     fn translate_module(&mut self, block: &tree::BodyBlock) -> Ast {
+        let builder = self.start_ast();
         let (lines, _) =
             self.translate_block_raw(&block.statements).unwrap_or_default().expect_unspaced();
-        Ast::from(ast::Module { lines })
+        self.finish_ast(ast::Module { lines }, builder)
     }
 
     fn translate_block<'a, 's: 'a>(
@@ -534,7 +577,7 @@ impl Translate {
     }
 
     /// Analyze a [`Tree`] and produce a representation used by the graph editor.
-    fn translate_items(&mut self, tree: &syntax::tree::Tree<'_>) -> Vec<ast::RawSpanTree> {
+    fn translate_items(&mut self, tree: &syntax::tree::Tree<'_>) -> Vec<ast::RawSpanTree<Ast>> {
         let mut span_info = RawSpanTreeBuilder::new();
         tree.visit_items(|item| match item {
             syntax::item::Ref::Token(token) => span_info.token(self.visit_token_ref(token)),
@@ -549,13 +592,13 @@ fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<Stri
     let (close_space, close) = close.split();
     let min_elements = 3; // There are always at least 3 elements: open, close, and body
     let mut span_info = Vec::with_capacity(min_elements);
-    span_info.push(ast::RawSpanTree::Token(open));
+    span_info.push(ast::RawSpanTree::Token(ast::RawSpanTreeToken { token: open }));
     span_info.extend(ast::RawSpanTree::space(body_space));
-    span_info.push(ast::RawSpanTree::Child(body));
+    span_info.push(ast::RawSpanTree::Child(ast::RawSpanTreeChild { node: body }));
     span_info.extend(ast::RawSpanTree::space(close_space));
-    span_info.push(ast::RawSpanTree::Token(close));
+    span_info.push(ast::RawSpanTree::Token(ast::RawSpanTreeToken { token: close }));
     let type_info = ast::TreeType::Expression;
-    Ast::from(ast::Tree { span_info, type_info })
+    Ast::from(ast::Tree { span_info, type_info, leaf_info: None })
 }
 
 
@@ -720,7 +763,7 @@ fn infix(
 #[derive(Debug, Default)]
 pub struct RawSpanTreeBuilder {
     space: Option<usize>,
-    spans: Vec<ast::RawSpanTree>,
+    spans: Vec<ast::RawSpanTree<Ast>>,
 }
 
 impl RawSpanTreeBuilder {
@@ -735,20 +778,20 @@ impl RawSpanTreeBuilder {
         } else {
             self.spans.extend(ast::RawSpanTree::space(space));
         }
-        self.spans.push(ast::RawSpanTree::Token(value));
+        self.spans.push(ast::RawSpanTree::Token(ast::RawSpanTreeToken { token: value }));
     }
 
-    fn child(&mut self, value: WithInitialSpace<Ast>) {
-        let (space, value) = value.split();
+    fn child(&mut self, node: WithInitialSpace<Ast>) {
+        let (space, node) = node.split();
         if self.space.is_none() {
             self.space = Some(space);
         } else {
             self.spans.extend(ast::RawSpanTree::space(space));
         }
-        self.spans.push(ast::RawSpanTree::Child(value));
+        self.spans.push(ast::RawSpanTree::Child(ast::RawSpanTreeChild { node }));
     }
 
-    fn build(self) -> WithInitialSpace<Vec<ast::RawSpanTree>> {
+    fn build(self) -> WithInitialSpace<Vec<ast::RawSpanTree<Ast>>> {
         let space = self.space.unwrap_or_default();
         let body = self.spans;
         WithInitialSpace { space, body }

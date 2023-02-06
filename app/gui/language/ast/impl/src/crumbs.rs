@@ -603,7 +603,7 @@ where
 // === Tree crumbs ===
 // ===================
 
-impl Crumbable for crate::Tree {
+impl Crumbable for crate::Tree<Ast> {
     type Crumb = TreeCrumb;
 
     fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
@@ -612,7 +612,7 @@ impl Crumbable for crate::Tree {
             .get(crumb.index)
             .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?
         {
-            RawSpanTree::Child(a) => Ok(a),
+            RawSpanTree::Child(crate::RawSpanTreeChild { node }) => Ok(node),
             _ => Err(MismatchedCrumbType.into()),
         }
     }
@@ -623,7 +623,7 @@ impl Crumbable for crate::Tree {
             .span_info
             .get_mut(crumb.index)
             .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?;
-        *child = RawSpanTree::Child(new_ast);
+        *child = RawSpanTree::Child(crate::RawSpanTreeChild { node: new_ast });
         Ok(result)
     }
 

@@ -19,7 +19,6 @@ use enso_text::unit::*;
 use uuid::Uuid;
 
 
-
 // ==============
 // === Export ===
 // ==============
@@ -419,8 +418,9 @@ pub enum Shape<T> {
         lines:       Vec<BlockLine<Option<T>>>,
     },
     Tree {
-        span_info: Vec<RawSpanTree>,
+        span_info: Vec<RawSpanTree<T>>,
         type_info: TreeType,
+        leaf_info: Option<String>,
     },
 }
 
@@ -453,7 +453,7 @@ macro_rules! with_shape_variants {
           [Number]
           [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
           [Module Ast] [Block Ast]
-          [Tree]
+          [Tree Ast]
         }
     };
 }
@@ -463,28 +463,18 @@ macro_rules! with_shape_variants {
 
 /// Represents the syntax tree, and its correspondence to the source text; with context information
 /// provided by an evaluator, this can be used to produce a complete [`SpanTree`].
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum RawSpanTree {
-    Space(usize),
-    Token(String),
-    Child(Ast),
+#[ast]
+pub enum RawSpanTree<T> {
+    Space { space: usize },
+    Token { token: String },
+    Child { node: T },
 }
 
-impl RawSpanTree {
+impl<T> RawSpanTree<T> {
     pub fn space(space: usize) -> Option<Self> {
         match space {
             0 => None,
-            space => Some(RawSpanTree::Space(space)),
-        }
-    }
-}
-
-impl<'a> From<&'a RawSpanTree> for Token<'a> {
-    fn from(value: &'a RawSpanTree) -> Self {
-        match value {
-            RawSpanTree::Space(n) => Token::Off(*n),
-            RawSpanTree::Token(s) => Token::Str(s),
-            RawSpanTree::Child(a) => Token::Ast(a),
+            space => Some(RawSpanTree::Space(RawSpanTreeSpace { space })),
         }
     }
 }
@@ -1132,19 +1122,18 @@ impl Ast {
     /// Creates a raw text literal that evaluates to the given string.
     pub fn raw_text_literal(value: impl Str) -> Ast {
         let value: &str = value.as_ref();
-        let mut escaped = String::with_capacity(value.len());
+        let mut escaped = String::with_capacity(value.len() + 2);
+        escaped.push('\'');
         for char in value.chars() {
             match char {
                 '\'' => escaped.push_str("\'"),
                 char => escaped.push(char),
             }
         }
-        let span_info = vec![
-            RawSpanTree::Token("'".into()),
-            RawSpanTree::Token(escaped),
-            RawSpanTree::Token("'".into()),
-        ];
-        Self::from(Tree { span_info, type_info: TreeType::Expression })
+        escaped.push('\'');
+        let span_info = default();
+        let leaf_info = Some(escaped);
+        Self::from(Tree { span_info, type_info: TreeType::Expression, leaf_info })
     }
 }
 

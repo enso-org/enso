@@ -1,3 +1,4 @@
+// === Features ===
 #![feature(extend_one)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
@@ -8,10 +9,12 @@
 #![allow(clippy::let_and_return)]
 
 use enso_prelude::*;
-use enso_profiler as profiler;
 use enso_profiler::prelude::*;
 
 use ast::prelude::FallibleResult;
+use enso_profiler as profiler;
+
+
 
 mod translation;
 

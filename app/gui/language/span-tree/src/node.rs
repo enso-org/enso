@@ -419,7 +419,7 @@ impl<'a, T: Payload> Ref<'a, T> {
                     !ch.ast_crumbs.is_empty() && ast_crumbs.starts_with(&ch.ast_crumbs)
                 })
                 .or_else(|| {
-                    // We try to find appriopriate node second time, this time expecting case of
+                    // We try to find appropriate node second time, this time expecting case of
                     // "prefix-like" nodes with `InsertionPoint(ExpectedArgument(_))`. See also docs
                     // for `generate::generate_expected_argument`.
                     // TODO[ao]: As implementation of SpanTree will extend there may be some day
@@ -435,7 +435,7 @@ impl<'a, T: Payload> Ref<'a, T> {
         }
     }
 
-    /// Get the node which exactly matches the given Span. If there many such node's, it pick first
+    /// Get the node which exactly matches the given Span. If there are many such nodes, pick first
     /// found by DFS.
     pub fn find_by_span(self, span: &text::Range<Byte>) -> Option<Ref<'a, T>> {
         if self.span() == *span {

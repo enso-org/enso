@@ -64,12 +64,14 @@ pub fn parse(input: &str) -> Option<(Result, &str)> {
 
 /// Parse just the metadata section.
 pub fn parse_metadata(input: &str) -> Option<Vec<((usize, usize), Uuid)>> {
-    Some(MetadataFormat::from_str(input)
-        .ok()?
-        .id_map
-        .into_iter()
-        .map(|(location, id)| ((location.index.value, location.size.value), id))
-        .collect())
+    Some(
+        MetadataFormat::from_str(input)
+            .ok()?
+            .id_map
+            .into_iter()
+            .map(|(location, id)| ((location.index.value, location.size.value), id))
+            .collect(),
+    )
 }
 
 /// Result of parsing metadata.

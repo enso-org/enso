@@ -150,10 +150,20 @@ impl<T: HasTokens> HasTokens for Block<T> {
 // === Tree ===
 // ============
 
-impl HasTokens for Tree {
+impl<T: HasTokens> HasTokens for Tree<T> {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        for dust in &self.span_info {
-            Token::from(dust).feed_to(consumer)
+        if let Some(str) = &self.leaf_info {
+            Token::Str(str).feed_to(consumer)
+        } else {
+            for element in &self.span_info {
+                match element {
+                    RawSpanTree::Space(RawSpanTreeSpace { space }) =>
+                        Token::Off(*space).feed_to(consumer),
+                    RawSpanTree::Token(RawSpanTreeToken { token }) =>
+                        Token::Str(token).feed_to(consumer),
+                    RawSpanTree::Child(RawSpanTreeChild { node }) => node.feed_to(consumer),
+                }
+            }
         }
     }
 }

@@ -1347,6 +1347,12 @@ impl<'s> Tree<'s> {
         self.visit_item(&mut visitor);
         visitor.code
     }
+
+    pub fn trimmed_code(&self) -> String {
+        let mut visitor = CodePrinterVisitor::default();
+        self.variant.visit_item(&mut visitor);
+        visitor.code
+    }
 }
 
 
