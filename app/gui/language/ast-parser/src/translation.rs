@@ -248,6 +248,11 @@ impl Translate {
                 let ast = ast::Tree::text(tree.trimmed_code());
                 self.finish_ast(ast, builder)
             }
+            tree::Variant::Group(_) => {
+                let span_info = self.translate_items(tree);
+                let ast = ast::Tree::group(span_info);
+                self.finish_ast(ast, builder)
+            }
             _ => {
                 let ast = ast::Tree::expression(self.translate_items(tree));
                 self.finish_ast(ast, builder)

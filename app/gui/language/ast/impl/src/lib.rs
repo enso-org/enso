@@ -475,6 +475,10 @@ impl<T> Tree<T> {
         Tree::expression(span_info).with_type_info(TreeType::Lambda)
     }
 
+    pub fn group(span_info: Vec<RawSpanTree<T>>) -> Self {
+        Tree::expression(span_info).with_type_info(TreeType::Group)
+    }
+
     pub fn text(leaf_info: String) -> Self {
         Tree::leaf(leaf_info).with_descriptive_name("text")
     }
@@ -482,16 +486,22 @@ impl<T> Tree<T> {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum TreeType {
+    /// A normal expression.
     #[default]
     Expression,
+    /// A documentation-comment.
     Documentation {
         rendered: ImString,
     },
+    /// An import declaration.
     Import {
         module:   Vec<ImString>,
         imported: ImportedNames,
     },
+    /// A lambda.
     Lambda,
+    /// A parenthesized expression.
+    Group,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

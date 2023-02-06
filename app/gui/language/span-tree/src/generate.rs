@@ -505,7 +505,10 @@ fn tree_generate_node<T: Payload>(
     context: &impl Context,
     ast_id: Option<Id>,
 ) -> FallibleResult<Node<T>> {
-    let kind = kind.into();
+    let kind = match &tree.type_info {
+        ast::TreeType::Group => node::Kind::Group,
+        _ => kind.into(),
+    };
     let mut children = vec![];
     let size;
     if let Some(leaf_info) = &tree.leaf_info {
