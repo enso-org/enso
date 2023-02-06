@@ -804,9 +804,10 @@ impl Area {
 
             // === Cursor setup ===
 
-            model.label.set_cursor_at_mouse_position <+ frp.output.on_background_press;
-
-            eval frp.input.set_editing ([model](edit_mode) {
+            let edit_mode = frp.input.set_editing.clone_ref();
+            let on_background_press = frp.output.on_background_press.clone_ref();
+            model.label.set_cursor_at_mouse_position <+ on_background_press.gate(&edit_mode);
+            eval edit_mode([model](edit_mode) {
                 model.label.deprecated_set_focus(edit_mode);
                 if *edit_mode {
                     // Reset the code to hide non-connected port names.
