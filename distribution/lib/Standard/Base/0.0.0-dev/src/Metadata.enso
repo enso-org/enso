@@ -28,12 +28,12 @@ type Choice
     ## Describes an entry in a Single_Choice or Multiple_Choice widget.
 
        Fields:
-       - value: The code to insert for the entry.
-       - label: The text to display for the entry. By default, the `value` is used.
+       - label: The text to display for the entry.
+       - value: The code to insert for the entry. By default, the `label` is used.
        - parameters: A list of parameters for the arguments for the `value`.
          This provides the structure needed for nested widgets.
        - icon: The icon to display for the entry. By default, no icon is used.
-    Option value:Text label:Text=value parameters:(Vector (Pair Text Widget))=[] icon:Text=""
+    Option label:Text value:Text=label parameters:(Vector (Pair Text Widget))=[] icon:Text=""
 
 type Widget
     ## Describes a single value widget (dropdown).

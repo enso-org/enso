@@ -16,7 +16,7 @@ make_column_name_selector table display=Display.Always =
    Selector for type argument on `Column.parse`.
 parse_type_selector : Single_Choice
 parse_type_selector =
-    choice = ['Auto','Integer','Decimal','Date','Date_Time','Time_Of_Day','Boolean']
+    choice = ['Auto', 'Integer', 'Decimal', 'Date', 'Date_Time', 'Time_Of_Day', 'Boolean']
     Single_Choice display=Display.Always values=(choice.map n->(Option n))
 
 ## PRIVATE
@@ -24,6 +24,6 @@ parse_type_selector =
 join_kind_selector : Single_Choice
 join_kind_selector =
     choice = ['Join_Kind.Inner','Join_Kind.Left_Outer','Join_Kind.Right_Outer','Join_Kind.Full','Join_Kind.Left_Exclusive','Join_Kind.Right_Exclusive']
-    names = ['Inner','Left Outer','Right Outer','Full','Left Exclusive','Right Exclusive']
-    options = choice.zip names . map pair-> Option pair.first pair.second
+    names = ['Inner', 'Left Outer', 'Right Outer', 'Full', 'Left Exclusive', 'Right Exclusive']
+    options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options
