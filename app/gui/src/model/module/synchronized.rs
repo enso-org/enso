@@ -716,7 +716,7 @@ pub mod test {
                 Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
             debug!("Updated content:\n===\n{new_content}\n===");
             self.current_ls_content.set(new_content);
-            self.current_ls_version.set(new_version.clone());
+            self.current_ls_version.set(new_version);
         }
     }
 
