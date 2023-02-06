@@ -11,7 +11,8 @@ use std::collections::BTreeMap;
 
 
 
-const DEBUG: bool = false;
+/// Enable extra log messages and assertions.
+const DEBUG: bool = true;
 
 
 

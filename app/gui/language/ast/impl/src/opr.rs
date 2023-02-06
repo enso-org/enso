@@ -327,7 +327,7 @@ pub struct Chain {
     /// Subsequent operands applied to the `target`.
     pub args:     Vec<ChainElement>,
     /// Operator AST. Generally all operators in the chain should be the same (except for id).
-    /// It is not specified which exactly operator's in the chain this AST belongs to.
+    /// It is not specified exactly which operators in the chain this AST belongs to.
     pub operator: known::Opr,
 }
 

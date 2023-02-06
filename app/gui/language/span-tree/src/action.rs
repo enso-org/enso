@@ -261,11 +261,12 @@ mod test {
                     panic!("Invalid case {:?}: no node with span {:?}", self, self.span)
                 });
                 let arg = Ast::new(ast::Var { name: "foo".to_string() }, None);
+                let case = format!("{self:?}");
                 let result = match &self.action {
                     Set => node.set(&ast, arg),
                     Erase => node.erase(&ast),
                 }
-                .unwrap();
+                .expect(&case);
                 let result_repr = result.repr();
                 assert_eq!(result_repr, self.expected, "Wrong answer for case {self:?}");
                 assert_eq!(ast_id, result.id, "Changed AST ID in case {self:?}");

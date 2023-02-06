@@ -722,8 +722,7 @@ mod test {
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
-
-        let expected = TreeBuilder::new(5)
+        let expected = TreeBuilder::new(7)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
             .add_leaf(1, 2, node::Kind::operation(), InfixCrumb::Operator)
@@ -736,7 +735,6 @@ mod test {
             .add_empty_child(4, BeforeTarget)
             .done()
             .build();
-
         assert_eq!(expected, tree)
     }
 
@@ -747,7 +745,6 @@ mod test {
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
-
         let expected = TreeBuilder::new(5)
             .add_empty_child(0, Append)
             .add_leaf(0, 2, node::Kind::operation(), SectionRightCrumb::Opr)
@@ -758,7 +755,6 @@ mod test {
             .add_empty_child(2, BeforeTarget)
             .done()
             .build();
-
         assert_eq!(expected, tree);
     }
 
