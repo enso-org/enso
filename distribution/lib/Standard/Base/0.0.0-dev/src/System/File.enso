@@ -25,7 +25,7 @@ import project.System.File.File_Permissions.File_Permissions
 
 from project.Data.Boolean import Boolean, True, False
 
-from project.Metadata.Widget import Single_Choice
+import project.Metadata.Widget
 from project.Metadata.Choice import Option
 import project.Metadata.Display
 
@@ -932,4 +932,4 @@ get_child_widget file =
         if file.is_directory.not then Nothing else
             children = file.list
             options = children.map c-> Option c.name c.name.pretty
-            Single_Choice values=options display=Display.Always
+            Widget.Single_Choice values=options display=Display.Always
