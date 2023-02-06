@@ -111,11 +111,11 @@ type Any
         # host or polyglot values, so we just compare them with the default comparator.
         eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Unordered_Comparator
         eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Unordered_Comparator
-        if Comparable.equals_builtin eq_self Incomparable then False else
+        if Meta.is_same_object eq_self Incomparable then False else
             # Comparable.equals_builtin is a hack how to directly access EqualsNode from the
             # engine, so that we don't end up in an infinite recursion here (which would happen
             # if we would compare with `eq_self == eq_that`).
-            similar_type = Comparable.equals_builtin eq_self eq_that
+            similar_type = Meta.is_same_object eq_self eq_that
             if similar_type.not then False else
                 hash_self = eq_self.hash self
                 hash_that = eq_that.hash that
@@ -434,8 +434,8 @@ assert_ordered_comparators : Any -> (Any -> Any) -> Any ! (Type_Error | Incompar
 assert_ordered_comparators this that ~action =
     comp_this = Comparable.from this
     comp_that = Comparable.from that
-    if (Comparable.equals_builtin comp_this comp_that).not then Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that") else
-        if Comparable.equals_builtin comp_this Incomparable || comp_this.is_ordered.not then Error.throw Incomparable_Values else
+    if (Meta.is_same_object comp_this comp_that).not then Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that") else
+        if Meta.is_same_object comp_this Incomparable || comp_this.is_ordered.not then Error.throw Incomparable_Values else
             action
 
 
