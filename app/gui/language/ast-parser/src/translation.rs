@@ -158,7 +158,7 @@ impl Translate {
             tree::Variant::UnaryOprApp(tree::UnaryOprApp { opr, rhs }) => {
                 let opr_builder = self.start_ast();
                 let name = self.visit_token(opr);
-                let opr = name.map(|name| self.finish_ast(ast::Opr { name }, opr_builder));
+                let opr = name.map(|_| self.finish_ast(opr_from_token(opr), opr_builder));
                 if let Some(arg) = rhs {
                     let arg = self.translate(arg);
                     let section = section_right(opr, arg).expect_unspaced();
@@ -200,7 +200,7 @@ impl Translate {
                 let open = open.as_ref().map(|token| self.visit_token(token));
                 let name = self.visit_token(name);
                 let larg = name.map(|name| Ast::from(ast::Var { name }));
-                let opr = self.visit_token(equals).map(|name| Ast::from(ast::Opr { name }));
+                let opr = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
                 let rarg = self.translate(arg);
                 let mut arg = infix(larg, opr, rarg).map(Ast::from);
                 let close = close.as_ref().map(|token| self.visit_token(token));
@@ -339,7 +339,7 @@ impl Translate {
         lhs_terms.extend(args.iter().map(|a| self.translate_argument_definition(a)));
         let larg =
             lhs_terms.into_iter().reduce(|func, arg| prefix(func, arg).map(Ast::from)).unwrap();
-        let opr = self.visit_token(equals).map(|name| Ast::from(ast::Opr { name }));
+        let opr = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
         match body {
             Some(body) => {
                 let rarg = self.translate(body);
@@ -358,7 +358,7 @@ impl Translate {
         lhs_terms.extend(args.iter().map(|a| self.translate_argument_definition(a)));
         let lhs =
             lhs_terms.into_iter().reduce(|func, arg| prefix(func, arg).map(Ast::from)).unwrap();
-        let equals = self.visit_token(equals).map(|name| Ast::from(ast::Opr { name }));
+        let equals = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
         let body = self.translate(body);
         infix(lhs, equals, body).expect_unspaced()
     }
@@ -372,7 +372,7 @@ impl Translate {
         let builder = self.start_ast();
         let lhs = self.translate(lhs);
         let opr_builder = self.start_ast();
-        let opr = self.visit_token(opr).map(|name| ast::Shape::from(ast::Opr { name }));
+        let opr = self.visit_token(opr).map(|_| ast::Shape::from(opr_from_token(opr)));
         let opr = opr.map(|opr| self.finish_ast(opr, opr_builder));
         let rhs = self.translate(rhs);
         infix(lhs, opr, rhs).map(|opr_app| self.finish_ast(opr_app, builder))
@@ -385,7 +385,7 @@ impl Translate {
                 let token = self.visit_token(name);
                 match name.code.repr.ends_with('=') {
                     true => token.map(|name| ast::Shape::from(ast::Mod { name })),
-                    false => token.map(|name| ast::Shape::from(ast::Opr { name })),
+                    false => token.map(|_| ast::Shape::from(opr_from_token(name))),
                 }
             }
             Err(names) => {
@@ -549,13 +549,15 @@ impl Translate {
         } = arg;
         let open = open.as_ref().map(|token| self.visit_token(token));
         let open2 = open2.as_ref().map(|token| self.visit_token(token));
-        let suspension = suspension.as_ref().map(|token| self.visit_token(token).map(Ast::opr));
+        let suspension = suspension.as_ref().map(|token| {
+            self.visit_token(token).map(|_| Ast::from(opr_from_token(token)))
+        });
         let mut term = self.translate(pattern);
         if let Some(opr) = suspension {
             term = section_right(opr, term).map(Ast::from);
         }
         if let Some(tree::ArgumentType { operator, type_ }) = type_ {
-            let opr = self.visit_token(operator).map(|name| Ast::from(ast::Opr { name }));
+            let opr = self.visit_token(operator).map(|_| Ast::from(opr_from_token(operator)));
             let rarg = self.translate(type_);
             term = infix(term, opr, rarg).map(Ast::from);
         }
@@ -564,7 +566,7 @@ impl Translate {
             term = open.map(|open| group(open, term, close));
         }
         if let Some(tree::ArgumentDefault { equals, expression }) = default {
-            let opr = self.visit_token(equals).map(|name| Ast::from(ast::Opr { name }));
+            let opr = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
             let rarg = self.translate(expression);
             term = infix(term, opr, rarg).map(Ast::from);
         }
@@ -584,6 +586,12 @@ impl Translate {
         });
         span_info.build().expect_unspaced()
     }
+}
+
+fn opr_from_token(token: &syntax::token::Operator) -> ast::Shape<Ast> {
+    let name = token.code.repr.to_string();
+    let right_assoc = token.properties.associativity() == syntax::token::Associativity::Right;
+    ast::Shape::from(ast::Opr { name, right_assoc })
 }
 
 fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<String>) -> Ast {

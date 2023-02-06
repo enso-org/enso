@@ -356,7 +356,8 @@ pub enum Shape<T> {
         name: String,
     },
     Opr {
-        name: String,
+        name:        String,
+        right_assoc: bool,
     },
     Annotation {
         name: String,
@@ -1063,7 +1064,10 @@ impl Ast {
 
     /// Creates an AST node with `Opr` shape.
     pub fn opr(name: impl Str) -> Ast {
-        let opr = Opr { name: name.into() };
+        let name = name.into();
+        // TODO: Use parser for this ([`assoc`]'s analysis is outdated!)
+        let right_assoc = crate::assoc::Assoc::of(&name) == crate::assoc::Assoc::Right;
+        let opr = Opr { name, right_assoc };
         Ast::from(opr)
     }
 

@@ -11,7 +11,6 @@ use crate::ArgumentInfo;
 use crate::Node;
 use crate::SpanTree;
 
-use ast::assoc::Assoc;
 use ast::crumbs::Located;
 use ast::opr::GeneralizedInfix;
 use ast::Ast;
@@ -367,7 +366,7 @@ fn generate_node_for_opr_chain<T: Payload>(
         }
         gen.generate_empty_node(InsertionPointType::Append);
 
-        if ast::opr::assoc(&this.operator) == Assoc::Right {
+        if this.operator.right_assoc {
             gen.reverse_children();
         }
 

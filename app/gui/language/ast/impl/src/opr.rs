@@ -107,7 +107,7 @@ pub fn is_assignment(ast: &Ast) -> bool {
 pub fn assignment() -> known::Opr {
     // TODO? We could cache and reuse, if we care.
     let name = predefined::ASSIGNMENT.into();
-    let opr = Opr { name };
+    let opr = Opr { name, right_assoc: false };
     known::Opr::new(opr, None)
 }
 
@@ -150,7 +150,10 @@ pub fn make_operator(opr: &Ast) -> Option<Operator> {
 
 /// Describes associativity of the given operator AST.
 pub fn assoc(ast: &known::Opr) -> Assoc {
-    Assoc::of(&ast.name)
+    match ast.right_assoc {
+        true => Assoc::Right,
+        false => Assoc::Left,
+    }
 }
 
 
