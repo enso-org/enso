@@ -1194,11 +1194,12 @@ spec setup =
             table = table_builder [["Index", [1, 1, 2, 2]], ["Value", [1, 2, 3, 4]]]
             t1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[Value]*[Value]"]
             t1.column_count . should_equal 3
-            t1.at "Index" . to_vector . should_equal [1, 2]
-            t1.at "Sum Value" . to_vector . should_equal [3, 7]
+            r1 =  t1 |> materialize |> _.order_by "Index"
+            r1.at "Index" . to_vector . should_equal [1, 2]
+            r1.at "Sum Value" . to_vector . should_equal [3, 7]
             # Not using by name, as naming is not yet consistent between backends.
-            # t1.at "Sum [Value]*[Value]" . to_vector . should_equal [5, 25]
-            t1.at -1 . to_vector . should_equal [5, 25]
+            # r1.at "Sum [Value]*[Value]" . to_vector . should_equal [5, 25]
+            r1.at -1 . to_vector . should_equal [5, 25]
 
         Test.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
             action1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[MISSING]*[MISSING]"] on_problems=_
