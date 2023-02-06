@@ -202,9 +202,8 @@ mod test {
     use ast_parser::Parser;
     use enso_text::index::*;
     use uuid::Uuid;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[wasm_bindgen_test]
+    #[test]
     fn update_ast_after_text_change() {
         TestWithLocalPoolExecutor::set_up().run_task(async {
             let ls = language_server::Connection::new_mock_rc(default());

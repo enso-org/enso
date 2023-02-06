@@ -440,10 +440,9 @@ impl Translate {
     }
 
     fn translate_module(&mut self, block: &tree::BodyBlock) -> Ast {
-        let builder = self.start_ast();
         let (lines, _) =
             self.translate_block_raw(&block.statements).unwrap_or_default().expect_unspaced();
-        self.finish_ast(ast::Module { lines }, builder)
+        Ast::new_no_id(ast::Module { lines })
     }
 
     fn translate_block<'a, 's: 'a>(
