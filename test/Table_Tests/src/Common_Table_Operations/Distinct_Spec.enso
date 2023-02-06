@@ -92,8 +92,8 @@ spec setup =
             va.at 2 . should_equal "b"
             [3, 5, 8].contains (vb.at 2) . should_be_true
 
-        Test.specify "should report missing input columns as errors regardless of on_problems" <|
-            t1 = table_builder [["X", [1, 2, 3]]]
+        Test.specify "should report missing input columns" <|
+            t1 = table_builder [["X", [1, 2, 3, 2, 2]]]
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
                 t2 = t1.distinct ["Y", "Z"] on_problems=pb
                 t2.should_fail_with Missing_Input_Columns
@@ -109,3 +109,22 @@ spec setup =
 
                 t5 = t1.distinct [] on_problems=pb
                 t5.should_fail_with No_Input_Columns_Selected
+
+                t6 = t1.distinct [] error_on_missing_columns=False on_problems=pb
+                t6.should_fail_with No_Input_Columns_Selected
+
+            # When not erroring about missing columns, No_Input_Columns_Selected will still yield an error.
+            t7 = t1.distinct ["Y", "Z"] error_on_missing_columns=False on_problems=Problem_Behavior.Report_Warning
+            t7.should_fail_with No_Input_Columns_Selected
+
+            action2 = t1.distinct (Column_Selector.By_Name ["X", "Y"]) error_on_missing_columns=False on_problems=_
+            tester2 table =
+                table.at "X" . to_vector . should_equal [1, 2, 3]
+            problems2 = [Missing_Input_Columns.Error ["Y"]]
+            Problems.test_problem_handling action2 problems2 tester2
+
+            action3 = t1.distinct (Column_Selector.By_Index [0, 42]) error_on_missing_columns=False on_problems=_
+            tester3 table =
+                table.at "X" . to_vector . should_equal [1, 2, 3]
+            problems3 = [Column_Indexes_Out_Of_Range.Error [42]]
+            Problems.test_problem_handling action3 problems3 tester3
