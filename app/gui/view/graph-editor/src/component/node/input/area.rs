@@ -804,6 +804,8 @@ impl Area {
 
             // === Cursor setup ===
 
+            model.label.set_cursor_at_mouse_position <+ frp.output.on_background_press;
+
             eval frp.input.set_editing ([model](edit_mode) {
                 model.label.deprecated_set_focus(edit_mode);
                 if *edit_mode {
