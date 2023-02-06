@@ -419,30 +419,11 @@ pub enum Shape<T> {
         lines:       Vec<BlockLine<Option<T>>>,
     },
     Tree {
-        span_info: Vec<RawSpanTree<T>>,
-        type_info: TreeType,
-        leaf_info: Option<String>,
+        span_info:        Vec<RawSpanTree<T>>,
+        type_info:        TreeType,
+        leaf_info:        Option<String>,
+        descriptive_name: Option<&'static str>,
     },
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub enum TreeType {
-    #[default]
-    Expression,
-    Documentation {
-        rendered: ImString,
-    },
-    Import {
-        module:   Vec<ImString>,
-        imported: ImportedNames,
-    },
-    Lambda,
-}
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ImportedNames {
-    Module { alias: Option<String> },
-    All { except: std::collections::BTreeSet<String> },
-    List { names: std::collections::BTreeSet<String> },
 }
 
 /// Macro that calls its argument (possibly other macro
@@ -460,7 +441,65 @@ macro_rules! with_shape_variants {
 }
 
 
-//  === RawSpanTree ===
+// === [`Tree`] data ===
+
+/// Low-level builders.
+impl<T> Tree<T> {
+    pub fn expression(span_info: Vec<RawSpanTree<T>>) -> Self {
+        Self { span_info, type_info: default(), leaf_info: default(), descriptive_name: default() }
+    }
+
+    pub fn leaf(leaf_info: String) -> Self {
+        Self {
+            span_info:        default(),
+            type_info:        default(),
+            leaf_info:        Some(leaf_info),
+            descriptive_name: default(),
+        }
+    }
+
+    pub fn with_type_info(self, type_info: TreeType) -> Self {
+        let Self { span_info, type_info: _, leaf_info, descriptive_name } = self;
+        Self { span_info, type_info, leaf_info, descriptive_name }
+    }
+
+    pub fn with_descriptive_name(self, descriptive_name: &'static str) -> Self {
+        let Self { span_info, type_info, leaf_info, descriptive_name: _ } = self;
+        Self { span_info, type_info, leaf_info, descriptive_name: Some(descriptive_name) }
+    }
+}
+
+/// High-level helper builders.
+impl<T> Tree<T> {
+    pub fn lambda(span_info: Vec<RawSpanTree<T>>) -> Self {
+        Tree::expression(span_info).with_type_info(TreeType::Lambda)
+    }
+
+    pub fn text(leaf_info: String) -> Self {
+        Tree::leaf(leaf_info).with_descriptive_name("text")
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum TreeType {
+    #[default]
+    Expression,
+    Documentation {
+        rendered: ImString,
+    },
+    Import {
+        module:   Vec<ImString>,
+        imported: ImportedNames,
+    },
+    Lambda,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ImportedNames {
+    Module { alias: Option<String> },
+    All { except: std::collections::BTreeSet<String> },
+    List { names: std::collections::BTreeSet<String> },
+}
 
 /// Represents the syntax tree, and its correspondence to the source text; with context information
 /// provided by an evaluator, this can be used to produce a complete [`SpanTree`].
@@ -1135,9 +1174,7 @@ impl Ast {
             }
         }
         escaped.push('\'');
-        let span_info = default();
-        let leaf_info = Some(escaped);
-        Self::from(Tree { span_info, type_info: TreeType::Expression, leaf_info })
+        Self::from(Tree::text(escaped))
     }
 }
 

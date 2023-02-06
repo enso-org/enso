@@ -134,11 +134,9 @@ impl Translate {
                 self.finish_ast(app, builder)
             }
             tree::Variant::OprApp(tree::OprApp { lhs: Some(_), opr: Ok(opr), rhs: Some(_) })
-                if opr.properties.is_arrow() =>
-            {
-                let span_info = self.translate_items(tree);
-                let type_info = ast::TreeType::Lambda;
-                self.finish_ast(ast::Tree { span_info, type_info, leaf_info: None }, builder)
+                if opr.properties.is_arrow() => {
+                let ast = ast::Tree::lambda(self.translate_items(tree));
+                self.finish_ast(ast, builder)
             }
             tree::Variant::OprApp(tree::OprApp { lhs, opr, rhs }) => {
                 let opr_app = self.translate_opr_app(lhs.as_ref(), opr, rhs.as_ref());
@@ -237,26 +235,23 @@ impl Translate {
             tree::Variant::Import(import) => {
                 let span_info = self.translate_items(tree);
                 let type_info = analyze_import(import).unwrap_or_default();
-                self.finish_ast(ast::Tree { span_info, type_info, leaf_info: None }, builder)
+                let ast = ast::Tree::expression(span_info).with_type_info(type_info);
+                self.finish_ast(ast, builder)
             }
             tree::Variant::CaseOf(_) => {
                 // TODO: Analyzed-representation to support alias analysis.
-                let span_info = self.translate_items(tree);
-                let type_info = ast::TreeType::Expression;
-                self.finish_ast(ast::Tree { span_info, type_info, leaf_info: None }, builder)
+                let ast = ast::Tree::expression(self.translate_items(tree));
+                self.finish_ast(ast, builder)
             }
             tree::Variant::TextLiteral(_) => {
                 self.translate_items(tree);
-                let type_info = ast::TreeType::Expression;
-                let span_info = vec![];
-                let leaf_info = Some(tree.trimmed_code());
-                self.finish_ast(ast::Tree { span_info, type_info, leaf_info }, builder)
+                let ast = ast::Tree::text(tree.trimmed_code());
+                self.finish_ast(ast, builder)
             }
             _ => {
-                let span_info = self.translate_items(tree);
-                let type_info = ast::TreeType::Expression;
-                self.finish_ast(ast::Tree { span_info, type_info, leaf_info: None }, builder)
-            }
+                let ast = ast::Tree::expression(self.translate_items(tree));
+                self.finish_ast(ast, builder)
+            },
         };
         WithInitialSpace { space, body }
     }
@@ -351,7 +346,7 @@ impl Translate {
         let rendered = documentation.content().into();
         let type_info = ast::TreeType::Documentation { rendered };
         let span_info = span_info.build().expect_unspaced();
-        Ast::from(ast::Tree { span_info, type_info, leaf_info: None })
+        Ast::from(ast::Tree::expression(span_info).with_type_info(type_info))
     }
 
     fn translate_function(&mut self, function: &tree::Function) -> ast::Shape<Ast> {
@@ -418,10 +413,9 @@ impl Translate {
                 for token in &names.operators {
                     span_info.token(self.visit_token(token));
                 }
-                let type_info = ast::TreeType::Expression;
-                span_info.build().map(|span_info| {
-                    ast::Shape::from(ast::Tree { span_info, type_info, leaf_info: None })
-                })
+                span_info
+                    .build()
+                    .map(|span_info| ast::Shape::from(ast::Tree::expression(span_info)))
             }
         };
         opr.map(|opr| self.finish_ast(opr, opr_builder))
@@ -637,8 +631,7 @@ fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<Stri
     span_info.push(ast::RawSpanTree::Child(ast::RawSpanTreeChild { node: body }));
     span_info.extend(ast::RawSpanTree::space(close_space));
     span_info.push(ast::RawSpanTree::Token(ast::RawSpanTreeToken { token: close }));
-    let type_info = ast::TreeType::Expression;
-    Ast::from(ast::Tree { span_info, type_info, leaf_info: None })
+    Ast::from(ast::Tree::expression(span_info))
 }
 
 

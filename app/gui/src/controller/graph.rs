@@ -334,6 +334,7 @@ impl Connections {
 pub fn name_for_ast(ast: &Ast) -> String {
     use ast::*;
     match ast.shape() {
+        Shape::Tree(tree) if let Some(name) = &tree.descriptive_name => name.to_string(),
         Shape::Var(ident) => ident.name.clone(),
         Shape::Cons(ident) => ident.name.to_lowercase(),
         Shape::Number(_) => "number".into(),
