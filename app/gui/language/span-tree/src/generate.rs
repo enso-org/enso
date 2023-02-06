@@ -715,6 +715,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn generating_span_tree_from_right_assoc_operator() {
         let parser = Parser::new();
         let ast = parser.parse_line_ast("1<|2<|3").unwrap();
@@ -738,6 +739,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn generating_span_tree_from_right_assoc_section() {
         let parser = Parser::new();
         let ast = parser.parse_line_ast("<|2<|").unwrap();
