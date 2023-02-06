@@ -90,55 +90,92 @@ function printHelp(cfg: {
     fullHelp: boolean
 }) {
     console.log(usage)
-    // const terminalWidth = yargs.terminalWidth()
-    // const indentSize = 2
-    // const optionPrefix = '-'
-    // const spacing = 2
-    // const groups: { [key: string]: any[] } = {}
-    // for (const groupName of cfg.groupsOrdering) {
-    //     if (cfg.fullHelp || !cfg.secondaryGroups.includes(groupName)) {
-    //         groups[groupName] = []
-    //     }
-    // }
-    // let maxOptionLength = 0
-    // for (const [key, option] of Object.entries(cfg.config)) {
-    //     const group = option.group || 'Other Options'
-    //     if (cfg.fullHelp || !cfg.secondaryGroups.includes(group)) {
-    //         const cmdOption = camelToKebabCase(option.qualifiedName())
-    //         maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
-    //         if (!groups[group]) {
-    //             groups[group] = []
-    //         }
-    //         groups[group].push([cmdOption, option])
-    //     }
-    // }
-    // const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
-    // const rightWidth = terminalWidth - leftWidth
+    const terminalWidth = yargs.terminalWidth()
+    const indentSize = 0
+    const optionPrefix = '-'
+    const spacing = 2
+    const groups: { [key: string]: any[] } = {}
+    for (const groupName of cfg.groupsOrdering) {
+        if (cfg.fullHelp || !cfg.secondaryGroups.includes(groupName)) {
+            groups[groupName] = []
+        }
+    }
+    let maxOptionLength = 0
 
-    // for (const [group, options] of Object.entries(groups)) {
-    //     console.log(chalk.bold(`\n\n${group}:`))
-    //     for (const [cmdOption, option] of options) {
-    //         if (cfg.fullHelp || option.primary) {
-    //             const indent = ' '.repeat(indentSize)
-    //             let left = indent + chalk.bold(chalk.ansi256(191)(optionPrefix + cmdOption))
-    //             const spaces = ' '.repeat(leftWidth - stringLength(left))
-    //             left += spaces
+    for (const [groupName, group] of Object.entries(cfg.config.groups)) {
+        for (const option of group.optionsRecursive()) {
+            const cmdOption = camelToKebabCase(option.qualifiedName())
+            maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
+            const entry = [cmdOption, option]
+            const groupData = groups[groupName]
+            if (groupData == null) {
+                groups[groupName] = [entry]
+            } else {
+                groupData.push(entry)
+            }
+        }
+    }
 
-    //             let firstSentenceSplit = option.description.indexOf('. ')
-    //             let firstSentence =
-    //                 firstSentenceSplit == -1
-    //                     ? option.description
-    //                     : option.description.slice(0, firstSentenceSplit + 1)
-    //             let otherSentences = option.description.slice(firstSentence.length)
+    const borderStyle = (s: string) => chalk.gray(chalk.bold(s))
 
-    //             const def = option.defaultDescription ?? option.default
-    //             let defaults = def == null ? '' : ` Defaults to ${chalk.ansi256(191)(def)}.`
-    //             let description = firstSentence + defaults + chalk.ansi256(245)(otherSentences)
-    //             const right = wordWrap(description, rightWidth).join('\n' + ' '.repeat(leftWidth))
-    //             console.log(left + right)
-    //         }
-    //     }
-    // }
+    const borderLeft = borderStyle('│ ')
+    const borderRight = borderStyle(' │')
+    const groupWidth = terminalWidth - stringLength(borderLeft) - stringLength(borderRight)
+    const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
+    const rightWidth = groupWidth - leftWidth
+
+    for (const [groupName, group] of Object.entries(groups)) {
+        console.log('\n')
+        const groupTitle = chalk.bold(` ${groupName} Options `)
+        const headLineStart = borderStyle(`╭`)
+        const headLineEnd = borderStyle(`╮`)
+        const headLineBorder = borderStyle(
+            '─'.repeat(
+                terminalWidth -
+                    stringLength(groupTitle) -
+                    stringLength(headLineStart) -
+                    stringLength(headLineEnd)
+            )
+        )
+        const headLine = headLineStart + groupTitle + headLineBorder + headLineEnd
+        const endLineStart = borderStyle(`╰`)
+        const endLineEnd = borderStyle(`╯`)
+        const endLineBorder = borderStyle(
+            '─'.repeat(terminalWidth - stringLength(endLineStart) - stringLength(endLineEnd))
+        )
+        const endLine = endLineStart + endLineBorder + endLineEnd
+        console.log(headLine)
+        for (const [cmdOption, option] of group) {
+            if (cfg.fullHelp || option.primary) {
+                const indent = ' '.repeat(indentSize)
+                let left = indent + chalk.bold(chalk.green(optionPrefix + cmdOption))
+                const spaces = ' '.repeat(leftWidth - stringLength(left))
+                left = borderLeft + left + spaces
+
+                let firstSentenceSplit = option.description.indexOf('. ')
+                let firstSentence =
+                    firstSentenceSplit == -1
+                        ? option.description
+                        : option.description.slice(0, firstSentenceSplit + 1)
+                let otherSentences = option.description.slice(firstSentence.length)
+
+                const def = option.defaultDescription ?? option.default
+                let defaults = ''
+                if (def != null && def !== '') {
+                    defaults = ` Defaults to ${chalk.green(def)}.`
+                }
+                let description = firstSentence + defaults + chalk.ansi256(245)(otherSentences)
+                const lines = wordWrap(description, rightWidth).map(
+                    line => line + ' '.repeat(rightWidth - stringLength(line))
+                )
+                const right =
+                    lines.join(borderRight + '\n' + borderLeft + ' '.repeat(leftWidth)) +
+                    borderRight
+                console.log(left + right)
+            }
+        }
+        console.log(endLine)
+    }
 }
 
 function wordWrap(str: string, width: number): string[] {
