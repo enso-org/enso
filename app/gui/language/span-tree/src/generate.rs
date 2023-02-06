@@ -270,9 +270,8 @@ fn generate_node_for_ast<T: Payload>(
         match ast.shape() {
             ast::Shape::Prefix(_) =>
                 ast::prefix::Chain::from_ast(ast).unwrap().generate_node(kind, context),
-            // FIXME?: Lambdas should fall in _ case, because we don't want to create subports for
-            //  them
-            ast::Shape::Tree(tree) => tree_generate_node(tree, kind, context, ast.id),
+            ast::Shape::Tree(tree) if tree.type_info != ast::TreeType::Lambda =>
+                tree_generate_node(tree, kind, context, ast.id),
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
@@ -719,7 +718,7 @@ mod test {
     #[test]
     fn generating_span_tree_from_right_assoc_operator() {
         let parser = Parser::new();
-        let ast = parser.parse_line_ast("1,2,3").unwrap();
+        let ast = parser.parse_line_ast("1<|2<|3").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
@@ -727,14 +726,14 @@ mod test {
         let expected = TreeBuilder::new(5)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
-            .add_leaf(1, 1, node::Kind::operation(), InfixCrumb::Operator)
-            .add_child(2, 3, node::Kind::Chained, InfixCrumb::RightOperand)
+            .add_leaf(1, 2, node::Kind::operation(), InfixCrumb::Operator)
+            .add_child(3, 3, node::Kind::Chained, InfixCrumb::RightOperand)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
-            .add_leaf(1, 1, node::Kind::operation(), InfixCrumb::Operator)
-            .add_empty_child(2, AfterTarget)
-            .add_leaf(2, 1, node::Kind::this().removable(), InfixCrumb::RightOperand)
-            .add_empty_child(3, BeforeTarget)
+            .add_leaf(1, 2, node::Kind::operation(), InfixCrumb::Operator)
+            .add_empty_child(3, AfterTarget)
+            .add_leaf(3, 1, node::Kind::this().removable(), InfixCrumb::RightOperand)
+            .add_empty_child(4, BeforeTarget)
             .done()
             .build();
 
@@ -744,15 +743,15 @@ mod test {
     #[test]
     fn generating_span_tree_from_right_assoc_section() {
         let parser = Parser::new();
-        let ast = parser.parse_line_ast(",2,").unwrap();
+        let ast = parser.parse_line_ast("<|2<|").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
 
-        let expected = TreeBuilder::new(3)
+        let expected = TreeBuilder::new(5)
             .add_empty_child(0, Append)
-            .add_leaf(0, 1, node::Kind::operation(), SectionRightCrumb::Opr)
-            .add_child(1, 2, node::Kind::Chained, SectionRightCrumb::Arg)
+            .add_leaf(0, 2, node::Kind::operation(), SectionRightCrumb::Opr)
+            .add_child(2, 2, node::Kind::Chained, SectionRightCrumb::Arg)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), SectionLeftCrumb::Arg)
             .add_leaf(1, 1, node::Kind::operation(), SectionLeftCrumb::Opr)
