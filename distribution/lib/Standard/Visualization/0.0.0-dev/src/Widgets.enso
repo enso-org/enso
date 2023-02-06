@@ -3,7 +3,8 @@ from Standard.Base import all
 ## PRIVATE
    Basic preprocessor for widgets metadata visualization.
 
-   Returns full annotation data for all requested arguments.
+   Returns simplified annotation data for all requested arguments.
+   Values are replaced with just Text of the code.
 get_full_annotations_json : Any -> Text -> Vector Text -> Text
 get_full_annotations_json value call_name argument_names =
     read_annotation argument =

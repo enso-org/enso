@@ -145,7 +145,7 @@ type Problem_Behavior
         Report_Error -> result
 
     ## PRIVATE
-       Gets a widget set up for a Filter_Condition.
+       Gets a widget set up for a `Problem_Behavior`.
     default_widget =
         values = ["Report_Error", "Report_Warning", "Ignore"]
         Single_Choice (values.map n-> Option n) display=Display.Expanded_Only

@@ -40,8 +40,6 @@ type Widget
 
        Fields:
        - values: A list of choices to display.
-         If a `Text` value is used, it is treated as `Option value:Text`.
-         The visualization module will convert Text to Option automatically, IDE only recieves Choice structures.
        - label: The placeholder text value.
          By default, the parameter name is used.
        - display: The display mode for the parameter.
@@ -49,7 +47,7 @@ type Widget
     Single_Choice values:(Vector Choice) label:(Nothing | Text)=Nothing display:Display=Display.When_Modified allow_custom:Boolean=True
 
     ## Describes a multi value widget.
-    Multiple_Choice values:(Vector (Choice | Text)) label:(Nothing | Text)=Nothing display:Display=Display.When_Modified quote_values:Boolean=False
+    Multiple_Choice values:(Vector Choice) label:(Nothing | Text)=Nothing display:Display=Display.When_Modified quote_values:Boolean=False
 
     ## Describe a code parameter.
     Code_Input label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
@@ -65,7 +63,7 @@ type Widget
 
 
     ## Describes a list editor widget.
-    Vector_Editor item_editor:Widget values:((Vector (Choice | Text)) | Nothing)=Nothing label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
+    Vector_Editor item_editor:Widget values:((Vector Choice) | Nothing)=Nothing label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
 
     ## Describes a folder chooser.
     Folder_Browse label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
