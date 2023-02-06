@@ -29,7 +29,6 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Constants;
-import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.Module;
 
 import java.util.function.Consumer;
@@ -197,12 +196,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
       // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
       if (result != null && !nodeId.equals(nextExecutionItem)) {
+
         onCachedCallback.accept(
             new ExpressionValue(
                 nodeId,
                 result,
                 cache.getType(nodeId),
-                Types.getName(result),
+                typeOf(result),
                 calls.get(nodeId),
                 cache.getCall(nodeId),
                 new ProfilingInfo[] {ExecutionTime.empty()},
@@ -250,45 +250,49 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     }
 
     private void onExpressionReturn(Object result, Node node, EventContext context) throws ThreadDeath {
-        boolean isPanic = result instanceof PanicSentinel;
-        UUID nodeId = ((ExpressionNode) node).getId();
+      boolean isPanic = result instanceof PanicSentinel;
+      UUID nodeId = ((ExpressionNode) node).getId();
 
-        String resultType;
-        if (result instanceof UnresolvedSymbol) {
-            resultType = Constants.UNRESOLVED_SYMBOL;
-        } else {
-            Object typeResult = typeOfNode.execute(result);
-            if (typeResult instanceof Type t) {
-                resultType = t.getQualifiedName().toString();
-            } else {
-                resultType = null;
-            }
-        }
+      String resultType = typeOf(result);
+      String cachedType = cache.getType(nodeId);
+      FunctionCallInfo call = functionCallInfoById(nodeId);
+      FunctionCallInfo cachedCall = cache.getCall(nodeId);
+      ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
 
-        String cachedType = cache.getType(nodeId);
-        FunctionCallInfo call = functionCallInfoById(nodeId);
-        FunctionCallInfo cachedCall = cache.getCall(nodeId);
-        ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+      ExpressionValue expressionValue =
+      new ExpressionValue(
+      nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+      syncState.setExpressionUnsync(nodeId);
+      syncState.setVisualisationUnsync(nodeId);
 
-        ExpressionValue expressionValue =
-                new ExpressionValue(
-                        nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
-        syncState.setExpressionUnsync(nodeId);
-        syncState.setVisualisationUnsync(nodeId);
+      // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
+      // like imports, and the invalidation mechanism can not always track those changes and
+      // appropriately invalidate all dependent expressions.
+      if (!isPanic) {
+        cache.offer(nodeId, result);
+      }
+      cache.putType(nodeId, resultType);
+      cache.putCall(nodeId, call);
 
-        // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
-        // like imports, and the invalidation mechanism can not always track those changes and
-        // appropriately invalidate all dependent expressions.
-        if (!isPanic) {
-            cache.offer(nodeId, result);
-        }
-        cache.putType(nodeId, resultType);
-        cache.putCall(nodeId, call);
+      passExpressionValueToCallback(expressionValue);
+      if (isPanic) {
+        throw context.createUnwind(result);
+      }
+    }
 
-        passExpressionValueToCallback(expressionValue);
-        if (isPanic) {
-            throw context.createUnwind(result);
-        }
+    private String typeOf(Object value) {
+      String resultType;
+      if (value instanceof UnresolvedSymbol) {
+          resultType = Constants.UNRESOLVED_SYMBOL;
+      } else {
+          Object typeResult = typeOfNode.execute(value);
+          if (typeResult instanceof Type t) {
+              resultType = t.getQualifiedName().toString();
+          } else {
+              resultType = null;
+          }
+      }
+      return resultType;
     }
 
     @CompilerDirectives.TruffleBoundary
