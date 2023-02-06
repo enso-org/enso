@@ -62,6 +62,16 @@ pub fn parse(input: &str) -> Option<(Result, &str)> {
     Some((metadata.parse().map(|data: MetadataFormat| data.into()), code))
 }
 
+/// Parse just the metadata section.
+pub fn parse_metadata(input: &str) -> Option<Vec<((usize, usize), Uuid)>> {
+    Some(MetadataFormat::from_str(input)
+        .ok()?
+        .id_map
+        .into_iter()
+        .map(|(location, id)| ((location.index.value, location.size.value), id))
+        .collect())
+}
+
 /// Result of parsing metadata.
 pub type Result<T = Metadata> = std::result::Result<T, String>;
 

@@ -57,10 +57,15 @@ impl Parser {
         program: impl Str,
     ) -> api::ParsedSourceFile<M> {
         let (code, meta) = enso_parser::metadata::extract(program.as_ref());
+        // TODO: Warn on failure
+        let ids = enso_parser::metadata::parse_metadata(meta.unwrap())
+            .unwrap()
+            .into_iter()
+            .map(|((start, len), id)| ((start, start + len), uuid::Uuid::from_u128(id.as_u128())))
+            .collect();
         let tree = self.parser.run(code);
         // TODO: Log errors.
         let metadata = meta.and_then(|meta| serde_json::from_str(meta).ok()).unwrap_or_default();
-        let ids = Default::default(); // TODO?
         let ast = ast::known::Module::try_from(translation::tree_to_ast(&tree, ids)).unwrap();
         api::ParsedSourceFile { ast, metadata }
     }
