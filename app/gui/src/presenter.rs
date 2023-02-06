@@ -74,7 +74,7 @@ impl Model {
                     *self.current_project.borrow_mut() = Some(project);
                 }
                 Err(err) => {
-                    let err_msg = format!("Failed to initialize project: {}", err);
+                    let err_msg = format!("Failed to initialize project: {err}");
                     error!("{err_msg}");
                     self.controller.status_notifications().publish_event(err_msg);
                 }

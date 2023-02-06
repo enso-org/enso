@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Column_Name_Mapping, Position
-from Standard.Table.Data.Column_Selector.Column_Selector import By_Name, By_Index, By_Column
+from Standard.Table.Data.Column_Selector.Column_Selector import By_Name, By_Index
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
@@ -31,10 +31,6 @@ spec setup =
             expect_column_names ["foo", "bar"] <| table.select_columns (["bar", "foo"])
             expect_column_names ["bar", "Baz", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
             expect_column_names ["abcd123", "foo", "bar"] <| table.select_columns (By_Index [-1, 0, 1]) reorder=True
-
-            column1 = table.at "foo_1"
-            column2 = table.at "Baz"
-            expect_column_names ["Baz", "foo_1"] <| table.select_columns (By_Column [column1, column2])
 
         Test.specify "should allow to reorder columns if asked to" <|
             table_2 = table.select_columns (By_Name ["bar", "foo"]) reorder=True
@@ -67,10 +63,13 @@ spec setup =
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = By_Index [1, 0, 100, -200, 300]
-            action = table.select_columns selector on_problems=_
+            action = table.select_columns selector error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["foo", "bar"]
             problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
+
+            err = table.select_columns selector
+            err.should_fail_with Column_Indexes_Out_Of_Range
 
         Test.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = By_Index [0, 0, 0]
@@ -110,29 +109,22 @@ spec setup =
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
             selector = By_Name ["foo", "hmm", weird_name]
-            action = table.select_columns selector on_problems=_
+            action = table.select_columns selector error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["foo"]
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should correctly handle problems: unmatched columns" <|
-            table_2 = table_builder [["foo", [0,0,0]], ["weird_column", [0,0,0]]]
-            foo = table_2.at "foo"
-            weird_column = table_2.at "weird_column"
-            bar = table.at "bar"
-
-            selector = By_Column [bar, weird_column, foo]
-            action = table.select_columns selector reorder=True on_problems=_
-            tester = expect_column_names ["bar", "foo"]
-            problems = [Missing_Input_Columns.Error ["weird_column"]]
-            Problems.test_problem_handling action problems tester
+            err = table.select_columns selector on_problems=Problem_Behavior.Ignore
+            err.should_fail_with Missing_Input_Columns
+            err.catch.criteria . should_equal ["hmm", weird_name]
 
         Test.specify "should correctly handle problems: no columns in the output" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
                 t = table.select_columns (By_Index []) on_problems=pb
                 t.should_fail_with No_Output_Columns
 
-            table.select_columns (By_Name ["hmmm"]) . should_fail_with No_Output_Columns
+            table.select_columns (By_Name ["hmmm"]) . should_fail_with Missing_Input_Columns
+            table.select_columns (By_Name ["hmmm"]) error_on_missing_columns=False . should_fail_with No_Output_Columns
 
     Test.group prefix+"Table.remove_columns" <|
         Test.specify "should work as shown in the doc examples" <|
@@ -140,10 +132,6 @@ spec setup =
             expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.remove_columns ["bar", "foo"]
             expect_column_names ["foo", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
             expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123"] <| table.remove_columns (By_Index [-1, 0, 1])
-
-            column1 = table.at "foo_1"
-            column2 = table.at "Baz"
-            expect_column_names ["foo", "bar", "foo_2", "ab.+123", "abcd123"] <| table.remove_columns (By_Column [column1, column2])
 
         Test.specify "should correctly handle regex matching" <|
             last_ones = table.columns.drop 1 . map .name
@@ -176,6 +164,9 @@ spec setup =
             problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
+            err = table.remove_columns selector error_on_missing_columns=True
+            err.should_fail_with Column_Indexes_Out_Of_Range
+
         Test.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = By_Index [0, 0, 0]
             t = table.remove_columns selector on_problems=Problem_Behavior.Report_Error
@@ -204,17 +195,8 @@ spec setup =
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should correctly handle problems: unmatched columns" <|
-            table_2 = table_builder [["foo", [0,0,0]], ["weird_column", [0,0,0]]]
-            foo = table_2.at "foo"
-            weird_column = table_2.at "weird_column"
-            bar = table.at "bar"
-
-            selector = By_Column [bar, weird_column, foo]
-            action = table.remove_columns selector on_problems=_
-            tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Missing_Input_Columns.Error ["weird_column"]]
-            Problems.test_problem_handling action problems tester
+            err = table.remove_columns selector error_on_missing_columns=True on_problems=Problem_Behavior.Ignore
+            err.should_fail_with Missing_Input_Columns
 
         Test.specify "should correctly handle problems: no columns in the output" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
@@ -233,10 +215,6 @@ spec setup =
             expect_column_names ["foo_1", "foo_2", "bar", "Baz", "foo", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
             expect_column_names ["bar", "foo", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.reorder_columns (By_Index [1, 0]) Position.Before_Other_Columns
             expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Index [0]) Position.After_Other_Columns
-
-            column1 = table.at "foo_1"
-            column2 = table.at "Baz"
-            expect_column_names ["foo_1", "Baz", "foo", "bar", "foo_2", "ab.+123", "abcd123"] <| table.reorder_columns (By_Column [column1, column2])
 
         Test.specify "should correctly handle regex matching" <|
             expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Name ["foo"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive)) Position.After_Other_Columns
@@ -268,6 +246,9 @@ spec setup =
             problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
+            err = table.reorder_columns selector error_on_missing_columns=True
+            err.should_fail_with Column_Indexes_Out_Of_Range
+
         Test.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = By_Index [0, 0, 0]
             t = table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
@@ -291,17 +272,8 @@ spec setup =
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should correctly handle problems: unmatched columns" <|
-            table_2 = table_builder [["foo", [0,0,0]], ["weird_column", [0,0,0]]]
-            foo = table_2.at "foo"
-            weird_column = table_2.at "weird_column"
-            bar = table.at "bar"
-
-            selector = By_Column [bar, weird_column, foo]
-            action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
-            tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar", "foo"]
-            problems = [Missing_Input_Columns.Error ["weird_column"]]
-            Problems.test_problem_handling action problems tester
+            err = table.reorder_columns selector Position.After_Other_Columns error_on_missing_columns=True
+            err.should_fail_with Missing_Input_Columns
 
     Test.group prefix+"Table.sort_columns" <|
         table =
@@ -393,21 +365,27 @@ spec setup =
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
             map = Column_Name_Mapping.By_Name (Map.from_vector [["alpha", "FirstColumn"], ["omicron", "Another"], [weird_name, "Fixed"]])
-            action = table.rename_columns map on_problems=_
+            action = table.rename_columns map error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
             err_checker err =
                 err.catch.should_be_a Missing_Input_Columns.Error
                 err.catch.criteria.should_contain_the_same_elements_as ["omicron", weird_name]
             Problems.test_advanced_problem_handling action err_checker (x-> x) tester
 
+            err = table.rename_columns map
+            err.should_fail_with Missing_Input_Columns
+
         Test.specify "should correctly handle problems: out of bounds indices" <|
             map = Column_Name_Mapping.By_Index (Map.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]])
-            action = table.rename_columns map on_problems=_
+            action = table.rename_columns map error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
             err_checker err =
                 err.catch.should_be_a Column_Indexes_Out_Of_Range.Error
                 err.catch.indexes.should_contain_the_same_elements_as [-200, 100, 300]
             Problems.test_advanced_problem_handling action err_checker (x-> x) tester
+
+            err = table.rename_columns map
+            err.should_fail_with Column_Indexes_Out_Of_Range
 
         Test.specify "should correctly handle edge-cases: aliased indices" <|
             map1 = Column_Name_Mapping.By_Index (Map.from_vector [[1, "FirstColumn"], [-3, "FirstColumn"]])

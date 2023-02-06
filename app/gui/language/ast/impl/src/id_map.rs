@@ -36,8 +36,10 @@ impl IdMap {
         self.vec.push((span.into(), id));
     }
     /// Generate random Uuid for span.
-    pub fn generate(&mut self, span: impl Into<enso_text::Range<Byte>>) {
-        self.vec.push((span.into(), Uuid::new_v4()));
+    pub fn generate(&mut self, span: impl Into<enso_text::Range<Byte>>) -> Uuid {
+        let uuid = Uuid::new_v4();
+        self.vec.push((span.into(), uuid));
+        uuid
     }
 }
 

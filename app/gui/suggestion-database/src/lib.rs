@@ -417,7 +417,7 @@ impl SuggestionDatabase {
 
     /// Search the database for an entry of method identified by given id.
     pub fn lookup_method(&self, id: MethodId) -> Option<Rc<Entry>> {
-        self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
+        self.entries.borrow().values().find(|entry| entry.method_id().contains(&id)).cloned()
     }
 
     /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
@@ -1071,19 +1071,19 @@ pub mod test {
     /// methods or constructors of the Type or Types defined in the module.
     fn verify_hierarchy_index(db: &SuggestionDatabase, name: &str, expected: &[&str]) {
         let id = lookup_id_by_name(db, name);
-        let id = id.unwrap_or_else(|| panic!("No entry with name {}", name));
+        let id = id.unwrap_or_else(|| panic!("No entry with name {name}"));
         let hierarchy_index = db.hierarchy_index.borrow();
         let actual_ids = hierarchy_index.get(&id);
-        let actual_ids = actual_ids.unwrap_or_else(|| panic!("No entry for id {}", id));
+        let actual_ids = actual_ids.unwrap_or_else(|| panic!("No entry for id {id}"));
         let id_from_name = |name: &&str| {
-            lookup_id_by_name(db, name).unwrap_or_else(|| panic!("No entry with name {}", name))
+            lookup_id_by_name(db, name).unwrap_or_else(|| panic!("No entry with name {name}"))
         };
         let expected_ids: HashSet<_> = expected.iter().map(id_from_name).collect();
         let name_from_id = |id: &entry::Id| {
             db.lookup(*id).map(|e| e.name.clone()).unwrap_or_else(|_| "<not found>".to_string())
         };
         let actual = actual_ids.iter().map(name_from_id).collect::<Vec<_>>();
-        assert_eq!(actual_ids, &expected_ids, "Actual {:?} != expected {:?}", actual, expected);
+        assert_eq!(actual_ids, &expected_ids, "Actual {actual:?} != expected {expected:?}");
     }
 
     /// Test that hierarchy index is populated when the database is created from the language server

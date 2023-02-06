@@ -96,7 +96,7 @@ impl Display for Operation {
         let timestamp = self.timestamp.format(&Rfc3339).unwrap();
         let truncated_line = self.line.chars().take(80).collect::<String>();
 
-        write!(f, "{}ms [{}] {}...", duration_millis, timestamp, truncated_line)
+        write!(f, "{duration_millis}ms [{timestamp}] {truncated_line}...")
     }
 }
 
@@ -227,7 +227,7 @@ async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
                         }
                     },
                 _ => {
-                    eprintln!("[ERR] Invalid log line [{}]", line);
+                    eprintln!("[ERR] Invalid log line [{line}]");
                 }
             }
         }
@@ -368,7 +368,7 @@ async fn main() -> Result<()> {
 
     println!("avg [min..max] (of {} records)", iterations.len());
     for s in &stats {
-        println!("{}", s);
+        println!("{s}");
     }
 
     Ok(())

@@ -96,12 +96,11 @@ pub fn generate_config_module_from_yaml(config_path: impl AsRef<std::path::Path>
             for (key, value) in mapping {
                 let key = key.as_str().unwrap().to_snake_case();
                 let value = value.as_str().unwrap();
-                writeln!(def, "{}pub {}: &'static str,", indent, key).unwrap();
-                writeln!(inst, "{}{}: \"{}\",", indent, key, value).unwrap();
+                writeln!(def, "{indent}pub {key}: &'static str,").unwrap();
+                writeln!(inst, "{indent}{key}: \"{value}\",").unwrap();
                 writeln!(
                     vars,
-                    "#[allow(non_upper_case_globals)]\npub const {}: &str = \"{}\";",
-                    key, value
+                    "#[allow(non_upper_case_globals)]\npub const {key}: &str = \"{value}\";"
                 )
                 .unwrap();
             },

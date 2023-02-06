@@ -6,6 +6,7 @@ mod icon;
 
 use crate::prelude::*;
 
+use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
@@ -94,15 +95,10 @@ impl Icons {
         let visibility = ToggleButton::new();
         let skip = ToggleButton::new();
         display_object.add_child(&visibility);
-        // Note: Disabled for https://github.com/enso-org/ide/issues/1397
-        // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
-        //
-        // We implemented the additonal action icons, but do not currenlty use them. If they
-        // are used again, uncomment the below code to make the already implemented icons
-        // functional again.
-        //
-        display_object.add_child(&freeze);
-        display_object.add_child(&skip);
+        if ARGS.enable_skip_and_freeze {
+            display_object.add_child(&freeze);
+            display_object.add_child(&skip);
+        }
         Self { display_object, freeze, visibility, skip }
     }
 
@@ -201,18 +197,20 @@ impl Model {
         self.size.set(size);
         self.icons.set_x(-size.x / 2.0);
 
-        // Note: Disabled for https://github.com/enso-org/ide/issues/1397
-        // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
-        //
-        // We implemented the additonal action icons, but do not currenlty use them. If they
-        // are used again, uncomment the below code to make the already implemented icons
-        // functional again.
         self.place_button_in_slot(&self.icons.visibility, 0);
-        self.place_button_in_slot(&self.icons.skip, 1);
-        self.place_button_in_slot(&self.icons.freeze, 2);
+        if ARGS.enable_skip_and_freeze {
+            self.place_button_in_slot(&self.icons.skip, 1);
+            self.place_button_in_slot(&self.icons.freeze, 2);
+        }
 
-        // Note: needs increasing to 3 when re-enabling the above buttons.
-        self.layout_hover_area_to_cover_buttons(3);
+        let buttons_count = if ARGS.enable_skip_and_freeze {
+            // Toggle visualization, skip and freeze buttons.
+            3
+        } else {
+            // Toggle visualization button only.
+            1
+        };
+        self.layout_hover_area_to_cover_buttons(buttons_count);
 
         // The appears smaller than the other ones, so this is an aesthetic adjustment.
         self.icons.visibility.set_scale_xy(Vector2::new(1.2, 1.2));
