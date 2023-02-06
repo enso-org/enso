@@ -320,13 +320,11 @@ impl Translate {
             })
         }
         // One newline is implicit.
-        let mut skipped_one = false;
+        let mut token = None;
         for newline in &documentation.newlines {
-            let token = self.visit_token(newline);
-            if skipped_one {
-                span_info.token(token);
+            if let Some(prev) = token.replace(self.visit_token(newline)) {
+                span_info.token(prev);
             }
-            skipped_one = true;
         }
         let rendered = documentation.content().into();
         let type_info = ast::TreeType::Documentation { rendered };
