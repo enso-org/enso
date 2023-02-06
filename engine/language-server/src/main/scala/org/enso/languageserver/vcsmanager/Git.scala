@@ -18,7 +18,7 @@ import org.eclipse.jgit.revwalk.{RevCommit, RevWalk}
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.{CanonicalTreeParser, FileTreeIterator}
 import org.eclipse.jgit.util.FS.FileStoreAttributes
-import org.eclipse.jgit.util.SystemReader
+import org.eclipse.jgit.util.{FS, SystemReader}
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
   AuthorName,
@@ -43,6 +43,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
       .setWorkTree(root.toFile)
       .setGitDir(root.resolve(gitDir).toFile)
       .setMustExist(true)
+      .setFS(new CustomFS(FS.detect()))
       .build()
     disableAutoCRLF(repo)
     repo
@@ -78,6 +79,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         .setGitDir(repoLocation.toFile)
         .setDirectory(root.toFile)
         .setBare(false)
+        .setFs(new CustomFS(FS.detect()))
         .call()
       disableAutoCRLF(jgit.getRepository)
 
