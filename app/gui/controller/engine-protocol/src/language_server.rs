@@ -115,10 +115,6 @@ trait API {
     #[MethodInput=ApplyTextFileEditInput, rpc_name="text/applyEdit"]
     fn apply_text_file_edit(&self, edit: FileEdit) -> ();
 
-    /// Return a list of file edits made to files that have changed.
-    #[MethodInput=TextFileDidChangeInput, rpc_name="text/didChange"]
-    fn text_file_did_change(&self) -> FileEditList;
-
     /// Create a new execution context. Return capabilities executionContext/canModify and
     /// executionContext/receivesUpdates containing freshly created ContextId
     #[MethodInput=CreateExecutionContextInput, rpc_name="executionContext/create"]
