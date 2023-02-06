@@ -178,7 +178,7 @@ impl model::module::API for Module {
         let replaced_end = code.offset_to_location_snapped(change.range.end);
         let replaced_location = enso_text::Range::new(replaced_start, replaced_end);
         code.apply_change(change.as_ref());
-        let new_ast = parser.parse(&code.to_string(), new_id_map).try_into()?;
+        let new_ast = parser.parse(code.to_string(), new_id_map).try_into()?;
         let notification = NotificationKind::CodeChanged { change, replaced_location };
         self.update_content(notification, |content| content.ast = new_ast)
     }

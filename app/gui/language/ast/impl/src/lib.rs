@@ -1126,7 +1126,7 @@ impl Ast {
         escaped.push('\'');
         for char in value.chars() {
             match char {
-                '\'' => escaped.push_str("\'"),
+                '\'' => escaped.push_str("\\'"),
                 char => escaped.push(char),
             }
         }

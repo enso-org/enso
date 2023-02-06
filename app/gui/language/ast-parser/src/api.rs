@@ -1,3 +1,5 @@
+//! A module containing structures and traits used in parser API.
+
 use enso_prelude::*;
 use enso_text::index::*;
 use enso_text::unit::*;
@@ -10,6 +12,7 @@ use enso_text::Range;
 
 
 
+/// A parsed file containing source code and attached metadata.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParsedSourceFile<M> {
     /// Ast representation.

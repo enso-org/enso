@@ -515,7 +515,7 @@ impl<'s> DocComment<'s> {
                 TextElement::Escape { token } => emit_token!(buf, token),
                 TextElement::Newline { newline } => {
                     buf.push_str(&newline.left_offset.code.repr);
-                    buf.push_str("\n");
+                    buf.push('\n');
                 }
                 // Unreachable.
                 TextElement::Splice { .. } => continue,
@@ -1348,6 +1348,7 @@ impl<'s> Tree<'s> {
         visitor.code
     }
 
+    /// Return source code of this AST, excluding initial whitespace.
     pub fn trimmed_code(&self) -> String {
         let mut visitor = CodePrinterVisitor::default();
         self.variant.visit_item(&mut visitor);

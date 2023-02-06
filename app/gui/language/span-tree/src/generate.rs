@@ -272,7 +272,7 @@ fn generate_node_for_ast<T: Payload>(
                 ast::prefix::Chain::from_ast(ast).unwrap().generate_node(kind, context),
             // FIXME?: Lambdas should fall in _ case, because we don't want to create subports for
             //  them
-            ast::Shape::Tree(tree) => tree_generate_node(tree, kind, context, ast.id.clone()),
+            ast::Shape::Tree(tree) => tree_generate_node(tree, kind, context, ast.id),
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
