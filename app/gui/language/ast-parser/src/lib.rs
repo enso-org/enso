@@ -41,8 +41,8 @@ impl Parser {
     }
 
     #[profile(Task)]
-    pub fn parse(&self, program: String, ids: IdMap) -> ast::Ast {
-        let tree = self.parser.run(&program);
+    pub fn parse(&self, program: impl Str, ids: IdMap) -> ast::Ast {
+        let tree = self.parser.run(program.as_ref());
         let ids = ids
             .vec
             .into_iter()
@@ -54,9 +54,9 @@ impl Parser {
     #[profile(Task)]
     pub fn parse_with_metadata<M: api::Metadata>(
         &self,
-        program: String,
+        program: impl Str,
     ) -> api::ParsedSourceFile<M> {
-        let (code, meta) = enso_parser::metadata::extract(&program);
+        let (code, meta) = enso_parser::metadata::extract(program.as_ref());
         let tree = self.parser.run(code);
         // TODO: Log errors.
         let metadata = meta.and_then(|meta| serde_json::from_str(meta).ok()).unwrap_or_default();
@@ -71,7 +71,7 @@ impl Parser {
 
 impl Parser {
     pub fn parse_module(&self, program: impl Str, ids: IdMap) -> api::Result<ast::known::Module> {
-        let ast = self.parse(program.into(), ids);
+        let ast = self.parse(program.as_ref(), ids);
         ast::known::Module::try_from(ast).map_err(|_| api::Error::NonModuleRoot)
     }
 

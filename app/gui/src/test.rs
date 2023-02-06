@@ -180,7 +180,7 @@ pub mod mock {
         }
 
         pub fn module(&self, urm: Rc<undo_redo::Manager>) -> crate::model::Module {
-            let ast = self.parser.parse_module(self.code.clone(), self.id_map.clone()).unwrap();
+            let ast = self.parser.parse_module(&self.code, self.id_map.clone()).unwrap();
             let path = self.module_path.clone();
             let metadata = self.metadata.clone();
             let repository = urm.repository.clone_ref();

@@ -228,14 +228,14 @@ mod tests {
 
     /// Takes a program with main definition in root and returns main's graph.
     fn main_graph(parser: &ast_parser::Parser, program: impl Str) -> GraphInfo {
-        let module = parser.parse_module(program.into(), default()).unwrap();
+        let module = parser.parse_module(program.as_ref(), default()).unwrap();
         let name = DefinitionName::new_plain("main");
         let main = module.def_iter().find_by_name(&name).unwrap();
         GraphInfo::from_definition(main.item)
     }
 
     fn find_graph(parser: &ast_parser::Parser, program: impl Str, name: impl Str) -> GraphInfo {
-        let module = parser.parse_module(program.into(), default()).unwrap();
+        let module = parser.parse_module(program.as_ref(), default()).unwrap();
         let crumbs = name.into().split('.').map(DefinitionName::new_plain).collect();
         let id = Id { crumbs };
         let definition = get_definition(&module, &id).unwrap();
@@ -263,7 +263,7 @@ mod tests {
     }
 
     fn new_expression_node(parser: &ast_parser::Parser, expression: &str) -> NodeInfo {
-        let node_ast = parser.parse(expression.to_string(), default());
+        let node_ast = parser.parse(expression, default());
         let line_ast = expect_single_line(&node_ast).clone();
         NodeInfo::from_main_line_ast(&line_ast).unwrap()
     }
@@ -490,7 +490,7 @@ main =
 main =
     foo = 2 + 2
     bar = 3 + 17";
-        let new_expression = parser.parse("print \"HELLO\"".to_string(), default());
+        let new_expression = parser.parse("print \"HELLO\"", default());
         let new_expression = expect_single_line(&new_expression).clone();
 
         let mut graph = main_graph(&parser, program);
