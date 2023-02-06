@@ -4,7 +4,6 @@ use enso_profiler::prelude::*;
 use ast::Ast;
 use enso_parser::syntax;
 use enso_parser::syntax::tree;
-use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
 use enso_profiler as profiler;
 use std::collections::BTreeMap;
@@ -372,7 +371,7 @@ impl Translate {
         let builder = self.start_ast();
         let lhs = self.translate(lhs);
         let opr_builder = self.start_ast();
-        let opr = self.visit_token(opr).map(|_| ast::Shape::from(opr_from_token(opr)));
+        let opr = self.visit_token(opr).map(|_| opr_from_token(opr));
         let opr = opr.map(|opr| self.finish_ast(opr, opr_builder));
         let rhs = self.translate(rhs);
         infix(lhs, opr, rhs).map(|opr_app| self.finish_ast(opr_app, builder))
@@ -385,7 +384,7 @@ impl Translate {
                 let token = self.visit_token(name);
                 match name.code.repr.ends_with('=') {
                     true => token.map(|name| ast::Shape::from(ast::Mod { name })),
-                    false => token.map(|_| ast::Shape::from(opr_from_token(name))),
+                    false => token.map(|_| opr_from_token(name)),
                 }
             }
             Err(names) => {
@@ -492,43 +491,51 @@ impl Translate {
         operator_lines: impl IntoIterator<Item = &'a tree::block::OperatorLine<'s>>,
         excess: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
     ) -> WithInitialSpace<Ast> {
-        // TODO: support doc comments
-        let mut indent = 0;
-        let mut empty_lines = vec![];
-        let mut first_line = None;
-        let mut lines = vec![];
-        for line in operator_lines {
-            let elem = line.expression.as_ref().map(|expression| {
+        let mut ast_lines: Vec<ast::BlockLine<_>> = vec![];
+        let mut indent = None;
+        let mut space = 0;
+        let off = 0;
+        for tree::block::OperatorLine { newline, expression } in operator_lines {
+            let trailing_space = self.visit_token(newline).space;
+            *ast_lines.last_mut().map(|line| &mut line.off).unwrap_or(&mut space) = trailing_space;
+            let elem = expression.as_ref().map(|expression| {
                 let opr = self.translate_opr(&expression.operator);
                 let arg = self.translate(&expression.expression);
-                Ast::from(section_right(opr, arg).expect_unspaced())
-            });
-            let off = 0; // TODO
-            if first_line.is_none() {
-                // TODO: handle multiple-operator error; visit_token
-                if let Some(elem) = elem {
-                    indent = line
-                        .expression
-                        .as_ref()
-                        .unwrap()
-                        .operator
-                        .first_operator()
-                        .left_offset
-                        .visible
-                        .width_in_spaces;
-                    first_line = Some(ast::BlockLine { elem, off });
-                } else {
-                    empty_lines.push(off);
+                let (space, elem) = section_right(opr, arg).split();
+                if indent.is_none() {
+                    indent = Some(space);
                 }
-            } else {
-                lines.push(ast::BlockLine { elem, off });
+                Ast::from(elem)
+            });
+            ast_lines.push(ast::BlockLine { elem, off });
+        }
+        let indent = indent.unwrap();
+        let mut statement_lines = vec![];
+        for tree::block::Line { newline, expression } in excess {
+            let trailing_space = self.visit_token(newline).space;
+            *ast_lines.last_mut().map(|line| &mut line.off).unwrap_or(&mut space) = trailing_space;
+            match &expression {
+                Some(statement) => {
+                    self.translate_lines(statement, &mut statement_lines);
+                    let new_lines = statement_lines
+                        .drain(..)
+                        .map(|elem| ast::BlockLine { elem: elem.without_space(), off });
+                    ast_lines.extend(new_lines);
+                }
+                None => ast_lines.push(ast::BlockLine { elem: None, off }),
             }
         }
-        for _line in excess {
-            todo!();
+        let mut first_line = None;
+        let mut empty_lines = vec![];
+        let mut lines = vec![];
+        for ast::BlockLine { elem, off } in ast_lines {
+            match (elem, &mut first_line) {
+                (None, None) => empty_lines.push(off),
+                (Some(elem), None) => first_line = Some(ast::BlockLine { elem, off }),
+                (elem, Some(_)) => lines.push(ast::BlockLine { elem, off }),
+            }
         }
         let first_line = first_line.unwrap();
-        let space = 0; // TODO
         let body = Ast::from(ast::Block { indent, empty_lines, first_line, lines });
         WithInitialSpace { space, body }
     }
@@ -549,9 +556,9 @@ impl Translate {
         } = arg;
         let open = open.as_ref().map(|token| self.visit_token(token));
         let open2 = open2.as_ref().map(|token| self.visit_token(token));
-        let suspension = suspension.as_ref().map(|token| {
-            self.visit_token(token).map(|_| Ast::from(opr_from_token(token)))
-        });
+        let suspension = suspension
+            .as_ref()
+            .map(|token| self.visit_token(token).map(|_| Ast::from(opr_from_token(token))));
         let mut term = self.translate(pattern);
         if let Some(opr) = suspension {
             term = section_right(opr, term).map(Ast::from);

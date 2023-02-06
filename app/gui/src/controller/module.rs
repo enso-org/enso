@@ -236,7 +236,10 @@ mod test {
                                 Some(uuid1),
                             ),
                             loff: 0,
-                            opr:  Ast::new(ast::Opr { name: "+".to_string(), right_assoc: false }, Some(uuid2)),
+                            opr:  Ast::new(
+                                ast::Opr { name: "+".to_string(), right_assoc: false },
+                                Some(uuid2),
+                            ),
                             roff: 0,
                             rarg: Ast::new(
                                 ast::Number { base: None, int: "2".to_string() },
