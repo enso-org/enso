@@ -81,9 +81,9 @@ impl Registry {
         &self,
         tp: &enso::Type,
     ) -> Option<visualization::Definition> {
-        // Visualisations are order by "matching the type" first, followed by and then "matching any
-        // type". So we just take the first one, which should be the most appropriate one.
-        // This should be replaced with the proper solution described in
+        // TODO[MM]: Visualisations are order by "matching the type" first, followed by and then
+        // "matching any type". So we just take the first one, which should be the most appropriate
+        // one. This should be replaced with the proper solution described in
         // https://www.pivotaltracker.com/story/show/184390437
         let valid_sources = self.valid_sources(tp);
         valid_sources.into_iter().next()

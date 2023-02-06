@@ -449,8 +449,7 @@ impl ContainerModel {
                 vis_list.iter().skip_while(|x| vis.signature.path != x.signature.path);
             from_current.nth(1)
         });
-        let result = next_on_list.or_else(|| vis_list.first()).cloned();
-        result
+        next_on_list.or_else(|| vis_list.first()).cloned()
     }
 }
 
