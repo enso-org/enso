@@ -127,7 +127,7 @@ async fn ls_text_protocol_test() {
     // Setting visualization.
     let visualisation_id = uuid::Uuid::new_v4();
     let expression_id = uuid::Uuid::parse_str("c553533e-a2b9-4305-9f12-b8fe7781f933");
-    let expression_id = expression_id.expect("Couldn't parse expression id.");
+    let expression_id = expression_id.expect("Couldn't parse expression ID.");
     let visualization_function = "foo".to_string();
     let visualization_module = "Test.Visualisation";
     let expression = MethodPointer {

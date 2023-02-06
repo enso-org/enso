@@ -273,7 +273,7 @@ impl Manager {
     /// Request setting a given visualization on the node.
     ///
     /// Note that `[Manager]` allows setting at most one visualization per expression. Subsequent
-    /// calls will chnge previous visualization to the a new one.
+    /// calls will change previous visualization to the a new one.
     pub fn request_visualization(self: &Rc<Self>, target: ast::Id, requested: Metadata) {
         self.set_visualization(target, Some(requested))
     }
@@ -664,7 +664,7 @@ mod tests {
 
         // If visualization changes ID, then we need to use detach-attach API.
         // We don't attach it separately, as Manager identifies visualizations by their
-        // expression id rather than visualization id.
+        // expression ID rather than visualization ID.
         let desired_vis_3 = Desired {
             visualization_id: VisualizationId::from_u128(900),
             expression_id:    node_id,

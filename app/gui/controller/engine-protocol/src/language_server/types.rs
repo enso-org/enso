@@ -1131,8 +1131,8 @@ impl<T> FieldUpdate<T> {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
+#[serde(tag = "type")]
 pub enum SuggestionArgumentUpdate {
     #[serde(rename_all = "camelCase")]
     Add { index: usize, argument: SuggestionEntryArgument },

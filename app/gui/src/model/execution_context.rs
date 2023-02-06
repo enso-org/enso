@@ -117,7 +117,12 @@ impl ComputedValueInfoRegistry {
 
     /// Look up the registry for information about given expression.
     pub fn get(&self, id: &ExpressionId) -> Option<Rc<ComputedValueInfo>> {
-        self.map.borrow_mut().get(id).cloned()
+        self.map.borrow().get(id).cloned()
+    }
+
+    /// Look up the registry for method call suggestion ID for given expression.
+    pub fn get_method_call(&self, id: &ExpressionId) -> Option<SuggestionId> {
+        self.map.borrow().get(id)?.method_call
     }
 
     /// Obtain a `Future` with data from this registry. If data is not available yet, the future
@@ -279,8 +284,9 @@ impl From<QualifiedMethodPointer> for MethodPointer {
 
 impl From<&QualifiedMethodPointer> for MethodPointer {
     fn from(qualified_method_pointer: &QualifiedMethodPointer) -> Self {
-        let module = qualified_method_pointer.module.clone().into();
-        let defined_on_type = qualified_method_pointer.defined_on_type.clone().into();
+        let module = qualified_method_pointer.module.to_string_with_main_segment();
+        let defined_on_type =
+            qualified_method_pointer.defined_on_type.to_string_with_main_segment();
         let name = qualified_method_pointer.name.name().to_owned();
         MethodPointer { module, defined_on_type, name }
     }
