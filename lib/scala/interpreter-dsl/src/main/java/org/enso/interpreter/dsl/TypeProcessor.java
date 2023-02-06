@@ -121,6 +121,13 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
                     + " = \""
                     + constr.getFullName()
                     + "\";");
+
+            out.println(
+                    "  public static final String "
+                            + entry.getKey().toUpperCase() + "_BUILTIN"
+                            + " = "
+                            + toBuiltinName(constr.getFullName())
+                            + ";");
           }
         }
       }
@@ -142,6 +149,10 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
       out.println();
       out.println("}");
     }
+  }
+
+  private String toBuiltinName(String name) {
+    return "Constants.BUILTIN_NAMESPACE + \"." + name.substring(name.lastIndexOf('.') + 1) + "\"";
   }
 
   protected void registerBuiltinType(

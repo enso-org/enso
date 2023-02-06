@@ -139,7 +139,7 @@ class RuntimeInstrumentTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -186,7 +186,7 @@ class RuntimeInstrumentTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, mainBody, ConstantsGen.TEXT),
+      TestMessages.update(contextId, mainBody, ConstantsGen.TEXT_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -482,9 +482,9 @@ class RuntimeInstrumentTest
       5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION_BUILTIN),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -537,9 +537,9 @@ class RuntimeInstrumentTest
     )
     context.receiveN(6) should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION),
-      TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION_BUILTIN),
+      TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -601,11 +601,11 @@ class RuntimeInstrumentTest
         .update(
           contextId,
           xExpr,
-          ConstantsGen.INTEGER,
+          ConstantsGen.INTEGER_BUILTIN,
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "f")
         ),
-      TestMessages.update(contextId, mainRes, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainRes, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, mainExpr, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -1036,9 +1036,9 @@ class RuntimeInstrumentTest
       5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, arg1, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, arg2, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, arg3, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, arg1, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, arg2, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, arg3, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }

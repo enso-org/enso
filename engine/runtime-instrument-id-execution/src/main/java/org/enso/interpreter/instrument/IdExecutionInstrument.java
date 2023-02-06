@@ -20,6 +20,7 @@ import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.Type;
@@ -27,6 +28,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.Module;
 
@@ -247,16 +249,19 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       }
     }
 
-    //@CompilerDirectives.TruffleBoundary
     private void onExpressionReturn(Object result, Node node, EventContext context) throws ThreadDeath {
         boolean isPanic = result instanceof PanicSentinel;
         UUID nodeId = ((ExpressionNode) node).getId();
-        String resultType = Types.getName(result);
-        if (resultType == null && result != null) {
-            // Slow path
+
+        String resultType;
+        if (result instanceof UnresolvedSymbol) {
+            resultType = Constants.UNRESOLVED_SYMBOL;
+        } else {
             Object typeResult = typeOfNode.execute(result);
             if (typeResult instanceof Type t) {
                 resultType = t.getQualifiedName().toString();
+            } else {
+                resultType = null;
             }
         }
 
