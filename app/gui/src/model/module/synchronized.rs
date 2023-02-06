@@ -578,7 +578,6 @@ pub mod test {
     use crate::test::Runner;
 
     use engine_protocol::language_server::FileEdit;
-    use engine_protocol::language_server::FileEditList;
     use engine_protocol::language_server::MockClient;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::TextRange;
@@ -709,25 +708,15 @@ pub mod test {
             TextRange { start: Position { line: 0, character: 0 }, end: end_of_file.into() }
         }
 
-        /// Update the language server file content and return a `FileEditList` similar to the
-        /// response of a 'text/didChange' notification.
-        fn update_ls_content(
-            &self,
-            path: engine_protocol::language_server::Path,
-            edit: TextEdit,
-        ) -> FileEditList {
+        /// Update the language server file content with a `TextEdit`.
+        fn update_ls_content(&self, edit: &TextEdit) {
             let old_content = self.current_ls_content.get();
-            let old_version =
-                Sha3_224::from_parts(old_content.iter_chunks(..).map(|s| s.as_bytes()));
-            let new_content = apply_edit(old_content, &edit);
+            let new_content = apply_edit(old_content, edit);
             let new_version =
                 Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
             debug!("Updated content:\n===\n{new_content}\n===");
             self.current_ls_content.set(new_content);
             self.current_ls_version.set(new_version.clone());
-            FileEditList {
-                edits: vec![FileEdit { path, edits: vec![edit], old_version, new_version }],
-            }
         }
     }
 
@@ -806,9 +795,10 @@ pub mod test {
     #[wasm_bindgen_test]
     fn handling_language_server_file_changes() {
         // The test starts with code as below, followed by a full invalidation replacing the whole
-        // AST to print "Test". Then the file is changed on the language server side, simulating a
-        // `text/did_change` notification. The returned `FileEditList` is then used to update the
-        // module content.
+        // AST to print "Test". Then the file is changed on the language server side, simulating
+        // what would happen if a snapshot is restored from the VCS. The applied `TextEdit` is then
+        // used to update the local module content independently and synchronize it with the
+        // language server.
         let initial_code = "main =\n    println \"Hello World!\"";
         let mut data = crate::test::mock::Unified::new();
         data.set_code(initial_code);
@@ -825,23 +815,8 @@ pub mod test {
                     assert!(edit.edits.last().map_or(false, |edit| edit.text.contains("Test")));
                     Ok(())
                 });
-
-                // Replace `Test` with `Test 2` and return a `FileEditList` with the applied
-                // changes.
-                let edit_handler_clone = edit_handler.clone();
-                let path = (*data.module_path.file_path).clone();
-                client.expect.text_file_did_change(move || {
-                    let edit = TextEdit {
-                        text:  "Test 2".into(),
-                        range: TextRange {
-                            start: Position { line: 1, character: 13 },
-                            end:   Position { line: 1, character: 17 },
-                        },
-                    };
-                    Ok(edit_handler_clone.update_ls_content(path, edit))
-                });
-
-                // Expect an edit that changes metadata due to parsing of the restored content.
+                // Expect an edit that changes metadata due to parsing of the reloaded module
+                // content.
                 edit_handler.expect_some_edit(client, |edits| {
                     let edit_code = &edits.edits[0];
                     // The metadata changed is on line 5.
@@ -858,10 +833,18 @@ pub mod test {
             let new_ast = parser.parse_module(new_content, default()).unwrap();
             module.update_ast(new_ast).unwrap();
             fixture.run_until_stalled();
-            let file_edits = module.language_server.text_file_did_change().expect_ready().unwrap();
+            // Replace `Test` with `Test 2` on the language server side and provide a `FileEditList`
+            // containing the file changes.
+            let edit = TextEdit {
+                text:  "Test 2".into(),
+                range: TextRange {
+                    start: Position { line: 1, character: 13 },
+                    end:   Position { line: 1, character: 17 },
+                },
+            };
+            edit_handler.update_ls_content(&edit);
             fixture.run_until_stalled();
-            let change = file_edits.edits[0].edits.clone();
-            module.apply_text_change_from_ls(change, &parser).unwrap();
+            module.apply_text_change_from_ls(vec![edit], &parser).unwrap();
             fixture.run_until_stalled();
         };
 
