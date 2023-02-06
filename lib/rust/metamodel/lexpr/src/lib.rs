@@ -106,7 +106,7 @@ impl<'g> ToSExpr<'g> {
         let data = bincoder.serialize(input).unwrap();
         let mut data = &data[..];
         let value = self.value_(id, &mut data);
-        assert_eq!(data, &[0; 0], "{}", value);
+        assert_eq!(data, &[0; 0], "{value}");
         value
     }
 }

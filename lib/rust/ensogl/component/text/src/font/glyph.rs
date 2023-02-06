@@ -549,6 +549,7 @@ fn get_context(scene: &Scene) -> Context {
 #[allow(missing_docs)]
 pub struct System {
     context:  Context,
+    hinting:  Immutable<Hinting>,
     pub font: FontWithAtlas,
 }
 
@@ -559,8 +560,11 @@ impl System {
         let scene = scene.as_ref();
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font_name);
+        let platform = platform::current();
+        let hinting = HINTING_MAP.get(&(platform, font.name())).copied().unwrap_or_default();
+        let hinting = Immutable(hinting);
         let context = get_context(scene);
-        Self { context, font }
+        Self { context, hinting, font }
     }
 
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
@@ -579,13 +583,11 @@ impl System {
         let color_animation = color::Animation::new(frp.network());
         let x_advance = default();
         let attached_to_cursor = default();
-        let platform = platform::current();
-        let hinting = HINTING_MAP.get(&(platform, font.name())).copied().unwrap_or_default();
         let view = glyph_shape::View::new_with_data(ShapeData { font });
         view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         view.atlas_index.set(0.0);
-        view.opacity_increase.set(hinting.opacity_increase);
-        view.opacity_exponent.set(hinting.opacity_exponent);
+        view.opacity_increase.set(self.hinting.opacity_increase);
+        view.opacity_exponent.set(self.hinting.opacity_exponent);
         display_object.add_child(&view);
 
         let network = frp.network();

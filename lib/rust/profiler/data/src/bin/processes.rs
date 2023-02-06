@@ -235,7 +235,7 @@ fn main() {
     let argv0 = args.next().unwrap();
     let labels = "foreign_process_label1,foreign_process_label2,...";
     let profiles = "profile1.json profile2.json ...";
-    let usage = &format!("Usage: {} {} {}", argv0, labels, profiles);
+    let usage = &format!("Usage: {argv0} {labels} {profiles}");
     let processes = Processes::from_str(&args.next().expect(usage)).expect(usage);
     let mut cols = vec!["profile".into(), "main".into()];
     cols.extend(processes.in_order.iter().map(|p| processes.names[p].clone()));

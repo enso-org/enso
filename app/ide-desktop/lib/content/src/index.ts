@@ -180,6 +180,10 @@ class Config {
         'Controls whether the new component browser should be enabled.'
     )
     emitUserTimingMeasurements: config.Param<boolean> = new config.Param(false, 'TODO')
+    enableSkipAndFreeze: config.Param<boolean> = new config.Param(
+        false,
+        'Enable experimental support for skipping and freezing nodes.'
+    )
 }
 
 // ========================

@@ -39,7 +39,7 @@ impl VsWhere {
         let stdout = command.run_stdout().await?;
         let instances = serde_json::from_str::<Vec<InstanceInfo>>(&stdout)?;
         instances.into_iter().next().with_context(|| {
-            format!("No Visual Studio installation found with component {}.", component)
+            format!("No Visual Studio installation found with component {component}.")
         })
     }
 

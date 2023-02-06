@@ -164,7 +164,7 @@ impl fmt::Display for Class {
             sealed,
         } = &self;
         if let Some(package) = package {
-            writeln!(f, "package {};", package)?;
+            writeln!(f, "package {package};")?;
         }
         let mut modifiers = vec!["public".to_string()];
         static_.then(|| modifiers.push("static".to_string()));
@@ -187,15 +187,15 @@ impl fmt::Display for Class {
             }
         }
         let tokens = tokens.join(" ");
-        writeln!(f, "{} {{", tokens)?;
+        writeln!(f, "{tokens} {{")?;
         for field in fields {
-            write!(f, "{}", field)?;
+            write!(f, "{field}")?;
         }
         for method in methods {
-            write!(f, "{}", method)?;
+            write!(f, "{method}")?;
         }
         for class in nested {
-            write!(f, "{}", class)?;
+            write!(f, "{class}")?;
         }
         writeln!(f, "}}")?;
         Ok(())
@@ -210,7 +210,7 @@ impl fmt::Display for Field {
         tokens.push(type_.to_string());
         tokens.push(name.clone());
         let tokens = tokens.join(" ");
-        writeln!(f, "{};", tokens)
+        writeln!(f, "{tokens};")
     }
 }
 
@@ -249,10 +249,9 @@ impl fmt::Display for Method {
         }
         tokens.push(name.to_string());
         let tokens = tokens.join(" ");
-        let arguments: Vec<_> =
-            arguments.iter().map(|(ty, name)| format!("{} {}", ty, name)).collect();
+        let arguments: Vec<_> = arguments.iter().map(|(ty, name)| format!("{ty} {name}")).collect();
         let arguments = arguments.join(", ");
-        writeln!(f, "{}({})", tokens, arguments)?;
+        writeln!(f, "{tokens}({arguments})")?;
         if !throws.is_empty() {
             let types: Vec<_> = throws.iter().map(|ty| ty.to_string()).collect();
             let types = types.join(", ");

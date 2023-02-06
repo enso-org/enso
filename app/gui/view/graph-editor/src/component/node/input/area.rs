@@ -9,9 +9,11 @@ use ensogl::display::traits::*;
 use crate::component::type_coloring;
 use crate::node;
 use crate::node::input::port;
+use crate::node::input::widget;
 use crate::node::profiling;
 use crate::view;
 use crate::Type;
+use crate::WidgetUpdates;
 
 use enso_frp as frp;
 use enso_frp;
@@ -102,6 +104,34 @@ impl Debug for Expression {
     }
 }
 
+// === Pretty printing debug adapter ===
+
+/// Debug adapter used for pretty-printing the `Expression` span tree. Can be used to print the
+/// expression with detailed span-tree information. This printer is normally too verbose to be
+/// a default `Debug` implementation of `Expression`, so it is hidden behind a separate adapter
+/// and can be chosen by calling `expression.tree_pretty_printer()`.
+pub struct ExpressionTreePrettyPrint<'a> {
+    expression: &'a Expression,
+}
+
+impl<'a> Debug for ExpressionTreePrettyPrint<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        let printed = self.expression.span_tree.debug_print(&self.expression.code);
+        f.write_str(&printed)
+    }
+}
+
+impl Expression {
+    /// Wrap the expression into a pretty-printing adapter that implements `Debug` and prints
+    /// detailed span-tree information. See [`SpanTree::debug_print`] method for more details.
+    ///
+    /// Note that this printer emits multi-line output. In order for those lines to be properly
+    /// aligned, it should be always printed on a new line.
+    pub fn tree_pretty_printer(&self) -> ExpressionTreePrettyPrint<'_> {
+        ExpressionTreePrettyPrint { expression: self }
+    }
+}
+
 
 // === Conversions ===
 
@@ -178,8 +208,15 @@ pub struct Model {
     label:          text::Text,
     expression:     RefCell<Expression>,
     id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
+    widgets_map:    RefCell<HashMap<WidgetBind, Crumbs>>,
     styles:         StyleWatch,
     styles_frp:     StyleWatchFrp,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+struct WidgetBind {
+    call_id:       ast::Id,
+    argument_name: String,
 }
 
 impl Model {
@@ -195,6 +232,7 @@ impl Model {
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let widgets_map = default();
         display_object.add_child(&label);
         display_object.add_child(&ports);
         ports.add_child(&header);
@@ -206,6 +244,7 @@ impl Model {
             label,
             expression,
             id_crumbs_map,
+            widgets_map,
             styles,
             styles_frp,
         }
@@ -271,6 +310,46 @@ impl Model {
         }
     }
 
+    /// Apply widget updates to widgets in this input area.
+    fn apply_widget_updates(&self, updates: &WidgetUpdates) {
+        let expression = self.expression.borrow();
+        let widgets_map = self.widgets_map.borrow();
+        let WidgetUpdates { call_id, updates } = updates;
+        for update in updates.iter() {
+            let argument_name = update.argument_name.to_string();
+            let widget_id = WidgetBind { call_id: *call_id, argument_name };
+            let crumbs = widgets_map.get(&widget_id);
+
+            let root = expression.span_tree.root_ref();
+            let port = crumbs.and_then(|crumbs| root.get_descendant(crumbs).ok());
+            let widget = port.and_then(|port| port.payload.widget.clone_ref());
+
+            // When a widget is found, update it. Failing to find a widget is not an error, as it
+            // might be a widget that was removed from the expression while the request was pending.
+            // If it comes back, the widget data will be requested again.
+            if let Some(widget) = widget {
+                widget.set_metadata(update.meta.clone());
+            }
+        }
+    }
+
+    /// Set the visibility of all widgets in this input area. This is only a visual change, and does
+    /// not affect the widget's state. Widget updates are still processed when the widget is hidden.
+    fn set_widgets_visibility(&self, visible: bool) {
+        let expression = self.expression.borrow();
+        let widgets_map = self.widgets_map.borrow();
+        for (id, crumbs) in widgets_map.iter() {
+            let root = expression.span_tree.root_ref();
+            let port = root.get_descendant(crumbs).ok();
+            let widget = port.and_then(|port| port.payload.widget.clone_ref());
+            if let Some(widget) = widget {
+                widget.set_visible(visible);
+            } else {
+                error!("Widget {id:?} not found for crumbs {crumbs:?}.");
+            }
+        }
+    }
+
     #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
         self.label.set_content(expression.viz_code.clone());
@@ -281,14 +360,17 @@ impl Model {
         &self,
         expression: &mut Expression,
         area_frp: &FrpEndpoints,
+        call_info: &CallInfoMap,
     ) {
         let mut is_header = true;
+
         let mut id_crumbs_map = HashMap::new();
+        let mut widgets_map = HashMap::new();
         let builder = PortLayerBuilder::empty(&self.ports);
         let code = &expression.viz_code;
+
         expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
             let is_parensed = node.is_parensed();
-            let last_argument = node.children.iter().rposition(|child| child.is_argument());
             let skip_opr = if SKIP_OPERATIONS {
                 node.is_operation() && !is_header
             } else {
@@ -331,6 +413,7 @@ impl Model {
             let new_parent = if not_a_port {
                 builder.parent.clone_ref()
             } else {
+                let crumbs = node.crumbs.clone_ref();
                 let port = &mut node;
 
                 let index = local_char_offset + builder.shift;
@@ -341,11 +424,11 @@ impl Model {
                 let height = 18.0;
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
-                let port_shape = port.payload_mut().init_shape(size, node::HEIGHT);
-                let argument_info = port.argument_info();
-                let port_widget = port.payload_mut().init_widget(&self.app, argument_info, node::HEIGHT);
+                let position_x = unit * index as f32;
 
-                port_shape.set_x(unit * index as f32);
+                let port_shape = port.payload.init_shape(size, node::HEIGHT);
+
+                port_shape.set_x(position_x);
                 if DEBUG {
                     port_shape.set_y(DEBUG_PORT_OFFSET);
                 }
@@ -363,7 +446,6 @@ impl Model {
                 let styles = StyleWatch::new(style_sheet);
                 let styles_frp = &self.styles_frp;
                 let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);
-                let crumbs = port.crumbs.clone_ref();
                 let port_network = &port.network;
 
                 frp::extend! { port_network
@@ -438,31 +520,34 @@ impl Model {
                     area_frp.source.pointer_style <+ pointer_style;
                 }
 
-                if let Some(port_widget) = port_widget {
-                    port_widget.set_x(unit * index as f32);
-                    builder.parent.add_child(&port_widget);
+                if let Some((widget_bind, widget)) = self.init_port_widget(port, call_info) {
+                    widgets_map.insert(widget_bind, crumbs.clone_ref());
+                    widget.set_x(position_x);
+                    builder.parent.add_child(&widget);
+
                     if port.is_argument() {
                         let range = port.payload.range();
                         let code = &expression.viz_code[range];
-                        port_widget.set_current_value(Some(code.into()));
+                        widget.set_current_value(Some(code.into()));
+                    } else {
+                        widget.set_current_value(None);
                     }
-                    let last_arg_crumb = builder.parent_last_argument;
+
+                    let can_be_removed = call_info.is_last_argument(port);
+                    let empty_value = if can_be_removed { "" } else { "_" };
+
+                    let port_network = &port.network;
                     frp::extend! { port_network
-                        area_frp.source.on_port_code_update <+ port_widget.value_changed.map(
-                            f!([crumbs](v) {
-                                let crumbs = crumbs.clone_ref();
-                                let is_last_argument = crumbs.last().copied() == last_arg_crumb;
-                                (crumbs.clone_ref(), v.clone().unwrap_or_else(|| {
-                                    if is_last_argument { default() } else { "_".into() }
-                                }))
-                            })
-                        );
+                        code_update <- widget.value_changed.map(f!([crumbs](value) {
+                            let expression = value.clone().unwrap_or_else(|| empty_value.into());
+                            (crumbs.clone_ref(), expression)
+                        }));
+                        area_frp.source.on_port_code_update <+ code_update;
                     }
                 }
 
-
                 init_color.emit(());
-                area_frp.set_view_mode.emit(area_frp.view_mode.value());
+
                 port_shape.display_object().clone_ref()
             };
 
@@ -475,9 +560,51 @@ impl Model {
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
             let new_shift = if !not_a_port { 0 } else { builder.shift + local_char_offset };
-            builder.nested(new_parent, new_parent_frp, is_parensed, last_argument, new_shift)
+            builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
         });
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
+        *self.widgets_map.borrow_mut() = widgets_map;
+        area_frp.set_view_mode.emit(area_frp.view_mode.value());
+    }
+
+    fn init_port_widget(
+        &self,
+        port: &mut PortRefMut,
+        call_info: &CallInfoMap,
+    ) -> Option<(WidgetBind, widget::View)> {
+        let call_id = port.kind.call_id().filter(|id| call_info.has_target(id))?;
+        let argument_info = port.kind.argument_info()?;
+        let argument_name = argument_info.name.as_ref()?.clone();
+
+        let widget_bind = WidgetBind { call_id, argument_name };
+
+
+        // Try getting the previous widget by exact target/argument ID first, which is
+        // necessary when the argument expression was replaced. This lookup can fail
+        // when the target expression was replaced, but the widget argument expression
+        // wasn't. In that case, try to reuse the widget from old argument node under
+        // the same ast ID.
+        let prev_widgets_map = self.widgets_map.borrow();
+        let prev_id_crumbs_map = self.id_crumbs_map.borrow();
+        let prev_crumbs = prev_widgets_map
+            .get(&widget_bind)
+            .or_else(|| port.ast_id.as_ref().and_then(|id| prev_id_crumbs_map.get(id)));
+        let prev_widget = prev_crumbs.and_then(|crumbs| {
+            let prev_expression = self.expression.borrow();
+            let prev_root = prev_expression.span_tree.root_ref();
+            let prev_node = prev_root.get_descendant(crumbs).ok()?;
+            let prev_widget = prev_node.payload.widget.as_ref()?.clone_ref();
+            Some(prev_widget)
+        });
+
+        let widget = match prev_widget {
+            Some(prev_widget) => port.payload.use_existing_widget(prev_widget),
+            None => port.payload.init_widget(&self.app),
+        };
+
+        widget.set_node_data(widget::NodeData { argument_info, node_height: node::HEIGHT });
+
+        Some((widget_bind, widget))
     }
 
     /// Initializes FRP network for every port. Please note that the networks are connected
@@ -500,7 +627,6 @@ impl Model {
 
 
             // === Type Computation ===
-
             let parent_tp = parent_tp.clone().unwrap_or_else(|| {
                 frp::extend! { port_network
                     empty_parent_tp <- source::<Option<Type>>();
@@ -660,11 +786,22 @@ impl Model {
     /// may require some edges to re-color, which consequently will require to checking the current
     /// expression types.
     #[profile(Debug)]
-    fn init_new_expression(&self, expression: Expression) {
+    fn init_new_expression(
+        &self,
+        expression: Expression,
+        area_frp: &FrpEndpoints,
+        call_info: &CallInfoMap,
+    ) {
         *self.expression.borrow_mut() = expression;
         let expression = self.expression.borrow();
         expression.root_ref().dfs_with_layer_data((), |node, _| {
             node.frp.set_definition_type(node.tp().cloned().map(|t| t.into()));
+            let call_id = node.kind.call_id();
+            let widget_request =
+                call_id.and_then(|call_id| Some((call_id, call_info.target(&call_id)?)));
+            if let Some(widget_request) = widget_request {
+                area_frp.source.requested_widgets.emit(widget_request);
+            }
         });
     }
 
@@ -679,15 +816,18 @@ impl Model {
     ) -> Expression {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {
-            debug!("\n\n=====================\nSET EXPR: {}", new_expression.code)
+            debug!("set expression: \n{:?}", new_expression.tree_pretty_printer());
         }
+
+        let call_info = CallInfoMap::scan_expression(&new_expression);
         self.set_label_on_new_expression(&new_expression);
-        self.build_port_shapes_on_new_expression(&mut new_expression, area_frp);
+        self.build_port_shapes_on_new_expression(&mut new_expression, area_frp, &call_info);
         self.init_port_frp_on_new_expression(&mut new_expression, area_frp);
-        self.init_new_expression(new_expression.clone());
+        self.init_new_expression(new_expression.clone(), area_frp, &call_info);
         if is_editing {
             self.label.set_cursor_at_text_end();
         }
+        self.set_widgets_visibility(!is_editing);
         new_expression
     }
 }
@@ -732,6 +872,9 @@ ensogl::define_endpoints! {
         /// colored if the definition type was present.
         set_expression_usage_type (Crumbs,Option<Type>),
 
+        /// Update widget metadata for widgets already present in this input area.
+        update_widgets   (WidgetUpdates),
+
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
         /// if any. It is used to highlight ports if they are missing type information or if their
         /// types are polymorphic.
@@ -739,6 +882,7 @@ ensogl::define_endpoints! {
 
         set_view_mode        (view::Mode),
         set_profiling_status (profiling::Status),
+
     }
 
     Output {
@@ -754,6 +898,10 @@ ensogl::define_endpoints! {
         on_port_code_update (Crumbs,ImString),
         on_background_press (),
         view_mode           (view::Mode),
+        /// A set of widgets attached to a method requires metadata to be queried. The tuple
+        /// contains the ID of the call expression the widget is attached to, and the ID of that
+        /// call's target expression (`self` or first argument).
+        requested_widgets   (ast::Id, ast::Id),
     }
 }
 
@@ -805,6 +953,7 @@ impl Area {
 
             eval frp.input.set_editing ([model](edit_mode) {
                 model.label.deprecated_set_focus(edit_mode);
+                model.set_widgets_visibility(!edit_mode);
                 if *edit_mode {
                     // Reset the code to hide non-connected port names.
                     model.label.set_content(model.expression.borrow().code.clone());
@@ -869,6 +1018,9 @@ impl Area {
 
             eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
 
+            // === Widgets ===
+
+            eval frp.update_widgets ((a) model.apply_widget_updates(a));
 
             // === View Mode ===
 
@@ -920,7 +1072,7 @@ impl Area {
         expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
     }
 
-    /// A crumb by AST id.
+    /// A crumb by AST ID.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
@@ -944,19 +1096,17 @@ impl Area {
 /// parent layer when building the nested one.
 #[derive(Clone, Debug)]
 struct PortLayerBuilder {
-    parent_frp:           Option<port::FrpEndpoints>,
+    parent_frp:      Option<port::FrpEndpoints>,
     /// Parent port display object.
-    parent:               display::object::Instance,
+    parent:          display::object::Instance,
     /// Information whether the parent port was a parensed expression.
-    parent_parensed:      bool,
+    parent_parensed: bool,
     /// The number of chars the expression should be shifted. For example, consider
     /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
     /// shift should be applied when considering its children.
-    shift:                usize,
+    shift:           usize,
     /// The depth at which the current expression is, where root is at depth 0.
-    depth:                usize,
-    /// The crumb of last child argument of parent node. Does not count insertion points.
-    parent_last_argument: Option<Crumb>,
+    depth:           usize,
 }
 
 impl PortLayerBuilder {
@@ -966,16 +1116,15 @@ impl PortLayerBuilder {
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        parent_last_argument: Option<Crumb>,
         shift: usize,
         depth: usize,
     ) -> Self {
         let parent = parent.display_object().clone_ref();
-        Self { parent_frp, parent, parent_parensed, shift, depth, parent_last_argument }
+        Self { parent_frp, parent, parent_parensed, shift, depth }
     }
 
     fn empty(parent: impl display::Object) -> Self {
-        Self::new(parent, default(), default(), default(), default(), default())
+        Self::new(parent, default(), default(), default(), default())
     }
 
     /// Create a nested builder with increased depth and updated `parent_frp`.
@@ -985,17 +1134,68 @@ impl PortLayerBuilder {
         parent: display::object::Instance,
         new_parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        parent_last_argument: Option<Crumb>,
         shift: usize,
     ) -> Self {
         let depth = self.depth + 1;
         let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
-        Self::new(parent, parent_frp, parent_parensed, parent_last_argument, shift, depth)
+        Self::new(parent, parent_frp, parent_parensed, shift, depth)
     }
 }
 
 impl display::Object for Area {
     fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object
+    }
+}
+
+/// ===================
+/// === CallInfoMap ===
+/// ===================
+
+#[derive(Debug, Deref)]
+struct CallInfoMap {
+    /// The map from node's call_id to call information.
+    call_info: HashMap<ast::Id, CallInfo>,
+}
+
+/// Information about the call expression, which are derived from the span tree.
+#[derive(Debug, Default)]
+struct CallInfo {
+    /// The AST ID associated with `This` span of the call expression.
+    target_id:     Option<ast::Id>,
+    /// The crumbs of last argument span associated with the call expression.
+    last_argument: Option<Crumbs>,
+}
+
+impl CallInfoMap {
+    fn scan_expression(expression: &SpanTree) -> Self {
+        let mut call_info: HashMap<ast::Id, CallInfo> = HashMap::new();
+        expression.root_ref().dfs(|node| {
+            if let Some(call_id) = node.kind.call_id() {
+                let mut entry = call_info.entry(call_id).or_default();
+                if node.kind.is_this() {
+                    entry.target_id = node.ast_id;
+                } else if node.kind.is_argument() {
+                    entry.last_argument = Some(node.crumbs.clone());
+                }
+            }
+        });
+
+        Self { call_info }
+    }
+
+    fn has_target(&self, call_id: &ast::Id) -> bool {
+        self.call_info.get(call_id).map_or(false, |info| info.target_id.is_some())
+    }
+
+    fn target(&self, call_id: &ast::Id) -> Option<ast::Id> {
+        self.call_info.get(call_id).and_then(|info| info.target_id)
+    }
+
+    fn is_last_argument(&self, node: &PortRefMut) -> bool {
+        let call_id = node.kind.call_id();
+        let info = call_id.and_then(|call_id| self.call_info.get(&call_id));
+        let last_argument = info.and_then(|info| info.last_argument.as_ref());
+        last_argument.map_or(false, |crumbs| crumbs == &node.crumbs)
     }
 }
