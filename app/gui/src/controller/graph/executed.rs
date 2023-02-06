@@ -337,11 +337,8 @@ impl Context for Handle {
     fn call_info(&self, id: ast::Id, name: Option<&str>) -> Option<CalledMethodInfo> {
         let lookup_registry = || {
             let info = self.computed_value_info_registry().get(&id)?;
-            let entry = self
-                .project
-                .suggestion_db()
-                .lookup_by_method_pointer(&info.method_call.clone()?)
-                .ok()?;
+            let method_call = info.method_call.as_ref()?;
+            let entry = self.project.suggestion_db().lookup_by_method_pointer(method_call)?;
             Some(entry.invocation_info())
         };
         let fallback = || self.graph.borrow().call_info(id, name);

@@ -258,27 +258,22 @@ struct MethodPointerToIdMap {
 }
 
 impl MethodPointerToIdMap {
-    /// Creates new method pointer index.
-    pub fn new() -> MethodPointerToIdMap {
-        MethodPointerToIdMap { inner: HashMap::new() }
-    }
-
-    /// Get the method pointer entry id.
+    /// Get the [`entry::Id`] of provided method pointer or [`None`] if not found.
     pub fn get(&self, method_pointer: &language_server::MethodPointer) -> Option<&entry::Id> {
         self.inner.get(method_pointer)
     }
 
-    /// Populate the method pointer index from entry.
-    pub fn insert(&mut self, entry: &Entry, id: entry::Id) {
+    /// Set the method pointer [`entry::Id`]  of provided [`Entry`].
+    pub fn set(&mut self, entry: &Entry, id: entry::Id) {
         if let Ok(method_pointer) = entry.try_into() {
             self.inner.insert(method_pointer, id);
         }
     }
 
-    /// Remove the method pointer of the provided entry from the index.
+    /// Remove the method pointer of the provided [`Entry`] from the index.
     pub fn remove(&mut self, entry: &Entry) {
-        if let Ok(old_method_pointer) = entry.try_into() {
-            self.inner.remove(&old_method_pointer);
+        if let Ok(method_pointer) = entry.try_into() {
+            self.inner.remove(&method_pointer);
         }
     }
 }
@@ -358,13 +353,13 @@ impl SuggestionDatabase {
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
         let mut entries = HashMap::new();
         let mut qualified_name_to_id_map = QualifiedNameToIdMap::default();
-        let mut method_pointer_to_id_map = MethodPointerToIdMap::new();
+        let mut method_pointer_to_id_map = MethodPointerToIdMap::default();
         let mut hierarchy_index = HierarchyIndex::default();
         for ls_entry in response.entries {
             let id = ls_entry.id;
             let entry = Entry::from_ls_entry(ls_entry.suggestion);
             qualified_name_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
-            method_pointer_to_id_map.insert(&entry, id);
+            method_pointer_to_id_map.set(&entry, id);
             entries.insert(id, Rc::new(entry));
         }
         for (id, entry) in &entries {
@@ -416,7 +411,7 @@ impl SuggestionDatabase {
                 entry::Update::Add { id, suggestion } => match (*suggestion).try_into() {
                     Ok(entry) => {
                         qn_to_id_map.set_and_warn_if_existed(&Entry::qualified_name(&entry), id);
-                        mp_to_id_map.insert(&entry, id);
+                        mp_to_id_map.set(&entry, id);
                         hierarchy_index.add(id, &entry, &qn_to_id_map);
                         entries.insert(id, Rc::new(entry));
                     }
@@ -451,7 +446,7 @@ impl SuggestionDatabase {
                         let errors = entry.apply_modifications(*modification);
                         hierarchy_index.add(id, entry, &qn_to_id_map);
                         qn_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
-                        mp_to_id_map.insert(&*entry, id);
+                        mp_to_id_map.set(&*entry, id);
                         for error in errors {
                             error!("Error when applying update for entry {id}: {error:?}");
                         }
