@@ -382,9 +382,12 @@ impl Translate {
         let opr = match opr {
             Ok(name) => {
                 let token = self.visit_token(name);
-                match name.code.repr.ends_with('=') {
-                    true => token.map(|name| ast::Shape::from(ast::Mod { name })),
-                    false => token.map(|_| opr_from_token(name)),
+                match name.code.repr.strip_suffix('=') {
+                    Some(mod_name) if mod_name.contains(|c| c != '=') => token.map(|_| {
+                        let name = mod_name.to_string();
+                        ast::Shape::from(ast::Mod { name })
+                    }),
+                    _ => token.map(|_| opr_from_token(name)),
                 }
             }
             Err(names) => {
@@ -705,8 +708,11 @@ impl<T: Debug> WithInitialSpace<T> {
 
     /// If any initial space is present, emit a warning; forget the space and return the value.
     fn expect_unspaced(self) -> T {
-        // TODO: This should be a warning.
-        debug_assert_eq!(self.space, 0, "Expected no space before {:?}", &self.body);
+        if DEBUG {
+            debug_assert_eq!(self.space, 0, "Expected no space before term: {:?}", &self.body);
+        } else if self.space != 0 {
+            warn!("Expected no space before term: {:?}", &self.body);
+        }
         self.body
     }
 
