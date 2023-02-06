@@ -87,6 +87,8 @@
 - [Separate component browser navigator sections for modules imported from
   different namespaces][4044]
 - [The correct default visualisation for tables is shown on new nodes.][4120]
+- [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
+  contain suggestions which are based on evaluated data.
 
 #### EnsoGL (rendering engine)
 
@@ -464,6 +466,7 @@
 [4078]: https://github.com/enso-org/enso/pull/4078
 [4097]: https://github.com/enso-org/enso/pull/4097
 [4120]: https://github.com/enso-org/enso/pull/4120
+[4072]: https://github.com/enso-org/enso/pull/4072
 
 #### Enso Compiler
 
@@ -553,6 +556,7 @@
 - [Optimize Atom storage layouts][3862]
 - [Make instance methods callable like statics for builtin types][4077]
 - [Convert large longs to doubles, safely, for host calls][4099]
+- [Profile engine startup][4110]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -643,6 +647,7 @@
 [4056]: https://github.com/enso-org/enso/pull/4056
 [4077]: https://github.com/enso-org/enso/pull/4077
 [4099]: https://github.com/enso-org/enso/pull/4099
+[4110]: https://github.com/enso-org/enso/pull/4110
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -1223,7 +1223,7 @@ impl WeakInstance {
 
     /// Checks whether this weak instance still exists (its strong instance was not dropped yet).
     pub fn exists(&self) -> bool {
-        self.upgrade().is_some()
+        self.weak.strong_count() > 0
     }
 }
 
@@ -1237,7 +1237,15 @@ impl InstanceDef {
 
 impl PartialEq for WeakInstance {
     fn eq(&self, other: &Self) -> bool {
-        self.exists() && other.exists() && self.weak.ptr_eq(&other.weak)
+        self.weak.ptr_eq(&other.weak)
+    }
+}
+
+impl Eq for WeakInstance {}
+
+impl Hash for WeakInstance {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.weak.as_ptr().hash(state)
     }
 }
 
@@ -1392,7 +1400,7 @@ pub mod dirty {
 
     type NewParent = crate::data::dirty::RefCellBool<()>;
     type ModifiedChildren = crate::data::dirty::RefCellSet<ChildIndex, OnDirtyCallback>;
-    type RemovedChildren = crate::data::dirty::RefCellVector<WeakInstance, OnDirtyCallback>;
+    type RemovedChildren = crate::data::dirty::RefCellSet<WeakInstance, OnDirtyCallback>;
     type Transformation = crate::data::dirty::RefCellBool<OnDirtyCallback>;
     type SceneLayer = crate::data::dirty::RefCellBool<OnDirtyCallback>;
 
