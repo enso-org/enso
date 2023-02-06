@@ -25,7 +25,7 @@ pub fn tree_to_ast(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> As
     let mut context = Translate { ids, ..Default::default() };
     let ast = match &*tree.variant {
         tree::Variant::BodyBlock(block) => context.translate_module(block),
-        _ => panic!(),
+        _ => unreachable!("enso_parser always returns a tree with a BodyBlock as root."),
     };
     if DEBUG {
         debug_assert_eq!(ast.repr(), tree.code());
