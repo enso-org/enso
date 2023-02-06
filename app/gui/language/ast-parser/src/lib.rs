@@ -77,7 +77,13 @@ impl Parser {
         if meta.is_none() {
             info!("parse_with_metadata: No metadata found.");
         }
-        let ids = enso_parser::metadata::parse_metadata(meta.unwrap_or_default());
+        let meta_lines = meta.and_then(|meta| meta.split_once('\n'));
+        if meta.is_some() && meta_lines.is_none() {
+            warn!("parse_with_metadata: Expected two lines of metadata.");
+        }
+        let id_map = meta_lines.map(|lines| lines.0);
+        let application_metadata = meta_lines.map(|lines| lines.1);
+        let ids = enso_parser::metadata::parse_metadata(id_map.unwrap_or_default());
         if ids.is_none() {
             warn!("parse_with_metadata: Failed to parse metadata.");
         }
@@ -87,8 +93,8 @@ impl Parser {
             .map(|((start, len), id)| ((start, start + len), uuid::Uuid::from_u128(id.as_u128())))
             .collect();
         let tree = self.parser.run(code);
-        let metadata = meta.and_then(|meta| serde_json::from_str(meta).ok());
-        if meta.is_some() && metadata.is_none() {
+        let metadata = application_metadata.and_then(|meta| serde_json::from_str(meta).ok());
+        if application_metadata.is_some() && metadata.is_none() {
             warn!("parse_with_metadata: Failed to deserialize metadata.");
         }
         let metadata = metadata.unwrap_or_default();

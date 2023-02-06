@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 
 
-const MARKER: &str = "#### METADATA ####\n";
+const MARKER: &str = "\n\n\n#### METADATA ####\n";
 
 
 
