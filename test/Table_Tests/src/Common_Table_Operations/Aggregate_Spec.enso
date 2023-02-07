@@ -1372,6 +1372,11 @@ spec setup =
             tester = expect_column_names ["Concatenate Text"]
             Problems.test_problem_handling action problems tester
 
+        Test.specify "should not fail if trying concatenate unquoted delimiters with no separator" <|
+            column = Concatenate "Text" separator=""
+            result = table.aggregate [column] on_problems=Report_Error
+            result.column_names . should_equal ["Concatenate Text"]
+
         Test.specify "should warn if can't compare value for Min or Max" <|
             action = table.aggregate [Maximum "Mixed"] on_problems=_
             problems = [Invalid_Aggregation.Error "Maximum Mixed" [1] "Cannot compare values."]
