@@ -1,9 +1,11 @@
 from Standard.Base import all hiding First, Last
 
 from Standard.Table import Table, Sort_Column, Column_Selector
-from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter
+from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
+import Standard.Table.Data.Expression.Expression_Error
+from Standard.Table.Errors import all
+
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -1185,34 +1187,96 @@ spec setup =
                 problems = [Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column."]
                 Problems.test_problem_handling action problems tester
 
+    Test.group prefix+"Table.aggregate+Expressions" <|
+        ## TODO we probably should check all kinds of aggregate columns
+           to verify that  all of them correctly support expressions.
+        Test.specify "should allow expressions in aggregates" <|
+            table = table_builder [["Index", [1, 1, 2, 2]], ["Value", [1, 2, 3, 4]]]
+            t1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[Value]*[Value]"]
+            t1.column_count . should_equal 3
+            r1 =  t1 |> materialize |> _.order_by "Index"
+            r1.at "Index" . to_vector . should_equal [1, 2]
+            r1.at "Sum Value" . to_vector . should_equal [3, 7]
+            # Not using by name, as naming is not yet consistent between backends.
+            # r1.at "Sum [Value]*[Value]" . to_vector . should_equal [5, 25]
+            r1.at -1 . to_vector . should_equal [5, 25]
+
+        Test.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
+            action1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[MISSING]*[MISSING]"] on_problems=_
+            tester1 = expect_column_names ["Index", "Sum Value"]
+            problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
+            Problems.test_problem_handling action1 problems1 tester1
+
+            t2 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Ignore
+            expect_column_names ["Index", "Sum Value"] t2
+            err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Report_Error
+            err3.should_fail_with Invalid_Aggregate_Column
+            err3.catch.name . should_equal "[[["
+            err3.catch.expression_error . should_be_a Expression_Error.Syntax_Error
+
+            t4 = table.aggregate [Sum "[MISSING]*[MISSING]"]
+            t4 . should_fail_with Invalid_Aggregate_Column
+            err4 = t4.catch
+            err4.name.should_equal "[MISSING]*[MISSING]"
+            err4.expression_error.should_equal (No_Such_Column.Error "MISSING")
+
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling) <|
         table =
             col1 = ["Index", [1, 2, 3]]
             col2 = ["Value", [1, 2, 3]]
             table_builder [col1, col2]
 
-        Test.specify "should raise a warning when there are no output columns" <|
+        Test.specify "should fail if there are no output columns, and promote any warnings to errors" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
-                t = table.aggregate [] on_problems=pb
-                t.should_fail_with No_Output_Columns
+                t1 = table.aggregate [] on_problems=pb
+                t1.should_fail_with No_Output_Columns
 
-        Test.specify "should raise a warning when can't find a column by name" <|
-            action = table.aggregate [Group_By "Missing", Group_By "Index"] on_problems=_
-            problems = [Missing_Input_Columns.Error ["Missing"]]
-            tester = expect_column_names ["Index"]
-            Problems.test_problem_handling action problems tester
+            t2 = table.aggregate [Sum "MISSING"]
+            t2 . should_fail_with Invalid_Aggregate_Column
+            t2.catch.name.should_equal "MISSING"
 
-        Test.specify "should raise a warning when an invalid column index" <|
-            action = table.aggregate [Group_By -3, Group_By "Index"] on_problems=_
-            problems = [Column_Indexes_Out_Of_Range.Error [-3]]
-            tester = expect_column_names ["Index"]
-            Problems.test_problem_handling action problems tester
+            t3 = table.aggregate [Sum 42]
+            t3 . should_fail_with Column_Indexes_Out_Of_Range
+            t3.catch.indexes.should_equal [42]
 
-        Test.specify "should raise warnings when grouped by an invalid column index" <|
-            action = table.aggregate [Group_By -3, Count] on_problems=_
-            problems = [Column_Indexes_Out_Of_Range.Error [-3]]
-            tester = expect_column_names ["Count"]
-            Problems.test_problem_handling action problems tester
+        Test.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in a Group_By" <|
+            err1 = table.aggregate [Group_By "Missing", Group_By "Index", Group_By "Other_Missing"] on_problems=Problem_Behavior.Ignore
+            err1.should_fail_with Invalid_Aggregate_Column
+            err1.catch.name . should_equal "Missing"
+
+            t1 = table.aggregate [Group_By "Index", Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Report_Warning
+            t1.column_names . should_equal ["Index", "Sum Value"]
+            warnings = Problems.get_attached_warnings t1
+            warnings.not_empty . should_be_true
+            warnings.first.should_be_a Invalid_Aggregate_Column
+            warnings.first.name.should_equal "Missing"
+
+            ## Even if there are missing columns both for group-by and
+               aggregations, the groupby errors are reported separately.
+            err2 = table.aggregate [Group_By "Index", Group_By "Unknown", Sum "Value", Sum "Missing", Group_By "Other Missing"] on_problems=Problem_Behavior.Report_Error
+            err2.should_fail_with Invalid_Aggregate_Column
+            err2.catch.name.should_equal "Unknown"
+
+            err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err3.should_fail_with Invalid_Aggregate_Column
+            err3.catch.name.should_equal "Missing"
+
+            err4 = table.aggregate [Group_By 100, Group_By "Index", Group_By -42] on_problems=Problem_Behavior.Ignore
+            err4.should_fail_with Column_Indexes_Out_Of_Range
+            err4.catch.indexes.should_equal [100, -42]
+
+            action2 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=_
+            problems2 = [Column_Indexes_Out_Of_Range.Error [42]]
+            tester2 = expect_column_names ["Index", "Sum Value"]
+            Problems.test_problem_handling action2 problems2 tester2
+
+            # As above, missing errors from group-by take precedence over aggregates.
+            err5 = table.aggregate [Group_By "Index", Group_By 55, Sum "Value", Sum 144, Group_By -33] on_problems=Problem_Behavior.Report_Error
+            err5.should_fail_with Column_Indexes_Out_Of_Range
+            err5.catch.indexes.should_equal [55, -33]
+
+            err6 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err6.catch . should_equal (Column_Indexes_Out_Of_Range.Error [42])
 
         Test.specify "should raise a warning when an invalid output name" <|
             action = table.aggregate [Group_By "Index" ""] on_problems=_
