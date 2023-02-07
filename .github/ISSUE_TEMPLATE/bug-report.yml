@@ -1,0 +1,142 @@
+name: "Bug Report"
+description: "Found a bug? We'd appreciate if you'd first search through our open issues and docs, to make sure the issue isn't already known."
+labels: ["--bug", "triage"]
+assignees: ["sylwiabr", "xvcgreg"]
+body:
+  - type: "input"
+    id: "discord-id"
+    attributes:
+      label: "Discord username (optional)"
+      description: "If you're in our [Discord server](https://discord.gg/enso), please include your [Discord ID](https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-) formatted like so: `username#1234` (you can find it by clicking your profile on the bottom left of the application). This is so we can ask questions interactively and give you the `Bug Catcher` Discord role."
+      placeholder: "username#1234"
+    validations:
+      required: false
+
+  - type: "dropdown"
+    id: "issue-type"
+    attributes:
+      label: "What type of issue is this? (required)"
+      multiple: false
+      options:
+        - "Transient – Occuring only once"
+        - "Intermittent – Ocurring irregularly"
+        - "Permanent – Ocurring repeatably"
+    validations:
+      required: true
+
+  - type: "checkboxes"
+    id: "blocker"
+    attributes:
+      label: "Is this issue blocking you from using Enso? (optional)"
+      description: "We will review and try to fix all issues, even if you don't select this option."
+      options:
+        - label: "Yes, I can't use Enso because of this issue."
+
+  - type: "checkboxes"
+    id: "regression"
+    attributes:
+      label: "Is this a regression? (optional)"
+      description: "Leave it unchecked if unsure, please."
+      options:
+        - label: "Yes, previous version of Enso did not have this issue."
+
+  - type: textarea
+    id: "description"
+    attributes:
+      label: "What issue are you facing? (required)"
+      description: "A clear and concise description of what issue are you facing."
+    validations:
+      required: true
+
+  - type: textarea
+    id: "expected-behaviour"
+    attributes:
+      label: "Expected behaviour (required)"
+      description: "A clear and concise description of what you expected to happen."
+    validations:
+      required: true
+
+  - type: textarea
+    id: "how-to-reproduce"
+    attributes:
+      label: "How we can reproduce it? (optional)"
+      description: "Bug reports with clear reproduction will get prioritized higher and addressed more quickly."
+      placeholder: |
+          Steps to reproduce:
+          1. Click on ...
+          2. Scroll down to ...
+          3. See error ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: "screenshots"
+    attributes:
+      label: "Screenshots or screencasts (optional)"
+      description: "If applicable, add screenshots or screencasts to help explain your problem. While optional, they help expedite the time in which your bug is addressed."
+    validations:
+      required: false
+
+  - type: input
+    id: "enso-version"
+    attributes:
+      label: "Enso Version (required)"
+      description: "Press <kbd>cmd</kbd> + <kbd>?</kbd> (MacOS) or <kbd>ctrl</kbd> + <kbd>?</kbd> (other operating systems) and paste here the output you see. Alternatively, provide us with the version of the package that you downloaded."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: "browser"
+    attributes:
+      label: "Browser or standalone distribution (required)"
+      description: "On which browser do you experience this issue?"
+      multiple: true
+      options:
+        - "Standalone distribution"
+        - "Chrome"
+        - "Chromium"
+        - "Safari (not supported officialy, but should work)"
+        - "Edge (not supported officialy, but should work)"
+        - "Firefox (not supported officialy, but should work)"
+        - "Opera (not supported officialy, but should work)"
+        - Other (provide the browser name in the next field, please)
+    validations:
+      required: true
+
+  - type: input
+    id: "browser-version"
+    attributes:
+      label: "Browser Version or standalone distribution (required)"
+      description: "If you are using standalone distribution, type `standalone` here."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: "os"
+    attributes:
+      label: "Operating System (required)"
+      multiple: false
+      options:
+        - MacOS
+        - Windows
+        - Linux
+        - Other (provide the OS name in the next field, please)
+    validations:
+      required: true
+
+  - type: input
+    id: "os-version"
+    attributes:
+      label: "Operating System Version (required)"
+      description: "For example, `MacOS Ventura 13.2`."
+    validations:
+      required: false
+
+  - type: input
+    id: "hardware"
+    attributes:
+      label: "Hardware you are using (optional)"
+      description: "Many issues, especially those connected to rendering, depend on the hardware you are using. Providing this info can be invaluable for us to discover why you are facing it."
+      placeholder: "Intel Xeon W, AMD Radeon Pro W5500X, 64GB RAM"
+    validations:
+      required: false
