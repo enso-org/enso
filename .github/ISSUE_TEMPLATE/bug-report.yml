@@ -1,7 +1,7 @@
 name: "Bug Report"
 description: "Found a bug? We'd appreciate if you'd first search through our open issues and docs, to make sure the issue isn't already known."
 labels: ["--bug", "triage"]
-assignees: ["sylwiabr", "xvcgreg"]
+assignees: []
 body:
   - type: "input"
     id: "discord-id"
