@@ -82,6 +82,7 @@ public abstract class TestBase {
 
   /**
    * Creates an Enso value from the given source.
+   *
    * @param src One-line assignment into a variable
    * @param imports Imports, may be empty.
    */
@@ -104,6 +105,7 @@ public abstract class TestBase {
 
   /**
    * Evaluates the given source as if it was in an unnamed module.
+   *
    * @param src The source code of the module
    * @return The value returned from the main method of the unnamed module.
    */

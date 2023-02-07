@@ -105,14 +105,17 @@ public class EqualsTest extends TestBase {
         });
   }
 
-  /**
-   * Test for some specific values, for which we know that they are equal.
-   */
+  /** Test for some specific values, for which we know that they are equal. */
   @Test
   public void testDateEquality() {
-    Object ensoDate = unwrapValue(context, createValue(context, "(Date.new 1999 3 23)", "import Standard.Base.Data.Time.Date.Date"));
+    Object ensoDate =
+        unwrapValue(
+            context,
+            createValue(
+                context, "(Date.new 1999 3 23)", "import Standard.Base.Data.Time.Date.Date"));
     Object javaDate = unwrapValue(context, context.asValue(LocalDate.of(1999, 3, 23)));
-    executeInContext(context,
+    executeInContext(
+        context,
         () -> {
           assertTrue(equalsNode.execute(ensoDate, javaDate));
           return null;
@@ -121,9 +124,16 @@ public class EqualsTest extends TestBase {
 
   @Test
   public void testTimeEquality() {
-    Object ensoTime = unwrapValue(context, createValue(context, "Time_Of_Day.new 23 59", "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day"));
+    Object ensoTime =
+        unwrapValue(
+            context,
+            createValue(
+                context,
+                "Time_Of_Day.new 23 59",
+                "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day"));
     Object javaDate = unwrapValue(context, context.asValue(LocalTime.of(23, 59)));
-    executeInContext(context,
+    executeInContext(
+        context,
         () -> {
           assertTrue(equalsNode.execute(ensoTime, javaDate));
           return null;
@@ -132,11 +142,21 @@ public class EqualsTest extends TestBase {
 
   @Test
   public void testDateTimeEquality() {
-    Object ensoDateTime = unwrapValue(context, createValue(context, "(Date_Time.new 1999 3 1 23 59)", "import Standard.Base.Data.Time.Date_Time.Date_Time"));
-    Object javaDateTime = unwrapValue(context, context.asValue(
-        ZonedDateTime.of(LocalDate.of(1999, 3, 1), LocalTime.of(23, 59), ZoneId.systemDefault())
-    ));
-    executeInContext(context,
+    Object ensoDateTime =
+        unwrapValue(
+            context,
+            createValue(
+                context,
+                "(Date_Time.new 1999 3 1 23 59)",
+                "import Standard.Base.Data.Time.Date_Time.Date_Time"));
+    Object javaDateTime =
+        unwrapValue(
+            context,
+            context.asValue(
+                ZonedDateTime.of(
+                    LocalDate.of(1999, 3, 1), LocalTime.of(23, 59), ZoneId.systemDefault())));
+    executeInContext(
+        context,
         () -> {
           assertTrue(equalsNode.execute(ensoDateTime, javaDateTime));
           return null;
@@ -145,11 +165,14 @@ public class EqualsTest extends TestBase {
 
   @Test
   public void testVectorsEquality() {
-    Object ensoVector = unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base.import all"));
+    Object ensoVector =
+        unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base.import all"));
     Object javaVector = unwrapValue(context, context.asValue(List.of(1, 2, 3)));
-    executeInContext(context, () -> {
-        assertTrue(equalsNode.execute(ensoVector, javaVector));
-        return null;
-    });
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoVector, javaVector));
+          return null;
+        });
   }
 }

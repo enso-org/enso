@@ -18,9 +18,9 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.State;
 
 /**
- * Helper node for invocation of {@code Comparable.hash_callback atom}.
- * Note that emulating the semantics of that function in Java code would be too complicated,
- * so we rather implemented it in Enso and just call it from this node.
+ * Helper node for invocation of {@code Comparable.hash_callback atom}. Note that emulating the
+ * semantics of that function in Java code would be too complicated, so we rather implemented it in
+ * Enso and just call it from this node.
  */
 @GenerateUncached
 public abstract class HashCallbackNode extends Node {
@@ -30,14 +30,14 @@ public abstract class HashCallbackNode extends Node {
   }
 
   /**
-   * Dispatches to the appropriate comparator for the given atom and calls {@code hash}
-   * method on it. Returns the value from that method.
+   * Dispatches to the appropriate comparator for the given atom and calls {@code hash} method on
+   * it. Returns the value from that method.
    *
-   * Note that the given atom should have a custom comparator, otherwise it could be
-   * handled by {@link org.enso.interpreter.node.expression.builtin.meta.HashCodeNode}.
+   * <p>Note that the given atom should have a custom comparator, otherwise it could be handled by
+   * {@link org.enso.interpreter.node.expression.builtin.meta.HashCodeNode}.
    *
-   * @param atom Atom, preferably with a custom comparator, for which we get the custom
-   *             comparator and call {@code hash} method on the comparator.
+   * @param atom Atom, preferably with a custom comparator, for which we get the custom comparator
+   *     and call {@code hash} method on the comparator.
    * @return Hash code for the atom, as returned by the custom comparator.
    */
   public abstract long execute(Atom atom);
@@ -46,21 +46,19 @@ public abstract class HashCallbackNode extends Node {
   long hashCallbackCached(
       Atom atom,
       @Cached(value = "getHashCallbackFunction()", allowUncached = true) Function hashCallbackFunc,
-      @Cached(value = "buildInvokeNodeWithAtomArgument()", allowUncached = true) InvokeFunctionNode hashCallbackInvokeNode,
-      @CachedLibrary(limit = "5") InteropLibrary interop
-  ) {
+      @Cached(value = "buildInvokeNodeWithAtomArgument()", allowUncached = true)
+          InvokeFunctionNode hashCallbackInvokeNode,
+      @CachedLibrary(limit = "5") InteropLibrary interop) {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
-    Object res = hashCallbackInvokeNode.execute(
-        hashCallbackFunc,
-        null,
-        State.create(ctx),
-        new Object[]{comparableType, atom}
-    );
+    Object res =
+        hashCallbackInvokeNode.execute(
+            hashCallbackFunc, null, State.create(ctx), new Object[] {comparableType, atom});
     try {
       return interop.asLong(res);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Return type from Comparable.hash_callback should be Long", e);
+      throw new IllegalStateException(
+          "Return type from Comparable.hash_callback should be Long", e);
     }
   }
 
@@ -69,10 +67,9 @@ public abstract class HashCallbackNode extends Node {
    */
   static InvokeFunctionNode buildInvokeNodeWithAtomArgument() {
     return InvokeFunctionNode.build(
-        new CallArgumentInfo[]{new CallArgumentInfo("self"), new CallArgumentInfo("atom")},
+        new CallArgumentInfo[] {new CallArgumentInfo("self"), new CallArgumentInfo("atom")},
         DefaultsExecutionMode.EXECUTE,
-        ArgumentsExecutionMode.EXECUTE
-    );
+        ArgumentsExecutionMode.EXECUTE);
   }
 
   @TruffleBoundary
