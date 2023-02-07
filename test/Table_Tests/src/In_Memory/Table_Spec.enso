@@ -99,7 +99,7 @@ spec =
 
         pending_python_missing = if Polyglot.is_language_installed "python" . not then
             "Can't run Python tests, Python is not installed."
-        Test.specify "should also work with polyglot values coming from Python" pending=pending_python_missing <|
+        Test.specify "should work with polyglot values coming from Python" pending=pending_python_missing <|
             enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
             py_dates = ["py_dates", [py_make_date 2022 8 27, py_make_date 1999 1 1]]
             py_objects = ["py_objects", [py_make_object "a" "b", py_make_object "foo" "bar"]]
@@ -109,7 +109,7 @@ spec =
 
             (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
 
-        Test.specify "should also work with polyglot values coming from JS" <|
+        Test.specify "should work with polyglot values coming from JS" <|
             enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
             js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
             js_objects = ["js_objects", [js_make_object "a" "b", js_make_object "foo" "bar"]]
@@ -123,6 +123,12 @@ spec =
             js_converted_dates.storage_type . should_equal Storage.Date
             (js_converted_dates == table.at "enso_dates").to_vector . should_equal [True, True]
             (enso_date_times == table.at "js_dates").to_vector . should_equal [True, True]
+
+        Test.specify "should work with a split Text value" <|
+            words = "The quick brown fox jumps over the lazy dog" . split " "
+            table = Table.new [["words", words]]
+            table.at "words" . storage_type . should_equal Storage.Text
+            table.at "words" . to_vector . should_equal words
 
         Test.specify "should handle Unicode normalization when accessing table columns" <|
             col1 = ['s\u0301ciana', [1, 2, 3]]
