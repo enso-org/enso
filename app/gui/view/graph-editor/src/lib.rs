@@ -3016,7 +3016,12 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
         node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
         edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
-        node_to_edit          <- touch.nodes.down.gate(&edit_mode);
+        clicked_node <- touch.nodes.down.gate(&edit_mode);
+        clicked_and_edited_nodes <- clicked_node.map2(&out.node_being_edited, |n, c| (*n, *c));
+        let not_being_edited_already = |(clicked, edited): &(NodeId, Option<NodeId>)| {
+            if let Some(edited) = edited { edited != clicked } else { true }
+        };
+        node_to_edit          <- clicked_and_edited_nodes.filter(not_being_edited_already)._0();
         edit_node             <- any(node_to_edit, node_to_edit_after_adding, inputs.edit_node);
         stop_edit_on_bg_click <- clicked_to_abort_edit.gate(&node_in_edit_mode);
         stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
