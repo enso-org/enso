@@ -336,7 +336,10 @@ impl SuggestionDatabase {
         entries: impl IntoIterator<Item = (&'a SuggestionId, &'a Entry)>,
     ) -> Self {
         let ret = Self::new_empty();
-        let entries = entries.into_iter().map(|(id, entry)| (*id, Rc::new(entry.clone())));
+        let entries = entries
+            .into_iter()
+            .inspect(|(id, entry)| ret.method_pointer_to_id_map.borrow_mut().set(entry, **id))
+            .map(|(id, entry)| (*id, Rc::new(entry.clone())));
         ret.entries.borrow_mut().extend(entries);
         ret
     }
