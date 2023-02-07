@@ -1296,6 +1296,12 @@ spec setup =
             tester = expect_column_names ["Value_1", "Value"]
             Problems.test_problem_handling action problems tester
 
+        Test.specify "should raise a warning when duplicate column names" <|
+            action = table.aggregate [Sum "Value" new_name="AGG1", Count new_name="AGG1"] on_problems=_
+            problems = [Duplicate_Output_Column_Names.Error ["AGG1"]]
+            tester = expect_column_names ["AGG1", "AGG1_1"]
+            Problems.test_problem_handling action problems tester
+
         Test.specify "should allow partial matches on Count_Distinct" <|
             action = table.aggregate [Count_Distinct (By_Name ["Missing", "Value"])] on_problems=_
             problems = [Missing_Input_Columns.Error ["Missing"]]
