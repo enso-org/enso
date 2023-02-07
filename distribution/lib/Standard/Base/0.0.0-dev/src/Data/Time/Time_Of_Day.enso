@@ -358,4 +358,4 @@ type Time_Of_Day
     format : Text -> Text
     format self pattern = @Builtin_Method "Time_Of_Day.format"
 
-Comparable.from(_:Time_Of_Day) = Default_Ordered_Comparator
+Comparable.from (_:Time_Of_Day) = Default_Ordered_Comparator

@@ -295,4 +295,4 @@ type Duration
     is_empty : Boolean
     is_empty self = self.to_vector . all (==0)
 
-Comparable.from(_:Duration) = Default_Ordered_Comparator
+Comparable.from (_:Duration) = Default_Ordered_Comparator
