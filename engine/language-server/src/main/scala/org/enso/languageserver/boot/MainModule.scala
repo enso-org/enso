@@ -79,8 +79,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   )
   val languageServerConfig = Config(
     contentRoot,
-    FileManagerConfig(timeout    = 3.seconds),
-    VcsManagerConfig(initTimeout = 5.seconds, timeout = 3.seconds),
+    FileManagerConfig(timeout = 3.seconds),
+    VcsManagerConfig(
+      initTimeout = 5.seconds,
+      timeout     = 3.seconds,
+      asyncInit   = true
+    ),
     PathWatcherConfig(),
     ExecutionContextConfig(),
     directoriesConfig,
@@ -106,7 +110,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   log.trace("Created file system [{}].", fileSystem)
 
   val git = Git.withEmptyUserConfig(
-    Some(languageServerConfig.vcsManager.dataDirectory)
+    Some(languageServerConfig.vcsManager.dataDirectory),
+    languageServerConfig.vcsManager.asyncInit
   )
   log.trace("Created git [{}].", git)
 
