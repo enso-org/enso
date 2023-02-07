@@ -1296,10 +1296,15 @@ impl Searcher {
     ) -> component::List {
         let favorites = self.graph.component_groups();
         let module_name = self.module_qualified_name();
+        let private_entries_visibility = match self.ide.private_cb_entries_visibility() {
+            true => PrivateEntriesVisibility::Show,
+            false => PrivateEntriesVisibility::Hide,
+        };
         let mut builder = component_list_builder_with_favorites(
             &self.database,
             module_name.as_ref(),
             &*favorites,
+            private_entries_visibility,
         );
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
@@ -1442,12 +1447,21 @@ impl Searcher {
 
 // === Searcher helpers ===
 
+enum PrivateEntriesVisibility {
+    Show,
+    Hide,
+}
+
 fn component_list_builder_with_favorites<'a>(
     suggestion_db: &model::SuggestionDatabase,
     local_scope_module: QualifiedNameRef,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
+    private_entries_visibility: PrivateEntriesVisibility,
 ) -> component::builder::List {
-    let mut builder = component::builder::List::new();
+    let mut builder = match private_entries_visibility {
+        PrivateEntriesVisibility::Hide => component::builder::List::new(),
+        PrivateEntriesVisibility::Show => component::builder::List::new_with_private_components(),
+    };
     if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
         builder = builder.with_local_scope_module_id(id);
     }
