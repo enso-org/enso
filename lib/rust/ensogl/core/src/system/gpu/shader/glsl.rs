@@ -803,7 +803,7 @@ impl Display for Precision {
             Self::Medium => "mediump",
             Self::High => "highp",
         };
-        write!(f, "{}", prec)
+        write!(f, "{prec}")
     }
 }
 

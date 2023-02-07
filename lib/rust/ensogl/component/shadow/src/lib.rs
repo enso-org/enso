@@ -124,7 +124,7 @@ pub fn add_to_dom_element(element: &DomSymbol, style: &StyleWatch) {
     let alpha = style.get_number(ensogl_hardcoded_theme::shadow::html::alpha);
     let blur = style.get_number(ensogl_hardcoded_theme::shadow::html::blur);
     let spread = style.get_number(ensogl_hardcoded_theme::shadow::html::spread);
-    let shadow = format!("{}px {}px {}px {}px rgba(0,0,0,{})", off_x, off_y, blur, spread, alpha);
+    let shadow = format!("{off_x}px {off_y}px {blur}px {spread}px rgba(0,0,0,{alpha})");
     element.dom().set_style_or_warn("box-shadow", shadow);
 }
 

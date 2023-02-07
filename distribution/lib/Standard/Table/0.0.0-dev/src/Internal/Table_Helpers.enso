@@ -15,7 +15,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch, Ambiguous_Column_Rename
+from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch, Ambiguous_Column_Rename, Invalid_Aggregate_Column
 
 polyglot java import java.util.HashSet
 
@@ -52,13 +52,15 @@ type Table_Column_Helper
          criteria, it is placed in the group belonging to the first matching
          criterion on the list. If a single criterion's group has more than one
          element, their relative order is the same as in the input.
+       - error_on_missing_columns: Specifies if missing columns should be raised
+         as error regardless of `on_problems`.
        - on_problems: Specifies the behavior when a problem occurs during the
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    select_columns : Vector | Column_Selector -> Boolean -> Problem_Behavior -> Vector
-    select_columns self selector reorder on_problems =
-        problem_builder = Problem_Builder.new
+    select_columns : Vector | Column_Selector -> Boolean -> Boolean -> Problem_Behavior -> Vector
+    select_columns self selector reorder error_on_missing_columns on_problems =
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         result = self.select_columns_helper selector reorder problem_builder
         problem_builder.attach_problems_before on_problems <|
             if result.is_empty then Error.throw No_Output_Columns else result
@@ -74,13 +76,15 @@ type Table_Column_Helper
 
        Arguments:
        - selector: Column selection criteria or vector of column names.
+       - error_on_missing_columns: Specifies if missing columns should be raised
+         as error regardless of `on_problems`.
        - on_problems: Specifies the behavior when a problem occurs during the
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    remove_columns : Vector | Column_Selector -> Problem_Behavior -> Vector
-    remove_columns self selector on_problems =
-        problem_builder = Problem_Builder.new
+    remove_columns : Vector | Column_Selector -> Boolean -> Problem_Behavior -> Vector
+    remove_columns self selector error_on_missing_columns on_problems =
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selector reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
         result = self.internal_columns.filter column->
@@ -103,13 +107,15 @@ type Table_Column_Helper
          order in which they should appear in the result.
        - position: Specifies how to place the selected columns in relation to
          the columns which were not matched by the `selector` (if any).
+       - error_on_missing_columns: Specifies if missing columns should be raised
+         as error regardless of `on_problems`.
        - on_problems: Specifies the behavior when a problem occurs during the
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    reorder_columns : Vector | Column_Selector -> Position -> Problem_Behavior -> Vector
-    reorder_columns self selector position on_problems =
-        problem_builder = Problem_Builder.new
+    reorder_columns : Vector | Column_Selector -> Position -> Boolean -> Problem_Behavior -> Vector
+    reorder_columns self selector position error_on_missing_columns on_problems =
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selector reorder=True problem_builder
         problem_builder.attach_problems_before on_problems <|
             selected_names = Map.from_vector (selection.map column-> [column.name, True])
@@ -153,10 +159,6 @@ type Table_Column_Helper
                     select_indices_reordering self.internal_columns good_indices
                 False ->
                     select_indices_preserving_order self.internal_columns good_indices
-        Column_Selector.By_Column columns ->
-            column_names = columns.map .name
-            new_selector = Column_Selector.By_Name column_names Text_Matcher.Case_Sensitive
-            self.select_columns_helper new_selector reorder=reorder problem_builder=problem_builder
         Column_Selector.Blank_Columns when_any treat_nans_as_blank -> if self.internal_columns.is_empty then [] else
             blanks = self.internal_columns.map_with_index ix-> internal_column->
                 column = self.make_column internal_column
@@ -203,18 +205,19 @@ type Table_Column_Helper
                     _ -> Panic.throw (Illegal_State.Error "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
 
     ## PRIVATE
-       A helper function which selects a single column from the table. It is aligned
-       with the `select_columns_helper`, apart from Blank_Columns selector which is
-       only handled by the other method but not this one.
-    resolve_column_helper : (Integer | Text | Column) -> Problem_Builder -> Any | Nothing
-    resolve_column_helper self selector problem_builder = case selector of
+       A helper function which selects a single column from the table.
+
+       It may allow selection of columns by index, name or computing a derived
+       expression.
+    resolve_column_or_expression : (Integer | Text | Column) -> Problem_Builder -> Any | Nothing
+    resolve_column_or_expression self selector problem_builder = case selector of
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
-                if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
-                    expression = (self.table.compute selector).catch Any _->Nothing
-                    if Nothing != expression then expression else
-                        problem_builder.report_missing_input_columns [selector]
+                if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "Bug in Table library: A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
+                    (self.table.compute selector).catch Any expression_error->
+                        invalid_column = Invalid_Aggregate_Column.Error selector expression_error
+                        problem_builder.report_other_warning invalid_column
                         Nothing
         _ : Integer -> case is_index_valid self.internal_columns.length selector of
             True -> self.internal_columns.at selector
@@ -223,7 +226,7 @@ type Table_Column_Helper
                 Nothing
         ## A wildcard to match any backend's column.
         _ ->
-            self.resolve_column_helper selector.name problem_builder=problem_builder
+            self.resolve_column_or_expression selector.name problem_builder=problem_builder
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
@@ -239,15 +242,17 @@ type Table_Column_Helper
    - internal_columns: A list of all columns in a table.
    - mapping: A selector specifying which columns should be moved and the order
      in which they should appear in the result.
+   - error_on_missing_columns: If set to `True`, missing columns are treated as
+     error regardless of `on_problems`.
    - on_problems: Specifies the behavior when a problem occurs during the
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-rename_columns : Vector -> Column_Name_Mapping -> Problem_Behavior -> Map
-rename_columns internal_columns mapping on_problems =
+rename_columns : Vector -> Column_Name_Mapping -> Boolean -> Problem_Behavior -> Map
+rename_columns internal_columns mapping error_on_missing_columns on_problems =
     unique = Unique_Name_Strategy.new
     col_count = internal_columns.length
-    problem_builder = Problem_Builder.new
+    problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
     ## Computes the new name for a By_Name rename condition.first_new_name
 

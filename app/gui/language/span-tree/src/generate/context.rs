@@ -17,6 +17,16 @@ pub struct CalledMethodInfo {
     pub parameters: Vec<ArgumentInfo>,
 }
 
+impl CalledMethodInfo {
+    /// Assign call and target expression IDs to all parameters.
+    pub fn with_call_id(mut self, call_id: Option<Id>) -> Self {
+        self.parameters.iter_mut().for_each(|arg| {
+            arg.call_id = call_id;
+        });
+        self
+    }
+}
+
 
 
 // ===============

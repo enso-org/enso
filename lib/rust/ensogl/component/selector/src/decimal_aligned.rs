@@ -72,7 +72,7 @@ impl Frp {
         let network = &frp.network;
 
         frp::extend! { network
-            formatted <- frp.set_content.map(|value| format!("{:.2}", value).to_im_string());
+            formatted <- frp.set_content.map(|value| format!("{value:.2}").to_im_string());
             // FIXME: the next line is locale dependent as it is meant to split on the decimal
             //  separator, which might be different from "." in some locales. We need a way to get
             //  the current locale dependent decimal separator for this.

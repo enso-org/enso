@@ -43,7 +43,7 @@ pub struct ShapeData {
 impl ShapeData {
     /// Constructor.
     pub fn new(shape_id: usize) -> Self {
-        let name = format!("shape_{}", shape_id);
+        let name = format!("shape_{shape_id}");
         Self { name }
     }
 

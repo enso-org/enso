@@ -20,5 +20,5 @@
 
 fn main() {
     let rendered = enso_reflect::graph::<enso_parser::syntax::tree::Tree>();
-    println!("{}", rendered);
+    println!("{rendered}");
 }

@@ -1,0 +1,29 @@
+from Standard.Base import all
+
+from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Choice import Option
+import Standard.Base.Metadata.Display
+
+from project.Data.Table import Table
+
+## PRIVATE
+   Make a column name selector.
+make_column_name_selector : Table -> Single_Choice
+make_column_name_selector table display=Display.Always =
+    Single_Choice display=display values=(table.column_names.map n->(Option n n.pretty))
+
+## PRIVATE
+   Selector for type argument on `Column.parse`.
+parse_type_selector : Single_Choice
+parse_type_selector =
+    choice = ['Auto', 'Integer', 'Decimal', 'Date', 'Date_Time', 'Time_Of_Day', 'Boolean']
+    Single_Choice display=Display.Always values=(choice.map n->(Option n))
+
+## PRIVATE
+   Selector for type argument on `Column.parse`.
+join_kind_selector : Single_Choice
+join_kind_selector =
+    choice = ['Join_Kind.Inner','Join_Kind.Left_Outer','Join_Kind.Right_Outer','Join_Kind.Full','Join_Kind.Left_Exclusive','Join_Kind.Right_Exclusive']
+    names = ['Inner', 'Left Outer', 'Right Outer', 'Full', 'Left Exclusive', 'Right Exclusive']
+    options = names.zip choice . map pair-> Option pair.first pair.second
+    Single_Choice display=Display.Always values=options

@@ -28,7 +28,7 @@ include!(concat!(env!("OUT_DIR"), "/config.rs"));
 pub use generated::*;
 
 pub fn engine_version_requirement() -> semver::VersionReq {
-    semver::VersionReq::parse(&format!("^{}", engine_version_supported)).unwrap()
+    semver::VersionReq::parse(&format!("^{engine_version_supported}")).unwrap()
 }
 
 
@@ -46,6 +46,7 @@ ensogl::read_args! {
     email: Option<String>,
     emit_user_timing_measurements: bool,
     enable_new_component_browser: bool,
+    enable_skip_and_freeze: bool,
     enable_spector:bool,
     entry: String,
     frame: bool,

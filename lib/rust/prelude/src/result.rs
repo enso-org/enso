@@ -25,7 +25,7 @@ pub trait ResultOps {
     /// Print an error log if [`Err`]. The error message will be added to the `message` argument.
     fn log_err(&self, message: &str)
     where Self::Error: Display {
-        self.log_err_fmt(format_args!("{}", message))
+        self.log_err_fmt(format_args!("{message}"))
     }
 }
 

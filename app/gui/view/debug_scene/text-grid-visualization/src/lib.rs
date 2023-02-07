@@ -46,8 +46,7 @@ fn sample_text() -> String {
             }
             _ => {
                 text.push_str(&format!(
-                    "{0:?} bottles of beer on the wall, {0:?} bottles of beer.",
-                    n
+                    "{n:?} bottles of beer on the wall, {n:?} bottles of beer."
                 ));
                 text.push_str(&format!(
                     "Take one down and pass it around, {} bottles of beer on the wall.\n",

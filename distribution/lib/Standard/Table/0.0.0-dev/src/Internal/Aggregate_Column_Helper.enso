@@ -42,38 +42,54 @@ type Validated_Aggregate_Columns
    - resolves the column descriptors, reporting any issues,
    - ensures that the output names are unique,
    - finds the key columns.
-prepare_aggregate_columns : Vector Aggregate_Column -> Table -> Problem_Behavior -> Validated_Aggregate_Columns
-prepare_aggregate_columns aggregates table =
-    problem_builder = Problem_Builder.new
-
-    # Validate and resolve the columns
-    valid_resolved_aggregate_columns = aggregates.map (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
-
-    # Grouping Key
+prepare_aggregate_columns : Vector Aggregate_Column -> Table -> Boolean -> Validated_Aggregate_Columns
+prepare_aggregate_columns aggregates table error_on_missing_columns =
     is_a_key c = case c of
         Aggregate_Column.Group_By _ _ -> True
         _ -> False
-    key_columns = valid_resolved_aggregate_columns.filter is_a_key . map .column
-    unique_key_columns = key_columns.distinct (on = .name)
 
-    # Resolve Names
-    unique = Unique_Name_Strategy.new
-    ## First pass ensures the custom names specified by the user are unique.
-       The second pass resolves the default names, ensuring that they do not
-       clash with the user-specified names (ensuring that user-specified names
-       take precedence).
-    pass_1 = valid_resolved_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
-    renamed_columns = pass_1.map_with_index i->name->
-        agg = valid_resolved_aggregate_columns.at i
-        new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
-        Pair.new new_name agg
+    keys = aggregates.filter is_a_key
+    # Key resolution always errors on missing, regardless of any settings.
+    keys_problem_builder = Problem_Builder.new error_on_missing_columns=True
+    resolved_keys = keys.map (resolve_aggregate table keys_problem_builder)
 
-    # Build Problems Output
-    case renamed_columns.is_empty of
-        True -> Error.throw No_Output_Columns
-        False ->
-            problem_builder.report_unique_name_strategy unique
-            Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.build_problemset
+    ## Since `keys_problem_builder` has `error_on_missing_columns` set to `True`,
+       any missing columns will be reported as errors. Therefore, we can assume
+       that all the columns were present.
+    keys_problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
+        # assert resolved_keys.find .is_nothing . is_nothing . not then
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+        valid_resolved_aggregate_columns = aggregates.map (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
+
+        # Grouping Key
+        key_columns = resolved_keys.map .column
+        unique_key_columns = key_columns.distinct (on = .name)
+
+        # Resolve Names
+        unique = Unique_Name_Strategy.new
+        ## First pass ensures the custom names specified by the user are unique.
+           The second pass resolves the default names, ensuring that they do not
+           clash with the user-specified names (ensuring that user-specified names
+           take precedence).
+        pass_1 = valid_resolved_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
+        renamed_columns = pass_1.map_with_index i->name->
+            agg = valid_resolved_aggregate_columns.at i
+            new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
+            Pair.new new_name agg
+
+        # Build Problems Output
+        case renamed_columns.is_empty of
+            True ->
+                ## First, we try to raise any warnings that may have caused the
+                   lack of columns, promoted to errors.
+                problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
+                    ## If none were found, we raise a generic error (this may
+                       happen primarily when an empty list is provided to the
+                       aggregate method).
+                    Error.throw No_Output_Columns
+            False ->
+                problem_builder.report_unique_name_strategy unique
+                Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.get_problemset_throwing_distinguished_errors
 
 ## PRIVATE
    Defines the default name of an `Aggregate_Column`.
@@ -128,7 +144,7 @@ resolve_aggregate table problem_builder aggregate_column =
 
     resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
     resolve c =
-        res = columns_helper.resolve_column_helper c problem_builder
+        res = columns_helper.resolve_column_or_expression c problem_builder
         res.if_nothing (Error.throw Internal_Missing_Column_Error)
 
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error

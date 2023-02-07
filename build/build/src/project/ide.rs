@@ -43,9 +43,9 @@ impl Artifact {
         }
         .into();
         let image = dist_dir.as_ref().join(match target_os {
-            OS::Linux => format!("enso-linux-{}.AppImage", version),
-            OS::MacOS => format!("enso-mac-{}.dmg", version),
-            OS::Windows => format!("enso-win-{}.exe", version),
+            OS::Linux => format!("enso-linux-{version}.AppImage"),
+            OS::MacOS => format!("enso-mac-{version}.dmg"),
+            OS::Windows => format!("enso-win-{version}.exe"),
             _ => todo!("{target_os}-{target_arch} combination is not supported"),
         });
 
@@ -59,10 +59,10 @@ impl Artifact {
 
     pub async fn upload_as_ci_artifact(&self) -> Result {
         if is_in_env() {
-            upload_compressed_directory(&self.unpacked, format!("ide-unpacked-{}", TARGET_OS))
+            upload_compressed_directory(&self.unpacked, format!("ide-unpacked-{TARGET_OS}"))
                 .await?;
-            upload_single_file(&self.image, format!("ide-{}", TARGET_OS)).await?;
-            upload_single_file(&self.image_checksum, format!("ide-{}", TARGET_OS)).await?;
+            upload_single_file(&self.image, format!("ide-{TARGET_OS}")).await?;
+            upload_single_file(&self.image_checksum, format!("ide-{TARGET_OS}")).await?;
         } else {
             info!("Not in the CI environment, will not upload the artifacts.")
         }

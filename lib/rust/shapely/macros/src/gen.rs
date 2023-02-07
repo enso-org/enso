@@ -109,13 +109,13 @@ fn parse_args(args: &syn::AttributeArgs) -> Opts {
                                 let param_name = path.segments[0].ident.to_string();
                                 opts.parse(&opt_name, Some((param_name, "".to_string())));
                             }
-                            _ => panic!("Unrecognized argument [1]: {:#?}", arg),
+                            _ => panic!("Unrecognized argument [1]: {arg:#?}"),
                         }
                     }
                 }
-                _ => panic!("Unrecognized argument [2]: {:#?}", arg),
+                _ => panic!("Unrecognized argument [2]: {arg:#?}"),
             },
-            _ => panic!("Unrecognized argument [3]: {:#?}", arg),
+            _ => panic!("Unrecognized argument [3]: {arg:#?}"),
         }
     }
     opts
@@ -145,7 +145,7 @@ fn discover_special_cases(arg: &syn::Type) -> Option<SpecialCase> {
                             "Vector2" => vec!["x", "y"],
                             "Vector3" => vec!["x", "y", "z"],
                             "Vector4" => vec!["x", "y", "z", "w"],
-                            _ => panic!("Unknown vector type: {}", name),
+                            _ => panic!("Unknown vector type: {name}"),
                         };
                         Some(SpecialCase::Vector(tokens, fields))
                     }
@@ -176,7 +176,7 @@ pub fn run(
     let input_fn_name = &input_fn.sig.ident;
     let input_fn_name_str = input_fn_name.to_string();
     if !input_fn_name_str.starts_with(MODIFY_NAME_PREFIX) {
-        panic!("Method name must start with '{}'", MODIFY_NAME_PREFIX);
+        panic!("Method name must start with '{MODIFY_NAME_PREFIX}'");
     }
 
     let core_fn_name = &input_fn_name_str[MODIFY_NAME_PREFIX.len()..];

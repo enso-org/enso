@@ -383,7 +383,7 @@ mod tests {
     async fn repo_root() -> Result {
         let git = Context::new(".").await?;
         let diff = git.repository_root().await?;
-        println!("{:?}", diff);
+        println!("{diff:?}");
         Ok(())
     }
 
@@ -392,7 +392,7 @@ mod tests {
     async fn call_diff() -> Result {
         let git = Context::new(".").await?;
         let diff = git.diff_against("origin/develop").await?;
-        println!("{:?}", diff);
+        println!("{diff:?}");
         Ok(())
     }
 }

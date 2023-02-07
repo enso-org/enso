@@ -61,13 +61,13 @@ impl Display for Status {
                 let minutes = seconds / 60.0;
                 let hours = minutes / 60.0;
                 if hours >= 1.0 {
-                    write!(f, "{:.1} h", hours)
+                    write!(f, "{hours:.1} h")
                 } else if minutes >= 1.0 {
-                    write!(f, "{:.1} m", minutes)
+                    write!(f, "{minutes:.1} m")
                 } else if seconds >= 1.0 {
-                    write!(f, "{:.1} s", seconds)
+                    write!(f, "{seconds:.1} s")
                 } else {
-                    write!(f, "{:.0} ms", milliseconds)
+                    write!(f, "{milliseconds:.0} ms")
                 }
             }
         }

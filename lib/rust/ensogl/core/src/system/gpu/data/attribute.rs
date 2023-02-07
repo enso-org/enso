@@ -149,11 +149,8 @@ impl {
     pub fn add_instance(&mut self) -> InstanceIndex {
         let instance_count = 1;
         debug_span!("Adding {instance_count} instance(s).").in_scope(|| {
-            match self.free_ids.iter().next().copied() {
-                Some(ix) => {
-                    self.free_ids.remove(&ix);
-                    ix
-                }
+            match self.free_ids.pop_first() {
+                Some(ix) => ix,
                 None => {
                     let ix = self.size;
                     self.size += instance_count;
