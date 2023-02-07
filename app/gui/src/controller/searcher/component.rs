@@ -179,9 +179,9 @@ impl Display for Component {
                 let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
                 if let Some(self_type) = self_type_not_here {
                     let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
-                    write!(f, "{} {}", self_name, entry_name)
+                    write!(f, "{self_name} {entry_name}")
                 } else {
-                    write!(f, "{}", entry_name)
+                    write!(f, "{entry_name}")
                 }
             }
             Data::Virtual { snippet } => write!(f, "{}", snippet.name),
@@ -419,7 +419,7 @@ pub(crate) mod tests {
             .iter()
             .map(|c| c.match_info.borrow().clone())
             .collect_vec();
-        DEBUG!("{match_infos:?}");
+        debug!("{match_infos:?}");
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 4]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);

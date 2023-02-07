@@ -105,7 +105,7 @@ impl PointerTargetRegistry {
         match self.get(target) {
             Some(target) => Some(f(&target)),
             None => {
-                WARNING!("Internal error. Symbol ID {target:?} is not registered.");
+                warn!("Internal error. Symbol ID {target:?} is not registered.");
                 None
             }
         }
@@ -463,7 +463,6 @@ impl Renderer {
             render::Composer::new(&pipeline, context, &self.variables, width, height)
         });
         *self.composer.borrow_mut() = composer;
-        self.update_composer_pipeline();
     }
 
     /// Set the pipeline of this renderer.

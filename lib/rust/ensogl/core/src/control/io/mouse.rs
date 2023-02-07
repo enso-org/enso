@@ -29,9 +29,9 @@ pub use event::*;
 
 /// A utility which registers JavaScript handlers for mouse events and translates them to Rust
 /// handlers. It is a top level mouse registry hub.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct MouseManager {
-    #[shrinkwrap(main_field)]
+    #[deref]
     dispatchers: MouseManagerDispatchers,
     handles:     Rc<MouseManagerEventListenerHandles>,
     dom:         web::dom::WithKnownShape<web::EventTarget>,

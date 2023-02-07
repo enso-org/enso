@@ -165,18 +165,16 @@ impl ProviderInstance {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct Registry {
-    pub logger:   Logger,
     pub name_map: Rc<RefCell<HashMap<String, Vec<ProviderInstance>>>>,
     pub id_map:   Rc<RefCell<HashMap<frp::NetworkId, ProviderInstance>>>,
 }
 
 impl Registry {
     /// Constructor.
-    pub fn create(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "views");
+    pub fn create() -> Self {
         let name_map = default();
         let id_map = default();
-        Self { logger, name_map, id_map }
+        Self { name_map, id_map }
     }
 
     /// Registers a gui component as a command provider.
@@ -184,7 +182,7 @@ impl Registry {
         let label = V::label();
         let exists = self.name_map.borrow().get(label).is_some();
         if exists {
-            warning!(&self.logger, "The view '{label}' was already registered.")
+            warn!("The view '{label}' was already registered.")
         } else {
             self.name_map.borrow_mut().insert(label.into(), default());
         }
@@ -219,9 +217,9 @@ impl Registry {
         let name = name.as_ref();
         let id = T::network(target).id();
         match self.id_map.borrow_mut().get(&id) {
-            None => warning!(&self.logger, "The provided component ID is invalid {id}."),
+            None => warn!("The provided component ID is invalid {id}."),
             Some(instance) => match instance.command_map.borrow_mut().get_mut(name) {
-                None => warning!(&self.logger, "The command name {name} is invalid."),
+                None => warn!("The command name {name} is invalid."),
                 Some(command) => f(command),
             },
         }

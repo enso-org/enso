@@ -1,13 +1,10 @@
 use crate::*;
 
 
+
 // ==============
 // === Export ===
 // ==============
-
-pub mod logging;
-
-
 
 #[cfg(target_arch = "wasm32")]
 pub mod internal {
@@ -35,16 +32,13 @@ pub mod internal {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod internal {
-    use crate::*;
-
     extern crate backtrace as bt;
-
     use bt::Backtrace;
 
     /// Print the current backtrace.
     pub fn backtrace() -> String {
         let bt = Backtrace::new();
-        iformat!("{bt:?}")
+        format!("{bt:?}")
     }
 }
 
@@ -83,12 +77,16 @@ fn next_clone_id() -> u64 {
 impl TraceCopies {
     /// Create enabled structure with appointed entity name (shared between all copies).
     pub fn enabled(name: impl Into<ImString>) -> Self {
-        Self { clone_id: default(), handle: Rc::new(RefCell::new(Some(name.into()))) }
+        let this: Self = default();
+        this.enable(name);
+        this
     }
 
     /// Assign a name to the entity (shared between all copies) and start printing logs.
     pub fn enable(&self, name: impl Into<ImString>) {
-        *self.handle.borrow_mut() = Some(name.into());
+        let name = name.into();
+        debug!("[{name}] TraceCopies enabled");
+        *self.handle.borrow_mut() = Some(name);
     }
 }
 
@@ -99,7 +97,7 @@ impl Clone for TraceCopies {
         let handle = self.handle.clone();
         if let Some(name) = &*borrow {
             let bt = backtrace();
-            iprintln!("[{name}] Cloning {self.clone_id} -> {clone_id} {bt}");
+            debug!("[{name}] Cloning {} -> {clone_id} {bt}", self.clone_id);
         }
         Self { clone_id, handle }
     }
@@ -112,7 +110,7 @@ impl CloneRef for TraceCopies {
         let handle = self.handle.clone_ref();
         if let Some(name) = &*borrow {
             let bt = backtrace();
-            DEBUG!("[{name}] Cloning {self.clone_id} -> {clone_id} {bt}");
+            debug!("[{name}] Cloning {} -> {clone_id} {bt}", self.clone_id);
         }
         Self { clone_id, handle }
     }
@@ -124,7 +122,7 @@ impl Drop for TraceCopies {
         if let Some(name) = &*borrow {
             let bt = backtrace();
             let instances = Rc::strong_count(&self.handle) - 1;
-            DEBUG!("[{name}] Dropping {self.clone_id}; instances left: {instances} {bt}");
+            debug!("[{name}] Dropping {}; instances left: {instances} {bt}", self.clone_id);
         }
     }
 }

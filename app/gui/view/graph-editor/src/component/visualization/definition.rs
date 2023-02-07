@@ -16,10 +16,10 @@ use visualization::java_script;
 // =================
 
 /// General information about a visualization.
-#[derive(Clone, CloneRef, Debug, Eq, Hash, PartialEq, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Eq, Hash, PartialEq, Deref)]
 #[allow(missing_docs)]
 pub struct Signature {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub path:         visualization::Path,
     pub input_type:   enso::Type,
     pub input_format: Rc<visualization::data::Format>,
@@ -107,8 +107,7 @@ impl Display for InstantiationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             InstantiationError::ConstructorError(value) => f.write_fmt(format_args!(
-                "Could not construct visualisation because of error: {:?}",
-                value
+                "Could not construct visualisation because of error: {value:?}"
             )),
         }
     }

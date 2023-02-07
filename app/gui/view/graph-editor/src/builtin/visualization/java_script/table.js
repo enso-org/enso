@@ -179,14 +179,14 @@ class TableVisualization extends Visualization {
                 if (content instanceof Object) {
                     const type = content.type
                     if (type === 'Date') {
-                        to_render = new Date(content.year, content.month, content.day)
+                        to_render = new Date(content.year, content.month - 1, content.day)
                             .toISOString()
                             .substring(0, 10)
                     } else if (type === 'Time_Of_Day') {
                         const js_date = new Date(
                             0,
                             0,
-                            0,
+                            1,
                             content.hour,
                             content.minute,
                             content.second,
@@ -198,7 +198,7 @@ class TableVisualization extends Visualization {
                     } else if (type === 'Date_Time') {
                         const js_date = new Date(
                             content.year,
-                            content.month,
+                            content.month - 1,
                             content.day,
                             content.hour,
                             content.minute,

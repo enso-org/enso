@@ -60,7 +60,7 @@ impl Button {
         Self::try_from_code(code).unwrap_or_else(|| {
             let invalid_msg = "The provided mouse button code is invalid";
             let revert_msg = "Reverting to the default button.";
-            WARNING!("{invalid_msg} ({code}). {revert_msg}");
+            warn!("{invalid_msg} ({code}). {revert_msg}");
             default()
         })
     }

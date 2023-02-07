@@ -156,7 +156,7 @@ impl DomSceneData {
 /// To make use of its functionalities, the API user can create a `Css3dSystem` by using
 /// the `DomScene::new_system` method which creates and manages instances of
 /// `DomSymbol`s.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct DomScene {
     data: Rc<DomSceneData>,
 }
@@ -204,7 +204,7 @@ impl DomScene {
     /// Sets the CSS property `filter: grayscale({value})` on this element. A value of 0.0 displays
     /// the element normally. A value of 1.0 will make the element completely gray.
     pub fn filter_grayscale(&self, value: f32) {
-        self.data.dom.set_style_or_warn("filter", format!("grayscale({})", value));
+        self.data.dom.set_style_or_warn("filter", format!("grayscale({value})"));
     }
 
     /// Creates a new instance of DomSymbol and adds it to parent.

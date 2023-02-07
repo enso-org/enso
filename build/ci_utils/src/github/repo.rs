@@ -27,7 +27,7 @@ use reqwest::Response;
 ///
 /// See also [`RepoRef`] for a non-owning equivalent.
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, derive_more::Display)]
-#[display(fmt = "{}/{}", owner, name)]
+#[display(fmt = "{owner}/{name}")]
 pub struct Repo {
     /// Owner - an organization's or user's name.
     pub owner: String,
@@ -78,7 +78,7 @@ impl Repo {
 ///
 /// Particularly useful for defining `const` repositories.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize, derive_more::Display)]
-#[display(fmt = "{}/{}", owner, name)]
+#[display(fmt = "{owner}/{name}")]
 pub struct RepoRef<'a> {
     /// Owner - an organization's or user's name.
     pub owner: &'a str,
@@ -139,7 +139,7 @@ pub trait IsRepo: Display {
     /// ```
     fn url(&self) -> Result<Url> {
         // Note the trailing `/`. It allows us to join further paths to the URL using Url::join.
-        let url_text = iformat!("https://github.com/{self.owner()}/{self.name()}/");
+        let url_text = format!("https://github.com/{}/{}/", self.owner(), self.name());
         Url::parse(&url_text)
             .with_context(|| format!("Failed to parse URL from string '{url_text}'."))
             .with_context(|| format!("Failed to generate URL for the repository {self}."))
@@ -196,7 +196,7 @@ impl<R: IsRepo> Handle<R> {
     /// Generate a token that can be used to register a new runner for this repository.
     pub async fn generate_runner_registration_token(&self) -> Result<model::RegistrationToken> {
         let path =
-            iformat!("/repos/{self.owner()}/{self.name()}/actions/runners/registration-token");
+            format!("/repos/{}/{}/actions/runners/registration-token", self.owner(), self.name());
         let url = self.octocrab.absolute_url(path)?;
         self.octocrab.post(url, EMPTY_REQUEST_BODY).await.with_context(|| {
             format!("Failed to generate a runner registration token for the {self} repository.")
@@ -338,7 +338,7 @@ impl<R: IsRepo> Handle<R> {
 
     /// Generate cacheable action that downloads asset with a given id.
     pub fn download_asset_job(&self, asset_id: AssetId) -> DownloadFile {
-        let path = iformat!("/repos/{self.owner()}/{self.name()}/releases/assets/{asset_id}");
+        let path = format!("/repos/{}/{}/releases/assets/{asset_id}", self.owner(), self.name());
         // Unwrap will work, because we are appending relative URL constant.
         let url = self.octocrab.absolute_url(path).unwrap();
         DownloadFile {
@@ -399,8 +399,7 @@ impl<R: IsRepo> Handle<R> {
     pub async fn default_branch(&self) -> Result<String> {
         self.get().await?.default_branch.with_context(|| {
             format!(
-                "Failed to get the default branch of the {} repository. Missing field: `default_branch`.",
-                self
+                "Failed to get the default branch of the {self} repository. Missing field: `default_branch`.",
             )
         })
     }

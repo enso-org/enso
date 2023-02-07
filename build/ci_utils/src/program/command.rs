@@ -28,9 +28,20 @@ pub mod provider;
 #[macro_export]
 macro_rules! new_command_type {
     ($program_name:ident, $command_name:ident) => {
-        #[derive(Debug, Shrinkwrap)]
-        #[shrinkwrap(mutable)]
+        #[derive(Debug, Deref, DerefMut)]
         pub struct $command_name(pub $crate::program::command::Command);
+
+        impl Borrow<$crate::program::command::Command> for $command_name {
+            fn borrow(&self) -> &$crate::program::command::Command {
+                &self.0
+            }
+        }
+
+        impl BorrowMut<$crate::program::command::Command> for $command_name {
+            fn borrow_mut(&mut self) -> &mut $crate::program::command::Command {
+                &mut self.0
+            }
+        }
 
         impl From<$crate::program::command::Command> for $command_name {
             fn from(inner: $crate::program::command::Command) -> Self {
@@ -334,7 +345,7 @@ impl Command {
                     tracing::Span::current().record("status", exit_status.code());
                 })
                 .await?;
-            status_checker(status).context(format!("Command failed: {}", pretty))
+            status_checker(status).context(format!("Command failed: {pretty}"))
         }
         .instrument(span.exit())
         .boxed()
@@ -368,7 +379,7 @@ impl Command {
             })?;
             Result::Ok(output)
         }
-        .map_err(move |e| e.context(format!("Failed to get output of the command: {}", pretty)))
+        .map_err(move |e| e.context(format!("Failed to get output of the command: {pretty}")))
         .instrument(span.exit())
         .boxed()
     }
@@ -389,13 +400,13 @@ impl Command {
 
         let current_span = tracing::Span::current();
         if current_span.field("command").is_some() {
-            tracing::Span::current().record("command", &field::display(&pretty));
+            tracing::Span::current().record("command", field::display(&pretty));
             debug!("Spawning.");
         } else {
             debug!("Spawning {}.", pretty);
         }
 
-        self.inner.spawn().context(format!("Failed to spawn: {}", pretty)).inspect(|child| {
+        self.inner.spawn().context(format!("Failed to spawn: {pretty}")).inspect(|child| {
             if let Some(pid) = child.id() {
                 current_span.record("pid", pid);
             }

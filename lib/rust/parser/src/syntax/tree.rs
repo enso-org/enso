@@ -781,7 +781,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
         (_, Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }))
         if opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
             let mut lhs = lhs.token.clone();
-            lhs.left_offset += arg.span.left_offset.clone();
+            lhs.left_offset += arg.span.left_offset;
             Tree::named_app(func, None, lhs, opr.clone(), rhs.clone(), None)
         }
         (_, Variant::Group(Group { open: Some(open), body: Some(body), close: Some(close) }))
@@ -789,14 +789,14 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             = &body.variant
         && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
             let mut open = open.clone();
-            open.left_offset += arg.span.left_offset.clone();
+            open.left_offset += arg.span.left_offset;
             let open = Some(open);
             let close = Some(close.clone());
             Tree::named_app(func, open, lhs.token.clone(), opr.clone(), rhs.clone(), close)
         }
         (_, Variant::Ident(Ident { token })) if token.is_default => {
             let mut token = token.clone();
-            token.left_offset += arg.span.left_offset.clone();
+            token.left_offset += arg.span.left_offset;
             Tree::default_app(func, token)
         }
         _ => Tree::app(func, arg)

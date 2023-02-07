@@ -16,14 +16,14 @@ enso-types = { path = "../../../types" }
 ensogl-core = { path = "../../core" }
 ensogl-text-embedded-fonts = { path = "src/font/embedded" }
 ensogl-text-msdf = { path = "src/font/msdf" }
-const_format = "0.2.22"
+const_format = { workspace = true }
 xi-rope = { version = "0.3.0" }
-owned_ttf_parser = "0.15.1"
-bincode = "2.0.0-rc.1"
+owned_ttf_parser = { workspace = true }
+bincode = { workspace = true }
 serde = { version = "1", features = ["rc"] }
-ordered-float = "3.0.0"
+ordered-float = { workspace = true }
 ensogl-text-font-family = { path = "src/font/family" }
-rustybuzz = "0.5.1"
+rustybuzz = { workspace = true }
 
 [dev-dependencies]
 rand = { version = "0.8.5", default-features = false }

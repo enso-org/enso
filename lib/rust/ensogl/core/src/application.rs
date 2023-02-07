@@ -66,7 +66,6 @@ pub struct Application {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct ApplicationData {
-    pub logger:    Logger,
     pub cursor:    Cursor,
     pub display:   World,
     pub commands:  command::Registry,
@@ -87,19 +86,17 @@ impl ApplicationData {
 impl Application {
     /// Constructor.
     pub fn new(dom: impl DomPath) -> Self {
-        let logger = Logger::new("Application");
         let display = World::new();
         let scene = &display.default_scene;
         scene.display_in(dom);
-        let commands = command::Registry::create(&logger);
-        let shortcuts =
-            shortcut::Registry::new(&logger, &scene.mouse.frp, &scene.keyboard.frp, &commands);
-        let views = view::Registry::create(&logger, &display, &commands, &shortcuts);
+        let commands = command::Registry::create();
+        let shortcuts = shortcut::Registry::new(&scene.mouse.frp, &scene.keyboard.frp, &commands);
+        let views = view::Registry::create(&display, &commands, &shortcuts);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
         let frp = Frp::new();
 
-        let data = ApplicationData { logger, cursor, display, commands, shortcuts, views, frp };
+        let data = ApplicationData { cursor, display, commands, shortcuts, views, frp };
 
         Self { inner: Rc::new(data) }.init()
     }

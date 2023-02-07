@@ -1,0 +1,132 @@
+from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import Column_Selector
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Sum, Count, Group_By
+import Standard.Table.Data.Expression.Expression_Error
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Such_Column, Invalid_Aggregate_Column
+
+from Standard.Test import Test
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    db_todo = if prefix.contains "In-Memory" then Nothing else "Table.transpose is not implemented yet in Database."
+    Test.group prefix+"Table.cross_tab" pending=db_todo <|
+        table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+        table2 = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+        Test.specify "should cross_tab counts by default using first column as names" <|
+            t1 = table.cross_tab
+            t1.row_count . should_equal 1
+            t1.column_count . should_equal 3
+            t1.at "x" . to_vector . should_equal [4]
+            t1.at "y" . to_vector . should_equal [3]
+            t1.at "z" . to_vector . should_equal [2]
+
+        Test.specify "should allow a different aggregate" <|
+            t1 = table.cross_tab values=[Sum "Value"]
+            t1.row_count . should_equal 1
+            t1.column_count . should_equal 3
+            t1.at "x" . to_vector . should_equal [10]
+            t1.at "y" . to_vector . should_equal [18]
+            t1.at "z" . to_vector . should_equal [17]
+
+        Test.specify "should allow a custom expression for the aggregate" <|
+            t1 = table.cross_tab values=[Sum "[Value]*[Value]"]
+            t1.row_count . should_equal 1
+            t1.column_count . should_equal 3
+            t1.at "x" . to_vector . should_equal [30]
+            t1.at "y" . to_vector . should_equal [110]
+            t1.at "z" . to_vector . should_equal [145]
+
+        Test.specify "should allow a chosen column" <|
+            t = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Species", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+            t1 = t.cross_tab [] "Species"
+            t1.row_count . should_equal 1
+            t1.column_count . should_equal 3
+            t1.at "x" . to_vector . should_equal [4]
+            t1.at "y" . to_vector . should_equal [3]
+            t1.at "z" . to_vector . should_equal [2]
+
+            t2 = t.cross_tab [] 1
+            t2.row_count . should_equal 1
+            t2.column_count . should_equal 3
+            t2.at "x" . to_vector . should_equal [4]
+            t2.at "y" . to_vector . should_equal [3]
+            t2.at "z" . to_vector . should_equal [2]
+
+        Test.specify "should allow a grouping" <|
+            t1 = table2.cross_tab ["Group"] "Key"
+            t1.row_count . should_equal 2
+            t1.column_count . should_equal 4
+            t1.at "Group" . to_vector . should_equal ["A", "B"]
+            t1.at "x" . to_vector . should_equal [2, 2]
+            t1.at "y" . to_vector . should_equal [2, 1]
+            t1.at "z" . to_vector . should_equal [1, 1]
+
+        Test.specify "should allow a grouping by text" <|
+            t1 = table2.cross_tab "Group" "Key"
+            t1.row_count . should_equal 2
+            t1.column_count . should_equal 4
+            t1.at "Group" . to_vector . should_equal ["A", "B"]
+            t1.at "x" . to_vector . should_equal [2, 2]
+            t1.at "y" . to_vector . should_equal [2, 1]
+            t1.at "z" . to_vector . should_equal [1, 1]
+
+        Test.specify "should allow multiple values aggregates" <|
+            t1 = table.cross_tab values=[Count, Sum "Value"]
+            t1.row_count . should_equal 1
+            t1.column_names . should_equal ["x Count", "x Sum Value", "y Count", "y Sum Value", "z Count", "z Sum Value"]
+            t1.at "x Count" . to_vector . should_equal [4]
+            t1.at "x Sum Value" . to_vector . should_equal [10]
+            t1.at "y Count" . to_vector . should_equal [3]
+            t1.at "y Sum Value" . to_vector . should_equal [18]
+            t1.at "z Count" . to_vector . should_equal [2]
+            t1.at "z Sum Value" . to_vector . should_equal [17]
+
+        Test.specify "should fail if name_field is not found" <|
+            err1 = table.cross_tab [] "Name"
+            err1.should_fail_with Missing_Input_Columns
+            err1.catch.criteria . should_equal ["Name"]
+
+            err2 = table.cross_tab [] 42
+            err2.should_fail_with Column_Indexes_Out_Of_Range
+            err2.catch.indexes . should_equal [42]
+
+        Test.specify "should fail if group-by contains missing columns" <|
+            err1 = table2.cross_tab ["Group", "Nonexistent Group", "OTHER"] "Key"
+            err1.should_fail_with Missing_Input_Columns
+            err1.catch.criteria . should_equal ["Nonexistent Group", "OTHER"]
+
+            err2 = table2.cross_tab (Column_Selector.By_Index [0, 42]) "Key"
+            err2.should_fail_with Column_Indexes_Out_Of_Range
+            err2.catch.indexes . should_equal [42]
+
+        Test.specify "should fail if aggregate values contain missing columns" <|
+            err1 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum "OTHER"]
+            err1.should_fail_with Invalid_Aggregate_Column
+            err1.catch.name . should_equal "Nonexistent Value"
+
+            err2 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum 42]
+            err2.should_fail_with Column_Indexes_Out_Of_Range
+            err2.catch.indexes . should_equal [42]
+
+        Test.specify "should fail if aggregate values contain invalid expressions" pending="TODO?" <|
+            err1 = table.cross_tab values=[Sum "[MISSING]*10"]
+            err1.should_fail_with Invalid_Aggregate_Column
+            err1.catch.name . should_equal "[MISSING]*10"
+            err1.catch.expression_error . should_equal (No_Such_Column.Error "MISSING")
+
+            err2 = table.cross_tab values=[Sum "[[[["]
+            err2.should_fail_with Invalid_Aggregate_Column
+            err2.catch.name . should_equal "[[[["
+            err1.catch.expression_error . should_be_a Expression_Error.Syntax_Error
+
+        Test.specify "should not allow Group_By for values" <|
+            err1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=Problem_Behavior.Ignore
+            err1.should_fail_with Illegal_Argument.Error

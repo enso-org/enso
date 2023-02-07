@@ -7,6 +7,7 @@
 #![allow(incomplete_features)]
 #![feature(negative_impls)]
 #![feature(associated_type_defaults)]
+#![feature(associated_type_bounds)]
 #![feature(cell_update)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]
@@ -76,10 +77,6 @@ pub mod prelude {
     pub use crate::shapes_order_dependencies;
     pub use crate::types::unit2::traits::*;
     pub use enso_data_structures as data;
-    pub use enso_logger as logger;
-    pub use enso_logger::AnyLogger;
-    pub use enso_logger::DefaultWarningLogger as Logger;
-    pub use enso_logger::*;
     pub use enso_prelude::*;
     pub use enso_profiler as profiler;
     pub use enso_profiler::prelude::*;

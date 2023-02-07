@@ -155,7 +155,6 @@ impl Error {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Model {
-    logger:    Logger,
     dom:       DomSymbol,
     size:      Rc<Cell<Vector2>>,
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -172,7 +171,6 @@ pub struct Model {
 impl Model {
     /// Constructor.
     fn new(scene: Scene) -> Self {
-        let logger = Logger::new("RawText");
         let div = web::document.create_div_or_panic();
         let dom = DomSymbol::new(&div);
         let size = Rc::new(Cell::new(Vector2(200.0, 200.0)));
@@ -180,7 +178,7 @@ impl Model {
         let messages = default();
 
         let styles = StyleWatch::new(&scene.style_sheet);
-        let padding_text = format!("{}px", PADDING_TEXT);
+        let padding_text = format!("{PADDING_TEXT}px");
 
         dom.dom().set_attribute_or_warn("class", "visualization scrollable");
         dom.dom().set_style_or_warn("overflow-x", "hidden");
@@ -193,7 +191,7 @@ impl Model {
         dom.dom().set_style_or_warn("pointer-events", "auto");
 
         scene.dom.layers.back.manage(&dom);
-        Model { logger, dom, size, styles, displayed, messages, scene }.init()
+        Model { dom, size, styles, displayed, messages, scene }.init()
     }
 
     fn init(self) -> Self {
@@ -233,10 +231,11 @@ impl Model {
     }
 
     fn display_kind(&self, new: Kind) {
+        use ensogl_hardcoded_theme::graph_editor::visualization::error as theme;
         let color_style = match new {
-            Kind::Panic => ensogl_hardcoded_theme::graph_editor::visualization::error::panic::text,
-            Kind::Dataflow =>
-                ensogl_hardcoded_theme::graph_editor::visualization::error::dataflow::text,
+            Kind::Panic => theme::panic::text,
+            Kind::Dataflow => theme::dataflow::text,
+            Kind::Warning => theme::warning::text,
         };
         let default = "";
         let opt_message = self.messages.get_cloned_ref(&new);

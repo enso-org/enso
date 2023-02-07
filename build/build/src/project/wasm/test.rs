@@ -89,7 +89,7 @@ pub fn has_wasm_tests(member: &Path) -> bool {
         // We go over selected subdirectories only to avoid entering into sources of other crates
         // that are nested within this crate subtree.
         for subdir in SOURCE_SUBDIRECTORIES {
-            let pattern = format!("{}/{}/**/*.rs", member, subdir);
+            let pattern = format!("{member}/{subdir}/**/*.rs");
             for entry in glob::glob(&pattern).unwrap() {
                 let contents = ide_ci::fs::read_to_string(entry.unwrap()).unwrap();
                 if contents.lines().any(is_wasm_test_attribute) {
@@ -169,7 +169,7 @@ pub async fn test_all(repo_root: PathBuf, browsers: &[Browser]) -> Result {
                 .run_ok()
                 .await?;
         } else {
-            println!("No wasm tests in {}", member_str);
+            println!("No wasm tests in {member_str}");
         }
     }
     Ok(())

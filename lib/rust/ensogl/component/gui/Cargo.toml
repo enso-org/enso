@@ -9,7 +9,6 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 enso-frp = { path = "../../../frp" }
-enso-logger = { path = "../../../logger" }
 ensogl-core = { path = "../../core" }
 
 [dev-dependencies]

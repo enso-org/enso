@@ -61,7 +61,7 @@ impl Theme {
         E: Into<Value>, {
         let path = path.into();
         let value = value.into();
-        self.tree.borrow_mut().set(&path.rev_segments, Some(value));
+        self.tree.borrow_mut().set(path.rev_segments, Some(value));
         self.on_mut.run_all();
     }
 
@@ -223,7 +223,6 @@ impl From<&style::Sheet> for ManagerData {
 /// Theme manager. Allows registering themes by names, enabling, and disabling them.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Manager {
-    logger:        Logger,
     data:          Rc<RefCell<ManagerData>>,
     handles:       Rc<RefCell<HashMap<String, callback::Handle>>>,
     current_dirty: dirty::SharedBool,
@@ -234,13 +233,12 @@ pub struct Manager {
 impl Manager {
     /// Constructor.
     pub fn new() -> Self {
-        let logger = Logger::new("Theme Manager");
         let current_dirty = dirty::SharedBool::new(());
         let enabled_dirty = dirty::SharedVector::new(());
         let data = default();
         let handles = default();
         let initialized = default();
-        Self { logger, data, handles, current_dirty, enabled_dirty, initialized }
+        Self { data, handles, current_dirty, enabled_dirty, initialized }
     }
 
     /// Return a theme of the given name.
@@ -306,7 +304,7 @@ impl Manager {
         if self.enabled_dirty.check_all() {
             self.current_dirty.take();
             let names = self.enabled_dirty.take().vec;
-            self.data.borrow_mut().set_enabled(&names);
+            self.data.borrow_mut().set_enabled(names);
         } else if self.current_dirty.take().check() {
             self.data.borrow_mut().refresh()
         }

@@ -182,7 +182,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         let artifact_fut = self.build_internal(context, job);
         let this = self.clone();
         async move {
-            let artifact = artifact_fut.await.context(format!("Failed to build {:?}.", this))?;
+            let artifact = artifact_fut.await.context(format!("Failed to build {this:?}."))?;
             // We upload only built artifacts. There would be no point in uploading something that
             // we've just downloaded. That's why the uploading code is here.
             if upload_artifacts {
@@ -255,8 +255,8 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         release.assets.iter().find(|asset| self.matches_asset(asset)).with_context(|| {
             let asset_names = release.assets.iter().map(|asset| &asset.name).join(", ");
             format!(
-                "No matching asset for target {:?} in release {:?}. Available assets: {}",
-                self, release, asset_names
+                "No matching asset for target {self:?} in release {release:?}. \
+                Available assets: {asset_names}"
             )
         })
     }

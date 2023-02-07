@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+from project import Test
 import project.Extensions
 
 ## Returns values of warnings attached to the value.Nothing
@@ -67,5 +68,7 @@ test_advanced_problem_handling action error_checker warnings_checker result_chec
 ## UNSTABLE
    Checks if the provided value does not have any attached problems.
 assume_no_problems result =
-    result.is_error.should_be_false
+    if result.is_error then
+        loc = Meta.get_source_location 3
+        Test.fail "Expected the result to not be an error, but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
     (get_attached_warnings result).should_equal []

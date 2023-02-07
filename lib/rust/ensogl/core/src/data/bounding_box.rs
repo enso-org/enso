@@ -87,6 +87,16 @@ impl BoundingBox {
         !not_contained
     }
 
+    /// Return whether the interiors of two bounding boxes (the bounded area without boundaries)
+    /// have some area of overlap.
+    pub fn interior_intersects(&self, other: &BoundingBox) -> bool {
+        let not_contained = (self.right <= other.left)
+            || (other.right <= self.left)
+            || (self.bottom >= other.top)
+            || (other.bottom >= self.top);
+        !not_contained
+    }
+
     /// Expand the bounding box in the x direction by the given amount.
     pub fn grow_x(&mut self, size: f32) {
         self.left -= size / 2.0;
@@ -117,6 +127,11 @@ impl BoundingBox {
     /// Return the y position of the bottom boundary.
     pub fn bottom(&self) -> f32 {
         self.bottom
+    }
+
+    /// Return the position of the point at this bounding box center.
+    pub fn center(&self) -> Vector2 {
+        Vector2((self.left + self.right) / 2.0, (self.top + self.bottom) / 2.0)
     }
 
     /// Calculates the squared norm of a vector between the point passed as an argument, and a
@@ -189,8 +204,8 @@ mod tests {
             let bbox2: BoundingBox = $bbox2.into();
             let bbox3: BoundingBox = $bbox3.into();
             let result = bbox1.concat(bbox2);
-            let assert_msg = iformat!(
-                "Concat result was expected to be: " bbox3;? " but got: " result;? " instead.");
+            let assert_msg = format!(
+                "Concat result was expected to be: {bbox3:?}, but got: {result:?} instead.");
             assert_eq!(result.left, bbox3.left, "{}", assert_msg);
             assert_eq!(result.right, bbox3.right, "{}", assert_msg);
             assert_eq!(result.top, bbox3.top, "{}", assert_msg);
@@ -222,10 +237,10 @@ mod tests {
             let result = bbox.squared_distance_to_point(point);
             let result_deviation = (result - $expected_sq_distance).abs();
             let result_ok = result_deviation < SQUARED_DISTANCE_COMPARISON_PRECISION;
-            let assert_msg = iformat!(
-                "Squared distance between " bbox;? " and " point;?
-                " expected to approximately equal " $expected_sq_distance
-                ", but got " result " instead.");
+            let assert_msg = format!(
+                "Squared distance between {bbox:?} and {point:?} \
+                expected to approximately equal {}, \
+                but got {result} instead.", $expected_sq_distance);
             assert!(result_ok, "{}", assert_msg);
         };
     }

@@ -82,7 +82,7 @@ mod icon {
             let arrow         = Triangle(size.px(),size.px()).rotate((PI/2.0).radians());
             let arrow         = arrow.translate_x(0.5.px());
             let shape         = ring + arrow;
-            let color         = format!("vec4({},{},{},{})",red,green,blue,alpha);
+            let color         = format!("vec4({red},{green},{blue},{alpha})");
             let color : Var<color::Rgba> = color.into();
             shape.fill(color).into()
         }
@@ -104,7 +104,7 @@ mod separator {
             let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
             let triangle = Triangle(size.px(),size.px()).rotate(angle.radians());
-            let color    = format!("vec4({},{},{},{})",red,green,blue,alpha);
+            let color    = format!("vec4({red},{green},{blue},{alpha})");
             let color : Var<color::Rgba> = color.into();
             triangle.fill(color).into()
         }
@@ -242,7 +242,7 @@ impl Frp {
 // === BreadcrumbInfo ===
 // ======================
 
-/// Breadcrumb information such as name and expression id.
+/// Breadcrumb information such as name and expression ID.
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct BreadcrumbInfo {
@@ -266,7 +266,7 @@ pub struct BreadcrumbModel {
     label:             text::Text,
     animations:        Animations,
     style:             StyleWatch,
-    /// Breadcrumb information such as name and expression id.
+    /// Breadcrumb information such as name and expression ID.
     pub info:          Rc<BreadcrumbInfo>,
     relative_position: Rc<Cell<Option<RelativePosition>>>,
     outputs:           FrpOutputs,
@@ -457,10 +457,10 @@ impl display::Object for BreadcrumbModel {
 // ==================
 
 /// The breadcrumb's view which displays its name and exposes mouse press interactions.
-#[derive(Debug, Clone, CloneRef, Shrinkwrap)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct Breadcrumb {
-    #[shrinkwrap(main_field)]
+    #[deref]
     model:   Rc<BreadcrumbModel>,
     pub frp: Frp,
 }

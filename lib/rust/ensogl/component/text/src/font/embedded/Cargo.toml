@@ -18,4 +18,4 @@ enso-build = { path = "../../../../../../../../build/build" }
 enso-build-utilities = { path = "../../../../../../../../build/deprecated/build-utils" }
 tokio = { workspace = true }
 zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
-owned_ttf_parser = "0.15.1"
+owned_ttf_parser = { workspace = true }

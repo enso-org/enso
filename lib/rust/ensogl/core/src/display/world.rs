@@ -18,6 +18,7 @@ use crate::debug::stats::StatsData;
 use crate::display;
 use crate::display::garbage;
 use crate::display::render;
+use crate::display::render::cache_shapes::CacheShapesPass;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
@@ -79,16 +80,32 @@ fn init_context() {
 
 
 
-// =====================
-// === Static Shapes ===
-// =====================
+// =========================
+// === Shape Definitions ===
+// =========================
 
-type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+/// A constructor of view of some specific shape.
+pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+
+/// The definition of shapes created with the `cached_shape!` macro.
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct CachedShapeDefinition {
+    /// The size of the shape in the texture.
+    pub size: Vector2<i32>,
+    /// A constructor of single shape view.
+    #[derivative(Debug = "ignore")]
+    pub cons: ShapeCons,
+}
 
 thread_local! {
     /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
     /// program execution, before the `main` function is called.
     pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeCons>> = default();
+
+    /// All shapes defined with the `cached_shape!` macro. They will be populated on the beginning
+    /// of program execution, before the `main` function is called.
+    pub static CACHED_SHAPES_DEFINITIONS: RefCell<Vec<CachedShapeDefinition>> = default();
 }
 
 
@@ -392,7 +409,7 @@ impl WorldData {
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());
-        let on_change = enclose!((scene_dirty) move || scene_dirty.set());
+        let on_change = f!(scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
         let default_scene = Scene::new(&stats, on_change, &display_mode);
         let uniforms = Uniforms::new(&default_scene.variables);
@@ -490,11 +507,11 @@ impl WorldData {
         pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
-        let logger = Logger::new("renderer");
         let pipeline = render::Pipeline::new()
-            .add(SymbolsRenderPass::new(logger, &self.default_scene.layers))
+            .add(SymbolsRenderPass::new(&self.default_scene.layers))
             .add(ScreenRenderPass::new())
-            .add(pixel_read_pass);
+            .add(pixel_read_pass)
+            .add(CacheShapesPass::new(&self.default_scene));
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 

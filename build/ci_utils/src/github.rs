@@ -125,7 +125,7 @@ pub trait IsOrganization {
 
     /// The organization's URL.
     fn url(&self) -> Result<Url> {
-        let url_text = iformat!("https://github.com/{self.name()}");
+        let url_text = format!("https://github.com/{}", self.name());
         Url::from_str(&url_text)
     }
 }
@@ -172,7 +172,7 @@ pub async fn latest_runner_url(octocrab: &Octocrab, os: OS) -> Result<Url> {
         other_arch => unimplemented!("Architecture `{}` is not yet supported!", other_arch),
     };
 
-    let platform_name = format!("{}-{}", os_name, arch_name);
+    let platform_name = format!("{os_name}-{arch_name}");
     find_asset_url_by_text(&latest_release, &platform_name).cloned()
 }
 
