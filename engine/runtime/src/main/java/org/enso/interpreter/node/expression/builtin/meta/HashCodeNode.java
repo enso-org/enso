@@ -87,12 +87,13 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization
   long hashCodeForLong(long l) {
-    return Long.hashCode(l);
+    // By casting long to double, we lose some precision on purpose
+    return hashCodeForDouble((double) l);
   }
 
   @Specialization
   long hashCodeForInt(int i) {
-    return i;
+    return hashCodeForLong(i);
   }
 
   @Specialization
@@ -101,20 +102,20 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization
-  @TruffleBoundary
   long hashCodeForDouble(double d) {
-    if (d % 1.0 != 0.0) {
+    if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
       return Double.hashCode(d);
     } else {
-      if (BigIntegerOps.fitsInLong(d)) {
-        return hashCodeForLong(Double.valueOf(d).longValue());
-      } else {
-        try {
-          return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
-        } catch (ArithmeticException e) {
-          throw new IllegalStateException(e);
-        }
-      }
+      return bigDoubleHash(d);
+    }
+  }
+
+  @TruffleBoundary
+  private static long bigDoubleHash(double d) {
+    try {
+      return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
+    } catch (ArithmeticException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -130,6 +131,7 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization
+  @TruffleBoundary
   long hashCodeForUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
       @Cached HashCodeNode hashCodeNode) {
     long nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
@@ -396,7 +398,10 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization(
-      guards = {"interop.hasArrayElements(selfArray)"},
+      guards = {
+          "interop.hasArrayElements(selfArray)",
+          "!interop.hasHashEntries(selfArray)"
+      },
       limit = "3")
   long hashCodeForArray(
       Object selfArray,
@@ -456,11 +461,13 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization(guards = {
       "!isAtom(objectWithMembers)",
-      // Object with type is handled in `hashCodeForType` specialization, so we have to
-      // negate the guard of that specialization here - to make the specializations
-      // disjunctive.
+      "!isHostObject(objectWithMembers)",
+      "interop.hasMembers(objectWithMembers)",
+      "!interop.hasArrayElements(objectWithMembers)",
+      "!interop.isTime(objectWithMembers)",
+      "!interop.isDate(objectWithMembers)",
+      "!interop.isTimeZone(objectWithMembers)",
       "!typesLib.hasType(objectWithMembers)",
-      "interop.hasMembers(objectWithMembers)"
   })
   long hashCodeForInteropObjectWithMembers(Object objectWithMembers,
       @CachedLibrary(limit = "10") InteropLibrary interop,

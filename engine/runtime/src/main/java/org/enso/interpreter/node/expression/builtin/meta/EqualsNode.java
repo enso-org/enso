@@ -83,6 +83,11 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
+  boolean equalsBytes(byte self, byte other) {
+    return self == other;
+  }
+
+  @Specialization
   boolean equalsLong(long self, long other) {
     return self == other;
   }
@@ -182,9 +187,13 @@ public abstract class EqualsNode extends Node {
    * to make that specialization disjunctive. So we rather specialize directly for
    * {@link Type types}.
    */
-  @Specialization
+  @Specialization(guards = {
+      "typesLib.hasType(selfType)",
+      "typesLib.hasType(otherType)"
+  })
   boolean equalsTypes(Type selfType, Type otherType,
-      @Cached EqualsNode equalsNode) {
+      @Cached EqualsNode equalsNode,
+      @CachedLibrary(limit = "5") TypesLibrary typesLib) {
     return equalsNode.execute(
         selfType.getQualifiedName().toString(),
         otherType.getQualifiedName().toString()
@@ -240,38 +249,6 @@ public abstract class EqualsNode extends Node {
     return selfInterop.isNull(selfNull) && otherInterop.isNull(otherNull);
   }
 
-  @Specialization(guards = {
-      "isHostObject(selfHostObject)",
-      "isHostObject(otherHostObject)"
-  })
-  boolean equalsHostObjects(
-      Object selfHostObject, Object otherHostObject,
-      @CachedLibrary(limit = "5") InteropLibrary interop
-  ) {
-    try {
-      return interop.asBoolean(
-          interop.invokeMember(selfHostObject, "equals", otherHostObject)
-      );
-    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
-             UnsupportedTypeException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-
-  // HostFunction is identified by a qualified name, it is not a lambda.
-  // It has well-defined equality based on the qualified name.
-  @Specialization(guards = {
-      "isHostFunction(selfHostFunc)",
-      "isHostFunction(otherHostFunc)"
-  })
-  boolean equalsHostFunctions(Object selfHostFunc, Object otherHostFunc,
-      @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Cached EqualsNode equalsNode) {
-    Object selfFuncStrRepr = interop.toDisplayString(selfHostFunc);
-    Object otherFuncStrRepr = interop.toDisplayString(otherHostFunc);
-    return equalsNode.execute(selfFuncStrRepr, otherFuncStrRepr);
-  }
 
   @Specialization(guards = {
       "selfInterop.isBoolean(selfBoolean)",
@@ -333,7 +310,8 @@ public abstract class EqualsNode extends Node {
           otherInterop.asTime(otherZonedDateTime),
           otherInterop.asTimeZone(otherZonedDateTime)
       );
-      return self.isEqual(other);
+      // We cannot use self.isEqual(other), because that does not include timezone.
+      return self.compareTo(other) == 0;
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
@@ -450,7 +428,9 @@ public abstract class EqualsNode extends Node {
 
   @Specialization(guards = {
       "selfInterop.hasArrayElements(selfArray)",
-      "otherInterop.hasArrayElements(otherArray)"
+      "otherInterop.hasArrayElements(otherArray)",
+      "!selfInterop.hasHashEntries(selfArray)",
+      "!otherInterop.hasHashEntries(otherArray)",
   }, limit = "3")
   boolean equalsArrays(Object selfArray, Object otherArray,
                        @CachedLibrary("selfArray") InteropLibrary selfInterop,
@@ -487,7 +467,9 @@ public abstract class EqualsNode extends Node {
 
   @Specialization(guards = {
       "selfInterop.hasHashEntries(selfHashMap)",
-      "otherInterop.hasHashEntries(otherHashMap)"
+      "otherInterop.hasHashEntries(otherHashMap)",
+      "!selfInterop.hasArrayElements(selfHashMap)",
+      "!otherInterop.hasArrayElements(otherHashMap)"
   }, limit = "3")
   boolean equalsHashMaps(Object selfHashMap, Object otherHashMap,
       @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
@@ -525,13 +507,19 @@ public abstract class EqualsNode extends Node {
   @Specialization(guards = {
       "!isAtom(selfObject)",
       "!isAtom(otherObject)",
+      "!isHostObject(selfObject)",
+      "!isHostObject(otherObject)",
+      "interop.hasMembers(selfObject)",
+      "interop.hasMembers(otherObject)",
+      "!interop.isDate(selfObject)",
+      "!interop.isDate(otherObject)",
+      "!interop.isTime(selfObject)",
+      "!interop.isTime(otherObject)",
       // Objects with types are handled in `equalsTypes` specialization, so we have to
       // negate the guards of that specialization here - to make the specializations
       // disjunctive.
       "!typesLib.hasType(selfObject)",
       "!typesLib.hasType(otherObject)",
-      "interop.hasMembers(selfObject)",
-      "interop.hasMembers(otherObject)",
   })
   boolean equalsInteropObjectWithMembers(Object selfObject, Object otherObject,
       @CachedLibrary(limit = "10") InteropLibrary interop,
@@ -663,71 +651,36 @@ public abstract class EqualsNode extends Node {
     return true;
   }
 
-  /**
-   * Helper node for invoking `Any.==` method.
-   */
-  @GenerateUncached
-  static abstract class InvokeAnyEqualsNode extends Node {
-    static InvokeAnyEqualsNode getUncached() {
-      return EqualsNodeGen.InvokeAnyEqualsNodeGen.getUncached();
-    }
-
-    abstract boolean execute(Atom selfAtom, Atom otherAtom);
-
-    @Specialization
-    boolean invokeEqualsCachedAtomCtor(Atom selfAtom, Atom thatAtom,
-                                       @Cached(value = "getAnyEqualsMethod()", allowUncached = true) Function anyEqualsFunc,
-                                       @Cached(value = "buildInvokeFuncNodeForAnyEquals()", allowUncached = true) InvokeFunctionNode invokeAnyEqualsNode,
-                                       @CachedLibrary(limit = "3") InteropLibrary interop) {
-      // TODO: Shouldn't Comparable type be the very first argument? (synthetic self)?
-      Object ret = invokeAnyEqualsNode.execute(
-          anyEqualsFunc,
-          null,
-          State.create(EnsoContext.get(this)),
-          new Object[]{selfAtom, thatAtom}
+  @Specialization(guards = {
+      "isHostObject(selfHostObject)",
+      "isHostObject(otherHostObject)"
+  })
+  boolean equalsHostObjects(
+      Object selfHostObject, Object otherHostObject,
+      @CachedLibrary(limit = "5") InteropLibrary interop
+  ) {
+    try {
+      return interop.asBoolean(
+          interop.invokeMember(selfHostObject, "equals", otherHostObject)
       );
-      try {
-        return interop.asBoolean(ret);
-      } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException("Return value from Any== should be Boolean", e);
-      }
-
-    }
-
-    @TruffleBoundary
-    Function getAnyEqualsMethod() {
-      var anyType = EnsoContext.get(this).getBuiltins().any();
-      Function anyEqualsFunc =
-          anyType.getDefinitionScope().getMethods().get(anyType).get("==");
-      assert anyEqualsFunc != null : "Any.== method must exist";
-      return anyEqualsFunc;
-    }
-
-    InvokeFunctionNode buildInvokeFuncNodeForAnyEquals() {
-      return InvokeFunctionNode.build(
-          new CallArgumentInfo[]{new CallArgumentInfo("self"), new CallArgumentInfo("that")},
-          DefaultsExecutionMode.EXECUTE,
-          ArgumentsExecutionMode.EXECUTE
-      );
+    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
+             UnsupportedTypeException e) {
+      throw new IllegalStateException(e);
     }
   }
 
-  /**
-   * Returns true if the given atom overrides `==` operator.
-   */
-  @TruffleBoundary
-  private static boolean atomOverridesEquals(Atom atom) {
-    var atomType = atom.getConstructor().getType();
-    Map<String, Function> methodsOnType = atom
-        .getConstructor()
-        .getDefinitionScope()
-        .getMethods()
-        .get(atomType);
-    if (methodsOnType != null) {
-      return methodsOnType.containsKey("==");
-    } else {
-      return false;
-    }
+  // HostFunction is identified by a qualified name, it is not a lambda.
+  // It has well-defined equality based on the qualified name.
+  @Specialization(guards = {
+      "isHostFunction(selfHostFunc)",
+      "isHostFunction(otherHostFunc)"
+  })
+  boolean equalsHostFunctions(Object selfHostFunc, Object otherHostFunc,
+      @CachedLibrary(limit = "5") InteropLibrary interop,
+      @Cached EqualsNode equalsNode) {
+    Object selfFuncStrRepr = interop.toDisplayString(selfHostFunc);
+    Object otherFuncStrRepr = interop.toDisplayString(otherHostFunc);
+    return equalsNode.execute(selfFuncStrRepr, otherFuncStrRepr);
   }
 
   @Fallback
@@ -763,5 +716,54 @@ public abstract class EqualsNode extends Node {
   @TruffleBoundary
   boolean isHostFunction(Object object) {
     return EnsoContext.get(this).getEnvironment().isHostFunction(object);
+  }
+
+  /**
+   * Helper node for invoking `Any.==` method.
+   */
+  @GenerateUncached
+  static abstract class InvokeAnyEqualsNode extends Node {
+    static InvokeAnyEqualsNode getUncached() {
+      return EqualsNodeGen.InvokeAnyEqualsNodeGen.getUncached();
+    }
+
+    abstract boolean execute(Atom selfAtom, Atom otherAtom);
+
+    @Specialization
+    boolean invokeEqualsCachedAtomCtor(Atom selfAtom, Atom thatAtom,
+        @Cached(value = "getAnyEqualsMethod()", allowUncached = true) Function anyEqualsFunc,
+        @Cached(value = "buildInvokeFuncNodeForAnyEquals()", allowUncached = true) InvokeFunctionNode invokeAnyEqualsNode,
+        @CachedLibrary(limit = "3") InteropLibrary interop) {
+      // TODO: Shouldn't Comparable type be the very first argument? (synthetic self)?
+      Object ret = invokeAnyEqualsNode.execute(
+          anyEqualsFunc,
+          null,
+          State.create(EnsoContext.get(this)),
+          new Object[]{selfAtom, thatAtom}
+      );
+      try {
+        return interop.asBoolean(ret);
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException("Return value from Any== should be Boolean", e);
+      }
+
+    }
+
+    @TruffleBoundary
+    Function getAnyEqualsMethod() {
+      var anyType = EnsoContext.get(this).getBuiltins().any();
+      Function anyEqualsFunc =
+          anyType.getDefinitionScope().getMethods().get(anyType).get("==");
+      assert anyEqualsFunc != null : "Any.== method must exist";
+      return anyEqualsFunc;
+    }
+
+    InvokeFunctionNode buildInvokeFuncNodeForAnyEquals() {
+      return InvokeFunctionNode.build(
+          new CallArgumentInfo[]{new CallArgumentInfo("self"), new CallArgumentInfo("that")},
+          DefaultsExecutionMode.EXECUTE,
+          ArgumentsExecutionMode.EXECUTE
+      );
+    }
   }
 }
