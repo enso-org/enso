@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 
 
 /// Enable extra log messages and assertions.
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 
 
@@ -104,12 +104,21 @@ impl Translate {
 }
 
 impl Translate {
-    fn translate(&mut self, tree: &Tree) -> WithInitialSpace<Ast> {
+    /// Translate a [`Tree`].
+    /// The returned [`Ast`] can be [`None`] if an empty block is encountered.
+    fn translate(&mut self, tree: &Tree) -> WithInitialSpace<Option<Ast>> {
         let space = self.visit_space(&tree.span);
+        let body = self.translate_expression_body(tree);
+        WithInitialSpace { space, body }
+    }
+
+    /// Translate a [`Tree`], except for the leading space.
+    /// This can return [`None`] if an empty block is encountered.
+    fn translate_expression_body(&mut self, tree: &Tree) -> Option<Ast> {
         let builder = self.start_ast();
-        let body = match &*tree.variant {
+        Some(match &*tree.variant {
             tree::Variant::BodyBlock(block) => {
-                let block = self.translate_block(&block.statements).unwrap().expect_unspaced();
+                let block = self.translate_block(&block.statements)?.expect_unspaced();
                 self.finish_ast(block, builder)
             }
             tree::Variant::Ident(tree::Ident { token }) => {
@@ -130,7 +139,7 @@ impl Translate {
             tree::Variant::App(tree::App { func, arg }) => {
                 let func = self.translate(func);
                 let arg = self.translate(arg);
-                let app = prefix(func, arg).expect_unspaced();
+                let app = maybe_prefix(func, arg).expect_unspaced()?;
                 self.finish_ast(app, builder)
             }
             tree::Variant::OprApp(tree::OprApp { lhs: Some(_), opr: Ok(opr), rhs: Some(_) })
@@ -144,7 +153,7 @@ impl Translate {
                 self.finish_ast(opr_app, builder)
             }
             tree::Variant::OprSectionBoundary(tree::OprSectionBoundary { ast, .. }) =>
-                self.translate(ast).expect_unspaced(),
+                self.translate(ast).expect_unspaced()?,
             tree::Variant::Function(func) => {
                 let func = self.translate_function(func);
                 self.finish_ast(func, builder)
@@ -158,7 +167,8 @@ impl Translate {
                 let name = self.visit_token(opr);
                 let opr = name.map(|_| self.finish_ast(opr_from_token(opr), opr_builder));
                 if let Some(arg) = rhs {
-                    let arg = self.translate(arg);
+                    let non_block_operand = "Unary operator cannot be applied to an (empty) block.";
+                    let arg = self.translate(arg).expect(non_block_operand);
                     let section = section_right(opr, arg).expect_unspaced();
                     self.finish_ast(section, builder)
                 } else {
@@ -170,19 +180,22 @@ impl Translate {
                 self.opr_app(pattern, equals, expr).expect_unspaced(),
             tree::Variant::OperatorBlockApplication(app) => {
                 let tree::OperatorBlockApplication { lhs, expressions, excess } = app;
-                let func = self.translate(lhs.as_ref().unwrap());
+                let func = lhs.as_ref().map(|lhs| self.translate(lhs)).unwrap_or_default();
                 let block = self.translate_operator_block(expressions, excess);
-                let app = prefix(func, block).expect_unspaced();
+                let app = maybe_prefix(func, block).expect_unspaced()?;
                 self.finish_ast(app, builder)
             }
             tree::Variant::TemplateFunction(tree::TemplateFunction { ast, .. }) =>
-                self.translate(ast).expect_unspaced(),
+                self.translate(ast).expect_unspaced()?,
             tree::Variant::Wildcard(_) => self.finish_ast(ast::Blank {}, builder),
             tree::Variant::ArgumentBlockApplication(app) => {
                 let tree::ArgumentBlockApplication { lhs, arguments } = app;
-                let func = self.translate(lhs.as_ref().unwrap());
-                let arg = self.translate_block(arguments).unwrap().map(Ast::from);
-                let app = prefix(func, arg).expect_unspaced();
+                let func = lhs.as_ref().map(|lhs| self.translate(lhs)).unwrap_or_default();
+                let arg = self
+                    .translate_block(arguments)
+                    .map(|arg| arg.map(|arg| Some(Ast::from(arg))))
+                    .unwrap_or_default();
+                let app = maybe_prefix(func, arg).expect_unspaced()?;
                 self.finish_ast(app, builder)
             }
             tree::Variant::DefaultApp(tree::DefaultApp { func, default }) => {
@@ -190,7 +203,7 @@ impl Translate {
                 let arg_builder = self.start_ast();
                 let default = self.visit_token(default);
                 let arg = default.map(|name| self.finish_ast(ast::Var { name }, arg_builder));
-                let app = prefix(func, arg).expect_unspaced();
+                let app = maybe_prefix(func, arg).expect_unspaced()?;
                 self.finish_ast(app, builder)
             }
             tree::Variant::NamedApp(tree::NamedApp { func, open, name, equals, arg, close }) => {
@@ -199,13 +212,14 @@ impl Translate {
                 let name = self.visit_token(name);
                 let larg = name.map(|name| Ast::from(ast::Var { name }));
                 let opr = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
-                let rarg = self.translate(arg);
+                let non_block_operand = "Named-application operand cannot be an (empty) block.";
+                let rarg = self.translate(arg).expect(non_block_operand);
                 let mut arg = infix(larg, opr, rarg).map(Ast::from);
                 let close = close.as_ref().map(|token| self.visit_token(token));
                 if let Some(open) = open && let Some(close) = close {
                     arg = open.map(|open| group(open, arg, close));
                 }
-                let app = prefix(func, arg).expect_unspaced();
+                let app = maybe_prefix(func, arg).expect_unspaced()?;
                 self.finish_ast(app, builder)
             }
             tree::Variant::TypeSignature(tree::TypeSignature { variable, operator, type_ }) =>
@@ -222,16 +236,16 @@ impl Translate {
                 let func = self.visit_token(annotation);
                 let func =
                     func.map(|func| Ast::from(ast::Annotation { name: format!("{at}{func}") }));
-                let arg = self.translate(expression.as_ref().unwrap());
+                let arg = expression.as_ref().map(|e| self.translate(e)).unwrap_or_default();
                 if !newlines.is_empty() {
                     error!("Multiline expression must be handled in translate_lines.");
                 }
-                let app = prefix(func, arg).expect_unspaced();
+                let app = maybe_prefix(func, arg).expect_unspaced()?;
                 self.finish_ast(app, builder)
             }
             tree::Variant::Documented(tree::Documented { documentation: _, expression }) => {
                 warn!("Multiline expression should have been handled in translate_lines.");
-                self.translate(expression.as_ref().unwrap()).without_space()
+                self.translate(expression.as_ref()?).without_space()?
             }
             tree::Variant::Import(import) => {
                 let span_info = self.translate_items(tree);
@@ -258,8 +272,7 @@ impl Translate {
                 let ast = ast::Tree::expression(self.translate_items(tree));
                 self.finish_ast(ast, builder)
             }
-        };
-        WithInitialSpace { space, body }
+        })
     }
 
     fn translate_lines(
@@ -300,8 +313,10 @@ impl Translate {
                 let annotation = self.visit_token(annotation).expect_unspaced();
                 let body = Ast::from(ast::Annotation { name: format!("{at}{annotation}") });
                 let mut annotation = WithInitialSpace { space, body };
+                let argument =
+                    argument.as_ref().and_then(|arg| ignore_space_if_empty(self.translate(arg)));
                 if let Some(argument) = argument {
-                    annotation = prefix(annotation, self.translate(argument)).map(Ast::from);
+                    annotation = prefix(annotation, argument).map(Ast::from);
                 }
                 out.extend_one(annotation.map(Some));
                 out.extend(newlines.iter().skip(1).map(|token| {
@@ -321,7 +336,7 @@ impl Translate {
                     self.translate_lines(expression, out);
                 }
             }
-            _ => out.extend_one(self.translate(tree).map(Some)),
+            _ => out.extend_one(self.translate(tree)),
         }
     }
 
@@ -357,19 +372,17 @@ impl Translate {
 
     fn translate_function(&mut self, function: &tree::Function) -> ast::Shape<Ast> {
         let tree::Function { name, args, equals, body } = function;
-        let name = self.translate(name);
+        let non_empty_name = "A function name cannot be an (empty) block.";
+        let name = self.translate(name).expect(non_empty_name);
         let mut lhs_terms = vec![name];
         lhs_terms.extend(args.iter().map(|a| self.translate_argument_definition(a)));
-        let larg =
-            lhs_terms.into_iter().reduce(|func, arg| prefix(func, arg).map(Ast::from)).unwrap();
+        let larg = lhs_terms
+            .into_iter()
+            .reduce(|func, arg| prefix(func, arg).map(Ast::from))
+            .expect("`lhs_terms` has at least one value, because it was initialized with a value.");
         let opr = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
-        match body {
-            Some(body) => {
-                let rarg = self.translate(body);
-                infix(larg, opr, rarg).expect_unspaced()
-            }
-            None => section_left(larg, opr).expect_unspaced(),
-        }
+        let body = body.as_ref().map(|body| self.translate(body)).unwrap_or_default();
+        infix(larg, opr, body).expect_unspaced()
     }
 
     fn translate_foreign_function(&mut self, func: &tree::ForeignFunction) -> ast::Shape<Ast> {
@@ -379,8 +392,10 @@ impl Translate {
             .map(|ident| self.visit_token(ident).map(|name| Ast::from(ast::Var { name })))
             .collect();
         lhs_terms.extend(args.iter().map(|a| self.translate_argument_definition(a)));
-        let lhs =
-            lhs_terms.into_iter().reduce(|func, arg| prefix(func, arg).map(Ast::from)).unwrap();
+        let lhs = lhs_terms
+            .into_iter()
+            .reduce(|func, arg| prefix(func, arg).map(Ast::from))
+            .expect("`lhs_terms` has at least one value, because it was initialized with values.");
         let equals = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
         let body = self.translate(body);
         infix(lhs, equals, body).expect_unspaced()
@@ -433,16 +448,10 @@ impl Translate {
         opr: &tree::OperatorOrError,
         rhs: Option<&Tree>,
     ) -> ast::Shape<Ast> {
-        let larg = lhs.map(|a| self.translate(a));
+        let larg = lhs.map(|a| self.translate(a)).unwrap_or_default();
         let opr = self.translate_opr(opr);
-        let rarg = rhs.map(|a| self.translate(a));
-        (match (larg, rarg) {
-            (Some(larg), Some(rarg)) => infix(larg, opr, rarg),
-            (Some(larg), None) => section_left(larg, opr),
-            (None, Some(rarg)) => section_right(opr, rarg),
-            (None, None) => section_sides(opr),
-        })
-        .expect_unspaced()
+        let rarg = rhs.map(|a| self.translate(a)).unwrap_or_default();
+        infix(larg, opr, rarg).expect_unspaced()
     }
 
     fn translate_module(&mut self, block: &tree::BodyBlock) -> Ast {
@@ -545,7 +554,8 @@ impl Translate {
             *ast_lines.last_mut().map(|line| &mut line.off).unwrap_or(&mut space) = trailing_space;
             let elem = expression.as_ref().map(|expression| {
                 let opr = self.translate_opr(&expression.operator);
-                let arg = self.translate(&expression.expression);
+                let non_block_operand = "Expression in operand-line cannot be an (empty) block.";
+                let arg = self.translate(&expression.expression).expect(non_block_operand);
                 let (space, elem) = section_right(opr, arg).split();
                 if indent.is_none() {
                     indent = Some(space);
@@ -554,7 +564,8 @@ impl Translate {
             });
             ast_lines.push(ast::BlockLine { elem, off });
         }
-        let indent = indent.unwrap();
+        let non_empty_block = "An operator block must have at least one operator line.";
+        let indent = indent.expect(non_empty_block);
         let mut statement_lines = vec![];
         for tree::block::Line { newline, expression } in excess {
             let trailing_space = self.visit_token(newline).space;
@@ -580,7 +591,7 @@ impl Translate {
                 (elem, Some(_)) => lines.push(ast::BlockLine { elem, off }),
             }
         }
-        let first_line = first_line.unwrap();
+        let first_line = first_line.expect(non_empty_block);
         let body = Ast::from(ast::Block { indent, empty_lines, first_line, lines });
         WithInitialSpace { space, body }
     }
@@ -604,7 +615,8 @@ impl Translate {
         let suspension = suspension
             .as_ref()
             .map(|token| self.visit_token(token).map(|_| Ast::from(opr_from_token(token))));
-        let mut term = self.translate(pattern);
+        let non_block_operand = "Pattern in argument definition cannot be an (empty) block.";
+        let mut term = self.translate(pattern).expect(non_block_operand);
         if let Some(opr) = suspension {
             term = section_right(opr, term).map(Ast::from);
         }
@@ -634,7 +646,11 @@ impl Translate {
         let mut span_info = SpanSeedBuilder::new();
         tree.visit_items(|item| match item {
             syntax::item::Ref::Token(token) => span_info.token(self.visit_token_ref(token)),
-            syntax::item::Ref::Tree(tree) => span_info.child(self.translate(tree)),
+            syntax::item::Ref::Tree(tree) => {
+                if let Some(ast) = ignore_space_if_empty(self.translate(tree)) {
+                    span_info.child(ast);
+                }
+            }
         });
         span_info.build().expect_unspaced()
     }
@@ -742,11 +758,6 @@ struct WithInitialSpace<T> {
 }
 
 impl<T: Debug> WithInitialSpace<T> {
-    /// Return the value, ignoring any initial space.
-    fn without_space(self) -> T {
-        self.body
-    }
-
     /// If any initial space is present, emit a warning; forget the space and return the value.
     fn expect_unspaced(self) -> T {
         if DEBUG {
@@ -754,6 +765,13 @@ impl<T: Debug> WithInitialSpace<T> {
         } else if self.space != 0 {
             warn!("Expected no space before term: {:?}", &self.body);
         }
+        self.body
+    }
+}
+
+impl<T> WithInitialSpace<T> {
+    /// Return the value, ignoring any initial space.
+    fn without_space(self) -> T {
         self.body
     }
 
@@ -769,6 +787,18 @@ impl<T: Debug> WithInitialSpace<T> {
     }
 }
 
+impl<T> WithInitialSpace<Option<T>> {
+    fn expect(self, message: &str) -> WithInitialSpace<T> {
+        let WithInitialSpace { space, body } = self;
+        WithInitialSpace { space, body: body.expect(message) }
+    }
+}
+
+fn ignore_space_if_empty<T>(spaced: WithInitialSpace<Option<T>>) -> Option<WithInitialSpace<T>> {
+    spaced.body.map(|body| WithInitialSpace { space: 0, body })
+}
+
+
 
 // === Shape-building helpers
 
@@ -782,17 +812,21 @@ fn prefix(
     })
 }
 
-fn section_sides(opr: WithInitialSpace<Ast>) -> WithInitialSpace<ast::Shape<Ast>> {
-    opr.map(|opr| (ast::SectionSides { opr }).into())
-}
-
-fn section_left(
-    arg: WithInitialSpace<Ast>,
-    opr: WithInitialSpace<Ast>,
-) -> WithInitialSpace<ast::Shape<Ast>> {
-    arg.map(|arg| {
-        let (off, opr) = opr.split();
-        (ast::SectionLeft { arg, off, opr }).into()
+fn maybe_prefix<T: Into<Option<Ast>>, U: Into<Option<Ast>>>(
+    func: WithInitialSpace<T>,
+    arg: WithInitialSpace<U>,
+) -> WithInitialSpace<Option<ast::Shape<Ast>>> {
+    func.map(|func| {
+        let arg = ignore_space_if_empty(arg.map(|arg| arg.into()));
+        match (func.into(), arg) {
+            (Some(func), Some(arg)) => {
+                let (off, arg) = arg.split();
+                Some((ast::Prefix { func, off, arg }).into())
+            }
+            (Some(func), None) => Some(func.shape().clone()),
+            (None, Some(arg)) => Some(arg.expect_unspaced().shape().clone()),
+            (None, None) => None,
+        }
     })
 }
 
@@ -806,15 +840,26 @@ fn section_right(
     })
 }
 
-fn infix(
-    larg: WithInitialSpace<Ast>,
+fn infix<T: Into<Option<Ast>>, U: Into<Option<Ast>>>(
+    larg: WithInitialSpace<T>,
     opr: WithInitialSpace<Ast>,
-    rarg: WithInitialSpace<Ast>,
+    rarg: WithInitialSpace<U>,
 ) -> WithInitialSpace<ast::Shape<Ast>> {
     larg.map(|larg| {
-        let (loff, opr) = opr.split();
-        let (roff, rarg) = rarg.split();
-        (ast::Infix { larg, loff, opr, roff, rarg }).into()
+        let (opr_off, opr) = opr.split();
+        let rarg = ignore_space_if_empty(rarg.map(|arg| arg.into()));
+        match (larg.into(), rarg) {
+            (Some(larg), Some(rarg)) => {
+                let (roff, rarg) = rarg.split();
+                (ast::Infix { larg, loff: opr_off, opr, roff, rarg }).into()
+            }
+            (Some(arg), None) => (ast::SectionLeft { arg, off: opr_off, opr }).into(),
+            (None, Some(arg)) => {
+                let (off, arg) = arg.split();
+                (ast::SectionRight { opr, off, arg }).into()
+            }
+            (None, None) => (ast::SectionSides { opr }).into(),
+        }
     })
 }
 
