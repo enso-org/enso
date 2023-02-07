@@ -180,6 +180,11 @@ impl Model {
         })
     }
 
+    fn toggle_private_cb_entries_visibility(&self) {
+        let visibility = self.ide_controller.private_cb_entries_visibility();
+        self.ide_controller.set_private_cb_entries_visibility(!visibility);
+    }
+
     fn set_project_changed(&self, changed: bool) {
         self.view.graph().model.breadcrumbs.set_project_changed(changed);
     }
@@ -268,6 +273,10 @@ impl Project {
             view.values_updated <+ values_computed;
 
             eval_ view.save_project_snapshot(model.save_project_snapshot());
+
+            eval_ view.toggle_private_cb_entries_visibility(
+                model.toggle_private_cb_entries_visibility()
+            );
 
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());
 

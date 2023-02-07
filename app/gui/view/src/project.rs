@@ -77,6 +77,8 @@ ensogl::define_endpoints! {
         close_open_dialog(),
         /// Simulates a style toggle press event.
         toggle_style(),
+        /// Toggles the visibility of private components in the component browser.
+        toggle_private_cb_entries_visibility(),
         /// Saves a snapshot of the current state of the project to the VCS.
         save_project_snapshot(),
         /// Undo the last user's action.
@@ -752,6 +754,7 @@ impl application::View for View {
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),
             (Press, "", "cmd alt shift t", "toggle_style"),
+            (Press, "", "cmd alt p", "toggle_private_cb_entries_visibility"),
             (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),

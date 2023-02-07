@@ -38,12 +38,13 @@ const UNNAMED_PROJECT_NAME: &str = "Unnamed";
 #[derive(Clone, CloneRef, Derivative)]
 #[derivative(Debug)]
 pub struct Handle {
-    current_project:      Rc<CloneCell<Option<model::Project>>>,
+    current_project: Rc<CloneCell<Option<model::Project>>>,
     #[derivative(Debug = "ignore")]
-    project_manager:      Rc<dyn project_manager::API>,
+    project_manager: Rc<dyn project_manager::API>,
     status_notifications: StatusNotificationPublisher,
-    parser:               Parser,
-    notifications:        notification::Publisher<Notification>,
+    parser: Parser,
+    notifications: notification::Publisher<Notification>,
+    private_cb_entries_visibility_flag: Rc<Cell<bool>>,
 }
 
 impl Handle {
@@ -71,7 +72,15 @@ impl Handle {
         let status_notifications = default();
         let parser = Parser::new_or_panic();
         let notifications = default();
-        Self { current_project, project_manager, status_notifications, parser, notifications }
+        let private_cb_entries_visibility_flag = default();
+        Self {
+            current_project,
+            project_manager,
+            status_notifications,
+            parser,
+            notifications,
+            private_cb_entries_visibility_flag,
+        }
     }
 
     /// Open project with provided name.
@@ -105,6 +114,14 @@ impl API for Handle {
 
     fn manage_projects(&self) -> FallibleResult<&dyn ManagingProjectAPI> {
         Ok(self)
+    }
+
+    fn private_cb_entries_visibility(&self) -> bool {
+        self.private_cb_entries_visibility_flag.get()
+    }
+
+    fn set_private_cb_entries_visibility(&self, visibility: bool) {
+        self.private_cb_entries_visibility_flag.set(visibility);
     }
 }
 
