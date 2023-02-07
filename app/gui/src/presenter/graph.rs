@@ -363,7 +363,7 @@ impl Model {
         let computed_value = registry.get(&id)?;
         let method_pointer = computed_value.method_call.as_ref()?;
         let suggestion_db = self.controller.suggestion_db();
-        suggestion_db.get_method_suggestion(&method_pointer)
+        suggestion_db.get_method_suggestion(method_pointer)
     }
 
     /// Extract the expression's current method pointer from controllers.
