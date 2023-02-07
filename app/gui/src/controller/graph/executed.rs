@@ -7,6 +7,7 @@
 use crate::prelude::*;
 
 use crate::model::execution_context::ComponentGroup;
+use crate::model::execution_context::ComputedValueInfo;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::QualifiedMethodPointer;
@@ -231,18 +232,17 @@ impl Handle {
         Ok(())
     }
 
-    /// Attempts to get the method pointer of the specified node.
+    /// Attempts to get the computed value of the specified node.
     ///
-    /// Fails if there's no information about target method pointer (e.g. because node value hasn't
-    /// been yet computed by the engine).
-    pub fn node_method_pointer(
+    /// Fails if there's no information e.g. because node value hasn't been yet computed by the
+    /// engine.
+    pub fn node_computed_value(
         &self,
         node: double_representation::node::Id,
-    ) -> FallibleResult<Rc<MethodPointer>> {
+    ) -> FallibleResult<Rc<ComputedValueInfo>> {
         let registry = self.execution_ctx.computed_value_info_registry();
         let node_info = registry.get(&node).ok_or(NotEvaluatedYet(node))?;
-        let method_pointer = node_info.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
-        Ok(Rc::new(method_pointer.clone()))
+        Ok(node_info)
     }
 
     /// Enter node by given ID.
@@ -254,8 +254,9 @@ impl Handle {
     /// been yet computed by the engine) or if method graph cannot be created (see
     /// `graph_for_method` documentation).
     pub async fn enter_node(&self, node: double_representation::node::Id) -> FallibleResult {
-        let definition = self.node_method_pointer(node)?;
-        let definition = (*definition).clone();
+        let computed_value = self.node_computed_value(node)?;
+        let method_pointer = computed_value.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
+        let definition = method_pointer.clone();
         let local_call = LocalCall { call: node, definition };
         self.enter_method_pointer(&local_call).await
     }
