@@ -24,19 +24,15 @@ public class HashCodeTest extends TestBase {
   private static Context context;
   private static final InteropLibrary interop = InteropLibrary.getUncached();
 
-  private HashCodeNode hashCodeNode;
-  private EqualsNode equalsNode;
-  private TestRootNode testRootNode;
+  private static HashCodeNode hashCodeNode;
+  private static EqualsNode equalsNode;
+  private static TestRootNode testRootNode;
 
   @BeforeClass
   public static void initContextAndData() {
     context = createDefaultContext();
     // Initialize datapoints here, to make sure that it is initialized just once.
     unwrappedValues = fetchAllUnwrappedValues();
-  }
-
-  @Before
-  public void initNodes() {
     executeInContext(context, () -> {
       hashCodeNode = HashCodeNode.build();
       equalsNode = EqualsNode.build();
