@@ -264,6 +264,7 @@ impl Model {
         self.label.set_single_line_mode(true);
         self.label.disable_command("cursor_move_up");
         self.label.disable_command("cursor_move_down");
+        self.label.disable_command("add_cursor_at_mouse_position");
         self.label.set_property_default(text_color);
         self.label.set_property_default(text::Size(TEXT_SIZE));
         self.label.remove_all_cursors();
@@ -951,7 +952,10 @@ impl Area {
 
             // === Cursor setup ===
 
-            eval frp.input.set_editing ([model](edit_mode) {
+            let edit_mode = frp.input.set_editing.clone_ref();
+            let on_background_press = frp.output.on_background_press.clone_ref();
+            model.label.set_cursor_at_mouse_position <+ on_background_press.gate(&edit_mode);
+            eval edit_mode([model](edit_mode) {
                 model.label.deprecated_set_focus(edit_mode);
                 model.set_widgets_visibility(!edit_mode);
                 if *edit_mode {
