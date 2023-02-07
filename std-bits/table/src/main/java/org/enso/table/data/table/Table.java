@@ -43,8 +43,10 @@ public class Table {
       throw new IllegalArgumentException("A Table must have at least one column.");
     }
 
-    assert Arrays.stream(columns).map(Column::getName).distinct().count() == columns.length
-        : "Column names must be unique within a table.";
+    boolean uniqueColumns = Arrays.stream(columns).map(Column::getName).distinct().count() == columns.length;
+    if (!uniqueColumns) {
+      throw new IllegalArgumentException("Column names must be unique within a Table.");
+    }
 
     this.columns = columns;
     this.problems = problems;
