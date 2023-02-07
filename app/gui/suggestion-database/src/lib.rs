@@ -400,6 +400,14 @@ impl SuggestionDatabase {
             .and_then(|id| self.entries.borrow().get(id).cloned())
     }
 
+    /// Get suggestion entry id by method pointer.
+    pub fn get_method_suggestion(
+        &self,
+        method_pointer: &language_server::MethodPointer,
+    ) -> Option<entry::Id> {
+        self.method_pointer_to_id_map.borrow().get(method_pointer).copied()
+    }
+
     /// Apply the update event to the database.
     pub fn apply_update_event(&self, event: SuggestionDatabaseUpdatesEvent) {
         for update in event.updates {

@@ -119,11 +119,6 @@ impl ComputedValueInfoRegistry {
         self.map.borrow().get(id).cloned()
     }
 
-    /// Look up the registry for method call suggestion ID for given expression.
-    pub fn get_method_call(&self, id: &ExpressionId) -> Option<SuggestionId> {
-        self.map.borrow().get(id)?.method_call
-    }
-
     /// Obtain a `Future` with data from this registry. If data is not available yet, the future
     /// will be ready once the data becomes available.
     ///
