@@ -1,7 +1,7 @@
 name: "Feature Request"
 description: "Have a great new idea? We'd love to know, please search through our existing feature requests, and upvote it if its already been submitted."
 labels: ["-x-new-feature", "triage"]
-assignees: ["sylwiabr", "xvcgreg"]
+assignees: []
 body:
   - type: "input"
     id: "discord-id"
