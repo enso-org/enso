@@ -3,6 +3,10 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Warning.Warning
 
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
+
 from project.Error.Problem_Behavior.Problem_Behavior import all
 
 ## Specifies how to handle problems.
@@ -139,3 +143,9 @@ type Problem_Behavior
         Ignore -> fallback
         Report_Warning -> Warning.attach error fallback
         Report_Error -> result
+
+    ## PRIVATE
+       Gets a widget set up for a `Problem_Behavior`.
+    default_widget =
+        values = ["Report_Error", "Report_Warning", "Ignore"]
+        Single_Choice (values.map n-> Option n) display=Display.Expanded_Only
