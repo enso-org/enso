@@ -1,0 +1,64 @@
+name: "Feature Request"
+description: "Have a great new idea? We'd love to know, please search through our existing feature requests, and upvote it if its already been submitted."
+labels: ["-x-new-feature", "triage"]
+assignees: ["sylwiabr", "xvcgreg"]
+body:
+  - type: "input"
+    id: "discord-id"
+    attributes:
+      label: "Discord username (optional)"
+      description: "If you're in our [Discord server](https://discord.gg/enso), please include your [Discord ID](https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-) formatted like so: `username#1234` (you can find it by clicking your profile on the bottom left of the application). This is so we can ask questions interactively and give you the `Ideas Contributor` Discord role."
+      placeholder: "username#1234"
+    validations:
+      required: false
+
+  - type: "dropdown"
+    id: "issue-type"
+    attributes:
+      label: "How important is this feature to you? (required)"
+      multiple: false
+      options:
+        - "0 – Not too important"
+        - "1 – Not too important now, but possibly important in the future"
+        - "2 – Somewhat important, but I can live without it"
+        - "3 – Lack of it makes using Enso slightly harder"
+        - "4 – Lack of it makes using Enso a lot harder"
+        - "5 – Lack of it blocks me from doing my work in Enso"
+    validations:
+      required: true
+
+  - type: textarea
+    id: "description"
+    attributes:
+      label: "Describe the idea you'd like to see implemented (required)"
+      description: "A clear and concise description of what you'd like to see in Enso."
+    validations:
+      required: true
+
+  - type: textarea
+    id: "related-to-problem"
+    attributes:
+      label: "Is your feature request related to a problem? (optional)"
+      description: "A clear and concise description of what problem this feature request is related to."
+    validations:
+      required: true
+
+  - type: textarea
+    id: "screenshots"
+    attributes:
+      label: "Screenshots, screencasts, mockups (optional)"
+      description: "If applicable, add screenshots, screencasts, or mockups that help explain your idea. While optional, images help explain ideas way better than words."
+    validations:
+      required: false
+
+  - type: "dropdown"
+    id: "willing-to-help"
+    attributes:
+      label: "Would you be willing to help us implement this feature? (required)"
+      description: "If you are, we will help you get started, guide trough the codebase, and help with the proper design."
+      multiple: false
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true

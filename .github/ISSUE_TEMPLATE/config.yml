@@ -1,14 +1,14 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Issues with the IDE?
-    url: https://github.com/enso-org/ide/issues/new/choose
-    about: Please report problems with the IDE in the IDE repository
-  - name: Have a question about Enso?
-    url: https://github.com/enso-org/enso/discussions/new?category=Questions
-    about: Ask your questions about Enso
-  - name: Want to discuss Enso?
-    url: https://github.com/enso-org/enso/discussions/new?category=general
-    about: Talk about Enso the language
-  - name: Have an idea?
-    url: https://github.com/enso-org/enso/discussions/new?category=ideas
-    about: Share your ideas for Enso
+  - name: Enso Issue Search
+    url: https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+a+sort%3Acreated-asc
+    about: Search Enso's open issues and feature requests.
+  - name: Discord
+    url: https://discord.gg/enso
+    about: Discuss new data processing, report bugs, and brainstorm new features of Enso.
+  - name: Enso Website
+    url: https://enso.org/
+    about: Our website.
+  - name: Changelog
+    url: https://github.com/enso-org/enso/blob/develop/CHANGELOG.md
+    about: See our changelog.
