@@ -491,8 +491,28 @@ impl Translate {
             let off = 0;
             // We write each line's leading offset into the trailing offset of the previous line
             // (or, for the first line, the initial offset).
-            let trailing_space = self.visit_token(newline).space;
+            let (trailing_space, newline_) = self.visit_token(newline).split();
             *ast_lines.last_mut().map(|line| &mut line.off).unwrap_or(&mut space) = trailing_space;
+            let mut newline = &newline_[..];
+            if let Some(text) = newline.strip_suffix('\n') {
+                newline = text;
+            }
+            if let Some(text) = newline.strip_suffix('\r') {
+                newline = text;
+            }
+            if !newline.is_empty() {
+                if let Some(last) = ast_lines.last_mut() {
+                    if last.elem.is_none() {
+                        last.elem = Some(Ast::from(ast::Tree::comment(newline.to_string())));
+                    }
+                }
+                if initial_indent.is_none() {
+                    initial_indent = Some(trailing_space);
+                }
+                if expression.is_none() {
+                    continue;
+                }
+            }
             match &expression {
                 Some(statement) => {
                     self.translate_lines(statement, &mut statement_lines);

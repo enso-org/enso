@@ -3,6 +3,7 @@
 #![feature(generators, generator_trait)]
 #![feature(trivial_bounds)]
 #![feature(type_alias_impl_trait)]
+#![feature(let_chains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -482,6 +483,10 @@ impl<T> Tree<T> {
     pub fn text(leaf_info: String) -> Self {
         Tree::leaf(leaf_info).with_descriptive_name("text")
     }
+
+    pub fn comment(leaf_info: String) -> Self {
+        Tree::leaf(leaf_info).with_type_info(TreeType::Comment)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -497,6 +502,8 @@ pub enum TreeType {
     Lambda,
     /// A parenthesized expression.
     Group,
+    /// A commented-out expression.
+    Comment,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

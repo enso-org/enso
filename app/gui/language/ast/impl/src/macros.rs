@@ -33,14 +33,13 @@ pub const UNQUALIFIED_IMPORT_KEYWORD: &str = "from";
 // === Disable Comments ===
 // ========================
 
-/// Try Interpreting the line as disabling comment. Return the text after `#`.
-pub fn as_disable_comment(_ast: &Ast) -> Option<String> {
-    None // TODO
-}
-
 /// Check if this AST is a disabling comment.
 pub fn is_disable_comment(ast: &Ast) -> bool {
-    as_disable_comment(ast).is_some()
+    if let crate::Shape::Tree(tree) = ast.shape() && tree.type_info == crate::TreeType::Comment {
+        true
+    } else {
+        false
+    }
 }
 
 
