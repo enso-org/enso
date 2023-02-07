@@ -56,7 +56,7 @@ type Problem_Behavior
        If it is set to Report_Error, the problem is returned in the form of
        a dataflow error.
     attach_problem_before : Any -> Any -> Any
-    attach_problem_before self problem decorated_value = case self of
+    attach_problem_before self problem ~decorated_value = case self of
         Ignore -> case problem of
             _ -> decorated_value
         Report_Warning ->
@@ -85,7 +85,7 @@ type Problem_Behavior
                  expensive_computation
 
     attach_problems_before : Vector -> Any -> Any
-    attach_problems_before self problems decorated_value = case self of
+    attach_problems_before self problems ~decorated_value = case self of
         Ignore -> case problems of
             _ -> decorated_value
         Report_Warning ->
