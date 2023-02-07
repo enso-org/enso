@@ -23,7 +23,7 @@ body:
         - "2 – Somewhat important, but I can live without it"
         - "3 – Lack of it makes using Enso slightly harder"
         - "4 – Lack of it makes using Enso a lot harder"
-        - "5 – Lack of it block me from doing my work in Enso"
+        - "5 – Lack of it blocks me from doing my work in Enso"
     validations:
       required: true
 
