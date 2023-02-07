@@ -16,6 +16,7 @@ module.exports = {
                 docsBackground: '#fcfeff',
                 docsText: '#434343',
                 tagBackground: '#f5f5f5',
+                captionBackground: '#0077f6',
             },
             opacity: {
                 85: '.85',

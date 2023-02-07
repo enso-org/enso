@@ -217,7 +217,11 @@ impl StyleWatch {
 
     /// Queries style sheet number value. Returns 0 if not found.
     pub fn get_number(&self, path: impl Into<Path>) -> f32 {
-        self.get_number_or(path, 0.0)
+        let path = path.into();
+        self.get(path.clone()).number().unwrap_or_else(|| {
+            warn!("Tried to access undefined number from theme: {}", path);
+            0.0
+        })
     }
 
     /// A debug check of how many stylesheet variables are registered in this style watch.

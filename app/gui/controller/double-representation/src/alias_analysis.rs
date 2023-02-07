@@ -387,18 +387,18 @@ mod tests {
 
     /// Runs the test for the given test case description.
     fn run_case(parser: &parser_scala::Parser, case: Case) {
-        DEBUG!("\n===========================================================================\n");
-        DEBUG!("Case: " case.code);
+        debug!("\n===========================================================================\n");
+        debug!("Case: {}", case.code);
         let ast = parser.parse_line_ast(&case.code).unwrap();
         let result = analyze_ast(&ast);
-        DEBUG!("Analysis results: {result:?}");
+        debug!("Analysis results: {result:?}");
         validate_identifiers("introduced", &ast, case.expected_introduced, &result.introduced);
         validate_identifiers("used", &ast, case.expected_used, &result.used);
     }
 
     /// Runs the test for the test case expressed using markdown notation. See `Case` for details.
     fn run_markdown_case(parser: &parser_scala::Parser, marked_code: impl AsRef<str>) {
-        DEBUG!("Running test case for " marked_code.as_ref());
+        debug!("Running test case for {}", marked_code.as_ref());
         let case = Case::from_markdown(marked_code.as_ref());
         run_case(parser, case)
     }

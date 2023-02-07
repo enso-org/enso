@@ -12,6 +12,7 @@ use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
 use crate::Type;
+use crate::WidgetUpdates;
 
 use super::edge;
 use enso_frp as frp;
@@ -126,7 +127,7 @@ pub mod backdrop {
     use super::*;
 
     ensogl::shape! {
-        // Disable to allow interaction with the output port.
+        // Disabled to allow interaction with the output port.
         pointer_events = false;
         (style:Style, selection:f32) {
 
@@ -306,6 +307,7 @@ ensogl::define_endpoints_2! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type         (Crumbs,Option<Type>),
+        update_widgets                    (WidgetUpdates),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
         /// Show visualization preview until either editing of the node is finished or the
@@ -353,6 +355,10 @@ ensogl::define_endpoints_2! {
         /// [`visualization_visible`] is updated. Please remember, that the [`position`] is not
         /// immediately updated, only during the Display Object hierarchy update
         bounding_box             (BoundingBox),
+        /// A set of widgets attached to a method requires metadata to be queried. The tuple
+        /// contains the ID of the call expression the widget is attached to, and the ID of that
+        /// call's target expression (`self` or first argument).
+        requested_widgets        (ast::Id, ast::Id),
     }
 }
 
@@ -440,7 +446,6 @@ impl Deref for Node {
 pub struct NodeModel {
     pub app:                 Application,
     pub display_object:      display::object::Instance,
-    pub logger:              Logger,
     pub backdrop:            backdrop::View,
     pub background:          background::View,
     pub drag_area:           drag_area::View,
@@ -485,7 +490,6 @@ impl NodeModel {
         }
 
         let scene = &app.display.default_scene;
-        let logger = Logger::new("node");
 
         let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
@@ -502,7 +506,7 @@ impl NodeModel {
         display_object.add_child(&vcs_indicator);
 
         let input = input::Area::new(app);
-        let visualization = visualization::Container::new(&logger, app, registry);
+        let visualization = visualization::Container::new(app, registry);
 
         display_object.add_child(&visualization);
         display_object.add_child(&input);
@@ -527,7 +531,6 @@ impl NodeModel {
         Self {
             app,
             display_object,
-            logger,
             backdrop,
             background,
             drag_area,
@@ -667,7 +670,9 @@ impl NodeModel {
             if let Some(error_data) = error.visualization_data() {
                 self.error_visualization.set_data(&error_data);
             }
-            self.display_object.add_child(&self.error_visualization);
+            if error.should_display() {
+                self.display_object.add_child(&self.error_visualization);
+            }
         } else {
             self.error_visualization.unset_parent();
         }
@@ -732,7 +737,7 @@ impl Node {
 
             deselect_target  <- input.deselect.constant(0.0);
             select_target    <- input.select.constant(1.0);
-            selection.target <+ any(&deselect_target,&select_target);
+            selection.target <+ any(&deselect_target, &select_target);
             eval selection.value ((t) model.backdrop.selection.set(*t));
 
 
@@ -746,8 +751,11 @@ impl Node {
             eval input.set_expression  ((a)     model.set_expression(a));
             out.expression                  <+ model.input.frp.expression;
             out.expression_span             <+ model.input.frp.on_port_code_update;
+            out.requested_widgets           <+ model.input.frp.requested_widgets;
+
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;
+            model.input.update_widgets             <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
 
@@ -812,7 +820,9 @@ impl Node {
         frp::extend! { network
 
             out.error <+ input.set_error;
-            is_error_set <- input.set_error.map(|err| err.is_some());
+            is_error_set <- input.set_error.map(
+                |err| err.as_ref().map_or(false, Error::should_display)
+            );
             no_error_set <- not(&is_error_set);
             error_color_anim.target <+ all_with(&input.set_error,&input.set_view_mode,
                 f!([style](error,&mode)
@@ -1009,6 +1019,7 @@ impl Node {
             let path = match *error.kind {
                 error::Kind::Panic => error_theme::panic,
                 error::Kind::Dataflow => error_theme::dataflow,
+                error::Kind::Warning => error_theme::warning,
             };
             style.get_color(path).into()
         } else {

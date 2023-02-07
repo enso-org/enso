@@ -21,7 +21,7 @@ use ide_ci::ok_ready_boxed;
 
 
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Shrinkwrap)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Deref)]
 pub struct Artifact(crate::paths::generated::RepoRootDistGui);
 
 impl AsRef<Path> for Artifact {

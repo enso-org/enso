@@ -75,7 +75,7 @@ impl Dfa {
 
         let mut out = String::new();
         for row in 0..self.links.rows {
-            writeln!(out, "node_{}[label=\"{}\"]", row, row)?;
+            writeln!(out, "node_{row}[label=\"{row}\"]")?;
             for column in 0..self.links.columns {
                 let state = self.links[(row, column)];
                 if !state.is_invalid() {
@@ -85,7 +85,7 @@ impl Dfa {
         }
         let opts = "node [shape=circle style=filled fillcolor=\"#4385f5\" fontcolor=\"#FFFFFF\" \
                     color=white penwidth=5.0 margin=0.1 width=0.5 height=0.5 fixedsize=true]";
-        Ok(format!("digraph G {{\n{}\n{}\n}}\n", opts, out))
+        Ok(format!("digraph G {{\n{opts}\n{out}\n}}\n"))
     }
 }
 

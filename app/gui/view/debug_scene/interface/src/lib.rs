@@ -19,7 +19,6 @@ use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
 use ensogl::prelude::*;
 use span_tree::traits::*;
-use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -156,9 +155,17 @@ fn init(app: &Application) {
 
     let foo_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((foo_node, Expression::new_plain("foo")));
+    let kind = Immutable(graph_editor::component::node::error::Kind::Dataflow);
+    let message = Rc::new(Some("Dataflow Error".to_owned()));
+    let error = graph_editor::component::node::Error { kind, message, propagated };
+    graph_editor.frp.set_node_error_status.emit((foo_node, Some(error)));
 
     let baz_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((baz_node, Expression::new_plain("baz")));
+    let kind = Immutable(graph_editor::component::node::error::Kind::Warning);
+    let message = Rc::new(Some("Warning".to_owned()));
+    let error = graph_editor::component::node::Error { kind, message, propagated };
+    graph_editor.frp.set_node_error_status.emit((baz_node, Some(error)));
     let (_, baz_position) = graph_editor.node_position_set.value();
     let styles = StyleWatch::new(&scene.style_sheet);
     let min_spacing = styles.get_number(theme::graph_editor::minimal_x_spacing_for_new_nodes);
@@ -315,7 +322,7 @@ fn init(app: &Application) {
 
 pub fn expression_mock_string(label: &str) -> Expression {
     let pattern = Some(label.to_string());
-    let code = format!("\"{}\"", label);
+    let code = format!("\"{label}\"");
     let parser = Parser::new_or_panic();
     let parameters = vec![];
     let ast = parser.parse_line_ast(&code).unwrap();
@@ -358,7 +365,7 @@ pub fn expression_mock2() -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::builder::TreeBuilder::new(36)
         .add_child(0, 14, span_tree::node::Kind::Chained, PrefixCrumb::Func)
-        .add_child(0, 9, span_tree::node::Kind::Operation, PrefixCrumb::Func)
+        .add_child(0, 9, span_tree::node::Kind::operation(), PrefixCrumb::Func)
         .set_ast_id(Uuid::new_v4())
         .done()
         .add_empty_child(10, span_tree::node::InsertionPointType::BeforeTarget)
@@ -372,7 +379,7 @@ pub fn expression_mock2() -> Expression {
         .set_ast_id(Uuid::new_v4())
         .add_child(1, 19, span_tree::node::Kind::argument(), parens_cr)
         .set_ast_id(Uuid::new_v4())
-        .add_child(0, 12, span_tree::node::Kind::Operation, PrefixCrumb::Func)
+        .add_child(0, 12, span_tree::node::Kind::operation(), PrefixCrumb::Func)
         .set_ast_id(Uuid::new_v4())
         .done()
         .add_empty_child(13, span_tree::node::InsertionPointType::BeforeTarget)
@@ -440,13 +447,14 @@ pub fn expression_mock_trim() -> Expression {
         ..default()
     };
     let param0 = span_tree::ArgumentInfo {
-        name:       Some("where".to_owned()),
-        tp:         Some("Location".to_owned()),
+        name: Some("where".to_owned()),
+        tp: Some("Location".to_owned()),
         tag_values: vec![
             "Location.Start".to_owned(),
             "Location.End".to_owned(),
             "Location.Both".to_owned(),
         ],
+        ..default()
     };
     let param1 = span_tree::ArgumentInfo {
         name: Some("what".to_owned()),

@@ -75,8 +75,8 @@ impl Entry {
         let height = size.y as u32;
 
         let mut style = "position: absolute; white-space: pre; pointer-events: auto;".to_string();
-        write!(style, "left: {}px; top: {}px;", left, top).ok();
-        write!(style, "width: {}px; height: {}px;", width, height).ok();
+        write!(style, "left: {left}px; top: {top}px;").ok();
+        write!(style, "width: {width}px; height: {height}px;").ok();
 
         self.text.set_attribute_or_warn("style", style);
     }

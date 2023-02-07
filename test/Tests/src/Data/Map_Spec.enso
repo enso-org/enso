@@ -1,9 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.No_Such_Key.No_Such_Key
 import Standard.Base.Data.Time.Date_Time.Date_Time
 from Standard.Base.Data.Map import Map
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 polyglot java import java.nio.file.Path as JavaPath
@@ -182,6 +183,17 @@ spec =
             vec = [[0, 0], [3, -5], [1, 2]]
             Map.from_vector vec . should_equal expected
 
+        Test.specify "should not allow duplicates when building the map from a vector, unless explicitly allowed" <|
+            vec = [[0, 0], [3, -5], [1, 2], [0, 1]]
+            m1 = Map.from_vector vec
+            m1.should_fail_with Illegal_Argument
+            m1.catch.message . should_equal "`Map.from_vector` encountered duplicate key: 0 (Integer)"
+
+            m2 = Map.from_vector vec allow_duplicates=True
+            Problems.assume_no_problems m2
+            m2.get 0 . should_equal 1
+            m2.get 3 . should_equal -5
+
         Test.specify "should define a well-defined text conversion" <|
             m = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
             m.to_text . should_equal "{0=0, 3=-5, 1=2}"
@@ -224,6 +236,12 @@ spec =
             m = Map.empty . insert 1 2 . insert 2 4
             expected = Map.empty . insert "1" 4 . insert "2" 8
             m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected
+
+        Test.specify "should disallow duplicate keys when transforming the map" <|
+            m = Map.from_vector [[1, 2], [11, 3]]
+            m2 = m.transform (k -> v -> [k % 10, v*2])
+            m2.should_fail_with Illegal_Argument
+            m2.catch.message . should_equal "`Map.transform` encountered duplicate key: 1 (Integer)"
 
         Test.specify "should allow mapping over values" <|
             m = Map.empty . insert 1 2 . insert 2 4

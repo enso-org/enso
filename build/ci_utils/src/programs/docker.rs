@@ -3,7 +3,6 @@ use crate::prelude::*;
 use crate::env::accessor::TypedVariable;
 use crate::extensions::child::ChildExt;
 
-use shrinkwraprs::Shrinkwrap;
 use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::process::Stdio;
@@ -354,7 +353,7 @@ impl RestartPolicy {
         let value = match self {
             RestartPolicy::No => "no".into(),
             RestartPolicy::OnFailure { max_retries: Some(max_retries) } =>
-                format!("on-failure:{}", max_retries).into(),
+                format!("on-failure:{max_retries}").into(),
             RestartPolicy::OnFailure { max_retries: None } => "on-failure:{}".into(),
             RestartPolicy::Always => "always".into(),
             RestartPolicy::UnlessStopped => "unless-stopped".into(),
@@ -382,8 +381,8 @@ impl Display for Network {
         match self {
             Network::Bridge => write!(f, "bridge"),
             Network::Host => write!(f, "host"),
-            Network::User(name) => write!(f, "{}", name),
-            Network::Container(name_or_id) => write!(f, "container:{}", name_or_id),
+            Network::User(name) => write!(f, "{name}"),
+            Network::Container(name_or_id) => write!(f, "container:{name_or_id}"),
         }
     }
 }
@@ -502,7 +501,7 @@ impl RunOptions {
         if let Some(storage_size_gb) = self.storage_size_gb {
             // e.g. --storage-opt size=120G
             ret.push("--storage-opt".into());
-            ret.push(format!("size={}G", storage_size_gb).into());
+            ret.push(format!("size={storage_size_gb}G").into());
         }
 
         if let Some(sig_proxy) = self.sig_proxy {
@@ -520,7 +519,7 @@ impl RunOptions {
 #[derive(Clone, Display, Debug)]
 pub struct ImageId(pub String);
 
-#[derive(Clone, Debug, Display, Shrinkwrap)]
+#[derive(Clone, Debug, Display, Deref, AsRef)]
 pub struct ContainerId(pub String);
 
 impl FromStr for ContainerId {

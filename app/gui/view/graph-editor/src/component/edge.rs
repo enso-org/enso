@@ -764,7 +764,6 @@ macro_rules! define_components {
         #[derive(Debug,Clone,CloneRef)]
         #[allow(missing_docs)]
         pub struct $name {
-            pub logger            : Logger,
             pub display_object    : display::object::Instance,
             pub shape_view_events : Rc<Vec<PointerTarget>>,
             shape_type_map        : Rc<HashMap<display::object::Id,ShapeRole>>,
@@ -774,7 +773,7 @@ macro_rules! define_components {
         impl $name {
             /// Constructor.
             #[allow(clippy::vec_init_then_push)]
-            pub fn new(logger:Logger) -> Self {
+            pub fn new() -> Self {
                 let display_object = display::object::Instance::new();
                 $(let $field = <$field_type>::new();)*
                 $(display_object.add_child(&$field);)*
@@ -786,7 +785,7 @@ macro_rules! define_components {
                 $(shape_type_map.insert(EdgeShape::id(&$field), $field_shape_type);)*
                 let shape_type_map = Rc::new(shape_type_map);
 
-                Self {logger,display_object,shape_view_events,shape_type_map,$($field),*}
+                Self {display_object,shape_view_events,shape_type_map,$($field),*}
             }
 
             fn get_shape(&self, id:display::object::Id) -> Option<&dyn EdgeShape> {
@@ -798,6 +797,12 @@ macro_rules! define_components {
 
             fn get_shape_type(&self, id:display::object::Id) -> Option<ShapeRole> {
                 self.shape_type_map.get(&id).cloned()
+            }
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
             }
         }
 
@@ -1274,7 +1279,6 @@ pub struct EdgeModel {
 #[allow(missing_docs)]
 pub struct EdgeModelData {
     pub display_object:  display::object::Instance,
-    pub logger:          Logger,
     pub frp:             Frp,
     pub front:           Front,
     pub back:            Back,
@@ -1295,10 +1299,9 @@ impl EdgeModelData {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(scene: &Scene, network: &frp::Network) -> Self {
-        let logger = Logger::new("edge");
         let display_object = display::object::Instance::new();
-        let front = Front::new(Logger::new_sub(&logger, "front"));
-        let back = Back::new(Logger::new_sub(&logger, "back"));
+        let front = Front::new();
+        let back = Back::new();
         let joint = joint::View::new();
 
         display_object.add_child(&front);
@@ -1323,7 +1326,6 @@ impl EdgeModelData {
         let scene = scene.into();
         Self {
             display_object,
-            logger,
             frp,
             front,
             back,

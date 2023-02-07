@@ -152,13 +152,14 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     let BuildContext { inner: project::Context { .. }, triple, .. } = context;
 
     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
+    let release_handle = remote_repo.release_handle(release_id);
 
     debug!("Looking for release with id {release_id} on github.");
-    let release = remote_repo.repos().releases().get_by_id(release_id).await?;
+    let release = release_handle.get().await?;
     ensure!(release.draft, "Release has been already published!");
 
     debug!("Found the target release, will publish it.");
-    remote_repo.repos().releases().update(release.id.0).draft(false).send().await?;
+    release_handle.publish().await?;
     debug!("Done. Release URL: {}", release.url);
 
     let temp = tempdir()?;
@@ -280,13 +281,14 @@ pub async fn upload_gui_to_cloud(
     let bucket = crate::aws::s3::gui::context(version).await?;
 
     // Some file we upload as-is, some gzipped. This seems somewhat arbitrary now.
-    let files_to_upload = [assets.ide_wasm.as_path(), assets.style_css.as_path()];
-    let files_to_upload_gzipped = [assets.index_js.as_path(), assets.wasm_imports_js.as_path()];
-
+    let files_to_upload =
+        [assets.pkg_opt_wasm.as_path(), assets.style_css.as_path(), assets.shaders.as_path()];
+    let files_to_upload_gzipped = [assets.index_js.as_path(), assets.pkg_js.as_path()];
 
     for file in files_to_upload.iter() {
-        bucket.put_file(file).await?;
+        bucket.put_item(file).await?;
     }
+
     put_files_gzipping(&bucket, &files_to_upload_gzipped).await?;
 
     Ok(())
@@ -359,7 +361,7 @@ mod tests {
         let assets = crate::paths::generated::RepoRootDistGuiAssets::new_root(
             r"H:\NBO\enso4\dist\gui\assets",
         );
-        let version = "2022.1.1-dev.provisional.test.2".parse2()?;
+        let version = "2023.1.1-dev.cloud.test".parse2()?;
         upload_gui_to_cloud(&assets, &version).await?;
         notify_cloud_about_gui(&version).await?;
         Ok(())

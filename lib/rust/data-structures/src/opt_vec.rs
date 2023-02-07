@@ -19,9 +19,8 @@ use std::slice;
 /// Index have to implement the `Index` trait.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug)]
 pub struct OptVec<T, Index = usize> {
-    #[shrinkwrap(main_field)]
     items:    Vec<Option<T>>,
     free_ixs: SmallVec<[Index; 128]>,
 }
@@ -166,14 +165,14 @@ impl<T, I: Index> OptVec<T, I> {
 impl<T, I: Index> std::ops::Index<I> for OptVec<T, I> {
     type Output = T;
     fn index(&self, index: I) -> &Self::Output {
-        let error = || panic!("Trying to access removed index `{:?}`.", index);
+        let error = || panic!("Trying to access removed index `{index:?}`.");
         self.items.index(index.into()).as_ref().unwrap_or_else(error)
     }
 }
 
 impl<T, I: Index> std::ops::IndexMut<I> for OptVec<T, I> {
     fn index_mut(&mut self, index: I) -> &mut Self::Output {
-        let error = || panic!("Trying to access removed index `{:?}`.", index);
+        let error = || panic!("Trying to access removed index `{index:?}`.");
         self.items.index_mut(index.into()).as_mut().unwrap_or_else(error)
     }
 }

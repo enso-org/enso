@@ -58,7 +58,7 @@ pub fn pretty_print_arch(arch: Arch) -> &'static str {
     match arch {
         Arch::X86_64 => "amd64",
         Arch::AArch64 => "aarch64",
-        _ => panic!("Unrecognized architecture {}", arch),
+        _ => panic!("Unrecognized architecture {arch}"),
     }
 }
 

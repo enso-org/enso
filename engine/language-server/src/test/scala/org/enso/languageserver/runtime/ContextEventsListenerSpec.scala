@@ -104,7 +104,7 @@ class ContextEventsListenerSpec
                   Some(suggestionIds(1).get),
                   Vector(),
                   false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value
+                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
                 )
               )
             )
@@ -244,7 +244,7 @@ class ContextEventsListenerSpec
                   None,
                   Vector(),
                   false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value
+                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
                 ),
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.local.externalId.get,
@@ -252,7 +252,7 @@ class ContextEventsListenerSpec
                   None,
                   Vector(),
                   false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value
+                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
                 )
               )
             )
@@ -453,7 +453,7 @@ class ContextEventsListenerSpec
     Config(
       root,
       FileManagerConfig(timeout = 3.seconds),
-      VcsManagerConfig(timeout  = 5.seconds),
+      VcsManagerConfig(),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),

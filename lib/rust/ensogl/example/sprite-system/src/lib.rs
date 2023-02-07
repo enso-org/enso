@@ -21,7 +21,6 @@
 
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
@@ -37,8 +36,8 @@ pub fn main() {
 
     let sprite2 = sprite_system.new_instance();
     let sprite1 = sprite_system.new_instance();
-    sprite1.size.set(Vector2::new(15.0, 15.0));
-    sprite2.size.set(Vector2::new(15.0, 15.0));
+    sprite1.set_size(Vector2::new(15.0, 15.0));
+    sprite2.set_size(Vector2::new(15.0, 15.0));
 
     world.default_scene.add_child(&sprite_system);
     world.keep_alive_forever();

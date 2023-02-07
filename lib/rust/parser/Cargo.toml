@@ -17,7 +17,7 @@ enso-types = { path = "../types" }
 enso-shapely-macros = { path = "../shapely/macros" }
 enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde_json = { workspace = true }
 uuid = { version = "1.1", features = ["serde"] }
 bincode = "1.3"
 

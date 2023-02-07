@@ -43,16 +43,16 @@ impl Shell for Bash {
     fn modify_env(&self, change: &Modification) -> Result<String> {
         let name = &change.variable_name;
         Ok(match &change.action {
-            Action::Remove => format!("unset {}", name),
+            Action::Remove => format!("unset {name}"),
             Action::Set(value) => {
-                format!("export {}={}", name, value)
+                format!("export {name}={value}")
             }
             Action::PrependPaths(paths) => self.set_prepended_paths(name, paths)?,
         })
     }
 
     fn access_environment_variable(&self, name: &str) -> String {
-        format!("${}", name)
+        format!("${name}")
     }
 }
 

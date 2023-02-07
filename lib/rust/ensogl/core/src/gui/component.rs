@@ -12,6 +12,8 @@ use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::Shape;
 use crate::display::shape::primitive::system::ShapeInstance;
 use crate::display::symbol;
+use crate::display::world;
+use crate::display::Sprite;
 use crate::frp;
 
 
@@ -20,6 +22,37 @@ use crate::frp;
 // ==============
 
 pub use crate::display::scene::PointerTarget;
+
+
+
+// ====================
+// === AnyShapeView ===
+// ====================
+
+/// Generalization for any shape view. Allows storing different user-defined shapes in a single
+/// collection.
+pub trait AnyShapeView: display::Object {
+    /// Get the shape's shader code in GLSL 330 format. The shader parameters will not be bound to
+    /// any particular mesh and thus this code can be used for optimization purposes only.
+    fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
+        self.sprite().symbol.shader().abstract_shader_code_in_glsl_310()
+    }
+    /// The shape definition path (file:line:column).
+    fn definition_path(&self) -> &'static str;
+
+    /// Get the sprite of given shape.
+    fn sprite(&self) -> Sprite;
+}
+
+impl<S: Shape> AnyShapeView for ShapeView<S> {
+    fn definition_path(&self) -> &'static str {
+        S::definition_path()
+    }
+
+    fn sprite(&self) -> Sprite {
+        self.sprite.borrow().clone_ref()
+    }
+}
 
 
 
@@ -113,8 +146,7 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new_with_data(data: S::ShapeData) -> Self {
-        let scene = scene();
-        let (shape, _) = scene.layers.DETACHED.instantiate(&scene, &data);
+        let (shape, _) = world::with_context(|t| t.layers.DETACHED.instantiate(&data));
         let events = PointerTarget::new();
         let pointer_targets = default();
         let data = RefCell::new(data);
@@ -138,7 +170,7 @@ impl<S: Shape> ShapeViewModel<S> {
         } else {
             // Bug in clippy: https://github.com/rust-lang/rust-clippy/issues/9763
             #[allow(clippy::explicit_auto_deref)]
-            let (shape, _) = scene.layers.DETACHED.instantiate(scene, &*self.data.borrow());
+            let (shape, _) = scene.layers.DETACHED.instantiate(&*self.data.borrow());
             self.shape.swap(&shape);
         }
     }
@@ -160,7 +192,7 @@ impl<S: Shape> ShapeViewModel<S> {
     // Clippy error: https://github.com/rust-lang/rust-clippy/issues/9763
     #[allow(clippy::explicit_auto_deref)]
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
-        let (shape, instance) = layer.instantiate(scene, &*self.data.borrow());
+        let (shape, instance) = layer.instantiate(&*self.data.borrow());
         scene.pointer_target_registry.insert(instance.global_instance_id, self.events.clone_ref());
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);

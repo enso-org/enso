@@ -169,7 +169,8 @@ public final class ParseStdLibTest extends TestCase {
             "Data/Value_Type.enso",
             "Data/Vector.enso",
             "Network/HTTP/HTTP_Status_Code.enso",
-            "Internal/Base_Generator.enso"));
+            "Internal/Base_Generator.enso",
+            "System/File.enso"));
   }
 
   private static boolean isKnownToWork(String name) {

@@ -86,6 +86,8 @@
   present only when the argument is of type that has a predefined set of values.
 - [Separate component browser navigator sections for modules imported from
   different namespaces][4044]
+- [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
+  contain suggestions which are based on evaluated data.
 
 #### EnsoGL (rendering engine)
 
@@ -124,10 +126,19 @@
   with a shared implementation between the Desktop and Web versions of the IDE.
 - [Added a new component: Dropdown][3985]. A list of selectable labeled entries,
   suitable for single and multi-select scenarios.
+- [Compile-time shader optimizer was implemented][4003]. It is capable of
+  extracting non-optimized shaders from the compiled WASM artifacts, running
+  stand-alone optimization toolchain (glslc, spirv-opt, spirv-cross), and
+  injecting optimized shaders back to WASM during its initialization process.
+  Unfortunately, it caused our theme system to stop working correctly, because
+  generated shaders differ per theme (only light theme is available, the dark
+  theme has been disabled). We will support multiple themes in the future, but
+  this is not on our priority list right now.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
 [4047]: https://github.com/enso-org/enso/pull/4047
+[4003]: https://github.com/enso-org/enso/pull/4003
 
 #### Enso Standard Library
 
@@ -211,8 +222,8 @@
   API and added builders for customizing less common settings.][3516]
 - [Allow control of sort direction in `First` and `Last` aggregations.][3517]
 - [Implemented `Text.write`, replacing `File.write_text`.][3518]
-- [Removed obsolete `select`, `group`, `sort` and releated types from tables.]
-  [3519]
+- [Removed obsolete `select`, `group`, `sort` and releated types from
+  tables.][3519]
 - [Removed obsolete `from_xls` and `from_xlsx` functions. Added support for
   reading column names from first row in `File_Format.Excel`][3523]
 - [Added `File_Format.Delimited` support to `Table.write` for new files.][3528]
@@ -289,6 +300,8 @@
   backend.][4063]
 - [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new
   simpler API.][4078]
+- [Updated `Table.set` to new API. New `Column.parse` function and added case
+  sensitivity to `Filter_Condition` and column functions.][4097]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -450,6 +463,8 @@
 [4052]: https://github.com/enso-org/enso/pull/4052
 [4063]: https://github.com/enso-org/enso/pull/4063
 [4078]: https://github.com/enso-org/enso/pull/4078
+[4097]: https://github.com/enso-org/enso/pull/4097
+[4072]: https://github.com/enso-org/enso/pull/4072
 
 #### Enso Compiler
 
@@ -537,6 +552,9 @@
 - [Add Meta.get_annotation method][4049]
 - [Resolve Fully Qualified Names][4056]
 - [Optimize Atom storage layouts][3862]
+- [Make instance methods callable like statics for builtin types][4077]
+- [Convert large longs to doubles, safely, for host calls][4099]
+- [Profile engine startup][4110]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -579,7 +597,7 @@
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
-[3637]: https://github.com/enso-org/enso/pull/3638
+[3638]: https://github.com/enso-org/enso/pull/3638
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3658]: https://github.com/enso-org/enso/pull/3658
 [3671]: https://github.com/enso-org/enso/pull/3671
@@ -623,8 +641,11 @@
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
 [4048]: https://github.com/enso-org/enso/pull/4048
-[4056]: https://github.com/enso-org/enso/pull/4049
+[4049]: https://github.com/enso-org/enso/pull/4049
 [4056]: https://github.com/enso-org/enso/pull/4056
+[4077]: https://github.com/enso-org/enso/pull/4077
+[4099]: https://github.com/enso-org/enso/pull/4099
+[4110]: https://github.com/enso-org/enso/pull/4110
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

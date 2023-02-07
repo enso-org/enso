@@ -119,7 +119,7 @@ impl TypedVariable for PathBufVariable {
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         value
             .to_str()
-            .with_context(|| format!("Path is not a valid string: {:?}.", value))
+            .with_context(|| format!("Path is not a valid string: {value:?}."))
             .map(ToString::to_string)
     }
 }
@@ -210,8 +210,9 @@ impl TypedVariable for PathLike {
 }
 
 impl PathLike {
-    pub fn prepend(&self, value: impl Into<PathBuf>) -> Result {
-        let value = value.into();
+    #[context("Failed to prepend path `{}` to `{}`.", value.as_ref().display(), self.name())]
+    pub fn prepend(&self, value: impl AsRef<Path>) -> Result {
+        let value = value.as_ref().to_path_buf();
         trace!("Prepending {} to {}.", value.display(), self.name());
         let mut paths = self.get()?;
         paths.insert(0, value);

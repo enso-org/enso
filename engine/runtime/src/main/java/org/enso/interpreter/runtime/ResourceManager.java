@@ -124,7 +124,7 @@ public class ResourceManager {
     }
     if (workerThread == null || !workerThread.isAlive()) {
       worker.setKilled(false);
-      workerThread = context.createThread(worker);
+      workerThread = context.getEnvironment().createThread(worker);
       workerThread.start();
     }
     ManagedResource resource = new ManagedResource(object);

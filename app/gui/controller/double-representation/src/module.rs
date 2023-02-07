@@ -340,7 +340,7 @@ pub enum Placement {
 /// location.
 ///
 /// Internally it is `definition::ChildDefinition` with only a single `ModuleCrumb` as location.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct ChildDefinition(definition::ChildDefinition);
 
 impl ChildDefinition {

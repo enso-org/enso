@@ -7,8 +7,8 @@ use crate::display::render::pass;
 use crate::display::scene;
 use crate::display::scene::layer;
 use crate::display::scene::UpdateStatus;
-use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::MaskComposer;
+use crate::display::world;
 
 
 
@@ -32,27 +32,19 @@ impl Framebuffers {
 /// Pass for rendering all symbols. The results are stored in the 'color' and 'id' outputs.
 #[derive(Clone, Debug)]
 pub struct SymbolsRenderPass {
-    logger:          Logger,
-    symbol_registry: SymbolRegistry,
-    layers:          scene::HardcodedLayers,
-    framebuffers:    Option<Framebuffers>,
-    mask_composer:   MaskComposer,
+    layers:        scene::HardcodedLayers,
+    framebuffers:  Option<Framebuffers>,
+    mask_composer: MaskComposer,
 }
 
 impl SymbolsRenderPass {
     /// Constructor.
-    pub fn new(
-        logger: impl AnyLogger,
-        symbol_registry: &SymbolRegistry,
-        layers: &scene::HardcodedLayers,
-    ) -> Self {
-        let logger = Logger::new_sub(logger, "SymbolsRenderPass");
-        let symbol_registry = symbol_registry.clone_ref();
+    pub fn new(layers: &scene::HardcodedLayers) -> Self {
         let layers = layers.clone_ref();
         let framebuffers = default();
         let mask_composer =
             MaskComposer::new("pass_mask_color", "pass_layer_color", "pass_layer_id");
-        Self { logger, symbol_registry, layers, framebuffers, mask_composer }
+        Self { layers, framebuffers, mask_composer }
     }
 }
 
@@ -100,8 +92,7 @@ impl pass::Definition for SymbolsRenderPass {
             let mut scissor_stack = default();
             self.render_layer(instance, &self.layers.root.clone(), &mut scissor_stack, false);
             if !scissor_stack.is_empty() {
-                warning!(
-                    &self.logger,
+                warn!(
                     "The scissor stack was not cleaned properly. \
                 This is an internal bug that may lead to visual artifacts. Please report it."
                 );
@@ -151,10 +142,7 @@ impl SymbolsRenderPass {
         let nested_masking = is_masked && parent_masked;
 
         if nested_masking {
-            warning!(
-                &self.logger,
-                "Nested layer masking is not supported yet. Skipping nested masks."
-            );
+            warn!("Nested layer masking is not supported yet. Skipping nested masks.");
         } else if let Some(mask) = layer_mask {
             framebuffers.mask.bind();
             let black_transparent = [0.0, 0.0, 0.0, 0.0];
@@ -168,8 +156,10 @@ impl SymbolsRenderPass {
             instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &black_transparent);
         }
 
-        self.symbol_registry.set_camera(&layer.camera());
-        self.symbol_registry.render_symbols(&layer.symbols());
+        world::with_context(|t| {
+            t.set_camera(&layer.camera());
+            t.render_symbols(&layer.symbols());
+        });
         layer.for_each_sublayer(|sublayer| {
             if sublayer.flags.contains(layer::LayerFlags::MAIN_PASS_VISIBLE) {
                 self.render_layer(instance, &sublayer, scissor_stack, was_ever_masked);

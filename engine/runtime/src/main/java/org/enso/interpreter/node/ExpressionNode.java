@@ -191,7 +191,10 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
     if (AvoidIdInstrumentationTag.class == tag) {
       return getRootNode() instanceof ClosureRootNode c && !c.isSubjectToInstrumentation();
     }
-    return tag == StandardTags.ExpressionTag.class || (tag == IdentifiedTag.class && id != null);
+    if (tag == StandardTags.ExpressionTag.class) {
+      return getSourceSection() != null;
+    }
+    return tag == IdentifiedTag.class && id != null;
   }
 
   /**

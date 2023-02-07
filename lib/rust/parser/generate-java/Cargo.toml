@@ -14,4 +14,4 @@ enso-metamodel = { path = "../../metamodel", features = ["rust", "java"] }
 enso-prelude = { path = "../../prelude" }
 enso-parser = { path = ".." }
 enso-reflect = { path = "../../reflect", features = ["graphviz"] }
-derivative = "2.2"
+derivative = { workspace = true }

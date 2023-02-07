@@ -44,8 +44,8 @@ impl CodeGenerator {
     fn add_variable_font_definition(&mut self, family: &str, file: &str) {
         let key = format!("\"{family}\".into()");
         let family_def = format!("family::VariableDefinition::new(\"{file}\")");
-        let value = format!("family::Definition::Variable({})", family_def);
-        ln!(1, &mut self.definitions, "map.insert({},{});", key, value);
+        let value = format!("family::Definition::Variable({family_def})");
+        ln!(1, &mut self.definitions, "map.insert({key},{value});");
     }
 
     fn add_non_variable_font_definition(&mut self, family_name: &str, def: &str) {
@@ -99,7 +99,7 @@ mod deja_vu {
         let archive_file = ide_ci::fs::open(package_path)?;
         let mut archive = zip::ZipArchive::new(archive_file).unwrap();
         for file_name in FILE_NAMES {
-            let font_in_package_path = format!("{}/{}", PACKAGE_FONTS_PREFIX, file_name);
+            let font_in_package_path = format!("{PACKAGE_FONTS_PREFIX}/{file_name}");
             let mut input_stream = archive.by_name(&font_in_package_path).with_context(|| {
                 format!(
                     "Cannot find font file {} in the package {}",
@@ -138,7 +138,7 @@ mod google_fonts {
     use super::*;
     use crate::CodeGenerator;
 
-    use enso_build::ide::web::download_google_font;
+    use enso_build::ide::web::google_font::download_google_font;
 
     #[derive(Debug)]
     pub struct FaceDefinition {
@@ -149,6 +149,7 @@ mod google_fonts {
     /// A description of downloaded file.
     #[derive(Debug, Clone)]
     pub struct DownloadedFile {
+        /// Path relative to the output directory.
         name: String,
     }
 
@@ -156,9 +157,13 @@ mod google_fonts {
         name: impl AsRef<str>,
         out_dir: &Path,
     ) -> Result<Vec<DownloadedFile>> {
-        let octocrab = enso_build::setup_octocrab().await?;
-        let result = download_google_font(&octocrab, name.as_ref(), out_dir).await?;
-        Ok(result.into_iter().map(|content| DownloadedFile { name: content.name }).collect())
+        let octocrab = ide_ci::github::setup_octocrab().await?;
+        let cache = ide_ci::cache::Cache::new_default().await?;
+        let result = download_google_font(&cache, &octocrab, name.as_ref(), out_dir).await?;
+        result
+            .into_iter()
+            .map(|font| Ok(DownloadedFile { name: font.try_file_name()?.as_str().into() }))
+            .try_collect()
     }
 
     pub async fn load(out_dir: &Path, buffer: &mut CodeGenerator, family_name: &str) -> Result {

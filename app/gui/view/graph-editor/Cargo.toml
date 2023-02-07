@@ -8,28 +8,27 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-analytics = { version = "0.1.0", path = "../../analytics" }
-ast = { version = "0.1.0", path = "../../language/ast/impl" }
+analytics = { path = "../../analytics" }
+ast = { path = "../../language/ast/impl" }
 base64 = "0.13"
 bimap = { version = "0.4.0" }
-enso-config = { version = "0.1.0", path = "../../config" }
-enso-frp = { version = "0.1.0", path = "../../../../lib/rust/frp" }
-enso-logger = { path = "../../../../lib/rust/logger" }
+enso-config = { path = "../../config" }
+enso-frp = { path = "../../../../lib/rust/frp" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
-engine-protocol = { version = "0.1.0", path = "../../controller/engine-protocol" }
+engine-protocol = { path = "../../controller/engine-protocol" }
 enso-shapely = { path = "../../../../lib/rust/shapely" }
-enso-text = { version = "0.1.0", path = "../../../../lib/rust/text" }
-ensogl = { version = "0.1.0", path = "../../../../lib/rust/ensogl" }
+enso-text = { path = "../../../../lib/rust/text" }
+ensogl = { path = "../../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
-ensogl-text-msdf = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/text/src/font/msdf" }
-ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
-ensogl-drop-manager = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/drop-manager" }
-failure = { version = "0.1.8" }
-ordered-float = { version = "3.0.0" }
-span-tree = { version = "0.1.0", path = "../../language/span-tree" }
-js-sys = { version = "0.3.28" }
-nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
-serde_json = { version = "1.0" }
+ensogl-text-msdf = { path = "../../../../lib/rust/ensogl/component/text/src/font/msdf" }
+ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-drop-manager = { path = "../../../../lib/rust/ensogl/component/drop-manager" }
+failure = { workspace = true }
+ordered-float = { workspace = true }
+span-tree = { path = "../../language/span-tree" }
+js-sys = { workspace = true }
+nalgebra = { workspace = true }
+serde_json = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 sourcemap = "6.0"
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }

@@ -16,13 +16,41 @@ use nalgebra::OMatrix;
 
 
 
+// ===============
+// === Version ===
+// ===============
+
+/// Version of the GLSL to be used. Please note that WebGL 2.0 supports only GLSL 3.00 ES, however,
+/// GLSL optimizers require GLSL 3.10+. Therefore, we need to generate GLSL 3.10+ code for the
+/// optimizer and GLSL 3.00 ES for WebGL.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Version {
+    #[default]
+    V300 = 300,
+    V310 = 310,
+}
+
+impl Version {
+    /// The GLSL code header.
+    pub fn code(self) -> String {
+        format!("#version {} es", self as usize)
+    }
+
+    /// Check whether the GLSL version requires explicit layout qualifiers on all shader's
+    /// parameters.
+    pub fn requires_layout(&self) -> bool {
+        *self > Version::V300
+    }
+}
+
+
+
 // =================================================================================================
 // === Glsl ========================================================================================
 // =================================================================================================
 
 /// A GLSL code representation.
-#[derive(Clone, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Debug, Deref, DerefMut)]
 pub struct Glsl {
     /// Raw, textual code representation.
     pub str: String,
@@ -61,7 +89,7 @@ impls! {[T1,T2] From<&(T1,T2)> for Glsl
     where [ T1:RefInto<Glsl>, T2:RefInto<Glsl> ] { |t| {
     let v1 = t.0.glsl();
     let v2 = t.1.glsl();
-    iformat!("vec2({v1},{v2})").into()
+    format!("vec2({v1},{v2})").into()
 }}}
 
 impls! {[T1,T2,T3] From<&(T1,T2,T3)> for Glsl
@@ -69,7 +97,7 @@ where [ T1:RefInto<Glsl>, T2:RefInto<Glsl>, T3:RefInto<Glsl> ] { |t| {
     let v1 = t.0.glsl();
     let v2 = t.1.glsl();
     let v3 = t.2.glsl();
-    iformat!("vec3({v1},{v2},{v3})").into()
+    format!("vec3({v1},{v2},{v3})").into()
 }}}
 
 impls! {[T1,T2,T3,T4] From<&(T1,T2,T3,T4)> for Glsl
@@ -78,14 +106,14 @@ where [ T1:RefInto<Glsl>, T2:RefInto<Glsl>, T3:RefInto<Glsl>, T4:RefInto<Glsl> ]
     let v2 = t.1.glsl();
     let v3 = t.2.glsl();
     let v4 = t.3.glsl();
-    iformat!("vec4({v1},{v2},{v3},{v4})").into()
+    format!("vec4({v1},{v2},{v3},{v4})").into()
 }}}
 
 impls! {[T1,T2] From <(T1,T2)> for Glsl
     where [ T1:Into<Glsl>, T2:Into<Glsl> ] { |t| {
     let v1 = t.0.into();
     let v2 = t.1.into();
-    iformat!("vec2({v1},{v2})").into()
+    format!("vec2({v1},{v2})").into()
 }}}
 
 impls! {[T1,T2,T3] From <(T1,T2,T3)> for Glsl
@@ -93,7 +121,7 @@ where [ T1:Into<Glsl>, T2:Into<Glsl>, T3:Into<Glsl> ] { |t| {
     let v1 = t.0.into();
     let v2 = t.1.into();
     let v3 = t.2.into();
-    iformat!("vec3({v1},{v2},{v3})").into()
+    format!("vec3({v1},{v2},{v3})").into()
 }}}
 
 impls! {[T1,T2,T3,T4] From <(T1,T2,T3,T4)> for Glsl
@@ -102,7 +130,7 @@ where [ T1:Into<Glsl>, T2:Into<Glsl>, T3:Into<Glsl>, T4:Into<Glsl> ] { |t| {
     let v2 = t.1.into();
     let v3 = t.2.into();
     let v4 = t.3.into();
-    iformat!("vec4({v1},{v2},{v3},{v4})").into()
+    format!("vec4({v1},{v2},{v3},{v4})").into()
 }}}
 
 
@@ -113,8 +141,8 @@ impls! { From + &From <i32>  for Glsl { |t| t.to_string().into() } }
 impls! { From + &From <u32>  for Glsl { |t| t.to_string().into() } }
 impls! { From + &From <f32>  for Glsl { |t| {
     let is_int = t.fract() == 0.0;
-    if is_int { iformat!("{t}.0").into() }
-    else      { iformat!("{t}").into() }
+    if is_int { format!("{t}.0").into() }
+    else      { format!("{t}").into() }
 }}}
 
 impls! { [T,R,C] From + &From <OMatrix<T,R,C>> for Glsl
@@ -135,19 +163,19 @@ impls! { [T,R,C] From + &From <OMatrix<T,R,C>> for Glsl
 // === From Colors to Glsl ===
 
 impls! { From + &From <color::Rgb> for Glsl {
-    |t| iformat!("srgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
+    |t| format!("srgb({},{},{})", t.red.glsl(), t.green.glsl(), t.blue.glsl()).into()
 } }
 
 impls! { From + &From <color::Rgba> for Glsl {
-    |t| iformat!("srgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
+    |t| format!("srgba({},{},{},{})", t.red.glsl(), t.green.glsl(), t.blue.glsl(), t.alpha.glsl()).into()
 } }
 
 impls! { From + &From <color::LinearRgb> for Glsl {
-    |t| iformat!("rgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
+    |t| format!("rgb({},{},{})", t.red.glsl(), t.green.glsl(), t.blue.glsl()).into()
 } }
 
 impls! { From + &From <color::LinearRgba> for Glsl {
-    |t| iformat!("rgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
+    |t| format!("rgba({},{},{},{})", t.red.glsl(), t.green.glsl(), t.blue.glsl(), t.alpha.glsl()).into()
 } }
 
 
@@ -192,23 +220,23 @@ pub struct NotGlslError;
 
 /// Converts a number to a `Radians` struct.
 pub(crate) fn f32_to_rad(glsl: &Glsl) -> Glsl {
-    iformat!("Radians({glsl})").into()
+    format!("Radians({glsl})").into()
 }
 
 /// Extracts a number from a `Radians` struct.
 pub(crate) fn rad_to_f32(glsl: &Glsl) -> Glsl {
-    iformat!("value({glsl})").into()
+    format!("value({glsl})").into()
 }
 
 /// Converts a number to a `Degree` struct.
 pub(crate) fn f32_to_deg(glsl: &Glsl) -> Glsl {
     // We just use the radians representation of the degrees.
-    iformat!("Degrees({glsl})").into()
+    format!("Degrees({glsl})").into()
 }
 
 /// Extracts a number from a `Degree` struct. The number will be in radians.
 pub(crate) fn deg_to_f32(glsl: &Glsl) -> Glsl {
-    iformat!("radians({glsl})").into()
+    format!("radians({glsl})").into()
 }
 
 
@@ -218,7 +246,7 @@ pub(crate) fn deg_to_f32(glsl: &Glsl) -> Glsl {
 // =================================================================================================
 
 /// Any GLSL expression, like function call, or math operations.
-#[derive(Shrinkwrap, Clone, Debug)]
+#[derive(Clone, Debug, Deref)]
 pub struct Expr(Box<ExprUnboxed>);
 
 impl Expr {
@@ -308,7 +336,7 @@ impl HasCodeRepr for RawCode {
 // ==================
 
 /// Variable or type identifier.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Deref, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct Identifier(pub String);
 
 impl HasCodeRepr for Identifier {
@@ -332,6 +360,12 @@ impl From<&String> for Identifier {
 impl From<&str> for Identifier {
     fn from(s: &str) -> Self {
         Self(s.into())
+    }
+}
+
+impl From<&Identifier> for String {
+    fn from(t: &Identifier) -> Self {
+        t.0.clone()
     }
 }
 
@@ -487,7 +521,6 @@ impl HasCodeRepr for PrecisionDecl {
 // === AST Elements ================================================================================
 // =================================================================================================
 
-
 // ============
 // === Type ===
 // ============
@@ -497,6 +530,13 @@ impl HasCodeRepr for PrecisionDecl {
 pub struct Type {
     pub prim:  PrimType,
     pub array: Option<usize>,
+}
+
+impl Type {
+    /// The layout size of this type.
+    pub fn layout_size(&self) -> usize {
+        self.prim.layout_size() * self.array.unwrap_or(1)
+    }
 }
 
 impl From<PrimType> for Type {
@@ -526,105 +566,87 @@ impl Display for Type {
 // === PrimType ===
 // ================
 
-/// Any non-array GLSL type.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub enum PrimType {
-    Float,
-    Int,
-    Void,
-    Bool,
-    Mat2,
-    Mat3,
-    Mat4,
-    Mat2x2,
-    Mat2x3,
-    Mat2x4,
-    Mat3x2,
-    Mat3x3,
-    Mat3x4,
-    Mat4x2,
-    Mat4x3,
-    Mat4x4,
-    Vec2,
-    Vec3,
-    Vec4,
-    IVec2,
-    IVec3,
-    IVec4,
-    BVec2,
-    BVec3,
-    BVec4,
-    UInt,
-    UVec2,
-    UVec3,
-    UVec4,
-    Sampler2d,
-    Sampler3d,
-    SamplerCube,
-    Sampler2dShadow,
-    SamplerCubeShadow,
-    Sampler2dArray,
-    Sampler2dArrayShadow,
-    ISampler2d,
-    ISampler3d,
-    ISamplerCube,
-    ISampler2dArray,
-    USampler2d,
-    USampler3d,
-    USamplerCube,
-    USampler2dArray,
-    Struct(Identifier),
+macro_rules! define_prim_type {
+    ($($variant:ident { name = $name:literal, layout_size = $layout_size:literal }),* $(,)?) => {
+        /// Any non-array GLSL type.
+        #[derive(Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+        pub enum PrimType {
+            $($variant,)*
+            Struct(Identifier),
+        }
+
+        impl PrimType {
+            /// The GLSL name of this type.
+            pub fn glsl_name(&self) -> &str {
+                match self {
+                    $(Self::$variant => $name,)*
+                    Self::Struct(ident) => &ident,
+                }
+            }
+
+            /// The layout size of this type.
+            pub fn layout_size(&self) -> usize {
+                match self {
+                    $(Self::$variant => $layout_size,)*
+                    Self::Struct(_) => 0,
+                }
+            }
+        }
+    };
+}
+
+// If `layout_size` is `0`, then this type can't be used as attribute, and thus, it does not
+// contribute to the attribute layout.
+define_prim_type! {
+    Float { name = "float", layout_size = 1 },
+    Int { name = "int", layout_size = 1 },
+    Void { name = "void", layout_size = 0 },
+    Bool { name = "bool", layout_size = 1 },
+    Mat2 { name = "mat2", layout_size = 2 },
+    Mat3 { name = "mat3", layout_size = 3 },
+    Mat4 { name = "mat4", layout_size = 4 },
+    Mat2x2 { name = "mat2x2", layout_size = 2 },
+    Mat2x3 { name = "mat2x3", layout_size = 2 },
+    Mat2x4 { name = "mat2x4", layout_size = 2 },
+    Mat3x2 { name = "mat3x2", layout_size = 3 },
+    Mat3x3 { name = "mat3x3", layout_size = 3 },
+    Mat3x4 { name = "mat3x4", layout_size = 3 },
+    Mat4x2 { name = "mat4x2", layout_size = 4 },
+    Mat4x3 { name = "mat4x3", layout_size = 4 },
+    Mat4x4 { name = "mat4x4", layout_size = 4 },
+    Vec2 { name = "vec2", layout_size = 1 },
+    Vec3 { name = "vec3", layout_size = 1 },
+    Vec4 { name = "vec4", layout_size = 1 },
+    IVec2 { name = "ivec2", layout_size = 1 },
+    IVec3 { name = "ivec3", layout_size = 1 },
+    IVec4 { name = "ivec4", layout_size = 1 },
+    BVec2 { name = "bvec2", layout_size = 1 },
+    BVec3 { name = "bvec3", layout_size = 1 },
+    BVec4 { name = "bvec4", layout_size = 1 },
+    UInt { name = "int", layout_size = 1 },
+    UVec2 { name = "uvec2", layout_size = 1 },
+    UVec3 { name = "uvec3", layout_size = 1 },
+    UVec4 { name = "uvec4", layout_size = 1 },
+    Sampler2d { name = "sampler2D", layout_size = 0 },
+    Sampler3d { name = "sampler3D", layout_size = 0 },
+    SamplerCube { name = "samplerCube", layout_size = 0 },
+    Sampler2dShadow { name = "sampler2DShadow", layout_size = 0 },
+    SamplerCubeShadow { name = "samplerCubeShadow", layout_size = 0 },
+    Sampler2dArray { name = "sampler2DArray", layout_size = 0 },
+    Sampler2dArrayShadow { name = "sampler2DArrayShadow", layout_size = 0 },
+    ISampler2d { name = "isampler2D", layout_size = 0 },
+    ISampler3d { name = "isampler3D", layout_size = 0 },
+    ISamplerCube { name = "isamplerCube", layout_size = 0 },
+    ISampler2dArray { name = "isampler2DArray", layout_size = 0 },
+    USampler2d { name = "usampler2D", layout_size = 0 },
+    USampler3d { name = "usampler3D", layout_size = 0 },
+    USamplerCube { name = "usamplerCube", layout_size = 0 },
+    USampler2dArray { name = "usampler2DArray", layout_size = 0 },
 }
 
 impl HasCodeRepr for PrimType {
     fn build(&self, builder: &mut CodeBuilder) {
-        match self {
-            Self::Float => builder.add("float"),
-            Self::Int => builder.add("int"),
-            Self::Void => builder.add("void"),
-            Self::Bool => builder.add("bool"),
-            Self::Mat2 => builder.add("mat2"),
-            Self::Mat3 => builder.add("mat3"),
-            Self::Mat4 => builder.add("mat4"),
-            Self::Mat2x2 => builder.add("mat2x2"),
-            Self::Mat2x3 => builder.add("mat2x3"),
-            Self::Mat2x4 => builder.add("mat2x4"),
-            Self::Mat3x2 => builder.add("mat3x2"),
-            Self::Mat3x3 => builder.add("mat3x3"),
-            Self::Mat3x4 => builder.add("mat3x4"),
-            Self::Mat4x2 => builder.add("mat4x2"),
-            Self::Mat4x3 => builder.add("mat4x3"),
-            Self::Mat4x4 => builder.add("mat4x4"),
-            Self::Vec2 => builder.add("vec2"),
-            Self::Vec3 => builder.add("vec3"),
-            Self::Vec4 => builder.add("vec4"),
-            Self::IVec2 => builder.add("ivec2"),
-            Self::IVec3 => builder.add("ivec3"),
-            Self::IVec4 => builder.add("ivec4"),
-            Self::BVec2 => builder.add("bvec2"),
-            Self::BVec3 => builder.add("bvec3"),
-            Self::BVec4 => builder.add("bvec4"),
-            Self::UInt => builder.add("int"),
-            Self::UVec2 => builder.add("uvec2"),
-            Self::UVec3 => builder.add("uvec3"),
-            Self::UVec4 => builder.add("uvec4"),
-            Self::Sampler2d => builder.add("sampler2D"),
-            Self::Sampler3d => builder.add("sampler3D"),
-            Self::SamplerCube => builder.add("samplerCube"),
-            Self::Sampler2dShadow => builder.add("sampler2DShadow"),
-            Self::SamplerCubeShadow => builder.add("samplerCubeShadow"),
-            Self::Sampler2dArray => builder.add("sampler2DArray"),
-            Self::Sampler2dArrayShadow => builder.add("sampler2DArrayShadow"),
-            Self::ISampler2d => builder.add("isampler2D"),
-            Self::ISampler3d => builder.add("isampler3D"),
-            Self::ISamplerCube => builder.add("isamplerCube"),
-            Self::ISampler2dArray => builder.add("isampler2DArray"),
-            Self::USampler2d => builder.add("usampler2D"),
-            Self::USampler3d => builder.add("usampler3D"),
-            Self::USamplerCube => builder.add("usamplerCube"),
-            Self::USampler2dArray => builder.add("usampler2DArray"),
-            Self::Struct(ident) => builder.add(ident),
-        };
+        builder.add(self.glsl_name());
     }
 }
 
@@ -781,7 +803,7 @@ impl Display for Precision {
             Self::Medium => "mediump",
             Self::High => "highp",
         };
-        write!(f, "{}", prec)
+        write!(f, "{prec}")
     }
 }
 
@@ -811,20 +833,22 @@ impl From<&Precision> for Precision {
 /// Translation unit definition. It represents the whole GLSL file.
 #[derive(Clone, Debug)]
 pub struct Module {
+    pub version:     Version,
     pub prec_decls:  Vec<PrecisionDecl>,
     pub global_vars: Vec<GlobalVar>,
     pub statements:  Vec<Statement>,
     pub main:        Function,
 }
 
-impl Default for Module {
-    fn default() -> Self {
+impl Module {
+    /// Constructor.
+    pub fn new(version: Version) -> Self {
         let prec_decls = default();
         let global_vars = default();
         let statements = default();
         let main =
             Function { typ: PrimType::Void.into(), ident: "main".into(), body: default() };
-        Self { prec_decls, global_vars, statements, main }
+        Self { version, prec_decls, global_vars, statements, main }
     }
 }
 
@@ -858,7 +882,7 @@ impl AddMut<Expr> for Module {
 
 impl HasCodeRepr for Module {
     fn build(&self, builder: &mut CodeBuilder) {
-        builder.add("#version 300 es");
+        builder.add(&self.version.code());
         builder.newline();
         builder.newline();
 

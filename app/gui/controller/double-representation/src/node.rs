@@ -24,7 +24,7 @@ use std::cmp::Ordering;
 
 
 
-/// Node Id is the Ast Id attached to the node's expression.
+/// Node Id is the AST ID attached to the node's expression.
 pub type Id = ast::Id;
 
 
@@ -88,12 +88,12 @@ impl NodeLocation {
 // ===============
 
 /// Information about the node coupled with its location within a block.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct LocatedNode {
     /// Line index in the block. Zero for inline definition nodes.
     pub index: NodeLocation,
-    #[shrinkwrap(main_field)]
     /// Information about the node.
+    #[deref]
     pub node:  NodeInfo,
 }
 
@@ -201,13 +201,13 @@ impl<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a> Iterator for Node
 
 /// Information about node, including both its main line (i.e. line with expression) and optionally
 /// attached documentation comment.
-#[derive(Clone, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Debug, Deref, DerefMut)]
 pub struct NodeInfo {
     /// If the node has doc comment attached, it will be represented here.
     pub documentation: Option<DocumentationCommentInfo>,
     /// Primary node AST that contains node's expression and optional pattern binding.
-    #[shrinkwrap(main_field)]
+    #[deref]
+    #[deref_mut]
     pub main_line:     MainLine,
 }
 
@@ -224,7 +224,7 @@ impl NodeInfo {
         expression_id_matches() || doc_comment_id_matches()
     }
 
-    /// Get the ast id of the line with the node comment (if present).
+    /// Get the AST ID of the line with the node comment (if present).
     pub fn doc_comment_id(&self) -> Option<ast::Id> {
         self.documentation.as_ref().and_then(|comment| comment.ast().id())
     }
@@ -245,7 +245,7 @@ impl NodeInfo {
 /// Representation of the main line of the node (as opposed to a documentation line).
 ///
 /// Each node must have exactly one main line.
-/// Main line always contains an expression, either directly or under binding. The expression id
+/// Main line always contains an expression, either directly or under binding. The expression ID
 /// must be set and it serves as the whole node's expression.
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
@@ -419,7 +419,7 @@ impl MainLine {
         }
     }
 
-    /// Modify expression, preserving the AST id.
+    /// Modify expression, preserving the AST ID.
     fn modify_expression(&mut self, f: impl FnOnce(&mut Ast)) {
         let id = self.id();
         match self {
@@ -431,7 +431,7 @@ impl MainLine {
         self.set_id(id);
     }
 
-    /// Add [`SKIP`] macro call to the AST. Preserves the expression id and [`FREEZE`] macro calls.
+    /// Add [`SKIP`] macro call to the AST. Preserves the expression ID and [`FREEZE`] macro calls.
     fn add_skip_macro(&mut self) {
         self.modify_expression(|ast| {
             prepend_with_macro(ast, SKIP_MACRO_IDENTIFIER);
@@ -439,7 +439,7 @@ impl MainLine {
         self.macros_info_mut().skip = true;
     }
 
-    /// Remove [`SKIP`] macro call from the AST. Preserves the expression id and [`FREEZE`] macro
+    /// Remove [`SKIP`] macro call from the AST. Preserves the expression ID and [`FREEZE`] macro
     /// calls.
     fn remove_skip_macro(&mut self) {
         self.modify_expression(|ast| {
@@ -448,7 +448,7 @@ impl MainLine {
         self.macros_info_mut().skip = false;
     }
 
-    /// Add [`FREEZE`] macro call to the AST. Preserves the expression id and [`SKIP`] macro calls.
+    /// Add [`FREEZE`] macro call to the AST. Preserves the expression ID and [`SKIP`] macro calls.
     fn add_freeze_macro(&mut self) {
         self.modify_expression(|ast| {
             *ast = preserving_skip(ast, |ast| prepend_with_macro(ast, FREEZE_MACRO_IDENTIFIER));
@@ -456,7 +456,7 @@ impl MainLine {
         self.macros_info_mut().freeze = true;
     }
 
-    /// Remove [`FREEZE`] macro call from the AST. Preserves the expression id and [`SKIP`] macro
+    /// Remove [`FREEZE`] macro call from the AST. Preserves the expression ID and [`SKIP`] macro
     /// calls.
     fn remove_freeze_macro(&mut self) {
         self.modify_expression(|ast| {

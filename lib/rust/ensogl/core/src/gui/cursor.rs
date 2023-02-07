@@ -188,7 +188,6 @@ crate::define_endpoints_2! {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct CursorModel {
-    pub logger:         Logger,
     pub scene:          Scene,
     pub display_object: display::object::Instance,
     pub view:           shape::View,
@@ -200,7 +199,6 @@ impl CursorModel {
     /// Constructor.
     pub fn new(scene: &Scene) -> Self {
         let scene = scene.clone_ref();
-        let logger = Logger::new("cursor");
         let display_object = display::object::Instance::new();
         let view = shape::View::new();
         let port_selection = shape::View::new();
@@ -213,7 +211,7 @@ impl CursorModel {
         tgt_layer.add(&view);
         port_selection_layer.add(&port_selection);
 
-        Self { logger, scene, display_object, view, port_selection, style }
+        Self { scene, display_object, view, port_selection, style }
     }
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {

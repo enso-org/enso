@@ -22,7 +22,6 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::shortcut;
@@ -30,7 +29,6 @@ use ensogl_core::application::Application;
 use ensogl_core::application::View;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_hardcoded_theme as theme;
 use ensogl_slider as slider;
 use ensogl_text_msdf::run_once_initialized;
 
@@ -327,10 +325,6 @@ pub fn main() {
 
 /// Initialize a `SliderCollection` and do not drop it.
 fn init(app: &Application) {
-    theme::builtin::dark::register(app);
-    theme::builtin::light::register(app);
-    theme::builtin::light::enable(app);
-
     let slider_collection = app.new_view::<SliderCollection>();
     app.display.add_child(&slider_collection);
     Leak::new(slider_collection);

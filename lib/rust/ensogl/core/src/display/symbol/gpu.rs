@@ -125,7 +125,7 @@ impl TextureBinding {
 
 /// A safe wrapper for WebGL VertexArrayObject. It releases the VAO from GPU memory as soon as all
 /// references to this object are dropped.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct VertexArrayObject {
     rc: Rc<VertexArrayObjectData>,
 }
@@ -189,13 +189,13 @@ impl Drop for VertexArrayObjectData {
 // ===================
 
 /// Wrapper for `Stats` which counts the number of symbols.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct SymbolStats {
     rc: Rc<SymbolStatsData>,
 }
 
 /// Internal representation for `SymbolStats`.
-#[derive(Debug, Shrinkwrap)]
+#[derive(Debug, Deref)]
 pub struct SymbolStatsData {
     stats: Stats,
 }
@@ -409,17 +409,15 @@ impl Symbol {
         &self,
         global_variables: &UniformScope,
     ) -> Vec<shader::VarBinding> {
-        let var_decls = self.shader.collect_variables();
-        var_decls
-            .into_iter()
-            .map(|(var_name, var_decl)| {
-                let target = self.lookup_variable(&var_name, global_variables);
-                if target.is_none() {
-                    warn!("Unable to bind variable '{}' to geometry buffer.", var_name);
-                }
-                shader::VarBinding::new(var_name, var_decl, target)
-            })
-            .collect()
+        let mut vars = self.shader.collect_variables();
+        for binding in &mut vars {
+            let scope = self.lookup_variable(&binding.name, global_variables);
+            if scope.is_none() {
+                warn!("Unable to bind variable '{}' to geometry buffer.", binding.name);
+            }
+            binding.scope = scope;
+        }
+        vars
     }
 
     /// Runs the provided function in a context of active program and active VAO. After the function
@@ -714,9 +712,8 @@ impl SymbolData {
                 Some(ScopeType::Global) => global_variables.get(name),
                 _ => todo!(),
             };
-            let uniform = uniform.unwrap_or_else(|| {
-                panic!("Internal error. Variable {} not found in program.", name)
-            });
+            let uniform = uniform
+                .unwrap_or_else(|| panic!("Internal error. Variable {name} not found in program."));
             match uniform {
                 AnyUniform::Prim(uniform) => self
                     .bindings

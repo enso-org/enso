@@ -13,7 +13,7 @@ use std::time::Duration;
 
 pub async fn get(client: &Client, url: impl IntoUrl) -> Result<Response> {
     let url = url.into_url()?;
-    web::execute(client.get(url.clone())).await.with_context(|| format!("Failed to get {}", url))
+    web::execute(client.get(url.clone())).await.with_context(|| format!("Failed to get {url}"))
 }
 
 /// Get the the response body as a byte stream.
@@ -21,6 +21,8 @@ pub async fn download(
     client: &Client,
     url: impl IntoUrl,
 ) -> Result<impl Stream<Item = reqwest::Result<Bytes>>> {
+    let url = url.into_url()?;
+    debug!("Downloading {url}.");
     Ok(client.get(url).send().await?.error_for_status()?.bytes_stream())
 }
 
@@ -29,9 +31,9 @@ pub async fn download_all(client: &Client, url: impl IntoUrl) -> Result<Bytes> {
     let url = url.into_url()?;
     let bar = progress_bar(indicatif::ProgressBar::new_spinner);
     bar.enable_steady_tick(Duration::from_millis(100));
-    bar.set_message(format!("Downloading {}", url));
+    bar.set_message(format!("Downloading {url}"));
     let response = web::execute(client.get(url.clone())).await?;
-    response.bytes().await.with_context(|| format!("Failed to download body of {}", url))
+    response.bytes().await.with_context(|| format!("Failed to download body of {url}"))
 }
 
 /// Downloads archive from URL and extracts it into an output path.

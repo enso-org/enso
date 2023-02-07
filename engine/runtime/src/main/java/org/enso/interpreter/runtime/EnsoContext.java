@@ -1,14 +1,14 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.Assumption;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.Shape;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -31,12 +31,21 @@ import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
-import scala.jdk.javaapi.OptionConverters;
+import org.enso.polyglot.RuntimeServerInfo;
+import org.graalvm.options.OptionKey;
 
-import java.io.*;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
+import com.oracle.truffle.api.Assumption;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.Shape;
+import java.util.concurrent.ExecutorService;
+
+import scala.jdk.javaapi.OptionConverters;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -57,6 +66,7 @@ public class EnsoContext {
   private @CompilationFinal PackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
+  private final ThreadExecutors threadExecutors;
   private final ResourceManager resourceManager;
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
@@ -100,22 +110,21 @@ public class EnsoContext {
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     this.threadManager = new ThreadManager(environment);
+    this.threadExecutors = new ThreadExecutors(this);
     this.resourceManager = new ResourceManager(this);
-    this.isInlineCachingDisabled =
-        environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
-    var isParallelismEnabled =
-        environment.getOptions().get(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
+    this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
+    var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled =
-        environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
-    this.rootIOPermissions = environment.getOptions().get(EnsoLanguage.IO_ENVIRONMENT);
+        getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
+    this.rootIOPermissions = getOption(EnsoLanguage.IO_ENVIRONMENT);
 
     this.shouldWaitForPendingSerializationJobs =
-        environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
+        getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     this.compilerConfig =
         new CompilerConfig(
             isParallelismEnabled,
             true,
-            environment.getOptions().get(RuntimeOptions.STRICT_ERRORS_KEY),
+            getOption(RuntimeOptions.STRICT_ERRORS_KEY),
             scala.Option.empty());
     this.home = home;
     this.builtins = new Builtins(this);
@@ -178,6 +187,7 @@ public class EnsoContext {
 
   /** Performs eventual cleanup before the context is disposed of. */
   public void shutdown() {
+    threadExecutors.shutdown();
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
@@ -408,7 +418,7 @@ public class EnsoContext {
    * @return true if the strict errors option is enabled, false otherwise.
    */
   public boolean isStrictErrors() {
-    return getEnvironment().getOptions().get(RuntimeOptions.STRICT_ERRORS_KEY);
+    return getOption(RuntimeOptions.STRICT_ERRORS_KEY);
   }
 
   /**
@@ -417,7 +427,7 @@ public class EnsoContext {
    * @return true if project-level suggestion indexing is enabled.
    */
   public boolean isProjectSuggestionsEnabled() {
-    return getEnvironment().getOptions().get(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS_KEY);
+    return getOption(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS_KEY);
   }
 
   /**
@@ -426,12 +436,32 @@ public class EnsoContext {
    * @return true if the suggestions indexing is enabled for external libraries.
    */
   public boolean isGlobalSuggestionsEnabled() {
-    return getEnvironment().getOptions().get(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS_KEY);
+    return getOption(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS_KEY);
   }
 
-  /** Creates a new thread that has access to the current language context. */
-  public Thread createThread(Runnable runnable) {
-    return environment.createThread(runnable);
+  /** The job parallelism or 1 */
+  public int getJobParallelism() {
+    var n = getOption(RuntimeServerInfo.JOB_PARALLELISM_KEY);
+    return n == null ? 1 : n.intValue();
+  }
+
+  /**
+   * @param name human readable name of the pool
+   * @param systemThreads use system threads or polyglot threads
+   * @return new execution service for this context
+   */
+  public ExecutorService newCachedThreadPool(String name, boolean systemThreads) {
+    return threadExecutors.newCachedThreadPool(name, systemThreads);
+  }
+
+  /**
+   * @param parallel amount of parallelism for the pool
+   * @param name human readable name of the pool
+   * @param systemThreads use system threads or polyglot threads
+   * @return new execution service for this context
+   */
+  public ExecutorService newFixedThreadPool(int parallel, String name, boolean systemThreads) {
+    return threadExecutors.newFixedThreadPool(parallel, name, systemThreads);
   }
 
   /** @return the thread manager for this context. */
@@ -507,5 +537,21 @@ public class EnsoContext {
 
   public int getMaxUnboxingLayouts() {
     return 10;
+  }
+
+  private <T> T getOption(OptionKey<T> key) {
+    var options = getEnvironment().getOptions();
+    var safely = false;
+    assert safely = true;
+    if (safely) {
+      for (var d : options.getDescriptors()) {
+        if (d.getKey() == key) {
+          return options.get(key);
+        }
+      }
+      return null;
+    } else {
+      return options.get(key);
+    }
   }
 }

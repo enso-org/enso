@@ -37,14 +37,12 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
-use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use ide_view_component_list_panel::grid;
 use ide_view_component_list_panel::grid::entry::icon;
@@ -190,9 +188,6 @@ fn snap_to_pixel_offset(size: Vector2, scene_shape: &display::scene::Shape) -> V
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
         let app = Application::new("root");
-        theme::builtin::light::register(&app);
-        theme::builtin::light::enable(&app);
-
 
         let world = &app.display;
         let scene = &world.default_scene;

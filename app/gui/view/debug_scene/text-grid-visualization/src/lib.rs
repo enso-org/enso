@@ -15,7 +15,6 @@
 #![warn(unused_qualifications)]
 
 use ensogl::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use crate::text_visualization::TextGrid;
 
@@ -47,8 +46,7 @@ fn sample_text() -> String {
             }
             _ => {
                 text.push_str(&format!(
-                    "{0:?} bottles of beer on the wall, {0:?} bottles of beer.",
-                    n
+                    "{n:?} bottles of beer on the wall, {n:?} bottles of beer."
                 ));
                 text.push_str(&format!(
                     "Take one down and pass it around, {} bottles of beer on the wall.\n",
@@ -86,10 +84,6 @@ fn init(app: &Application) {
         .expect("Failed to add font to HTML body.");
 
     let closure = ensogl::system::web::Closure::new(move |_| {
-        ensogl_hardcoded_theme::builtin::dark::register(&app);
-        ensogl_hardcoded_theme::builtin::light::register(&app);
-        ensogl_hardcoded_theme::builtin::light::enable(&app);
-
         let world = &app.display;
         let scene = &world.default_scene;
         let camera = scene.camera();
@@ -126,6 +120,5 @@ fn init(app: &Application) {
     let _result = web::document.fonts().ready().unwrap().then(&closure);
     // This extends the lifetime of the closure which is what we want here. Otherwise, the closure
     // would be destroyed and the callback cannot be called.
-    #[allow(clippy::forget_non_drop)]
     mem::forget(closure);
 }

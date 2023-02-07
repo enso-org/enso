@@ -19,12 +19,12 @@ import org.enso.polyglot.runtime.Runtime$Api$ExecutionFailed;
 import org.enso.polyglot.runtime.Runtime$Api$ExpressionUpdates;
 import org.enso.polyglot.runtime.Runtime$Api$InitializedNotification;
 import org.enso.polyglot.runtime.Runtime$Api$MethodPointer;
-import org.enso.polyglot.runtime.Runtime$Api$OpenFileNotification;
 import org.enso.polyglot.runtime.Runtime$Api$PushContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$PushContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
 import org.enso.polyglot.runtime.Runtime$Api$Response;
 import org.enso.polyglot.runtime.Runtime$Api$SetExpressionValueNotification;
+import org.enso.polyglot.runtime.Runtime$Api$OpenFileNotification;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$LocalCall;
 import org.enso.text.editing.model;
@@ -219,7 +219,7 @@ public class IncrementalUpdatesTest {
     assertSameElements(context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
       TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING, false),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
@@ -235,8 +235,8 @@ public class IncrementalUpdatesTest {
     );
     assertSameElements(context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
-      TestMessages.update(contextId, fooX, exprType, false),
-      TestMessages.update(contextId, fooRes, exprType, false),
+      TestMessages.update(contextId, fooX, exprType),
+      TestMessages.update(contextId, fooRes, exprType),
       context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());

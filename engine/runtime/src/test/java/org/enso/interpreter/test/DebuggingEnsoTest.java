@@ -22,7 +22,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,7 +39,6 @@ import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebuggingEnsoTest {
@@ -406,7 +404,9 @@ public class DebuggingEnsoTest {
     Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, methodName);
     List<Integer> lineNumbers = new ArrayList<>();
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
-      steps.remove().onSuspend(event);
+      if (!steps.isEmpty()) {
+        steps.remove().onSuspend(event);
+      }
       lineNumbers.add(
           event.getSourceSection().getStartLine()
       );
