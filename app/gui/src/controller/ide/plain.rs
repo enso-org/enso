@@ -105,6 +105,7 @@ impl controller::ide::API for Handle {
     }
 
     fn set_private_cb_entries_visibility(&self, visibility: bool) {
+        debug!("Setting private component browser entries visibility to {visibility}.");
         self.private_cb_entries_visibility_flag.set(visibility);
     }
 }
