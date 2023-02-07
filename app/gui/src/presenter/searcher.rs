@@ -344,6 +344,8 @@ impl Searcher {
         frp::extend! { network
             eval model.view.searcher_input_changed ((expr) model.input_changed(expr));
 
+            eval_ model.view.toggle_private_cb_entries_visibility (model.controller.reload_list());
+
             action_list_changed <- source::<()>();
             select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
         }

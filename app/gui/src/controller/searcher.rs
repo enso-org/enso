@@ -1140,7 +1140,7 @@ impl Searcher {
     /// The current list will be set as "Loading" and Language Server will be requested for a new
     /// list - once it be retrieved, the new list will be set and notification will be emitted.
     #[profile(Debug)]
-    fn reload_list(&self) {
+    pub fn reload_list(&self) {
         let this_type = self.this_arg_type_for_next_completion();
         let return_types = match self.data.borrow().input.next_completion_id() {
             CompletedFragmentId::Function => vec![],
