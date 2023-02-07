@@ -157,11 +157,10 @@ impl<T: HasTokens> HasTokens for Tree<T> {
         } else {
             for element in &self.span_info {
                 match element {
-                    SpanSeed::Space(RawSpanTreeSpace { space }) =>
+                    SpanSeed::Space(SpanSeedSpace { space }) =>
                         Token::Off(*space).feed_to(consumer),
-                    SpanSeed::Token(RawSpanTreeToken { token }) =>
-                        Token::Str(token).feed_to(consumer),
-                    SpanSeed::Child(RawSpanTreeChild { node }) => node.feed_to(consumer),
+                    SpanSeed::Token(SpanSeedToken { token }) => Token::Str(token).feed_to(consumer),
+                    SpanSeed::Child(SpanSeedChild { node }) => node.feed_to(consumer),
                 }
             }
         }

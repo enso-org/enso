@@ -7,9 +7,9 @@ use enso_text::index::*;
 use crate::enumerate_non_empty_lines;
 use crate::known;
 use crate::HasTokens;
-use crate::RawSpanTree;
 use crate::Shape;
 use crate::ShiftedVec1;
+use crate::SpanSeed;
 use crate::TokenConsumer;
 
 use enso_text as text;
@@ -612,7 +612,7 @@ impl Crumbable for crate::Tree<Ast> {
             .get(crumb.index)
             .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?
         {
-            RawSpanTree::Child(crate::RawSpanTreeChild { node }) => Ok(node),
+            SpanSeed::Child(crate::SpanSeedChild { node }) => Ok(node),
             _ => Err(MismatchedCrumbType.into()),
         }
     }
@@ -623,13 +623,13 @@ impl Crumbable for crate::Tree<Ast> {
             .span_info
             .get_mut(crumb.index)
             .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?;
-        *child = RawSpanTree::Child(crate::RawSpanTreeChild { node: new_ast });
+        *child = SpanSeed::Child(crate::SpanSeedChild { node: new_ast });
         Ok(result)
     }
 
     fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
         Box::new(self.span_info.iter().enumerate().filter_map(|(index, thing)| {
-            matches!(thing, RawSpanTree::Child(_)).as_some(TreeCrumb { index })
+            matches!(thing, SpanSeed::Child(_)).as_some(TreeCrumb { index })
         }))
     }
 }

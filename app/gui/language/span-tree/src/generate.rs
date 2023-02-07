@@ -517,8 +517,8 @@ fn tree_generate_node<T: Payload>(
         let mut offset = ByteDiff::from(0);
         for (index, raw_span_info) in tree.span_info.iter().enumerate() {
             match raw_span_info {
-                SpanSeed::Space(ast::RawSpanTreeSpace { space }) => offset += ByteDiff::from(space),
-                SpanSeed::Token(ast::RawSpanTreeToken { token }) => {
+                SpanSeed::Space(ast::SpanSeedSpace { space }) => offset += ByteDiff::from(space),
+                SpanSeed::Token(ast::SpanSeedToken { token }) => {
                     let kind = node::Kind::Token;
                     let size = ByteDiff::from(token.len());
                     let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
@@ -526,7 +526,7 @@ fn tree_generate_node<T: Payload>(
                     children.push(node::Child { node, offset, ast_crumbs });
                     offset += size;
                 }
-                SpanSeed::Child(ast::RawSpanTreeChild { node }) => {
+                SpanSeed::Child(ast::SpanSeedChild { node }) => {
                     let kind = node::Kind::Argument(node::Argument {
                         removable:  false,
                         name:       None,

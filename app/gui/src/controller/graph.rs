@@ -1567,15 +1567,12 @@ main =
             }
         }
 
-        let cases = &[
-            Case { src: "x", dst: "foo", expected: "x", ports: (&[], &[]) },
-            Case {
-                src:      "Vec x y",
-                dst:      "1 + 2 + 3",
-                expected: "x + 2 + 3",
-                ports:    (&[0, 2], &[0, 1]),
-            },
-        ];
+        let cases = &[Case { src: "x", dst: "foo", expected: "x", ports: (&[], &[]) }, Case {
+            src:      "Vec x y",
+            dst:      "1 + 2 + 3",
+            expected: "x + 2 + 3",
+            ports:    (&[0, 2], &[0, 1]),
+        }];
         for case in cases {
             case.run()
         }

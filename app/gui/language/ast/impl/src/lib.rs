@@ -533,7 +533,7 @@ impl<T> SpanSeed<T> {
     pub fn space(space: usize) -> Option<Self> {
         match space {
             0 => None,
-            space => Some(SpanSeed::Space(RawSpanTreeSpace { space })),
+            space => Some(SpanSeed::Space(SpanSeedSpace { space })),
         }
     }
 }
