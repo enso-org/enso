@@ -482,11 +482,7 @@ pub mod tests {
 
         // Now send update that expression actually was computed to be a call to the second
         // suggestion entry and check that executed graph provides this info over the metadata one.
-        let method_pointer = MethodPointer {
-            module:          "Main".to_owned(),
-            defined_on_type: "Main".to_owned(),
-            name:            "main".to_owned(),
-        };
+        let method_pointer = entry2.clone().try_into().unwrap();
         let update = value_update_with_method_ptr(id, method_pointer);
         executed_graph.computed_value_info_registry().apply_updates(vec![update]);
         let info = get_invocation_info().unwrap();
