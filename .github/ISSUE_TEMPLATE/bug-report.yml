@@ -81,7 +81,7 @@ body:
     id: "enso-version"
     attributes:
       label: "Enso Version (required)"
-      description: "Press <kbd>cmd</kbd> + <kbd>?</kbd> (MacOS) or <kbd>ctrl</kbd> + <kbd>?</kbd> (other oprating systems) and paste here the output you see. Alternatively, provide us with the version of the package that you downloaded."
+      description: "Press <kbd>cmd</kbd> + <kbd>?</kbd> (MacOS) or <kbd>ctrl</kbd> + <kbd>?</kbd> (other operating systems) and paste here the output you see. Alternatively, provide us with the version of the package that you downloaded."
     validations:
       required: true
 
