@@ -10,9 +10,6 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
-from Standard.Base.Metadata.Widget import Single_Choice
-import Standard.Base.Metadata.Display
-
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
 import project.Data.Column as Column_Module
@@ -38,6 +35,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+import project.Internal.Widget_Helpers
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
@@ -198,7 +196,7 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.at -1
-    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
+    @selector Widget_Helpers.make_column_name_selector
     at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer ->
@@ -225,7 +223,7 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.get -1
-    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
+    @selector Widget_Helpers.make_column_name_selector
     get : Text | Integer -> Any -> Column | Any
     get self selector=0 ~if_missing=Nothing =
         java_column = case selector of
@@ -901,9 +899,8 @@ type Table
          Select people celebrating a jubilee.
 
              people.filter "age" (age -> (age%10 == 0))
-    @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
-    @filter Filter_Condition.widget_for_filter_condition
-    @on_problems (Single_Choice ["Report_Error", "Report_Warning", "Ignore"] display=Display.Expanded_Only)
+    @column Widget_Helpers.make_column_name_selector
+    @filter Filter_Condition.default_widget
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column filter=(Filter_Condition.Is_True) = case column of
         _ : Column ->
@@ -1021,7 +1018,7 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
-    set : Text -> Column | Text -> Table ! Existing_Column | Missing_Column
+    set : Column | Text -> Text | Nothing -> Table ! Existing_Column | Missing_Column
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update =
         resolved = case column of
             _ : Text -> self.compute column
@@ -1142,7 +1139,8 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
-    @join_kind (Single_Choice ["Join_Kind.Inner", "Join_Kind.Left_Outer", "Join_Kind.Right_Outer", "Join_Kind.Full", "Join_Kind.Left_Exclusive", "Join_Kind.Right_Exclusive"]])
+    @join_kind Widget_Helpers.join_kind_selector
+    @on Widget_Helpers.make_column_name_selector
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
         if check_table "right" right then
