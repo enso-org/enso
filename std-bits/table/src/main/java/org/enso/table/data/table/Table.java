@@ -43,6 +43,9 @@ public class Table {
       throw new IllegalArgumentException("A Table must have at least one column.");
     }
 
+    assert Arrays.stream(columns).map(Column::getName).distinct().count() == columns.length
+        : "Column names must be unique within a table.";
+
     this.columns = columns;
     this.problems = problems;
   }

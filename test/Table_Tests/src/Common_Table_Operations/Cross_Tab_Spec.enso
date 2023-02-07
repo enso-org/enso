@@ -133,6 +133,10 @@ spec setup =
             err1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=Problem_Behavior.Ignore
             err1.should_fail_with Illegal_Argument.Error
 
+        Test.specify "should gracefully handle duplicate aggregate names" <|
+            t1 = table.cross_tab [] "Key" values=[Count new_name="Agg1", Sum "Value" new_name="Agg1"]
+            t1.print
+
         Test.specify "should fail on invalid aggregations" <|
             table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["TextValue", ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
