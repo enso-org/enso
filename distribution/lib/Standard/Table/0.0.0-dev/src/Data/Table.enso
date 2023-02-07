@@ -1552,7 +1552,8 @@ type Table
                     c -> Aggregate_Column_Helper.default_aggregate_column_name c all_same
 
             data_columns = validated_values.map c->
-                col_name = c.new_name.if_nothing (name_mapper c)
+                col_name = c.new_name.if_nothing <|
+                    Aggregate_Column_Helper.default_aggregate_column_name c
                 Aggregate_Column_Helper.java_aggregator col_name c
 
             result = case matched_name.is_empty of
@@ -1560,7 +1561,9 @@ type Table
                     group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
                     index.makeTable (group_by + data_columns).to_array
                 False ->
-                    index.makeCrossTabTable java_key_columns.to_array matched_name.first.java_column data_columns.to_array
+                    aggregate_names = validated_values.map c->
+                        c.new_name.if_nothing (name_mapper c)
+                    index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
