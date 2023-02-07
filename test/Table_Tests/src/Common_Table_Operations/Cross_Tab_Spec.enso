@@ -2,9 +2,11 @@ from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Column_Selector
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Sum, Count, Group_By
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Average, Count, Group_By, Sum
 import Standard.Table.Data.Expression.Expression_Error
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Such_Column, Invalid_Aggregate_Column
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Such_Column, Invalid_Aggregate_Column, Invalid_Aggregation
+
+from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import Test
 import Standard.Test.Extensions
@@ -130,3 +132,14 @@ spec setup =
         Test.specify "should not allow Group_By for values" <|
             err1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=Problem_Behavior.Ignore
             err1.should_fail_with Illegal_Argument.Error
+
+        Test.specify "should fail on invalid aggregations" <|
+            table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["TextValue", ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']]]
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.cross_tab [] "Key" values=[Average "TextValue"] on_problems=pb
+                case setup.is_database of
+                    True ->
+                        err.should_fail_with SQL_Error
+                    False ->
+                        err.should_fail_with Invalid_Aggregation
+                        err.catch . should_equal (Invalid_Aggregation.Error "" [0, 4, 7] "Cannot convert to a number.")
