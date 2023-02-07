@@ -4,7 +4,8 @@ wasm-size-limit: 15.50 MiB
 
 required-versions:
   cargo-watch: ^8.1.1
-  node: =18.12.1
+  # FIXME [NP]: Revert this change and/or use Nix to pin to an older Node.js.
+  node: =18.14.0
   wasm-pack: ^0.10.2
 #  TODO [mwu]: Script can install `flatc` later on (if `conda` is present), so this is not required. However it should
 #              be required, if `conda` is missing.
