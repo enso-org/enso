@@ -37,12 +37,16 @@ type Column
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Column
-    from_vector name items = Column.Value (Java_Column.fromItems name items.to_array)
+    from_vector name items =
+        Panic.catch Any handler=Error.throw <|
+            Column.Value (Java_Column.fromItems name items.to_array)
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
     from_storage : Text -> Java_Storage -> Column
-    from_storage name storage = Column.Value (Java_Column.new name storage)
+    from_storage name storage =
+        Panic.catch Any handler=Error.throw <|
+            Column.Value (Java_Column.new name storage)
 
     ## Creates a new column given a name and a vector of elements repeated over and over.
 
@@ -51,7 +55,9 @@ type Column
        - items: The elements to contain in the column.
        - repeats: The number of times to repeat the vector.
     from_vector_repeated : Text -> Vector -> Integer -> Column
-    from_vector_repeated name items repeats = Column.Value (Java_Column.fromRepeatedItems name items.to_array repeats)
+    from_vector_repeated name items repeats =
+        Panic.catch Any handler=Error.throw <|
+            Column.Value (Java_Column.fromRepeatedItems name items.to_array repeats)
 
     ## PRIVATE
 
