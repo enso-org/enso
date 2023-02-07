@@ -171,7 +171,8 @@ class BaseServerTest
       VcsManager.props(
         config.vcsManager,
         Git.withEmptyUserConfig(
-          Some(config.vcsManager.dataDirectory)
+          Some(config.vcsManager.dataDirectory),
+          config.vcsManager.asyncInit
         ),
         contentRootManagerWrapper,
         zioExec
