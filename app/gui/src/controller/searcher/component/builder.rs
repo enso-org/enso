@@ -150,6 +150,7 @@ pub struct List {
     /// IDs of [`Component`]s allowed in [`component::List::favorites`] if they are also present in
     /// [`grouping_and_order_of_favorites`].
     allowed_favorites:               HashSet<component::Id>,
+    keep_private_components:         bool,
 }
 
 struct ComponentWithDbEntry {
@@ -162,11 +163,11 @@ impl ComponentWithDbEntry {
     fn new(db: &model::SuggestionDatabase, id: usize) -> Option<ComponentWithDbEntry> {
         let entry = db.lookup(id).ok()?;
         let component = Component::new_from_database_entry(id, entry.clone_ref());
-        if component.is_private() {
-            None
-        } else {
-            Some(ComponentWithDbEntry { component, entry, id })
-        }
+        Some(ComponentWithDbEntry { component, entry, id })
+    }
+
+    fn is_private(&self) -> bool {
+        self.component.is_private()
     }
 }
 
@@ -174,6 +175,12 @@ impl List {
     /// Construct List builder without content.
     pub fn new() -> Self {
         default()
+    }
+
+    /// Construct List builder without content, do not remove private components when extending
+    /// list.
+    pub fn new_with_private_components() -> Self {
+        List { keep_private_components: true, ..default() }
     }
 
     /// Return [`List`] with a new [`local_scope`] with its [`Group::component_id`] field set to
@@ -199,6 +206,8 @@ impl List {
         use suggestion_database::entry::Kind;
         let local_scope_id = self.local_scope.component_id;
         let components = entry_ids.into_iter().filter_map(|id| ComponentWithDbEntry::new(db, id));
+        let keep_private_components = self.keep_private_components;
+        let components = components.filter(|c| !c.is_private() || keep_private_components);
         for ComponentWithDbEntry { component, entry, id } in components {
             self.allowed_favorites.insert(id);
             let mut component_inserted_somewhere = false;
