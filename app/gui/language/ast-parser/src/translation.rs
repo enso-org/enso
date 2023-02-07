@@ -20,15 +20,21 @@ const DEBUG: bool = false;
 // =======================
 
 #[profile(Detail)]
-pub fn tree_to_ast(tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Ast {
+pub fn tree_to_ast(mut tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Ast {
     use ast::HasRepr;
     let mut context = Translate { ids, ..Default::default() };
-    let ast = match &*tree.variant {
-        tree::Variant::BodyBlock(block) => context.translate_module(block),
-        _ => unreachable!("enso_parser always returns a tree with a BodyBlock as root."),
+    let ast = loop {
+        match &*tree.variant {
+            tree::Variant::BodyBlock(block) => break context.translate_module(block),
+            tree::Variant::Invalid(tree::Invalid { ast, error }) => {
+                warn!("Parser reports invalid module: {}", error.message);
+                tree = ast
+            }
+            _ => unreachable!("enso_parser always returns a tree with a BodyBlock as root."),
+        }
     };
     if DEBUG {
-        debug_assert_eq!(ast.repr(), tree.code());
+        debug_assert_eq!(ast.repr(), tree.code(), "Ast should represent same code as Tree.");
         if !context.ids.is_empty() || !context.ids_missed.is_empty() {
             warn!(
                 "ids not matched: {:?}\nids missed: {:?}\nids assigned: {:?}",
@@ -275,11 +281,7 @@ impl Translate {
         })
     }
 
-    fn translate_lines(
-        &mut self,
-        tree: &Tree,
-        out: &mut impl Extend<WithInitialSpace<Option<Ast>>>,
-    ) {
+    fn translate_lines(&mut self, tree: &Tree, out: &mut Vec<WithInitialSpace<Option<Ast>>>) {
         match &*tree.variant {
             tree::Variant::AnnotatedBuiltin(tree::AnnotatedBuiltin {
                 token,
@@ -290,13 +292,9 @@ impl Translate {
                 let space = self.visit_space(&tree.span);
                 let at = self.visit_token(token).expect_unspaced();
                 let annotation = self.visit_token(annotation).expect_unspaced();
-                let body = Some(Ast::from(ast::Annotation { name: format!("{at}{annotation}") }));
-                out.extend_one(WithInitialSpace { space, body });
-                out.extend(newlines.iter().skip(1).map(|token| {
-                    let (space, _) = self.visit_token(token).split();
-                    let body = None;
-                    WithInitialSpace { space, body }
-                }));
+                let annotation = Ast::from(ast::Annotation { name: format!("{at}{annotation}") });
+                out.extend_one(WithInitialSpace { space, body: Some(annotation) });
+                self.translate_linebreaks(out, newlines);
                 if let Some(expression) = expression {
                     self.translate_lines(expression, out);
                 }
@@ -319,19 +317,14 @@ impl Translate {
                     annotation = prefix(annotation, argument).map(Ast::from);
                 }
                 out.extend_one(annotation.map(Some));
-                out.extend(newlines.iter().skip(1).map(|token| {
-                    let (space, _) = self.visit_token(token).split();
-                    let body = None;
-                    WithInitialSpace { space, body }
-                }));
+                self.translate_linebreaks(out, newlines);
                 if let Some(expression) = expression {
                     self.translate_lines(expression, out);
                 }
             }
             tree::Variant::Documented(tree::Documented { documentation, expression }) => {
                 let space = self.visit_space(&tree.span);
-                let body = Some(self.translate_doc(documentation));
-                out.extend_one(WithInitialSpace { space, body });
+                self.translate_doc(space, documentation, out);
                 if let Some(expression) = expression {
                     self.translate_lines(expression, out);
                 }
@@ -340,7 +333,28 @@ impl Translate {
         }
     }
 
-    fn translate_doc(&mut self, documentation: &tree::DocComment) -> Ast {
+    fn translate_linebreaks(
+        &mut self,
+        out: &mut Vec<WithInitialSpace<Option<Ast>>>,
+        newlines: &[syntax::token::Newline],
+    ) {
+        out.reserve(newlines.len().saturating_sub(1));
+        for token in &newlines[..newlines.len().saturating_sub(1)] {
+            let (space, token) = self.visit_token(token).split();
+            if let Some(text) = into_comment(&token) {
+                append_comment(out, space, text);
+            } else {
+                out.push(WithInitialSpace { space, body: None });
+            }
+        }
+    }
+
+    fn translate_doc(
+        &mut self,
+        space: usize,
+        documentation: &tree::DocComment,
+        out: &mut Vec<WithInitialSpace<Option<Ast>>>,
+    ) {
         let open = self.visit_token(&documentation.open);
         let mut span_info = SpanSeedBuilder::new();
         span_info.token(open);
@@ -357,17 +371,12 @@ impl Translate {
                 }
             })
         }
-        // One newline is implicit.
-        let mut token = None;
-        for newline in &documentation.newlines {
-            if let Some(prev) = token.replace(self.visit_token(newline)) {
-                span_info.token(prev);
-            }
-        }
         let rendered = documentation.content().into();
         let type_info = ast::TreeType::Documentation { rendered };
         let span_info = span_info.build().expect_unspaced();
-        Ast::from(ast::Tree::expression(span_info).with_type_info(type_info))
+        let body = Some(Ast::from(ast::Tree::expression(span_info).with_type_info(type_info)));
+        out.extend_one(WithInitialSpace { space, body });
+        self.translate_linebreaks(out, &documentation.newlines);
     }
 
     fn translate_function(&mut self, function: &tree::Function) -> ast::Shape<Ast> {
@@ -500,28 +509,12 @@ impl Translate {
             let off = 0;
             // We write each line's leading offset into the trailing offset of the previous line
             // (or, for the first line, the initial offset).
-            let (trailing_space, newline_) = self.visit_token(newline).split();
+            let (trailing_space, newline) = self.visit_token(newline).split();
+            if let Some(prev_line_comment) = into_comment(&newline) {
+                append_comment_ast(&mut ast_lines, trailing_space, prev_line_comment);
+                continue;
+            }
             *ast_lines.last_mut().map(|line| &mut line.off).unwrap_or(&mut space) = trailing_space;
-            let mut newline = &newline_[..];
-            if let Some(text) = newline.strip_suffix('\n') {
-                newline = text;
-            }
-            if let Some(text) = newline.strip_suffix('\r') {
-                newline = text;
-            }
-            if !newline.is_empty() {
-                if let Some(last) = ast_lines.last_mut() {
-                    if last.elem.is_none() {
-                        last.elem = Some(Ast::from(ast::Tree::comment(newline.to_string())));
-                    }
-                }
-                if initial_indent.is_none() {
-                    initial_indent = Some(trailing_space);
-                }
-                if expression.is_none() {
-                    continue;
-                }
-            }
             match &expression {
                 Some(statement) => {
                     self.translate_lines(statement, &mut statement_lines);
@@ -550,7 +543,11 @@ impl Translate {
         let mut space = 0;
         let off = 0;
         for tree::block::OperatorLine { newline, expression } in operator_lines {
-            let trailing_space = self.visit_token(newline).space;
+            let (trailing_space, newline) = self.visit_token(newline).split();
+            if let Some(prev_line_comment) = into_comment(&newline) {
+                append_comment_ast(&mut ast_lines, trailing_space, prev_line_comment);
+                continue;
+            }
             *ast_lines.last_mut().map(|line| &mut line.off).unwrap_or(&mut space) = trailing_space;
             let elem = expression.as_ref().map(|expression| {
                 let opr = self.translate_opr(&expression.operator);
@@ -568,7 +565,11 @@ impl Translate {
         let indent = indent.expect(non_empty_block);
         let mut statement_lines = vec![];
         for tree::block::Line { newline, expression } in excess {
-            let trailing_space = self.visit_token(newline).space;
+            let (trailing_space, newline) = self.visit_token(newline).split();
+            if let Some(prev_line_comment) = into_comment(&newline) {
+                append_comment_ast(&mut ast_lines, trailing_space, prev_line_comment);
+                continue;
+            }
             *ast_lines.last_mut().map(|line| &mut line.off).unwrap_or(&mut space) = trailing_space;
             match &expression {
                 Some(statement) => {
@@ -673,6 +674,43 @@ fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<Stri
     span_info.extend(ast::SpanSeed::space(close_space));
     span_info.push(ast::SpanSeed::Token(ast::SpanSeedToken { token: close }));
     Ast::from(ast::Tree::expression(span_info))
+}
+
+fn into_comment(mut newline: &str) -> Option<String> {
+    if let Some(text) = newline.strip_suffix('\n') {
+        newline = text;
+    }
+    if let Some(text) = newline.strip_suffix('\r') {
+        newline = text;
+    }
+    (!newline.is_empty()).then(|| newline.to_string())
+}
+
+fn append_comment(lines: &mut Vec<WithInitialSpace<Option<Ast>>>, space: usize, comment: String) {
+    let prev = lines.pop();
+    let space_after_expression = match prev.as_ref().and_then(|spaced| spaced.body.as_ref()) {
+        Some(_) => space,
+        None => 0,
+    };
+    let prev = prev.unwrap_or(WithInitialSpace { space, body: None });
+    let line = prev.map(|prev| {
+        Some(Ast::from(ast::Tree::expression_with_comment(prev, space_after_expression, comment)))
+    });
+    lines.push(line);
+}
+
+fn append_comment_ast(lines: &mut Vec<ast::BlockLine<Option<Ast>>>, space: usize, comment: String) {
+    let prev = lines.pop();
+    let off = prev.as_ref().map(|line| line.off).unwrap_or_default();
+    let prev = prev.and_then(|line| line.elem);
+    // If there's no expression before the comment, the space to the left of the comment
+    // is already represented as the indent.
+    let trailing_space = match prev {
+        Some(_) => space,
+        None => 0,
+    };
+    let elem = ast::Tree::expression_with_comment(prev, trailing_space, comment);
+    lines.push(ast::BlockLine { elem: Some(Ast::from(elem)), off });
 }
 
 
@@ -795,7 +833,7 @@ impl<T> WithInitialSpace<Option<T>> {
 }
 
 fn ignore_space_if_empty<T>(spaced: WithInitialSpace<Option<T>>) -> Option<WithInitialSpace<T>> {
-    spaced.body.map(|body| WithInitialSpace { space: 0, body })
+    spaced.body.map(|body| WithInitialSpace { space: spaced.space, body })
 }
 
 

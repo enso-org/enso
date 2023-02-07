@@ -164,5 +164,8 @@ impl<T: HasTokens> HasTokens for Tree<T> {
                 }
             }
         }
+        if let Some(str) = &self.trailing_token {
+            Token::Str(str).feed_to(consumer)
+        }
     }
 }

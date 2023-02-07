@@ -35,7 +35,9 @@ pub const UNQUALIFIED_IMPORT_KEYWORD: &str = "from";
 
 /// Check if this AST is a disabling comment.
 pub fn is_disable_comment(ast: &Ast) -> bool {
-    if let crate::Shape::Tree(tree) = ast.shape() && tree.type_info == crate::TreeType::Comment {
+    if let crate::Shape::Tree(tree) = ast.shape()
+        && tree.type_info == crate::TreeType::ExpressionWithComment
+        && !tree.span_info.iter().any(|e| matches!(e, crate::SpanSeed::Child(_))) {
         true
     } else {
         false

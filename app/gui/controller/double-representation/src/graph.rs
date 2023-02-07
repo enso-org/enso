@@ -420,11 +420,13 @@ main =
         let nodes = graph.nodes();
         assert_eq!(nodes[0].documentation_text(), Some(" Docstring 0".into()));
         assert_eq!(nodes[0].ast().repr(), "foo = node0");
-        assert_eq!(nodes[1].documentation_text(), Some(" Docstring 2".into()));
-        assert_eq!(nodes[1].ast().repr(), "node2");
-        assert_eq!(nodes[2].documentation_text(), None);
-        assert_eq!(nodes[2].ast().repr(), "node3");
-        assert_eq!(nodes.len(), 3);
+        assert_eq!(nodes[1].documentation_text(), Some(" Docstring 1".into()));
+        assert_eq!(nodes[1].ast().repr(), "# disabled node1");
+        assert_eq!(nodes[2].documentation_text(), Some(" Docstring 2".into()));
+        assert_eq!(nodes[2].ast().repr(), "node2");
+        assert_eq!(nodes[3].documentation_text(), None);
+        assert_eq!(nodes[3].ast().repr(), "node3");
+        assert_eq!(nodes.len(), 4);
     }
 
     #[test]

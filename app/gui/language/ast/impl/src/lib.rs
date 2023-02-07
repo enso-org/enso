@@ -429,6 +429,8 @@ pub enum Shape<T> {
         leaf_info:        Option<String>,
         /// Suitable for naming variables referring to this node.
         descriptive_name: Option<&'static str>,
+        /// Extra characters after the node (e.g. a comment).
+        trailing_token:   Option<String>,
     },
 }
 
@@ -452,7 +454,13 @@ macro_rules! with_shape_variants {
 /// Low-level builders.
 impl<T> Tree<T> {
     pub fn expression(span_info: Vec<SpanSeed<T>>) -> Self {
-        Self { span_info, type_info: default(), leaf_info: default(), descriptive_name: default() }
+        Self {
+            span_info,
+            type_info: default(),
+            leaf_info: default(),
+            descriptive_name: default(),
+            trailing_token: default(),
+        }
     }
 
     pub fn leaf(leaf_info: String) -> Self {
@@ -461,17 +469,35 @@ impl<T> Tree<T> {
             type_info:        default(),
             leaf_info:        Some(leaf_info),
             descriptive_name: default(),
+            trailing_token:   None,
         }
     }
 
     pub fn with_type_info(self, type_info: TreeType) -> Self {
-        let Self { span_info, type_info: _, leaf_info, descriptive_name } = self;
-        Self { span_info, type_info, leaf_info, descriptive_name }
+        let Self { span_info, type_info: _, leaf_info, descriptive_name, trailing_token } = self;
+        Self { span_info, type_info, leaf_info, descriptive_name, trailing_token }
     }
 
     pub fn with_descriptive_name(self, descriptive_name: &'static str) -> Self {
-        let Self { span_info, type_info, leaf_info, descriptive_name: _ } = self;
-        Self { span_info, type_info, leaf_info, descriptive_name: Some(descriptive_name) }
+        let Self { span_info, type_info, leaf_info, descriptive_name: _, trailing_token } = self;
+        Self {
+            span_info,
+            type_info,
+            leaf_info,
+            descriptive_name: Some(descriptive_name),
+            trailing_token,
+        }
+    }
+
+    pub fn with_trailing_token(self, trailing_token: String) -> Self {
+        let Self { span_info, type_info, leaf_info, descriptive_name, trailing_token: _ } = self;
+        Self {
+            span_info,
+            type_info,
+            leaf_info,
+            descriptive_name,
+            trailing_token: Some(trailing_token),
+        }
     }
 }
 
@@ -489,8 +515,13 @@ impl<T> Tree<T> {
         Tree::leaf(leaf_info).with_descriptive_name("text")
     }
 
-    pub fn comment(leaf_info: String) -> Self {
-        Tree::leaf(leaf_info).with_type_info(TreeType::Comment)
+    pub fn expression_with_comment(expression: Option<T>, space: usize, comment: String) -> Self {
+        let mut span_info = vec![];
+        span_info.extend(expression.map(SpanSeed::child));
+        span_info.extend(SpanSeed::space(space));
+        Tree::expression(span_info)
+            .with_type_info(TreeType::ExpressionWithComment)
+            .with_trailing_token(comment)
     }
 }
 
@@ -508,8 +539,8 @@ pub enum TreeType {
     Lambda,
     /// A parenthesized expression.
     Group,
-    /// A commented-out expression.
-    Comment,
+    /// A comment at the end of a line, possibly following an expression.
+    ExpressionWithComment,
 }
 
 /// Describes the names imported by an import declaration.
@@ -535,6 +566,10 @@ impl<T> SpanSeed<T> {
             0 => None,
             space => Some(SpanSeed::Space(SpanSeedSpace { space })),
         }
+    }
+
+    pub fn child(node: T) -> Self {
+        Self::Child(SpanSeedChild { node })
     }
 }
 
