@@ -10,7 +10,7 @@ object LauncherShimsForTest {
     Def.task {
       val log = state.value.log
       Cargo.run(
-        "build -p launcher-shims",
+        Seq("build", "-p", "launcher-shims"),
         log         = log
       )
     }
