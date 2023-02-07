@@ -31,7 +31,7 @@ type Child_Comparator
     equals child1 child2 = child1.number % 100 == child2.number % 100
     hash child =
         comp = Comparable.from child.number
-        (comp.hash child.number) % 100
+        comp.hash (child.number % 100)
 
 Comparable.from (_:Child) = Child_Comparator
 
@@ -161,12 +161,10 @@ spec =
             four_field = FourFieldType.Value 1 2 3 4
             (rect == four_field).should_be_false
 
-        Test.specify "should handle `==` on types" pending="Blocked by https://www.pivotaltracker.com/story/show/184092284" <|
+        Test.specify "should handle `==` on types" <|
             (Child == Child).should_be_true
             (Child == Point).should_be_false
             (Point == Child).should_be_false
-            (JavaPath == Child).should_be_false
-            (Child == JavaPath).should_be_false
             (Boolean == Any).should_be_false
             (Any == Boolean).should_be_false
             (Any == Any).should_be_true

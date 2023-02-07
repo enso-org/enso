@@ -65,7 +65,10 @@ public class ConversionMethodTests extends TestBase {
        import Standard.Base.Data.Map.Map
        
        foreign js js_map = '''
-           return {"A": 1, "B": 2};
+           let m = new Map()
+           m.set("A", 1)
+           m.set("B", 2)
+           return m
        
        type Foo
           Mk_Foo data
@@ -80,9 +83,9 @@ public class ConversionMethodTests extends TestBase {
   }
 
   @Test
-  public void testDispatchOnJSDate() {
+  public void testDispatchOnJSDateTime() {
     String src = """
-       import Standard.Base.Data.Time.Date.Date
+       import Standard.Base.Data.Time.Date_Time.Date_Time
        
        foreign js js_date year month day hour minute second nanosecond = '''
            return new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000);
@@ -90,7 +93,7 @@ public class ConversionMethodTests extends TestBase {
        type Foo
           Mk_Foo data
        
-       Foo.from (that:Date) = Foo.Mk_Foo that
+       Foo.from (that:Date_Time) = Foo.Mk_Foo that
        
        main =
           Foo.from (js_date 2023 2 7 23 59 0 10) . data . day
