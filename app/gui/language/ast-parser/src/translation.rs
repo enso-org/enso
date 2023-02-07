@@ -134,7 +134,8 @@ impl Translate {
                 self.finish_ast(app, builder)
             }
             tree::Variant::OprApp(tree::OprApp { lhs: Some(_), opr: Ok(opr), rhs: Some(_) })
-                if opr.properties.is_arrow() => {
+                if opr.properties.is_arrow() =>
+            {
                 let ast = ast::Tree::lambda(self.translate_items(tree));
                 self.finish_ast(ast, builder)
             }
@@ -256,7 +257,7 @@ impl Translate {
             _ => {
                 let ast = ast::Tree::expression(self.translate_items(tree));
                 self.finish_ast(ast, builder)
-            },
+            }
         };
         WithInitialSpace { space, body }
     }

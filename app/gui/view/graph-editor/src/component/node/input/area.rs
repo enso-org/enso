@@ -1097,17 +1097,17 @@ impl Area {
 /// parent layer when building the nested one.
 #[derive(Clone, Debug)]
 struct PortLayerBuilder {
-    parent_frp: Option<port::FrpEndpoints>,
+    parent_frp:      Option<port::FrpEndpoints>,
     /// Parent port display object.
-    parent:     display::object::Instance,
+    parent:          display::object::Instance,
     /// Information whether the parent port was a parensed expression.
     parent_parensed: bool,
     /// The number of chars the expression should be shifted. For example, consider
     /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
     /// shift should be applied when considering its children.
-    shift:      usize,
+    shift:           usize,
     /// The depth at which the current expression is, where root is at depth 0.
-    depth:      usize,
+    depth:           usize,
 }
 
 impl PortLayerBuilder {

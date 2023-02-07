@@ -490,14 +490,9 @@ pub enum TreeType {
     #[default]
     Expression,
     /// A documentation-comment.
-    Documentation {
-        rendered: ImString,
-    },
+    Documentation { rendered: ImString },
     /// An import declaration.
-    Import {
-        module:   Vec<ImString>,
-        imported: ImportedNames,
-    },
+    Import { module: Vec<ImString>, imported: ImportedNames },
     /// A lambda.
     Lambda,
     /// A parenthesized expression.
