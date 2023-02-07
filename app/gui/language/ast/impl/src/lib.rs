@@ -420,9 +420,14 @@ pub enum Shape<T> {
         lines:       Vec<BlockLine<Option<T>>>,
     },
     Tree {
-        span_info:        Vec<RawSpanTree<T>>,
+        /// The information needed to iterate child tokens and nodes.
+        span_info:        Vec<SpanSeed<T>>,
+        /// Semantic information about the node.
         type_info:        TreeType,
+        /// Information needed to produce a representation, for nodes whose contents are not child
+        /// nodes.
         leaf_info:        Option<String>,
+        /// Suitable for naming variables referring to this node.
         descriptive_name: Option<&'static str>,
     },
 }
@@ -446,7 +451,7 @@ macro_rules! with_shape_variants {
 
 /// Low-level builders.
 impl<T> Tree<T> {
-    pub fn expression(span_info: Vec<RawSpanTree<T>>) -> Self {
+    pub fn expression(span_info: Vec<SpanSeed<T>>) -> Self {
         Self { span_info, type_info: default(), leaf_info: default(), descriptive_name: default() }
     }
 
@@ -472,11 +477,11 @@ impl<T> Tree<T> {
 
 /// High-level helper builders.
 impl<T> Tree<T> {
-    pub fn lambda(span_info: Vec<RawSpanTree<T>>) -> Self {
+    pub fn lambda(span_info: Vec<SpanSeed<T>>) -> Self {
         Tree::expression(span_info).with_type_info(TreeType::Lambda)
     }
 
-    pub fn group(span_info: Vec<RawSpanTree<T>>) -> Self {
+    pub fn group(span_info: Vec<SpanSeed<T>>) -> Self {
         Tree::expression(span_info).with_type_info(TreeType::Group)
     }
 
@@ -489,6 +494,7 @@ impl<T> Tree<T> {
     }
 }
 
+/// The semantic information about a node.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum TreeType {
     /// A normal expression.
@@ -506,6 +512,7 @@ pub enum TreeType {
     Comment,
 }
 
+/// Describes the names imported by an import declaration.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ImportedNames {
     Module { alias: Option<String> },
@@ -516,17 +523,17 @@ pub enum ImportedNames {
 /// Represents the syntax tree, and its correspondence to the source text; with context information
 /// provided by an evaluator, this can be used to produce a complete [`SpanTree`].
 #[ast]
-pub enum RawSpanTree<T> {
+pub enum SpanSeed<T> {
     Space { space: usize },
     Token { token: String },
     Child { node: T },
 }
 
-impl<T> RawSpanTree<T> {
+impl<T> SpanSeed<T> {
     pub fn space(space: usize) -> Option<Self> {
         match space {
             0 => None,
-            space => Some(RawSpanTree::Space(RawSpanTreeSpace { space })),
+            space => Some(SpanSeed::Space(RawSpanTreeSpace { space })),
         }
     }
 }
@@ -1116,7 +1123,6 @@ impl Ast {
     /// Creates an AST node with `Opr` shape.
     pub fn opr(name: impl Str) -> Ast {
         let name = name.into();
-        // TODO: Use parser for this ([`assoc`]'s analysis is outdated!)
         let right_assoc = crate::assoc::Assoc::of(&name) == crate::assoc::Assoc::Right;
         let opr = Opr { name, right_assoc };
         Ast::from(opr)

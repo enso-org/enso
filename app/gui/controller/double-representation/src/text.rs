@@ -255,19 +255,6 @@ mod test {
         fn assert_same_node_ids(&self, ast1: &ast::known::Module, ast2: &ast::known::Module) {
             let ids1 = main_nodes(ast1);
             let ids2 = main_nodes(ast2);
-            eprintln!("repr1: {:?}", ast1.repr());
-            eprintln!("repr2: {:?}", ast2.repr());
-            eprintln!("ast1: {ast1:?}");
-            eprintln!("ast2: {ast2:?}");
-            let ids = |idmap: IdMap| {
-                idmap
-                    .vec
-                    .into_iter()
-                    .map(|(range, id)| ((range.start.value, range.end.value), id))
-                    .collect::<Vec<_>>()
-            };
-            eprintln!("IDs1: {:?}", ids(ast1.id_map()));
-            eprintln!("IDs2: {:?}", ids(ast2.id_map()));
             assert_eq!(ids1, ids2, "Node ids mismatch in {self:?}");
         }
     }

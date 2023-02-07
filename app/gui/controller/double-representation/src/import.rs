@@ -197,11 +197,6 @@ mod tests {
         let normal_case = "from Standard.Base import all";
         let normal_case_expected = make_info(&["Standard", "Base"]);
         test.run_case(normal_case, normal_case_expected);
-
-        // TODO: represent this macro match failure accurately
-        //let weird_spaces = "from   Standard  . Base import   all  ";
-        //let weird_spaces_expected = make_info(&["Standard", "Base"]);
-        //test.run_case(weird_spaces, weird_spaces_expected);
     }
 
     #[test]

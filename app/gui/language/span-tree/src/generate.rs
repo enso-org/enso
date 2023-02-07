@@ -15,7 +15,7 @@ use ast::crumbs::Located;
 use ast::opr::GeneralizedInfix;
 use ast::Ast;
 use ast::HasRepr;
-use ast::RawSpanTree;
+use ast::SpanSeed;
 use std::collections::VecDeque;
 
 
@@ -517,9 +517,8 @@ fn tree_generate_node<T: Payload>(
         let mut offset = ByteDiff::from(0);
         for (index, raw_span_info) in tree.span_info.iter().enumerate() {
             match raw_span_info {
-                RawSpanTree::Space(ast::RawSpanTreeSpace { space }) =>
-                    offset += ByteDiff::from(space),
-                RawSpanTree::Token(ast::RawSpanTreeToken { token }) => {
+                SpanSeed::Space(ast::RawSpanTreeSpace { space }) => offset += ByteDiff::from(space),
+                SpanSeed::Token(ast::RawSpanTreeToken { token }) => {
                     let kind = node::Kind::Token;
                     let size = ByteDiff::from(token.len());
                     let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
@@ -527,7 +526,7 @@ fn tree_generate_node<T: Payload>(
                     children.push(node::Child { node, offset, ast_crumbs });
                     offset += size;
                 }
-                RawSpanTree::Child(ast::RawSpanTreeChild { node }) => {
+                SpanSeed::Child(ast::RawSpanTreeChild { node }) => {
                     let kind = node::Kind::Argument(node::Argument {
                         removable:  false,
                         name:       None,

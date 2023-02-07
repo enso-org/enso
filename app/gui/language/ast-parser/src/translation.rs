@@ -630,7 +630,7 @@ impl Translate {
     }
 
     /// Analyze a [`Tree`] and produce a representation used by the graph editor.
-    fn translate_items(&mut self, tree: &syntax::tree::Tree<'_>) -> Vec<ast::RawSpanTree<Ast>> {
+    fn translate_items(&mut self, tree: &syntax::tree::Tree<'_>) -> Vec<ast::SpanSeed<Ast>> {
         let mut span_info = RawSpanTreeBuilder::new();
         tree.visit_items(|item| match item {
             syntax::item::Ref::Token(token) => span_info.token(self.visit_token_ref(token)),
@@ -651,11 +651,11 @@ fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<Stri
     let (close_space, close) = close.split();
     let min_elements = 3; // There are always at least 3 elements: open, close, and body
     let mut span_info = Vec::with_capacity(min_elements);
-    span_info.push(ast::RawSpanTree::Token(ast::RawSpanTreeToken { token: open }));
-    span_info.extend(ast::RawSpanTree::space(body_space));
-    span_info.push(ast::RawSpanTree::Child(ast::RawSpanTreeChild { node: body }));
-    span_info.extend(ast::RawSpanTree::space(close_space));
-    span_info.push(ast::RawSpanTree::Token(ast::RawSpanTreeToken { token: close }));
+    span_info.push(ast::SpanSeed::Token(ast::RawSpanTreeToken { token: open }));
+    span_info.extend(ast::SpanSeed::space(body_space));
+    span_info.push(ast::SpanSeed::Child(ast::RawSpanTreeChild { node: body }));
+    span_info.extend(ast::SpanSeed::space(close_space));
+    span_info.push(ast::SpanSeed::Token(ast::RawSpanTreeToken { token: close }));
     Ast::from(ast::Tree::expression(span_info))
 }
 
@@ -824,7 +824,7 @@ fn infix(
 #[derive(Debug, Default)]
 pub struct RawSpanTreeBuilder {
     space: Option<usize>,
-    spans: Vec<ast::RawSpanTree<Ast>>,
+    spans: Vec<ast::SpanSeed<Ast>>,
 }
 
 impl RawSpanTreeBuilder {
@@ -837,9 +837,9 @@ impl RawSpanTreeBuilder {
         if self.space.is_none() {
             self.space = Some(space);
         } else {
-            self.spans.extend(ast::RawSpanTree::space(space));
+            self.spans.extend(ast::SpanSeed::space(space));
         }
-        self.spans.push(ast::RawSpanTree::Token(ast::RawSpanTreeToken { token: value }));
+        self.spans.push(ast::SpanSeed::Token(ast::RawSpanTreeToken { token: value }));
     }
 
     fn child(&mut self, node: WithInitialSpace<Ast>) {
@@ -847,12 +847,12 @@ impl RawSpanTreeBuilder {
         if self.space.is_none() {
             self.space = Some(space);
         } else {
-            self.spans.extend(ast::RawSpanTree::space(space));
+            self.spans.extend(ast::SpanSeed::space(space));
         }
-        self.spans.push(ast::RawSpanTree::Child(ast::RawSpanTreeChild { node }));
+        self.spans.push(ast::SpanSeed::Child(ast::RawSpanTreeChild { node }));
     }
 
-    fn build(self) -> WithInitialSpace<Vec<ast::RawSpanTree<Ast>>> {
+    fn build(self) -> WithInitialSpace<Vec<ast::SpanSeed<Ast>>> {
         let space = self.space.unwrap_or_default();
         let body = self.spans;
         WithInitialSpace { space, body }

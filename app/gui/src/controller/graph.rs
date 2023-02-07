@@ -1477,7 +1477,7 @@ main =
     }
 
     #[test]
-    #[ignore]
+    #[ignore] // FIXME (https://github.com/enso-org/enso/issues/5574)
     fn graph_controller_connections_listing() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"
@@ -1569,7 +1569,6 @@ main =
 
         let cases = &[
             Case { src: "x", dst: "foo", expected: "x", ports: (&[], &[]) },
-            //Case { src: "x,y", dst: "foo a", expected: "foo y", ports: (&[4], &[2]) },
             Case {
                 src:      "Vec x y",
                 dst:      "1 + 2 + 3",
@@ -1750,11 +1749,6 @@ main =
             Case { dest_node_expr: "var + b + c", dest_node_expected: "_ + b + c" },
             Case { dest_node_expr: "a + var + c", dest_node_expected: "a + _ + c" },
             Case { dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
-            //Case { dest_node_expr: "var , a", dest_node_expected: "_ , a" },
-            //Case { dest_node_expr: "a , var", dest_node_expected: "a , _" },
-            //Case { dest_node_expr: "var , b , c", dest_node_expected: "_ , b , c" },
-            //Case { dest_node_expr: "a , var , c", dest_node_expected: "a , _ , c" },
-            //Case { dest_node_expr: "a , b , var", dest_node_expected: "a , b" },
             Case {
                 dest_node_expr:     "f\n        bar a var",
                 dest_node_expected: "f\n        bar a _",

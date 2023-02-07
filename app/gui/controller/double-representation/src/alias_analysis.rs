@@ -428,11 +428,12 @@ mod tests {
             "(«foo») = (»bar«)",
             "if »A« then »B«",
             "if »a« then »b« else »c«",
-            // TODO: alias analysis for case-of
+            // TODO: alias analysis for case-of (https://github.com/enso-org/enso/issues/5571)
             //"case »foo« of\n    »Number« a -> a\n    »Wildcard« -> »bar«\n    a»,«b -> a",
             // === Macros Ambiguous ===
             "(»foo«",
-            //"if »a«", // TODO: alias analysis for partial if-else
+            // TODO: analysis for partial macros (https://github.com/enso-org/enso/issues/5571)
+            //"if »a«",
             //"case »a«", // TODO: alias analysis for partial case-of
             // "->»a«", // TODO [mwu] restore (and implement) when parser is able to parse this
             // "a ->",  // TODO [mwu] restore (and implement) when parser is able to parse this

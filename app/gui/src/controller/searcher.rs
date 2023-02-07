@@ -2181,7 +2181,7 @@ pub mod test {
         assert_eq!(parsed.pattern_offset, 1);
         assert_eq!(parsed.pattern.as_str(), "");
 
-        // TODO: Partial groups
+        // TODO: Partial groups (https://github.com/enso-org/enso/issues/5571)
         /*
         let input = "foo bar (baz ";
         let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();

@@ -132,21 +132,21 @@ fn preserving_macro(
 
 /// Check if AST contains a prefix-like macro call with a given name.
 pub fn is_macro_call(ast: &Ast, identifier: &str) -> bool {
-    // TODO
     if let Ok(prefix) = known::Prefix::try_from(ast) {
         let name = crate::identifier::name(&prefix.func);
         name == Some(identifier)
     } else {
+        // TODO: Check for a [`Tree`] macro (https://github.com/enso-org/enso/issues/5572).
         false
     }
 }
 
 /// Returns a body (argument) of the prefix-like macro. See [`is_macro_call`] docs.
 pub fn maybe_prefix_macro_body(ast: &Ast) -> Option<Ast> {
-    // TODO
     if let Ok(prefix) = known::Prefix::try_from(ast) {
         Some(prefix.arg.clone())
     } else {
+        // TODO: Check for a [`Tree`] macro (https://github.com/enso-org/enso/issues/5572).
         None
     }
 }
