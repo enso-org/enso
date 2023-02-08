@@ -826,8 +826,8 @@ type Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
         can_proceed = if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table right "right") else
             same_backend = case right of
-                            _ : Table -> True
-                            _ -> False
+                _ : Table -> True
+                _ -> False
             if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. You need to upload the in-memory table before joining it with a database one, or materialize this table.") else
                 True
         if can_proceed then
@@ -1087,6 +1087,8 @@ type Table
            `Group_By` columns are reported as dataflow errors regardless of
            these settings, as a missing grouping will completely change
            semantics of the query.
+         - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
+           raised.
          - The following additional problems may be reported according to the
            `on_problems` settings:
            - If there are invalid column names in the output table,
@@ -1095,7 +1097,6 @@ type Table
              a `Duplicate_Output_Column_Names`.
            - If grouping on or computing the `Mode` on a floating point number,
              a `Floating_Point_Grouping`.
-           - If an aggregation fails, an `Invalid_Aggregation`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
@@ -1193,11 +1194,12 @@ type Table
          - If a column selector in `values` given as a `Text` and it does not
            match any columns in the input table nor is it a valid expression, an
            `Invalid_Aggregate_Column` dataflow error is raised.
+         - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
+           raised.
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If grouping on, using as the column name, or computing the `Mode` on
              a floating point number, a `Floating_Point_Grouping`.
-           - If an aggregation fails, an `Invalid_Aggregation`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
