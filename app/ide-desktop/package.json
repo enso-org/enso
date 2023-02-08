@@ -16,6 +16,7 @@
   "name": "root",
   "private": true,
   "workspaces": [
+    "lib/authentication",
     "lib/client",
     "lib/content",
     "lib/copy-plugin",

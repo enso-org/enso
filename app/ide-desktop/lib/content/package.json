@@ -24,6 +24,7 @@
     "html-loader": "^4.2.0",
     "mixpanel-browser": "2.45.0",
     "enso-gui-server": "^1.0.0",
+    "enso-studio-authentication": "^1.0.0",
     "@types/mixpanel-browser": "^2.38.0"
   },
   "devDependencies": {

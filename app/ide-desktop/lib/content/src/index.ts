@@ -7,6 +7,7 @@ import globalConfig from '../../../../gui/config.yaml'
 import buildCfg from '../../../build.json'
 import * as app from 'ensogl_app'
 import * as semver from 'semver'
+import * as authentication from 'enso-studio-authentication'
 
 const logger = app.log.logger
 const config = app.config
@@ -220,7 +221,7 @@ class Main {
                     appInstance.config.params.authenticationEnabled.value &&
                     appInstance.config.params.entry.value != appInstance.config.params.entry.default
                 ) {
-                    // TODO: authentication here
+                    authentication.run()
                     // appInstance.config.email.value = user.email
                     appInstance.run()
                 } else {

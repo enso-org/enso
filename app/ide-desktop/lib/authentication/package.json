@@ -1,0 +1,10 @@
+{
+  "name": "enso-studio-authentication",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "devDependencies": {
+    "typescript": "^4.9.3"
+  }
+}
+
