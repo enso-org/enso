@@ -870,6 +870,8 @@ type Table
          of `Filter_Condition` or a predicate taking a cell value and returning
          a boolean value indicating whether the corresponding row should be kept
          or not.
+       - on_problems: Specifies how to handle if a non-fatal problem occurs,
+         attaching a warning by default.
 
        ! Error Conditions
 
@@ -879,6 +881,10 @@ type Table
            is raised.
          - If the column is an invalid type for the filter, an
            `Invalid_Value_Type` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If filtering by equality on a floating-point column,
+             a `Floating_Point_Grouping`.
 
        > Example
          Get people older than 30.
@@ -901,8 +907,8 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     @filter Filter_Condition.default_widget
-    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column filter=(Filter_Condition.Is_True) = case column of
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
+    filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
@@ -919,6 +925,8 @@ type Table
 
        Arguments:
        - expression: The expression to evaluate to filter the rows.
+       - on_problems: Specifies how to handle non-fatal problems, attaching a
+         warning by default.
 
        ! Error Conditions
 
@@ -928,14 +936,22 @@ type Table
            `Expression_Error` dataflow error is raised.
          - If the expression returns a column that does not have a boolean type,
            an `Invalid_Value_Type` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If the expression checks equality on a floating-point column,
+             a `Floating_Point_Grouping`.
+           - If an arithmetic error occurs when computing the expression,
+             an `Arithmetic_Error`.
+           - If more than 10 rows encounter computation issues,
+             an `Additional_Warnings`.
 
        > Example
          Select people celebrating a jubilee.
 
              people.filter_by_expression "[age] % 10 == 0"
-    filter_by_expression : Text -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    filter_by_expression self expression =
-        column = self.compute expression
+    filter_by_expression : Text -> Problem_Behavior -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    filter_by_expression self expression on_problems=Report_Warning =
+        column = self.compute expression on_problems
         self.filter column Filter_Condition.Is_True
 
     ## PRIVATE
@@ -1038,8 +1054,25 @@ type Table
 
        Arguments:
        - expression: The expression to evaluate.
-    compute : Text -> Column
-    compute self expression =
+       - on_problems: Specifies how to handle non-fatal problems, attaching a
+         warning by default.
+
+       ! Error Conditions
+
+         - If a column name cannot be found, a `No_Such_Column` dataflow error
+           is raised.
+         - If the provided expression is invalid, a corresponding
+           `Expression_Error` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If the expression checks equality on a floating-point column,
+             a `Floating_Point_Grouping`.
+           - If an arithmetic error occurs when computing the expression,
+             an `Arithmetic_Error`.
+           - If more than 10 rows encounter computation issues,
+             an `Additional_Warnings`.
+    compute : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    compute self expression on_problems=Report_Warning =
         get_column name = self.at name
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
