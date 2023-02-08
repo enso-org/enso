@@ -1,15 +1,15 @@
-import project.Data.Numbers.Integer
+import project.Any.Any
 import project.Data.Numbers.Decimal
+import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Incomparable_Values.Incomparable_Values
 import project.Error.Unimplemented.Unimplemented
 import project.Nothing
-import project.Any.Any
-from project.Data.Boolean import all
 import project.Meta
 import project.Meta.Atom
+from project.Data.Boolean import all
 
 ## Provides custom ordering, equality check and hash code for types that need it.
 
@@ -127,12 +127,12 @@ type Comparable
     ## PRIVATE
        Called as a callback from internal engine code for an atom with a custom
        comparator. It is assumed that the given atom has a custom comparator, that is
-       a comparator different than `Default_Unordered_Comparator`.:
+       a comparator different than `Default_Unordered_Comparator`.
     hash_callback : Atom -> Integer
     hash_callback atom = (Comparable.from atom).hash atom
 
     ## PRIVATE
-       A custom comparator is any comparator that is different than the two
+       A custom comparator is any comparator that is different than the
        default ones.
     has_custom_comparator : Atom -> Boolean
     has_custom_comparator atom =

@@ -183,6 +183,7 @@ type JS_Object
     to_default_visualization_data self =
         render self
 
+## PRIVATE
 type JS_Object_Comparator
     is_ordered : Boolean
     is_ordered = False

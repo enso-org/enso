@@ -1,5 +1,3 @@
-# We have to import also conversion methods from Ordering, therefore, we import all
-from project.Data.Ordering import all
 import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
@@ -12,6 +10,7 @@ import project.Meta
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Ordering import all
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 

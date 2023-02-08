@@ -1172,7 +1172,7 @@ type Column
          this rule, ignoring the ascending / descending setting.
        - by: function taking two items in this column and returning an
          ordering. If specified, it is used instead of the natural
-         ordering as defined by `Default_Ordered_Comparator`.
+         ordering of the values.
 
        > Example
          Sorting a column in ascending order.
@@ -1191,7 +1191,7 @@ type Column
                  Examples.integer_column.sort Sort_Direction.Descending missing_last=False
 
        > Example
-         Sorting `column` in ascending order, using a custom compare
+         Sorting `column` in ascending order, using a custom comparison
          function.
 
              import Standard.Examples

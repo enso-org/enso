@@ -137,7 +137,7 @@ type Array
     ## Sorts the Array.
 
       Arguments:
-      - compare_func: A comparison function that takes two elements and returns
+      - comparator: A comparison function that takes two elements and returns
         an Ordering that describes how the first element is ordered with
         respect to the second.
 
@@ -146,8 +146,8 @@ type Array
 
             [3,2,1].to_array.sort
     sort : (Any -> Any -> Ordering) -> Array
-    sort self compare_func=(Ordering.compare _ _) =
-        self.sort_builtin compare_func
+    sort self comparator=(Ordering.compare _ _) =
+        self.sort_builtin comparator
 
     ## Identity.
 
