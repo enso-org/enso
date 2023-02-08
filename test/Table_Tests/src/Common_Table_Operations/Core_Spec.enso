@@ -124,6 +124,16 @@ spec setup =
             t1.set "[unknown] + 10" new_name="Z" . should_fail_with No_Such_Column
             t1.set "[[[[" . should_fail_with Expression_Error.Syntax_Error
 
+        Test.specify "should forward expression problems" <|
+            t1 = table_builder [["X", [1.1,2.0,3.0]]]
+            action1 = t1.set "([X] == 2) || ([X] + 0.9 == 2)" new_name="Z" on_problems=_
+            tester1 table =
+                table.at "Z" . to_vector . should_equal [True, True, False]
+            problems1 = [Floating_Point_Grouping.Error "TODO"]
+            Problems.test_problem_handling action1 problems1 tester1
+
+
+
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
             table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]

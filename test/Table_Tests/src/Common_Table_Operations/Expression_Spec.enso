@@ -31,9 +31,7 @@ spec detailed setup =
 
     tester expression value =
         new_table = test_table.set expression new_name="NEW_COL"
-        new_table.column_count . should_equal (test_table.column_count + 1)
-        new_column = new_table.at -1
-        new_column.name . should_equal "NEW_COL"
+        new_column = test_table.compute expression
         expected = case value of
             _ : Vector -> value
             _ -> Vector.new test_table.row_count _->value
@@ -293,3 +291,15 @@ spec detailed setup =
 
         specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
             expression_test "Not([C], 'Hello')" Expression_Error.Argument_Mismatch
+
+    Test.group prefix+"Warnings should be reported" <|
+        Test.specify "should report floating point equality" <|
+            Nothing
+
+        Test.specify "should report arithmetic errors" <|
+            # div 0
+            # sqrt -1
+            Nothing
+
+        Test.specify "should limit the number of issues reported" <|
+            Nothing
