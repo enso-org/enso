@@ -164,7 +164,7 @@ function printHelp(cfg: {
                 if (def != null && def !== '') {
                     defaults = ` Defaults to ${chalk.green(def)}.`
                 }
-                let description = firstSentence + defaults + chalk.ansi256(245)(otherSentences)
+                let description = firstSentence + defaults + chalk.gray(otherSentences)
                 const lines = wordWrap(description, rightWidth).map(
                     line => line + ' '.repeat(rightWidth - stringLength(line))
                 )
