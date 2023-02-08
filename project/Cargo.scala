@@ -7,9 +7,10 @@ import scala.sys.process._
 /** A wrapper for executing the command `cargo`. */
 object Cargo {
   private val cargoCmd = "cargo"
+  private var wasCargoOk: Boolean = false
 
   /** Executes the command `cargo $args`. */
-  def apply(args: String): Def.Initialize[Task[Unit]] =
+  def apply(args: Seq[String]): Def.Initialize[Task[Unit]] =
     Def.task {
       run(args, state.value.log)
     }
@@ -22,16 +23,16 @@ object Cargo {
     *                 the cargo process
     */
   def run(
-    args: String,
+    args: Seq[String],
     log: ManagedLogger,
     extraEnv: Seq[(String, String)] = Seq()
   ): Unit = {
-    val cmd = s"$cargoCmd $args"
+    val cmd: Seq[String] = Seq(cargoCmd) ++ args
 
     if (!cargoOk(log))
       throw new RuntimeException("Cargo isn't installed!")
 
-    log.info(cmd)
+    log.info(cmd.toString())
 
     val exitCode =
       try Process(cmd, None, extraEnv: _*).!
@@ -47,13 +48,16 @@ object Cargo {
   }
 
   /** Checks that cargo is installed. Logs an error and returns false if not. */
-  def cargoOk(log: ManagedLogger): Boolean = {
-    try s"$cargoCmd version".!!
+  def cargoOk(log: ManagedLogger): Boolean = if (wasCargoOk) true else {
+    try {
+      s"$cargoCmd version".!!
+      wasCargoOk = true
+      true
+    }
     catch {
       case _: RuntimeException =>
         log.error(s"The command `cargo` isn't on path. Did you install cargo?")
-        return false
+        false
     }
-    true
   }
 }
