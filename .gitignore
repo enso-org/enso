@@ -153,3 +153,12 @@ test-results
 *.ir
 *.meta
 .enso/
+
+################
+## Enso Cloud ##
+################
+
+# Example configuration file for Next.js.
+/app/ide-desktop/lib/cloud2/.env.local
+# Next.js build output.
+/app/ide-desktop/lib/cloud2/.next

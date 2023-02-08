@@ -1,0 +1,41 @@
+{
+  "name": "cloud-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 8081",
+    "build": "next build",
+    "export": "next export -o dist && touch dist/.nojekyll",
+    "lint": "next lint",
+    "format": "prettier -w . & eslint --fix \"./**/*.{ts,tsx}\""
+  },
+  "dependencies": {
+    "@headlessui/react": "^1.7.7",
+    "@heroicons/react": "^2.0.13",
+    "@next/font": "13.1.1",
+    "@types/node": "18.11.18",
+    "@types/react": "18.0.26",
+    "@types/react-dom": "18.0.10",
+    "@types/react-router-dom": "5.3.3",
+    "aws-amplify": "^5.0.7",
+    "enso-studio-authentication": "^1.0.0",
+    "eslint": "8.30.0",
+    "eslint-config-next": "13.1.1",
+    "mixpanel-browser": "^2.45.0",
+    "next": "13.1.1",
+    "prettier": "2.8.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-hot-toast": "^2.4.0",
+    "react-router-dom": "6.6.0",
+    "typescript": "4.9.4"
+  },
+  "devDependencies": {
+    "@types/mixpanel-browser": "^2.38.0",
+    "autoprefixer": "^10.4.13",
+    "esbuild-loader": "^2.20.0",
+    "postcss": "^8.4.20",
+    "tailwindcss": "^3.2.4",
+    "webpack": "^5.75.0"
+  }
+}

@@ -223,7 +223,7 @@ class Main {
                     //appInstance.config.params.authenticationEnabled.value &&
                     //appInstance.config.params.entry.value != appInstance.config.params.entry.default
                 ) {
-                    authentication.run()
+                    authentication.run(logger)
                     // appInstance.config.email.value = user.email
                     appInstance.run()
                 } else {

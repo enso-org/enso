@@ -18,6 +18,7 @@
   "workspaces": [
     "lib/authentication",
     "lib/client",
+    "lib/cloud2",
     "lib/content",
     "lib/copy-plugin",
     "lib/icons",
@@ -31,6 +32,7 @@
     "patch-package": "^6.4.7"
   },
   "scripts": {
+    "dev2": "npm exec --workspace cloud-dashboard -- next dev -p 8081",
     "watch": "npm run watch --workspace enso-studio-content",
     "postinstall": "patch-package"
   }
