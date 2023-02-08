@@ -36,14 +36,14 @@ type Problem_Behavior
        error takes precedence.
     attach_problem_after : Any -> Any -> Any
     attach_problem_after self decorated_value problem = case self of
-        Ignore -> case decorated_value of
-            _ -> case problem of
-                _ -> decorated_value
+        Ignore ->
+            if decorated_value.is_error then decorated_value else
+                if problem.is_error then problem else decorated_value
         Report_Warning ->
             Warning.attach problem decorated_value
         Report_Error ->
-            case decorated_value of
-                _ -> Error.throw problem
+            if decorated_value.is_error then decorated_value else
+                Error.throw problem
 
     ## ADVANCED
        UNSTABLE
@@ -57,8 +57,8 @@ type Problem_Behavior
        a dataflow error.
     attach_problem_before : Any -> Any -> Any
     attach_problem_before self problem ~decorated_value = case self of
-        Ignore -> case problem of
-            _ -> decorated_value
+        Ignore ->
+            if problem.is_error then problem else decorated_value
         Report_Warning ->
             Warning.attach problem decorated_value
         Report_Error ->
@@ -86,8 +86,8 @@ type Problem_Behavior
 
     attach_problems_before : Vector -> Any -> Any
     attach_problems_before self problems ~decorated_value = case self of
-        Ignore -> case problems of
-            _ -> decorated_value
+        Ignore ->
+            if problems.is_error then problems else decorated_value
         Report_Warning ->
             problems.fold decorated_value acc-> problem->
                 Warning.attach problem acc
@@ -116,14 +116,14 @@ type Problem_Behavior
                  perform_post_process_checks_and_return_problems
     attach_problems_after : Any -> Vector -> Any
     attach_problems_after self decorated_value problems = case self of
-        Ignore -> case decorated_value of
-            _ -> case problems of
-                _ -> decorated_value
+        Ignore ->
+            if decorated_value.is_error then decorated_value else
+                if problems.is_error then problems else decorated_value
         Report_Warning ->
             problems.fold decorated_value acc-> problem->
                 Warning.attach problem acc
-        Report_Error -> case decorated_value of
-            _ -> if problems.is_empty then decorated_value else
+        Report_Error ->
+            if decorated_value.is_error || problems.is_empty then decorated_value else
                 Error.throw problems.first
 
     ## ADVANCED
