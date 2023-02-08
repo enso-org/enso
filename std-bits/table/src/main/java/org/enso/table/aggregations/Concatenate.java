@@ -33,7 +33,7 @@ public class Concatenate extends Aggregator {
       if (value == null || value instanceof String) {
         String textValue = toQuotedString(value, quote, separator);
 
-        if (quote.equals("") && textValue.contains(separator)) {
+        if (!separator.equals("") && quote.equals("") && textValue.contains(separator)) {
           this.addProblem(new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
         }
 
