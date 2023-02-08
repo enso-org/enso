@@ -294,12 +294,40 @@ spec detailed setup =
 
     Test.group prefix+"Warnings should be reported" <|
         Test.specify "should report floating point equality" <|
-            Nothing
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+            action1 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=_
+            tester1 column =
+                column.to_vector . should_equal [True, True, False]
+            problems1 = [Floating_Point_Grouping.Error "TODO"]
+            Problems.test_problem_handling action1 problems1 tester1
 
         Test.specify "should report arithmetic errors" <|
-            # div 0
-            # sqrt -1
-            Nothing
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]], ["Y", [4.0, -1.0, 0.0]]]
+
+            action1 = t1.compute "3 / [X]" on_problems=_
+            tester1 column =
+                column.to_vector . should_equal [2.0, -1.5, Nothing]
+            problems1 = [Arithmetic_Error.Error "Division by zero."]
+            Problems.test_problem_handling action1 problems1 tester1
+
+            action2 = t1.compute "SQRT([X])" on_problems=_
+            tester2 column =
+                column.to_vector . should_equal [2.0, Nothing, 0.0]
+            problems2 = [Arithmetic_Error.Error "Negative square root."]
+            Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should limit the number of issues reported" <|
-            Nothing
+            t1 = table_builder [["X", [2.0, 4.0] + (Vector.fill 30 0.0)]]
+            action = t1.compute "1 / [X]" on_problems=_
+            action Problem_Behavior.Report_Error . should_fail_with Arithmetic_Error
+            tester column =
+                column.to_vector . should_equal <|
+                    [0.5, 0.25] + (Vector.fill 30 Nothing)
+            tester (action Problem_Behavior.Ignore)
+
+            with_warnings = action Problem_Behavior.Report_Warning
+            tester with_warnings
+            warnings = Problems.get_attached_warnings with_warnings
+            warnings.contains (Arithmetic_Error.Error "Division by zero.") . should_be_true
+            max_warnings_count = 10
+            warnings.contains (Additional_Warnings.Error count=(30-max_warnings_count)) . should_be_true

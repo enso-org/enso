@@ -298,3 +298,19 @@ spec setup =
             t.filter_by_expression "Starts_With(b)" . should_fail_with Expression_Error.Argument_Mismatch
             t.filter_by_expression "[missing]" . should_fail_with No_Such_Column.Error
             t.filter_by_expression "[ix]" . should_fail_with Invalid_Value_Type.Error
+
+        Test.specify "should report issues: floating point equality" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5], ["X", [10.0, 2.0001, 2.0, 4.5, -2.0]]]
+            action = t.filter_by_expression "[X] * [X] == 4.0" on_problems=_
+            tester table =
+                table . at "ix" . to_vector . should_equal [3, 5]
+            problems = [Floating_Point_Grouping.Error "[X] * [X] == 4.0"]
+            Problems.test_problem_behavior action problems tester
+
+        Test.specify "should report issues: arithmetic error" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5], ["X", [2.0, 2.0, 0.0, 1.0, 2.0]]]
+            action = t.filter_by_expression "8.0 / [X] == 4.0" on_problems=_
+            tester table =
+                table . at "ix" . to_vector . should_equal [1, 2, 5]
+            problems = [Arithmetic_Error.Error "Division by zero."]
+            Problems.test_problem_behavior action problems tester
