@@ -7,6 +7,7 @@
     "esModuleInterop": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
+    "strictNullChecks": true,
     "resolveJsonModule": true
   },
   "ts-node": {
