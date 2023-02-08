@@ -17,6 +17,8 @@ use enso_prelude::*;
 use enso_profiler::prelude::*;
 
 use ast::prelude::FallibleResult;
+use ast::HasIdMap;
+use ast::IdMap;
 use enso_profiler as profiler;
 
 
@@ -28,8 +30,6 @@ mod translation;
 // ==============
 // === Export ===
 // ==============
-
-pub use ast::IdMap;
 
 pub mod api;
 
@@ -81,24 +81,27 @@ impl Parser {
         if meta.is_some() && meta_lines.is_none() {
             warn!("parse_with_metadata: Expected two lines of metadata.");
         }
-        let id_map = meta_lines.map(|lines| lines.0);
+        let ids = meta_lines.map(|lines| lines.0);
         let application_metadata = meta_lines.map(|lines| lines.1);
-        let ids = enso_parser::metadata::parse_metadata(id_map.unwrap_or_default());
+        let ids = enso_parser::metadata::parse_metadata(ids.unwrap_or_default());
         if ids.is_none() {
-            warn!("parse_with_metadata: Failed to parse metadata.");
+            warn!("parse_with_metadata: Failed to parse ID map.");
         }
         let ids = ids
             .unwrap_or_default()
-            .into_iter()
-            .map(|((start, len), id)| ((start, start + len), uuid::Uuid::from_u128(id.as_u128())))
+            .iter()
+            .map(|((start, len), id)| ((*start, start + len), uuid::Uuid::from_u128(id.as_u128())))
             .collect();
         let tree = self.parser.run(code);
         let metadata = application_metadata.and_then(|meta| serde_json::from_str(meta).ok());
         if application_metadata.is_some() && metadata.is_none() {
             warn!("parse_with_metadata: Failed to deserialize metadata.");
         }
-        let metadata = metadata.unwrap_or_default();
-        let ast = ast::known::Module::try_from(translation::tree_to_ast(&tree, ids)).unwrap();
+        let ast = translation::tree_to_ast(&tree, ids);
+        let id_map = ast.id_map();
+        let ast = ast::known::Module::try_from(ast).unwrap();
+        let mut metadata: M = metadata.unwrap_or_default();
+        metadata.prune_unused_ids(&id_map);
         api::ParsedSourceFile { ast, metadata }
     }
 }

@@ -429,7 +429,6 @@ mod tests {
             "if »A« then »B«",
             "if »a« then »b« else »c«",
             "(»foo«",
-
             // === Definition ===
             "«foo» a b c = »foo« a »d«",
             "«foo» a b c = d -> a d",
