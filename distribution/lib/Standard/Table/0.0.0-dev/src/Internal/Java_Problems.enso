@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
-from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Additional_Invalid_Rows, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Additional_Invalid_Rows, Invalid_Aggregation, Floating_Point_Equality, Unquoted_Delimiter, Additional_Warnings
 
 polyglot java import org.enso.table.problems.AggregatedProblems
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
@@ -22,7 +22,7 @@ translate_problem p = case p of
         err = Invalid_Aggregation.Error p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage
         Error.throw err
     _ : FloatingPointGrouping ->
-        Floating_Point_Grouping.Error p.getColumnName
+        Floating_Point_Equality.Error p.getColumnName
     _ : UnquotedDelimiter ->
         Unquoted_Delimiter.Error p.getColumnName (Vector.from_polyglot_array p.getRows)
     _ : InvalidRow ->

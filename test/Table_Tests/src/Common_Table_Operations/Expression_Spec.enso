@@ -298,7 +298,7 @@ spec detailed setup =
             action1 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=_
             tester1 column =
                 column.to_vector . should_equal [True, True, False]
-            problems1 = [Floating_Point_Grouping.Error "TODO"]
+            problems1 = [Floating_Point_Equality.Error "TODO"]
             Problems.test_problem_handling action1 problems1 tester1
 
         Test.specify "should report arithmetic errors" <|

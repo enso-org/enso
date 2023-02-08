@@ -419,7 +419,7 @@ type Table
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If filtering by equality on a floating-point column,
-             a `Floating_Point_Grouping`.
+             a `Floating_Point_Equality`.
 
        > Example
          Get people older than 30.
@@ -480,7 +480,7 @@ type Table
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If the expression checks equality on a floating-point column,
-             a `Floating_Point_Grouping`.
+             a `Floating_Point_Equality`.
            - If an arithmetic error occurs when computing the expression,
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
@@ -590,7 +590,7 @@ type Table
          - The following problems with expression evaluation may be reported
            according to the `on_problems` setting:
            - If the expression checks equality on a floating-point column,
-             a `Floating_Point_Grouping`.
+             a `Floating_Point_Equality`.
            - If an arithmetic error occurs when computing the expression,
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
@@ -643,7 +643,7 @@ type Table
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If the expression checks equality on a floating-point column,
-             a `Floating_Point_Grouping`.
+             a `Floating_Point_Equality`.
            - If an arithmetic error occurs when computing the expression,
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
@@ -799,9 +799,9 @@ type Table
          - If no valid columns are selected, a `No_Input_Columns_Selected`, is
            reported as a dataflow error regardless of setting.
          - If floating points values are present in the distinct columns, a
-           `Floating_Point_Grouping` is reported according to the `on_problems`
+           `Floating_Point_Equality` is reported according to the `on_problems`
            setting.
-    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Grouping
+    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
         key_columns = self.columns_helper.select_columns selector=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
@@ -835,7 +835,7 @@ type Table
            (for example comparing numeric types with text), an
            `Invalid_Value_Type` is reported.
          - If decimal columns are joined on equality, a
-           `Floating_Point_Grouping` is reported.
+           `Floating_Point_Equality` is reported.
 
          In any of the above cases, if a problem occurs, the resulting table
          will have the desired structure, but it will be empty to indicate that
@@ -1141,7 +1141,7 @@ type Table
            - If there are duplicate column names in the output table,
              a `Duplicate_Output_Column_Names`.
            - If grouping on or computing the `Mode` on a floating point number,
-             a `Floating_Point_Grouping`.
+             a `Floating_Point_Equality`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
@@ -1151,7 +1151,7 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
-    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Grouping | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
         on_problems.attach_problems_before validated.problems <|
@@ -1244,12 +1244,12 @@ type Table
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If grouping on, using as the column name, or computing the `Mode` on
-             a floating point number, a `Floating_Point_Grouping`.
+             a floating point number, a `Floating_Point_Equality`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
-    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Grouping | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.

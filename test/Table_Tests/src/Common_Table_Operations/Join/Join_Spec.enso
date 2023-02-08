@@ -355,7 +355,7 @@ spec setup =
                 t1.at "Y" . to_vector . should_equal [10,  20,  20]
                 t1.at "Z" . to_vector . should_equal [1.5, 2.0, 2.0]
                 t1.at "W" . to_vector . should_equal [2,   1,   3]
-            problems1 = [Floating_Point_Grouping.Error "X", Floating_Point_Grouping.Error "Z"]
+            problems1 = [Floating_Point_Equality.Error "X", Floating_Point_Equality.Error "Z"]
             Problems.test_problem_handling action1 problems1 tester1
 
             action2 = t1.join t2 on=(Join_Condition.Equals "X" "W") on_problems=_
@@ -366,7 +366,7 @@ spec setup =
                 t1.at "Y" . to_vector . should_equal [20]
                 t1.at "Z" . to_vector . should_equal [1.5]
                 t1.at "W" . to_vector . should_equal [2]
-            problems2 = [Floating_Point_Grouping.Error "X"]
+            problems2 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action2 problems2 tester2
 
             # But joining on the Between condition should not give such warnings
@@ -384,7 +384,7 @@ spec setup =
                     t1.at "Y" . to_vector . should_equal [20, 20, 30, 30]
                     t1.at "Z" . to_vector . should_equal [2.0, 2.0, 2.0, 2.0]
                     t1.at "W" . to_vector . should_equal [1, 3, 1, 3]
-                problems3 = [Floating_Point_Grouping.Error "Z", Floating_Point_Grouping.Error "X"]
+                problems3 = [Floating_Point_Equality.Error "Z", Floating_Point_Equality.Error "X"]
                 Problems.test_problem_handling action3 problems3 tester3
 
         Test.specify "should correctly handle nulls in equality conditions" pending=db_todo <|

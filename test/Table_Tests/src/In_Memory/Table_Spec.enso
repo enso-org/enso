@@ -9,7 +9,7 @@ import Standard.Table.Main as Table_Module
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Data.Storage import Storage
 import Standard.Table.Data.Value_Type.Value_Type
-from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Grouping, Invalid_Value_Type
+from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Equality, Invalid_Value_Type
 
 import Standard.Visualization
 
@@ -739,14 +739,14 @@ spec =
             action1 = t1.distinct on_problems=_
             tester1 table =
                 table.at "X" . to_vector . should_equal [3.0, 1.0, 2.0]
-            problems1 = [Floating_Point_Grouping.Error "X"]
+            problems1 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action1 problems1 tester1
 
             t2 = Table.new [["X", [1.00000000000001, -0.3, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]
             action2 = t2.distinct on_problems=_
             tester2 table =
                 table.at "X" . to_vector . should_equal [1.00000000000001, -0.3, 1.00000000000002, 1.5]
-            problems2 = [Floating_Point_Grouping.Error "X"]
+            problems2 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|

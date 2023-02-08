@@ -277,7 +277,7 @@ spec setup =
             action = t.filter "X" (Filter_Condition.Equal 2) on_problems=_
             tester table =
                 table . at "ix" . to_vector . should_equal [3, 5]
-            problems = [Floating_Point_Grouping.Error "X"]
+            problems = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_behavior action problems tester
 
     Test.group prefix+"Table.filter_by_expression" <|
@@ -304,7 +304,7 @@ spec setup =
             action = t.filter_by_expression "[X] * [X] == 4.0" on_problems=_
             tester table =
                 table . at "ix" . to_vector . should_equal [3, 5]
-            problems = [Floating_Point_Grouping.Error "[X] * [X] == 4.0"]
+            problems = [Floating_Point_Equality.Error "[X] * [X] == 4.0"]
             Problems.test_problem_behavior action problems tester
 
         Test.specify "should report issues: arithmetic error" <|
