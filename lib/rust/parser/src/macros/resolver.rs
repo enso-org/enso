@@ -256,8 +256,8 @@ struct Scope {
 }
 
 impl<'s> Resolver<'s> {
-    /// Create a new resolver.
-    pub fn new() -> Self {
+    /// Create a new resolver, in statement context.
+    pub fn new_statement() -> Self {
         let macro_stack = default();
         let scopes = default();
         let newline = token::newline("", "");
@@ -459,6 +459,13 @@ impl<'s> Resolver<'s> {
                 };
                 (macro_def.body)(pattern_matched_segments.mapped(unwrap_match))
             } else {
+                // The input matched a macro invocation pattern, except extra tokens were found in
+                // some segment. Since the start and end of a pattern were found, we know (probably)
+                // what tokens were intended to be used as the macro invocation; however we cannot
+                // pass these tokens to the macro body function, because it expects a correct match
+                // of its pattern. Use a [`MultiSegmentApp`] to represent all the tokens, wrapping
+                // only the excess tokens in [`Invalid`] nodes, so that the error can be reported
+                // precisely.
                 let segments = pattern_matched_segments.mapped(|(header, match_result)| {
                     let mut tokens = Vec::new();
                     let excess = match match_result {
@@ -481,6 +488,9 @@ impl<'s> Resolver<'s> {
             };
             (out, unused_items_of_last_segment)
         } else {
+            // The input matched the first token of a macro, but didn't match any complete pattern
+            // for that macro. Because we don't know what tokens were intended to be consumed by the
+            // macro, consume only the first token (wrapping it in an [`Invalid`] node).
             let mut segments = resolved_segments.into_iter();
             let (header0, mut segment) = segments.next().unwrap();
             let mut items = VecDeque::new();
