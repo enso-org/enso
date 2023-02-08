@@ -53,15 +53,30 @@ pub fn tree_to_ast(mut tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -
 
 #[derive(Debug, Default)]
 struct Translate {
-    offset:       usize,
-    ids:          BTreeMap<(usize, usize), uuid::Uuid>,
-    space_after:  BTreeMap<usize, usize>,
-    // These fields are used only when [`DEBUG`] is enabled, to provide diagnostic information:
+    /// The offset, in bytes, from the beginning of the input source code. This must be tracked
+    /// during [`Tree`] traversal because [`Tree`] doesn't have absolute source references, only
+    /// token lengths.
+    offset:      usize,
+    /// IDs to associate with byte ranges of the source code.
+    ids:         BTreeMap<(usize, usize), uuid::Uuid>,
+    /// The [`AstBuilder`] interface supports associating IDs with byte ranges; however, it's
+    /// important to ensure that the byte ranges don't include any leading whitespace. This would
+    /// be a difficult invariant to maintain through careful usage of [`AstBuilder`]; instead,
+    /// we record where whitespace occurs in [`space_after`], and use that to adjust the byte
+    /// ranges.
+    space_after: BTreeMap<usize, usize>,
+
+    // === Diagnostic information used when [`DEBUG`] is enabled ===
+    /// IDs that were in [`ids`], and now have been successfully attached to [`Ast`] nodes.
     ids_assigned: Vec<((usize, usize), uuid::Uuid)>,
+    /// Byte ranges of [`Ast`] nodes that we didn't find any IDs for.
     ids_missed:   Vec<(usize, usize)>,
 }
 
 impl Translate {
+    /// This must be called at the beginning of each [`Tree`], as they are processed in depth-first
+    /// order. It updates the internal counter to include the leading whitespace bytes, and returns
+    /// the visible width (indent) of the leading space.
     fn visit_space(&mut self, span: &enso_parser::source::Span) -> usize {
         let space = span.left_offset.code.repr.len();
         self.space_after.insert(self.offset, space);
@@ -69,15 +84,14 @@ impl Translate {
         span.left_offset.visible.width_in_spaces
     }
 
-    fn visit_token<T>(&mut self, token: &syntax::Token<T>) -> WithInitialSpace<String> {
-        let space = token.left_offset.visible.width_in_spaces;
-        let body = token.code.to_string();
-        self.space_after.insert(self.offset, space);
-        self.offset += token.left_offset.code.repr.len();
-        self.offset += token.code.repr.len();
-        WithInitialSpace { space, body }
+    /// This must be called at the beginning of each [`Token`], as they are processed in depth-first
+    /// order. It updates the internal counter for the token's bytes, and returns its contents.
+    fn visit_token<T: Copy>(&mut self, token: &syntax::Token<T>) -> WithInitialSpace<String> {
+        self.visit_token_ref(syntax::token::Ref::<T>::from(token))
     }
 
+    /// This must be called at the beginning of each [`Token`], as they are processed in depth-first
+    /// order. It updates the internal counter for the token's bytes, and returns its contents.
     fn visit_token_ref<T>(&mut self, token: syntax::token::Ref<T>) -> WithInitialSpace<String> {
         let space = token.left_offset.visible.width_in_spaces;
         let body = token.code.to_string();
@@ -135,7 +149,7 @@ impl Translate {
             }
             tree::Variant::OprApp(tree::OprApp { lhs, opr, rhs }) => {
                 let larg = lhs.as_ref().map(|a| self.translate(a)).unwrap_or_default();
-                let opr = self.translate_opr(opr);
+                let opr = self.translate_operators(opr);
                 let rarg = rhs.as_ref().map(|a| self.translate(a)).unwrap_or_default();
                 let opr_app = infix(larg, opr, rarg).expect_unspaced();
                 self.finish_ast(opr_app, builder)
@@ -151,9 +165,7 @@ impl Translate {
                 self.finish_ast(func, builder)
             }
             tree::Variant::UnaryOprApp(tree::UnaryOprApp { opr, rhs }) => {
-                let opr_builder = self.start_ast();
-                let name = self.visit_token(opr);
-                let opr = name.map(|_| self.finish_ast(opr_from_token(opr), opr_builder));
+                let opr = self.translate_operator(opr);
                 if let Some(arg) = rhs {
                     let non_block_operand = "Unary operator cannot be applied to an (empty) block.";
                     let arg = self.translate(arg).expect(non_block_operand);
@@ -199,7 +211,7 @@ impl Translate {
                 let open = open.as_ref().map(|token| self.visit_token(token));
                 let name = self.visit_token(name);
                 let larg = name.map(|name| Ast::from(ast::Var { name }));
-                let opr = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
+                let opr = self.translate_operator(equals);
                 let non_block_operand = "Named-application operand cannot be an (empty) block.";
                 let rarg = self.translate(arg).expect(non_block_operand);
                 let mut arg = infix(larg, opr, rarg).map(Ast::from);
@@ -263,6 +275,8 @@ impl Translate {
         })
     }
 
+    /// Translate [`Tree`]s to [`Ast`]s in a multi-line context (i.e. when building a block or
+    /// module).
     fn translate_lines(&mut self, tree: &Tree, out: &mut Vec<WithInitialSpace<Option<Ast>>>) {
         match &*tree.variant {
             tree::Variant::AnnotatedBuiltin(tree::AnnotatedBuiltin {
@@ -315,13 +329,16 @@ impl Translate {
         }
     }
 
+    /// Translate a sequence of line breaks and trailing comments to [`Ast`] representation.
     fn translate_linebreaks(
         &mut self,
         out: &mut Vec<WithInitialSpace<Option<Ast>>>,
         newlines: &[syntax::token::Newline],
     ) {
-        out.reserve(newlines.len().saturating_sub(1));
-        for token in &newlines[..newlines.len().saturating_sub(1)] {
+        // In the [`Ast`] representation, each block line has one implicit newline.
+        let out_newlines = newlines.len().saturating_sub(1);
+        out.reserve(out_newlines);
+        for token in &newlines[..out_newlines] {
             let (space, token) = self.visit_token(token).split();
             if let Some(text) = into_comment(&token) {
                 append_comment(out, space, text);
@@ -331,6 +348,7 @@ impl Translate {
         }
     }
 
+    /// Translate a documentation comment to [`Ast`] representation.
     fn translate_doc(
         &mut self,
         space: usize,
@@ -361,6 +379,7 @@ impl Translate {
         self.translate_linebreaks(out, &documentation.newlines);
     }
 
+    /// Lower a function definition to [`Ast`] representation.
     fn translate_function(&mut self, function: &tree::Function) -> ast::Shape<Ast> {
         let tree::Function { name, args, equals, body } = function;
         let non_empty_name = "A function name cannot be an (empty) block.";
@@ -371,11 +390,12 @@ impl Translate {
             .into_iter()
             .reduce(|func, arg| prefix(func, arg).map(Ast::from))
             .expect("`lhs_terms` has at least one value, because it was initialized with a value.");
-        let opr = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
+        let opr = self.translate_operator(equals);
         let body = body.as_ref().map(|body| self.translate(body)).unwrap_or_default();
         infix(larg, opr, body).expect_unspaced()
     }
 
+    /// Lower a foreign-function definition to [`Ast`] representation.
     fn translate_foreign_function(&mut self, func: &tree::ForeignFunction) -> ast::Shape<Ast> {
         let tree::ForeignFunction { foreign, language, name, args, equals, body } = func;
         let mut lhs_terms: Vec<_> = [foreign, language, name]
@@ -387,11 +407,12 @@ impl Translate {
             .into_iter()
             .reduce(|func, arg| prefix(func, arg).map(Ast::from))
             .expect("`lhs_terms` has at least one value, because it was initialized with values.");
-        let equals = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
+        let equals = self.translate_operator(equals);
         let body = self.translate(body);
         infix(lhs, equals, body).expect_unspaced()
     }
 
+    /// Construct an operator application from [`Tree`] operands and a specific operator.
     fn opr_app(
         &mut self,
         lhs: &Tree,
@@ -400,50 +421,61 @@ impl Translate {
     ) -> WithInitialSpace<Ast> {
         let builder = self.start_ast();
         let lhs = self.translate(lhs);
-        let opr_builder = self.start_ast();
-        let opr = self.visit_token(opr).map(|_| opr_from_token(opr));
-        let opr = opr.map(|opr| self.finish_ast(opr, opr_builder));
+        let opr = self.translate_operator(opr);
         let rhs = self.translate(rhs);
         infix(lhs, opr, rhs).map(|opr_app| self.finish_ast(opr_app, builder))
     }
 
-    fn translate_opr(&mut self, opr: &tree::OperatorOrError) -> WithInitialSpace<Ast> {
-        let opr_builder = self.start_ast();
-        let opr = match opr {
-            Ok(name) => {
-                let token = self.visit_token(name);
-                match name.code.repr.strip_suffix('=') {
-                    Some(mod_name) if mod_name.contains(|c| c != '=') => token.map(|_| {
+    /// Translate an operator or multiple-operator erorr into the [`Ast`] representation.
+    fn translate_operators(&mut self, opr: &tree::OperatorOrError) -> WithInitialSpace<Ast> {
+        match opr {
+            Ok(name) => match name.code.repr.strip_suffix('=') {
+                Some(mod_name) if mod_name.contains(|c| c != '=') => {
+                    let opr_builder = self.start_ast();
+                    let token = self.visit_token(name);
+                    token.map(|_| {
                         let name = mod_name.to_string();
-                        ast::Shape::from(ast::Mod { name })
-                    }),
-                    _ => token.map(|_| opr_from_token(name)),
+                        let opr = ast::Mod { name };
+                        self.finish_ast(opr, opr_builder)
+                    })
                 }
-            }
+                _ => self.translate_operator(name),
+            },
             Err(names) => {
+                let opr_builder = self.start_ast();
                 let mut span_info = SpanSeedBuilder::new();
                 for token in &names.operators {
                     span_info.token(self.visit_token(token));
                 }
-                span_info
+                let opr = span_info
                     .build()
-                    .map(|span_info| ast::Shape::from(ast::Tree::expression(span_info)))
+                    .map(|span_info| ast::Shape::from(ast::Tree::expression(span_info)));
+                opr.map(|opr| self.finish_ast(opr, opr_builder))
             }
-        };
-        opr.map(|opr| self.finish_ast(opr, opr_builder))
+        }
     }
 
+    /// Translate an operator token into its [`Ast`] representation.
+    fn translate_operator(&mut self, token: &syntax::token::Operator) -> WithInitialSpace<Ast> {
+        let opr_builder = self.start_ast();
+        let right_assoc = token.properties.associativity() == syntax::token::Associativity::Right;
+        self.visit_token(token)
+            .map(|name| self.finish_ast(ast::Opr { name, right_assoc }, opr_builder))
+    }
+
+    /// Translate a [`tree::BodyBlock`] into an [`Ast`] module.
     fn translate_module(&mut self, block: &tree::BodyBlock) -> Ast {
         let (lines, _) =
-            self.translate_block_raw(&block.statements).unwrap_or_default().expect_unspaced();
+            self.translate_block_lines(&block.statements).unwrap_or_default().expect_unspaced();
         Ast::new_no_id(ast::Module { lines })
     }
 
+    /// Translate the lines of [`Tree`] block into the [`Ast`] block representation.
     fn translate_block<'a, 's: 'a>(
         &mut self,
         tree_lines: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
     ) -> Option<WithInitialSpace<ast::Block<Ast>>> {
-        let (space, (ast_lines, indent)) = self.translate_block_raw(tree_lines)?.split();
+        let (space, (ast_lines, indent)) = self.translate_block_lines(tree_lines)?.split();
         let mut empty_lines = vec![];
         let mut first_line = None;
         let mut lines = vec![];
@@ -463,7 +495,8 @@ impl Translate {
         Some(WithInitialSpace { space, body })
     }
 
-    fn translate_block_raw<'a, 's: 'a>(
+    /// Translate the lines of [`Tree`] block into [`Ast`] block lines.
+    fn translate_block_lines<'a, 's: 'a>(
         &mut self,
         tree_lines: impl IntoIterator<Item = &'a tree::block::Line<'s>>,
     ) -> Option<WithInitialSpace<(Vec<ast::BlockLine<Option<Ast>>>, usize)>> {
@@ -503,6 +536,7 @@ impl Translate {
         Some(WithInitialSpace { space, body })
     }
 
+    /// Lower an operator block into the [`Ast`] block representation.
     fn translate_operator_block<'a, 's: 'a>(
         &mut self,
         operator_lines: impl IntoIterator<Item = &'a tree::block::OperatorLine<'s>>,
@@ -520,7 +554,7 @@ impl Translate {
             }
             *ast_lines.last_mut().map(|line| &mut line.off).unwrap_or(&mut space) = trailing_space;
             let elem = expression.as_ref().map(|expression| {
-                let opr = self.translate_opr(&expression.operator);
+                let opr = self.translate_operators(&expression.operator);
                 let non_block_operand = "Expression in operand-line cannot be an (empty) block.";
                 let arg = self.translate(&expression.expression).expect(non_block_operand);
                 let (space, elem) = section_right(opr, arg).split();
@@ -567,6 +601,7 @@ impl Translate {
         WithInitialSpace { space, body }
     }
 
+    /// Lower an argument definition into the [`Ast`] representation.
     fn translate_argument_definition(
         &mut self,
         arg: &tree::ArgumentDefinition,
@@ -583,16 +618,14 @@ impl Translate {
         } = arg;
         let open = open.as_ref().map(|token| self.visit_token(token));
         let open2 = open2.as_ref().map(|token| self.visit_token(token));
-        let suspension = suspension
-            .as_ref()
-            .map(|token| self.visit_token(token).map(|_| Ast::from(opr_from_token(token))));
+        let suspension = suspension.as_ref().map(|token| self.translate_operator(token));
         let non_block_operand = "Pattern in argument definition cannot be an (empty) block.";
         let mut term = self.translate(pattern).expect(non_block_operand);
         if let Some(opr) = suspension {
             term = section_right(opr, term).map(Ast::from);
         }
         if let Some(tree::ArgumentType { operator, type_ }) = type_ {
-            let opr = self.visit_token(operator).map(|_| Ast::from(opr_from_token(operator)));
+            let opr = self.translate_operator(operator);
             let rarg = self.translate(type_);
             term = infix(term, opr, rarg).map(Ast::from);
         }
@@ -601,7 +634,7 @@ impl Translate {
             term = open.map(|open| group(open, term, close));
         }
         if let Some(tree::ArgumentDefault { equals, expression }) = default {
-            let opr = self.visit_token(equals).map(|_| Ast::from(opr_from_token(equals)));
+            let opr = self.translate_operator(equals);
             let rarg = self.translate(expression);
             term = infix(term, opr, rarg).map(Ast::from);
         }
@@ -628,26 +661,24 @@ impl Translate {
 }
 
 
-// === Translation helpers ===
-
-fn opr_from_token(token: &syntax::token::Operator) -> ast::Shape<Ast> {
-    let name = token.code.repr.to_string();
-    let right_assoc = token.properties.associativity() == syntax::token::Associativity::Right;
-    ast::Shape::from(ast::Opr { name, right_assoc })
-}
-
-
 // === Span-tracking ===
 
+/// Tracks what input bytes are visited during the construction of a particular [`Ast`], and uses
+/// that information to assign an ID from the ID map.
 struct AstBuilder {
     start: usize,
 }
 
 impl Translate {
+    /// Marks the beginning of the input byte range that will be included in a particular [`Ast`]
+    /// node.
     fn start_ast(&mut self) -> AstBuilder {
         AstBuilder { start: self.offset }
     }
 
+    /// Marks the end of the input byte range that will be included in a particular [`Ast`] node,
+    /// and constructs the node from an [`ast::Shape`], using the calculated byte range to assign
+    /// an ID.
     fn finish_ast<S: Into<ast::Shape<Ast>>>(&mut self, shape: S, builder: AstBuilder) -> Ast {
         let AstBuilder { start } = builder;
         let start = start + self.space_after.get(&start).copied().unwrap_or_default();
@@ -666,6 +697,7 @@ impl Translate {
 
 // === Semantic Analysis ===
 
+/// Analyze an import statement to identify the module referenced and the names imported.
 // TODO: In place of this analysis (and a similar analysis in Java [`TreeToIr`]),
 //  refactor [`tree::Import`] to a higher-level representation resembling
 //  [`ast::ImportedNames`] (but with concrete tokens).
@@ -732,6 +764,7 @@ fn analyze_import(import: &tree::Import) -> Option<ast::TreeType> {
     Some(ast::TreeType::Import { module, imported })
 }
 
+/// Distinguish a plain newline from a trailing comment.
 fn into_comment(mut newline: &str) -> Option<String> {
     if let Some(text) = newline.strip_suffix('\n') {
         newline = text;
@@ -784,12 +817,16 @@ impl<T> WithInitialSpace<T> {
 }
 
 impl<T> WithInitialSpace<Option<T>> {
+    /// Convenience function that applies [`Option::expect`] to the inner value.
     fn expect(self, message: &str) -> WithInitialSpace<T> {
         let WithInitialSpace { space, body } = self;
         WithInitialSpace { space, body: body.expect(message) }
     }
 }
 
+/// Convenience function that transposes an optional value that always has initial space count, to
+/// an optional value that, if present, has an initial space count. Note that this is a lossy
+/// operation.
 fn ignore_space_if_empty<T>(spaced: WithInitialSpace<Option<T>>) -> Option<WithInitialSpace<T>> {
     spaced.body.map(|body| WithInitialSpace { space: spaced.space, body })
 }
@@ -797,6 +834,7 @@ fn ignore_space_if_empty<T>(spaced: WithInitialSpace<Option<T>>) -> Option<WithI
 
 // === Shape-building helpers ===
 
+/// Construct an [`ast::Prefix`], representing the initial spaces of the inputs appropriately.
 fn prefix(
     func: WithInitialSpace<Ast>,
     arg: WithInitialSpace<Ast>,
@@ -807,6 +845,8 @@ fn prefix(
     })
 }
 
+/// Construct an [`ast::Prefix`] if both operands are present; otherwise, returns a single operand
+/// if present.
 fn maybe_prefix<T: Into<Option<Ast>>, U: Into<Option<Ast>>>(
     func: WithInitialSpace<T>,
     arg: WithInitialSpace<U>,
@@ -825,6 +865,7 @@ fn maybe_prefix<T: Into<Option<Ast>>, U: Into<Option<Ast>>>(
     })
 }
 
+/// Constructs an operator section for an operator with only a right operand.
 fn section_right(
     opr: WithInitialSpace<Ast>,
     arg: WithInitialSpace<Ast>,
@@ -835,6 +876,8 @@ fn section_right(
     })
 }
 
+/// Constructs an infix-application node. If any of the inputs are [`Option`] types, then an
+/// operator section will be produced if appropriate.
 fn infix<T: Into<Option<Ast>>, U: Into<Option<Ast>>>(
     larg: WithInitialSpace<T>,
     opr: WithInitialSpace<Ast>,
@@ -858,6 +901,7 @@ fn infix<T: Into<Option<Ast>>, U: Into<Option<Ast>>>(
     })
 }
 
+/// Wrap an input in a parenthesized-group node.
 fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<String>) -> Ast {
     let (body_space, body) = body.split();
     let (close_space, close) = close.split();
@@ -871,6 +915,8 @@ fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<Stri
     Ast::from(ast::Tree::expression(span_info))
 }
 
+/// Append a trailing-comment to the last line of the given block, creating a line to hold it if the
+/// block is empty.
 fn append_comment(lines: &mut Vec<WithInitialSpace<Option<Ast>>>, space: usize, comment: String) {
     let prev = lines.pop();
     let space_after_expression = match prev.as_ref().and_then(|spaced| spaced.body.as_ref()) {
@@ -884,6 +930,8 @@ fn append_comment(lines: &mut Vec<WithInitialSpace<Option<Ast>>>, space: usize, 
     lines.push(line);
 }
 
+/// Append a trailing-comment to the last line of the given block, creating a line to hold it if the
+/// block is empty.
 fn append_comment_ast(lines: &mut Vec<ast::BlockLine<Option<Ast>>>, space: usize, comment: String) {
     let prev = lines.pop();
     let off = prev.as_ref().map(|line| line.off).unwrap_or_default();
@@ -901,6 +949,7 @@ fn append_comment_ast(lines: &mut Vec<ast::BlockLine<Option<Ast>>>, space: usize
 
 // === SpanSeedBuilder ===
 
+/// Constructs a sequence of [`ast::SpanSeed`] values.
 #[derive(Debug, Default)]
 pub struct SpanSeedBuilder {
     space: Option<usize>,
@@ -912,6 +961,7 @@ impl SpanSeedBuilder {
         Self::default()
     }
 
+    /// Append a token.
     fn token(&mut self, value: WithInitialSpace<String>) {
         let (space, value) = value.split();
         if self.space.is_none() {
@@ -922,6 +972,7 @@ impl SpanSeedBuilder {
         self.spans.push(ast::SpanSeed::Token(ast::SpanSeedToken { token: value }));
     }
 
+    /// Append a node.
     fn child(&mut self, node: WithInitialSpace<Ast>) {
         let (space, node) = node.split();
         if self.space.is_none() {
@@ -932,6 +983,7 @@ impl SpanSeedBuilder {
         self.spans.push(ast::SpanSeed::Child(ast::SpanSeedChild { node }));
     }
 
+    /// Construct the sequence.
     fn build(self) -> WithInitialSpace<Vec<ast::SpanSeed<Ast>>> {
         let space = self.space.unwrap_or_default();
         let body = self.spans;

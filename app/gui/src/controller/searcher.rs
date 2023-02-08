@@ -2181,17 +2181,12 @@ pub mod test {
         assert_eq!(parsed.pattern_offset, 1);
         assert_eq!(parsed.pattern.as_str(), "");
 
-        // TODO: Partial groups (https://github.com/enso-org/enso/issues/5571)
-        /*
         let input = "foo bar (baz ";
         let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();
         let expression = parsed.expression.unwrap();
         assert_eq!(expression.off, 0);
         assert_eq!(expression.func.repr(), "foo");
-        assert_eq!(args_reprs(&expression), vec![" bar".to_string()]);
-        assert_eq!(parsed.pattern_offset, 1);
-        assert_eq!(parsed.pattern.as_str(), "(baz ");
-         */
+        assert_eq!(args_reprs(&expression), vec![" bar".to_string(), " (baz".to_string()]);
     }
 
     fn are_same(
