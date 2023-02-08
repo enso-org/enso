@@ -218,8 +218,10 @@ class Main {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    appInstance.config.params.authenticationEnabled.value &&
-                    appInstance.config.params.entry.value != appInstance.config.params.entry.default
+                    appInstance.config.params.authenticationEnabled.value
+                    // FIXME [NP]: figure out what the latter half of this IF statement is doing and uncomment it.
+                    //appInstance.config.params.authenticationEnabled.value &&
+                    //appInstance.config.params.entry.value != appInstance.config.params.entry.default
                 ) {
                     authentication.run()
                     // appInstance.config.email.value = user.email
