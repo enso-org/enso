@@ -195,7 +195,7 @@ impl Translate {
             tree::Variant::Wildcard(tree::Wildcard { token, .. }) => {
                 self.visit_token(token).expect_unspaced();
                 self.finish_ast(ast::Blank {}, builder)
-            },
+            }
             tree::Variant::ArgumentBlockApplication(app) => {
                 let tree::ArgumentBlockApplication { lhs, arguments } = app;
                 let func = lhs.as_ref().map(|lhs| self.translate(lhs)).unwrap_or_default();
