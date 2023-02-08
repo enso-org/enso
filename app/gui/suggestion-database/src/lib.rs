@@ -245,6 +245,41 @@ impl HierarchyIndex {
 }
 
 
+
+// ============================
+// === MethodPointerToIdMap ===
+// ============================
+
+/// A map from a method pointer to corresponding suggestion entry. It allows searching suggestion
+/// entries by the method pointer.
+#[derive(Clone, Debug, Default)]
+struct MethodPointerToIdMap {
+    inner: HashMap<language_server::MethodPointer, entry::Id>,
+}
+
+impl MethodPointerToIdMap {
+    /// Get the [`entry::Id`] of provided method pointer or [`None`] if not found.
+    pub fn get(&self, method_pointer: &language_server::MethodPointer) -> Option<&entry::Id> {
+        self.inner.get(method_pointer)
+    }
+
+    /// Set the method pointer [`entry::Id`]  of provided [`Entry`].
+    pub fn set(&mut self, entry: &Entry, id: entry::Id) {
+        if let Ok(method_pointer) = entry.try_into() {
+            self.inner.insert(method_pointer, id);
+        }
+    }
+
+    /// Remove the method pointer of the provided [`Entry`] from the index.
+    pub fn remove(&mut self, entry: &Entry) {
+        if let Ok(method_pointer) = entry.try_into() {
+            self.inner.remove(&method_pointer);
+        }
+    }
+}
+
+
+
 // ==============
 // === Errors ===
 // ==============
@@ -283,6 +318,7 @@ pub enum Notification {
 pub struct SuggestionDatabase {
     entries:                  RefCell<HashMap<entry::Id, Rc<Entry>>>,
     qualified_name_to_id_map: RefCell<QualifiedNameToIdMap>,
+    method_pointer_to_id_map: RefCell<MethodPointerToIdMap>,
     hierarchy_index:          RefCell<HierarchyIndex>,
     examples:                 RefCell<Vec<Rc<Example>>>,
     version:                  Cell<SuggestionsDatabaseVersion>,
@@ -300,7 +336,10 @@ impl SuggestionDatabase {
         entries: impl IntoIterator<Item = (&'a SuggestionId, &'a Entry)>,
     ) -> Self {
         let ret = Self::new_empty();
-        let entries = entries.into_iter().map(|(id, entry)| (*id, Rc::new(entry.clone())));
+        let entries = entries
+            .into_iter()
+            .inspect(|(id, entry)| ret.method_pointer_to_id_map.borrow_mut().set(entry, **id))
+            .map(|(id, entry)| (*id, Rc::new(entry.clone())));
         ret.entries.borrow_mut().extend(entries);
         ret
     }
@@ -317,11 +356,13 @@ impl SuggestionDatabase {
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
         let mut entries = HashMap::new();
         let mut qualified_name_to_id_map = QualifiedNameToIdMap::default();
+        let mut method_pointer_to_id_map = MethodPointerToIdMap::default();
         let mut hierarchy_index = HierarchyIndex::default();
         for ls_entry in response.entries {
             let id = ls_entry.id;
             let entry = Entry::from_ls_entry(ls_entry.suggestion);
             qualified_name_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
+            method_pointer_to_id_map.set(&entry, id);
             entries.insert(id, Rc::new(entry));
         }
         for (id, entry) in &entries {
@@ -333,6 +374,7 @@ impl SuggestionDatabase {
         Self {
             entries:                  RefCell::new(entries),
             qualified_name_to_id_map: RefCell::new(qualified_name_to_id_map),
+            method_pointer_to_id_map: RefCell::new(method_pointer_to_id_map),
             hierarchy_index:          RefCell::new(hierarchy_index),
             examples:                 RefCell::new(examples),
             version:                  Cell::new(response.current_version),
@@ -350,16 +392,37 @@ impl SuggestionDatabase {
         self.entries.borrow().get(&id).cloned().ok_or(NoSuchEntry(id))
     }
 
+    /// Get suggestion entry by method pointer.
+    pub fn lookup_by_method_pointer(
+        &self,
+        method_pointer: &language_server::MethodPointer,
+    ) -> Option<Rc<Entry>> {
+        self.method_pointer_to_id_map
+            .borrow()
+            .get(method_pointer)
+            .and_then(|id| self.entries.borrow().get(id).cloned())
+    }
+
+    /// Get suggestion entry id by method pointer.
+    pub fn get_method_suggestion(
+        &self,
+        method_pointer: &language_server::MethodPointer,
+    ) -> Option<entry::Id> {
+        self.method_pointer_to_id_map.borrow().get(method_pointer).copied()
+    }
+
     /// Apply the update event to the database.
     pub fn apply_update_event(&self, event: SuggestionDatabaseUpdatesEvent) {
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
             let mut qn_to_id_map = self.qualified_name_to_id_map.borrow_mut();
+            let mut mp_to_id_map = self.method_pointer_to_id_map.borrow_mut();
             let mut hierarchy_index = self.hierarchy_index.borrow_mut();
             match update {
                 entry::Update::Add { id, suggestion } => match (*suggestion).try_into() {
                     Ok(entry) => {
                         qn_to_id_map.set_and_warn_if_existed(&Entry::qualified_name(&entry), id);
+                        mp_to_id_map.set(&entry, id);
                         hierarchy_index.add(id, &entry, &qn_to_id_map);
                         entries.insert(id, Rc::new(entry));
                     }
@@ -372,6 +435,7 @@ impl SuggestionDatabase {
                     match removed {
                         Some(entry) => {
                             qn_to_id_map.remove_and_warn_if_did_not_exist(&entry.qualified_name());
+                            mp_to_id_map.remove(&entry);
                             hierarchy_index.remove(id);
                         }
 
@@ -388,10 +452,12 @@ impl SuggestionDatabase {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
                         qn_to_id_map.remove_and_warn_if_did_not_exist(&entry.qualified_name());
+                        mp_to_id_map.remove(&*entry);
                         hierarchy_index.remove_from_parent(id);
                         let errors = entry.apply_modifications(*modification);
                         hierarchy_index.add(id, entry, &qn_to_id_map);
                         qn_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
+                        mp_to_id_map.set(&*entry, id);
                         for error in errors {
                             error!("Error when applying update for entry {id}: {error:?}");
                         }
@@ -403,16 +469,6 @@ impl SuggestionDatabase {
         }
         self.version.set(event.current_version);
         self.notifications.notify(Notification::Updated);
-    }
-
-    /// Look up given id in the suggestion database and if it is a known method obtain a pointer to
-    /// it.
-    pub fn lookup_method_ptr(
-        &self,
-        id: SuggestionId,
-    ) -> FallibleResult<language_server::MethodPointer> {
-        let entry = self.lookup(id)?;
-        language_server::MethodPointer::try_from(entry.as_ref())
     }
 
     /// Search the database for an entry of method identified by given id.
@@ -716,6 +772,27 @@ pub mod test {
         assert_eq!(lookup.unwrap().qualified_name().to_string(), fully_qualified_name);
     }
 
+    /// Looks up an entry with given `method_pointer` in the `db` and checks its correctness.
+    fn lookup_method_pointer(
+        db: &SuggestionDatabase,
+        method_pointer: &language_server::MethodPointer,
+    ) {
+        let lookup = db.lookup_by_method_pointer(method_pointer);
+        let lookup_method_pointer: Option<language_server::MethodPointer> =
+            lookup.and_then(|method_pointer| method_pointer.deref().try_into().ok());
+        assert_eq!(lookup_method_pointer.unwrap(), method_pointer.clone());
+    }
+
+    /// Looks up an entry with given `method_pointer` in the `db` and checks that the result is
+    /// empty.
+    fn lookup_empty_method_pointer(
+        db: &SuggestionDatabase,
+        method_pointer: &language_server::MethodPointer,
+    ) {
+        let lookup = db.lookup_by_method_pointer(method_pointer);
+        assert_eq!(lookup, None);
+    }
+
     /// Looks up an entry at `fully_qualified_name` in the `db` and verifies that the lookup result
     /// is [`None`].
     fn lookup_and_verify_empty_result(db: &SuggestionDatabase, fully_qualified_name: &str) {
@@ -822,6 +899,96 @@ pub mod test {
         lookup_and_verify_empty_result(&db, "test.TestProject.TestModule");
         lookup_and_verify_empty_result(&db, "Standard.Builtins.create_process");
         lookup_and_verify_empty_result(&db, "local.NoSuchEntry");
+    }
+
+    /// Initializes a [`SuggestionDatabase`] with a few sample entries
+    /// and tests the results of the [`SuggestionDatabase::lookup_by_method_pointer`] method
+    /// when called on that database.
+    #[test]
+    fn lookup_by_method_pointer_in_db_created_from_ls_response() {
+        // Initialize a suggestion database with sample entries.
+        let method1 = SuggestionEntry::Method {
+            name:                   "create_process".to_string(),
+            module:                 "Standard.Base".to_string(),
+            self_type:              "Standard.Base.System".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Base.System.System_Process_Result".to_string(),
+            is_static:              false,
+            reexport:               None,
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
+        };
+        let method2 = SuggestionEntry::Method {
+            name:                   "exit".to_string(),
+            module:                 "Standard.Base".to_string(),
+            self_type:              "Standard.Base.System".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Base.Data.Numbers.Integer".to_string(),
+            is_static:              false,
+            reexport:               None,
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
+        };
+        let method3 = SuggestionEntry::Method {
+            name:                   "println".to_string(),
+            module:                 "Standard.Base.IO".to_string(),
+            self_type:              "Standard.Base.IO".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Base.Nothing.Nothing".to_string(),
+            is_static:              false,
+            reexport:               None,
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
+        };
+        let function = SuggestionEntry::Function {
+            module:                 "NewProject.NewModule".to_string(),
+            name:                   "test_function".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Base.Data.Vector.Vector".to_string(),
+            scope:                  (default()..=default()).into(),
+            external_id:            None,
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+        };
+        let ls_response = language_server::response::GetSuggestionDatabase {
+            entries:         vec![
+                db_entry(0, method1),
+                db_entry(1, method2),
+                db_entry(2, method3),
+                db_entry(3, function),
+            ],
+            current_version: 1,
+        };
+        let db = SuggestionDatabase::from_ls_response(ls_response);
+
+        // Check that the entries used to initialize the database can be found
+        lookup_method_pointer(&db, &language_server::MethodPointer {
+            module:          "Standard.Base".to_owned(),
+            defined_on_type: "Standard.Base.System".to_owned(),
+            name:            "create_process".to_owned(),
+        });
+        lookup_method_pointer(&db, &language_server::MethodPointer {
+            module:          "Standard.Base".to_owned(),
+            defined_on_type: "Standard.Base.System".to_owned(),
+            name:            "exit".to_owned(),
+        });
+        lookup_method_pointer(&db, &language_server::MethodPointer {
+            module:          "Standard.Base.IO".to_owned(),
+            defined_on_type: "Standard.Base.IO".to_owned(),
+            name:            "println".to_owned(),
+        });
+        lookup_empty_method_pointer(&db, &language_server::MethodPointer {
+            module:          "NewProject.NewModule".to_owned(),
+            defined_on_type: "NewProject.NewModule".to_owned(),
+            name:            "test_function".to_owned(),
+        })
     }
 
     // Check that the suggestion database doesn't panic when quering invalid qualified names.
@@ -952,6 +1119,126 @@ pub mod test {
         lookup_and_verify_result_name(&db, &entry_with_mod_change.to_string());
         lookup_and_verify_empty_result(&db, "Standard.Builtins.System.create_process");
         lookup_and_verify_result_name(&db, "local.Unnamed_6");
+    }
+
+    /// Apply a [`SuggestionDatabaseUpdatesEvent`] to a [`SuggestionDatabase`] initialized with
+    /// sample data, then test the results of calling the
+    /// [`SuggestionDatabase::lookup_by_method_pointer`] method on that database.
+    #[test]
+    fn lookup_by_method_pointer_after_db_update() {
+        let db = mock::standard_db_mock();
+
+        // Modify the database contents by applying an update event.
+        let method1 = SuggestionEntry::Method {
+            name:                   "create_process".to_string(),
+            module:                 "Standard.Base".to_string(),
+            self_type:              "Standard.Base.System".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Base.System.System_Process_Result".to_string(),
+            is_static:              false,
+            reexport:               None,
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
+        };
+        let method2 = SuggestionEntry::Method {
+            name:                   "exit".to_string(),
+            module:                 "Standard.Base".to_string(),
+            self_type:              "Standard.Base.System".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Base.Data.Numbers.Integer".to_string(),
+            is_static:              false,
+            reexport:               None,
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
+        };
+        let method3 = SuggestionEntry::Method {
+            name:                   "println".to_string(),
+            module:                 "Standard.Base.IO".to_string(),
+            self_type:              "Standard.Base.IO".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Base.Nothing.Nothing".to_string(),
+            is_static:              false,
+            reexport:               None,
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
+        };
+        let update1 = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![
+                entry::Update::Add { id: 0, suggestion: Box::new(method1) },
+                entry::Update::Add { id: 1, suggestion: Box::new(method2) },
+                entry::Update::Add { id: 2, suggestion: Box::new(method3) },
+            ],
+            current_version: 1,
+        };
+        db.apply_update_event(update1);
+
+        let method_pointer1 = language_server::MethodPointer {
+            module:          "Standard.Base".to_owned(),
+            defined_on_type: "Standard.Base.System".to_owned(),
+            name:            "create_process".to_owned(),
+        };
+        let method_pointer2 = language_server::MethodPointer {
+            module:          "Standard.Base".to_owned(),
+            defined_on_type: "Standard.Base.System".to_owned(),
+            name:            "exit".to_owned(),
+        };
+        let method_pointer3 = language_server::MethodPointer {
+            module:          "Standard.Base.IO".to_owned(),
+            defined_on_type: "Standard.Base.IO".to_owned(),
+            name:            "println".to_owned(),
+        };
+        // Check the results of `lookup_by_method_pointer` after the update.
+        lookup_method_pointer(&db, &method_pointer1);
+        lookup_method_pointer(&db, &method_pointer2);
+        lookup_method_pointer(&db, &method_pointer3);
+
+        let method_change = Box::new(SuggestionsDatabaseModification {
+            arguments:              vec![],
+            module:                 Some(FieldUpdate::set("Standard.Base".to_owned())),
+            self_type:              None,
+            return_type:            None,
+            documentation:          None,
+            documentation_sections: None,
+            scope:                  None,
+            reexport:               None,
+        });
+        let update2 = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![entry::Update::Modify {
+                id:           2,
+                external_id:  None,
+                modification: method_change,
+            }],
+            current_version: 2,
+        };
+        db.apply_update_event(update2);
+
+        let changed_method_pointer = language_server::MethodPointer {
+            module: "Standard.Base".to_owned(),
+            ..method_pointer3.clone()
+        };
+        // Check the results of `lookup_by_method_pointer` after the update2.
+        lookup_method_pointer(&db, &method_pointer1);
+        lookup_method_pointer(&db, &method_pointer2);
+        lookup_empty_method_pointer(&db, &method_pointer3);
+        lookup_method_pointer(&db, &changed_method_pointer);
+
+        let update3 = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![entry::Update::Remove { id: 1 }],
+            current_version: 3,
+        };
+        db.apply_update_event(update3);
+
+        // Check the results of `lookup_by_method_pointer` after the update3.
+        lookup_method_pointer(&db, &method_pointer1);
+        lookup_empty_method_pointer(&db, &method_pointer2);
+        lookup_empty_method_pointer(&db, &method_pointer3);
+        lookup_method_pointer(&db, &changed_method_pointer);
     }
 
     /// Initialize a [`SuggestionDatabase`] with a sample entry, then apply an update removing that

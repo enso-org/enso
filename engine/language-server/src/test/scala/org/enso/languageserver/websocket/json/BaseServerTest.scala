@@ -208,7 +208,6 @@ class BaseServerTest
     val contextRegistry =
       system.actorOf(
         ContextRegistry.props(
-          suggestionsRepo,
           config,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnectorProbe.ref,
