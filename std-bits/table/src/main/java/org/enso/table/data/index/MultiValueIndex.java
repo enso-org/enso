@@ -118,7 +118,10 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   }
 
   public Table makeCrossTabTable(
-      Column[] groupingColumns, Column nameColumn, Aggregator[] aggregates) {
+      Column[] groupingColumns,
+      Column nameColumn,
+      Aggregator[] aggregates,
+      String[] aggregateNames) {
     final int size = locs.size();
 
     var nameIndex =
@@ -187,7 +190,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
       for (int i = 0; i < aggregates.length; i++) {
         output[offset + i] =
-            new Column((name + " " + aggregates[i].getName()).trim(), storage[offset + i].seal());
+            new Column((name + " " + aggregateNames[i]).trim(), storage[offset + i].seal());
       }
 
       offset += aggregates.length;

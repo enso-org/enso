@@ -20,6 +20,9 @@ import Standard.Test.Extensions
 
 from project.Util import all
 
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import org.enso.table.data.table.Table as Java_Table
+
 type My
     Data x y
 
@@ -83,6 +86,9 @@ spec =
             Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with Index_Out_Of_Bounds.Error
             Table.from_rows [] [] . should_fail_with Illegal_Argument.Error
             Table.from_rows [] [[]] . should_fail_with Illegal_Argument.Error
+
+        Test.specify "should be internally guarded against creating a table without columns" <|
+            Test.expect_panic_with (Java_Table.new []) IllegalArgumentException
 
         Test.specify "should correctly infer storage types" <|
             varied_type_table.at "strs" . storage_type . should_equal Storage.Text
