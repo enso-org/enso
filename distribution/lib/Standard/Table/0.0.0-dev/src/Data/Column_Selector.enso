@@ -18,14 +18,6 @@ type Column_Selector
        column in the table).
     By_Index (indexes : Vector Integer)
 
-    ## Selects columns having exactly the same names as the columns provided in
-       the input.
-
-       The input columns do not necessarily have to come from the same table, so
-       this approach can be used to match columns with the same names as a set
-       of columns of some other table, for example, when preparing for a join.
-    By_Column (columns : Vector Column)
-
     ## ALIAS dropna
        ALIAS drop_missing_columns
        Select columns which are either all blank or contain blank values.

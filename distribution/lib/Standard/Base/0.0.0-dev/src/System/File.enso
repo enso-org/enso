@@ -25,6 +25,10 @@ import project.System.File.File_Permissions.File_Permissions
 
 from project.Data.Boolean import Boolean, True, False
 
+import project.Metadata.Widget
+from project.Metadata.Choice import Option
+import project.Metadata.Display
+
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 polyglot java import org.enso.base.encoding.ReportingStreamEncoder
@@ -241,6 +245,7 @@ type File
              import Standard.Examples
 
              example_append = Examples.data_dir / "scratch_file"
+    @subpath get_child_widget
     / : (Text | File) -> File
     / self subpath = self.resolve subpath
 
@@ -262,6 +267,7 @@ type File
              import Standard.Examples
 
              example_append = Examples.data_dir.join ["2022", "10", "31", "scratch_file"]
+    @subpaths get_child_widget
     join : (Text | File | Vector) -> File
     join self subpaths = case subpaths of
         _ : Vector -> (subpaths.fold self c->p-> c / p) . normalize
@@ -918,3 +924,12 @@ get_cwd = @Builtin_Method "File.get_cwd"
    - path: The path to obtain a file at.
 get_file : Text -> File
 get_file path = @Builtin_Method "File.get_file"
+
+## PRIVATE
+get_child_widget : File -> Widget
+get_child_widget file =
+    if file.exists.not then Nothing else
+        if file.is_directory.not then Nothing else
+            children = file.list
+            options = children.map c-> Option c.name c.name.pretty
+            Widget.Single_Choice values=options display=Display.Always
