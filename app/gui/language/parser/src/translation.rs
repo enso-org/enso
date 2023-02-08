@@ -19,6 +19,9 @@ const DEBUG: bool = false;
 // === Translation API ===
 // =======================
 
+/// Translates an [`AST`] from the [`Tree`] representation produced by [`enso_parser`] to the
+/// [`Ast`] representation used by the GUI (see [`crate`] documentation for high-level overview).
+/// The returned tree will contain IDs from the given map.
 #[profile(Detail)]
 pub fn tree_to_ast(mut tree: &Tree, ids: BTreeMap<(usize, usize), uuid::Uuid>) -> Ast {
     use ast::HasRepr;
@@ -53,7 +56,7 @@ struct Translate {
     offset:       usize,
     ids:          BTreeMap<(usize, usize), uuid::Uuid>,
     space_after:  BTreeMap<usize, usize>,
-    // Debugging
+    // These fields are used only when [`DEBUG`] is enabled, to provide diagnostic information:
     ids_assigned: Vec<((usize, usize), uuid::Uuid)>,
     ids_missed:   Vec<(usize, usize)>,
 }
@@ -82,30 +85,6 @@ impl Translate {
         self.offset += token.left_offset.code.repr.len();
         self.offset += token.code.repr.len();
         WithInitialSpace { space, body }
-    }
-}
-
-struct AstBuilder {
-    start: usize,
-}
-
-impl Translate {
-    fn start_ast(&mut self) -> AstBuilder {
-        AstBuilder { start: self.offset }
-    }
-
-    fn finish_ast<S: Into<ast::Shape<Ast>>>(&mut self, shape: S, builder: AstBuilder) -> Ast {
-        let AstBuilder { start } = builder;
-        let start = start + self.space_after.get(&start).copied().unwrap_or_default();
-        let end = self.offset;
-        let id = self.ids.remove(&(start, end));
-        if DEBUG {
-            match id {
-                Some(id) => self.ids_assigned.push(((start, end), id)),
-                None => self.ids_missed.push((start, end)),
-            }
-        }
-        Ast::new(shape, id)
     }
 }
 
@@ -155,7 +134,10 @@ impl Translate {
                 self.finish_ast(ast, builder)
             }
             tree::Variant::OprApp(tree::OprApp { lhs, opr, rhs }) => {
-                let opr_app = self.translate_opr_app(lhs.as_ref(), opr, rhs.as_ref());
+                let larg = lhs.as_ref().map(|a| self.translate(a)).unwrap_or_default();
+                let opr = self.translate_opr(opr);
+                let rarg = rhs.as_ref().map(|a| self.translate(a)).unwrap_or_default();
+                let opr_app = infix(larg, opr, rarg).expect_unspaced();
                 self.finish_ast(opr_app, builder)
             }
             tree::Variant::OprSectionBoundary(tree::OprSectionBoundary { ast, .. }) =>
@@ -451,18 +433,6 @@ impl Translate {
         opr.map(|opr| self.finish_ast(opr, opr_builder))
     }
 
-    fn translate_opr_app(
-        &mut self,
-        lhs: Option<&Tree>,
-        opr: &tree::OperatorOrError,
-        rhs: Option<&Tree>,
-    ) -> ast::Shape<Ast> {
-        let larg = lhs.map(|a| self.translate(a)).unwrap_or_default();
-        let opr = self.translate_opr(opr);
-        let rarg = rhs.map(|a| self.translate(a)).unwrap_or_default();
-        infix(larg, opr, rarg).expect_unspaced()
-    }
-
     fn translate_module(&mut self, block: &tree::BodyBlock) -> Ast {
         let (lines, _) =
             self.translate_block_raw(&block.statements).unwrap_or_default().expect_unspaced();
@@ -657,66 +627,44 @@ impl Translate {
     }
 }
 
+
+// === Translation helpers ===
+
 fn opr_from_token(token: &syntax::token::Operator) -> ast::Shape<Ast> {
     let name = token.code.repr.to_string();
     let right_assoc = token.properties.associativity() == syntax::token::Associativity::Right;
     ast::Shape::from(ast::Opr { name, right_assoc })
 }
 
-fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<String>) -> Ast {
-    let (body_space, body) = body.split();
-    let (close_space, close) = close.split();
-    let min_elements = 3; // There are always at least 3 elements: open, close, and body
-    let mut span_info = Vec::with_capacity(min_elements);
-    span_info.push(ast::SpanSeed::Token(ast::SpanSeedToken { token: open }));
-    span_info.extend(ast::SpanSeed::space(body_space));
-    span_info.push(ast::SpanSeed::Child(ast::SpanSeedChild { node: body }));
-    span_info.extend(ast::SpanSeed::space(close_space));
-    span_info.push(ast::SpanSeed::Token(ast::SpanSeedToken { token: close }));
-    Ast::from(ast::Tree::expression(span_info))
+
+// === Span-tracking ===
+
+struct AstBuilder {
+    start: usize,
 }
 
-fn into_comment(mut newline: &str) -> Option<String> {
-    if let Some(text) = newline.strip_suffix('\n') {
-        newline = text;
+impl Translate {
+    fn start_ast(&mut self) -> AstBuilder {
+        AstBuilder { start: self.offset }
     }
-    if let Some(text) = newline.strip_suffix('\r') {
-        newline = text;
+
+    fn finish_ast<S: Into<ast::Shape<Ast>>>(&mut self, shape: S, builder: AstBuilder) -> Ast {
+        let AstBuilder { start } = builder;
+        let start = start + self.space_after.get(&start).copied().unwrap_or_default();
+        let end = self.offset;
+        let id = self.ids.remove(&(start, end));
+        if DEBUG {
+            match id {
+                Some(id) => self.ids_assigned.push(((start, end), id)),
+                None => self.ids_missed.push((start, end)),
+            }
+        }
+        Ast::new(shape, id)
     }
-    (!newline.is_empty()).then(|| newline.to_string())
 }
-
-fn append_comment(lines: &mut Vec<WithInitialSpace<Option<Ast>>>, space: usize, comment: String) {
-    let prev = lines.pop();
-    let space_after_expression = match prev.as_ref().and_then(|spaced| spaced.body.as_ref()) {
-        Some(_) => space,
-        None => 0,
-    };
-    let prev = prev.unwrap_or(WithInitialSpace { space, body: None });
-    let line = prev.map(|prev| {
-        Some(Ast::from(ast::Tree::expression_with_comment(prev, space_after_expression, comment)))
-    });
-    lines.push(line);
-}
-
-fn append_comment_ast(lines: &mut Vec<ast::BlockLine<Option<Ast>>>, space: usize, comment: String) {
-    let prev = lines.pop();
-    let off = prev.as_ref().map(|line| line.off).unwrap_or_default();
-    let prev = prev.and_then(|line| line.elem);
-    // If there's no expression before the comment, the space to the left of the comment
-    // is already represented as the indent.
-    let trailing_space = match prev {
-        Some(_) => space,
-        None => 0,
-    };
-    let elem = ast::Tree::expression_with_comment(prev, trailing_space, comment);
-    lines.push(ast::BlockLine { elem: Some(Ast::from(elem)), off });
-}
-
 
 
 // === Semantic Analysis ===
-
 
 // TODO: In place of this analysis (and a similar analysis in Java [`TreeToIr`]),
 //  refactor [`tree::Import`] to a higher-level representation resembling
@@ -784,6 +732,16 @@ fn analyze_import(import: &tree::Import) -> Option<ast::TreeType> {
     Some(ast::TreeType::Import { module, imported })
 }
 
+fn into_comment(mut newline: &str) -> Option<String> {
+    if let Some(text) = newline.strip_suffix('\n') {
+        newline = text;
+    }
+    if let Some(text) = newline.strip_suffix('\r') {
+        newline = text;
+    }
+    (!newline.is_empty()).then(|| newline.to_string())
+}
+
 
 // === WithInitialSpace ===
 
@@ -837,8 +795,7 @@ fn ignore_space_if_empty<T>(spaced: WithInitialSpace<Option<T>>) -> Option<WithI
 }
 
 
-
-// === Shape-building helpers
+// === Shape-building helpers ===
 
 fn prefix(
     func: WithInitialSpace<Ast>,
@@ -899,6 +856,46 @@ fn infix<T: Into<Option<Ast>>, U: Into<Option<Ast>>>(
             (None, None) => (ast::SectionSides { opr }).into(),
         }
     })
+}
+
+fn group(open: String, body: WithInitialSpace<Ast>, close: WithInitialSpace<String>) -> Ast {
+    let (body_space, body) = body.split();
+    let (close_space, close) = close.split();
+    let min_elements = 3; // There are always at least 3 elements: open, close, and body
+    let mut span_info = Vec::with_capacity(min_elements);
+    span_info.push(ast::SpanSeed::Token(ast::SpanSeedToken { token: open }));
+    span_info.extend(ast::SpanSeed::space(body_space));
+    span_info.push(ast::SpanSeed::Child(ast::SpanSeedChild { node: body }));
+    span_info.extend(ast::SpanSeed::space(close_space));
+    span_info.push(ast::SpanSeed::Token(ast::SpanSeedToken { token: close }));
+    Ast::from(ast::Tree::expression(span_info))
+}
+
+fn append_comment(lines: &mut Vec<WithInitialSpace<Option<Ast>>>, space: usize, comment: String) {
+    let prev = lines.pop();
+    let space_after_expression = match prev.as_ref().and_then(|spaced| spaced.body.as_ref()) {
+        Some(_) => space,
+        None => 0,
+    };
+    let prev = prev.unwrap_or(WithInitialSpace { space, body: None });
+    let line = prev.map(|prev| {
+        Some(Ast::from(ast::Tree::expression_with_comment(prev, space_after_expression, comment)))
+    });
+    lines.push(line);
+}
+
+fn append_comment_ast(lines: &mut Vec<ast::BlockLine<Option<Ast>>>, space: usize, comment: String) {
+    let prev = lines.pop();
+    let off = prev.as_ref().map(|line| line.off).unwrap_or_default();
+    let prev = prev.and_then(|line| line.elem);
+    // If there's no expression before the comment, the space to the left of the comment
+    // is already represented as the indent.
+    let trailing_space = match prev {
+        Some(_) => space,
+        None => 0,
+    };
+    let elem = ast::Tree::expression_with_comment(prev, trailing_space, comment);
+    lines.push(ast::BlockLine { elem: Some(Ast::from(elem)), off });
 }
 
 
