@@ -1374,8 +1374,11 @@ spec setup =
 
         Test.specify "should not fail if trying concatenate unquoted delimiters with no separator" <|
             column = Concatenate "Text" separator=""
-            result = table.aggregate [column] on_problems=Report_Error
+            t = table_builder [["Text", ["A", "BC", "def"]]]
+            result = t.aggregate [column] on_problems=Report_Error
+            Problems.assume_no_problems result
             result.column_names . should_equal ["Concatenate Text"]
+            result.at "Concatenate Text" . to_vector . should_equal ["ABCdef"]
 
         Test.specify "should warn if can't compare value for Min or Max" <|
             action = table.aggregate [Maximum "Mixed"] on_problems=_

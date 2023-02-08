@@ -106,7 +106,8 @@ public class Column {
   public static Column fromItems(String name, List<Value> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
-    for (Value item : items) {
+    // to revert replace with: for (Value item : items) {
+    for (Object item : items) {
       Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
       builder.appendNoGrow(converted);
     }
@@ -132,8 +133,9 @@ public class Column {
 
     var totalSize = items.size() * repeat;
 
-    // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     var values = new ArrayList<Object>(items.size());
+    // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
+    // to revert replace with: for (Value item : items) {
     for (Object item : items) {
       Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
       values.add(converted);

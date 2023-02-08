@@ -124,8 +124,9 @@ spec =
             (js_converted_dates == table.at "enso_dates").to_vector . should_equal [True, True]
             (enso_date_times == table.at "js_dates").to_vector . should_equal [True, True]
 
-        Test.specify "should work with a split Text value" <|
-            words = "The quick brown fox jumps over the lazy dog" . split " "
+        Test.specify "should work with a Text value split into lines" <|
+            ## This tests verifies an issue with passing through a `List<String>` to the table.
+            words = 'The\nquick\nbrown\nfox\njumps\nover\nthe\nlazy\ndog'.lines
             table = Table.new [["words", words]]
             table.at "words" . storage_type . should_equal Storage.Text
             table.at "words" . to_vector . should_equal words
