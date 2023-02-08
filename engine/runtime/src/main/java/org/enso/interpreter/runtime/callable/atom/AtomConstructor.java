@@ -51,8 +51,8 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[], Annotation[],
-   * ArgumentDefinition...)} is called.
+   * AtomConstructor#initializeFields(EnsoLanguage, LocalScope, ExpressionNode[], ExpressionNode[],
+   * Annotation[], ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
@@ -63,8 +63,8 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[], Annotation[],
-   * ArgumentDefinition...)} is called.
+   * AtomConstructor#initializeFields(EnsoLanguage, LocalScope, ExpressionNode[], ExpressionNode[],
+   * Annotation[], ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
