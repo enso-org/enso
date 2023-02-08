@@ -344,10 +344,20 @@ impl Searcher {
         frp::extend! { network
             eval model.view.searcher_input_changed ((expr) model.input_changed(expr));
 
-            eval_ model.view.toggle_private_cb_entries_visibility (model.controller.reload_list());
-
             action_list_changed <- source::<()>();
             select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
+
+            eval_ model.view.toggle_private_cb_entries_visibility (model.controller.reload_list());
+            action_list_loaded <-
+                action_list_changed.map(f_!([model] !model.controller.actions().is_loading()));
+            action_list_loaded <- action_list_loaded.on_true();
+            reloading_action_list <-
+                bool(&action_list_loaded, &model.view.toggle_private_cb_entries_visibility);
+            reloading_action_list <- reloading_action_list.on_change();
+            reloading_action_list_done <- reloading_action_list.on_false();
+            searcher_input_on_visibility_toggle <-
+                model.view.searcher_input_changed.sample(&reloading_action_list_done);
+            eval searcher_input_on_visibility_toggle ((expr) model.input_changed(expr));
         }
 
         match model.view.searcher() {
