@@ -127,12 +127,17 @@ impl Translate {
                     false => self.finish_ast(ast::Var { name }, builder),
                 }
             }
-            tree::Variant::Number(tree::Number { base, integer, .. }) => {
+            tree::Variant::Number(tree::Number { base, integer, fractional_digits }) => {
                 let base = base.as_ref().map(|base| self.visit_token(base).expect_unspaced());
-                let int = integer
+                let mut int = integer
                     .as_ref()
                     .map(|integer| self.visit_token(integer).expect_unspaced())
                     .unwrap_or_default();
+                if let Some(tree::FractionalDigits { dot, digits }) = fractional_digits {
+                    let dot = self.visit_token(dot).expect_unspaced();
+                    let digits = self.visit_token(digits).expect_unspaced();
+                    int = format!("{int}{dot}{digits}");
+                }
                 self.finish_ast(ast::Number { base, int }, builder)
             }
             tree::Variant::App(tree::App { func, arg }) => {
@@ -187,7 +192,10 @@ impl Translate {
             }
             tree::Variant::TemplateFunction(tree::TemplateFunction { ast, .. }) =>
                 self.translate(ast).expect_unspaced()?,
-            tree::Variant::Wildcard(_) => self.finish_ast(ast::Blank {}, builder),
+            tree::Variant::Wildcard(tree::Wildcard { token, .. }) => {
+                self.visit_token(token).expect_unspaced();
+                self.finish_ast(ast::Blank {}, builder)
+            },
             tree::Variant::ArgumentBlockApplication(app) => {
                 let tree::ArgumentBlockApplication { lhs, arguments } = app;
                 let func = lhs.as_ref().map(|lhs| self.translate(lhs)).unwrap_or_default();
@@ -251,11 +259,6 @@ impl Translate {
                 let span_info = self.translate_items(tree);
                 let type_info = analyze_import(import).unwrap_or_default();
                 let ast = ast::Tree::expression(span_info).with_type_info(type_info);
-                self.finish_ast(ast, builder)
-            }
-            tree::Variant::CaseOf(_) => {
-                // TODO: Analyzed-representation to support alias analysis.
-                let ast = ast::Tree::expression(self.translate_items(tree));
                 self.finish_ast(ast, builder)
             }
             tree::Variant::TextLiteral(_) => {
@@ -338,12 +341,15 @@ impl Translate {
         // In the [`Ast`] representation, each block line has one implicit newline.
         let out_newlines = newlines.len().saturating_sub(1);
         out.reserve(out_newlines);
-        for token in &newlines[..out_newlines] {
-            let (space, token) = self.visit_token(token).split();
-            if let Some(text) = into_comment(&token) {
-                append_comment(out, space, text);
-            } else {
-                out.push(WithInitialSpace { space, body: None });
+        let mut prev = None;
+        for token in newlines {
+            let next = self.visit_token(token).split();
+            if let Some((space, token)) = prev.replace(next) {
+                if let Some(text) = into_comment(&token) {
+                    append_comment(out, space, text);
+                } else {
+                    out.push(WithInitialSpace { space, body: None });
+                }
             }
         }
     }
