@@ -9,6 +9,7 @@ import project.Nothing.Nothing
 from project.Data.Boolean import all
 
 from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
 import project.Metadata.Display
 
 polyglot java import org.enso.base.Regex_Utils
@@ -202,10 +203,11 @@ type Filter_Condition
 
     ## PRIVATE
        Gets a widget set up for a Filter_Condition.
-    widget_for_filter_condition =
-        ## values = ["(Filter_Condition.Equal to=_)", "(Filter_Condition.Not_Equal to=_)", "(Filter_Condition.Is_In values=_)", "(Filter_Condition.Not_In values=_)", "Filter_Condition.Is_True", "Filter_Condition.Is_False", "Filter_Condition.Is_Nothing", "Filter_Condition.Not_Nothing", "Filter_Condition.Is_Empty", "Filter_Condition.Not_Empty", "(Filter_Condition.Less than=_)", "(Filter_Condition.Equal_Or_Less than=_)", "(Filter_Condition.Greater than=_)", "(Filter_Condition.Equal_Or_Greater than=_)", "(Filter_Condition.Between lower=_ upper=_)", "(Filter_Condition.Starts_With prefix=_)", "(Filter_Condition.Ends_With suffix=_)", "(Filter_Condition.Contains substring=_)", "(Filter_Condition.Not_Contains substring=_)", "(Filter_Condition.Like pattern=_)", "(Filter_Condition.Not_Like pattern=_)"]
+    default_widget =
+        names = ["Equal", "Not Equal", "Is In", "Not In", "Is True", "Is False", "Is Nothing", "Not Nothing", "Is Empty", "Not Empty", "Less", "Equal Or Less", "Greater", "Equal Or Greater", "Between", "Starts With", "Ends With", "Contains", "Not Contains", "Like", "Not Like"]
         values = ["(Filter_Condition.Equal _)", "(Filter_Condition.Not_Equal _)", "(Filter_Condition.Is_In _)", "(Filter_Condition.Not_In _)", "Filter_Condition.Is_True", "Filter_Condition.Is_False", "Filter_Condition.Is_Nothing", "Filter_Condition.Not_Nothing", "Filter_Condition.Is_Empty", "Filter_Condition.Not_Empty", "(Filter_Condition.Less _)", "(Filter_Condition.Equal_Or_Less _)", "(Filter_Condition.Greater _)", "(Filter_Condition.Equal_Or_Greater _)", "(Filter_Condition.Between _ _)", "(Filter_Condition.Starts_With _)", "(Filter_Condition.Ends_With _)", "(Filter_Condition.Contains _)", "(Filter_Condition.Not_Contains _)", "(Filter_Condition.Like _)", "(Filter_Condition.Not_Like _)"]
-        Single_Choice values display=Display.Always
+        options = names.zip values . map p-> Option p.first p.second
+        Single_Choice values=options display=Display.Always
 
 ## PRIVATE
 sql_like_to_regex sql_pattern =

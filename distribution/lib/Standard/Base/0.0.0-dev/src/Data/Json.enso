@@ -19,6 +19,10 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
+
 from project.Data.Boolean import Boolean, True, False
 
 ## Methods for serializing from and to JSON.
@@ -125,6 +129,7 @@ type JS_Object
        Arguments:
        - key: The key to get.
        - if_missing: The value to return if the key is not found.
+    @key make_field_name_selector
     get : Text -> Any -> JS_Object | Boolean | Number | Nothing | Text | Vector
     get self key ~if_missing=Nothing =
         if (has_property self.js_object key) . not then if_missing else
@@ -136,6 +141,7 @@ type JS_Object
 
        Arguments:
        - key: The key to get.
+    @key make_field_name_selector
     at : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! No_Such_Key
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
@@ -246,6 +252,12 @@ make_javascript enso_object =
             _ : Vector -> enso_object.map make_javascript
             _ : Array -> Vector.from_polyglot_array enso_object . map make_javascript
             _ -> enso_object
+
+## PRIVATE
+   Make a field name selector
+make_field_name_selector : JS_Object -> Single_Choice
+make_field_name_selector js_object display=Display.Always =
+    Single_Choice display=display values=(js_object.field_names.map n->(Option n n.pretty))
 
 foreign js new_object = """
     return {}

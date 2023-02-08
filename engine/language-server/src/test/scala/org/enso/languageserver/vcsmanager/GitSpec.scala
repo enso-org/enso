@@ -64,7 +64,8 @@ class GitSpec
     "create a vcs meta directory at a custom location" in new TestCtx {
       val dataDirectory = Path.of(".enso")
       override lazy val vcs = Git.withEmptyUserConfig(
-        Some(dataDirectory)
+        Some(dataDirectory),
+        asyncInit = true
       )
 
       repoPath.resolve(dataDirectory).toFile.mkdir()
@@ -379,7 +380,7 @@ class GitSpec
         .build()
     }
 
-    lazy val vcs = Git.withEmptyUserConfig(None)
+    lazy val vcs = Git.withEmptyUserConfig(None, asyncInit = true)
 
     def listCommits(repoDir: Path): List[RevCommit] = {
       listCommits(testRepo(repoDir))
