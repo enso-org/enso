@@ -7,7 +7,6 @@ use crate::prelude::*;
 
 use crate::model::module::ProjectMetadata;
 
-use ast_parser::Parser;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::binary;
@@ -15,6 +14,7 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::ContentRoot;
 use flo_stream::Subscriber;
 use mockall::automock;
+use parser::Parser;
 use uuid::Uuid;
 
 

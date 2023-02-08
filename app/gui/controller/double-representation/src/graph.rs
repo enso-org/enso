@@ -227,14 +227,14 @@ mod tests {
     use ast::HasRepr;
 
     /// Takes a program with main definition in root and returns main's graph.
-    fn main_graph(parser: &ast_parser::Parser, program: impl Str) -> GraphInfo {
+    fn main_graph(parser: &parser::Parser, program: impl Str) -> GraphInfo {
         let module = parser.parse_module(program.as_ref(), default()).unwrap();
         let name = DefinitionName::new_plain("main");
         let main = module.def_iter().find_by_name(&name).unwrap();
         GraphInfo::from_definition(main.item)
     }
 
-    fn find_graph(parser: &ast_parser::Parser, program: impl Str, name: impl Str) -> GraphInfo {
+    fn find_graph(parser: &parser::Parser, program: impl Str, name: impl Str) -> GraphInfo {
         let module = parser.parse_module(program.as_ref(), default()).unwrap();
         let crumbs = name.into().split('.').map(DefinitionName::new_plain).collect();
         let id = Id { crumbs };
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn detect_a_node() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         // Each of these programs should have a `main` definition with a single `2+2` node.
         let programs = vec![
             "main = 2+2",
@@ -262,7 +262,7 @@ mod tests {
         }
     }
 
-    fn new_expression_node(parser: &ast_parser::Parser, expression: &str) -> NodeInfo {
+    fn new_expression_node(parser: &parser::Parser, expression: &str) -> NodeInfo {
         let node_ast = parser.parse(expression, default());
         let line_ast = expect_single_line(&node_ast).clone();
         NodeInfo::from_main_line_ast(&line_ast).unwrap()
@@ -287,7 +287,7 @@ mod tests {
     #[test]
     fn add_node_to_graph_with_single_line() {
         let program = "main = print \"hello\"";
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let mut graph = main_graph(&parser, program);
         let nodes = graph.nodes();
         assert_eq!(nodes.len(), 1);
@@ -314,7 +314,7 @@ mod tests {
     foo = node
     foo a = not_node
     print "hello""#;
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let mut graph = main_graph(&parser, program);
 
         let node_to_add0 = new_expression_node(&parser, "4 + 4");
@@ -373,7 +373,7 @@ mod tests {
     node2
 
 foo = 5";
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let mut graph = main_graph(&parser, program);
 
         let id2 = graph.nodes()[0].id();
@@ -400,7 +400,7 @@ foo = 5";
 
     #[test]
     fn multiple_node_graph() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let program = r"
 main =
     ## Faux docstring
@@ -431,7 +431,7 @@ main =
 
     #[test]
     fn removing_node_from_graph() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let program = r"
 main =
     foo = 2 + 2
@@ -457,7 +457,7 @@ main =
 
     #[test]
     fn removing_last_node_from_graph() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let program = r"
 main =
     foo = 2 + 2";
@@ -475,7 +475,7 @@ main =
 
     #[test]
     fn add_first_node_to_empty_graph() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let program = r"main = Nothing";
         let mut graph = main_graph(&parser, program);
         assert!(graph.nodes().is_empty());
@@ -487,7 +487,7 @@ main =
 
     #[test]
     fn editing_nodes_expression_in_graph() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let program = r"
 main =
     foo = 2 + 2

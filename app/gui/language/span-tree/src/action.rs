@@ -239,7 +239,7 @@ mod test {
     use crate::SpanTree;
 
     use ast::HasRepr;
-    use ast_parser::Parser;
+    use parser::Parser;
 
     #[test]
     fn actions_in_span_tree() {

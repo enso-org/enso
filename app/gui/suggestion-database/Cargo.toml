@@ -12,7 +12,7 @@ enso-prelude = { path = "../../../lib/rust/prelude" }
 convert_case = { workspace = true }
 span-tree = { path = "../language/span-tree" }
 ast = { path = "../language/ast/impl" }
-ast-parser = { path = "../language/ast-parser" }
+parser = { path = "../language/parser" }
 parser-scala = { path = "../language/parser-scala" }
 enso-text = { path = "../../../lib/rust/text" }
 double-representation = { path = "../controller/double-representation" }

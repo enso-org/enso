@@ -152,21 +152,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ast-parser"
-version = "0.1.0"
-dependencies = [
- "ast",
- "enso-parser",
- "enso-prelude",
- "enso-profiler",
- "enso-text",
- "failure",
- "serde",
- "serde_json",
- "uuid 0.8.2",
-]
-
-[[package]]
 name = "async-channel"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1643,12 +1628,12 @@ name = "debug-scene-interface"
 version = "0.1.0"
 dependencies = [
  "ast",
- "ast-parser",
  "enso-frp",
  "ensogl",
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "ide-view",
+ "parser",
  "span-tree",
  "uuid 0.8.2",
  "wasm-bindgen",
@@ -1794,7 +1779,6 @@ name = "double-representation"
 version = "0.1.0"
 dependencies = [
  "ast",
- "ast-parser",
  "const_format",
  "engine-protocol",
  "enso-data-structures",
@@ -1803,6 +1787,7 @@ dependencies = [
  "enso-text",
  "failure",
  "itertools",
+ "parser",
  "regex",
  "serde",
  "uuid 0.8.2",
@@ -2145,7 +2130,6 @@ version = "0.1.0"
 dependencies = [
  "analytics",
  "ast",
- "ast-parser",
  "bimap",
  "console_error_panic_hook",
  "const_format",
@@ -2182,6 +2166,7 @@ dependencies = [
  "json-rpc",
  "mockall",
  "nalgebra",
+ "parser",
  "parser-scala",
  "regex",
  "semver 1.0.16",
@@ -2500,7 +2485,6 @@ name = "enso-suggestion-database"
 version = "0.1.0"
 dependencies = [
  "ast",
- "ast-parser",
  "convert_case 0.6.0",
  "double-representation",
  "engine-protocol",
@@ -2512,6 +2496,7 @@ dependencies = [
  "failure",
  "flo_stream",
  "futures 0.3.26",
+ "parser",
  "parser-scala",
  "span-tree",
  "wasm-bindgen-test",
@@ -4161,7 +4146,6 @@ name = "ide-view"
 version = "0.1.0"
 dependencies = [
  "ast",
- "ast-parser",
  "engine-protocol",
  "enso-config",
  "enso-frp",
@@ -4180,6 +4164,7 @@ dependencies = [
  "multi-map",
  "nalgebra",
  "ordered-float",
+ "parser",
  "serde",
  "serde_json",
  "span-tree",
@@ -5298,6 +5283,21 @@ dependencies = [
  "redox_syscall 0.2.16",
  "smallvec 1.10.0",
  "windows-sys",
+]
+
+[[package]]
+name = "parser"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "enso-parser",
+ "enso-prelude",
+ "enso-profiler",
+ "enso-text",
+ "failure",
+ "serde",
+ "serde_json",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -6612,12 +6612,12 @@ name = "span-tree"
 version = "0.1.0"
 dependencies = [
  "ast",
- "ast-parser",
  "enso-data-structures",
  "enso-prelude",
  "enso-profiler",
  "enso-text",
  "failure",
+ "parser",
  "wasm-bindgen-test",
 ]
 

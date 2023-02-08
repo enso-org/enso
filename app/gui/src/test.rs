@@ -134,7 +134,7 @@ pub mod mock {
         pub module_path:  model::module::Path,
         pub suggestions:  HashMap<suggestion_database::entry::Id, suggestion_database::Entry>,
         pub context_id:   model::execution_context::Id,
-        pub parser:       ast_parser::Parser,
+        pub parser:       parser::Parser,
         code:             String,
         id_map:           ast::IdMap,
         metadata:         crate::model::module::Metadata,
@@ -171,7 +171,7 @@ pub mod mock {
                 metadata: default(),
                 context_id: CONTEXT_ID,
                 root_definition: definition_name(),
-                parser: ast_parser::Parser::new(),
+                parser: parser::Parser::new(),
             }
         }
 

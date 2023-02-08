@@ -12,7 +12,6 @@ use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::macros::skip_and_freeze::MacrosInfo;
 use ast::macros::DocumentationCommentInfo;
-use ast_parser::Parser;
 use double_representation::connection;
 use double_representation::definition;
 use double_representation::definition::DefinitionProvider;
@@ -24,6 +23,7 @@ use double_representation::node::MainLine;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
+use parser::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
 use span_tree::generate::context::CalledMethodInfo;
@@ -1033,10 +1033,10 @@ pub mod tests {
 
     use ast::crumbs;
     use ast::test_utils::expect_shape;
-    use ast_parser::Parser;
     use double_representation::name::project;
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;
+    use parser::Parser;
 
 
 

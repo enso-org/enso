@@ -184,8 +184,8 @@ mod test {
     use crate::module;
 
     use ast::HasIdMap;
-    use ast_parser::Parser;
     use enso_prelude::default;
+    use parser::Parser;
     use uuid::Uuid;
 
     /// A sample text edit used to test "text api" properties.

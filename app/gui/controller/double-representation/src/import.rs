@@ -151,7 +151,7 @@ impl Display for Info {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ast_parser::Parser;
+    use parser::Parser;
 
     struct Fixture {
         parser: Parser,

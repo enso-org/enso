@@ -208,7 +208,7 @@ impl Info {
     // TODO [mwu]
     //   Ideally we should not require parser but should use some sane way of generating AST from
     //   the `ImportInfo` value.
-    pub fn add_import(&mut self, parser: &ast_parser::Parser, to_add: import::Info) -> usize {
+    pub fn add_import(&mut self, parser: &parser::Parser, to_add: import::Info) -> usize {
         // Find last import that is not "after" the added one lexicographically.
         let previous_import =
             self.enumerate_imports().take_while(|(_, import)| &to_add > import).last();
@@ -224,7 +224,7 @@ impl Info {
     /// For more details the mechanics see [`add_import`] documentation.
     pub fn add_import_if_missing(
         &mut self,
-        parser: &ast_parser::Parser,
+        parser: &parser::Parser,
         to_add: import::Info,
     ) -> Option<usize> {
         (!self.contains_import(to_add.id())).then(|| self.add_import(parser, to_add))
@@ -279,7 +279,7 @@ impl Info {
         &mut self,
         method: definition::ToAdd,
         location: Placement,
-        parser: &ast_parser::Parser,
+        parser: &parser::Parser,
     ) -> FallibleResult {
         let no_indent = 0;
         let definition_ast = method.ast(no_indent, parser)?;
@@ -512,7 +512,7 @@ mod tests {
 
     #[test]
     fn import_listing() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let expect_imports = |code: &str, expected: &[&[&str]]| {
             let ast = parser.parse_module(code, default()).unwrap();
             let info = Info { ast };
@@ -535,7 +535,7 @@ mod tests {
 
     #[test]
     fn import_adding_and_removing() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let code = "import Foo.Bar.Baz";
         let ast = parser.parse_module(code, default()).unwrap();
         let mut info = Info { ast };
@@ -564,7 +564,7 @@ mod tests {
 
     #[test]
     fn implicit_method_resolution() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let module_name =
             QualifiedName::from_all_segments(["local", "ProjectName", "Main"]).unwrap();
         let expect_find = |method: &MethodPointer, code, expected: &definition::Id| {
@@ -636,7 +636,7 @@ other def =
 
 last def = inline expression";
 
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let module = parser.parse_module(code, default()).unwrap();
         let module = Info { ast: module };
 
@@ -655,7 +655,7 @@ last def = inline expression";
 
     #[test]
     fn add_method() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let module = r#"Main.method1 arg = body
 
 main = Main.method1 10"#;

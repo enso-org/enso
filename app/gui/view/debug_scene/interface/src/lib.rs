@@ -17,7 +17,6 @@
 
 use ensogl::prelude::*;
 
-use ast_parser::Parser;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display::object::ObjectOps;
@@ -35,6 +34,7 @@ use ide_view::graph_editor::Type;
 use ide_view::project;
 use ide_view::root;
 use ide_view::status_bar;
+use parser::Parser;
 
 
 

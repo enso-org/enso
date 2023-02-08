@@ -600,7 +600,7 @@ mod test {
     use ast::crumbs::SectionRightCrumb;
     use ast::Crumbs;
     use ast::IdMap;
-    use ast_parser::Parser;
+    use parser::Parser;
 
 
     /// A helper function which removes information about expression id from thw tree rooted at

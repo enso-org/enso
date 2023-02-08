@@ -151,8 +151,8 @@ mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-    use ast_parser::Parser;
     use enso_text::index::*;
+    use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     fn setup_mock_project(setup: impl FnOnce(&mut model::project::MockAPI)) -> model::Project {
@@ -204,7 +204,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn obtain_text_controller_for_module() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         TestWithLocalPoolExecutor::set_up().run_task(async move {
             let code = "2 + 2".to_string();
             let undo = default();

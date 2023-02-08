@@ -7,7 +7,6 @@ use crate::model::module::TextChange;
 
 use ast;
 use ast::HasIdMap;
-use ast_parser::Parser;
 use double_representation::import;
 use double_representation::module;
 use double_representation::name::project;
@@ -15,6 +14,7 @@ use double_representation::name::QualifiedName;
 use double_representation::text::apply_code_change_to_id_map;
 use engine_protocol::language_server;
 use engine_protocol::types::Sha3_224;
+use parser::Parser;
 
 
 
@@ -199,8 +199,8 @@ mod test {
     use ast;
     use ast::Ast;
     use ast::BlockLine;
-    use ast_parser::Parser;
     use enso_text::index::*;
+    use parser::Parser;
     use uuid::Uuid;
 
     #[test]

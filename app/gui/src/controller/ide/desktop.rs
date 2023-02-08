@@ -10,12 +10,12 @@ use crate::controller::ide::StatusNotificationPublisher;
 use crate::controller::ide::API;
 use crate::ide::initializer;
 
-use ast_parser::Parser;
 use double_representation::name::project;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectMetadata;
 use engine_protocol::project_manager::ProjectName;
+use parser::Parser;
 
 
 

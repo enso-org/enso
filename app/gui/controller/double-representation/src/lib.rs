@@ -201,7 +201,7 @@ mod tests {
     use crate::definition::DefinitionProvider;
 
     use ast::macros::DocumentationCommentInfo;
-    use ast_parser::Parser;
+    use parser::Parser;
 
 
     /// Expect `main` method, where first line is a documentation comment.
@@ -226,7 +226,7 @@ mod tests {
 
     #[test]
     fn parse_single_line_comment() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
 
         // Typical single line case.
         let code = r#"
@@ -263,7 +263,7 @@ main =
 
     #[test]
     fn parse_multi_line_comment() {
-        let parser = ast_parser::Parser::new();
+        let parser = parser::Parser::new();
         let code = r#"
 main =
     ## First line

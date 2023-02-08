@@ -9,7 +9,6 @@ use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
 
-use ast_parser::Parser;
 use breadcrumbs::Breadcrumbs;
 use const_format::concatcp;
 use double_representation::graph::GraphInfo;
@@ -27,6 +26,7 @@ use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 use flo_stream::Subscriber;
+use parser::Parser;
 
 
 // ==============
