@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+from Standard.Test import Test
+import Standard.Test.Extensions
+from Standard.Table import Table
+
+sample_table = Table.new [["A", [1, 2, 3]]]
+sample_column = sample_table.get "A"
+
+spec =
+    expect_type_representation value expected_text =
+            type_name = Meta.get_qualified_type_name value . to_text
+            type_name . should_equal <| expected_text
+
+    Test.group "Type Names of Visualisation Defaults" <|
+        """ IMPORTANT: When updating this, also update the default values in
+             app/gui/view/graph-editor/src/builtin/visualization/java_script/table.js:18 as this
+             verifies that the type names do not go out of sync. Should be removed once
+             https://github.com/enso-org/enso/issues/5195 is implemented.
+        Test.specify "Type names should match table visualization expectations" <|
+            expect_type_representation [1,2] "Standard.Base.Data.Vector.Vector"
+            expect_type_representation [1,2].to_array "Standard.Base.Data.Array.Array"
+            expect_type_representation sample_table "Standard.Table.Data.Table.Table"
+            expect_type_representation sample_column "Standard.Table.Data.Column.Column"

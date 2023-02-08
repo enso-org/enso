@@ -842,11 +842,11 @@ spec =
                             expected_vector = column_vector.filter (Filter_Condition.Is_In in_vector)
                             expected_neg_vector = negated_column_vector.filter (Filter_Condition.Is_In in_vector)
 
-                            t.filter "X" (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "X" . to_vector . should_equal expected_vector
-                            t.filter "X" (Filter_Condition.Is_In in_column) on_problems=Report_Error . at "X" . to_vector . should_equal expected_vector
+                            t.filter "X" (Filter_Condition.Is_In in_vector) . at "X" . to_vector . should_equal expected_vector
+                            t.filter "X" (Filter_Condition.Is_In in_column) . at "X" . to_vector . should_equal expected_vector
                             t2 = t.set (t.at "X" . not) new_name="Y"
-                            t2.filter "Y" (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "Y" . to_vector . should_equal expected_neg_vector
-                            t2.filter "Y" (Filter_Condition.Is_In in_column) on_problems=Report_Error . at "Y" . to_vector . should_equal expected_neg_vector
+                            t2.filter "Y" (Filter_Condition.Is_In in_vector) . at "Y" . to_vector . should_equal expected_neg_vector
+                            t2.filter "Y" (Filter_Condition.Is_In in_column) . at "Y" . to_vector . should_equal expected_neg_vector
 
         Test.specify "should perform `Is_In` efficiently for builtin types" <|
             first_day = Date_Time.new 2000 1 1
@@ -884,122 +884,7 @@ spec =
             check_timing "dates" <|
                 t.filter date_col (Filter_Condition.Is_In dates_vec) . at "X" . to_vector . should_equal expected_vector
 
-    # TODO move these to Common_Table_Operations
-    Test.group "[In-Memory] Table.transpose" <|
-        Test.specify "should transpose all columns by default" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose
-            t1.row_count . should_equal 12
-            t1.column_count . should_equal 2
-            t1.at "Name" . to_vector . should_equal ["Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another"]
-            t1.at "Value" . to_vector . should_equal ["x", 1, 10, Nothing, "y", 2, Nothing, "Hello", "z", 3, 20, "World"]
-
-        Test.specify "should allow custom names" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose name_field="Key" value_field="Object"
-            t1.row_count . should_equal 12
-            t1.column_count . should_equal 2
-            t1.at "Key" . to_vector . should_equal ["Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another"]
-            t1.at "Object" . to_vector . should_equal ["x", 1, 10, Nothing, "y", 2, Nothing, "Hello", "z", 3, 20, "World"]
-
-        Test.specify "should allow id fields" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose ["Key"]
-            t1.row_count . should_equal 9
-            t1.column_count . should_equal 3
-            t1.at "Key" . to_vector . should_equal ["x", "x", "x", "y", "y", "y", "z", "z", "z"]
-            t1.at "Name" . to_vector . should_equal ["Value", "Another", "Yet Another", "Value", "Another", "Yet Another", "Value", "Another", "Yet Another"]
-            t1.at "Value" . to_vector . should_equal [1, 10, Nothing, 2, Nothing, "Hello", 3, 20, "World"]
-
-        Test.specify "should allow single id field" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose "Key"
-            t1.row_count . should_equal 9
-            t1.column_count . should_equal 3
-            t1.at "Key" . to_vector . should_equal ["x", "x", "x", "y", "y", "y", "z", "z", "z"]
-            t1.at "Name" . to_vector . should_equal ["Value", "Another", "Yet Another", "Value", "Another", "Yet Another", "Value", "Another", "Yet Another"]
-            t1.at "Value" . to_vector . should_equal [1, 10, Nothing, 2, Nothing, "Hello", 3, 20, "World"]
-
-        Test.specify "should allow all id fields with warning or error" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose t.column_names
-            t1.row_count . should_equal 3
-            t1.column_count . should_equal 6
-            t1.at "Key" . to_vector . should_equal ["x", "y", "z"]
-            t1.at "Value" . to_vector . should_equal [1, 2, 3]
-            t1.at "Name" . to_vector . should_equal [Nothing, Nothing, Nothing]
-            t1.at "Value_1" . to_vector . should_equal [Nothing, Nothing, Nothing]
-
-            # ToDo: Verify the warnings and error handling within transpose.
-
-    # TODO move these to Common_Table_Operations
-    Test.group "[In-Memory] Table.cross_tab" <|
-        Test.specify "should cross_tab counts by default using first column as names" <|
-            t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
-            t1.at "x" . to_vector . should_equal [4]
-            t1.at "y" . to_vector . should_equal [3]
-            t1.at "z" . to_vector . should_equal [2]
-
-        Test.specify "should allow a different aggregate" <|
-            t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab values=[Sum "Value"]
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
-            t1.at "x" . to_vector . should_equal [10]
-            t1.at "y" . to_vector . should_equal [18]
-            t1.at "z" . to_vector . should_equal [17]
-
-        Test.specify "should allow a custom expression for the aggregate" <|
-            t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab values=[Sum "[Value]*[Value]"]
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
-            t1.at "x" . to_vector . should_equal [30]
-            t1.at "y" . to_vector . should_equal [110]
-            t1.at "z" . to_vector . should_equal [145]
-
-        Test.specify "should allow a chosen column" <|
-            t = Table.new [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Species", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab [] "Species"
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
-            t1.at "x" . to_vector . should_equal [4]
-            t1.at "y" . to_vector . should_equal [3]
-            t1.at "z" . to_vector . should_equal [2]
-
-        Test.specify "should allow a grouping" <|
-            t = Table.new [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab ["Group"] "Key"
-            t1.row_count . should_equal 2
-            t1.column_count . should_equal 4
-            t1.at "Group" . to_vector . should_equal ["A", "B"]
-            t1.at "x" . to_vector . should_equal [2, 2]
-            t1.at "y" . to_vector . should_equal [2, 1]
-            t1.at "z" . to_vector . should_equal [1, 1]
-
-        Test.specify "should allow a grouping by text" <|
-            t = Table.new [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab "Group" "Key"
-            t1.row_count . should_equal 2
-            t1.column_count . should_equal 4
-            t1.at "Group" . to_vector . should_equal ["A", "B"]
-            t1.at "x" . to_vector . should_equal [2, 2]
-            t1.at "y" . to_vector . should_equal [2, 1]
-            t1.at "z" . to_vector . should_equal [1, 1]
-
-        Test.specify "should aggregate if name_field not found" <|
-            t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab [] "Name"
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 1
-            t1.at "Count" . to_vector . should_equal [9]
-
-            # ToDo: Verify the warnings and error handling within cross_tab.
-
-    Test.group "[In-Memory] Table.join" <|
+    Test.group "[In-Memory-specific] Table.join" <|
         Test.specify "should correctly report unsupported cross-backend joins" <|
             t = Table.new [["X", [1, 2, 3]]]
             t.join 42 . should_fail_with Type_Error.Error

@@ -11,7 +11,12 @@ loadStyleFromString(scrollbarStyle)
 // ===========================
 
 class TableVisualization extends Visualization {
-    static inputType = 'Any'
+    // IMPORTANT: When updating this, also update the test in
+    // test/Visualization_Tests/src/Default_Visualizations_Spec.enso:15 as this verifies that the
+    // type names do not go out of sync. Should be removed once
+    // https://github.com/enso-org/enso/issues/5195 is implemented.
+    static inputType =
+        'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Any '
     static label = 'Table'
 
     constructor(data) {

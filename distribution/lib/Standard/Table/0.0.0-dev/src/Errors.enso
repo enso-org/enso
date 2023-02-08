@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Table.Data.Expression.Expression_Error
+
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
 polyglot java import org.enso.table.error.EmptyFileException
@@ -9,7 +11,6 @@ polyglot java import org.enso.table.error.EmptySheetException
 type Missing_Input_Columns
     ## PRIVATE
        One or more columns not found in the input table.
-       Can occur when using By_Name or By_Column.
     Error (criteria : [Text])
 
     ## PRIVATE
@@ -389,3 +390,12 @@ type Row_Count_Mismatch
     to_display_text : Text
     to_display_text self =
         "The number of rows in the left table ("+self.left_rows.to_text+") does not match the number of rows in the right table ("+self.right_rows.to_text+")."
+
+type Invalid_Aggregate_Column
+    ## Indicates that a provided name is not found within available column not
+       represents a valid expression.
+    Error (name : Text) (expression_error : Expression_Error | No_Such_Column | Nothing)
+
+    to_display_text : Text
+    to_display_text self =
+        "The name ["+self.name+"] is not a valid column name nor expression."

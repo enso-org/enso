@@ -9,7 +9,6 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::MethodPointer;
-use engine_protocol::language_server::SuggestionId;
 use engine_protocol::language_server::VisualisationConfiguration;
 use ensogl::data::color;
 use flo_stream::Subscriber;
@@ -57,7 +56,7 @@ pub struct ComputedValueInfo {
     pub typename:    Option<ImString>,
     pub payload:     ExpressionUpdatePayload,
     /// If the expression is a method call (i.e. can be entered), this points to the target method.
-    pub method_call: Option<SuggestionId>,
+    pub method_call: Option<MethodPointer>,
 }
 
 impl From<ExpressionUpdate> for ComputedValueInfo {
@@ -118,11 +117,6 @@ impl ComputedValueInfoRegistry {
     /// Look up the registry for information about given expression.
     pub fn get(&self, id: &ExpressionId) -> Option<Rc<ComputedValueInfo>> {
         self.map.borrow().get(id).cloned()
-    }
-
-    /// Look up the registry for method call suggestion ID for given expression.
-    pub fn get_method_call(&self, id: &ExpressionId) -> Option<SuggestionId> {
-        self.map.borrow().get(id)?.method_call
     }
 
     /// Obtain a `Future` with data from this registry. If data is not available yet, the future

@@ -21,7 +21,10 @@ type Aggregate_Column
 
        Arguments:
        - columns: either a single or set of columns (specified by name, index or
-         Column object) to count across.
+         Column object) to count across. The aggregation may also be computed
+         over an expression evaluated on the Table, if provided instead of a
+         single column name. Currently expressions are not supported with
+         multiple selection.
        - name: name of new column.
        - ignore_nothing: if all values are Nothing won't be included.
     Count_Distinct (columns:Column|Text|Integer|Column_Selector=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False)
@@ -32,7 +35,8 @@ type Aggregate_Column
        specified column within each group. If no rows, evaluates to 0.
 
        Arguments:
-       - columns: column (specified by name, index or Column object) to count.
+       - columns: column (specified by name, expression, index or Column object)
+         to count.
        - name: name of new column.
     Count_Not_Nothing (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -42,7 +46,8 @@ type Aggregate_Column
        specified column within each group. If no rows, evaluates to 0.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to count.
+       - column: column (specified by name, expression, index or Column object)
+         to count.
        - name: name of new column.
     Count_Nothing (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -50,7 +55,8 @@ type Aggregate_Column
        ("") values of the column within each group. If no rows, evaluates to 0.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to count.
+       - column: column (specified by name, expression, index or Column object)
+         to count.
        - name: name of new column.
     Count_Not_Empty (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -58,7 +64,8 @@ type Aggregate_Column
        text values of the column within each group. If no rows, evaluates to 0.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to count.
+       - column: column (specified by name, expression, index or Column object)
+         to count.
        - name: name of new column.
     Count_Empty (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -66,7 +73,8 @@ type Aggregate_Column
        the column within each group. If no rows, evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to total.
+       - column: column (specified by name, expression, index or Column object)
+         to total.
        - name: name of new column.
     Sum (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -74,7 +82,8 @@ type Aggregate_Column
        the column within each group. If no rows, evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to average.
+       - column: column (specified by name, expression, index or Column object)
+         to average.
        - name: name of new column.
     Average (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -82,8 +91,8 @@ type Aggregate_Column
        of the column within each group. If no rows, evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to calculate
-         median on.
+       - column: column (specified by name, expression, index or Column object)
+         to calculate median on.
        - name: name of new column.
     Median (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -92,8 +101,8 @@ type Aggregate_Column
 
        Arguments:
        - percentile: Percentage to compute from 0-1 inclusive.
-       - column: column (specified by name, index or Column object) to compute
-         percentile.
+       - column: column (specified by name, expression, index or Column object)
+         to compute percentile.
        - name: name of new column.
     Percentile (percentile:Decimal=0.5) (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -101,8 +110,8 @@ type Aggregate_Column
        of the column within each group. If no rows, evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to find the
-         most common value.
+       - column: column (specified by name, expression, index or Column object)
+         to find the most common value.
        - name: name of new column.
     Mode (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -111,8 +120,8 @@ type Aggregate_Column
        `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to compute
-         standard deviation.
+       - column: column (specified by name, expression, index or Column object)
+         to compute standard deviation.
        - name: name of new column.
        - population: specifies if group is a sample or the population
     Standard_Deviation (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing) (population:Boolean=False)
@@ -121,8 +130,8 @@ type Aggregate_Column
        values will become an empty string. If no rows, evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to
-         concatenate values.
+       - column: column (specified by name, expression, index or Column object)
+         to concatenate values.
        - name: name of new column.
        - separator: added between each value.
        - prefix: added at the start of the result.
@@ -135,8 +144,8 @@ type Aggregate_Column
        evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to find
-         first group entry.
+       - column: column (specified by name, expression, index or Column object)
+         to find first group entry.
        - name: name of new column.
        - ignore_nothing: if `True`, then missing values are ignored and first
          not missing value returned.
@@ -148,8 +157,8 @@ type Aggregate_Column
        evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to find
-         last group entry.
+       - column: column (specified by name, expression, index or Column object)
+         to find last group entry.
        - name: name of new column.
        - ignore_nothing: if `True`, then missing values are ignored and last
          not missing value returned.
@@ -161,8 +170,8 @@ type Aggregate_Column
        evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to find
-         maximum.
+       - column: column (specified by name, expression, index or Column object)
+         to find maximum.
        - name: name of new column.
     Maximum (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -170,8 +179,8 @@ type Aggregate_Column
        evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to find
-         minimum.
+       - column: column (specified by name, expression, index or Column object)
+         to find minimum.
        - name: name of new column.
     Minimum (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -179,8 +188,8 @@ type Aggregate_Column
        evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to find
-         shortest value.
+       - column: column (specified by name, expression, index or Column object)
+         to find shortest value.
        - name: name of new column.
     Shortest (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
 
@@ -188,7 +197,7 @@ type Aggregate_Column
        evaluates to `Nothing`.
 
        Arguments:
-       - column: column (specified by name, index or Column object) to find
-         longest value.
+       - column: column (specified by name, expression, index or Column object)
+         to find longest value.
        - name: name of new column.
     Longest (column:Column|Text|Integer=0) (new_name:Text|Nothing=Nothing)
