@@ -1227,7 +1227,7 @@ spec setup =
             table_builder [col1, col2]
 
         Test.specify "should fail if there are no output columns, and promote any warnings to errors" <|
-            [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
+            [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+": " <|
                 t1 = table.aggregate [] on_problems=pb
                 t1.should_fail_with No_Output_Columns
 
@@ -1296,6 +1296,12 @@ spec setup =
             tester = expect_column_names ["Value_1", "Value"]
             Problems.test_problem_handling action problems tester
 
+        Test.specify "should raise a warning when duplicate column names" <|
+            action = table.aggregate [Sum "Value" new_name="AGG1", Count new_name="AGG1"] on_problems=_
+            problems = [Duplicate_Output_Column_Names.Error ["AGG1"]]
+            tester = expect_column_names ["AGG1", "AGG1_1"]
+            Problems.test_problem_handling action problems tester
+
         Test.specify "should allow partial matches on Count_Distinct" <|
             action = table.aggregate [Count_Distinct (By_Name ["Missing", "Value"])] on_problems=_
             problems = [Missing_Input_Columns.Error ["Missing"]]
@@ -1324,46 +1330,46 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if totaling on a non number" <|
-            action = table.aggregate [Sum "Text"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Sum Text" [0] "Cannot convert to a number."]
-            tester = expect_column_names ["Sum Text"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Sum "Text"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Sum Text" [0] "Cannot convert to a number.")
 
         Test.specify "should warn if averaging on a non number" <|
-            action = table.aggregate [Average "Text"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Average Text" [0] "Cannot convert to a number."]
-            tester = expect_column_names ["Average Text"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Average "Text"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Average Text" [0] "Cannot convert to a number.")
 
         Test.specify "should warn if calculating standard deviation on a non number" <|
-            action = table.aggregate [Standard_Deviation "Text"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Standard Deviation Text" [0] "Cannot convert to a number."]
-            tester = expect_column_names ["Standard Deviation Text"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Standard_Deviation "Text"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Standard Deviation Text" [0] "Cannot convert to a number.")
 
         Test.specify "should warn if median on a non number" <|
-            action = table.aggregate [Median "Text"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Median Text" [0] "Cannot convert to a number."]
-            tester = expect_column_names ["Median Text"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Median "Text"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Median Text" [0] "Cannot convert to a number.")
 
         Test.specify "should warn if trying shortest on a non text" <|
-            action = table.aggregate [Shortest "Index"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Shortest Index" [0] "Not a text value."]
-            tester = expect_column_names ["Shortest Index"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Shortest "Index"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Shortest Index" [0] "Not a text value.")
 
         Test.specify "should warn if trying count empties on a non text" <|
-            action = table.aggregate [Count_Empty "Index"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Count Empty Index" [0] "Not a text value."]
-            tester = expect_column_names ["Count Empty Index"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Count_Empty "Index"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Count Empty Index" [0] "Not a text value.")
 
         Test.specify "should warn if trying concatenate on a non text" <|
-            action = table.aggregate [Concatenate "Index"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Concatenate Index" [0] "Not a text value."]
-            tester = expect_column_names ["Concatenate Index"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Concatenate "Index"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Concatenate Index" [0] "Not a text value.")
 
         Test.specify "should warn if trying concatenate unquoted delimiters" <|
             column = Concatenate "Text" separator=","
@@ -1373,10 +1379,10 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if can't compare value for Min or Max" <|
-            action = table.aggregate [Maximum "Mixed"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Maximum Mixed" [1] "Cannot compare values."]
-            tester = expect_column_names ["Maximum Mixed"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Maximum "Mixed"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Maximum Mixed" [1] "Cannot compare values.")
 
     Test.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) <|
         table =
@@ -1387,11 +1393,10 @@ spec setup =
 
         Test.specify "should merge Invalid Aggregation warnings" <|
             new_table = table.aggregate [Group_By "Key", Concatenate "Value"]
-            problems = Problems.get_attached_warnings new_table
-            problems.length . should_equal 1
-            problems.at 0 . is_a Invalid_Aggregation.Error . should_be_true
-            problems.at 0 . column . should_equal "Concatenate Value"
-            problems.at 0 . rows . length . should_equal 15
+            err = new_table.catch
+            err . should_be_a Invalid_Aggregation.Error
+            err.column . should_equal "Concatenate Value"
+            err.rows . length . should_equal 15
 
         Test.specify "should merge Floating Point Grouping warnings" <|
             new_table = table.aggregate [Group_By "Float", Count]
