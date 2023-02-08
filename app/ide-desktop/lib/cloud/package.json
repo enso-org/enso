@@ -1,5 +1,5 @@
 {
-  "name": "cloud2",
+  "name": "enso-studio-cloud",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
