@@ -478,7 +478,9 @@ let origin = null
 async function main(args) {
     // Note [Main error handling]
     try {
-        runBackend()
+        // FIXME [NP]: This is a temporary workaround to avoid running the backend, which speeds up
+        //   development. Uncomment this once the PR is undrafted.
+        //runBackend()
 
         console.log('Starting the IDE service.')
         if (args.server !== false) {

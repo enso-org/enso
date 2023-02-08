@@ -72,7 +72,10 @@ const config: Configuration = {
     artifactName: 'enso-${os}-${version}.${ext}',
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: (args.target as MacOsTargetName) ?? 'dmg',
+        //target: (args.target as MacOsTargetName) ?? 'dmg',
+        // FIXME [NP]: This is a temporary workaround to avoid repackaging during rebuilds, which
+        //   provides faster development. Revert this once the PR is undrafted.
+        target: 'dir',
         icon: `${args.iconsDist}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
@@ -90,7 +93,10 @@ const config: Configuration = {
     },
     win: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: args.target ?? 'nsis',
+        //target: args.target ?? 'nsis',
+        // FIXME [NP]: This is a temporary workaround to avoid repackaging during rebuilds, which
+        //   provides faster development. Revert this once the PR is undrafted.
+        target: 'dir',
         icon: `${args.iconsDist}/icon.ico`,
     },
     linux: {
