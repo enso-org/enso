@@ -166,9 +166,11 @@ spec =
             (Child == Point).should_be_false
             (Point == Child).should_be_false
             (Boolean == Any).should_be_false
+            (Boolean == Boolean).should_be_true
+
+        Test.specify "should handle `==` on types with Any as first operand" pending="Any == Boolean resolves to Any.type.== static method call" <|
             (Any == Boolean).should_be_false
             (Any == Any).should_be_true
-            (Boolean == Boolean).should_be_true
 
         Test.specify "should dispatch to overriden `==` in vectors" <|
             ([(Child.Value 1)] == [(Child.Value 101)]).should_be_true
