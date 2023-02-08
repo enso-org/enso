@@ -317,8 +317,7 @@ impl Model {
     ///
     /// If the view update is required, the widget query data is returned.
     fn refresh_expression_widgets(&self, expr_id: ast::Id) -> Option<(ast::Id, ast::Id)> {
-        let suggestion_id = self.expression_method_suggestion(expr_id)?;
-        let method_pointer = self.suggestion_method_pointer(suggestion_id);
+        let method_pointer = self.expression_method_pointer(expr_id);
         let (_, method_target_id) = self
             .state
             .update_from_controller()
@@ -361,17 +360,18 @@ impl Model {
     /// Extract the expression's current suggestion entry from controllers.
     fn expression_method_suggestion(&self, id: ast::Id) -> Option<SuggestionId> {
         let registry = self.controller.computed_value_info_registry();
-        registry.get(&id)?.method_call
+        let computed_value = registry.get(&id)?;
+        let method_pointer = computed_value.method_call.as_ref()?;
+        let suggestion_db = self.controller.suggestion_db();
+        suggestion_db.get_method_suggestion(method_pointer)
     }
 
     /// Extract the expression's current method pointer from controllers.
-    fn suggestion_method_pointer(
-        &self,
-        method_id: SuggestionId,
-    ) -> Option<view::graph_editor::MethodPointer> {
-        let suggestion_db = self.controller.suggestion_db();
-        let method = suggestion_db.lookup_method_ptr(method_id).ok()?;
-        Some(view::graph_editor::MethodPointer(Rc::new(method)))
+    fn expression_method_pointer(&self, id: ast::Id) -> Option<view::graph_editor::MethodPointer> {
+        let registry = self.controller.computed_value_info_registry();
+        let computed_value = registry.get(&id)?;
+        let method_pointer = computed_value.method_call.as_ref()?;
+        Some(view::graph_editor::MethodPointer(Rc::new(method_pointer.clone())))
     }
 
     fn file_dropped(&self, file: ensogl_drop_manager::File, position: Vector2<f32>) {

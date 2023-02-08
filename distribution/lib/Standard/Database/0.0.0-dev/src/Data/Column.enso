@@ -7,6 +7,7 @@ import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Column_Type_Selection.Auto
 import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Internal.Widget_Helpers
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -822,7 +823,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
-    @type (Single_Choice ['Auto','Integer','Decimal','Date','Date_Time','Time_Of_Day','Boolean'] display=Display.Always)
+    @type Widget_Helpers.parse_type_selector
     parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Nothing -> Problem_Behavior -> Column
     parse self type=Auto format=Nothing on_problems=Report_Warning =
         _ = [type, format, on_problems]
