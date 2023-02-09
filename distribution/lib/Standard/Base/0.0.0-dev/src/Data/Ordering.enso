@@ -39,7 +39,7 @@ from project.Data.Boolean import all
 
     Note that there has to be `is_ordered` method defined which returns a Boolean
     indicating that the comparator is ordered. This is currently needed as there is
-    no way how to define interfaces in Enso.
+    no way to define interfaces in Enso.
 
     An _unordered comparator_ has to implement both `equals` and `hash` to define
     a _total_ custom equality. By _total_, we mean that every instance of the type
