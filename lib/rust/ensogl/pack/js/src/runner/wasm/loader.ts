@@ -17,7 +17,7 @@ const ghostColor = '#00000020'
 const topLayerIndex = '1000'
 
 /** Visual representation of the loader. */
-class ProgressIndicator {
+export class ProgressIndicator {
     dom: HTMLDivElement
     track: HTMLElement
     indicator: HTMLElement
@@ -34,7 +34,7 @@ class ProgressIndicator {
     targetValue = 0
     minProgressSize = 0.1
 
-    constructor(cfg: Config) {
+    constructor(cfg: Config, run = true) {
         this.ringInnerRadius = 48
         this.ringWidth = 12
 
@@ -87,7 +87,7 @@ class ProgressIndicator {
         this.set(0)
         this.setIndicatorOpacity(0)
 
-        if (cfg.params.useLoader.value) {
+        if (cfg.params.useLoader.value && run) {
             this.initialized = Promise.all([
                 this.animateShow(),
                 this.animateShowLogo(),
@@ -128,8 +128,8 @@ class ProgressIndicator {
                     <circle fill="white" r="${outerRadius}"/>
                     <circle fill="black" r="${this.ringInnerRadius}"/>
                 </mask>
-                    
-                
+
+
             </defs>
             <g>
                 <g transform="translate(${size / 2},${size / 2})" id="loaderIndicator" opacity="1">

@@ -36,6 +36,16 @@ pub mod js_bindings {
         #[wasm_bindgen(method)]
         #[wasm_bindgen(js_name = registerSetShadersRustFn)]
         pub fn register_set_shaders_rust_fn(this: &App, closure: &Closure<dyn FnMut(JsValue)>);
+
+        #[allow(unsafe_code)]
+        #[wasm_bindgen(method)]
+        #[wasm_bindgen(js_name = showProgressIndicator)]
+        pub async fn show_progress_indicator(this: &App);
+
+        #[allow(unsafe_code)]
+        #[wasm_bindgen(method)]
+        #[wasm_bindgen(js_name = hideProgressIndicator)]
+        pub async fn hide_progress_indicator(this: &App);
     }
 }
 
@@ -52,6 +62,9 @@ pub mod js_bindings {
     impl App {
         pub fn register_get_shaders_rust_fn(&self, _closure: &Closure<dyn FnMut() -> JsValue>) {}
         pub fn register_set_shaders_rust_fn(&self, _closure: &Closure<dyn FnMut(JsValue)>) {}
+
+        pub async fn show_progress_indicator(&self) {}
+        pub async fn hide_progress_indicator(&self) {}
     }
 }
 

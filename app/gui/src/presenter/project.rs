@@ -8,6 +8,8 @@ use crate::presenter;
 use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
+use enso_notification::Publisher;
+use ensogl::system::js;
 use ide_view as view;
 use ide_view::project::SearcherParams;
 use model::module::NotificationKind;
@@ -24,15 +26,23 @@ use model::project::VcsStatus;
 #[allow(unused)]
 #[derive(Debug)]
 struct Model {
-    controller:       controller::Project,
-    module_model:     model::Module,
-    graph_controller: controller::ExecutedGraph,
-    ide_controller:   controller::Ide,
-    view:             view::project::View,
-    status_bar:       view::status_bar::View,
-    graph:            presenter::Graph,
-    code:             presenter::Code,
-    searcher:         RefCell<Option<presenter::Searcher>>,
+    controller:        controller::Project,
+    module_model:      model::Module,
+    graph_controller:  controller::ExecutedGraph,
+    ide_controller:    controller::Ide,
+    view:              view::project::View,
+    status_bar:        view::status_bar::View,
+    graph:             presenter::Graph,
+    code:              presenter::Code,
+    searcher:          RefCell<Option<presenter::Searcher>>,
+    projects:          Rc<RefCell<Vec<(ImString, Uuid)>>>,
+    projects_notifier: Publisher<ProjectsNotification>,
+    projects_rc:       RefCell<Rc<()>>,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ProjectsNotification {
+    ProjectsListReady,
 }
 
 impl Model {
@@ -54,6 +64,9 @@ impl Model {
         );
         let code = presenter::Code::new(text_controller, &view);
         let searcher = default();
+        let projects = default();
+        let projects_notifier = default();
+        let projects_rc = default();
         Model {
             controller,
             module_model,
@@ -64,6 +77,9 @@ impl Model {
             graph,
             code,
             searcher,
+            projects,
+            projects_notifier,
+            projects_rc,
         }
     }
 
@@ -201,8 +217,61 @@ impl Model {
             }
         })
     }
-}
 
+    fn project_list_opened(&self) {
+        let controller = self.ide_controller.clone_ref();
+        let notifier = self.projects_notifier.clone_ref();
+        let projects_list = self.projects.clone_ref();
+        executor::global::spawn(async move {
+            if let Ok(api) = controller.manage_projects() {
+                if let Ok(projects) = api.list_projects().await {
+                    let project_names = projects
+                        .iter()
+                        .map(|p| (p.name.clone().into(), p.id.clone()))
+                        .collect_vec();
+                    *projects_list.borrow_mut() = project_names;
+                    notifier.notify(ProjectsNotification::ProjectsListReady);
+                }
+            }
+        })
+    }
+
+    fn open_project(&self, id_in_list: &usize) {
+        use ensogl::system::js;
+        let controller = self.ide_controller.clone_ref();
+        let projects_list = self.projects.clone_ref();
+        let view = self.view.clone_ref();
+        let id = *id_in_list;
+        executor::global::spawn(async move {
+            let app = js::app_or_panic();
+            app.show_progress_indicator().await;
+        });
+        executor::global::spawn(async move {
+            if let Ok(api) = controller.manage_projects() {
+                if let Some(id) = projects_list.borrow().get(id).map(|(_name, id)| *id) {
+                    view.hide_graph_editor();
+                    if let Err(error) = api.open_project(id).await {
+                        error!("Error opening project: {error}.");
+                    } else {
+                        view.show_graph_editor();
+                        let app = js::app_or_panic();
+                        app.hide_progress_indicator().await;
+                    }
+                } else {
+                    error!("Project with id {id} not found.");
+                    view.show_graph_editor();
+                    let app = js::app_or_panic();
+                    app.hide_progress_indicator().await;
+                }
+            } else {
+                error!("Project Manager API not available, cannot open project.");
+                view.show_graph_editor();
+                let app = js::app_or_panic();
+                app.hide_progress_indicator().await;
+            }
+        })
+    }
+}
 
 
 // ===============
@@ -243,8 +312,27 @@ impl Project {
         let view = &model.view.frp;
         let breadcrumbs = &model.view.graph().model.breadcrumbs;
         let graph_view = &model.view.graph().frp;
+        let project_list = &model.view.project_list();
 
         frp::extend! { network
+            update_projects_list <- source_();
+
+            project_list.grid.reset_entries <+ update_projects_list.map(f_!([model]{
+                let cols = 1;
+                let rows = model.projects.borrow().len();
+                (rows, cols)
+            }));
+            entry_model <- project_list.grid.model_for_entry_needed.map(f!([model]((row, _)) {
+                model.projects.borrow().get(*row).map(|(name, _)| (*row, 0, name.clone_ref()))
+            })).filter_map(|t| t.clone());
+            project_list.grid.model_for_entry <+ entry_model;
+
+            open_project_list <- view.project_list_shown.on_true();
+            eval_ open_project_list(model.project_list_opened());
+            selected_project <- project_list.grid.entry_selected.filter_map(|e| *e);
+            eval selected_project(((row, _col)) model.open_project(row));
+            project_list.grid.select_entry <+ selected_project.constant(None);
+
             eval view.searcher ([model](params) {
                 if let Some(params) = params {
                     model.setup_searcher_presenter(*params)
@@ -273,6 +361,15 @@ impl Project {
 
             eval_ view.execution_context_restart(model.execution_context_restart());
         }
+
+        let weak = Rc::downgrade(&self.model);
+        let stream = self.model.projects_notifier.subscribe();
+        spawn_stream_handler(weak, stream, move |event, _model| match event {
+            ProjectsNotification::ProjectsListReady => {
+                update_projects_list.emit(());
+                futures::future::ready(())
+            }
+        });
 
         let graph_controller = self.model.graph_controller.clone_ref();
 

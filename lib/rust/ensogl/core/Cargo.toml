@@ -45,6 +45,7 @@ typenum = { version = "1.11.2" }
 # We require exact version of wasm-bindgen because we do patching final js in our build process,
 # and this is vulnerable to any wasm-bindgen version change.
 wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
 
 [dependencies.web-sys]
 version = "0.3.4"

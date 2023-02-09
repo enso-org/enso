@@ -2111,6 +2111,7 @@ dependencies = [
  "ensogl-drop-manager",
  "ensogl-examples",
  "ensogl-hardcoded-theme",
+ "ensogl-list-view",
  "ensogl-text-msdf",
  "failure",
  "flo_stream",
@@ -2569,6 +2570,7 @@ dependencies = [
  "smallvec 1.9.0",
  "typenum",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
 ]
@@ -4068,6 +4070,7 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
+ "ensogl-derive-theme",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",

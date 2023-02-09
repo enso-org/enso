@@ -39,6 +39,10 @@ impl Contour {
     pub fn rectangular(size: Vector2) -> Self {
         Self { size, corners_radius: 0.0 }
     }
+
+    pub fn with_corners_radius(self, radius: f32) -> Self {
+        Self { corners_radius: radius, ..self }
+    }
 }
 
 

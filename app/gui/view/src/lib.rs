@@ -33,8 +33,8 @@
 pub mod code_editor;
 pub mod component_browser;
 pub mod debug_mode_popup;
-pub mod open_dialog;
 pub mod project;
+pub mod project_list;
 pub mod root;
 pub mod searcher;
 pub mod status_bar;

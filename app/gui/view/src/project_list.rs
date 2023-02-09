@@ -1,0 +1,258 @@
+//! A module containing [`ProjectList`] component and all related structures.
+
+use crate::prelude::*;
+use ensogl::display::shape::*;
+
+use enso_frp as frp;
+use ensogl::application::frp::API;
+use ensogl::application::Application;
+use ensogl::data::color;
+use ensogl::display;
+use ensogl::display::scene::Layer;
+use ensogl_component::grid_view;
+use ensogl_component::list_view;
+use ensogl_component::shadow;
+use ensogl_derive_theme::FromTheme;
+use ensogl_hardcoded_theme::application::project_list as theme;
+use ensogl_text as text;
+
+
+// =============
+// === Style ===
+// =============
+
+#[derive(Debug, Clone, Default, FromTheme)]
+#[base_path = "theme"]
+#[allow(missing_docs)]
+pub struct Style {
+    width:            f32,
+    height:           f32,
+    padding:          f32,
+    background:       color::Rgba,
+    corners_radius:   f32,
+    #[theme_path = "theme::entry::height"]
+    entry_height:     f32,
+    #[theme_path = "theme::text::size"]
+    text_size:        f32,
+    #[theme_path = "theme::bar::height"]
+    bar_height:       f32,
+    #[theme_path = "theme::bar::border_size"]
+    bar_border_size:  f32,
+    #[theme_path = "theme::bar::border_color"]
+    bar_border_color: color::Rgba,
+    #[theme_path = "theme::bar::label::size"]
+    bar_label_size:   f32,
+    #[theme_path = "theme::bar::label::color"]
+    bar_label_color:  color::Rgba,
+}
+
+#[derive(Debug, Clone, Default, FromTheme)]
+#[base_path = "theme::entry"]
+#[allow(missing_docs)]
+pub struct EntryStyle {
+    corners_radius:      f32,
+    text_padding_left:   f32,
+    text_padding_bottom: f32,
+    text_size:           f32,
+    text_color:          color::Rgba,
+    selection_color:     color::Rgba,
+    hover_color:         color::Rgba,
+}
+
+// =============
+// === Entry ===
+// =============
+
+#[derive(Debug, Clone, CloneRef)]
+pub struct Data {
+    display_object: display::object::Instance,
+    text:           text::Text,
+}
+
+impl Data {
+    pub fn new(app: &Application) -> Self {
+        let display_object = display::object::Instance::new();
+        let text = text::Text::new(app);
+        display_object.add_child(&text);
+        Self { display_object, text }
+    }
+
+    pub fn set_text(&self, text: ImString) {
+        self.text.set_content(text);
+    }
+}
+
+/// The entry in project list.
+#[derive(Debug, Clone, CloneRef)]
+pub struct View {
+    data: Data,
+    frp:  grid_view::entry::EntryFrp<Self>,
+}
+
+impl display::Object for View {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.data.display_object
+    }
+}
+
+impl grid_view::Entry for View {
+    type Model = ImString;
+    type Params = ();
+
+    fn new(app: &Application, _text_layer: Option<&Layer>) -> Self {
+        let frp = grid_view::entry::EntryFrp::<Self>::new();
+        let data = Data::new(app);
+
+        let network = frp.network();
+        let input = &frp.private().input;
+        let out = &frp.private().output;
+
+        let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let style = EntryStyle::from_theme(network, &style_frp);
+
+        frp::extend! { network
+            corners_radius <- style.update.map(|s| s.corners_radius);
+            hover_color <- style.update.map(|s| s.hover_color.into());
+            selection_color <- style.update.map(|s| s.selection_color.into());
+            text_padding_left <- style.update.map(|s| s.text_padding_left);
+            text_padding_bottom <- style.update.map(|s| s.text_padding_bottom);
+
+            eval input.set_model((text) data.set_text(text.clone_ref()));
+            contour <- input.set_size.map(|s| grid_view::entry::Contour::rectangular(*s));
+            out.contour <+ contour;
+            out.highlight_contour <+ contour.map2(&corners_radius, |c,r| c.with_corners_radius(*r));
+            out.hover_highlight_color <+ hover_color;
+            out.selection_highlight_color <+ selection_color;
+
+            width <- input.set_size.map(|s| s.x);
+            _eval <- all_with(&width, &text_padding_left, f!((w, p) data.text.set_x(-w / 2.0 + p)));
+            eval text_padding_bottom((p) data.text.set_y(*p));
+        }
+        style.init.emit(());
+        Self { data, frp }
+    }
+
+    fn frp(&self) -> &grid_view::entry::EntryFrp<Self> {
+        &self.frp
+    }
+}
+
+
+// ==============
+// === Shapes ===
+// ==============
+
+mod background {
+    use super::*;
+
+    pub const SHADOW_PX: f32 = 10.0;
+
+    ensogl::shape! {
+        (style:Style) {
+            let sprite_width: Var<Pixels> = "input_size.x".into();
+            let sprite_height: Var<Pixels> = "input_size.y".into();
+            let width = sprite_width - SHADOW_PX.px() * 2.0;
+            let height = sprite_height - SHADOW_PX.px() * 2.0;
+            let color = style.get_color(theme::background);
+            let border_size = style.get_number(theme::bar::border_size);
+            let bar_height = style.get_number(theme::bar::height);
+            let corners_radius = style.get_number(theme::corners_radius);
+            let rect = Rect((&width,&height)).corners_radius(corners_radius.px());
+            let shape = rect.fill(color);
+
+            let shadow = shadow::from_shape(rect.into(),style);
+
+            let toolbar_border = Rect((width, border_size.px()))
+                .translate_y(height / 2.0 - bar_height.px())
+                .fill(style.get_color(theme::bar::border_color));
+
+            (shadow + shape + toolbar_border).into()
+        }
+    }
+}
+
+
+
+// ===================
+// === ProjectList ===
+// ===================
+
+/// The Project List GUI Component.
+///
+/// This is a list of projects in a nice frame with title.
+#[derive(Clone, CloneRef, Debug)]
+pub struct ProjectList {
+    network:        frp::Network,
+    display_object: display::object::Instance,
+    background:     background::View,
+    caption:        text::Text,
+    pub grid:       grid_view::scrollable::SelectableGridView<View>,
+}
+
+impl ProjectList {
+    /// Create Project List Component.
+    pub fn new(app: &Application) -> Self {
+        let network = frp::Network::new("ProjectList");
+        let display_object = display::object::Instance::new();
+        let background = background::View::new();
+        let caption = app.new_view::<text::Text>();
+        let grid = grid_view::scrollable::SelectableGridView::new(app);
+        display_object.add_child(&background);
+        display_object.add_child(&caption);
+        display_object.add_child(&grid);
+        app.display.default_scene.layers.panel.add(&display_object);
+        caption.set_content("Open Project");
+        caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
+        grid.set_text_layer(Some(app.display.default_scene.layers.panel_text.downgrade()));
+
+        ensogl::shapes_order_dependencies! {
+            app.display.default_scene => {
+                background            -> list_view::selection;
+                list_view::background -> background;
+            }
+        }
+
+        let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let style = Style::from_theme(&network, &style_frp);
+
+        frp::extend! { network
+            init <- source::<()>();
+            width <- style.update.map(|s| s.width);
+            height <- style.update.map(|s| s.height);
+            bar_height <- style.update.map(|s| s.bar_height);
+            padding <- style.update.map(|s| s.padding);
+            label_color <- style.update.map(|s| s.bar_label_color);
+            label_size <- style.update.map(|s| s.bar_label_size);
+            corners_radius <- style.update.map(|s| s.corners_radius);
+            entry_height <- style.update.map(|s| s.entry_height);
+            content_size <- all_with3(&width, &height, &init, |w,h,()| Vector2(*w,*h));
+            size <- all_with(&width, &height, |w, h|
+                Vector2(w + background::SHADOW_PX * 2.0,h + background::SHADOW_PX * 2.0)
+            );
+            caption_xy <- all_with3(&width,&height,&padding,
+                |w,h,p| Vector2(-*w / 2.0 + *p, *h / 2.0 - p)
+            );
+
+            _eval <- all_with(&width, &entry_height, f!((w, h) grid.set_entries_size(Vector2(*w, *h))));
+
+            grid_size <- all_with(&content_size, &bar_height, |size, height| size - Vector2(0.0, *height));
+            eval size       ((size)  background.set_size(*size););
+            eval grid_size((size) grid.scroll_frp().resize(*size));
+            eval corners_radius((r) grid.scroll_frp().set_corner_radius(*r));
+            _eval <- all_with(&content_size, &bar_height, f!((size, bar_height) grid.set_xy(Vector2(-size.x / 2.0, size.y / 2.0 - *bar_height))));
+            eval caption_xy ((xy)    caption.set_xy(*xy));
+            eval label_color      ((color) caption.set_property_default(color));
+            eval label_size ((size)  caption.set_property_default(text::Size(*size)));
+        }
+        style.init.emit(());
+        init.emit(());
+
+        Self { network, display_object, background, caption, grid }
+    }
+}
+
+impl display::Object for ProjectList {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
+}

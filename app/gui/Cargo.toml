@@ -30,6 +30,7 @@ ensogl-component = { path = "../../lib/rust/ensogl/component" }
 ensogl-text-msdf = { path = "../../lib/rust/ensogl/component/text/src/font/msdf" }
 ensogl-hardcoded-theme = { path = "../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-drop-manager = { path = "../../lib/rust/ensogl/component/drop-manager" }
+ensogl-list-view = { path = "../../lib/rust/ensogl/component/list-view" }
 fuzzly = { path = "../../lib/rust/fuzzly" }
 ast = { path = "language/ast/impl" }
 ide-view = { path = "view" }
