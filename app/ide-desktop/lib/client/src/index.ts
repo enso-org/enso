@@ -305,7 +305,7 @@ const options = content.options.merge(
             server: new content.Group({
                 options: {
                     port: new content.Option({
-                        default: Server.DEFAULT_PORT,
+                        default: 8080,
                         description: `Port to use. In case the port is unavailable, next free port will be found.`,
                     }),
                 },
@@ -624,6 +624,15 @@ for (const option of options.optionsRecursive()) {
     }
 }
 
+let windowSize = WindowSize.default()
+const parsedWindowSize = WindowSize.parse(options.groups.window.options.size.value)
+
+if (parsedWindowSize instanceof Error) {
+    throw 'wrong window size'
+} else {
+    windowSize = parsedWindowSize
+}
+
 if (options.options.help.value || options.options.fullHelp.value) {
     printHelp({
         config: options,
@@ -830,13 +839,15 @@ async function main() {
 
         console.log('Starting the IDE service.')
         if (options.options.server.value) {
-            let serverCfg = Object.assign({}, args)
-            serverCfg.dir = root
-            serverCfg.fallback = '/assets/index.html'
+            let serverCfg = new Server.Config({
+                dir: root,
+                port: options.groups.server.options.port.value,
+                fallback: '/assets/index.html',
+            })
             server = await Server.create(serverCfg)
-            origin = `http://localhost:${server.port}`
+            origin = `http://localhost:${server.config.port}`
         }
-        if (args.window !== false) {
+        if (options.options.window.value) {
             console.log('Starting the IDE client.')
             mainWindow = createWindow()
             if (mainWindow == null) {
@@ -888,24 +899,24 @@ function createWindow() {
         webPreferences: webPreferences,
         width: windowSize.width,
         height: windowSize.height,
-        frame: args.frame,
+        frame: options.groups.window.options.frame.value,
         transparent: false,
         titleBarStyle: 'default',
     }
 
-    if (args.dev) {
+    if (options.groups.debug.options.dev) {
         webPreferences.devTools = true
     }
 
-    if (args.frame === false && process.platform === 'darwin') {
+    if (windowPreferences.frame === false && process.platform === 'darwin') {
         windowPreferences.titleBarStyle = 'hiddenInset'
     }
 
-    if (args['background-throttling']) {
+    if (options.groups.performance.options.backgroundThrottling.value) {
         webPreferences.backgroundThrottling = true
     }
 
-    if (args.vibrancy === true) {
+    if (options.groups.window.options.vibrancy.value) {
         windowPreferences.vibrancy = 'fullscreen-ui'
     }
 
@@ -914,59 +925,56 @@ function createWindow() {
     remoteMain.enable(window.webContents)
     window.setMenuBarVisibility(false)
 
-    if (args.dev) {
+    if (options.groups.debug.options.dev.value) {
         window.webContents.openDevTools()
     }
 
     let urlCfg = {
         platform: process.platform,
-        frame: args.frame,
-        theme: args.theme,
-        darkTheme: Electron.nativeTheme.shouldUseDarkColors,
-        // high_contrast: Electron.nativeTheme.shouldUseHighContrastColors,
-        // crash_report_host: args.crashReportHost,
-        dataGathering: args.dataGathering,
-        preferredEngineVersion: args.preferredEngineVersion,
-        enableNewComponentBrowser: args.enableNewComponentBrowser,
-        emitUserTimingMeasurements: args.emitUserTimingMeasurements,
-        nodeLabels: args.nodeLabels,
-        debug: args.verbose,
+        frame: options.groups.window.options.frame.value,
+        dataGathering: options.options.dataCollection.value,
+        // preferredEngineVersion: args.preferredEngineVersion,
+        // enableNewComponentBrowser: args.enableNewComponentBrowser,
+        // emitUserTimingMeasurements: args.emitUserTimingMeasurements,
+        // nodeLabels: args.nodeLabels,
+        // debug: args.verbose,
         skip_min_version_check: false,
     }
 
     Electron.ipcMain.on('error', (event, data) => console.error(data))
 
     // We want to pass this argument only if explicitly passed. Otherwise we allow contents to select default behavior.
-    if (typeof args.skipMinVersionCheck !== 'undefined') {
-        urlCfg.skip_min_version_check = args.skipMinVersionCheck
+    if (options.groups.engine.options.skipMinVersionCheck.setByUser) {
+        urlCfg.skip_min_version_check = options.groups.engine.options.skipMinVersionCheck.value
     }
-    if (args.project) {
+    if (options.groups.startup.options.project.value) {
         // @ts-ignore
-        urlCfg.project = args.project
+        urlCfg.project = options.groups.startup.options.project.value
     }
-    if (args.entryPoint) {
+    if (options.groups.startup.options.entry.value) {
         // @ts-ignore
-        urlCfg.entry = args.entryPoint
+        urlCfg.entry = options.groups.startup.options.entry.value
     }
-    let profilePromises = []
-    if (args.loadProfile) {
-        profilePromises = args.loadProfile.map((path: string) => fsp.readFile(path, 'utf8'))
-    }
-    const profiles = Promise.all(profilePromises)
-    Electron.ipcMain.on('load-profiles', event => {
-        profiles.then(profiles => {
-            event.reply('profiles-loaded', profiles)
-        })
-    })
-    if (args.saveProfile) {
-        Electron.ipcMain.on('save-profile', (event, data) => {
-            fss.writeFileSync(args.saveProfile, data)
-        })
-    }
-    if (args.workflow) {
-        // @ts-ignore
-        urlCfg.testWorkflow = args.workflow
-    }
+    // FIXME
+    // let profilePromises = []
+    // if (args.loadProfile) {
+    //     profilePromises = args.loadProfile.map((path: string) => fsp.readFile(path, 'utf8'))
+    // }
+    // const profiles = Promise.all(profilePromises)
+    // Electron.ipcMain.on('load-profiles', event => {
+    //     profiles.then(profiles => {
+    //         event.reply('profiles-loaded', profiles)
+    //     })
+    // })
+    // if (args.saveProfile) {
+    //     Electron.ipcMain.on('save-profile', (event, data) => {
+    //         fss.writeFileSync(args.saveProfile, data)
+    //     })
+    // }
+    // if (args.workflow) {
+    //     // @ts-ignore
+    //     urlCfg.testWorkflow = args.workflow
+    // }
 
     Electron.ipcMain.on('quit-ide', () => {
         Electron.app.quit()
@@ -1008,7 +1016,7 @@ Electron.app.on('activate', () => {
 })
 
 Electron.app.on('ready', () => {
-    if (args.version) {
+    if (options.options.version.value) {
         let indent = ' '.repeat(4)
         let maxNameLen = 0
         for (let name in versionInfo) {
@@ -1038,7 +1046,7 @@ Electron.app.on('ready', () => {
             }
             process.exit()
         })
-    } else if (args.info) {
+    } else if (options.options.info.value) {
         printDebugInfo()
     } else {
         main()
