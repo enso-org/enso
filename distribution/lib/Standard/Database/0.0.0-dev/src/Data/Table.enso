@@ -497,7 +497,7 @@ type Table
 
     ## PRIVATE
     with_no_rows self =
-        false_expression = SQL_Expression.Operation "=" [SQL_Expression.Constant SQL_Type.integer 1, SQL_Expression.Constant SQL_Type.integer 2]
+        false_expression = SQL_Expression.Operation "==" [SQL_Expression.Constant SQL_Type.integer 1, SQL_Expression.Constant SQL_Type.integer 2]
         new_filters = self.context.where_filters + [false_expression]
         new_ctx = self.context.set_where_filters new_filters
         self.updated_context new_ctx

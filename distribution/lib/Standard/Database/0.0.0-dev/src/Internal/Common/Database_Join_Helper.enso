@@ -35,7 +35,7 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
             problem_builder.report_other_warning (Floating_Point_Equality.Error left.name)
         if right.sql_type.is_definitely_double then
             problem_builder.report_other_warning (Floating_Point_Equality.Error right.name)
-        SQL_Expression.Operation "=" [resolve_left left, resolve_right right]
+        SQL_Expression.Operation "==" [resolve_left left, resolve_right right]
     make_equals_ignore_case _ left right locale =
         Helpers.assume_default_locale locale <|
             SQL_Expression.Operation "equals_ignore_case" [resolve_left left, resolve_right right]

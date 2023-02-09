@@ -152,6 +152,7 @@ type Column
             _ : Decimal ->
                 problem_builder.reportFloatingPointEquality -1
                 a == b
+            _ -> a == b
         run_vectorized_binary_op_with_problem_handling self '==' fallback other location on_problems
 
     ## Element-wise case-insensitive text equality comparison.
@@ -994,7 +995,7 @@ type Column
     map : (Any -> Any) -> Column
     map self function on_missing=Nothing =
         storage = self.java_column.getStorage
-        new_st = storage.map Nothing function on_missing
+        new_st = storage.map Nothing function on_missing Nothing
         col = Java_Column.new "Result" new_st
         Column.Value col
 
