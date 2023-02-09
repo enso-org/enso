@@ -2111,7 +2111,6 @@ dependencies = [
  "ensogl-drop-manager",
  "ensogl-examples",
  "ensogl-hardcoded-theme",
- "ensogl-list-view",
  "ensogl-text-msdf",
  "failure",
  "flo_stream",

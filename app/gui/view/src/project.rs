@@ -72,7 +72,7 @@ ensogl::define_endpoints! {
         /// Open the Open Project Dialog.
         show_project_list(),
         /// Close the Open Project Dialog without further action
-        close_project_list(),
+        hide_project_list(),
         /// Close the searcher without taking any actions
         close_searcher(),
         /// Show the graph editor.
@@ -112,7 +112,7 @@ ensogl::define_endpoints! {
         editing_aborted                (NodeId),
         editing_committed_old_searcher (NodeId, Option<searcher::entry::Id>),
         editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
-        project_list_shown              (bool),
+        project_list_shown             (bool),
         code_editor_shown              (bool),
         style                          (Theme),
         fullscreen_visualization_shown (bool),
@@ -642,7 +642,7 @@ impl View {
             project_chosen   <- project_list.grid.entry_selected.constant(());
             mouse_down       <- scene.mouse.frp.down.constant(());
             clicked_on_bg    <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
-            should_be_closed <- any(frp.close_project_list,project_chosen,clicked_on_bg);
+            should_be_closed <- any(frp.hide_project_list,project_chosen,clicked_on_bg);
             eval_ should_be_closed (model.hide_project_list());
             frp.source.project_list_shown <+ bool(&should_be_closed,&frp.show_project_list);
 
@@ -762,7 +762,7 @@ impl application::View for View {
         [
             (Press, "!is_searcher_opened", "cmd o", "show_project_list"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
-            (Press, "project_list_shown", "escape", "close_project_list"),
+            (Press, "project_list_shown", "escape", "hide_project_list"),
             (Press, "", "cmd alt shift t", "toggle_style"),
             (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd z", "undo"),

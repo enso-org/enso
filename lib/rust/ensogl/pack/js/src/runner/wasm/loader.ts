@@ -34,7 +34,7 @@ export class ProgressIndicator {
     targetValue = 0
     minProgressSize = 0.1
 
-    constructor(cfg: Config, run = true) {
+    constructor(cfg: Config) {
         this.ringInnerRadius = 48
         this.ringWidth = 12
 
@@ -87,7 +87,7 @@ export class ProgressIndicator {
         this.set(0)
         this.setIndicatorOpacity(0)
 
-        if (cfg.params.useLoader.value && run) {
+        if (cfg.params.useLoader.value) {
             this.initialized = Promise.all([
                 this.animateShow(),
                 this.animateShowLogo(),

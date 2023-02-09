@@ -396,19 +396,20 @@ export class App {
         }
     }
 
-    async showProgressIndicator() {
-        this.progressIndicator = new wasm.ProgressIndicator(this.config, false)
-        this.progressIndicator.set(0.5)
-        await Promise.all([
-            this.progressIndicator.animateShow(),
-            this.progressIndicator.animateShowLogo(),
-            this.progressIndicator.animateProgress()
-        ])
+    /** Show a spinner. The displayed progress is constant. */
+    showProgressIndicator(progress: number) {
+        if (this.progressIndicator) {
+            this.hideProgressIndicator()
+        }
+        this.progressIndicator = new wasm.ProgressIndicator(this.config)
+        this.progressIndicator.set(progress)
     }
 
-    async hideProgressIndicator() {
+    /** Hide the progress indicator. */
+    hideProgressIndicator() {
         if (this.progressIndicator) {
-            await this.progressIndicator.animateHide()
+            // Setting the progress to 100% is necessary to allow animation to finish.
+            this.progressIndicator.set(1)
             this.progressIndicator.destroy()
             this.progressIndicator = null
         }

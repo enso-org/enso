@@ -372,6 +372,7 @@ define_themes! { [light:0, dark:1]
             width      = 202.0 , 202.0;
             height     = 420.0, 420.0;
             background = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
+            shadow_extent = 10.0, 10.0;
             corners_radius = 16.0, 16.0;
             bar {
                 height = 45.0, 45.0;

@@ -15,7 +15,16 @@ use ide_view::project::SearcherParams;
 use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
-use view::status_bar::event;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// We don't know how long the project opening will take, but we still want to show a fake progress
+/// indicator for the user. This constant represents a progress percentage that will be displayed.
+const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
 
 
 
@@ -237,7 +246,6 @@ impl Model {
 
     /// User clicked a project in the Open Project dialog. Open it.
     fn open_project(&self, id_in_list: &usize) {
-        use ensogl::system::js;
         let controller = self.ide_controller.clone_ref();
         let projects_list = self.available_projects.clone_ref();
         let view = self.view.clone_ref();
@@ -245,13 +253,10 @@ impl Model {
         let id = *id_in_list;
         executor::global::spawn(async move {
             let app = js::app_or_panic();
-            app.show_progress_indicator().await;
-        });
-        executor::global::spawn(async move {
-            let app = js::app_or_panic();
+            app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
+            view.hide_graph_editor();
             if let Ok(api) = controller.manage_projects() {
                 if let Some(uuid) = projects_list.borrow().get(id).map(|(_name, uuid)| *uuid) {
-                    view.hide_graph_editor();
                     if let Err(error) = api.open_project(uuid).await {
                         error!("Error opening project: {error}.");
                         status_bar.add_event(format!("Error opening project: {error}."));
@@ -262,8 +267,8 @@ impl Model {
             } else {
                 error!("Project Manager API not available, cannot open project.");
             }
+            app.hide_progress_indicator();
             view.show_graph_editor();
-            app.hide_progress_indicator().await;
         })
     }
 }

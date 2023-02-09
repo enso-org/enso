@@ -1,4 +1,5 @@
-//! A module containing [`ProjectList`] component and all related structures.
+//! An interactive list of projects. It used to quickly switch between projects from inside the
+//! Project View.
 
 use crate::prelude::*;
 use ensogl::display::shape::*;
@@ -17,9 +18,12 @@ use ensogl_hardcoded_theme::application::project_list as theme;
 use ensogl_text as text;
 
 
-// =============
+
+// ==============
+// === Styles ===
+// ==============
+
 // === Style ===
-// =============
 
 #[derive(Debug, Clone, Default, FromTheme)]
 #[base_path = "theme"]
@@ -27,6 +31,7 @@ use ensogl_text as text;
 pub struct Style {
     width:            f32,
     height:           f32,
+    shadow_extent:    f32,
     background:       color::Rgba,
     corners_radius:   f32,
     #[theme_path = "theme::entry::height"]
@@ -45,6 +50,9 @@ pub struct Style {
     bar_label_color:  color::Rgba,
 }
 
+
+// === Entry Style ===
+
 #[derive(Debug, Clone, Default, FromTheme)]
 #[base_path = "theme::entry"]
 #[allow(missing_docs)]
@@ -62,10 +70,15 @@ pub struct EntryStyle {
     text_color:          color::Rgba,
 }
 
+
+
 // =============
 // === Entry ===
 // =============
 
+// === Data ===
+
+/// The model of the list entry. Displays the name of the project.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Data {
     display_object: display::object::Instance,
@@ -85,7 +98,10 @@ impl Data {
     }
 }
 
-/// The entry in project list.
+
+// === View ===
+
+/// The view of the list entry.
 #[derive(Debug, Clone, CloneRef)]
 pub struct View {
     data: Data,
@@ -144,21 +160,21 @@ impl grid_view::Entry for View {
 }
 
 
-// ==============
-// === Shapes ===
-// ==============
+
+// ==================
+// === Background ===
+// ==================
 
 mod background {
     use super::*;
-
-    pub const SHADOW_PX: f32 = 10.0;
 
     ensogl::shape! {
         (style:Style) {
             let sprite_width: Var<Pixels> = "input_size.x".into();
             let sprite_height: Var<Pixels> = "input_size.y".into();
-            let width = sprite_width - SHADOW_PX.px() * 2.0;
-            let height = sprite_height - SHADOW_PX.px() * 2.0;
+            let shadow_extent = style.get_number(theme::shadow_extent);
+            let width = sprite_width - shadow_extent.px() * 2.0;
+            let height = sprite_height - shadow_extent.px() * 2.0;
             let color = style.get_color(theme::background);
             let border_size = style.get_number(theme::bar::border_size);
             let bar_height = style.get_number(theme::bar::height);
@@ -185,7 +201,7 @@ mod background {
 
 /// The Project List GUI Component.
 ///
-/// This is a list of projects in a nice frame with title.
+/// This is a list of projects in a nice frame with a title.
 #[derive(Clone, CloneRef, Debug)]
 pub struct ProjectList {
     network:        frp::Network,
@@ -209,7 +225,6 @@ impl ProjectList {
         app.display.default_scene.layers.panel.add(&display_object);
         caption.set_content("Open Project");
         caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
-        grid.set_text_layer(Some(app.display.default_scene.layers.panel_text.downgrade()));
 
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
@@ -225,6 +240,7 @@ impl ProjectList {
             init <- source::<()>();
             width <- style.update.map(|s| s.width);
             height <- style.update.map(|s| s.height);
+            shadow_extent <- style.update.map(|s| s.shadow_extent);
             bar_height <- style.update.map(|s| s.bar_height);
             label_padding <- style.update.map(|s| s.label_padding);
             label_color <- style.update.map(|s| s.bar_label_color);
@@ -232,8 +248,8 @@ impl ProjectList {
             corners_radius <- style.update.map(|s| s.corners_radius);
             entry_height <- style.update.map(|s| s.entry_height);
             content_size <- all_with3(&width, &height, &init, |w,h,()| Vector2(*w,*h));
-            size <- all_with(&width, &height, |w, h|
-                Vector2(w + background::SHADOW_PX * 2.0,h + background::SHADOW_PX * 2.0)
+            size <- all_with3(&width, &height, &shadow_extent, |w, h, s|
+                Vector2(w + s * 2.0, h + s * 2.0)
             );
             grid_size <- all_with(&content_size, &bar_height, |s, h| s - Vector2(0.0, *h));
             caption_xy <- all_with3(&width,&height,&label_padding,
@@ -242,7 +258,9 @@ impl ProjectList {
             eval caption_xy ((xy) caption.set_xy(*xy));
             eval label_color((color) caption.set_property_default(color));
             eval label_size((size)  caption.set_property_default(text::Size(*size)));
-            _eval <- all_with(&width, &entry_height, f!((w, h) grid.set_entries_size(Vector2(*w, *h))));
+            _eval <- all_with(&width, &entry_height,
+                f!((w, h) grid.set_entries_size(Vector2(*w, *h)))
+            );
             eval size((size) background.set_size(*size););
             eval grid_size((size) grid.scroll_frp().resize(*size));
             eval corners_radius((r) grid.scroll_frp().set_corner_radius(*r));
