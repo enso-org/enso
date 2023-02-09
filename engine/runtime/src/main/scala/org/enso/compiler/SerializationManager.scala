@@ -289,11 +289,20 @@ class SerializationManager(compiler: Compiler) {
       case e: NotSerializableException =>
         logger.log(
           Level.SEVERE,
-          s"Could not serialize module [$name]."
+          s"Could not serialize module [$name].",
+          e
         )
         throw e
+      case e: Throwable =>
+        logger.log(
+          Level.SEVERE,
+          s"Serialization of module `$name` failed: ${e.getMessage}`",
+          e
+        )
+        throw e
+    } finally {
+      finishSerializing(name)
     }
-    finishSerializing(name)
   }
 
   /** Sets the module described by `name` as serializing.
