@@ -19,12 +19,12 @@ polyglot java import org.enso.table.util.problems.InvalidNames
    Convert a Java problem into its Enso equivalent.
 translate_problem p = case p of
     _ : InvalidAggregation ->
-        err = Invalid_Aggregation.Error p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage
+        err = Invalid_Aggregation.Error p.getLocationName (Vector.from_polyglot_array p.getRows) p.getMessage
         Error.throw err
     _ : FloatingPointGrouping ->
-        Floating_Point_Equality.Error p.getColumnName
+        Floating_Point_Equality.Error p.getLocationName
     _ : UnquotedDelimiter ->
-        Unquoted_Delimiter.Error p.getColumnName (Vector.from_polyglot_array p.getRows)
+        Unquoted_Delimiter.Error p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : InvalidRow ->
         Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row)
     _ : AdditionalInvalidRows ->

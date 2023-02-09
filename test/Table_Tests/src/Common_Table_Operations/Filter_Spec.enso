@@ -308,7 +308,8 @@ spec setup =
             problems = [Floating_Point_Equality.Error "[X] * [X] == 4.0"]
             Problems.test_problem_behavior action problems tester
 
-        Test.specify "should report issues: arithmetic error" <|
+        db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
+        Test.specify "should report issues: arithmetic error" pending=db_pending <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [2.0, 2.0, 0.0, 1.0, 2.0]]]
             action = t.filter_by_expression "8.0 / [X] == 4.0" on_problems=_
             tester table =

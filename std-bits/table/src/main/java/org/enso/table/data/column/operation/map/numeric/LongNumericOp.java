@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.NumericStorage;
@@ -22,12 +23,12 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
     this(name, false);
   }
 
-  public abstract double doDouble(long in, double arg);
+  public abstract double doDouble(long in, double arg, int ix, MapOperationProblemBuilder problemBuilder);
 
-  public abstract long doLong(long in, long arg);
+  public abstract long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder);
 
   @Override
-  public NumericStorage<?> runMap(LongStorage storage, Object arg) {
+  public NumericStorage<?> runMap(LongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
       if (alwaysCastToDouble) {
         return DoubleStorage.makeEmpty(storage.size());
@@ -38,7 +39,7 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
       long[] newVals = new long[storage.size()];
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i)) {
-          newVals[i] = doLong(storage.getItem(i), x);
+          newVals[i] = doLong(storage.getItem(i), x, i, problemBuilder);
         }
       }
       return new LongStorage(newVals, newVals.length, storage.getIsMissing());
@@ -47,7 +48,7 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
       long[] newVals = new long[storage.size()];
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i)) {
-          newVals[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), x));
+          newVals[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), x, i, problemBuilder));
         }
       }
       return new DoubleStorage(newVals, newVals.length, storage.getIsMissing());
@@ -56,15 +57,15 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
   }
 
   @Override
-  public NumericStorage<?> runZip(LongStorage storage, Storage<?> arg) {
+  public NumericStorage<?> runZip(LongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof LongStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
           out[i] = alwaysCastToDouble
-              ? Double.doubleToRawLongBits(doDouble(storage.getItem(i), v.getItem(i)))
-              : doLong(storage.getItem(i), v.getItem(i));
+              ? Double.doubleToRawLongBits(doDouble(storage.getItem(i), v.getItem(i), i, problemBuilder))
+              : doLong(storage.getItem(i), v.getItem(i), i, problemBuilder);
         } else {
           newMissing.set(i);
         }
@@ -77,7 +78,7 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
-          out[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), v.getItem(i)));
+          out[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), v.getItem(i), i, problemBuilder));
         } else {
           newMissing.set(i);
         }

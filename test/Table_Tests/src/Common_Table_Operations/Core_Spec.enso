@@ -133,11 +133,13 @@ spec setup =
             problems1 = [Floating_Point_Equality.Error "TODO"]
             Problems.test_problem_handling action1 problems1 tester1
 
-            action2 = t1.set "3 / [X]" new_name="Z" on_problems=_
-            tester2 table =
-                table.at "Z" . to_vector . should_equal [2.0, 1.5, Nothing]
-            problems2 = [Arithmetic_Error.Error "Division by zero."]
-            Problems.test_problem_handling action2 problems2 tester2
+            # These errors currently only work in in-memory.
+            if setup.is_database.not then
+                action2 = t1.set "3 / [X]" new_name="Z" on_problems=_
+                tester2 table =
+                    table.at "Z" . to_vector . should_equal [2.0, 1.5, Nothing]
+                problems2 = [Arithmetic_Error.Error "Division by zero at rows [3]."]
+                Problems.test_problem_handling action2 problems2 tester2
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|

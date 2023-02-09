@@ -404,6 +404,8 @@ type Column
        - other: The value to divide `self` by. If `other` is a column, the
          division is performed pairwise between corresponding elements of `self`
          and `other`.
+       - on_problems: What to do when a division by zero occurs. Defaults to
+         reporting a warning.
 
        Returns a column containing the result of dividing each element of `self`
        by `other`.
@@ -421,8 +423,17 @@ type Column
              import Standard.Examples
 
              example_div = Examples.integer_column / 10
-    / : Column | Any -> Column
-    / self other = run_vectorized_binary_op self '/' (/) other
+    / : Column | Any -> Problem_Behavior -> Column
+    / self other on_problems=Problem_Behavior.Report_Warning =
+        other_name = case other of
+            other_column : Column -> other_column.name
+            _ -> other.to_text
+        location = "["+self.name+"] / ["+other_name+"]"
+        fallback problem_builder a b =
+            if b != 0 then a / b else
+                problem_builder.reportDivisionByZero ix
+                Nothing
+        run_vectorized_binary_op_with_problem_handling self '/' fallback other location on_problems
 
     ## Element-wise modulus.
 
@@ -447,8 +458,17 @@ type Column
              import Standard.Examples
 
              example_mod = Examples.integer_column % 3
-    % : Column | Any -> Column
-    % self other = run_vectorized_binary_op self '%' (%) other
+    % : Column | Any -> Problem_Behavior -> Column
+    % self other on_problems=Problem_Behavior.Report_Warning =
+        other_name = case other of
+            other_column : Column -> other_column.name
+            _ -> other.to_text
+        location = "["+self.name+"] % ["+other_name+"]"
+        fallback problem_builder a b =
+            if b != 0 then a % b else
+                problem_builder.reportDivisionByZero ix
+                Nothing
+        run_vectorized_binary_op_with_problem_handling self '%' fallback other location on_problems
 
     ## ALIAS Power Columns
 
@@ -1327,16 +1347,53 @@ run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_nam
      handling logic.
    - new_name: The name of the column created as the result of this operation.
 run_vectorized_binary_op : Column -> Text -> (Any -> Any -> Any) -> Any -> Boolean -> Text -> Column
-run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" = case operand of
-    Column.Value col2 ->
-        s1 = column.java_column.getStorage
-        s2 = col2.getStorage
-        rs = s1.zip name fallback_fn s2 skip_nulls
-        Column.Value (Java_Column.new new_name rs)
-    _ ->
-        s1 = column.java_column.getStorage
-        rs = s1.bimap name fallback_fn operand skip_nulls
-        Column.Value (Java_Column.new new_name rs)
+run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" =
+    problem_builder = MapOperationProblemBuilder.new column.name
+    result = case operand of
+        Column.Value col2 ->
+            s1 = column.java_column.getStorage
+            s2 = col2.getStorage
+            rs = s1.zip name fallback_fn s2 skip_nulls
+            Column.Value (Java_Column.new new_name rs)
+        _ ->
+            s1 = column.java_column.getStorage
+            rs = s1.bimap name fallback_fn operand skip_nulls
+            Column.Value (Java_Column.new new_name rs)
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+
+## PRIVATE
+
+   Executes a vectorized binary operation over the provided column.
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - name: The name of the vectorized operation.
+   - fallback_fn: A function used if the vectorized operation isn't available.
+     It takes a `MapOperationProblemBuilder` as its first argument.
+   - operand: The operand to apply to the function after `column`.
+   - location: The location to use in the reported problem details.
+   - on_problems: Specifies how the problems should be handled.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
+   - new_name: The name of the column created as the result of this operation.
+run_vectorized_binary_op_with_problem_handling column name fallback_fn operand location on_problems skip_nulls=True new_name="Result" =
+    problem_builder = MapOperationProblemBuilder.new location
+    applied_fn = fallback_fn problem_builder
+    result = case operand of
+        Column.Value col2 ->
+            s1 = column.java_column.getStorage
+            s2 = col2.getStorage
+            rs = s1.zip name applied_fn s2 skip_nulls
+            Column.Value (Java_Column.new new_name rs)
+        _ ->
+            s1 = column.java_column.getStorage
+            rs = s1.bimap name applied_fn operand skip_nulls
+            Column.Value (Java_Column.new new_name rs)
+    on_problems.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
 ## PRIVATE
 
