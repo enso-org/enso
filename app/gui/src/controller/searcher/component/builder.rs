@@ -32,6 +32,15 @@ use double_representation::name::QualifiedNameTemplate;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// The `local` namespace, within which modules local to the project are located.
+const LOCAL_NAMESPACE: &str = "local";
+
+
+
 // ====================
 // === ModuleGroups ===
 // ====================
@@ -162,11 +171,7 @@ impl ComponentWithDbEntry {
     fn new(db: &model::SuggestionDatabase, id: usize) -> Option<ComponentWithDbEntry> {
         let entry = db.lookup(id).ok()?;
         let component = Component::new_from_database_entry(id, entry.clone_ref());
-        if component.is_private() {
-            None
-        } else {
-            Some(ComponentWithDbEntry { component, entry, id })
-        }
+        Some(ComponentWithDbEntry { component, entry, id })
     }
 }
 
@@ -205,19 +210,28 @@ impl List {
             if let Some(parent_module) = entry.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, parent_module.clone_ref())
                 {
-                    parent_group.content.entries.borrow_mut().push(component.clone_ref());
-                    component_inserted_somewhere = true;
                     let parent_id = parent_group.content.component_id;
                     let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
-                    let not_module = entry.kind != Kind::Module;
-                    if in_local_scope && not_module {
-                        self.local_scope.entries.borrow_mut().push(component.clone_ref());
+                    let namespace = &parent_group.qualified_name.project().namespace;
+                    let in_local_namespace = namespace == LOCAL_NAMESPACE;
+                    if !component.is_private() || in_local_scope || in_local_namespace {
+                        parent_group.content.entries.borrow_mut().push(component.clone_ref());
+                        component_inserted_somewhere = true;
+                        let not_module = entry.kind != Kind::Module;
+                        if in_local_scope && not_module {
+                            self.local_scope.entries.borrow_mut().push(component.clone_ref());
+                        }
                     }
                 }
                 if let Some(top_group) = self.lookup_module_group(db, top_module(&parent_module)) {
                     if let Some(flatten_group) = &mut top_group.flattened_content {
-                        flatten_group.entries.borrow_mut().push(component.clone_ref());
-                        component_inserted_somewhere = true;
+                        let project = flatten_group.project.as_ref();
+                        let in_local_namespace =
+                            project.map(|name| name.namespace == LOCAL_NAMESPACE).unwrap_or(false);
+                        if !component.is_private() || in_local_namespace {
+                            flatten_group.entries.borrow_mut().push(component.clone_ref());
+                            component_inserted_somewhere = true;
+                        }
                     }
                 }
             }
