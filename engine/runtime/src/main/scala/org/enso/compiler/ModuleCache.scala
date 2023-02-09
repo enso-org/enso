@@ -490,8 +490,6 @@ object ModuleCache {
 
   val irCacheDataExtension: String     = ".ir"
   val irCacheMetadataExtension: String = ".meta"
-
-  val maximumBlockSizeBytes: Int = 1 * 1024 * 1024 * 10 // 10 MB
   val metadataCharset: Charset   = StandardCharsets.UTF_8
 
   /** The default logging level. */
