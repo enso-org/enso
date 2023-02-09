@@ -7,7 +7,7 @@ import buildCfg from '../../../build.json'
 const Option = config.Option
 const Group = config.Group
 // const Options = config.Options
-export { Option, Group }
+export { Option, Group, log }
 
 // ===============
 // === Version ===

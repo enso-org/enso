@@ -37,27 +37,41 @@ async function findPort(port: number): Promise<number> {
 ///
 /// Initially it was based on `union`, but later we migrated to `create-servers`. Read this topic to
 /// learn why: https://github.com/http-party/http-server/issues/483
-class Server {
+export class Server {
     config: Config
     server: any
     constructor(config: Config) {
         this.config = config
-        let self = this
-        this.server = createServer(
-            {
-                http: this.config.port,
-                handler: function (request: any, response: any) {
-                    self.process(request.url, response)
+    }
+
+    static async create(config: Config): Promise<Server> {
+        let local_config = Object.assign({}, config)
+        local_config.port = await findPort(local_config.port)
+        const server = new Server(local_config)
+        await server.run()
+        return server
+    }
+
+    run(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.server = createServer(
+                {
+                    http: this.config.port,
+                    handler: (request: any, response: any) => {
+                        this.process(request.url, response)
+                    },
                 },
-            },
-            (err: any) => {
-                if (err) {
-                    return console.log(err.http)
+                (err: any) => {
+                    if (err) {
+                        console.error(`Error creating server:`, err.http)
+                        reject(err)
+                    }
+                    console.log(`Server started on port ${this.config.port}.`)
+                    console.log(`Serving files from '${process.cwd()}/${this.config.dir}'.`)
+                    resolve()
                 }
-                console.log(`Server started on port ${this.config.port}.`)
-                console.log(`Serving files from '${process.cwd()}/${this.config.dir}'.`)
-            }
-        )
+            )
+        })
     }
 
     process(resource: any, response: any) {
@@ -80,10 +94,4 @@ class Server {
             }
         })
     }
-}
-
-export async function create(cfg: Config) {
-    let local_cfg = Object.assign({}, cfg)
-    local_cfg.port = await findPort(local_cfg.port)
-    return new Server(local_cfg)
 }

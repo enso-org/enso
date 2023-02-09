@@ -31,7 +31,7 @@ export const ensogl_app_path = `/Users/wdanilo/Dev/enso/target/ensogl-pack/dist/
 const bundlerOptions: esbuild.BuildOptions = {
     bundle: true,
     outdir,
-    entryPoints: ['src/index.ts', 'src/preload.cjs'],
+    entryPoints: ['src/index.ts', 'src/preload.ts'],
     outbase: 'src',
     plugins: [aliasPlugin({ ensogl_app: ensogl_app_path })],
     format: 'cjs',

@@ -19,12 +19,12 @@ contextBridge.exposeInMainWorld('enso_lifecycle', {
     // Allows application-exit to be initiated from WASM code.
     //
     // This is used, for example, in a key binding (Ctrl+Alt+Q) that saves a performance profile and exits.
-    quit: data => ipcRenderer.send('quit-ide'),
+    quit: () => ipcRenderer.send('quit-ide'),
 })
 
 // Save and load profile data.
-let onProfiles = []
-let profilesLoaded
+let onProfiles: any = []
+let profilesLoaded: any
 ipcRenderer.on('profiles-loaded', (event, profiles) => {
     for (const callback of onProfiles) {
         callback(profiles)
@@ -34,9 +34,9 @@ ipcRenderer.on('profiles-loaded', (event, profiles) => {
 })
 contextBridge.exposeInMainWorld('enso_profiling_data', {
     // Delivers profiling log.
-    saveProfile: data => ipcRenderer.send('save-profile', data),
+    saveProfile: (data: any) => ipcRenderer.send('save-profile', data),
     // Requests any loaded profiling logs.
-    loadProfiles: callback => {
+    loadProfiles: (callback: any) => {
         if (profilesLoaded === undefined) {
             ipcRenderer.send('load-profiles')
             onProfiles.push(callback)
@@ -49,5 +49,5 @@ contextBridge.exposeInMainWorld('enso_profiling_data', {
 // Access to the system console that Electron was run from.
 contextBridge.exposeInMainWorld('enso_console', {
     // Print an error message with `console.error`.
-    error: data => ipcRenderer.send('error', data),
+    error: (data: any) => ipcRenderer.send('error', data),
 })

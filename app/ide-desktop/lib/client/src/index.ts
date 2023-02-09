@@ -6,7 +6,7 @@ import Electron from 'electron'
 import isDev from 'electron-is-dev'
 import path from 'node:path'
 // @ts-ignore
-import * as Server from './server'
+import * as server from './server'
 import util from 'node:util'
 import { hideBin } from 'yargs/helpers'
 import { project_manager_bundle } from '../paths.js'
@@ -20,6 +20,7 @@ import fsp from 'node:fs/promises'
 
 import stringLength from 'string-length'
 
+const log = content.log
 const yargs = require('yargs')
 
 const execFile = util.promisify(child_process.execFile)
@@ -590,8 +591,6 @@ let optParser = yargs()
 
 // === Parsing ===
 
-console.log('argv:', argv)
-
 let xargs = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
     console.log('!!!', err, help)
     if (help) {
@@ -604,8 +603,6 @@ let xargs = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
         process.exit()
     }
 })
-
-console.log('Parsed args:', xargs)
 
 for (const option of options.optionsRecursive()) {
     const arg = xargs[camelToKebabCase(option.qualifiedName())]
@@ -711,20 +708,21 @@ async function execProjectManager(args: string[]) {
  * @returns Handle to the spawned process.
  */
 function spawnProjectManager(args: string[]) {
-    console.log('Starting the backend process with the following options:', args)
-    let binPath = projectManagerPath()
-    let stdin: 'pipe' = 'pipe'
-    let stdout: 'inherit' = 'inherit'
-    let stderr: 'inherit' = 'inherit'
-    let opts: SpawnOptions = {
-        stdio: [stdin, stdout, stderr],
-    }
-    let out = child_process.spawn(binPath, args, opts)
-    console.log(`Project Manager has been spawned, pid = ${out.pid}.`)
-    out.on('exit', code => {
-        console.log(`Project Manager exited with code ${code}.`)
+    return log.Task.run(`Starting the backend process with the following options: ${args}`, () => {
+        let binPath = projectManagerPath()
+        let stdin: 'pipe' = 'pipe'
+        let stdout: 'inherit' = 'inherit'
+        let stderr: 'inherit' = 'inherit'
+        let opts: SpawnOptions = {
+            stdio: [stdin, stdout, stderr],
+        }
+        let out = child_process.spawn(binPath, args, opts)
+        log.logger.log(`Project Manager has been spawned (pid = ${out.pid}).`)
+        out.on('exit', code => {
+            log.logger.log(`Project Manager exited with code ${code}.`)
+        })
+        return out
     })
-    return out
 }
 
 async function backendVersion() {
@@ -736,11 +734,10 @@ async function backendVersion() {
 // ============
 // === Main ===
 // ============
-security.enableAll()
 
 let hideInsteadOfQuit = false
 
-let server = null
+let xserver = null
 let mainWindow: null | Electron.BrowserWindow = null
 let origin: null | string = null
 
@@ -750,7 +747,7 @@ function urlParamsFromObject(obj: { [key: string]: string }) {
         let val = obj[key]
         params.push(`${key}=${val}`)
     }
-    return params.join('&')
+    return params.length == 0 ? '' : '?' + params.join('&')
 }
 
 class App {
@@ -758,9 +755,12 @@ class App {
         // We catch all errors here. Otherwise, it might be possible that the app will run partially
         // and the user will not see anything.
         try {
-            this.startBackend()
-            await this.startContentServer()
-            this.createWindow()
+            await log.Task.asyncRun('Starting the application', async () => {
+                security.enableAll()
+                this.startBackend()
+                await this.startContentServer()
+                this.createWindow()
+            })
         } catch (err) {
             console.error('Failed to initialize the application, shutting down. Error:', err)
             Electron.app.quit()
@@ -781,98 +781,101 @@ class App {
 
     async startContentServer() {
         if (!options.options.server.value) {
-            console.log('The app is configured not to run the content server.')
+            log.logger.log('The app is configured not to run the content server.')
         } else {
-            console.log('Starting the content server.')
-            let serverCfg = new Server.Config({
-                dir: root,
-                port: options.groups.server.options.port.value,
-                fallback: '/assets/index.html',
+            await log.Task.asyncRun('Starting the content server.', async () => {
+                let serverCfg = new server.Config({
+                    dir: root,
+                    port: options.groups.server.options.port.value,
+                    fallback: '/assets/index.html',
+                })
+                xserver = await server.Server.create(serverCfg)
+                origin = `http://localhost:${xserver.config.port}`
             })
-            server = await Server.create(serverCfg)
-            origin = `http://localhost:${server.config.port}`
         }
     }
 
     createWindow() {
         if (!options.options.window.value) {
-            console.log('The app is configured not to create a window.')
+            log.logger.log('The app is configured not to create a window.')
         } else {
-            const webPreferences = security.secureWebPreferences()
-            webPreferences.preload = path.join(root, 'preload.cjs')
-            webPreferences.sandbox = true
-            webPreferences.backgroundThrottling =
-                options.groups.performance.options.backgroundThrottling.value
-            webPreferences.devTools = options.groups.debug.options.dev.value
+            log.Task.run('Creating the window.', () => {
+                const webPreferences = security.secureWebPreferences()
+                webPreferences.preload = path.join(root, 'preload.cjs')
+                webPreferences.sandbox = true
+                webPreferences.backgroundThrottling =
+                    options.groups.performance.options.backgroundThrottling.value
+                webPreferences.devTools = options.groups.debug.options.dev.value
 
-            let windowPreferences: Electron.BrowserWindowConstructorOptions = {
-                webPreferences,
-                width: windowSize.width,
-                height: windowSize.height,
-                frame: options.groups.window.options.frame.value,
-                transparent: false,
-                titleBarStyle: 'default',
-            }
-
-            if (windowPreferences.frame === false && process.platform === 'darwin') {
-                windowPreferences.titleBarStyle = 'hiddenInset'
-            }
-
-            if (options.groups.window.options.vibrancy.value) {
-                windowPreferences.vibrancy = 'fullscreen-ui'
-            }
-
-            const window = new Electron.BrowserWindow(windowPreferences)
-            window.setMenuBarVisibility(false)
-
-            if (options.groups.debug.options.dev.value) {
-                window.webContents.openDevTools()
-            }
-
-            const urlCfg: { [key: string]: string } = {}
-            for (const option of options.optionsRecursive()) {
-                if (option.setByUser) {
-                    urlCfg[option.qualifiedName()] = String(option.value)
+                let windowPreferences: Electron.BrowserWindowConstructorOptions = {
+                    webPreferences,
+                    width: windowSize.width,
+                    height: windowSize.height,
+                    frame: options.groups.window.options.frame.value,
+                    transparent: false,
+                    titleBarStyle: 'default',
                 }
-            }
 
-            Electron.ipcMain.on('error', (event, data) => console.error(data))
-
-            // FIXME
-            // let profilePromises = []
-            // if (args.loadProfile) {
-            //     profilePromises = args.loadProfile.map((path: string) => fsp.readFile(path, 'utf8'))
-            // }
-            // const profiles = Promise.all(profilePromises)
-            // Electron.ipcMain.on('load-profiles', event => {
-            //     profiles.then(profiles => {
-            //         event.reply('profiles-loaded', profiles)
-            //     })
-            // })
-            // if (args.saveProfile) {
-            //     Electron.ipcMain.on('save-profile', (event, data) => {
-            //         fss.writeFileSync(args.saveProfile, data)
-            //     })
-            // }
-            // if (args.workflow) {
-            //     // @ts-ignore
-            //     urlCfg.testWorkflow = args.workflow
-            // }
-
-            Electron.ipcMain.on('quit-ide', () => {
-                Electron.app.quit()
-            })
-
-            let params = urlParamsFromObject(urlCfg)
-            let address = `${origin}?${params}`
-
-            console.log(`Loading the window address ${address}`)
-            window.loadURL(address)
-            window.on('close', evt => {
-                if (hideInsteadOfQuit) {
-                    evt.preventDefault()
-                    window.hide()
+                if (windowPreferences.frame === false && process.platform === 'darwin') {
+                    windowPreferences.titleBarStyle = 'hiddenInset'
                 }
+
+                if (options.groups.window.options.vibrancy.value) {
+                    windowPreferences.vibrancy = 'fullscreen-ui'
+                }
+
+                const window = new Electron.BrowserWindow(windowPreferences)
+                window.setMenuBarVisibility(false)
+
+                if (options.groups.debug.options.dev.value) {
+                    window.webContents.openDevTools()
+                }
+
+                const urlCfg: { [key: string]: string } = {}
+                for (const option of options.optionsRecursive()) {
+                    if (option.setByUser) {
+                        urlCfg[option.qualifiedName()] = String(option.value)
+                    }
+                }
+
+                Electron.ipcMain.on('error', (event, data) => console.error(data))
+
+                // FIXME
+                // let profilePromises = []
+                // if (args.loadProfile) {
+                //     profilePromises = args.loadProfile.map((path: string) => fsp.readFile(path, 'utf8'))
+                // }
+                // const profiles = Promise.all(profilePromises)
+                // Electron.ipcMain.on('load-profiles', event => {
+                //     profiles.then(profiles => {
+                //         event.reply('profiles-loaded', profiles)
+                //     })
+                // })
+                // if (args.saveProfile) {
+                //     Electron.ipcMain.on('save-profile', (event, data) => {
+                //         fss.writeFileSync(args.saveProfile, data)
+                //     })
+                // }
+                // if (args.workflow) {
+                //     // @ts-ignore
+                //     urlCfg.testWorkflow = args.workflow
+                // }
+
+                Electron.ipcMain.on('quit-ide', () => {
+                    Electron.app.quit()
+                })
+
+                let params = urlParamsFromObject(urlCfg)
+                let address = `${origin}${params}`
+
+                log.logger.log(`Loading the window address ${address}`)
+                window.loadURL(address)
+                window.on('close', evt => {
+                    if (hideInsteadOfQuit) {
+                        evt.preventDefault()
+                        window.hide()
+                    }
+                })
             })
         }
     }

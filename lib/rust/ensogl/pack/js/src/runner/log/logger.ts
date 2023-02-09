@@ -21,13 +21,25 @@ function isObject(value: any): boolean {
 /* eslint @typescript-eslint/no-extraneous-class: "off" */
 class Colors {
     static resetCode = '\x1b[0m'
+    static blackCode = '\x1b[30m'
     static redCode = '\x1b[31m'
-    static orangeCode = '\x1b[33m'
+    static greenCode = '\x1b[32m'
+    static yellowCode = '\x1b[33m'
+    static blueCode = '\x1b[34m'
+    static magentaCode = '\x1b[35m'
+    static cyanCode = '\x1b[36m'
+    static whiteCode = '\x1b[37m'
+    static black(text: string): string {
+        return Colors.blackCode + text + Colors.resetCode
+    }
     static red(text: string): string {
         return Colors.redCode + text + Colors.resetCode
     }
-    static orange(text: string): string {
-        return Colors.orangeCode + text + Colors.resetCode
+    static green(text: string): string {
+        return Colors.greenCode + text + Colors.resetCode
+    }
+    static yellow(text: string): string {
+        return Colors.yellowCode + text + Colors.resetCode
     }
     static boldStart(): string {
         return '\x1b[1m'
@@ -41,13 +53,13 @@ class Colors {
     static levelStart(level: number): string {
         switch (level) {
             case 0:
-                return `\x1b[38;5;155m`
+                return Colors.greenCode
             case 1:
-                return `\x1b[38;5;85m`
+                return Colors.cyanCode
             case 2:
-                return `\x1b[38;5;51m`
+                return Colors.blueCode
             default:
-                return `\x1b[38;5;64m`
+                return Colors.magentaCode
         }
     }
 }
@@ -201,10 +213,10 @@ export class Console extends Consumer {
         if (host.browser) {
             c[fn](...strArgs)
         } else {
-            let color: null | 'orange' | 'red'
+            let color: null | 'yellow' | 'red'
             switch (fn) {
                 case 'warn':
-                    color = 'orange'
+                    color = 'yellow'
                     break
                 case 'error':
                     color = 'red'
@@ -257,7 +269,7 @@ export class Console extends Consumer {
                 console.groupEnd()
             } else {
                 const styleStart = `${Colors.levelStart(this.indentLvl)}`
-                console.log(`${this.indent()}${styleStart}╰`, ...args)
+                console.log(`${this.indent()}${styleStart}╰`, ...args, Colors.reset())
             }
         } else {
             this.log(...args)
