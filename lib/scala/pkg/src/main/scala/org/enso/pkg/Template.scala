@@ -25,7 +25,7 @@ object Template {
     override val name = "colorado_covid"
   }
 
-  case object KMeans extends Template {
+  case object Kmeans extends Template {
     override val name = "kmeans"
   }
 
