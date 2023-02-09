@@ -334,7 +334,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
           pkg.sourceDir.getChild(Package.mainFileName)
         )
 
-      case Template.Colorado_COVID =>
+      case Template.ColoradoCovid =>
         val metricsDataPath = new URI("/colorado_covid/data/CDPHE_COVID19_County_Status_Metrics.csv")
         val geoDataPath = new URI("/colorado_covid/data/ColoradoGeoData.db")
         val mainEnsoPath  = new URI(s"/colorado_covid/src/${Package.mainFileName}")
@@ -361,7 +361,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
           pkg.sourceDir.getChild(Package.mainFileName)
         )
 
-      case Template.NASDAQReturns =>
+      case Template.NasdaqReturns =>
         val mainEnsoPath = new URI(s"/nasdaqreturns/src/${Package.mainFileName}")
 
         copyResource(
