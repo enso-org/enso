@@ -912,17 +912,17 @@ make_equality_check_with_floating_point_handling column other op on_problems =
     other_name = case other of
         other_column : Column -> "["+other_column.name+"]"
         _ -> other.to_text
-    location = "["+self.name+"] "+op+" "+other_name
+    location = "["+column.name+"] "+op+" "+other_name
     problem_builder = MapOperationProblemBuilder.new location
-    if self.value_type.is_floating_point then
+    if column.value_type.is_floating_point then
         problem_builder.reportFloatingPointEquality -1
     case other of
         other_column : Column ->
             if other_column.value_type.is_floating_point then
                 problem_builder.reportFloatingPointEquality -1
-        other_decimal : Decimal ->
+        _ : Decimal ->
             problem_builder.reportFloatingPointEquality -1
         _ -> Nothing
-    result = self.make_binary_op op other new_type=SQL_Type.boolean
+    result = column.make_binary_op op other new_type=SQL_Type.boolean
     on_problems.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems

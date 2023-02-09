@@ -1411,7 +1411,7 @@ spec setup =
             problems = Problems.get_attached_warnings new_table
             problems.length . should_equal 1
             problems.at 0 . is_a Floating_Point_Equality.Error . should_be_true
-            problems.at 0 . column . should_equal "Float"
+            problems.at 0 . location . should_equal "Float"
 
     if is_database then
         Test.group prefix+"Table.aggregate should report unsupported operations but not block other aggregations in warning mode" <|
