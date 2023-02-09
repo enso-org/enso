@@ -16,9 +16,9 @@
   "name": "root",
   "private": true,
   "workspaces": [
-    "lib/authentication",
     "lib/client",
     "lib/cloud",
+    "lib/cloud/src/authentication",
     "lib/cloud2",
     "lib/content",
     "lib/copy-plugin",

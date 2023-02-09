@@ -19,6 +19,7 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
+    "enso-studio-authentication": "^1.0.0",
     "eslint": "^8.32.0",
     "eslint-plugin-jsdoc": "^39.6.8",
     "eslint-plugin-react": "^7.32.1",
