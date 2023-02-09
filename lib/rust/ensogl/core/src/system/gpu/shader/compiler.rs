@@ -76,16 +76,17 @@ const MAX_PARALLEL_COMPILE_JOBS: usize = 2;
 // ===========
 
 /// Compiler job. After the job is created it can be either transformed to another job, or, in case
-/// that was the final job, the [`handler`] callback will be called. See the documentation of the
+/// that was the final job, the [`on_ready`] callback will be called. See the documentation of the
 /// [`Compiler`] to learn more.
 #[derive(Derivative, Deref)]
 #[derivative(Debug)]
 pub struct Job<T> {
     #[derivative(Debug = "ignore")]
-    on_ready:  Box<dyn FnOnce(shader::Program)>,
+    on_ready:  Option<Box<dyn FnOnce(shader::Program)>>,
     #[deref]
     input:     T,
-    handler:   WeakJobHandler,
+    /// A cancellation handle. If none is present, the job cannot be cancelled.
+    handle:    Option<WeakJobHandle>,
     /// A key used to cache the compiled program that this job is making progress on. When the job
     /// is finished or failed, the program or failure status is stored in the cache under this key.
     cache_key: ShaderCacheKey,
@@ -95,42 +96,50 @@ pub struct Job<T> {
 impl<T> Job<T> {
     fn map_input<S>(self, f: impl FnOnce(T) -> S) -> Job<S> {
         let on_ready = self.on_ready;
-        let handler = self.handler;
+        let handle = self.handle;
         let input = f(self.input);
         let profiler = self.profiler;
         let cache_key = self.cache_key;
-        Job { on_ready, input, handler, profiler, cache_key }
+        Job { on_ready, input, handle, profiler, cache_key }
+    }
+
+    /// Return whether the job has been cancelled (by its handle being dropped).
+    fn is_cancelled(&self) -> bool {
+        match self.handle.as_ref() {
+            Some(handle) if !handle.exists() => true,
+            _ => false,
+        }
     }
 }
 
-/// A handler to a job. After the handler is dropped, the job is invalidated and will no longer be
+/// A handle to a job. After the handle is dropped, the job is invalidated and will no longer be
 /// scheduled for evaluation.
 #[derive(Debug, Clone, CloneRef)]
-pub struct JobHandler {
+pub struct JobHandle {
     rc: Rc<()>,
 }
 
-/// A weak version of [`JobHandler`].
+/// A weak version of [`JobHandle`].
 #[derive(Debug, Clone, CloneRef)]
-pub struct WeakJobHandler {
+pub struct WeakJobHandle {
     weak: Weak<()>,
 }
 
-impl JobHandler {
+impl JobHandle {
     /// Constructor.
     fn new() -> Self {
         Self { rc: default() }
     }
 
-    /// Get weak reference to this handler.
-    pub fn downgrade(&self) -> WeakJobHandler {
+    /// Get weak reference to this handle.
+    pub fn downgrade(&self) -> WeakJobHandle {
         let weak = Rc::downgrade(&self.rc);
-        WeakJobHandler { weak }
+        WeakJobHandle { weak }
     }
 }
 
-impl WeakJobHandler {
-    /// Check whether the handler was dropped.
+impl WeakJobHandle {
+    /// Check whether the handle was dropped.
     pub fn exists(&self) -> bool {
         self.weak.strong_count() > 0
     }
@@ -182,7 +191,7 @@ pub struct Jobs {
 
 /// Compiles and links GL shader programs, asynchronously. The compiler works in the following way:
 /// 1. A new shader code is submitted with the [`submit`] method. A new job is created in the
-///    [`Jobs::compile`] queue and the job handler is returned to the user.
+///    [`Jobs::compile`] queue and the job handle is returned to the user.
 ///
 /// 2. The following pseudo-algorithm is performed:
 /// ```text
@@ -222,14 +231,25 @@ impl Compiler {
         Self { cell: RefCell::new(CompilerData::new(context)) }
     }
 
-    /// Submit shader for compilation.
+    /// Submit shader for compilation. The job will be cancelled if the returned handle is dropped.
+    #[must_use]
     pub fn submit<F: 'static + Fn(shader::Program)>(
         &self,
         input: shader::Code,
         profiler: profiler::Debug,
         on_ready: F,
-    ) -> JobHandler {
-        self.cell.borrow_mut().submit(input, profiler, on_ready)
+    ) -> JobHandle {
+        let strong_handle = JobHandle::new();
+        let handle = strong_handle.downgrade();
+        let on_ready = Box::new(on_ready);
+        self.cell.borrow_mut().submit(input, profiler, Some(on_ready), Some(handle));
+        strong_handle
+    }
+
+    /// Submit a shader for compilation, without awaiting its completion.
+    pub fn submit_background_job(&self, input: shader::Code) {
+        let profiler = profiler::create_debug!("submit_background_job");
+        self.cell.borrow_mut().submit(input, profiler, None, None);
     }
 
     /// Returns `true` if the compiler has no jobs in progress or queued.
@@ -258,15 +278,13 @@ impl CompilerData {
         Self { dirty, context, jobs, cache, performance }
     }
 
-    fn submit<F: 'static + FnOnce(shader::Program)>(
+    fn submit(
         &mut self,
         input: shader::Code,
         profiler: profiler::Debug,
-        on_ready: F,
-    ) -> JobHandler {
-        let strong_handler = JobHandler::new();
-        let handler = strong_handler.downgrade();
-        let on_ready = Box::new(on_ready);
+        on_ready: Option<Box<dyn FnOnce(shader::Program)>>,
+        handle: Option<WeakJobHandle>,
+    ) {
         let cache_key = ShaderCache::code_key(&input);
 
         match self.cache.get_program(cache_key) {
@@ -274,7 +292,7 @@ impl CompilerData {
                 debug!("Awaiting shader compilation {cache_key:?}.");
                 // This shader is currently being processed by another job. Create a new job that
                 // will wait for that job to finish.
-                let job = Job { input: (), handler, on_ready, profiler, cache_key };
+                let job = Job { input: (), handle, on_ready, profiler, cache_key };
                 self.cache.add_to_waiting_list(job);
                 self.dirty = true;
             }
@@ -283,7 +301,7 @@ impl CompilerData {
                 // This shader has been successfully compiled in the past. Spawn a cache lookup job,
                 // so that `on_ready` callback is will be called from within the job runner during
                 // next processing round.
-                let job = Job { input: (), handler, on_ready, profiler, cache_key };
+                let job = Job { input: (), handle, on_ready, profiler, cache_key };
                 self.jobs.read_cache.push(job);
                 self.dirty = true;
             }
@@ -297,13 +315,11 @@ impl CompilerData {
             None => {
                 debug!("Submitting shader for compilation {cache_key:?}.");
                 self.cache.program_submitted(cache_key);
-                let job = Job { input, handler, on_ready, profiler, cache_key };
+                let job = Job { input, handle, on_ready, profiler, cache_key };
                 self.jobs.compile.push(job);
                 self.dirty = true;
             }
         };
-
-        strong_handler
     }
 
     #[profile(Debug)]
@@ -416,10 +432,10 @@ impl CompilerData {
             })?;
             profiler.pause();
             let input = shader::Sources { vertex, fragment };
-            let handler = job.handler;
+            let handle = job.handle;
             let on_ready = job.on_ready;
             let cache_key = job.cache_key;
-            let link_job = Job { input, handler, on_ready, profiler, cache_key };
+            let link_job = Job { input, handle, on_ready, profiler, cache_key };
             this.jobs.link.push(link_job);
             Ok(())
         })
@@ -437,17 +453,17 @@ impl CompilerData {
             this.context.link_program(&program);
             profiler.pause();
             let input = shader::Program::new(shader, program);
-            let handler = job.handler;
+            let handle = job.handle;
             let on_ready = job.on_ready;
             let cache_key = job.cache_key;
             match this.context.extensions.khr_parallel_shader_compile {
                 Some(khr) => {
                     let input = KhrProgram { khr, program: input };
-                    let job = Job { input, handler, cache_key, on_ready, profiler };
+                    let job = Job { input, handle, cache_key, on_ready, profiler };
                     this.jobs.khr_completion_check.push(job)
                 }
                 None => {
-                    let job = Job { input, handler, cache_key, on_ready, profiler };
+                    let job = Job { input, handle, cache_key, on_ready, profiler };
                     this.jobs.link_check.push(job)
                 }
             }
@@ -479,7 +495,9 @@ impl CompilerData {
             // processed. `Validated` is the only expected cache entry state at this point.
             match this.cache.get_program(job.cache_key) {
                 Some(ProgramCacheEntry::Validated(program)) => {
-                    (job.on_ready)(program.clone());
+                    if let Some(on_ready) = job.on_ready {
+                        (on_ready)(program.clone());
+                    }
                     Ok(())
                 }
                 _ => panic!("Shader cache read was submitted for non-completed entry."),
@@ -497,17 +515,17 @@ impl CompilerData {
         while let Some(mut job) = jobs(self).pop() {
             let cache_key = job.cache_key;
 
-            if !job.handler.exists() {
+            if job.is_cancelled() {
                 // A compilation job has been cancelled, but there still might be other jobs waiting
                 // for it to complete and write data to the cache. Take one of those waiting jobs
                 // and resume the compilation process with its callback.
                 if let Some(waiting_job) = self.cache.take_next_waiting_job(cache_key) {
-                    job.handler = waiting_job.handler;
+                    job.handle = waiting_job.handle;
                     job.on_ready = waiting_job.on_ready;
                 } else {
                     // No waiting jobs, cancel the compilation process.
                     self.cache.program_canceled(cache_key);
-                    trace!("Job handler dropped, skipping.");
+                    trace!("Job handle dropped, skipping.");
                     continue;
                 }
             }
@@ -581,16 +599,12 @@ impl ShaderCache {
     /// cancelled will be removed from the waiting list to avoid processing them in the future.
     fn take_next_waiting_job(&mut self, key: ShaderCacheKey) -> Option<Job<()>> {
         let jobs = self.waiting_jobs.get_mut(&key)?;
-        if let Some(first_active) = jobs.iter().position(|job| job.handler.exists()) {
-            // Remove all leading cancelled jobs from the list and take the active in single pass.
-            // This ensures the minimum number of necessary memory moves and preserves the order of
-            // submitted jobs.
-            jobs.drain(0..=first_active).next_back()
-        } else {
-            // All jobs in the waiting list were cancelled.
-            self.waiting_jobs.clear();
-            None
+        while let Some(job) = jobs.pop() {
+            if !job.is_cancelled() {
+                return Some(job);
+            }
         }
+        None
     }
 
     fn program_submitted(&mut self, key: ShaderCacheKey) {
@@ -611,7 +625,7 @@ impl ShaderCache {
         &mut self,
         key: ShaderCacheKey,
         program: shader::Program,
-        on_ready: impl FnOnce(shader::Program),
+        on_ready: Option<impl FnOnce(shader::Program)>,
     ) {
         self.programs.insert(key, ProgramCacheEntry::Validated(program.clone()));
 
@@ -619,11 +633,15 @@ impl ShaderCache {
         // entry is updated, in case the job callback schedules another compilation of the same
         // shader program. We want those submissions to recognize cache status as validated and
         // dispatch a read from cache.
-        on_ready(program.clone());
+        if let Some(on_ready) = on_ready {
+            on_ready(program.clone());
+        }
         if let Some(jobs) = self.waiting_jobs.remove(&key) {
             for job in jobs {
-                if job.handler.exists() {
-                    (job.on_ready)(program.clone());
+                if !job.is_cancelled() {
+                    if let Some(on_ready) = job.on_ready {
+                        (on_ready)(program.clone());
+                    }
                 }
             }
         }

@@ -445,7 +445,7 @@ impl ShapeSystemModel {
         if let Some(shader) = crate::display::world::PRECOMPILED_SHADERS
             .with_borrow(|map| map.get(*self.definition_path).cloned())
         {
-            let code = crate::display::shader::builder::CodeTemplate::new("", shader.fragment, "");
+            let code = crate::display::shader::builder::CodeTemplate::new("", &shader.fragment, "");
             self.material.borrow_mut().set_code(code);
         } else {
             if !display::world::with_context(|t| t.run_mode.get().is_shader_extraction()) {

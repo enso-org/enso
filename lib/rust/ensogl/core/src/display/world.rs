@@ -116,12 +116,9 @@ thread_local! {
 
 /// A precompiled shader definition. It contains the main function body for the vertex and fragment
 /// shaders.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deref)]
 #[allow(missing_docs)]
-pub struct PrecompiledShader {
-    pub vertex:   String,
-    pub fragment: String,
-}
+pub struct PrecompiledShader(shader::Code);
 
 thread_local! {
     /// List of all precompiled shaders. They are registered here before main entry point is run by
@@ -168,7 +165,7 @@ fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
         let fragment_field = web::Reflect::get(&value, &"fragment".into())?;
         let vertex: String = vertex_field.dyn_into::<web::JsString>()?.into();
         let fragment: String = fragment_field.dyn_into::<web::JsString>()?.into();
-        let precompiled_shader = PrecompiledShader { vertex, fragment };
+        let precompiled_shader = PrecompiledShader(shader::Code { vertex, fragment });
         debug!("Registering precompiled shaders for '{key}'.");
         PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
             map.insert(key, precompiled_shader);
@@ -190,6 +187,13 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     });
     with_context(|t| t.run_mode.set(RunMode::Normal));
     map
+}
+
+/// Returns the source code for shaders that should be compiled as soon as a context is available.
+fn get_persistent_shaders() -> Vec<shader::Code> {
+    PRECOMPILED_SHADERS.with_borrow(|shaders| {
+        shaders.values().cloned().map(|PrecompiledShader(shader)| shader).collect()
+    })
 }
 
 
@@ -272,6 +276,7 @@ impl<'t> From<&'t World> for &'t Scene {
 }
 
 
+
 // ===========
 // === FRP ===
 // ===========
@@ -281,6 +286,7 @@ crate::define_endpoints_2! {
         after_rendering(),
     }
 }
+
 
 
 // =========================
@@ -411,7 +417,7 @@ impl WorldData {
         let scene_dirty = dirty::SharedBool::new(());
         let on_change = f!(scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
-        let default_scene = Scene::new(&stats, on_change, &display_mode);
+        let default_scene = Scene::new(&stats, on_change, &display_mode, get_persistent_shaders());
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();

@@ -719,6 +719,7 @@ pub struct SceneData {
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
+    persistent_shaders: Rc<Vec<shader::Code>>,
 }
 
 impl SceneData {
@@ -727,6 +728,7 @@ impl SceneData {
         stats: &Stats,
         on_mut: OnMut,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
+        persistent_shaders: Vec<shader::Code>,
     ) -> Self {
         debug!("Initializing.");
         let display_mode = display_mode.clone_ref();
@@ -766,6 +768,7 @@ impl SceneData {
         let context_lost_handler = default();
         let pointer_position_changed = default();
         let shader_compiler = default();
+        let persistent_shaders = Rc::new(persistent_shaders);
         Self {
             display_object,
             display_mode,
@@ -791,6 +794,7 @@ impl SceneData {
             shader_compiler,
             extensions,
             disable_context_menu,
+            persistent_shaders,
         }
         .init()
     }
@@ -808,6 +812,11 @@ impl SceneData {
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
         self.renderer.set_context(context);
+        if let Some(context) = context {
+            for code in self.persistent_shaders.iter().cloned() {
+                context.shader_compiler.submit_background_job(code);
+            }
+        }
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {
@@ -1018,8 +1027,9 @@ impl Scene {
         stats: &Stats,
         on_mut: OnMut,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
+        persistent_shaders: Vec<shader::Code>,
     ) -> Self {
-        let no_mut_access = SceneData::new(stats, on_mut, display_mode);
+        let no_mut_access = SceneData::new(stats, on_mut, display_mode, persistent_shaders);
         let this = Self { no_mut_access };
         this
     }

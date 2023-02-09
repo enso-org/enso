@@ -62,7 +62,7 @@ pub struct ShaderData {
     geometry_material   : Material,
     surface_material    : Material,
     program             : Rc<RefCell<Option<shader::Program>>>,
-    shader_compiler_job : Option<shader_compiler::JobHandler>,
+    shader_compiler_job : Option<shader_compiler::JobHandle>,
     dirty               : Dirty,
     stats               : Stats,
     profiler            : Option<profiler::Debug>,
@@ -196,7 +196,7 @@ impl {
     }
 
     fn cancel_previous_shader_compiler_job_and_use_new_one
-    (&mut self, handler: shader_compiler::JobHandler) {
+    (&mut self, handler: shader_compiler::JobHandle) {
         // Dropping the previous handler.
         self.shader_compiler_job = Some(handler);
     }
