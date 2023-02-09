@@ -12,12 +12,14 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Storage.Storage
 import project.Data.Table.Table
 import project.Data.Value_Type.Value_Type
+import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality
 
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -426,12 +428,13 @@ type Column
     / : Column | Any -> Problem_Behavior -> Column
     / self other on_problems=Problem_Behavior.Report_Warning =
         other_name = case other of
-            other_column : Column -> other_column.name
+            other_column : Column -> "["+other_column.name+"]"
             _ -> other.to_text
-        location = "["+self.name+"] / ["+other_name+"]"
+        location = "["+self.name+"] / "+other_name
         fallback problem_builder a b =
             if b != 0 then a / b else
-                problem_builder.reportDivisionByZero ix
+                # TODO indices for fallback
+                problem_builder.reportDivisionByZero Nothing
                 Nothing
         run_vectorized_binary_op_with_problem_handling self '/' fallback other location on_problems
 
@@ -461,13 +464,13 @@ type Column
     % : Column | Any -> Problem_Behavior -> Column
     % self other on_problems=Problem_Behavior.Report_Warning =
         other_name = case other of
-            other_column : Column -> other_column.name
+            other_column : Column -> "["+other_column.name+"]"
             _ -> other.to_text
-        location = "["+self.name+"] % ["+other_name+"]"
+        location = "["+self.name+"] % "+other_name
         fallback problem_builder a b =
             if b != 0 then a % b else
-                problem_builder.reportDivisionByZero ix
-                Nothing
+                # TODO indices for fallback
+                problem_builder.reportDivisionByZero Nothing
         run_vectorized_binary_op_with_problem_handling self '%' fallback other location on_problems
 
     ## ALIAS Power Columns
@@ -1353,11 +1356,11 @@ run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_nam
         Column.Value col2 ->
             s1 = column.java_column.getStorage
             s2 = col2.getStorage
-            rs = s1.zip name fallback_fn s2 skip_nulls
+            rs = s1.zip name fallback_fn s2 skip_nulls problem_builder
             Column.Value (Java_Column.new new_name rs)
         _ ->
             s1 = column.java_column.getStorage
-            rs = s1.bimap name fallback_fn operand skip_nulls
+            rs = s1.bimap name fallback_fn operand skip_nulls problem_builder
             Column.Value (Java_Column.new new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
@@ -1386,11 +1389,11 @@ run_vectorized_binary_op_with_problem_handling column name fallback_fn operand l
         Column.Value col2 ->
             s1 = column.java_column.getStorage
             s2 = col2.getStorage
-            rs = s1.zip name applied_fn s2 skip_nulls
+            rs = s1.zip name applied_fn s2 skip_nulls problem_builder
             Column.Value (Java_Column.new new_name rs)
         _ ->
             s1 = column.java_column.getStorage
-            rs = s1.bimap name applied_fn operand skip_nulls
+            rs = s1.bimap name applied_fn operand skip_nulls problem_builder
             Column.Value (Java_Column.new new_name rs)
     on_problems.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
@@ -1408,9 +1411,12 @@ run_vectorized_binary_op_with_problem_handling column name fallback_fn operand l
      is not possible due to a bug: https://github.com/oracle/graal/issues/4741
 run_vectorized_unary_op : Column -> Text -> (Any -> Any) -> Any -> Column
 run_vectorized_unary_op column name fallback_fn on_missing=Nothing =
+    problem_builder = MapOperationProblemBuilder.new column.name
     s = column.java_column.getStorage
-    rs = s.map name fallback_fn on_missing
-    Column.Value (Java_Column.new "Result" rs)
+    rs = s.map name fallback_fn on_missing problem_builder
+    result = Column.Value (Java_Column.new "Result" rs)
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
 ## PRIVATE
 

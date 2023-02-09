@@ -7,6 +7,7 @@ import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.NumericStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
+import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
 
@@ -25,7 +26,7 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
 
   public abstract double doDouble(long in, double arg, int ix, MapOperationProblemBuilder problemBuilder);
 
-  public abstract long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder);
+  public abstract Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder);
 
   @Override
   public NumericStorage<?> runMap(LongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
@@ -36,13 +37,19 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
         return LongStorage.makeEmpty(storage.size());
       }
     } else if (!alwaysCastToDouble && arg instanceof Long x) {
+      BitSet newMissing = BitSets.makeDuplicate(storage.getIsMissing());
       long[] newVals = new long[storage.size()];
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i)) {
-          newVals[i] = doLong(storage.getItem(i), x, i, problemBuilder);
+          Long newVal = doLong(storage.getItem(i), x, i, problemBuilder);
+          if (newVal == null) {
+            newMissing.set(i);
+          } else {
+            newVals[i] = newVal;
+          }
         }
       }
-      return new LongStorage(newVals, newVals.length, storage.getIsMissing());
+      return new LongStorage(newVals, newVals.length, newMissing);
     } else if (arg instanceof Double || arg instanceof Long) {
       double x = (arg instanceof Double) ? (Double) arg : (Long) arg;
       long[] newVals = new long[storage.size()];
@@ -63,9 +70,16 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
-          out[i] = alwaysCastToDouble
-              ? Double.doubleToRawLongBits(doDouble(storage.getItem(i), v.getItem(i), i, problemBuilder))
-              : doLong(storage.getItem(i), v.getItem(i), i, problemBuilder);
+          if (alwaysCastToDouble) {
+            out[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), v.getItem(i), i, problemBuilder));
+          } else {
+            Long newVal = doLong(storage.getItem(i), v.getItem(i), i, problemBuilder);
+            if (newVal == null) {
+              newMissing.set(i);
+            } else {
+              out[i] = newVal;
+            }
+          }
         } else {
           newMissing.set(i);
         }

@@ -1,9 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Additional_Invalid_Rows, Invalid_Aggregation, Floating_Point_Equality, Unquoted_Delimiter, Additional_Warnings
 
 polyglot java import org.enso.table.problems.AggregatedProblems
+polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
@@ -21,6 +23,8 @@ translate_problem p = case p of
     _ : InvalidAggregation ->
         err = Invalid_Aggregation.Error p.getLocationName (Vector.from_polyglot_array p.getRows) p.getMessage
         Error.throw err
+    _ : ArithmeticError ->
+        Arithmetic_Error.Error p.getMessage
     _ : FloatingPointGrouping ->
         Floating_Point_Equality.Error p.getLocationName
     _ : UnquotedDelimiter ->

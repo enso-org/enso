@@ -209,7 +209,7 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return in + arg;
               }
             })
@@ -221,7 +221,7 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return in - arg;
               }
             })
@@ -233,7 +233,7 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return in * arg;
               }
             })
@@ -248,10 +248,12 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 if (arg == 0) {
                   problemBuilder.reportDivisionByZero(ix);
+                  return null;
                 }
+
                 return in % arg;
               }
             })
@@ -263,7 +265,7 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 throw new IllegalStateException(
                     "Internal error: Power operation should cast to double.");
               }
@@ -279,7 +281,7 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 throw new UnsupportedOperationException("Divide operation should cast to double.");
               }
             })

@@ -1,9 +1,11 @@
 package org.enso.table.data.table.problems;
 
+import java.util.stream.Collectors;
+
 public class ArithmeticError extends ColumnAggregatedProblems {
     private final String message;
 
-    public ArithmeticError(String locationName, String message, int row) {
+    public ArithmeticError(String locationName, String message, Integer row) {
         super(locationName, row);
         this.message = message;
     }
@@ -22,6 +24,7 @@ public class ArithmeticError extends ColumnAggregatedProblems {
 
     @Override
     public String getMessage() {
-        return message;
+        String rowsStr = this.rows.stream().map(Object::toString).collect(Collectors.joining(", ", "[", "]"));
+        return message + " (at " + getLocationName() + ", rows " + rowsStr + ").";
     }
 }

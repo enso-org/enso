@@ -368,18 +368,37 @@ type Column
     * : Column | Any -> Column
     * self other = self.make_binary_op "*" other
 
-    ## UNSTABLE
+    ## ALIAS Divide Columns
 
        Element-wise division.
 
        Arguments:
-       - other: The other column to divide `self` column by.
+       - other: The value to divide `self` by. If `other` is a column, the
+         division is performed pairwise between corresponding elements of `self`
+         and `other`.
+       - on_problems: What to do when a division by zero occurs. Defaults to
+         reporting a warning.
 
        Returns a column containing the result of dividing each element of `self`
-       by `other`.  If `other` is a column, the operation is performed pairwise
-       between corresponding elements of `self` and `other`.
-    / : Column | Any -> Column
-    / self other = self.make_binary_op "/" other new_type=SQL_Type.double
+       by `other`.
+
+       > Example
+         Divide the elements of one column by the elements of another.
+
+             import Standard.Examples
+
+             example_div = Examples.decimal_column / Examples.integer_column
+
+       > Example
+         Multiply each value in a column by a single value.
+
+             import Standard.Examples
+
+             example_div = Examples.integer_column / 10
+    / : Column | Any -> Problem_Behavior -> Column
+    / self other on_problems=Problem_Behavior.Report_Warning =
+        _ = on_problems
+        self.make_binary_op "/" other new_type=SQL_Type.double
 
     ## Element-wise modulus.
 
@@ -404,8 +423,10 @@ type Column
              import Standard.Examples
 
              example_mod = Examples.integer_column % 3
-    % : Column | Any -> Column
-    % self other = self.make_binary_op "%" other
+    % : Column | Any -> Problem_Behavior -> Column
+    % self other on_problems=Problem_Behavior.Report_Warning =
+        _ = on_problems
+        self.make_binary_op "%" other
 
     ## ALIAS Power
 

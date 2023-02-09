@@ -9,7 +9,7 @@ public abstract class ColumnAggregatedProblems implements Problem {
   private final String locationName;
   protected final List<Integer> rows;
 
-  protected ColumnAggregatedProblems(String locationName, int row) {
+  protected ColumnAggregatedProblems(String locationName, Integer row) {
     this.locationName = locationName;
     this.rows = new ArrayList<>();
     this.rows.add(row);
