@@ -138,7 +138,7 @@ spec setup =
                 action2 = t1.set "3 / [X]" new_name="Z" on_problems=_
                 tester2 table =
                     table.at "Z" . to_vector . should_equal [2.0, 1.5, Nothing]
-                problems2 = [Arithmetic_Error.Error "Division by zero at rows [3]."]
+                problems2 = [Arithmetic_Error.Error "Division by zero (at rows [3])."]
                 Problems.test_problem_handling action2 problems2 tester2
 
     Test.group prefix+"Table.column_names" <|

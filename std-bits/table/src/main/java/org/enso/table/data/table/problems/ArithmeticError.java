@@ -25,6 +25,6 @@ public class ArithmeticError extends ColumnAggregatedProblems {
     @Override
     public String getMessage() {
         String rowsStr = this.rows.stream().map(Object::toString).collect(Collectors.joining(", ", "[", "]"));
-        return message + " (at " + getLocationName() + ", rows " + rowsStr + ").";
+        return message + " (at rows " + rowsStr + ").";
     }
 }

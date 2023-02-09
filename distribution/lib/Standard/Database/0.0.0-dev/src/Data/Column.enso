@@ -7,6 +7,7 @@ import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Column_Type_Selection.Auto
 import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table.Errors import Floating_Point_Equality
@@ -22,6 +23,8 @@ import project.Internal.IR.Query.Query
 from project.Data.Table import Table, freshen_columns
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
+
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
 type Column
 
@@ -196,14 +199,17 @@ type Column
     count self =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
-    ## UNSTABLE
-
-       Element-wise equality comparison.
+    ## Element-wise equality comparison.
 
        Arguments:
-       - other: The other column to compare pairwise with.
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
        - on_problems: Specifies how to handle non-fatal problems within the
          operation. Defaults to attaching a warning to the result.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
 
        ! Error Conditions
 
@@ -211,23 +217,22 @@ type Column
            equality which is not recommended, a `Floating_Point_Equality` is
            reported according to the `on_problems` setting.
 
-       Returns a column with results of comparing this column's elements against
-       `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `self` and `other`.
+       > Example
+         Compare two columns for pairwise equality.
+
+             import Standard.Examples
+
+             example_eq = Examples.integer_column == Examples.decimal_column
+
+       > Example
+         Compare a column with a number.
+
+             import Standard.Examples
+
+             example_eq = Examples.integer_column == 1
     == : Column | Any -> Problem_Behavior -> Column
     == self other on_problems=Problem_Behavior.Report_Warning =
-        problem_builder = Problem_Builder.new
-        if self.value_type.is_floating_point then
-            problem_builder.report_other_warning (Floating_Point_Equality.Error self.name)
-        case other of
-            other_column : Column ->
-                if other_column.value_type.is_floating_point then
-                    problem_builder.report_other_warning (Floating_Point_Equality.Error other_column.name)
-            other_decimal : Decimal ->
-                problem_builder.report_other_warning (Floating_Point_Equality.Error other_decimal.to_text)
-            _ -> Nothing
-        problem_builder.attach_problems_after on_problems <|
-            self.make_binary_op "=" other new_type=SQL_Type.boolean
+        make_equality_check_with_floating_point_handling self other "==" on_problems
 
     ## Element-wise case-insensitive text equality comparison.
 
@@ -243,18 +248,40 @@ type Column
         Helpers.assume_default_locale locale <|
             self.make_binary_op "equals_ignore_case" other new_type=SQL_Type.boolean
 
-    ## UNSTABLE
-
-       Element-wise non-equality comparison.
+    ## Element-wise non-equality comparison.
 
        Arguments:
-       - other: The other column to compare pairwise with.
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
+       - on_problems: Specifies how to handle non-fatal problems within the
+         operation. Defaults to attaching a warning to the result.
 
        Returns a column with results of comparing this column's elements against
-       `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `self` and `other`.
-    != : Column | Any -> Column
-    != self other = self.make_binary_op "!=" other new_type=SQL_Type.boolean
+       `other`.
+
+       ! Error Conditions
+
+         - If this operation results in comparing floating-point values for
+           equality which is not recommended, a `Floating_Point_Equality` is
+           reported according to the `on_problems` setting.
+
+       > Example
+         Compare two columns for pairwise inequality.
+
+             import Standard.Examples
+
+             example_neq = Examples.integer_column != Examples.decimal_column
+
+       > Example
+         Compare a column with a number.
+
+             import Standard.Examples
+
+             example_neq = Examples.integer_column != 1
+    != : Column | Any -> Problem_Behavior -> Column
+    != self other on_problems=Problem_Behavior.Report_Warning =
+        make_equality_check_with_floating_point_handling self other "!=" on_problems
 
     ## UNSTABLE
 
@@ -880,3 +907,22 @@ make_text_case_op left op other case_sensitivity =
         Case_Sensitivity.Insensitive locale -> Helpers.assume_default_locale locale <|
             ci_other = if other.is_a Column then other.make_unary_op "FOLD_CASE" else other.to_case Case.Lower
             left.make_unary_op "FOLD_CASE" . make_binary_op op ci_other new_type=SQL_Type.boolean
+
+make_equality_check_with_floating_point_handling column other op on_problems =
+    other_name = case other of
+        other_column : Column -> "["+other_column.name+"]"
+        _ -> other.to_text
+    location = "["+self.name+"] "+op+" "+other_name
+    problem_builder = MapOperationProblemBuilder.new location
+    if self.value_type.is_floating_point then
+        problem_builder.reportFloatingPointEquality -1
+    case other of
+        other_column : Column ->
+            if other_column.value_type.is_floating_point then
+                problem_builder.reportFloatingPointEquality -1
+        other_decimal : Decimal ->
+            problem_builder.reportFloatingPointEquality -1
+        _ -> Nothing
+    result = self.make_binary_op op other new_type=SQL_Type.boolean
+    on_problems.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems

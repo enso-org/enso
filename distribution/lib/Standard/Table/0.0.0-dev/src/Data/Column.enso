@@ -117,9 +117,17 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
+       - on_problems: Specifies how to handle non-fatal problems within the
+         operation. Defaults to attaching a warning to the result.
 
        Returns a column with results of comparing this column's elements against
        `other`.
+
+       ! Error Conditions
+
+         - If this operation results in comparing floating-point values for
+           equality which is not recommended, a `Floating_Point_Equality` is
+           reported according to the `on_problems` setting.
 
        > Example
          Compare two columns for pairwise equality.
@@ -136,17 +144,15 @@ type Column
              example_eq = Examples.integer_column == 1
     == : Column | Any -> Problem_Behavior -> Column
     == self other on_problems=Problem_Behavior.Report_Warning =
-        x1 = case self.value_type of
-            Value_Type.Float _ -> True
-            _ -> False
-        x2 = case other of
-            _ : Column -> case other.value_type of
-                Value_Type.Float _ -> True
-                _ -> False
-            _ : Decimal -> True
-            _ -> False
-        r = run_vectorized_binary_op self "==" (==) other
-        if x1 || x2 then on_problems.attach_problem_after r (Floating_Point_Equality.Error "TODO") else r
+        other_name = case other of
+            other_column : Column -> "["+other_column.name+"]"
+            _ -> other.to_text
+        location = "["+self.name+"] == "+other_name
+        fallback problem_builder a b = case b of
+            _ : Decimal ->
+                problem_builder.reportFloatingPointEquality -1
+                a == b
+        run_vectorized_binary_op_with_problem_handling self '==' fallback other location on_problems
 
     ## Element-wise case-insensitive text equality comparison.
 
@@ -172,9 +178,17 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
+       - on_problems: Specifies how to handle non-fatal problems within the
+         operation. Defaults to attaching a warning to the result.
 
        Returns a column with results of comparing this column's elements against
        `other`.
+
+       ! Error Conditions
+
+         - If this operation results in comparing floating-point values for
+           equality which is not recommended, a `Floating_Point_Equality` is
+           reported according to the `on_problems` setting.
 
        > Example
          Compare two columns for pairwise inequality.
@@ -189,8 +203,8 @@ type Column
              import Standard.Examples
 
              example_neq = Examples.integer_column != 1
-    != : Column | Any -> Column
-    != self other = (self == other).not
+    != : Column | Any -> Problem_Behavior -> Column
+    != self other on_problems=Problem_Behavior.Report_Warning = (self == other).not
 
     ## Element-wise order comparison.
 
@@ -1325,15 +1339,20 @@ type Column
    - new_name: The name of the column created as the result of this operation.
 run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Boolean -> Text -> Column
 run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_name=(name + "_" + column.name) =
-    case operands of
+    problem_builder = MapOperationProblemBuilder.new column.name
+    result = case operands of
         _ : Vector ->
             folded = operands.fold column.java_column.getStorage current-> operand->
                 case operand of
-                    _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
-                    _ -> current.bimap name fallback_fn operand skip_nulls
+                    _ : Column ->
+                        current.zip name fallback_fn operand.java_column.getStorage skip_nulls problem_builder
+                    _ ->
+                        current.bimap name fallback_fn operand skip_nulls problem_builder
             Column.Value (Java_Column.new new_name folded)
         _ : Array -> run_vectorized_many_op column name fallback_fn (Vector.from_polyglot_array operands) skip_nulls new_name
         _ -> run_vectorized_many_op column name fallback_fn [operands] skip_nulls new_name
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
 ## PRIVATE
 

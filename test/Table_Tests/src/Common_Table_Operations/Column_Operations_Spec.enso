@@ -112,7 +112,7 @@ spec setup =
 
             has_div_warnings location expected_rows result =
                 warnings = Problems.get_attached_warnings result
-                msg = "Division by zero (at " + location + ", rows " + expected_rows.to_text + ")."
+                msg = "Division by zero (at rows " + expected_rows.to_text + ")."
                 warnings.first . should_equal (Arithmetic_Error.Error msg)
 
             r1 = a / b

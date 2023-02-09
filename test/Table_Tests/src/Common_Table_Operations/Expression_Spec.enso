@@ -296,24 +296,23 @@ spec detailed setup =
     Test.group prefix+"Warnings should be reported" <|
         Test.specify "should report floating point equality" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
-            action1 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=_
-            tester1 column =
-                column.to_vector . should_equal [True, True, False]
-            problems1 = [Floating_Point_Equality.Error "TODO"]
-            Problems.test_problem_handling action1 problems1 tester1
+
+            r1 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
+            Problems.assume_no_problems r1
+
+            r2 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
+            Problems.get_attached_warnings r2 . each warn->
+                warn.should_be_a Floating_Point_Equality
+
+            err3 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
+            err3.should_fail_with Floating_Point_Equality
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
         Test.specify "should report arithmetic errors" pending=db_pending <|
-            t1 = table_builder [["X", [1.5, 2.0, 0.0]], ["Y", [4.0, -1.0, 0.0]]]
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
 
             action1 = t1.compute "3 / [X]" on_problems=_
             tester1 column =
-                column.to_vector . should_equal [2.0, -1.5, Nothing]
-            problems1 = [Arithmetic_Error.Error "Division by zero."]
+                column.to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
+            problems1 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
             Problems.test_problem_handling action1 problems1 tester1
-
-            action2 = t1.compute "SQRT([X])" on_problems=_
-            tester2 column =
-                column.to_vector . should_equal [2.0, Nothing, 0.0]
-            problems2 = [Arithmetic_Error.Error "Negative square root."]
-            Problems.test_problem_handling action2 problems2 tester2

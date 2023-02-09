@@ -314,5 +314,5 @@ spec setup =
             action = t.filter_by_expression "8.0 / [X] == 4.0" on_problems=_
             tester table =
                 table . at "ix" . to_vector . should_equal [1, 2, 5]
-            problems = [Arithmetic_Error.Error "Division by zero."]
+            problems = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
             Problems.test_problem_behavior action problems tester

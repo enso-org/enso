@@ -249,6 +249,22 @@ public final class DoubleStorage extends NumericStorage<Double> {
         .add(
             new DoubleBooleanOp(Maps.EQ) {
               @Override
+              public BoolStorage runMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+                if (arg != null) {
+                  problemBuilder.reportFloatingPointEquality(-1);
+                }
+                return super.runMap(storage, arg, problemBuilder);
+              }
+
+              @Override
+              public BoolStorage runZip(DoubleStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+                if (arg.countMissing() < arg.size()) {
+                  problemBuilder.reportFloatingPointEquality(-1);
+                }
+                return super.runZip(storage, arg, problemBuilder);
+              }
+
+              @Override
               protected boolean doDouble(double a, double b) {
                 return a == b;
               }

@@ -336,6 +336,37 @@ public final class LongStorage extends NumericStorage<Long> {
         .add(
             new LongBooleanOp(Maps.EQ) {
               @Override
+              public BoolStorage runMap(LongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+                if (arg instanceof Double) {
+                  problemBuilder.reportFloatingPointEquality(-1);
+                }
+                return super.runMap(storage, arg, problemBuilder);
+              }
+
+              @Override
+              public BoolStorage runZip(LongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+                if (arg instanceof DoubleStorage) {
+                  problemBuilder.reportFloatingPointEquality(-1);
+                } else if (!(arg instanceof LongStorage)) {
+                  boolean hasFloats = false;
+                  for (int i = 0; i < storage.size; i++) {
+                    if (arg.isNa(i)) {
+                      continue;
+                    }
+
+                    if (arg.getItemBoxed(i) instanceof Double) {
+                      hasFloats = true;
+                      break;
+                    }
+                  }
+                  if (hasFloats) {
+                    problemBuilder.reportFloatingPointEquality(-1);
+                  }
+                }
+                return super.runZip(storage, arg, problemBuilder);
+              }
+
+              @Override
               protected boolean doLong(long a, long b) {
                 return a == b;
               }

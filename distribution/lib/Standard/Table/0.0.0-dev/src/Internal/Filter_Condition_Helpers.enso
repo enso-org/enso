@@ -13,10 +13,10 @@ from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
    It also performs validation and will throw errors if unexpected column types
    are encountered.
-make_filter_column source_column filter_condition = case filter_condition of
+make_filter_column source_column filter_condition on_problems = case filter_condition of
     # Equality
-    Equal value -> (source_column == value)
-    Not_Equal value -> (source_column != value)
+    Equal value -> (source_column.== value on_problems)
+    Not_Equal value -> (source_column.!= value on_problems)
     # Nothing
     Is_Nothing -> source_column.is_missing
     Not_Nothing -> source_column.is_missing.not

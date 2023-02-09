@@ -1091,7 +1091,6 @@ type Table
         problems = Warning.get_all new_column . map .value
         new_name = Expression.to_column_name expression
         result =  new_column.rename new_name
-        IO.println <| "warnings: "+problems.to_text
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
