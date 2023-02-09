@@ -7,6 +7,7 @@
 use crate::prelude::*;
 
 use crate::model::execution_context::ComponentGroup;
+use crate::model::execution_context::ComputedValueInfo;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::QualifiedMethodPointer;
@@ -231,18 +232,17 @@ impl Handle {
         Ok(())
     }
 
-    /// Attempts to get the method pointer of the specified node.
+    /// Attempts to get the computed value of the specified node.
     ///
-    /// Fails if there's no information about target method pointer (e.g. because node value hasn't
-    /// been yet computed by the engine).
-    pub fn node_method_pointer(
+    /// Fails if there's no information e.g. because node value hasn't been yet computed by the
+    /// engine.
+    pub fn node_computed_value(
         &self,
         node: double_representation::node::Id,
-    ) -> FallibleResult<Rc<MethodPointer>> {
+    ) -> FallibleResult<Rc<ComputedValueInfo>> {
         let registry = self.execution_ctx.computed_value_info_registry();
         let node_info = registry.get(&node).ok_or(NotEvaluatedYet(node))?;
-        let entry_id = *node_info.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
-        self.project.suggestion_db().lookup_method_ptr(entry_id).map(Rc::new)
+        Ok(node_info)
     }
 
     /// Enter node by given ID.
@@ -254,8 +254,9 @@ impl Handle {
     /// been yet computed by the engine) or if method graph cannot be created (see
     /// `graph_for_method` documentation).
     pub async fn enter_node(&self, node: double_representation::node::Id) -> FallibleResult {
-        let definition = self.node_method_pointer(node)?;
-        let definition = (*definition).clone();
+        let computed_value = self.node_computed_value(node)?;
+        let method_pointer = computed_value.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
+        let definition = method_pointer.clone();
         let local_call = LocalCall { call: node, definition };
         self.enter_method_pointer(&local_call).await
     }
@@ -336,8 +337,9 @@ impl Handle {
 impl Context for Handle {
     fn call_info(&self, id: ast::Id, name: Option<&str>) -> Option<CalledMethodInfo> {
         let lookup_registry = || {
-            let method_call = self.computed_value_info_registry().get_method_call(&id)?;
-            let entry = self.project.suggestion_db().lookup(method_call).ok()?;
+            let info = self.computed_value_info_registry().get(&id)?;
+            let method_call = info.method_call.as_ref()?;
+            let entry = self.project.suggestion_db().lookup_by_method_pointer(method_call)?;
             Some(entry.invocation_info())
         };
         let fallback = || self.graph.borrow().call_info(id, name);
@@ -480,7 +482,8 @@ pub mod tests {
 
         // Now send update that expression actually was computed to be a call to the second
         // suggestion entry and check that executed graph provides this info over the metadata one.
-        let update = value_update_with_method_ptr(id, 2);
+        let method_pointer = entry2.clone().try_into().unwrap();
+        let update = value_update_with_method_ptr(id, method_pointer);
         executed_graph.computed_value_info_registry().apply_updates(vec![update]);
         let info = get_invocation_info().unwrap();
         assert_call_info(info, &entry2);

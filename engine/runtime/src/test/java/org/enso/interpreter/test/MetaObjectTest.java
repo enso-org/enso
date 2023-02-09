@@ -77,8 +77,10 @@ public class MetaObjectTest extends TestBase {
     var g = ValuesGenerator.create(ctx);
     var expecting = new HashSet<String>();
     for (var f : ConstantsGen.class.getFields()) {
-      var s = (String) f.get(null);
-      expecting.add(s);
+      if (!f.getName().endsWith("_BUILTIN")) {
+        var s = (String) f.get(null);
+        expecting.add(s);
+      }
     }
     var w = new StringBuilder();
     var f = new StringWriter();

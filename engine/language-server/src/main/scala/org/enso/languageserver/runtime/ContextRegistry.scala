@@ -13,11 +13,9 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
-import org.enso.searcher.SuggestionsRepo
 
 import java.util.UUID
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 /** Registry handles execution context requests and communicates with runtime
@@ -53,14 +51,12 @@ import scala.concurrent.duration._
   *
   * }}}
   *
-  * @param repo the suggestions repo
   * @param config configuration
   * @param runtimeFailureMapper mapper for runtime failures
   * @param runtime reference to the [[RuntimeConnector]]
   * @param sessionRouter the session router
   */
 final class ContextRegistry(
-  repo: SuggestionsRepo[Future],
   config: Config,
   runtimeFailureMapper: RuntimeFailureMapper,
   runtime: ActorRef,
@@ -129,7 +125,6 @@ final class ContextRegistry(
             context.actorOf(
               ContextEventsListener.props(
                 runtimeFailureMapper,
-                repo,
                 client,
                 contextId,
                 sessionRouter
@@ -398,14 +393,12 @@ object ContextRegistry {
 
   /** Creates a configuration object used to create a [[ContextRegistry]].
     *
-    * @param repo the suggestions repo
     * @param config language server configuration
     * @param runtimeFailureMapper mapper for runtime failures
     * @param runtime reference to the [[RuntimeConnector]]
     * @param sessionRouter the session router
     */
   def props(
-    repo: SuggestionsRepo[Future],
     config: Config,
     runtimeFailureMapper: RuntimeFailureMapper,
     runtime: ActorRef,
@@ -413,7 +406,6 @@ object ContextRegistry {
   ): Props =
     Props(
       new ContextRegistry(
-        repo,
         config,
         runtimeFailureMapper,
         runtime,
