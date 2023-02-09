@@ -55,11 +55,6 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
     return node instanceof ExpressionNodeWrapper;
   }
 
-  public static ExpressionNode unwrapDelegate(ExpressionNode wrapperNode) {
-    assert isWrapper(wrapperNode);
-    return ((ExpressionNodeWrapper) wrapperNode).getDelegateNode();
-  }
-
   /**
    * Creates a new instance of this node.
    */
