@@ -912,11 +912,11 @@ type Table
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
-                _ : Filter_Condition -> mask (make_filter_column column filter)
+                _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
                 _ : Function -> mask (column.map filter)
         _ ->
             table_at = self.at column
-            self.filter table_at filter
+            self.filter table_at filter on_problems
 
     ## ALIAS Filter Rows
 
@@ -1090,7 +1090,7 @@ type Table
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         new_name = Expression.to_column_name expression
-        result =  new_column.rename new_name
+        result = new_column.rename new_name
         on_problems.attach_problems_before problems <|
             Warning.set result []
 

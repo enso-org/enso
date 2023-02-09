@@ -453,11 +453,11 @@ type Table
                    new_ctx = self.context.set_where_filters new_filters
                    self.updated_context new_ctx
            case filter of
-               _ : Filter_Condition -> mask (make_filter_column column filter)
+               _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
                _ : Function -> Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
        _ ->
            table_at = self.at column
-           self.filter table_at filter
+           self.filter table_at filter on_problems
 
     ## ALIAS Filter Rows
 
@@ -610,7 +610,7 @@ type Table
     set : Column | Text -> Text | Nothing -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
-            _ : Text -> self.compute column
+            _ : Text -> self.compute column on_problems
             _ -> column
         renamed = if new_name.is_nothing then resolved else resolved.rename new_name
 
@@ -656,8 +656,11 @@ type Table
             other = SQL_Expression.Constant new_type value
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
         new_column = Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
+        problems = Warning.get_all new_column . map .value
         new_name = Expression.to_column_name expression
-        new_column.rename new_name
+        result = new_column.rename new_name
+        on_problems.attach_problems_before problems <|
+            Warning.set result []
 
     ## UNSTABLE
 
