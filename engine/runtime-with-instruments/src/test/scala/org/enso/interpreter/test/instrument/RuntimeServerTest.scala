@@ -794,10 +794,10 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainFoo,
-        ConstantsGen.INTEGER,
+        ConstantsGen.INTEGER_BUILTIN,
         Api.MethodPointer(moduleName, moduleName, "foo")
       ),
-      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -1036,10 +1036,10 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainFoo,
-        ConstantsGen.INTEGER,
+        ConstantsGen.INTEGER_BUILTIN,
         Api.MethodPointer(moduleName, moduleName, "foo")
       ),
-      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -1940,7 +1940,7 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, xId, ConstantsGen.FUNCTION),
+      TestMessages.update(contextId, xId, ConstantsGen.FUNCTION_BUILTIN),
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -2188,7 +2188,7 @@ class RuntimeServerTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
 
@@ -2209,7 +2209,7 @@ class RuntimeServerTest
     )
     context.receiveN(3) shouldEqual Seq(
       TestMessages.pending(contextId, idMain),
-      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -3961,16 +3961,16 @@ class RuntimeServerTest
     )
     context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, x, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, x, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(contextId, `y_inc`, Constants.UNRESOLVED_SYMBOL),
-      TestMessages.update(contextId, `y_x`, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, `y_x`, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(
         contextId,
         y,
-        ConstantsGen.INTEGER,
+        ConstantsGen.INTEGER_BUILTIN,
         Api.MethodPointer(moduleName, moduleName, "inc")
       ),
-      TestMessages.update(contextId, res, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, res, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
 
@@ -3983,7 +3983,7 @@ class RuntimeServerTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
 
@@ -3994,11 +3994,11 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         y,
-        ConstantsGen.INTEGER,
+        ConstantsGen.INTEGER_BUILTIN,
         Api.MethodPointer(moduleName, moduleName, "inc"),
         fromCache = true
       ),
-      TestMessages.update(contextId, res, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, res, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
 
@@ -4011,7 +4011,7 @@ class RuntimeServerTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
 
@@ -4032,7 +4032,7 @@ class RuntimeServerTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, `inc_res`, `y_inc`, y, res),
-      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
 
@@ -4041,14 +4041,14 @@ class RuntimeServerTest
     context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(contextId, `y_inc`, Constants.UNRESOLVED_SYMBOL),
-      TestMessages.update(contextId, `y_x`, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, `y_x`, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(
         contextId,
         y,
-        ConstantsGen.INTEGER,
+        ConstantsGen.INTEGER_BUILTIN,
         Api.MethodPointer(moduleName, moduleName, "inc")
       ),
-      TestMessages.update(contextId, res, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, res, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }

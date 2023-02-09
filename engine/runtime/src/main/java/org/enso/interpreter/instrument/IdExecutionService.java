@@ -3,6 +3,8 @@ package org.enso.interpreter.instrument;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Arrays;
 import java.util.Objects;
@@ -23,7 +25,7 @@ public interface IdExecutionService {
   public static final String INSTRUMENT_ID = "id-value-extractor";
 
   /**
-   * Attach a new listener to observe identified nodes within given function.
+   * Attach a new event node factory to observe identified nodes within given function.
    *
    * @param module module that contains the code
    * @param entryCallTarget the call target being observed.
@@ -36,9 +38,9 @@ public interface IdExecutionService {
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
    * @param onExceptionalCallback the consumer of the exceptional events.
-   * @return a reference to the attached event listener.
+   * @return a reference to the attached event node factory.
    */
-  public EventBinding<ExecutionEventListener> bind(
+  EventBinding<ExecutionEventNodeFactory> bind(
       Module module,
       CallTarget entryCallTarget,
       RuntimeCache cache,
@@ -52,7 +54,7 @@ public interface IdExecutionService {
       Consumer<Exception> onExceptionalCallback);
 
   /** A class for notifications about functions being called in the course of execution. */
-  public static class ExpressionCall {
+  class ExpressionCall {
     private final UUID expressionId;
     private final FunctionCallInstrumentationNode.FunctionCall call;
 
@@ -79,7 +81,7 @@ public interface IdExecutionService {
   }
 
   /** A class for notifications about identified expressions' values being computed. */
-  public static class ExpressionValue {
+  class ExpressionValue {
     private final UUID expressionId;
     private final Object value;
     private final String type;
@@ -197,7 +199,7 @@ public interface IdExecutionService {
   }
 
   /** Information about the function call. */
-  public static class FunctionCallInfo {
+  class FunctionCallInfo {
 
     private final QualifiedName moduleName;
     private final QualifiedName typeName;

@@ -555,6 +555,8 @@ type Table
            `Group_By` columns are reported as dataflow errors regardless of
            these settings, as a missing grouping will completely change
            semantics of the query.
+         - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
+           raised.
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If there are invalid column names in the output table,
@@ -563,7 +565,6 @@ type Table
              a `Duplicate_Output_Column_Names`.
            - If grouping on or computing the `Mode` on a floating point number,
              a `Floating_Point_Grouping`.
-           - If an aggregation fails, an `Invalid_Aggregation`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
@@ -1508,11 +1509,12 @@ type Table
          - If a column selector in `values` given as a `Text` and it does not
            match any columns in the input table nor is it a valid expression, an
            `Invalid_Aggregate_Column` dataflow error is raised.
+         - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
+           raised.
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If grouping on, using as the column name, or computing the `Mode` on
              a floating point number, a `Floating_Point_Grouping`.
-           - If an aggregation fails, an `Invalid_Aggregation`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
@@ -1550,7 +1552,8 @@ type Table
                     c -> Aggregate_Column_Helper.default_aggregate_column_name c all_same
 
             data_columns = validated_values.map c->
-                col_name = c.new_name.if_nothing (name_mapper c)
+                col_name = c.new_name.if_nothing <|
+                    Aggregate_Column_Helper.default_aggregate_column_name c
                 Aggregate_Column_Helper.java_aggregator col_name c
 
             result = case matched_name.is_empty of
@@ -1558,7 +1561,9 @@ type Table
                     group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
                     index.makeTable (group_by + data_columns).to_array
                 False ->
-                    index.makeCrossTabTable java_key_columns.to_array matched_name.first.java_column data_columns.to_array
+                    aggregate_names = validated_values.map c->
+                        c.new_name.if_nothing (name_mapper c)
+                    index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
