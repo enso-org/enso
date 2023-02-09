@@ -30,10 +30,6 @@ public final class VisualizationResult {
       } catch (UnsupportedMessageException ex) {
         // fallthru
       }
-    } else if (iop.hasHashEntries(value)) {
-      return visualizationResultToBytes(
-          iop.toDisplayString(value)
-      );
     }
     return null;
   }
