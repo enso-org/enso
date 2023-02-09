@@ -82,8 +82,9 @@ class SerializationManager(compiler: Compiler) {
     * mutated beneath it.
     *
     * @param module the module to serialize
-    * @return `true` if `module` has been scheduled for serialization, `false`
-    *         otherwise
+    * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
+    * @return Future referencing the serialization task. On completion Future will return
+    *         `true` if `module` has been successfully serialized, `false` otherwise
     */
   def serialize(
     module: Module,
@@ -107,7 +108,7 @@ class SerializationManager(compiler: Compiler) {
       module.getSource,
       useGlobalCacheLocations
     )
-    if (compiler.context.getEnvironment.isCreateThreadAllowed && false) {
+    if (compiler.context.getEnvironment.isCreateThreadAllowed) {
       isWaitingForSerialization.synchronized {
         val future = pool.submit(task)
         isWaitingForSerialization.put(module.getName, future)
@@ -287,6 +288,7 @@ class SerializationManager(compiler: Compiler) {
     * @param stage the compilation stage of the module
     * @param name the name of the module being serialized
     * @param source the source of the module being serialized
+    * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
     * @return the task that serialies the provided `ir`
     */
   private def doSerialize(
@@ -295,7 +297,7 @@ class SerializationManager(compiler: Compiler) {
     stage: Module.CompilationStage,
     name: QualifiedName,
     source: Source,
-    useGlobalCaches: Boolean
+    useGlobalCacheLocations: Boolean
   ): Callable[Boolean] = { () =>
     logger.log(
       debugLogLevel,
@@ -311,7 +313,7 @@ class SerializationManager(compiler: Compiler) {
         .save(
           ModuleCache.CachedModule(ir, fixedStage, source),
           compiler.context,
-          useGlobalCaches
+          useGlobalCacheLocations
         )
         .map(_ => true)
         .getOrElse(false)

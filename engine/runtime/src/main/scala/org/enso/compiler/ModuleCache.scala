@@ -37,7 +37,7 @@ class ModuleCache(private val module: Module) {
     *
     * @param module the module representation to be saved
     * @param context the language context in which saving is taking place
-    * @param useGlobalCacheLocations
+    * @param useGlobalCacheLocations if true, will use global caches' location, local one otherwise
     * @return returns the location of the cache if successful, and [[None]] if
     *         it was unable to save
     */
