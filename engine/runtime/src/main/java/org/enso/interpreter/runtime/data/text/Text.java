@@ -206,39 +206,17 @@ public final class Text implements TruffleObject {
     for (int i = 0; i < len; ++i) {
       char c = str.charAt(i);
       switch (c) {
-        case '\\':
-          strBuf.append("\\\\");
-          break;
-        case '\'':
-          strBuf.append("\\'");
-          break;
-        case '\n':
-          strBuf.append("\\n");
-          break;
-        case '\t':
-          strBuf.append("\\t");
-          break;
-        case '\u0007':
-          strBuf.append("\\a");
-          break;
-        case '\u0008':
-          strBuf.append("\\b");
-          break;
-        case '\u000c':
-          strBuf.append("\\f");
-          break;
-        case '\r':
-          strBuf.append("\\r");
-          break;
-        case '\u000B':
-          strBuf.append("\\v");
-          break;
-        case '\u001B':
-          strBuf.append("\\e");
-          break;
-        default:
-          strBuf.append(c);
-          break;
+        case '\\' -> strBuf.append("\\\\");
+        case '\'' -> strBuf.append("\\'");
+        case '\n' -> strBuf.append("\\n");
+        case '\t' -> strBuf.append("\\t");
+        case '\u0007' -> strBuf.append("\\a");
+        case '\u0008' -> strBuf.append("\\b");
+        case '\u000c' -> strBuf.append("\\f");
+        case '\r' -> strBuf.append("\\r");
+        case '\u000B' -> strBuf.append("\\v");
+        case '\u001B' -> strBuf.append("\\e");
+        default -> strBuf.append(c);
       }
     }
 
