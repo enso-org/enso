@@ -43,8 +43,24 @@ public class Table {
       throw new IllegalArgumentException("A Table must have at least one column.");
     }
 
+    if (!checkUniqueColumns(columns)) {
+      throw new IllegalArgumentException("Column names must be unique within a Table.");
+    }
+
     this.columns = columns;
     this.problems = problems;
+  }
+
+  private static boolean checkUniqueColumns(Column[] columns) {
+    HashSet<String> names = new HashSet<>();
+    for (Column column : columns) {
+      boolean wasNew = names.add(column.getName());
+      if (!wasNew) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /** @return the number of rows in this table */

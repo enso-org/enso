@@ -10,7 +10,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.data._
 import org.enso.languageserver.vcsmanager.VcsApi
-import org.enso.testkit.{FlakySpec, RetrySpec}
+import org.enso.testkit.RetrySpec
 
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -19,17 +19,15 @@ import java.time.{Clock, LocalDate}
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
-// There is a race-condition in cleanup between individual tests casued by
-// asynchronous initialization of JGit. Marking as Flaky until tests are re-done.
-class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
+class VcsManagerTest extends BaseServerTest with RetrySpec {
 
   override def mkConfig: Config = {
     val directoriesDir = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
     Config(
       testContentRoot,
-      FileManagerConfig(timeout = 3.seconds),
-      VcsManagerConfig(),
+      FileManagerConfig(timeout  = 3.seconds),
+      VcsManagerConfig(asyncInit = false),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(testContentRoot.file),

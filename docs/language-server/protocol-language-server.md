@@ -324,7 +324,7 @@ interface ExpressionUpdate {
   /**
    * The updated pointer to the method call.
    */
-  methodPointer?: SuggestionId;
+  methodPointer?: MethodPointer;
 
   /**
    * Profiling information about the expression.
