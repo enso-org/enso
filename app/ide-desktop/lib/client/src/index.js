@@ -270,9 +270,7 @@ optParser.options('enable-skip-and-freeze', {
 
 
 function parseCmdArgs() {
-    console.error("Is this a dev build? ", isDev)
     let argv = isDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv.slice(1)
-    console.error("argv: ", argv)
     return optParser.parse(argv)
 }
 

@@ -98,18 +98,6 @@ pub struct BuildInput {
     pub electron_target: Option<String>,
 }
 
-#[derive(Clone, Debug)]
-pub enum OutputPath {
-    /// The job must place the artifact under given path.
-    Required(PathBuf),
-    /// THe job may place the artifact anywhere, though it should use the suggested path if it has
-    /// no "better idea" (like reusing existing cache).
-    Suggested(PathBuf),
-    /// The job is responsible for finding a place for artifacts.
-    Whatever,
-}
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct Ide {
     pub target_os:   OS,

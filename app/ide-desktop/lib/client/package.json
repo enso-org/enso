@@ -37,6 +37,7 @@
   "scripts": {
     "start": "ts-node start.ts",
     "build": "ts-node bundle.ts",
-    "dist": "ts-node dist.ts"
+    "dist": "ts-node dist.ts",
+    "watch": "ts-node watch.ts"
   }
 }
