@@ -161,20 +161,6 @@ pub struct List {
     allowed_favorites:               HashSet<component::Id>,
 }
 
-struct ComponentWithDbEntry {
-    component: Component,
-    entry:     Rc<suggestion_database::Entry>,
-    id:        usize,
-}
-
-impl ComponentWithDbEntry {
-    fn new(db: &model::SuggestionDatabase, id: usize) -> Option<ComponentWithDbEntry> {
-        let entry = db.lookup(id).ok()?;
-        let component = Component::new_from_database_entry(id, entry.clone_ref());
-        Some(ComponentWithDbEntry { component, entry, id })
-    }
-}
-
 impl List {
     /// Construct List builder without content.
     pub fn new() -> Self {
@@ -203,9 +189,11 @@ impl List {
     ) {
         use suggestion_database::entry::Kind;
         let local_scope_id = self.local_scope.component_id;
-        let components = entry_ids.into_iter().filter_map(|id| ComponentWithDbEntry::new(db, id));
-        for ComponentWithDbEntry { component, entry, id } in components {
+        let id_and_looked_up_entry = |id| Some((id, db.lookup(id).ok()?));
+        let ids_and_entries = entry_ids.into_iter().filter_map(id_and_looked_up_entry);
+        for (id, entry) in ids_and_entries {
             self.allowed_favorites.insert(id);
+            let component = Component::new_from_database_entry(id, entry.clone_ref());
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = entry.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, parent_module.clone_ref())
