@@ -3157,7 +3157,7 @@ class RuntimeVisualizationsTest
       TestMessages.update(
         contextId,
         idY,
-        ConstantsGen.INTEGER,
+        ConstantsGen.INTEGER_BUILTIN,
         Api.MethodPointer(moduleName, s"$moduleName.T", "inc")
       ),
       context.executionComplete(contextId)

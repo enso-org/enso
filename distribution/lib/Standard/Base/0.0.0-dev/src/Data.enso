@@ -158,7 +158,7 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
     request = Request.new method uri parsed_headers
     response = HTTP.new.request request
 
-    if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code + ". " + response.body.to_text)) else
+    if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.to_text)) else
         response_headers = response.headers
         content_type = response_headers.find if_missing=Nothing h-> "Content-Type".equals_ignore_case h.name
         if (parse == False) || (content_type == Nothing) then response else
