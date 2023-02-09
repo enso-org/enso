@@ -21,6 +21,18 @@ object Template {
     override val name = "default"
   }
 
+  case object Colorado_COVID extends Template {
+    override val name = "colorado_covid"
+  }
+
+  case object KMeans extends Template {
+    override val name = "kmeans"
+  }
+
+  case object NASDAQReturns extends Template {
+    override val name = "nasdaqreturns"
+  }
+
   case object Orders extends Template {
     override val name = "orders"
   }
