@@ -32,7 +32,7 @@ export class Version {
 // ===============
 // === Options ===
 // ===============
-//
+
 export const options = config.options.merge(
     new config.Group({
         options: {
@@ -53,7 +53,8 @@ export const options = config.options.merge(
                 options: {
                     project: new config.Option({
                         default: '',
-                        description: 'Project name to open on startup.',
+                        description:
+                            'Project name to open on startup. If the project does not exist, it will be created.',
                     }),
                     platform: new config.Option({
                         default: '',

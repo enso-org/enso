@@ -82,8 +82,7 @@ export class Option<T> {
     }
 
     qualifiedName(): string {
-        const path = this.path.join('.')
-        return `${path}.${this.name}`
+        return this.path.concat([this.name]).join('.')
     }
 
     load(input: string) {
@@ -338,9 +337,8 @@ export const options = new Group({
     groups: {
         loader: new Group({
             description:
-                'Options of the application loader responsible for downloading the application ' +
-                'data at startup. The loader downloads the WASM and JavaScript sources, compiles ' +
-                'the WASM file, and displays a visual progress bar.',
+                'Options of the application loader. The Loader downloads application assets, ' +
+                'compiles the WASM code, and runs the chosen application entry points.',
             options: {
                 spinner: new Option({
                     default: true,

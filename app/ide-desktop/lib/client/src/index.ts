@@ -28,9 +28,27 @@ const execFile = util.promisify(child_process.execFile)
 // === Defaults ===
 // ================
 
-let windowSize = {
-    width: 1380,
-    height: 900,
+class WindowSize {
+    static separator = 'x'
+    constructor(public width: number, public height: number) {}
+    static default(): WindowSize {
+        return new WindowSize(1380, 900)
+    }
+    static parse(arg: string): Error | WindowSize {
+        const size = arg.split(WindowSize.separator)
+        const widthStr = size[0]
+        const heightStr = size[1]
+        const width = widthStr ? parseInt(widthStr) : NaN
+        const height = heightStr ? parseInt(heightStr) : NaN
+        if (isNaN(width) || isNaN(height)) {
+            return new Error(`Incorrect window size provided '${arg}'.`)
+        } else {
+            return new WindowSize(width, height)
+        }
+    }
+    pretty(): string {
+        return `${this.width}${WindowSize.separator}${this.height}`
+    }
 }
 
 /** The list of hosts that the app can access. They are required for user authentication to work. */
@@ -62,6 +80,10 @@ function camelToKebabCase(str: string) {
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
 }
 
+function camelCaseToTitle(str: string) {
+    return capitalizeFirstLetter(str.replace(/([a-z])([A-Z])/g, '$1 $2'))
+}
+
 // ============
 // === Help ===
 // ============
@@ -74,6 +96,14 @@ let usage = chalk.bold(
 Enso ${buildCfg.version} command line interface.
 Usage: enso [options] [--] [backend args]`
 )
+
+class Section {
+    entries: any[] = []
+    description = ''
+    constructor(entries: any[] = []) {
+        this.entries = entries
+    }
+}
 
 /** We use custom help printer because Yargs has many issues:
  * 1. The option ordering is random and there is no way to enforce it.
@@ -94,63 +124,58 @@ function printHelp(cfg: {
     const indentSize = 0
     const optionPrefix = '-'
     const spacing = 2
-    const groups: { [key: string]: any[] } = {}
+    const sections: { [key: string]: Section } = {}
     for (const groupName of cfg.groupsOrdering) {
         if (cfg.fullHelp || !cfg.secondaryGroups.includes(groupName)) {
-            groups[groupName] = []
+            sections[groupName] = new Section()
         }
     }
     let maxOptionLength = 0
 
     for (const [groupName, group] of Object.entries(cfg.config.groups)) {
+        let section = sections[groupName]
+        if (section == null) {
+            section = new Section()
+            sections[groupName] = section
+        }
+        section.description = group.description
         for (const option of group.optionsRecursive()) {
             const cmdOption = camelToKebabCase(option.qualifiedName())
             maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
             const entry = [cmdOption, option]
-            const groupData = groups[groupName]
-            if (groupData == null) {
-                groups[groupName] = [entry]
-            } else {
-                groupData.push(entry)
-            }
+            section.entries.push(entry)
         }
+    }
+
+    for (const [optionName, option] of Object.entries(cfg.config.options)) {
+        const cmdOption = camelToKebabCase(optionName)
+        maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
+        const entry = [cmdOption, option]
+        const section = sections[option.name]
+        if (section != null) {
+            section.entries.unshift(entry)
+        }
+        // sections['global'].entries.push(entry)
     }
 
     const borderStyle = (s: string) => chalk.gray(chalk.bold(s))
 
-    const borderLeft = borderStyle('│ ')
-    const borderRight = borderStyle(' │')
-    const groupWidth = terminalWidth - stringLength(borderLeft) - stringLength(borderRight)
     const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
-    const rightWidth = groupWidth - leftWidth
+    const rightWidth = terminalWidth - leftWidth
 
-    for (const [groupName, group] of Object.entries(groups)) {
-        console.log('\n')
-        const groupTitle = chalk.bold(` ${groupName} Options `)
-        const headLineStart = borderStyle(`╭`)
-        const headLineEnd = borderStyle(`╮`)
-        const headLineBorder = borderStyle(
-            '─'.repeat(
-                terminalWidth -
-                    stringLength(groupTitle) -
-                    stringLength(headLineStart) -
-                    stringLength(headLineEnd)
-            )
-        )
-        const headLine = headLineStart + groupTitle + headLineBorder + headLineEnd
-        const endLineStart = borderStyle(`╰`)
-        const endLineEnd = borderStyle(`╯`)
-        const endLineBorder = borderStyle(
-            '─'.repeat(terminalWidth - stringLength(endLineStart) - stringLength(endLineEnd))
-        )
-        const endLine = endLineStart + endLineBorder + endLineEnd
-        console.log(headLine)
-        for (const [cmdOption, option] of group) {
+    for (const [groupName, section] of Object.entries(sections)) {
+        console.log('\n\n')
+        const groupTitle = chalk.bold(`${camelCaseToTitle(groupName)} Options `)
+        console.log(groupTitle)
+        const description = wordWrap(section.description, terminalWidth).join('\n')
+        console.log(description)
+        console.log()
+        for (const [cmdOption, option] of section.entries) {
             if (cfg.fullHelp || option.primary) {
                 const indent = ' '.repeat(indentSize)
                 let left = indent + chalk.bold(chalk.green(optionPrefix + cmdOption))
                 const spaces = ' '.repeat(leftWidth - stringLength(left))
-                left = borderLeft + left + spaces
+                left = left + spaces
 
                 let firstSentenceSplit = option.description.indexOf('. ')
                 let firstSentence =
@@ -168,13 +193,10 @@ function printHelp(cfg: {
                 const lines = wordWrap(description, rightWidth).map(
                     line => line + ' '.repeat(rightWidth - stringLength(line))
                 )
-                const right =
-                    lines.join(borderRight + '\n' + borderLeft + ' '.repeat(leftWidth)) +
-                    borderRight
+                const right = lines.join('\n' + ' '.repeat(leftWidth))
                 console.log(left + right)
             }
         }
-        console.log(endLine)
     }
 }
 
@@ -223,7 +245,6 @@ function wordWrap(str: string, width: number): string[] {
 // === Config ===
 // ==============
 
-// @ts-ignore
 const options = content.options.merge(
     new content.Group({
         options: {
@@ -267,11 +288,11 @@ const options = content.options.merge(
             window: new content.Group({
                 options: {
                     size: new content.Option({
-                        default: `${windowSize.width}x${windowSize.height}`,
+                        default: WindowSize.default().pretty(),
                         description: `The initial window size.`,
                     }),
                     frame: new content.Option({
-                        default: true,
+                        default: process.platform !== 'darwin',
                         defaultDescription: 'false on MacOS, true otherwise',
                         description: 'Draw window frame.',
                     }),
@@ -320,7 +341,7 @@ const options = content.options.merge(
                         default: true,
                         description: 'Start the backend process.',
                     }),
-                    backendPath: new content.Option({
+                    projectManagerPath: new content.Option({
                         default: '',
                         description:
                             'Set the path of a local project manager to use for running projects',
@@ -557,24 +578,31 @@ const yargOptions = options.optionsRecursive().reduce((opts: { [key: string]: an
     // @ts-ignore
     yargsParam.default = undefined
     // @ts-ignore
-    const group = yargsParam.group ? yargsParam.group + '.' : ''
-    opts[group + camelToKebabCase(option.qualifiedName())] = yargsParam
+    opts[camelToKebabCase(option.qualifiedName())] = yargsParam
     return opts
 }, {})
+
+console.log('yargs opts:', yargOptions)
 
 let optParser = yargs(argv)
     .scriptName('')
     .version(false)
     // Makes all flags passed after '--' be one string.
-    .parserConfiguration({ 'short-option-groups': false, 'populate--': true })
-    .showHidden('show-electron-options', 'Show Electron options.')
+    .parserConfiguration({
+        'short-option-groups': false,
+        'dot-notation': false,
+        'populate--': true,
+    })
     .strict()
-    .wrap(yargs.terminalWidth())
+    // .wrap(yargs.terminalWidth())
     .options(yargOptions)
 
 // === Parsing ===
 
-let args = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
+console.log('argv:', argv)
+
+let xargs = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
+    console.log('!!!', err, help)
     if (help) {
         printHelp({
             config: options,
@@ -586,12 +614,13 @@ let args = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
     }
 })
 
-for (const key of Object.keys(options)) {
-    if (args[key] !== undefined) {
-        // @ts-ignore
-        options[key].value = args[key]
-        // @ts-ignore
-        options[key].setByUser = true
+console.log('Parsed args:', xargs)
+
+for (const option of options.optionsRecursive()) {
+    const arg = xargs[camelToKebabCase(option.qualifiedName())]
+    if (arg != null) {
+        option.value = arg
+        option.setByUser = true
     }
 }
 
@@ -603,33 +632,6 @@ if (options.options.help.value || options.options.fullHelp.value) {
         fullHelp: options.options.fullHelp.value,
     })
     process.exit()
-}
-
-console.log('DONE')
-throw 'break'
-
-// Note: this is a conditional default to avoid issues with some window managers affecting
-// interactions at the top of a borderless window. Thus, we want borders on Win/Linux and
-// borderless on Mac. See https://github.com/enso-org/ide/issues/1101 and
-// https://github.com/electron/electron/issues/3647 for details.
-if (args.frame === undefined) {
-    args.frame = process.platform !== 'darwin'
-}
-
-if (args.theme === undefined) {
-    args.theme = 'light'
-}
-
-if (args.windowSize) {
-    let size = args.windowSize.split('x')
-    let width = parseInt(size[0])
-    let height = parseInt(size[1])
-    if (isNaN(width) || isNaN(height)) {
-        console.error(`Incorrect window size provided '${args.windowSize}'.`)
-    } else {
-        windowSize.width = width
-        windowSize.height = height
-    }
 }
 
 // ==================
@@ -745,7 +747,7 @@ Electron.app.on('web-contents-created', (event, contents) => {
 // =======================
 
 function projectManagerPath() {
-    let binPath = args['backend-path'] ?? projectManagerExecutable
+    let binPath = options.groups.engine.options.projectManagerPath.value || projectManagerExecutable
     let binExists = fss.existsSync(binPath)
     assert(binExists, `Could not find the project manager binary at ${binPath}.`)
     return binPath
@@ -778,6 +780,7 @@ async function execProjectManager(args: string[]) {
  * @returns Handle to the spawned process.
  */
 function spawnProjectManager(args: string[]) {
+    console.log('Starting the backend process with the following options:', args)
     let binPath = projectManagerPath()
     let stdin: 'pipe' = 'pipe'
     let stdout: 'inherit' = 'inherit'
@@ -794,18 +797,18 @@ function spawnProjectManager(args: string[]) {
 }
 
 function runBackend() {
-    if (args.backend !== false) {
-        let opts = args['--'] ? args['--'] : []
-        if (args.verbose === true) {
-            opts.push('-vv')
+    if (options.groups.engine.options.backend.value) {
+        const dashArgs = xargs['--']
+        const pmOptions = dashArgs ? dashArgs : []
+        if (options.groups.debug.options.verbose.value) {
+            pmOptions.push('-vv')
         }
-        console.log('Starting the backend process with the following options:', opts)
-        return spawnProjectManager(opts)
+        return spawnProjectManager(pmOptions)
     }
 }
 
 async function backendVersion() {
-    if (args.backend !== false) {
+    if (options.groups.engine.options.backend.value) {
         return await execProjectManager(['--version']).then(t => t.stdout)
     }
 }
@@ -826,7 +829,7 @@ async function main() {
         runBackend()
 
         console.log('Starting the IDE service.')
-        if (args.server !== false) {
+        if (options.options.server.value) {
             let serverCfg = Object.assign({}, args)
             serverCfg.dir = root
             serverCfg.fallback = '/assets/index.html'
