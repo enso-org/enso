@@ -16,7 +16,7 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
-from project.Errors import No_Index_Set_Error
+from project.Errors import No_Index_Set_Error, Floating_Point_Equality
 
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -134,7 +134,17 @@ type Column
              example_eq = Examples.integer_column == 1
     == : Column | Any -> Column
     == self other =
-        run_vectorized_binary_op self "==" (==) other
+        x1 = case self.value_type of
+            Value_Type.Float _ -> True
+            _ -> False
+        x2 = case other of
+            _ : Column -> case other.value_type of
+                Value_Type.Float _ -> True
+                _ -> False
+            _ : Decimal -> True
+            _ -> False
+        r = run_vectorized_binary_op self "==" (==) other
+        if x1 || x2 then Warning.attach (Floating_Point_Equality.Error "TODO") r else r
 
     ## Element-wise case-insensitive text equality comparison.
 

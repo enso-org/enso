@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
@@ -6,7 +7,7 @@ from Standard.Table import Set_Mode
 from Standard.Table.Errors import all
 import Standard.Table.Data.Expression.Expression_Error
 
-from Standard.Test import Test
+from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend

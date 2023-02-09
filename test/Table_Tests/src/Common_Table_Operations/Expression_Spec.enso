@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
+from Standard.Table.Errors import Floating_Point_Equality, Additional_Warnings
 import Standard.Table.Data.Expression.Expression_Error
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -30,7 +32,6 @@ spec detailed setup =
     epsilon=0.0000000001
 
     tester expression value =
-        new_table = test_table.set expression new_name="NEW_COL"
         new_column = test_table.compute expression
         expected = case value of
             _ : Vector -> value
