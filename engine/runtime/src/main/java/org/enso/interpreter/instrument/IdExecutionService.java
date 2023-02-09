@@ -15,7 +15,9 @@ import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 
@@ -214,6 +216,11 @@ public interface IdExecutionService {
         moduleName = methodNode.getModuleScope().getModule().getName();
         typeName = methodNode.getType().getQualifiedName();
         functionName = methodNode.getMethodName();
+      } else if (rootNode instanceof QualifiedAccessorNode qualifiedAccessor) {
+        AtomConstructor atomConstructor = qualifiedAccessor.getAtomConstructor();
+        moduleName = atomConstructor.getDefinitionScope().getModule().getName();
+        typeName = atomConstructor.getType().getQualifiedName();
+        functionName = atomConstructor.getDisplayName();
       } else if (rootNode instanceof EnsoRootNode ensoRootNode) {
         moduleName = ensoRootNode.getModuleScope().getModule().getName();
         typeName = null;
