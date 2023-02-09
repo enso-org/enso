@@ -560,6 +560,7 @@
 - [Profile engine startup][4110]
 - [Report type of polyglot values][4111]
 - [Engine can now recover from serialization failures][5591]
+- [Update to GraalVM 22.3.1][????]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -654,6 +655,7 @@
 [4110]: https://github.com/enso-org/enso/pull/4110
 [4111]: https://github.com/enso-org/enso/pull/4111
 [5591]: https://github.com/enso-org/enso/pull/5591
+[????]: https://github.com/enso-org/enso/pull/????
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
