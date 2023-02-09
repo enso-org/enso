@@ -490,7 +490,7 @@ object ModuleCache {
 
   val irCacheDataExtension: String     = ".ir"
   val irCacheMetadataExtension: String = ".meta"
-  val metadataCharset: Charset   = StandardCharsets.UTF_8
+  val metadataCharset: Charset         = StandardCharsets.UTF_8
 
   /** The default logging level. */
   private val logLevel = Level.FINEST

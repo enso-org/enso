@@ -17,52 +17,50 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class SerializerTest {
-    public Context ensoContextForPackage(String name, File pkgFile) throws IOException {
-        Context ctx = Context.newBuilder()
-                .allowExperimentalOptions(true)
-                .allowIO(true)
-                .option(RuntimeOptions.PROJECT_ROOT, pkgFile.getAbsolutePath())
-                .option(
-                        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-                )
-                .logHandler(OutputStream.nullOutputStream())
-                .allowAllAccess(true)
-                .build();
-        assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
-        return ctx;
-    }
+  public Context ensoContextForPackage(String name, File pkgFile) throws IOException {
+    Context ctx =
+        Context.newBuilder()
+            .allowExperimentalOptions(true)
+            .allowIO(true)
+            .option(RuntimeOptions.PROJECT_ROOT, pkgFile.getAbsolutePath())
+            .option(
+                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .logHandler(OutputStream.nullOutputStream())
+            .allowAllAccess(true)
+            .build();
+    assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
+    return ctx;
+  }
 
-    @Test
-    public void testSerializationOfFQNs() throws Exception {
-        var testName = "Test_Serializer_FQN";
-        var pkgPath =
-                new File(getClass().getClassLoader().getResource(testName).getPath());
-        var pkg        = PackageManager.Default().fromDirectory(pkgPath).get();
+  @Test
+  public void testSerializationOfFQNs() throws Exception {
+    var testName = "Test_Serializer_FQN";
+    var pkgPath = new File(getClass().getClassLoader().getResource(testName).getPath());
+    var pkg = PackageManager.Default().fromDirectory(pkgPath).get();
 
-        var ctx = ensoContextForPackage(testName, pkgPath);
-        var ensoContext =
-                (EnsoContext)
-                        ctx.getBindings(LanguageInfo.ID)
-                                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                                .asHostObject();
-        var mainModuleOpt = ensoContext.getModuleForFile(pkg.mainFile());
-        assertEquals(mainModuleOpt.isPresent(), true);
+    var ctx = ensoContextForPackage(testName, pkgPath);
+    var ensoContext =
+        (EnsoContext)
+            ctx.getBindings(LanguageInfo.ID)
+                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+                .asHostObject();
+    var mainModuleOpt = ensoContext.getModuleForFile(pkg.mainFile());
+    assertEquals(mainModuleOpt.isPresent(), true);
 
-        var compiler = ensoContext.getCompiler();
-        var module = mainModuleOpt.get();
+    var compiler = ensoContext.getCompiler();
+    var module = mainModuleOpt.get();
 
-        ctx.enter();
-        var result = compiler.run(module);
-        assertEquals(result.compiledModules().exists(m -> m == module), true);
-        var serializationManager = new SerializationManager(ensoContext.getCompiler());
-        serializationManager.serialize(module, true);
-        Thread.sleep(1000); // Ensure module is serialized
-        var deserialized = serializationManager.deserialize(module);
-        assertEquals(deserialized.isDefined() && (Boolean)deserialized.get(), true);
-        serializationManager.shutdown(true);
-        ctx.leave();
-        ctx.close();
-    }
-
+    ctx.enter();
+    var result = compiler.run(module);
+    assertEquals(result.compiledModules().exists(m -> m == module), true);
+    var serializationManager = new SerializationManager(ensoContext.getCompiler());
+    serializationManager.serialize(module, true);
+    Thread.sleep(1000); // Ensure module is serialized
+    var deserialized = serializationManager.deserialize(module);
+    assertEquals(deserialized.isDefined() && (Boolean) deserialized.get(), true);
+    serializationManager.shutdown(true);
+    ctx.leave();
+    ctx.close();
+  }
 }
