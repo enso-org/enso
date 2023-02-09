@@ -1253,7 +1253,7 @@ type Table
          table. This applies only if the order of the rows was specified (for
          example, by sorting the table; in-memory tables will keep the memory
          layout order while for database tables the order may be unspecified).
-    cross_join : Table -> Integer | Nothing -> Table
+    cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
     cross_join self right right_row_limit=100 right_prefix="Right_" on_problems=Report_Warning =
         if check_table "right" right then
             limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
