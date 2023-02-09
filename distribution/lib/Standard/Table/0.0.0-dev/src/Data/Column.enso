@@ -132,8 +132,8 @@ type Column
              import Standard.Examples
 
              example_eq = Examples.integer_column == 1
-    == : Column | Any -> Column
-    == self other =
+    == : Column | Any -> Problem_Behavior -> Column
+    == self other on_problems=Problem_Behavior.Report_Warning =
         x1 = case self.value_type of
             Value_Type.Float _ -> True
             _ -> False
@@ -144,7 +144,7 @@ type Column
             _ : Decimal -> True
             _ -> False
         r = run_vectorized_binary_op self "==" (==) other
-        if x1 || x2 then Warning.attach (Floating_Point_Equality.Error "TODO") r else r
+        if x1 || x2 then on_problems.attach_problem_after r (Floating_Point_Equality.Error "TODO") else r
 
     ## Element-wise case-insensitive text equality comparison.
 
