@@ -240,8 +240,8 @@ impl Canvas {
         self.if_not_defined(num, |this| {
             let color: Glsl = color.into().glsl();
             this.add_current_function_code_line(format!("Shape shape = {};", s.getter()));
-            this.add_current_function_code_line(format!("Srgba color = srgba({color});"));
-            this.new_shape_from_expr("return set_color(shape,color);")
+            this.add_current_function_code_line(format!("Srgba color = {color};"));
+            this.new_shape_from_expr("return set_color(shape,rgba(color));")
         })
     }
 

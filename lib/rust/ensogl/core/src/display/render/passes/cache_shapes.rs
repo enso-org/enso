@@ -8,6 +8,7 @@ use crate::display::render::pass;
 use crate::display::render::pass::Instance;
 use crate::display::scene::Layer;
 use crate::display::scene::UpdateStatus;
+use crate::display::shape::glsl::codes::DisplayModes;
 use crate::display::world::with_context;
 use crate::display::Scene;
 use crate::gui::component::AnyShapeView;
@@ -93,10 +94,12 @@ impl pass::Definition for CacheShapesPass {
             if let Some(framebuffer) = self.framebuffer.as_ref() {
                 framebuffer.with_bound(|| {
                     instance.with_viewport(self.texture_size.x, self.texture_size.y, || {
-                        with_context(|ctx| ctx.set_camera(&self.layer.camera()));
-                        for shape in ready_to_render {
-                            shape.sprite().symbol.render();
-                        }
+                        with_display_mode(DisplayModes::CachedShapesTexture, || {
+                            with_context(|ctx| ctx.set_camera(&self.layer.camera()));
+                            for shape in ready_to_render {
+                                shape.sprite().symbol.render();
+                            }
+                        })
                     });
                 });
             } else {
@@ -104,4 +107,15 @@ impl pass::Definition for CacheShapesPass {
             }
         }
     }
+}
+
+fn with_display_mode<R>(mode: DisplayModes, f: impl FnOnce() -> R) -> R {
+    with_context(move |ctx| {
+        let mode_before = ctx.display_mode.get();
+        let code: u32 = mode.into();
+        ctx.display_mode.set(code as i32);
+        let result = f();
+        ctx.display_mode.set(mode_before);
+        result
+    })
 }

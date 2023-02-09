@@ -5,18 +5,21 @@
 // === Color ===
 // =============
 
-/// The default color used for [`Shape`]s. The LCHA representation was chosen because it gives good
-/// results for color blending (better than RGB and way better than sRGB).
+/// The default color used for [`Shape`]s.
 struct Color {
-    Lcha repr;
+    Rgba repr;
 };
 
-Color color (Lcha color) {
+Color color (Rgba color) {
     return Color(color);
 }
 
-Color color(vec3 lch, float a) {
-    return Color(lcha(lch, a));
+Color color(vec3 rgb, float a) {
+    return Color(rgba(rgb, a));
+}
+
+Color color(Rgb rgb, float a) {
+    return Color(rgba(rgb, a));
 }
 
 Srgba srgba(Color color) {
@@ -31,30 +34,34 @@ Srgba srgba(Color color) {
 
 /// The premultiplied version of [`Color`] (the `xyz` components are multiplied by its alpha).
 struct PremultipliedColor {
-    Lcha repr;
+    Rgba repr;
 };
 
 PremultipliedColor premultiply(Color t) {
     float alpha = a(t.repr);
     vec3 rgb = t.repr.raw.rgb * alpha;
-    return PremultipliedColor(lcha(rgb, alpha));
+    return PremultipliedColor(rgba(rgb, alpha));
 }
 
 Color unpremultiply(PremultipliedColor c) {
     float alpha = c.repr.raw.a;
-    vec3 lch = alpha > 0.0 ? c.repr.raw.xyz / alpha : c.repr.raw.xyz;
-    return color(lch, alpha);
+    vec3 rgb = alpha > 0.0 ? c.repr.raw.rgb / alpha : c.repr.raw.rgb;
+    return color(rgb, alpha);
 }
 
 /// Implements glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
 /// in the [`Color`]'s color space. See docs of [`Color`] to learn more.
 PremultipliedColor blend(PremultipliedColor bg, PremultipliedColor fg) {
     vec4 raw = fg.repr.raw + (1.0 - fg.repr.raw.a) * bg.repr.raw;
-    return PremultipliedColor(lcha(raw));
+    return PremultipliedColor(rgba(raw));
 }
 
 Srgba srgba(PremultipliedColor color) {
     return srgba(unpremultiply(color));
+}
+
+Rgba rgba(PremultipliedColor color) {
+    return unpremultiply(color).repr;
 }
 
 
@@ -288,7 +295,9 @@ struct Shape {
 
 Shape shape (Id id, BoundSdf bound_sdf, PremultipliedColor color) {
     float alpha = render(bound_sdf);
-    color.repr.raw *= alpha;
+//    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        color.repr.raw *= alpha;
+//    }
     return Shape(id, bound_sdf, color, alpha);
 }
 
@@ -296,17 +305,17 @@ Shape shape (Id id, BoundSdf bound_sdf, Color color) {
     return shape(id, bound_sdf, premultiply(color));
 }
 
-Shape shape (Id id, BoundSdf bound_sdf, Srgba rgba) {
-    return shape(id, bound_sdf, Color(lcha(rgba)));
+Shape shape (Id id, BoundSdf bound_sdf, Rgba rgba) {
+    return shape(id, bound_sdf, Color(rgba));
 }
 
 Shape shape (Id id, BoundSdf bound_sdf) {
-    return shape(id, bound_sdf, srgba(1.0, 0.0, 0.0, 1.0));
+    return shape(id, bound_sdf, rgba(1.0, 0.0, 0.0, 1.0));
 }
 
-Shape shape (Id id, BoundSdf bound_sdf, Lcha lcha) {
-    return shape(id, bound_sdf, Color(lcha));
-}
+//Shape shape (Id id, BoundSdf bound_sdf, Lcha lcha) {
+//    return shape(id, bound_sdf, Color(lcha));
+//}
 
 /// A debug [`Shape`] constructor. Should not be used to create shapes that are rendered to the
 /// screen as it's ID is always 0. It can be used to create temporary shapes. For example, it can
@@ -357,9 +366,11 @@ Shape intersection_no_blend (Shape s1, Shape s2) {
     return shape(s1.id, intersection(s1.sdf, s2.sdf), s1.color);
 }
 
-Shape set_color(Shape shape, Srgba t) {
-    t.raw.a *= shape.alpha;
-    shape.color = premultiply(Color(lcha(t)));
+Shape set_color(Shape shape, Rgba t) {
+//    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        t.raw.a *= shape.alpha;
+//    }
+    shape.color = premultiply(Color(t));
     return shape;
 }
 
@@ -373,16 +384,21 @@ Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
     BoundingBox texture_bbox = bounding_box(tex_bbox.x, tex_bbox.z, tex_bbox.y, tex_bbox.w);
     vec2 texture_bbox_center = (tex_bbox.xy + tex_bbox.zw) / 2.0;
     vec2 texture_position = texture_bbox_center + position;
-    vec2 texture_uv = (texture_position / vec2(textureSize(input_pass_cached_shapes, 0))) + vec2(0.5, 0.5);
-    Srgba color_from_tex = contains(texture_bbox, texture_position) ? srgba(texture(input_pass_cached_shapes, texture_uv)) : srgba(0.0, 0.0, 0.0, 0.0);
-//    Srgba color_from_tex = srgba(texture(input_pass_cached_shapes, texture_uv));
-//    Srgba color_from_tex = srgba(texture_uv.x, texture_uv.y, 0.0, 1.0);
-//    Srgba color_from_tex = srgba(1.0, 0.0, 0.0, 1.0);
-    float distance = color_from_tex.raw.a == 0.0 ? 1.0 : -1.0;
-//    float distance = -10.0;
+    vec2 texture_uv = ((texture_position) / (vec2(textureSize(input_pass_cached_shapes, 0)))) + vec2(0.5, 0.5);
+    Rgba color_and_distance = contains(texture_bbox, texture_position) ? rgba(texture(input_pass_cached_shapes, texture_uv)) : rgba(0.0, 0.0, 0.0, 0.0);
+    float distance = (-color_and_distance.raw.a + 0.5) * 16.0;
     BoundSdf sdf = bound_sdf(distance, infinite()); // TODO[ao]: should be finite
-//    return shape(id, sdf, premultiply(color(lcha(color_form_tex))));
-    return shape(id, sdf, PremultipliedColor(lcha(color_from_tex)));
+//    float alpha = render(sdf);
+    Color shape_color = color(color_and_distance.raw.rgb, 1.0);
+//    if (texture_position.x - floor(texture_position.x) != 0.5) {
+//        shape_color = color(rgba(1.0, texture_position.x - floor(texture_position.x), 1.0, 1.0));
+//    }
+//    if (texture_position.y - floor(texture_position.y) != 0.5) {
+//        shape_color = color(rgba(1.0, 1.0, texture_position.y - floor(texture_position.y), 1.0));
+//    }
+//    Color color = color(vec3(0.0, 1.0, 0.0), 1.0);
+    return shape(id, sdf, shape_color);
+//    return Shape(id, sdf, color, alpha);
 }
 
 

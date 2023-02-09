@@ -55,8 +55,8 @@ thread_local! {
 }
 
 /// Perform an action with a reference to the global context.
-pub fn with_context<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
-    CONTEXT.with_borrow(|t| f(t.as_ref().unwrap()))
+pub fn with_context<T>(f: impl FnOnce(&SymbolRegistry) -> T) -> T {
+    CONTEXT.with_borrow(move |t| f(t.as_ref().unwrap()))
 }
 
 /// Initialize global state (set stack trace size, logger output, etc).
@@ -202,16 +202,14 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
 /// Uniforms managed by world.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Uniforms {
-    time:         Uniform<f32>,
-    display_mode: Uniform<i32>,
+    time: Uniform<f32>,
 }
 
 impl Uniforms {
     /// Constructor.
     pub fn new(scope: &UniformScope) -> Self {
         let time = scope.add_or_panic("time", 0.0);
-        let display_mode = scope.add_or_panic("display_mode", 0);
-        Self { time, display_mode }
+        Self { time }
     }
 }
 
@@ -458,7 +456,7 @@ impl WorldData {
     fn init_debug_hotkeys(&self) {
         let stats_monitor = self.stats_monitor.clone_ref();
         let display_mode = self.display_mode.clone_ref();
-        let display_mode_uniform = self.uniforms.display_mode.clone_ref();
+        let display_mode_uniform = with_context(|ctx| ctx.display_mode.clone_ref());
         let emit_measurements_handle = self.emit_measurements_handle.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
