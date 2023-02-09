@@ -28,8 +28,8 @@
   },
   "devDependencies": {
     "crypto-js": "4.1.1",
-    "electron": "21.3.0",
-    "electron-builder": "^22.14.13",
+    "electron": "23.0.0",
+    "electron-builder": "^23.6.0",
     "electron-notarize": "1.2.2",
     "enso-copy-plugin": "^1.0.0",
     "esbuild": "^0.15.14",
