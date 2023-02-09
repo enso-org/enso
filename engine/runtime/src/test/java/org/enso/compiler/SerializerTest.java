@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -55,8 +56,9 @@ public class SerializerTest {
     var result = compiler.run(module);
     assertEquals(result.compiledModules().exists(m -> m == module), true);
     var serializationManager = new SerializationManager(ensoContext.getCompiler());
-    serializationManager.serialize(module, true);
-    Thread.sleep(1000); // Ensure module is serialized
+    var future = serializationManager.serialize(module, true);
+    var serialized = future.get(5, TimeUnit.SECONDS);
+    assertEquals(serialized, true);
     var deserialized = serializationManager.deserialize(module);
     assertEquals(deserialized.isDefined() && (Boolean) deserialized.get(), true);
     serializationManager.shutdown(true);

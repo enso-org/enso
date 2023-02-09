@@ -8,7 +8,10 @@ import org.enso.pkg.QualifiedName
 
 import java.io.NotSerializableException
 import java.util.concurrent.{
+  Callable,
+  CompletableFuture,
   ConcurrentHashMap,
+  Future,
   LinkedBlockingDeque,
   ThreadPoolExecutor,
   TimeUnit
@@ -38,7 +41,7 @@ class SerializationManager(compiler: Compiler) {
     * This map is accessed concurrently.
     */
   private val isWaitingForSerialization =
-    collection.concurrent.TrieMap[QualifiedName, Runnable]()
+    collection.concurrent.TrieMap[QualifiedName, Future[Boolean]]()
 
   /** The runtime's environment. */
   private val env = compiler.context.getEnvironment
@@ -82,7 +85,10 @@ class SerializationManager(compiler: Compiler) {
     * @return `true` if `module` has been scheduled for serialization, `false`
     *         otherwise
     */
-  def serialize(module: Module, useGlobalCacheLocations: Boolean): Boolean = {
+  def serialize(
+    module: Module,
+    useGlobalCacheLocations: Boolean
+  ): Future[Boolean] = {
     logger.log(
       debugLogLevel,
       s"Requesting serialization for module [${module.getName}]."
@@ -101,14 +107,25 @@ class SerializationManager(compiler: Compiler) {
       module.getSource,
       useGlobalCacheLocations
     )
-    if (compiler.context.getEnvironment.isCreateThreadAllowed) {
-      isWaitingForSerialization.put(module.getName, task)
-      pool.execute(task)
+    if (compiler.context.getEnvironment.isCreateThreadAllowed && false) {
+      isWaitingForSerialization.synchronized {
+        val future = pool.submit(task)
+        isWaitingForSerialization.put(module.getName, future)
+        future
+      }
     } else {
-      task.run()
+      try {
+        CompletableFuture.completedFuture(task.call())
+      } catch {
+        case e: Throwable =>
+          logger.log(
+            debugLogLevel,
+            s"Serialization task failed in module [${module.getName}].",
+            e
+          )
+          CompletableFuture.completedFuture(false)
+      }
     }
-
-    true
   }
 
   /** Deserializes the requested module from the cache if possible.
@@ -185,7 +202,9 @@ class SerializationManager(compiler: Compiler) {
     * @return `true` if `module` is waiting for serialization, `false` otherwise
     */
   def isWaitingForSerialization(module: Module): Boolean = {
-    isWaitingForSerialization.contains(module.getName)
+    isWaitingForSerialization.synchronized {
+      isWaitingForSerialization.contains(module.getName)
+    }
   }
 
   /** Requests that serialization of `module` be aborted.
@@ -198,12 +217,14 @@ class SerializationManager(compiler: Compiler) {
     *         otherwise
     */
   def abort(module: Module): Boolean = {
-    if (isWaitingForSerialization(module)) {
-      pool.remove(
-        isWaitingForSerialization.remove(module.getName).getOrElse(return false)
-      )
-      true
-    } else false
+    isWaitingForSerialization.synchronized {
+      if (isWaitingForSerialization(module)) {
+        isWaitingForSerialization
+          .remove(module.getName)
+          .map(_.cancel(false))
+          .getOrElse(false)
+      } else false
+    }
   }
 
   /** Performs shutdown actions for the serialization manager.
@@ -214,7 +235,10 @@ class SerializationManager(compiler: Compiler) {
   def shutdown(waitForPendingJobCompletion: Boolean = false): Unit = {
     if (!pool.isShutdown) {
       if (waitForPendingJobCompletion && this.hasJobsRemaining) {
-        val jobCount = isWaitingForSerialization.size + isSerializing.size
+        val waitingCount = isWaitingForSerialization.synchronized {
+          isWaitingForSerialization.size
+        }
+        val jobCount = waitingCount + isSerializing.size
         logger.log(
           debugLogLevel,
           s"Waiting for $jobCount serialization jobs to complete."
@@ -250,8 +274,11 @@ class SerializationManager(compiler: Compiler) {
   /** @return `true` if there are remaining serialization jobs, `false`
     *         otherwise
     */
-  private def hasJobsRemaining: Boolean =
-    isWaitingForSerialization.nonEmpty || isSerializing.nonEmpty
+  private def hasJobsRemaining: Boolean = {
+    isWaitingForSerialization.synchronized {
+      isWaitingForSerialization.nonEmpty || isSerializing.nonEmpty
+    }
+  }
 
   /** Create the task that serializes the provided module IR when it is run.
     *
@@ -269,7 +296,7 @@ class SerializationManager(compiler: Compiler) {
     name: QualifiedName,
     source: Source,
     useGlobalCaches: Boolean
-  ): Runnable = { () =>
+  ): Callable[Boolean] = { () =>
     logger.log(
       debugLogLevel,
       s"Running serialization for module [$name]."
@@ -280,11 +307,14 @@ class SerializationManager(compiler: Compiler) {
         if (stage.isAtLeast(Module.CompilationStage.AFTER_STATIC_PASSES)) {
           Module.CompilationStage.AFTER_STATIC_PASSES
         } else stage
-      cache.save(
-        ModuleCache.CachedModule(ir, fixedStage, source),
-        compiler.context,
-        useGlobalCaches
-      )
+      cache
+        .save(
+          ModuleCache.CachedModule(ir, fixedStage, source),
+          compiler.context,
+          useGlobalCaches
+        )
+        .map(_ => true)
+        .getOrElse(false)
     } catch {
       case e: NotSerializableException =>
         logger.log(
@@ -310,7 +340,9 @@ class SerializationManager(compiler: Compiler) {
     * @param name the name of the module to set as serializing
     */
   private def startSerializing(name: QualifiedName): Unit = {
-    isWaitingForSerialization.remove(name)
+    isWaitingForSerialization.synchronized {
+      isWaitingForSerialization.remove(name)
+    }
     isSerializing.add(name)
   }
 
