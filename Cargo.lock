@@ -1837,6 +1837,7 @@ dependencies = [
  "derive_more",
  "dirs",
  "enso-build-base",
+ "enso-build-macros-lib",
  "ensogl-pack",
  "filetime",
  "flate2",
@@ -1949,10 +1950,20 @@ dependencies = [
 name = "enso-build-macros"
 version = "0.1.0"
 dependencies = [
+ "enso-build-base",
+ "enso-build-macros-lib",
+ "syn",
+]
+
+[[package]]
+name = "enso-build-macros-lib"
+version = "0.1.0"
+dependencies = [
  "convert_case 0.6.0",
  "derive_more",
  "enso-build-base",
  "itertools",
+ "lazy_static",
  "proc-macro2",
  "quote",
  "regex",
@@ -2180,7 +2191,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "wasm-bindgen-test",
 ]
 
 [[package]]
@@ -5525,9 +5535,9 @@ checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.44"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bd7356a8122b6c4a24a82b278680c73357984ca2fc79a0f9fa6dea7dced7c58"
+checksum = "5d727cae5b39d21da60fa540906919ad737832fe0b1c165da3a34d6548c849d6"
 dependencies = [
  "unicode-ident",
 ]
@@ -5594,9 +5604,9 @@ checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
 
 [[package]]
 name = "quote"
-version = "1.0.21"
+version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbe448f377a7d6961e30f5955f9b8d106c3f5e449d493ee1b125c1d43c2b5179"
+checksum = "8856d8364d252a14d474036ea1358d63c9e6965c8e5c1885c18f73d70bff9c7b"
 dependencies = [
  "proc-macro2",
 ]

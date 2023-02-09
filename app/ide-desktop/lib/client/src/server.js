@@ -27,7 +27,7 @@ async function findPort(cfg) {
 class Server {
     constructor(cfg) {
         let self = this
-        this.dir = cfg.dir
+        this.dir = path.resolve(cfg.dir)
         this.port = cfg.port
         this.fallback = cfg.fallback
         console.log('f', createServer)
@@ -43,7 +43,7 @@ class Server {
                     return console.log(errs.http)
                 }
                 console.log(`Server started on port ${this.port}.`)
-                console.log(`Serving files from '${process.cwd()}/${this.dir}'.`)
+                console.log(`Serving files from '${this.dir}'.`)
             }.bind(this)
         )
     }

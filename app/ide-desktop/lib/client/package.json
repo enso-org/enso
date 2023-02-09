@@ -35,8 +35,8 @@
     "fast-glob": "^3.2.12"
   },
   "scripts": {
-    "start": "electron ../../../../dist/content -- ",
+    "start": "ts-node start.ts",
     "build": "ts-node bundle.ts",
-    "dist": "ts-node electron-builder-config.ts"
+    "dist": "ts-node dist.ts"
   }
 }

@@ -21,10 +21,18 @@ import fsp from 'node:fs/promises'
 // === Paths ===
 // =============
 
-const root = Electron.app.getAppPath()
-const resources = path.join(root, '..')
-const project_manager_executable = path.join(
-    resources,
+/** This path is like:
+ * - for packaged application `…/resources/app.asar`;
+ * - for development `…` (just the directory with `index.js`).
+ * @type {string}
+ */
+const appPath = Electron.app.getAppPath()
+
+/** Path to the `resources` folder. */
+const resources = isDev ? appPath : path.join(appPath, '..')
+
+/** Path to the project manager executable. */
+const project_manager_executable = path.join(resources,
     project_manager_bundle,
     PROJECT_MANAGER_IN_BUNDLE_PATH // Placeholder for a bundler-provided define.
 )
@@ -260,7 +268,15 @@ optParser.options('enable-skip-and-freeze', {
 
 // === Parsing ===
 
-let args = optParser.parse()
+
+function parseCmdArgs() {
+    console.error("Is this a dev build? ", isDev)
+    let argv = isDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv.slice(1)
+    console.error("argv: ", argv)
+    return optParser.parse(argv)
+}
+
+const args = parseCmdArgs()
 
 // Note: this is a conditional default to avoid issues with some window managers affecting
 // interactions at the top of a borderless window. Thus, we want borders on Win/Linux and
@@ -483,7 +499,7 @@ async function main(args) {
         console.log('Starting the IDE service.')
         if (args.server !== false) {
             let serverCfg = Object.assign({}, args)
-            serverCfg.dir = root
+            serverCfg.dir = appPath
             serverCfg.fallback = '/assets/index.html'
             server = await Server.create(serverCfg)
             origin = `http://localhost:${server.port}`
@@ -527,7 +543,7 @@ function urlParamsFromObject(obj) {
 
 function createWindow() {
     let webPreferences = secureWebPreferences()
-    webPreferences.preload = path.join(root, 'preload.cjs')
+    webPreferences.preload = path.join(appPath, 'preload.cjs')
 
     let windowPreferences = {
         webPreferences: webPreferences,
