@@ -174,9 +174,9 @@ impl Component {
         let subsequence = match (label_subsequence, code_subsequence) {
             (Some(label), Some(code)) => {
                 let score = label.score.max(code.score);
-                Some(fuzzly::Subsequence{ score, ..label })
-            },
-            (None, Some(code)) => Some(fuzzly::Subsequence{ indices: Vec::new(), ..code}),
+                Some(fuzzly::Subsequence { score, ..label })
+            }
+            (None, Some(code)) => Some(fuzzly::Subsequence { indices: Vec::new(), ..code }),
             (Some(label), None) => Some(label),
             (None, None) => None,
         };
