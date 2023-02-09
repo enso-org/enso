@@ -9,10 +9,10 @@ import path from 'node:path'
 import * as Server from './server'
 import util from 'node:util'
 import { hideBin } from 'yargs/helpers'
-import remoteMain from '@electron/remote/main/index.js'
 import { project_manager_bundle } from '../paths.js'
 import * as content from '../../content/src/config'
 import chalk from 'chalk'
+import * as security from './security'
 
 import child_process, { SpawnOptions } from 'child_process'
 import fss from 'node:fs'
@@ -50,9 +50,6 @@ class WindowSize {
         return `${this.width}${WindowSize.separator}${this.height}`
     }
 }
-
-/** The list of hosts that the app can access. They are required for user authentication to work. */
-const trustedHosts = ['accounts.google.com', 'accounts.youtube.com', 'github.com']
 
 // =============
 // === Paths ===
@@ -560,10 +557,8 @@ const options = content.options.merge(
         },
     })
 )
-
-// =============
-// === Utils ===
-// =============
+options.groups.startup.options.platform.default = process.platform
+options.groups.startup.options.platform.value = process.platform
 
 // =====================
 // === Option Parser ===
@@ -582,19 +577,15 @@ const yargOptions = options.optionsRecursive().reduce((opts: { [key: string]: an
     return opts
 }, {})
 
-console.log('yargs opts:', yargOptions)
-
-let optParser = yargs(argv)
-    .scriptName('')
+let optParser = yargs()
     .version(false)
-    // Makes all flags passed after '--' be one string.
     .parserConfiguration({
         'short-option-groups': false,
         'dot-notation': false,
+        // Makes all flags passed after '--' be one string.
         'populate--': true,
     })
     .strict()
-    // .wrap(yargs.terminalWidth())
     .options(yargOptions)
 
 // === Parsing ===
@@ -682,75 +673,6 @@ async function printDebugInfo() {
     process.exit()
 }
 
-// ================
-// === Security ===
-// ================
-
-// === WebView Security ===
-
-/// A WebView created in a renderer process that does not have Node.js integration enabled will not
-/// be able to enable integration itself. However, a WebView will always create an independent
-/// renderer process with its own webPreferences. It is a good idea to control the creation of new
-/// <webview> tags from the main process and to verify that their webPreferences do not disable
-/// security features. Follow the link to learn more:
-/// https://www.electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation
-function secureWebPreferences(webPreferences?: Electron.WebPreferences) {
-    if (!webPreferences) {
-        webPreferences = {}
-    }
-    delete webPreferences.preload
-    delete webPreferences.nodeIntegration
-    delete webPreferences.nodeIntegrationInWorker
-    delete webPreferences.webSecurity
-    delete webPreferences.allowRunningInsecureContent
-    delete webPreferences.experimentalFeatures
-    delete webPreferences.enableBlinkFeatures
-    delete webPreferences.contextIsolation
-    return webPreferences
-}
-
-let urlWhitelist: string[] = []
-Electron.app.on('web-contents-created', (event, contents) => {
-    contents.on('will-attach-webview', (event, webPreferences, params) => {
-        secureWebPreferences(webPreferences)
-        // @ts-ignore
-        if (!urlWhitelist.includes(params.src)) {
-            console.error(`Blocked the creation of WebView pointing to '${params.src}'`)
-            event.preventDefault()
-        }
-    })
-})
-
-// === Prevent Navigation ===
-
-/// Navigation is a common attack vector. If an attacker can convince your app to navigate away from
-/// its current page, they can possibly force your app to open web sites on the Internet. Follow the
-/// link to learn more:
-/// https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation
-Electron.app.on('web-contents-created', (event, contents) => {
-    contents.on('will-navigate', (event, navigationUrl) => {
-        const parsedUrl = new URL(navigationUrl)
-        if (parsedUrl.origin !== origin && !trustedHosts.includes(parsedUrl.host)) {
-            event.preventDefault()
-            console.error(`Prevented navigation to '${navigationUrl}'.`)
-        }
-    })
-})
-
-// === Disable New Windows Creation ===
-
-/// Much like navigation, the creation of new webContents is a common attack vector. Attackers
-/// attempt to convince your app to create new windows, frames, or other renderer processes with
-/// more privileges than they had before or with pages opened that they couldn't open before.
-/// Follow the link to learn more:
-/// https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows
-Electron.app.on('web-contents-created', (event, contents) => {
-    contents.on('new-window', async (event, navigationUrl) => {
-        event.preventDefault()
-        console.error(`Blocking new window creation request to '${navigationUrl}'`)
-    })
-})
-
 // =======================
 // === Project Manager ===
 // =======================
@@ -805,17 +727,6 @@ function spawnProjectManager(args: string[]) {
     return out
 }
 
-function runBackend() {
-    if (options.groups.engine.options.backend.value) {
-        const dashArgs = xargs['--']
-        const pmOptions = dashArgs ? dashArgs : []
-        if (options.groups.debug.options.verbose.value) {
-            pmOptions.push('-vv')
-        }
-        return spawnProjectManager(pmOptions)
-    }
-}
-
 async function backendVersion() {
     if (options.groups.engine.options.backend.value) {
         return await execProjectManager(['--version']).then(t => t.stdout)
@@ -825,6 +736,7 @@ async function backendVersion() {
 // ============
 // === Main ===
 // ============
+security.enableAll()
 
 let hideInsteadOfQuit = false
 
@@ -832,55 +744,7 @@ let server = null
 let mainWindow: null | Electron.BrowserWindow = null
 let origin: null | string = null
 
-async function main() {
-    // Note [Main error handling]
-    try {
-        runBackend()
-
-        console.log('Starting the IDE service.')
-        if (options.options.server.value) {
-            let serverCfg = new Server.Config({
-                dir: root,
-                port: options.groups.server.options.port.value,
-                fallback: '/assets/index.html',
-            })
-            server = await Server.create(serverCfg)
-            origin = `http://localhost:${server.config.port}`
-        }
-        if (options.options.window.value) {
-            console.log('Starting the IDE client.')
-            mainWindow = createWindow()
-            if (mainWindow == null) {
-                // FIXME
-            } else {
-                const window = mainWindow
-                mainWindow.on('close', evt => {
-                    if (hideInsteadOfQuit) {
-                        evt.preventDefault()
-                        window.hide()
-                    }
-                })
-            }
-        }
-    } catch (err) {
-        // Note [Main error handling]
-        console.error('Failed to initialize IDE. Error:', err)
-        Electron.app.quit()
-    }
-}
-
-// Note [Main error handling]
-// ==========================
-// It is critical that the main function runs in its entirety. Otherwise, IDE enters a "zombie
-// process" state, where Electron processes have been spawned, but there is no window and the user
-// can't observe anything. Usually they will try to spawn another instance of the IDE, but this can
-// fail because of these zombie process presence.
-//
-// The solution is to catch all errors and exit the process if any part of the initial setup fails.
-// If it succeeds, at least the window will be shown, allowing the user to observe the error and
-// close it.
-
-function urlParamsFromObject(obj: { [key: string]: any }) {
+function urlParamsFromObject(obj: { [key: string]: string }) {
     let params = []
     for (let key in obj) {
         let val = obj[key]
@@ -889,121 +753,166 @@ function urlParamsFromObject(obj: { [key: string]: any }) {
     return params.join('&')
 }
 
-function createWindow() {
-    let webPreferences = secureWebPreferences()
-    webPreferences.preload = path.join(root, 'preload.cjs')
-    webPreferences.sandbox = true
-    webPreferences.backgroundThrottling = false
-
-    let windowPreferences: Electron.BrowserWindowConstructorOptions = {
-        webPreferences: webPreferences,
-        width: windowSize.width,
-        height: windowSize.height,
-        frame: options.groups.window.options.frame.value,
-        transparent: false,
-        titleBarStyle: 'default',
-    }
-
-    if (options.groups.debug.options.dev) {
-        webPreferences.devTools = true
-    }
-
-    if (windowPreferences.frame === false && process.platform === 'darwin') {
-        windowPreferences.titleBarStyle = 'hiddenInset'
-    }
-
-    if (options.groups.performance.options.backgroundThrottling.value) {
-        webPreferences.backgroundThrottling = true
-    }
-
-    if (options.groups.window.options.vibrancy.value) {
-        windowPreferences.vibrancy = 'fullscreen-ui'
-    }
-
-    remoteMain.initialize()
-    const window = new Electron.BrowserWindow(windowPreferences)
-    remoteMain.enable(window.webContents)
-    window.setMenuBarVisibility(false)
-
-    if (options.groups.debug.options.dev.value) {
-        window.webContents.openDevTools()
-    }
-
-    let urlCfg = {
-        platform: process.platform,
-        frame: options.groups.window.options.frame.value,
-        dataGathering: options.options.dataCollection.value,
-        // preferredEngineVersion: args.preferredEngineVersion,
-        // enableNewComponentBrowser: args.enableNewComponentBrowser,
-        // emitUserTimingMeasurements: args.emitUserTimingMeasurements,
-        // nodeLabels: args.nodeLabels,
-        // debug: args.verbose,
-        skip_min_version_check: false,
-    }
-
-    Electron.ipcMain.on('error', (event, data) => console.error(data))
-
-    // We want to pass this argument only if explicitly passed. Otherwise we allow contents to select default behavior.
-    if (options.groups.engine.options.skipMinVersionCheck.setByUser) {
-        urlCfg.skip_min_version_check = options.groups.engine.options.skipMinVersionCheck.value
-    }
-    if (options.groups.startup.options.project.value) {
-        // @ts-ignore
-        urlCfg.project = options.groups.startup.options.project.value
-    }
-    if (options.groups.startup.options.entry.value) {
-        // @ts-ignore
-        urlCfg.entry = options.groups.startup.options.entry.value
-    }
-    // FIXME
-    // let profilePromises = []
-    // if (args.loadProfile) {
-    //     profilePromises = args.loadProfile.map((path: string) => fsp.readFile(path, 'utf8'))
-    // }
-    // const profiles = Promise.all(profilePromises)
-    // Electron.ipcMain.on('load-profiles', event => {
-    //     profiles.then(profiles => {
-    //         event.reply('profiles-loaded', profiles)
-    //     })
-    // })
-    // if (args.saveProfile) {
-    //     Electron.ipcMain.on('save-profile', (event, data) => {
-    //         fss.writeFileSync(args.saveProfile, data)
-    //     })
-    // }
-    // if (args.workflow) {
-    //     // @ts-ignore
-    //     urlCfg.testWorkflow = args.workflow
-    // }
-
-    Electron.ipcMain.on('quit-ide', () => {
-        Electron.app.quit()
-    })
-
-    let params = urlParamsFromObject(urlCfg)
-    let address = `${origin}?${params}`
-
-    console.log(`Loading the window address ${address}`)
-    window.loadURL(address)
-    return window
-}
-
-/// By default, Electron will automatically approve all permission requests unless the developer has
-/// manually configured a custom handler. While a solid default, security-conscious developers might
-/// want to assume the very opposite. Follow the link to learn more:
-// https://www.electronjs.org/docs/tutorial/security#4-handle-session-permission-requests-from-remote-content
-function setupPermissions() {
-    Electron.session.defaultSession.setPermissionRequestHandler(
-        (webContents, permission, callback) => {
-            const url = webContents.getURL()
-            console.error(`Unhandled permission request '${permission}'.`)
+class App {
+    async main() {
+        // We catch all errors here. Otherwise, it might be possible that the app will run partially
+        // and the user will not see anything.
+        try {
+            this.startBackend()
+            await this.startContentServer()
+            this.createWindow()
+        } catch (err) {
+            console.error('Failed to initialize the application, shutting down. Error:', err)
+            Electron.app.quit()
         }
-    )
+    }
+
+    startBackend() {
+        if (!options.groups.engine.options.backend.value) {
+            console.log('The app is configured not to run the backend process.')
+        } else {
+            const dashArgsOpt = xargs['--']
+            const dashArgs = dashArgsOpt ? dashArgsOpt : []
+            const verboseArgs = options.groups.debug.options.verbose.value ? ['-vv'] : []
+            const args = dashArgs.concat(verboseArgs)
+            return spawnProjectManager(args)
+        }
+    }
+
+    async startContentServer() {
+        if (!options.options.server.value) {
+            console.log('The app is configured not to run the content server.')
+        } else {
+            console.log('Starting the content server.')
+            let serverCfg = new Server.Config({
+                dir: root,
+                port: options.groups.server.options.port.value,
+                fallback: '/assets/index.html',
+            })
+            server = await Server.create(serverCfg)
+            origin = `http://localhost:${server.config.port}`
+        }
+    }
+
+    createWindow() {
+        if (!options.options.window.value) {
+            console.log('The app is configured not to create a window.')
+        } else {
+            const webPreferences = security.secureWebPreferences()
+            webPreferences.preload = path.join(root, 'preload.cjs')
+            webPreferences.sandbox = true
+            webPreferences.backgroundThrottling =
+                options.groups.performance.options.backgroundThrottling.value
+            webPreferences.devTools = options.groups.debug.options.dev.value
+
+            let windowPreferences: Electron.BrowserWindowConstructorOptions = {
+                webPreferences,
+                width: windowSize.width,
+                height: windowSize.height,
+                frame: options.groups.window.options.frame.value,
+                transparent: false,
+                titleBarStyle: 'default',
+            }
+
+            if (windowPreferences.frame === false && process.platform === 'darwin') {
+                windowPreferences.titleBarStyle = 'hiddenInset'
+            }
+
+            if (options.groups.window.options.vibrancy.value) {
+                windowPreferences.vibrancy = 'fullscreen-ui'
+            }
+
+            const window = new Electron.BrowserWindow(windowPreferences)
+            window.setMenuBarVisibility(false)
+
+            if (options.groups.debug.options.dev.value) {
+                window.webContents.openDevTools()
+            }
+
+            const urlCfg: { [key: string]: string } = {}
+            for (const option of options.optionsRecursive()) {
+                if (option.setByUser) {
+                    urlCfg[option.qualifiedName()] = String(option.value)
+                }
+            }
+
+            Electron.ipcMain.on('error', (event, data) => console.error(data))
+
+            // FIXME
+            // let profilePromises = []
+            // if (args.loadProfile) {
+            //     profilePromises = args.loadProfile.map((path: string) => fsp.readFile(path, 'utf8'))
+            // }
+            // const profiles = Promise.all(profilePromises)
+            // Electron.ipcMain.on('load-profiles', event => {
+            //     profiles.then(profiles => {
+            //         event.reply('profiles-loaded', profiles)
+            //     })
+            // })
+            // if (args.saveProfile) {
+            //     Electron.ipcMain.on('save-profile', (event, data) => {
+            //         fss.writeFileSync(args.saveProfile, data)
+            //     })
+            // }
+            // if (args.workflow) {
+            //     // @ts-ignore
+            //     urlCfg.testWorkflow = args.workflow
+            // }
+
+            Electron.ipcMain.on('quit-ide', () => {
+                Electron.app.quit()
+            })
+
+            let params = urlParamsFromObject(urlCfg)
+            let address = `${origin}?${params}`
+
+            console.log(`Loading the window address ${address}`)
+            window.loadURL(address)
+            window.on('close', evt => {
+                if (hideInsteadOfQuit) {
+                    evt.preventDefault()
+                    window.hide()
+                }
+            })
+        }
+    }
 }
 
 // ==============
 // === Events ===
 // ==============
+
+function printVersion() {
+    let indent = ' '.repeat(4)
+    let maxNameLen = 0
+    for (let name in versionInfo) {
+        if (name.length > maxNameLen) {
+            maxNameLen = name.length
+        }
+    }
+
+    console.log('Frontend:')
+    for (let name in versionInfo) {
+        let label = capitalizeFirstLetter(name)
+        let spacing = ' '.repeat(maxNameLen - name.length)
+        // @ts-ignore
+        console.log(`${indent}${label}:${spacing} ${versionInfo[name]}`)
+    }
+
+    console.log('')
+    console.log('Backend:')
+    backendVersion().then(backend => {
+        if (!backend) {
+            console.log(`${indent}No backend available.`)
+        } else {
+            let lines = backend.split(/\r?\n/)
+            for (let line of lines) {
+                console.log(`${indent}${line}`)
+            }
+        }
+        process.exit()
+    })
+}
 
 Electron.app.on('activate', () => {
     if (process.platform === 'darwin') {
@@ -1015,41 +924,14 @@ Electron.app.on('activate', () => {
     }
 })
 
-Electron.app.on('ready', () => {
+const app = new App()
+Electron.app.whenReady().then(() => {
     if (options.options.version.value) {
-        let indent = ' '.repeat(4)
-        let maxNameLen = 0
-        for (let name in versionInfo) {
-            if (name.length > maxNameLen) {
-                maxNameLen = name.length
-            }
-        }
-
-        console.log('Frontend:')
-        for (let name in versionInfo) {
-            let label = capitalizeFirstLetter(name)
-            let spacing = ' '.repeat(maxNameLen - name.length)
-            // @ts-ignore
-            console.log(`${indent}${label}:${spacing} ${versionInfo[name]}`)
-        }
-
-        console.log('')
-        console.log('Backend:')
-        backendVersion().then(backend => {
-            if (!backend) {
-                console.log(`${indent}No backend available.`)
-            } else {
-                let lines = backend.split(/\r?\n/)
-                for (let line of lines) {
-                    console.log(`${indent}${line}`)
-                }
-            }
-            process.exit()
-        })
+        printVersion()
     } else if (options.options.info.value) {
         printDebugInfo()
     } else {
-        main()
+        app.main()
     }
 })
 

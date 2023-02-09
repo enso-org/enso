@@ -57,18 +57,12 @@ export const options = config.options.merge(
                             'Project name to open on startup. If the project does not exist, it will be created.',
                     }),
                     platform: new config.Option({
-                        default: '',
+                        default: 'web',
                         description:
                             'The host platform the app is running on. This is used to adjust some UI elements. ' +
                             'For example, on macOS, the window close buttons are integrated to the top app panel.',
                         primary: false,
                     }),
-                    // // @ts-ignore
-                    // isInCloud: new config.Option({
-                    //     default: false,
-                    //     description: 'Information if the app is running in the cloud.',
-                    //     primary: false,
-                    // }),
                 },
             }),
 
