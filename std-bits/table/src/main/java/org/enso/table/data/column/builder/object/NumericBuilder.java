@@ -226,8 +226,15 @@ public class NumericBuilder extends TypedBuilder {
    * @param data the integer to append
    */
   public void appendLong(long data) {
-    if (currentSize + 1 > this.data.length) {
+    int wasSize = currentSize;
+    int wasLength = this.data.length;
+
+    if (currentSize >= this.data.length) {
       grow();
+    }
+
+    if (currentSize >= this.data.length) {
+      throw new IllegalStateException("currentSize=" + currentSize + "; wasSize=" + wasSize + "; wasLength=" + wasLength + "; data.length=" + this.data.length);
     }
     appendRawNoGrow(data);
   }
@@ -238,7 +245,7 @@ public class NumericBuilder extends TypedBuilder {
    * @param data the double to append
    */
   public void appendDouble(double data) {
-    if (currentSize + 1 > this.data.length) {
+    if (currentSize >= this.data.length) {
       grow();
     }
     appendRawNoGrow(Double.doubleToRawLongBits(data));
@@ -263,6 +270,11 @@ public class NumericBuilder extends TypedBuilder {
     if (data.length > 1) {
       desiredCapacity = (data.length * 3 / 2);
     }
+
+    if (currentSize >= desiredCapacity) {
+      desiredCapacity = currentSize + 1;
+    }
+
     grow(desiredCapacity);
   }
 

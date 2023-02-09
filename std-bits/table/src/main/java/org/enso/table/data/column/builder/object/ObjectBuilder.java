@@ -99,11 +99,16 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   private void grow() {
+    int desiredCapacity = 3;
     if (data.length > 1) {
-      grow(data.length * 3 / 2);
-    } else {
-      grow(3);
+      desiredCapacity = (data.length * 3 / 2);
     }
+
+    if (currentSize >= desiredCapacity) {
+      desiredCapacity = currentSize + 1;
+    }
+
+    grow(desiredCapacity);
   }
 
   private void grow(int desiredCapacity) {
