@@ -1,9 +1,7 @@
 package org.enso.interpreter.runtime.callable.atom;
 
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
  * A version of {@link org.enso.interpreter.runtime.callable.atom.Atom} that stores its fields in an
