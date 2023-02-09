@@ -233,11 +233,9 @@ impl Model {
         executor::global::spawn(async move {
             if let Ok(api) = controller.manage_projects() {
                 if let Ok(projects) = api.list_projects().await {
-                    let project_names = projects
-                        .iter()
-                        .map(|p| (p.name.clone().into(), p.id.clone()))
-                        .collect_vec();
-                    *projects_list.borrow_mut() = project_names;
+                    let projects = projects.into_iter();
+                    let projects = projects.map(|p| (p.name.clone().into(), p.id)).collect_vec();
+                    *projects_list.borrow_mut() = projects;
                     notifier.notify(ProjectListNotification::ProjectListReady);
                 }
             }
@@ -256,7 +254,8 @@ impl Model {
             app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
             view.hide_graph_editor();
             if let Ok(api) = controller.manage_projects() {
-                if let Some(uuid) = projects_list.borrow().get(id).map(|(_name, uuid)| *uuid) {
+                let uuid = projects_list.borrow().get(id).map(|(_name, uuid)| *uuid);
+                if let Some(uuid) = uuid {
                     if let Err(error) = api.open_project(uuid).await {
                         error!("Error opening project: {error}.");
                         status_bar.add_event(format!("Error opening project: {error}."));

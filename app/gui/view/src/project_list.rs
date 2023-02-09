@@ -25,35 +25,30 @@ use ensogl_text as text;
 
 // === Style ===
 
-#[derive(Debug, Clone, Default, FromTheme)]
+#[derive(Debug, Clone, Copy, Default, FromTheme)]
 #[base_path = "theme"]
 #[allow(missing_docs)]
 pub struct Style {
-    width:            f32,
-    height:           f32,
-    shadow_extent:    f32,
-    background:       color::Rgba,
-    corners_radius:   f32,
+    width:           f32,
+    height:          f32,
+    shadow_extent:   f32,
+    corners_radius:  f32,
     #[theme_path = "theme::entry::height"]
-    entry_height:     f32,
+    entry_height:    f32,
     #[theme_path = "theme::bar::height"]
-    bar_height:       f32,
-    #[theme_path = "theme::bar::border_size"]
-    bar_border_size:  f32,
-    #[theme_path = "theme::bar::border_color"]
-    bar_border_color: color::Rgba,
+    bar_height:      f32,
     #[theme_path = "theme::bar::label::padding"]
-    label_padding:    f32,
+    label_padding:   f32,
     #[theme_path = "theme::bar::label::size"]
-    bar_label_size:   f32,
+    bar_label_size:  f32,
     #[theme_path = "theme::bar::label::color"]
-    bar_label_color:  color::Rgba,
+    bar_label_color: color::Rgba,
 }
 
 
 // === Entry Style ===
 
-#[derive(Debug, Clone, Default, FromTheme)]
+#[derive(Debug, Clone, Copy, Default, FromTheme)]
 #[base_path = "theme::entry"]
 #[allow(missing_docs)]
 pub struct EntryStyle {
@@ -80,41 +75,41 @@ pub struct EntryStyle {
 
 /// The model of the list entry. Displays the name of the project.
 #[derive(Debug, Clone, CloneRef)]
-pub struct Data {
+struct Data {
     display_object: display::object::Instance,
     text:           text::Text,
 }
 
 impl Data {
-    pub fn new(app: &Application) -> Self {
+    fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
         let text = text::Text::new(app);
         display_object.add_child(&text);
         Self { display_object, text }
     }
 
-    pub fn set_text(&self, text: ImString) {
+    fn set_text(&self, text: ImString) {
         self.text.set_content(text);
     }
 }
 
 
-// === View ===
+// === Entry ===
 
-/// The view of the list entry.
+/// The list entry. Displays the name of the project.
 #[derive(Debug, Clone, CloneRef)]
-pub struct View {
+pub struct Entry {
     data: Data,
     frp:  grid_view::entry::EntryFrp<Self>,
 }
 
-impl display::Object for View {
+impl display::Object for Entry {
     fn display_object(&self) -> &display::object::Instance {
         &self.data.display_object
     }
 }
 
-impl grid_view::Entry for View {
+impl grid_view::Entry for Entry {
     type Model = ImString;
     type Params = ();
 
@@ -208,7 +203,8 @@ pub struct ProjectList {
     display_object: display::object::Instance,
     background:     background::View,
     caption:        text::Text,
-    pub grid:       grid_view::scrollable::SelectableGridView<View>,
+    #[allow(missing_docs)]
+    pub grid:       grid_view::scrollable::SelectableGridView<Entry>,
 }
 
 impl ProjectList {
@@ -263,7 +259,8 @@ impl ProjectList {
             );
             eval size((size) background.set_size(*size););
             eval grid_size((size) grid.scroll_frp().resize(*size));
-            eval corners_radius((r) grid.scroll_frp().set_corner_radius(*r));
+            eval corners_radius((r) grid.scroll_frp().set_corner_radius_bottom_left(*r));
+            eval corners_radius((r) grid.scroll_frp().set_corner_radius_bottom_right(*r));
             grid_x <- content_size.map(|size| -size.x / 2.0);
             grid_y <- all_with(&content_size, &bar_height, |s, h| s.y / 2.0 - *h);
             _eval <- all_with(&grid_x, &grid_y, f!((x, y) grid.set_xy(Vector2(*x, *y))));

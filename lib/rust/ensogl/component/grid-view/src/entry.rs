@@ -40,6 +40,7 @@ impl Contour {
         Self { size, corners_radius: 0.0 }
     }
 
+    /// Adjust the corners radius of the contour.
     pub fn with_corners_radius(self, radius: f32) -> Self {
         Self { corners_radius: radius, ..self }
     }

@@ -2569,7 +2569,6 @@ dependencies = [
  "smallvec 1.9.0",
  "typenum",
  "wasm-bindgen",
- "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
 ]
