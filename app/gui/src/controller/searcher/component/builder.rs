@@ -620,17 +620,21 @@ mod tests {
         let private_doc_section = enso_suggestion_database::doc_section!(@ PRIVATE_TAG, "");
         let suggestion_db = enso_suggestion_database::mock_suggestion_database! {
             test.Test {
+                mod LocalModule {
+                    fn local_fun1() -> Standard.Base.Any;
+                    #[with_doc_section(private_doc_section.clone())]
+                    fn local_private_fun2() -> Standard.Base.Any;
+                }
                 mod TopModule {
-                    fn fun1() -> Standard.Base.Any;
-                    #[with_doc_section(private_doc_section)]
-                    fn private_fun2() -> Standard.Base.Any;
                     fn fun3() -> Standard.Base.Any;
+                    #[with_doc_section(private_doc_section.clone())]
+                    fn private_fun4() -> Standard.Base.Any;
                 }
             }
         };
         let mut builder = List::new().with_local_scope_module_id(1);
         // ID's for `test.Test`, `TopModule` and 3 function ID's in `suggestion_db`.
-        let entry_ids = 0..5;
+        let entry_ids = 0..9;
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, entry_ids);
         let list = builder.build();
         let component_names: Vec<_> = list
@@ -641,7 +645,7 @@ mod tests {
                 _ => None,
             })
             .collect();
-        let expected = vec!["TopModule", "fun1", "fun3"];
+        let expected = vec!["LocalModule", "local_fun1", "local_private_fun2", "TopModule", "fun3"];
         assert_eq!(component_names, expected);
     }
 }
