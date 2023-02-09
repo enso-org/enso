@@ -165,12 +165,12 @@ impl<'a> PartiallyMatchedMacro<'a> {
 // === MatchedSegment ===
 // ======================
 
-/// A macro segment which header was matched. Its body contains a list of tokens and nested macros
+/// A macro segment whose header was matched. Its body contains a list of tokens and nested macros
 /// that were found. Please note that the body tokens are not matched against the pattern yet.
 /// Because of that, the macro nesting is incorrect for patterns that do not consume all tokens till
 /// the end of the stream. For example, the expression `(a) (b)` will be matched in such a way, that
 /// the macro `(b)` will be part of the body of the `)` segment of the `(a)` macro. This will be
-/// restructured in the patter matching phase. See the parser module docs to learn more about this
+/// restructured in the pattern matching phase. See the parser module docs to learn more about this
 /// process.
 #[derive(Debug)]
 pub struct MatchedSegment<'s> {
@@ -256,9 +256,8 @@ struct Scope {
 }
 
 impl<'s> Resolver<'s> {
-    /// New resolver with a special "root" segment definition allowing parsing arbitrary
-    /// expressions.
-    pub fn new_root() -> Self {
+    /// Create a new resolver, in statement context.
+    pub fn new_statement() -> Self {
         let macro_stack = default();
         let scopes = default();
         let newline = token::newline("", "");
@@ -438,32 +437,60 @@ impl<'s> Resolver<'s> {
         if let Some(macro_def) = m.matched_macro_def {
             let mut def_segments = macro_def.segments.to_vec().into_iter();
             let mut pattern_matched_segments = resolved_segments.mapped(|(header, items)| {
-                let err = "Internal error. Macro definition and match segments count mismatch.";
-                let def = def_segments.next().unwrap_or_else(|| panic!("{}", err));
+                let count_must_match =
+                    "Internal error. Macro definition and match segments count mismatch.";
+                let def = def_segments.next().expect(count_must_match);
                 (header, def.pattern.resolve(items))
             });
-
-            // Moving not pattern-matched tokens of the last segment to parent.
-            let mut not_used_items_of_last_segment = VecDeque::new();
-            match &mut pattern_matched_segments.last_mut().1 {
-                Err(rest) => mem::swap(&mut not_used_items_of_last_segment, rest),
-                Ok(segment) => mem::swap(&mut not_used_items_of_last_segment, &mut segment.rest),
-            }
-
-            let pattern_matched_segments =
-                pattern_matched_segments.mapped(|(header, match_result)| match match_result {
-                    Ok(result) => {
-                        if !result.rest.is_empty() {
-                            todo!("Mark unmatched tokens as unexpected.");
-                        }
-                        pattern::MatchedSegment::new(header, result.matched)
-                    }
-                    Err(_unmatched_items) => todo!("Mark unmatched tokens as unexpected."),
+            let unused_items_of_last_segment = match &mut pattern_matched_segments.last_mut().1 {
+                Err(rest) => mem::take(rest),
+                Ok(segment) => mem::take(&mut segment.rest),
+            };
+            let all_tokens_consumed =
+                pattern_matched_segments.iter().all(|(_, match_result)| match match_result {
+                    Ok(result) => result.rest.is_empty(),
+                    Err(_) => false,
                 });
-
-            let out = (macro_def.body)(pattern_matched_segments);
-            (out, not_used_items_of_last_segment)
+            let out = if all_tokens_consumed {
+                let unwrap_match = |(header, match_result)| {
+                    let match_result: Result<pattern::MatchResult, VecDeque<syntax::item::Item>> =
+                        match_result;
+                    pattern::MatchedSegment::new(header, match_result.unwrap().matched)
+                };
+                (macro_def.body)(pattern_matched_segments.mapped(unwrap_match))
+            } else {
+                // The input matched a macro invocation pattern, except extra tokens were found in
+                // some segment. Since the start and end of a pattern were found, we know (probably)
+                // what tokens were intended to be used as the macro invocation; however we cannot
+                // pass these tokens to the macro body function, because it expects a correct match
+                // of its pattern. Use a [`MultiSegmentApp`] to represent all the tokens, wrapping
+                // only the excess tokens in [`Invalid`] nodes, so that the error can be reported
+                // precisely.
+                let segments = pattern_matched_segments.mapped(|(header, match_result)| {
+                    let mut tokens = Vec::new();
+                    let excess = match match_result {
+                        Ok(pattern::MatchResult { matched, rest }) => {
+                            matched.get_tokens(&mut tokens);
+                            rest
+                        }
+                        Err(tokens) => tokens,
+                    };
+                    if let Some(excess) =
+                        syntax::operator::resolve_operator_precedence_if_non_empty(excess)
+                    {
+                        let excess = excess.with_error("Unexpected tokens in macro invocation.");
+                        tokens.push(excess.into());
+                    }
+                    let body = syntax::operator::resolve_operator_precedence_if_non_empty(tokens);
+                    syntax::tree::MultiSegmentAppSegment { header, body }
+                });
+                syntax::Tree::multi_segment_app(segments)
+            };
+            (out, unused_items_of_last_segment)
         } else {
+            // The input matched the first token of a macro, but didn't match any complete pattern
+            // for that macro. Because we don't know what tokens were intended to be consumed by the
+            // macro, consume only the first token (wrapping it in an [`Invalid`] node).
             let mut segments = resolved_segments.into_iter();
             let (header0, mut segment) = segments.next().unwrap();
             let mut items = VecDeque::new();
@@ -471,14 +498,6 @@ impl<'s> Resolver<'s> {
             for (header, mut segment) in segments {
                 items.push_back(syntax::Item::Token(header));
                 items.append(&mut segment);
-            }
-            let mut body = String::new();
-            for item in &items {
-                match item {
-                    syntax::Item::Token(token) => body.push_str(&token.code.repr),
-                    syntax::Item::Block(_block) => body.push_str("<block>"),
-                    syntax::Item::Tree(tree) => body.push_str(&tree.code()),
-                }
             }
             let header0 = syntax::tree::to_ast(header0).with_error("Invalid macro invocation.");
             (header0, items)
