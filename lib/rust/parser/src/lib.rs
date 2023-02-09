@@ -184,7 +184,7 @@ impl Parser {
     /// Main entry point.
     pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
         let tokens = lexer::run(code);
-        let resolver = macros::resolver::Resolver::new_root();
+        let resolver = macros::resolver::Resolver::new_statement();
         let result = tokens.map(|tokens| resolver.run(&self.macros, tokens));
         let value = result.value;
         if let Some(error) = result.internal_error {
