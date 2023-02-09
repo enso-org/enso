@@ -557,6 +557,7 @@
 - [Make instance methods callable like statics for builtin types][4077]
 - [Convert large longs to doubles, safely, for host calls][4099]
 - [Profile engine startup][4110]
+- [Report type of polyglot values][4111]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -648,6 +649,7 @@
 [4077]: https://github.com/enso-org/enso/pull/4077
 [4099]: https://github.com/enso-org/enso/pull/4099
 [4110]: https://github.com/enso-org/enso/pull/4110
+[4111]: https://github.com/enso-org/enso/pull/4111
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

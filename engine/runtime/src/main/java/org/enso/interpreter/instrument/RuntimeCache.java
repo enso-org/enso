@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.CompilerDirectives;
+
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +23,7 @@ public final class RuntimeCache {
    * @param value the added value.
    * @return {@code true} if the value was added to the cache.
    */
+  @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
     Double weight = weights.get(key);
     if (weight != null && weight > 0) {
@@ -57,11 +60,13 @@ public final class RuntimeCache {
    *
    * @return the previously cached type.
    */
+  @CompilerDirectives.TruffleBoundary
   public String putType(UUID key, String typeName) {
     return types.put(key, typeName);
   }
 
   /** @return the cached type of the expression */
+  @CompilerDirectives.TruffleBoundary
   public String getType(UUID key) {
     return types.get(key);
   }
@@ -73,6 +78,7 @@ public final class RuntimeCache {
    * @param call the function call.
    * @return the function call that was previously associated with this expression.
    */
+  @CompilerDirectives.TruffleBoundary
   public IdExecutionService.FunctionCallInfo putCall(
       UUID key, IdExecutionService.FunctionCallInfo call) {
     if (call == null) {
@@ -82,6 +88,7 @@ public final class RuntimeCache {
   }
 
   /** @return the cached function call associated with the expression. */
+  @CompilerDirectives.TruffleBoundary
   public IdExecutionService.FunctionCallInfo getCall(UUID key) {
     return calls.get(key);
   }
