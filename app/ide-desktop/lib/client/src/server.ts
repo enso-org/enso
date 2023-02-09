@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import * as mime from 'mime-types'
 import * as path from 'path'
 import * as portfinder from 'portfinder'
+import { logger } from '../../content/src/config'
 
 // ==============
 // === Config ===
@@ -63,11 +64,11 @@ export class Server {
                 },
                 (err: any) => {
                     if (err) {
-                        console.error(`Error creating server:`, err.http)
+                        logger.error(`Error creating server:`, err.http)
                         reject(err)
                     }
-                    console.log(`Server started on port ${this.config.port}.`)
-                    console.log(`Serving files from '${process.cwd()}/${this.config.dir}'.`)
+                    logger.log(`Server started on port ${this.config.port}.`)
+                    logger.log(`Serving files from '${process.cwd()}/${this.config.dir}'.`)
                     resolve()
                 }
             )
@@ -80,7 +81,7 @@ export class Server {
             if (err) {
                 let fallback = this.config.fallback
                 if (resource === fallback) {
-                    console.error(`Fallback resource '${resource}' not found.`)
+                    logger.error(`Fallback resource '${resource}' not found.`)
                 } else {
                     this.process(fallback, response)
                 }
