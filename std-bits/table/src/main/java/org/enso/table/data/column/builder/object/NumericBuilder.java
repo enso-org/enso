@@ -88,7 +88,7 @@ public class NumericBuilder extends TypedBuilder {
 
   @Override
   public void append(Object o) {
-    if (currentSize + 1 > data.length) {
+    if (currentSize >= data.length) {
       grow();
     }
     appendNoGrow(o);
