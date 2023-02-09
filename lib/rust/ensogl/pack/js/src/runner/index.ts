@@ -398,7 +398,7 @@ export class App {
 
     async showProgressIndicator() {
         this.progressIndicator = new wasm.ProgressIndicator(this.config, false)
-        this.progressIndicator.set(10)
+        this.progressIndicator.set(0.5)
         await Promise.all([
             this.progressIndicator.animateShow(),
             this.progressIndicator.animateShowLogo(),

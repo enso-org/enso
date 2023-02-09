@@ -368,42 +368,32 @@ define_themes! { [light:0, dark:1]
                 }
             }
         }
-        file_browser {
-            width  = 0.0,   0.0; // Should be updated when file browser will be implemented.
-            height = 421.0, 421.0;
-        }
-        open_dialog {
-            // Should be updated when file browser will be implemented.
-            gap_between_panels = 0.0, 0.0;
-        }
         project_list {
             width      = 202.0 , 202.0;
-            padding    = 16.0, 16.0;
             height     = 420.0, 420.0;
             background = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
-            text       = widget::list_view::text, widget::list_view::text;
             corners_radius = 16.0, 16.0;
-            text {
-                size    = 12.0, 12.0;
-            }
             bar {
-                height      = 45.0, 45.0;
+                height = 45.0, 45.0;
                 border_size = 1.0, 1.0;
                 border_color = Rgba(0.808,0.808,0.808,1.0)    , Rgba(0.808,0.808,0.808,1.0);
                 label {
-                    size  = 12.0, 12.0;
+                    padding = 16.0, 16.0;
+                    size = 12.0, 12.0;
                     color = Rgba(0.439,0.439,0.439,1.0), Rgba(0.439,0.439,0.439,1.0);
                 }
             }
             entry {
                 height = 25.0, 25.0;
                 corners_radius = application::project_list::corners_radius, application::project_list::corners_radius;
-                text_padding_left = 10.0, 10.0;
-                text_padding_bottom = 7.0, 7.0;
-                text_size = 12.0, 12.0;
-                text_color = Rgba::black(), Rgba::black();
                 selection_color = Rgba::transparent(), Rgba::transparent();
                 hover_color = Rgba(1.0, 1.0, 1.0, 0.1), Rgba(1.0, 1.0, 1.0, 0.1);
+                text {
+                    padding_left = 10.0, 10.0;
+                    padding_bottom = 7.0, 7.0;
+                    size = 12.0, 12.0;
+                    color = Rgba(0.439,0.439,0.439,1.0), Rgba(0.439,0.439,0.439,1.0);
+                }
             }
         }
 

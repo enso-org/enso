@@ -27,19 +27,18 @@ use ensogl_text as text;
 pub struct Style {
     width:            f32,
     height:           f32,
-    padding:          f32,
     background:       color::Rgba,
     corners_radius:   f32,
     #[theme_path = "theme::entry::height"]
     entry_height:     f32,
-    #[theme_path = "theme::text::size"]
-    text_size:        f32,
     #[theme_path = "theme::bar::height"]
     bar_height:       f32,
     #[theme_path = "theme::bar::border_size"]
     bar_border_size:  f32,
     #[theme_path = "theme::bar::border_color"]
     bar_border_color: color::Rgba,
+    #[theme_path = "theme::bar::label::padding"]
+    label_padding:    f32,
     #[theme_path = "theme::bar::label::size"]
     bar_label_size:   f32,
     #[theme_path = "theme::bar::label::color"]
@@ -51,12 +50,16 @@ pub struct Style {
 #[allow(missing_docs)]
 pub struct EntryStyle {
     corners_radius:      f32,
-    text_padding_left:   f32,
-    text_padding_bottom: f32,
-    text_size:           f32,
-    text_color:          color::Rgba,
     selection_color:     color::Rgba,
     hover_color:         color::Rgba,
+    #[theme_path = "theme::entry::text::padding_left"]
+    text_padding_left:   f32,
+    #[theme_path = "theme::entry::text::padding_bottom"]
+    text_padding_bottom: f32,
+    #[theme_path = "theme::entry::text::size"]
+    text_size:           f32,
+    #[theme_path = "theme::entry::text::color"]
+    text_color:          color::Rgba,
 }
 
 // =============
@@ -116,6 +119,8 @@ impl grid_view::Entry for View {
             selection_color <- style.update.map(|s| s.selection_color.into());
             text_padding_left <- style.update.map(|s| s.text_padding_left);
             text_padding_bottom <- style.update.map(|s| s.text_padding_bottom);
+            text_size <- style.update.map(|s| s.text_size);
+            text_color <- style.update.map(|s| color::Lcha::from(s.text_color));
 
             eval input.set_model((text) data.set_text(text.clone_ref()));
             contour <- input.set_size.map(|s| grid_view::entry::Contour::rectangular(*s));
@@ -123,10 +128,11 @@ impl grid_view::Entry for View {
             out.highlight_contour <+ contour.map2(&corners_radius, |c,r| c.with_corners_radius(*r));
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ selection_color;
-
             width <- input.set_size.map(|s| s.x);
             _eval <- all_with(&width, &text_padding_left, f!((w, p) data.text.set_x(-w / 2.0 + p)));
             eval text_padding_bottom((p) data.text.set_y(*p));
+            data.text.set_property_default <+ text_size.map(|s| text::Size(*s)).cloned_into_some();
+            data.text.set_property_default <+ text_color.cloned_into_some();
         }
         style.init.emit(());
         Self { data, frp }
@@ -220,7 +226,7 @@ impl ProjectList {
             width <- style.update.map(|s| s.width);
             height <- style.update.map(|s| s.height);
             bar_height <- style.update.map(|s| s.bar_height);
-            padding <- style.update.map(|s| s.padding);
+            label_padding <- style.update.map(|s| s.label_padding);
             label_color <- style.update.map(|s| s.bar_label_color);
             label_size <- style.update.map(|s| s.bar_label_size);
             corners_radius <- style.update.map(|s| s.corners_radius);
@@ -229,20 +235,20 @@ impl ProjectList {
             size <- all_with(&width, &height, |w, h|
                 Vector2(w + background::SHADOW_PX * 2.0,h + background::SHADOW_PX * 2.0)
             );
-            caption_xy <- all_with3(&width,&height,&padding,
+            grid_size <- all_with(&content_size, &bar_height, |s, h| s - Vector2(0.0, *h));
+            caption_xy <- all_with3(&width,&height,&label_padding,
                 |w,h,p| Vector2(-*w / 2.0 + *p, *h / 2.0 - p)
             );
-
+            eval caption_xy ((xy) caption.set_xy(*xy));
+            eval label_color((color) caption.set_property_default(color));
+            eval label_size((size)  caption.set_property_default(text::Size(*size)));
             _eval <- all_with(&width, &entry_height, f!((w, h) grid.set_entries_size(Vector2(*w, *h))));
-
-            grid_size <- all_with(&content_size, &bar_height, |size, height| size - Vector2(0.0, *height));
-            eval size       ((size)  background.set_size(*size););
+            eval size((size) background.set_size(*size););
             eval grid_size((size) grid.scroll_frp().resize(*size));
             eval corners_radius((r) grid.scroll_frp().set_corner_radius(*r));
-            _eval <- all_with(&content_size, &bar_height, f!((size, bar_height) grid.set_xy(Vector2(-size.x / 2.0, size.y / 2.0 - *bar_height))));
-            eval caption_xy ((xy)    caption.set_xy(*xy));
-            eval label_color      ((color) caption.set_property_default(color));
-            eval label_size ((size)  caption.set_property_default(text::Size(*size)));
+            grid_x <- content_size.map(|size| -size.x / 2.0);
+            grid_y <- all_with(&content_size, &bar_height, |s, h| s.y / 2.0 - *h);
+            _eval <- all_with(&grid_x, &grid_y, f!((x, y) grid.set_xy(Vector2(*x, *y))));
         }
         style.init.emit(());
         init.emit(());
