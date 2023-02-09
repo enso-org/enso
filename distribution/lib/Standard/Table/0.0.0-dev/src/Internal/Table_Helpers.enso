@@ -143,22 +143,27 @@ type Table_Column_Helper
          criterion on the list. If a single criterion's group has more than one
          element, their relative order is the same as in the input.
        - problem_builder: Encapsulates the aggregation of encountered problems.
-    select_columns_helper : Text | Vector | Column_Selector -> Boolean -> Problem_Builder -> Vector
+    select_columns_helper : Text | Integer |  Vector (Integer | Text | Column_Selector) -> Boolean -> Problem_Builder -> Vector
     select_columns_helper self selector reorder problem_builder = case selector of
-        _ : Text ->
-            self.select_columns_helper (Column_Selector.By_Name [selector]) reorder problem_builder
+        _ : Text -> self.select_columns_helper [selector] reorder problem_builder
+        _ : Integer -> self.select_columns_helper [selector] reorder problem_builder
         _ : Vector ->
-            self.select_columns_helper (Column_Selector.By_Name selector) reorder problem_builder
-        Column_Selector.By_Name names matcher ->
-            valid_names = validate_unique names (_->Nothing)
-            Matching.match_criteria_callback matcher self.internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
-        Column_Selector.By_Index indices ->
+
+            unique_names = validate_unique (selector.filter t-> t.is_a Text) _->Nothing
+
+
+
             good_indices = validate_indices self.internal_columns.length indices problem_builder . map .first
             case reorder of
                 True ->
                     select_indices_reordering self.internal_columns good_indices
                 False ->
                     select_indices_preserving_order self.internal_columns good_indices
+
+            self.select_columns_helper (Column_Selector.By_Name selector) reorder problem_builder
+        Column_Selector.By_Name names case_sensitivity use_regex ->
+            valid_names = validate_unique names (_->Nothing)
+            Matching.match_criteria_callback matcher self.internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
         Column_Selector.Blank_Columns when_any treat_nans_as_blank -> if self.internal_columns.is_empty then [] else
             blanks = self.internal_columns.map_with_index ix-> internal_column->
                 column = self.make_column internal_column
@@ -209,7 +214,7 @@ type Table_Column_Helper
 
        It may allow selection of columns by index, name or computing a derived
        expression.
-    resolve_column_or_expression : (Integer | Text | Column) -> Problem_Builder -> Any | Nothing
+    resolve_column_or_expression : (Integer | Text) -> Problem_Builder -> Any | Nothing
     resolve_column_or_expression self selector problem_builder = case selector of
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
@@ -224,9 +229,6 @@ type Table_Column_Helper
             False ->
                 problem_builder.report_oob_indices [selector]
                 Nothing
-        ## A wildcard to match any backend's column.
-        _ ->
-            self.resolve_column_or_expression selector.name problem_builder=problem_builder
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
