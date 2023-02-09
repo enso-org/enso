@@ -21,6 +21,8 @@ type T_Comparator
     compare t1 t2 = Comparable.from t1.a . compare t1.a t2.a
     hash t = Comparable.from t.a . hash t.a
 
+Comparable.from (_:T) = T_Comparator
+
 type My_Error
     Value a
 
