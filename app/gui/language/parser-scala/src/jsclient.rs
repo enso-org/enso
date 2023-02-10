@@ -4,11 +4,6 @@ use crate::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use crate::api;
-use crate::api::Ast;
-use crate::from_json_str_without_recursion_limit;
-
-use ast::id_map::JsonIdMap;
-use ast::IdMap;
 
 
 
@@ -44,10 +39,6 @@ impl From<JsValue> for Error {
 #[wasm_bindgen(module = "/pkg/scala-parser.js")]
 extern "C" {
     #[wasm_bindgen(catch)]
-    fn parse(input: String, ids: String) -> std::result::Result<String, JsValue>;
-    #[wasm_bindgen(catch)]
-    fn parse_with_metadata(content: String) -> std::result::Result<String, JsValue>;
-    #[wasm_bindgen(catch)]
     fn doc_parser_generate_html_source(content: String) -> std::result::Result<String, JsValue>;
     #[wasm_bindgen(catch)]
     fn doc_parser_generate_html_from_doc(content: String) -> std::result::Result<String, JsValue>;
@@ -63,31 +54,6 @@ impl Client {
     /// Creates a `Client`.
     pub fn new() -> Result<Client> {
         Ok(Client {})
-    }
-
-    /// Parses Enso code with JS-based parser.
-    pub fn parse(&self, program: String, ids: IdMap) -> api::Result<Ast> {
-        let ast = || {
-            let ids = JsonIdMap::from_id_map(&ids, &program.clone().into());
-            let json_ids = serde_json::to_string(&ids)?;
-            let json_ast = parse(program, json_ids)?;
-            let ast = from_json_str_without_recursion_limit(&json_ast)?;
-            Result::Ok(ast)
-        };
-        Ok(ast()?)
-    }
-
-    /// Parses Enso code with metadata.
-    pub fn parse_with_metadata<M: api::Metadata>(
-        &self,
-        program: String,
-    ) -> api::Result<api::ParsedSourceFile<M>> {
-        let result = || {
-            let json = &parse_with_metadata(program)?;
-            let module = from_json_str_without_recursion_limit(json)?;
-            Result::Ok(module)
-        };
-        Ok(result()?)
     }
 
     /// Calls JS doc parser to generate HTML from documented Enso code.

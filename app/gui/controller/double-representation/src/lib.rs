@@ -65,11 +65,6 @@ pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_profiler as profiler;
     pub use enso_profiler::prelude::*;
-
-    #[cfg(test)]
-    pub use wasm_bindgen_test::wasm_bindgen_test;
-    #[cfg(test)]
-    pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
 
 
@@ -206,7 +201,7 @@ mod tests {
     use crate::definition::DefinitionProvider;
 
     use ast::macros::DocumentationCommentInfo;
-    use parser_scala::Parser;
+    use parser::Parser;
 
 
     /// Expect `main` method, where first line is a documentation comment.
@@ -229,9 +224,9 @@ mod tests {
         assert_eq!(doc.line().repr(), doc2.line().repr())
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn parse_single_line_comment() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
 
         // Typical single line case.
         let code = r#"
@@ -266,15 +261,15 @@ main =
         run_case(&parser, code, expected);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn parse_multi_line_comment() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let code = r#"
 main =
     ## First line
        Second line
     node"#;
-        let expected = " First line\n Second line";
+        let expected = " First line\nSecond line";
         run_case(&parser, code, expected);
     }
 }
