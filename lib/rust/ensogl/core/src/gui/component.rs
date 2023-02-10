@@ -168,8 +168,6 @@ impl<S: Shape> ShapeViewModel<S> {
                 self.add_to_scene_layer(scene, &layer)
             }
         } else {
-            // Bug in clippy: https://github.com/rust-lang/rust-clippy/issues/9763
-            #[allow(clippy::explicit_auto_deref)]
             let (shape, _) = scene.layers.DETACHED.instantiate(&*self.data.borrow());
             self.shape.swap(&shape);
         }
@@ -189,8 +187,6 @@ impl<S: Shape> ShapeViewModel<S> {
 }
 
 impl<S: Shape> ShapeViewModel<S> {
-    // Clippy error: https://github.com/rust-lang/rust-clippy/issues/9763
-    #[allow(clippy::explicit_auto_deref)]
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
         let (shape, instance) = layer.instantiate(&*self.data.borrow());
         scene.pointer_target_registry.insert(instance.global_instance_id, self.events.clone_ref());
@@ -200,8 +196,6 @@ impl<S: Shape> ShapeViewModel<S> {
 }
 
 impl<S: Shape> ShapeViewModel<S> {
-    // Clippy error: https://github.com/rust-lang/rust-clippy/issues/9763
-    #[allow(clippy::explicit_auto_deref)]
     fn unregister_existing_mouse_targets(&self) {
         for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
             scene().pointer_target_registry.remove(global_instance_id);
