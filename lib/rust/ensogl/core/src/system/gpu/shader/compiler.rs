@@ -105,7 +105,7 @@ impl<T> Job<T> {
 
     /// Return whether the job has been cancelled (by its handle being dropped).
     fn is_cancelled(&self) -> bool {
-        self.handle.as_ref().map(|| !handle.exists()).unwrap_or_default()
+        self.handle.as_ref().map(|handle| !handle.exists()).unwrap_or_default()
     }
 }
 
