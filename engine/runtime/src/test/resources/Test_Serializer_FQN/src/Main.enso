@@ -1,0 +1,4 @@
+import Standard.Base
+main =
+    Standard.Base.Data.Time.Date.Date.now
+    1
