@@ -30,7 +30,7 @@ pub const DISABLING_COMMENT_INTRODUCER: &str = "#";
 pub const DOCUMENTATION_COMMENT_INTRODUCER: &str = "##";
 
 /// The keyword introducing an qualified import declaration. See:
-/// https://dev.enso.org/docs/enso/syntax/imports.html#import-syntax
+/// https://enso.org/docs/developer/enso/syntax/imports.html#import-syntax
 pub const QUALIFIED_IMPORT_KEYWORD: &str = "import";
 
 /// The keyword introducing an unqualified import declaration.
