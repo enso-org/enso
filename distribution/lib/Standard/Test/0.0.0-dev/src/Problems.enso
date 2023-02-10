@@ -75,6 +75,9 @@ assume_no_problems result =
     (get_attached_warnings result).should_equal []
 
 ## UNSTABLE
+   Checks if the provided value has a warning of the specified type.
+
+   It allows other warnings to be present also.
 expect_warning : Any -> Any -> Nothing
 expect_warning expected_warning_type result =
     warnings = get_attached_warnings result

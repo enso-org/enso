@@ -908,6 +908,7 @@ make_text_case_op left op other case_sensitivity =
             ci_other = if other.is_a Column then other.make_unary_op "FOLD_CASE" else other.to_case Case.Lower
             left.make_unary_op "FOLD_CASE" . make_binary_op op ci_other new_type=SQL_Type.boolean
 
+## PRIVATE
 make_equality_check_with_floating_point_handling column other op on_problems =
     other_name = case other of
         other_column : Column -> "["+other_column.name+"]"

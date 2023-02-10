@@ -607,7 +607,7 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
-    set : Column | Text -> Text | Nothing -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set : Column | Text -> Text | Nothing -> Problem_Behavior -> Table ! Unsupported_Name | Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.compute column on_problems
