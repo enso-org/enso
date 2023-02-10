@@ -229,7 +229,7 @@ mod test {
                     let change = enso_text::Change { range, text: inserted_code.to_string() };
                     Case { code, change }
                 }
-                _ => panic!("Invalid markdown in the marked code: {}.", marked_code),
+                _ => panic!("Invalid markdown in the marked code: {marked_code}."),
             }
         }
 
@@ -259,7 +259,7 @@ mod test {
             let ids2 = main_nodes(ast2);
             debug!("IDs1: {ids1:?}");
             debug!("IDs2: {ids2:?}");
-            assert_eq!(ids1, ids2, "Node ids mismatch in {:?}", self);
+            assert_eq!(ids1, ids2, "Node ids mismatch in {self:?}");
         }
     }
 

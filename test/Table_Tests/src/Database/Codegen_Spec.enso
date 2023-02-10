@@ -45,7 +45,7 @@ spec =
     Test.group "[Codegen] Basic Select" <|
         Test.specify "should select columns from a table" <|
             t1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            t2 = t1.select_columns (Column_Selector.By_Name ["C", "B", "undefined"]) reorder=True
+            t2 = t1.select_columns (Column_Selector.By_Name ["C", "B", "undefined"]) reorder=True error_on_missing_columns=False
             t2.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B" FROM "T1" AS "T1"', []]
 
             foo = t1.at "A" . rename "FOO"

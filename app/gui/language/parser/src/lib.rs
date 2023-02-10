@@ -92,7 +92,7 @@ impl Parser {
 
     /// Obtains a default parser implementation, panicking in case of failure.
     pub fn new_or_panic() -> Parser {
-        Parser::new().unwrap_or_else(|e| panic!("Failed to create a parser: {:?}", e))
+        Parser::new().unwrap_or_else(|e| panic!("Failed to create a parser: {e:?}"))
     }
 
     /// Parse program.
@@ -208,7 +208,7 @@ impl DocParser {
 
     /// Obtains a default doc parser implementation, panicking in case of failure.
     pub fn new_or_panic() -> DocParser {
-        DocParser::new().unwrap_or_else(|e| panic!("Failed to create doc parser: {:?}", e))
+        DocParser::new().unwrap_or_else(|e| panic!("Failed to create doc parser: {e:?}"))
     }
 
     /// Parses program with documentation and generates HTML code.

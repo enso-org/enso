@@ -11,8 +11,8 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
@@ -49,11 +49,11 @@ public abstract class HashMapRemoveNode extends Node {
   )
   EnsoHashMap removeFromInteropMap(Object map, Object keyToRemove,
       @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Cached HashCodeAnyNode hashCodeNode,
-      @Cached EqualsAnyNode equalsNode) {
+      @Cached HashCodeNode hashCodeNode,
+      @Cached EqualsNode equalsNode) {
     // We cannot simply call interop.isHashEntryExisting, because it would, most likely
     // use the default `hashCode` and `equals` Java methods. But we need to use our
-    // EqualsAnyNode, so we do the check for non-existing key inside the while loop.
+    // EqualsNode, so we do the check for non-existing key inside the while loop.
     boolean keyToRemoveFound = false;
     var mapBuilder = EnsoHashMapBuilder.create(hashCodeNode, equalsNode);
     try {

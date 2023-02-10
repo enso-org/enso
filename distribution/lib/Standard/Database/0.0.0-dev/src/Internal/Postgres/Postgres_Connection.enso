@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.Illegal_State.Illegal_State
 
 from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
 
 import Standard.Table.Data.Table.Table as Materialized_Table
@@ -51,7 +52,7 @@ type Postgres_Connection
 
        Arguments:
         - database: The name of the database to connect to.
-    @database (self-> Single_Choice display=Display.Always values=(self.databases . map .pretty))
+    @database (self-> Single_Choice display=Display.Always values=(self.databases . map d-> Option d d.pretty))
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database == self.database then self else
@@ -69,7 +70,7 @@ type Postgres_Connection
 
        Arguments:
         - schema: The name of the schema to connect to.
-    @schema (self-> Single_Choice display=Display.Always values=(self.schemas . map .pretty))
+    @schema (self-> Single_Choice display=Display.Always values=(self.schemas . map s-> Option s s.pretty))
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
         if schema == self.schema then self else
@@ -87,7 +88,7 @@ type Postgres_Connection
        - schema: The schema name to search in (defaults to current schema).
        - types: The table types to search for. The list of values can be obtained using the `table_types` method.
        - all_fields: Return all the fields in the metadata table.
-    @types (self-> Single_Choice values=(self.table_types.map .pretty))
+    @types (self-> Single_Choice values=(self.table_types.map t-> Option t t.pretty))
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         self.connection.tables name_like database schema types all_fields
@@ -98,7 +99,7 @@ type Postgres_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
-    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map .pretty))
+    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
     query : Text | SQL_Query -> Text -> Database_Table
     query self query alias="" = self.connection.query query alias
 
@@ -108,7 +109,7 @@ type Postgres_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
-    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map .pretty))
+    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing = self.connection.read query limit
 

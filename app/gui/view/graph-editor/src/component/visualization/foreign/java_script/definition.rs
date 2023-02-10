@@ -130,9 +130,9 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Error::InvalidFunction(value) =>
-                f.write_fmt(format_args!("Provided value is not a valid function: {:?}", value)),
+                f.write_fmt(format_args!("Provided value is not a valid function: {value:?}")),
             Error::InvalidClass(value) =>
-                f.write_fmt(format_args!("Provided value is not a valid class: {:?}", value)),
+                f.write_fmt(format_args!("Provided value is not a valid class: {value:?}")),
         }
     }
 }

@@ -15,12 +15,16 @@ from project.Common_Table_Operations.Util import expect_column_names, run_defaul
 type My_Type
     Value x y
 
-    compare_to self other = case other of
-        My_Type.Value ox oy ->
-            self.x+self.y . compare_to ox+oy
-        _ -> Ordering.Less
+type My_Type_Comparator
+    is_ordered = True
+    
+    compare my_1 my_2 =
+        comp = Comparable.from my_1.x
+        comp.compare (my_1.x + my_1.y) (my_2.x + my_2.y)
+    
+    hash my_type = Comparable.from my_type.x . hash (my_type.x + my_type.y)
 
-    == self other = self.compare_to other == Ordering.Equal
+Comparable.from (_:My_Type) = My_Type_Comparator
 
 main = run_default_backend spec
 
@@ -299,6 +303,10 @@ spec setup =
                will be more useful, so I'd prioritize it.
             r1.should_fail_with Missing_Input_Columns.Error
             r1.catch.criteria.should_equal ["foo", "baz"]
+
+            r2 = t1.join t2 on=[Join_Condition.Equals 42 0] on_problems=Problem_Behavior.Ignore
+            r2.should_fail_with Column_Indexes_Out_Of_Range.Error
+            r2.catch.indexes.should_equal [42]
 
         Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
             t1 = table_builder [["X", ["1", "2", "c"]], ["Y", [1, 2, 3]]]

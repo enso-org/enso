@@ -22,7 +22,7 @@ spec setup =
     order_by_pending = if test_selection.order_by.not then
         "TODO: order_by is not yet supported by this backend."
     Test.group prefix+"Table.order_by" pending=order_by_pending <|
-        table =
+        mk_table =
             col1 = ["alpha", [3, 2, 1, 0]]
             col2 = ["beta", ["a", "b", "a", "b"]]
             col3 = ["gamma", [1, 2, 3, 4]]
@@ -34,6 +34,7 @@ spec setup =
             col9 = ["tau", [32.0, 0.5, -0.1, 1.6]]
             col10 = ["rho", ["BB", Nothing, Nothing, "B"]]
             table_builder [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10]
+        table = mk_table
 
         Test.specify "should work as shown in the doc examples" <|
             t1 = table.order_by ["alpha"]
@@ -83,10 +84,15 @@ spec setup =
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = [0, 100, Sort_Column.Index -200, Sort_Column.Index 300]
+            expected_problem = Column_Indexes_Out_Of_Range.Error [100, -200, 300]
             t1 = table.order_by selector
             t1.should_fail_with Column_Indexes_Out_Of_Range
-            t1.catch . should_equal <|
-                Column_Indexes_Out_Of_Range.Error [100, -200, 300]
+            t1.catch . should_equal expected_problem
+
+            action = table.order_by selector error_on_missing_columns=False on_problems=_
+            tester table =
+                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            Problems.test_problem_handling action [expected_problem] tester
 
         Test.specify "should correctly handle edge-cases: duplicate selectors" <|
             selector1 = ["alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]
@@ -130,27 +136,18 @@ spec setup =
             t2.at "beta" . to_vector . should_equal ["b", "a", "b", "a"]
             t2.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-        Test.specify "should work correctly with shorthands" pending="The last test case does not work currently. We want to get rid of Sort_Column_Selector and use a vector directly. TODO" <|
-            t1 = table.order_by "alpha"
-            t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
-            t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-
-            t2 = table.order_by (Sort_Column.Index 0)
-            t2.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
-            t2.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-
-            t3 = table.order_by [Sort_Column.Index 1, Sort_Column.Name "gamma" Sort_Direction.Descending]
-            t3.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
-            t3.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
-            t3.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
-
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
             selector = [Sort_Column.Name "alpha", "hmm", Sort_Column.Name weird_name]
+            expected_problem = Missing_Input_Columns.Error ["hmm", weird_name]
             t1 = table.order_by selector
             t1.should_fail_with Missing_Input_Columns
-            t1.catch . should_equal <|
-                Missing_Input_Columns.Error ["hmm", weird_name]
+            t1.catch . should_equal expected_problem
+
+            action = table.order_by selector error_on_missing_columns=False on_problems=_
+            tester table =
+                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            Problems.test_problem_handling action [expected_problem] tester
 
         Test.specify "should report a problem if no columns are selected for ordering" <|
             t2 = table.order_by []
