@@ -40,7 +40,6 @@ public final class UnresolvedConversion implements TruffleObject {
    * is returned. This is useful for certain subtyping relations, such as "any constructor is a
    * subtype of Any" or "Nat is a subtype of Int, is a subtype of Number".
    *
-   * @param constructors the constructors hierarchy for which this symbol should be resolved
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(Type into, Type from) {

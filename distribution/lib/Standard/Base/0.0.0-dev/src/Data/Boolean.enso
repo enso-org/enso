@@ -1,5 +1,7 @@
 import project.Any.Any
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Default_Ordered_Comparator
 import project.Nothing.Nothing
 
 from project.Data.Boolean.Boolean import True, False
@@ -55,19 +57,6 @@ type Boolean
     not : Boolean
     not self = @Builtin_Method "Boolean.not"
 
-    ## Compares the two operands to determine the ordering of this with
-       respect to that.
-
-       Arguments:
-       - that: The operand to order this with respect to.
-
-       > Example
-         Computing the ordering of True and False
-
-             True.compare_to False
-    compare_to : Boolean -> Ordering
-    compare_to self that = @Builtin_Method "Boolean.compare_to"
-
     ## The if-then-else control flow operator that executes one of two branches
        based on a conditional.
 
@@ -100,3 +89,6 @@ type Boolean
              if (27 % 3) == 0 then IO.println "Fizz"
     if_then : Any -> Any | Nothing
     if_then self ~on_true = @Builtin_Method "Boolean.if_then"
+
+
+Comparable.from (_:Boolean) = Default_Ordered_Comparator

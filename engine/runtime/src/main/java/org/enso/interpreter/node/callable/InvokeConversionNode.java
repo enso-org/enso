@@ -63,6 +63,13 @@ public abstract class InvokeConversionNode extends BaseNode {
     this.invokeFunctionNode.setTailStatus(tailStatus);
   }
 
+  /**
+   * @param self A target of the conversion. Should be a {@link Type} on which the {@code from}
+   *     method is defined. If it is not a {@link Type}, "Invalid conversion target" panic is
+   *     thrown.
+   * @param that Source of the conversion. Can be arbitrary object, including polyglot values.
+   * @param arguments Additional arguments passed to the conversion function.
+   */
   public abstract Object execute(
       VirtualFrame frame,
       State state,
@@ -194,6 +201,131 @@ public abstract class InvokeConversionNode extends BaseNode {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
     }
+  }
+
+  @Specialization(
+      guards = {
+        "!typesLib.hasType(that)",
+        "!typesLib.hasSpecialDispatch(that)",
+        "!interop.isTime(that)",
+        "interop.isDate(that)",
+      })
+  Object doConvertDate(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+        conversionResolverNode.expectNonNull(
+            that, extractConstructor(self), EnsoContext.get(this).getBuiltins().date(), conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(
+      guards = {
+        "!typesLib.hasType(that)",
+        "!typesLib.hasSpecialDispatch(that)",
+        "interop.isTime(that)",
+        "!interop.isDate(that)",
+      })
+  Object doConvertTime(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+        conversionResolverNode.expectNonNull(
+            that,
+            extractConstructor(self),
+            EnsoContext.get(this).getBuiltins().timeOfDay(),
+            conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(
+      guards = {
+        "!typesLib.hasType(that)",
+        "!typesLib.hasSpecialDispatch(that)",
+        "interop.isTime(that)",
+        "interop.isDate(that)",
+      })
+  Object doConvertDateTime(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+        conversionResolverNode.expectNonNull(
+            that,
+            extractConstructor(self),
+            EnsoContext.get(this).getBuiltins().dateTime(),
+            conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(
+      guards = {
+        "!typesLib.hasType(that)",
+        "!typesLib.hasSpecialDispatch(that)",
+        "interop.isDuration(that)",
+      })
+  Object doConvertDuration(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+        conversionResolverNode.expectNonNull(
+            that,
+            extractConstructor(self),
+            EnsoContext.get(this).getBuiltins().duration(),
+            conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(
+      guards = {
+        "!typesLib.hasType(thatMap)",
+        "!typesLib.hasSpecialDispatch(thatMap)",
+        "interop.hasHashEntries(thatMap)",
+      })
+  Object doConvertMap(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object thatMap,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+        conversionResolverNode.expectNonNull(
+            thatMap,
+            extractConstructor(self),
+            EnsoContext.get(this).getBuiltins().map(),
+            conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
