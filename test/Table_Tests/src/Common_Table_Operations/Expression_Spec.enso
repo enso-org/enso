@@ -322,3 +322,27 @@ spec detailed setup =
                 column.to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
             problems1 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
             Problems.test_problem_handling action1 problems1 tester1
+
+        Test.specify "already existing warnings should not be escalated to errors in error handling mode" <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+            c1 = t1.compute "3 / [X]" on_problems=Problem_Behavior.Report_Warning
+            Problems.expect_warning Arithmetic_Error c1
+
+            t2 = t1.set c1 new_name="Y"
+            Problems.expect_warning Arithmetic_Error t2
+            Problems.expect_warning Arithmetic_Error (t2.at "Y")
+
+            c2 = t2.compute "[Y] >= 42.0" on_problems=Problem_Behavior.Report_Error
+            Problems.expect_warning Arithmetic_Error c2
+            c2.to_vector . should_equal [False, False, True]
+
+            c3 = t2.compute "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
+            c3.should_fail_with Floating_Point_Equality
+
+            t3 = t2.set 'if [Y] == 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t3.should_fail_with Floating_Point_Equality
+
+            t4 = t2.set 'if [Y] >= 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t4.at "Z" . to_vector . should_equal ["B", "B", "A"]
+            # Should still keep the inherited warning from "Y".
+            Problems.expect_warning Arithmetic_Error t4
