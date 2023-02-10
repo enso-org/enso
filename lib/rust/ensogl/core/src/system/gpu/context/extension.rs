@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 use crate::system::gpu::data::GlEnum;
 
-use web_sys::WebGl2RenderingContext;
+use web_sys::{WebGl2RenderingContext, WebGlShader};
 use web_sys::WebGlProgram;
 
 
@@ -68,11 +68,21 @@ impl KhrParallelShaderCompile {
 
     /// Asynchronously check if the job is ready. Returns [`None`] if it was impossible to get this
     /// information. This can happen during context loss or driver failure.
-    pub fn is_ready(
+    pub fn is_program_ready(
         &self,
         context: &WebGl2RenderingContext,
         program: &WebGlProgram,
     ) -> Option<bool> {
         context.get_program_parameter(program, *self.completion_status_khr).as_bool()
+    }
+
+    /// Asynchronously check if the job is ready. Returns [`None`] if it was impossible to get this
+    /// information. This can happen during context loss or driver failure.
+    pub fn is_shader_ready(
+        &self,
+        context: &WebGl2RenderingContext,
+        program: &WebGlShader,
+    ) -> Option<bool> {
+        context.get_shader_parameter(program, *self.completion_status_khr).as_bool()
     }
 }

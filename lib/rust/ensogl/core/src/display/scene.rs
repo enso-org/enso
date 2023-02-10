@@ -813,7 +813,11 @@ impl SceneData {
         self.dirty.shape.set();
         self.renderer.set_context(context);
         if let Some(context) = context {
-            for code in self.persistent_shaders.iter().cloned() {
+            for code in self.persistent_shaders.iter() {
+                let code = shader::Sources {
+                    fragment: Some(code.fragment.clone()),
+                    vertex: None,
+                };
                 context.shader_compiler.submit_background_job(code);
             }
         }

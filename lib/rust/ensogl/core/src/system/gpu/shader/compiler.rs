@@ -67,7 +67,8 @@ const FRAME_TIME_THRESHOLD: Duration = (1000.0 / FPS_THRESHOLD).ms();
 /// a crude form of backpressure by blocking until all pending jobs complete. We are not sure if it
 /// is a feature or a bug. To learn more about our findings so far, see:
 /// https://github.com/enso-org/enso/pull/3378#issuecomment-1090958946
-const MAX_PARALLEL_COMPILE_JOBS: usize = 2;
+//const MAX_PARALLEL_COMPILE_JOBS: usize = 2;
+const MAX_PARALLEL_COMPILE_JOBS: usize = 1000;
 
 
 
@@ -147,16 +148,16 @@ impl WeakJobHandle {
 
 
 
-// ==================
-// === KhrProgram ===
-// ==================
+// ===============
+// === WithKhr ===
+// ===============
 
 /// A program together with the [`KhrParallelShaderCompile`] extension. Used as one of the
 /// [`Compiler`] jobs to provide nice API.
 #[derive(Debug)]
-struct KhrProgram {
+struct WithKhr<T> {
     khr:     KhrParallelShaderCompile,
-    program: shader::Program,
+    program: T,
 }
 
 
@@ -182,11 +183,12 @@ pub enum Progress {
 /// Compiler job queues. See the documentation of [`Compiler`] to learn more.
 #[derive(Debug, Default)]
 pub struct Jobs {
-    compile:              Vec<Job<shader::Code>>,
-    link:                 Vec<Job<shader::CompiledCode>>,
-    read_cache:           Vec<Job<()>>,
-    khr_completion_check: Vec<Job<KhrProgram>>,
-    link_check:           Vec<Job<shader::Program>>,
+    compile:       Vec<Job<shader::Sources<Option<String>, Option<String>>>>,
+    compile_poll:  Vec<Job<WithKhr<web_sys::WebGlShader>>>,
+    compile_check: Vec<Job<web_sys::WebGlShader>>,
+    link:          Vec<Job<shader::CompiledCode>>,
+    link_poll:     Vec<Job<WithKhr<shader::Program>>>,
+    link_check:    Vec<Job<shader::Program>>,
 }
 
 /// Compiles and links GL shader programs, asynchronously. The compiler works in the following way:
@@ -223,6 +225,7 @@ struct CompilerData {
     jobs:        Jobs,
     cache:       ShaderCache,
     performance: web::Performance,
+    callbacks:   Vec<DeferredCallback>,
 }
 
 impl Compiler {
@@ -233,7 +236,7 @@ impl Compiler {
 
     /// Submit shader for compilation. The job will be cancelled if the returned handle is dropped.
     #[must_use]
-    pub fn submit<F: 'static + Fn(shader::Program)>(
+    pub fn submit<F: 'static + FnOnce(shader::Program)>(
         &self,
         input: shader::Code,
         profiler: profiler::Debug,
@@ -241,13 +244,13 @@ impl Compiler {
     ) -> JobHandle {
         let strong_handle = JobHandle::new();
         let handle = strong_handle.downgrade();
-        let on_ready = Box::new(on_ready);
-        self.cell.borrow_mut().submit(input, profiler, Some(on_ready), Some(handle));
+        let on_ready: Box<dyn FnOnce(shader::Program)> = Box::new(on_ready);
+        self.cell.borrow_mut().submit(input.into(), profiler, on_ready.into(), handle.into());
         strong_handle
     }
 
     /// Submit a shader for compilation, without awaiting its completion.
-    pub fn submit_background_job(&self, input: shader::Code) {
+    pub fn submit_background_job(&self, input: shader::Sources<Option<String>, Option<String>>) {
         let profiler = profiler::create_debug!("submit_background_job");
         self.cell.borrow_mut().submit(input, profiler, None, None);
     }
@@ -275,18 +278,18 @@ impl CompilerData {
         let jobs = default();
         let cache = default();
         let performance = web::window.performance_or_panic();
-        Self { dirty, context, jobs, cache, performance }
+        let callbacks = default();
+        Self { dirty, context, jobs, cache, performance, callbacks }
     }
 
     fn submit(
         &mut self,
-        input: shader::Code,
+        input: shader::Sources<Option<String>, Option<String>>,
         profiler: profiler::Debug,
         on_ready: Option<Box<dyn FnOnce(shader::Program)>>,
         handle: Option<WeakJobHandle>,
     ) {
         let cache_key = ShaderCache::code_key(&input);
-
         match self.cache.get_program(cache_key) {
             Some(ProgramCacheEntry::Submitted) => {
                 debug!("Awaiting shader compilation {cache_key:?}.");
@@ -296,17 +299,17 @@ impl CompilerData {
                 self.cache.add_to_waiting_list(job);
                 self.dirty = true;
             }
-            Some(ProgramCacheEntry::Validated(_)) => {
+            Some(ProgramCacheEntry::Validated(program)) => {
                 debug!("Reusing cached shader {cache_key:?}.");
-                // This shader has been successfully compiled in the past. Spawn a cache lookup job,
-                // so that `on_ready` callback is will be called from within the job runner during
-                // next processing round.
-                let job = Job { input: (), handle, on_ready, profiler, cache_key };
-                self.jobs.read_cache.push(job);
-                self.dirty = true;
+                // This shader has been successfully compiled in the past. Queue the `on_ready`
+                // callback to be called from within the job runner during next processing round.
+                if let Some(callback) = on_ready {
+                    let program = program.clone();
+                    self.callbacks.push(DeferredCallback { callback, program })
+                }
             }
             Some(ProgramCacheEntry::Failed) => {
-                debug!("Submitted a shader that previously failed to compile {cache_key:?}.");
+                warn!("Submitted a shader that previously failed to compile {cache_key:?}.");
                 // This shader failed to compile in the past. Don't spawn any job, as the `on_ready`
                 // callback is never supposed to be called anyway when the compilation fails.
 
@@ -325,7 +328,9 @@ impl CompilerData {
     #[profile(Debug)]
     fn run(&mut self, time: animation::TimeInfo) -> bool {
         let mut any_new_shaders_ready = false;
-        self.run_khr_completion_check_jobs();
+        any_new_shaders_ready = self.run_callbacks() || any_new_shaders_ready;
+        self.poll_shaders_ready();
+        self.poll_programs_ready();
         while self.dirty {
             match self.run_step() {
                 Ok(progress) => {
@@ -356,8 +361,7 @@ impl CompilerData {
     }
 
     /// Runs the next compiler job if there is any left and if it will not cause too many jobs being
-    /// run in parallel. The result [`bool`] indicates if the call to this function did any
-    /// progress.
+    /// run in parallel. The result indicates if the call to this function made any progress.
     fn run_step(&mut self) -> Result<Option<Progress>, Error> {
         let ok_progress = |_| Ok(Some(Progress::StepProgress));
         let no_progress = Ok(None);
@@ -370,10 +374,7 @@ impl CompilerData {
                 self.run_next_link_check_job()?;
                 Ok(Some(Progress::NewShaderReady))
             }
-            _ if !jobs.read_cache.is_empty() => {
-                self.run_next_read_cache_job()?;
-                Ok(Some(Progress::NewShaderReady))
-            }
+            _ if !jobs.compile_check.is_empty() => ok_progress(self.run_next_compile_check_job()?),
             _ => {
                 if max_jobs {
                     if !jobs.compile.is_empty() {
@@ -381,7 +382,7 @@ impl CompilerData {
                         let msg2 = "Skipping spawning new ones.";
                         trace!("{msg1} {msg2}");
                     }
-                } else if jobs.khr_completion_check.is_empty() {
+                } else if jobs.compile_poll.is_empty() && jobs.link_poll.is_empty() {
                     trace!("All shaders compiled.");
                     self.dirty = false;
                 }
@@ -395,28 +396,32 @@ impl CompilerData {
     /// it is costly and can prevent the parallelism altogether. To learn more, see:
     /// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#dont_check_shader_compile_status_unless_linking_fails
     fn current_parallel_job_count(&self) -> usize {
-        self.jobs.link.len() + self.jobs.khr_completion_check.len() + self.jobs.link_check.len()
+        [
+            self.jobs.compile.len(),
+            self.jobs.compile_poll.len(),
+            self.jobs.compile_check.len(),
+            self.jobs.link.len(),
+            self.jobs.link_poll.len(),
+            self.jobs.link_check.len(),
+        ]
+        .iter()
+        .sum()
     }
 
     #[profile(Debug)]
-    fn run_khr_completion_check_jobs(&mut self) {
-        trace!("Running KHR parallel shader compilation check job.");
-        let jobs = &mut self.jobs.khr_completion_check;
-        let ready_jobs =
-            jobs.drain_filter(|job| match job.khr.is_ready(&self.context, &job.program) {
-                Some(val) => val,
-                None => {
-                    if !self.context.is_context_lost() {
-                        reportable_warn!(
-                            "context.getProgramParameter returned non-bool value for KHR Parallel \
-                            Shader Compile status check. This should never happen, however, it \
-                            should not cause visual artifacts. Reverting to non-parallel mode."
-                        );
-                    }
-                    true
-                }
-            });
+    fn poll_programs_ready(&mut self) {
+        let ready_jobs = self.jobs.link_poll.drain_filter(|job| {
+            job.khr.is_program_ready(&self.context, &job.program).unwrap_or(true)
+        });
         self.jobs.link_check.extend(ready_jobs.map(|job| job.map_input(|t| t.program)));
+    }
+
+    #[profile(Debug)]
+    fn poll_shaders_ready(&mut self) {
+        let ready_jobs = self.jobs.compile_poll.drain_filter(|job| {
+            job.khr.is_shader_ready(&self.context, &job.program).unwrap_or(true)
+        });
+        self.jobs.compile_check.extend(ready_jobs.map(|job| job.map_input(|t| t.program)));
     }
 
     #[allow(unused_parens)]
@@ -424,21 +429,62 @@ impl CompilerData {
         self.with_next_job("shader compilation", (|t| &mut t.jobs.compile), |this, job| {
             let profiler = job.profiler;
             profiler.resume();
-            let vertex = this.cache.get_or_insert_vertex_shader(job.cache_key, || {
-                CompilerData::compile_shader(&this.context, Vertex, job.input.vertex)
-            })?;
-            let fragment = this.cache.get_or_insert_fragment_shader(job.cache_key, || {
-                CompilerData::compile_shader(&this.context, Fragment, job.input.fragment)
-            })?;
+            let vertex = job.input.vertex.and_then(|code| {
+                this.cache.get_or_insert_vertex_shader(job.cache_key, || {
+                    CompilerData::compile_shader(&this.context, Vertex, code)
+                })
+            });
+            let fragment = job.input.fragment.and_then(|code| {
+                this.cache.get_or_insert_fragment_shader(job.cache_key, || {
+                    CompilerData::compile_shader(&this.context, Fragment, code)
+                })
+            });
             profiler.pause();
-            let input = shader::Sources { vertex, fragment };
-            let handle = job.handle;
-            let on_ready = job.on_ready;
-            let cache_key = job.cache_key;
-            let link_job = Job { input, handle, on_ready, profiler, cache_key };
-            this.jobs.link.push(link_job);
+            let vertex = match vertex {
+                Some(vertex) => Some(vertex?),
+                None => None,
+            };
+            let fragment = match fragment {
+                Some(fragment) => Some(fragment?),
+                None => None,
+            };
+            match (vertex, fragment) {
+                (Some(vertex), Some(fragment)) => {
+                    let input = shader::Sources { vertex, fragment };
+                    let handle = job.handle;
+                    let on_ready = job.on_ready;
+                    let cache_key = job.cache_key;
+                    let link_job = Job { input, handle, on_ready, profiler, cache_key };
+                    this.jobs.link.push(link_job);
+                }
+                (Some(vertex), None) => {
+                    let input = vertex.native;
+                    let handle = job.handle;
+                    let on_ready = job.on_ready;
+                    let cache_key = job.cache_key;
+                    let job = Job { input, handle, cache_key, on_ready, profiler };
+                    this.queue_shader_check_job(job);
+                }
+                (None, Some(fragment)) => {
+                    let input = fragment.native;
+                    let handle = job.handle;
+                    let on_ready = job.on_ready;
+                    let cache_key = job.cache_key;
+                    let job = Job { input, handle, cache_key, on_ready, profiler };
+                    this.queue_shader_check_job(job);
+                }
+                _ => (),
+            }
             Ok(())
         })
+    }
+
+    fn queue_shader_check_job(&mut self, job: Job<web_sys::WebGlShader>) {
+        match self.context.extensions.khr_parallel_shader_compile {
+            Some(khr) =>
+                self.jobs.compile_poll.push(job.map_input(|program| WithKhr { khr, program })),
+            None => self.jobs.compile_check.push(job),
+        }
     }
 
     #[allow(unused_parens)]
@@ -458,9 +504,9 @@ impl CompilerData {
             let cache_key = job.cache_key;
             match this.context.extensions.khr_parallel_shader_compile {
                 Some(khr) => {
-                    let input = KhrProgram { khr, program: input };
+                    let input = WithKhr { khr, program: input };
                     let job = Job { input, handle, cache_key, on_ready, profiler };
-                    this.jobs.khr_completion_check.push(job)
+                    this.jobs.link_poll.push(job)
                 }
                 None => {
                     let job = Job { input, handle, cache_key, on_ready, profiler };
@@ -473,7 +519,7 @@ impl CompilerData {
 
     #[allow(unused_parens)]
     fn run_next_link_check_job(&mut self) -> Result<(), Error> {
-        self.with_next_job("shader validation", (|t| &mut t.jobs.link_check), |this, job| {
+        self.with_next_job("program validation", (|t| &mut t.jobs.link_check), |this, job| {
             let program = job.input;
             let param = WebGl2RenderingContext::LINK_STATUS;
             job.profiler.resume();
@@ -489,21 +535,27 @@ impl CompilerData {
     }
 
     #[allow(unused_parens)]
-    fn run_next_read_cache_job(&mut self) -> Result<(), Error> {
-        self.with_next_job("shader cache read", (|t| &mut t.jobs.read_cache), |this, job| {
-            // This job is only scheduled after this cache entry was determined to be successfully
-            // processed. `Validated` is the only expected cache entry state at this point.
-            match this.cache.get_program(job.cache_key) {
-                Some(ProgramCacheEntry::Validated(program)) => {
-                    if let Some(on_ready) = job.on_ready {
-                        (on_ready)(program.clone());
-                    }
-                    Ok(())
-                }
-                _ => panic!("Shader cache read was submitted for non-completed entry."),
+    fn run_next_compile_check_job(&mut self) -> Result<(), Error> {
+        self.with_next_job("shader validation", (|t| &mut t.jobs.compile_check), |this, job| {
+            let shader = job.input;
+            let param = WebGl2RenderingContext::COMPILE_STATUS;
+            job.profiler.resume();
+            let status = this.context.get_shader_parameter(&shader, param);
+            job.profiler.finish();
+            if !status.as_bool().unwrap_or(false) {
+                error!("Failed to compile shader: {:?}", status);
+                return Err(Error::ShaderCompilingError(shader));
             }
-        })?;
-        Ok(())
+            Ok(())
+        })
+    }
+
+    fn run_callbacks(&mut self) -> bool {
+        let any_new_shaders_ready = !self.callbacks.is_empty();
+        for DeferredCallback { callback, program } in self.callbacks.drain(..) {
+            (callback)(program);
+        }
+        any_new_shaders_ready
     }
 
     fn with_next_job<T>(
@@ -554,6 +606,18 @@ impl CompilerData {
 }
 
 
+// === DeferredCallback ===
+
+/// A callback waiting to be invoked.
+#[derive(Derivative)]
+#[derivative(Debug)]
+struct DeferredCallback {
+    #[derivative(Debug = "ignore")]
+    callback: Box<dyn FnOnce(shader::Program)>,
+    program:  shader::Program,
+}
+
+
 
 // ===================
 // === ShaderCache ===
@@ -582,8 +646,8 @@ enum ProgramCacheEntry {
 
 impl ShaderCache {
     /// Generate new shader cache key
-    fn code_key(code: &shader::Code) -> ShaderCacheKey {
-        (ShaderHash::new(&code.vertex), ShaderHash::new(&code.fragment))
+    fn code_key(code: &shader::Sources<Option<String>, Option<String>>) -> ShaderCacheKey {
+        code.as_ref().map(|shader| shader.as_ref().map(ShaderHash::new))
     }
 
     fn get_program(&self, key: ShaderCacheKey) -> Option<&ProgramCacheEntry> {
@@ -651,22 +715,23 @@ impl ShaderCache {
         &mut self,
         key: ShaderCacheKey,
         compile: impl FnOnce() -> Result<Shader<Vertex>, Error>,
-    ) -> Result<Shader<Vertex>, Error> {
-        Ok(self.vertex_shaders.get_or_insert_with_result(key.0, compile)?.clone())
+    ) -> Option<Result<Shader<Vertex>, Error>> {
+        key.vertex.map(|key| self.vertex_shaders.get_or_insert_with_result(key, compile).cloned())
     }
 
     fn get_or_insert_fragment_shader(
         &mut self,
         key: ShaderCacheKey,
         compile: impl FnOnce() -> Result<Shader<Fragment>, Error>,
-    ) -> Result<Shader<Fragment>, Error> {
-        Ok(self.fragment_shaders.get_or_insert_with_result(key.1, compile)?.clone())
+    ) -> Option<Result<Shader<Fragment>, Error>> {
+        key.fragment
+            .map(|key| self.fragment_shaders.get_or_insert_with_result(key, compile).cloned())
     }
 }
 
 /// Shader cache entry key. Allows retrieving linked programs or individual compiled vertex and
 /// fragment shaders from [`ShaderCache`].
-type ShaderCacheKey = (ShaderHash, ShaderHash);
+type ShaderCacheKey = shader::Sources<Option<ShaderHash>, Option<ShaderHash>>;
 
 /// A shader source hash value used for cache storage.
 /// We do not want to store and compare very long shader source strings in the hashmap. Instead, we
@@ -680,7 +745,7 @@ struct ShaderHash(u64);
 
 
 impl ShaderHash {
-    fn new(code: &str) -> Self {
+    fn new(code: impl Hash) -> Self {
         let mut hasher = DefaultHasher::new();
         code.hash(&mut hasher);
         Self(hasher.finish())
@@ -698,6 +763,7 @@ impl ShaderHash {
 #[allow(missing_docs)]
 pub enum Error {
     ShaderCreationError,
+    ShaderCompilingError(web_sys::WebGlShader),
     ProgramCreationError,
     ProgramLinkingError(shader::CompiledCode),
 }
@@ -706,17 +772,26 @@ impl Error {
     /// Report the error. This function uses GPU blocking API and thus will cause a significant
     /// performance hit.  Use it only when necessary.
     pub fn blocking_report(self, context: &WebGl2RenderingContext) -> String {
+        let unwrap_error = |name: &str, err: Option<String>| {
+            let header = format!("----- {name} Shader -----");
+            err.map(|t| format!("\n\n{header}\n\n{t}")).unwrap_or_else(|| "".into())
+        };
         match self {
             Self::ShaderCreationError => "WebGL was unable to create a new shader.".into(),
             Self::ProgramCreationError => "WebGl was unable to create a new program shader.".into(),
-            Self::ProgramLinkingError(shader) => {
-                let unwrap_error = |name: &str, err: Option<String>| {
-                    let header = format!("----- {name} Shader -----");
-                    err.map(|t| format!("\n\n{header}\n\n{t}")).unwrap_or_else(|| "".into())
+            Self::ShaderCompilingError(shader) => {
+                let shader = Shader::<()> {
+                    native: shader,
+                    code:   Default::default(),
+                    tp:     Default::default(),
                 };
-
-                let vertex = &shader.vertex;
-                let fragment = &shader.fragment;
+                let log = context.blocking_format_error_log(&shader);
+                let error = unwrap_error("Shader", log);
+                format!("Unable to compile shader.\n{error}")
+            }
+            Self::ProgramLinkingError(program) => {
+                let vertex = &program.vertex;
+                let fragment = &program.fragment;
                 let vertex_log = context.blocking_format_error_log(vertex);
                 let fragment_log = context.blocking_format_error_log(fragment);
                 let vertex_error = unwrap_error("Vertex", vertex_log);
@@ -741,7 +816,9 @@ impl Error {
 
                 let dbg_msg = format!("{}\n{}", run_msg("vertex"), run_msg("fragment"));
 
-                format!("Unable to compile shader.\n{dbg_msg}\n{vertex_error}{fragment_error}")
+                format!(
+                    "Unable to compile shader program.\n{dbg_msg}\n{vertex_error}{fragment_error}"
+                )
             }
         }
     }
