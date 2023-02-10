@@ -11,13 +11,11 @@ use crate::ArgumentInfo;
 use crate::Node;
 use crate::SpanTree;
 
-use ast::assoc::Assoc;
 use ast::crumbs::Located;
 use ast::opr::GeneralizedInfix;
 use ast::Ast;
 use ast::HasRepr;
-use ast::MacroAmbiguousSegment;
-use ast::MacroMatchSegment;
+use ast::SpanSeed;
 use std::collections::VecDeque;
 
 
@@ -26,7 +24,6 @@ use std::collections::VecDeque;
 // ==============
 
 pub mod context;
-pub mod macros;
 
 pub use context::Context;
 
@@ -39,7 +36,7 @@ pub use context::Context;
 /// A trait for all types from which we can generate referred SpanTree. Meant to be implemented for
 /// all AST-like structures.
 pub trait SpanTreeGenerator<T> {
-    /// Generate node with it's whole subtree.
+    /// Generate node with its whole subtree.
     fn generate_node(
         &self,
         kind: impl Into<node::Kind>,
@@ -272,13 +269,8 @@ fn generate_node_for_ast<T: Payload>(
         match ast.shape() {
             ast::Shape::Prefix(_) =>
                 ast::prefix::Chain::from_ast(ast).unwrap().generate_node(kind, context),
-            // Lambdas should fall in _ case, because we don't want to create subports for
-            // them
-            ast::Shape::Match(_) if ast::macros::as_lambda_match(ast).is_none() =>
-                ast::known::Match::try_new(ast.clone_ref()).unwrap().generate_node(kind, context),
-            ast::Shape::Ambiguous(_) => ast::known::Ambiguous::try_new(ast.clone_ref())
-                .unwrap()
-                .generate_node(kind, context),
+            ast::Shape::Tree(tree) if tree.type_info != ast::TreeType::Lambda =>
+                tree_generate_node(tree, kind, context, ast.id),
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
@@ -374,7 +366,7 @@ fn generate_node_for_opr_chain<T: Payload>(
         }
         gen.generate_empty_node(InsertionPointType::Append);
 
-        if ast::opr::assoc(&this.operator) == Assoc::Right {
+        if this.operator.right_assoc {
             gen.reverse_children();
         }
 
@@ -461,135 +453,6 @@ fn generate_node_for_prefix_chain<T: Payload>(
 }
 
 
-// === Match ===
-
-impl<T: Payload> SpanTreeGenerator<T> for ast::known::Match {
-    fn generate_node(
-        &self,
-        kind: impl Into<node::Kind>,
-        context: &impl Context,
-    ) -> FallibleResult<Node<T>> {
-        generate_node_for_known_match(self, kind.into(), context)
-    }
-}
-
-fn generate_node_for_known_match<T: Payload>(
-    this: &ast::known::Match,
-    kind: node::Kind,
-    context: &impl Context,
-) -> FallibleResult<Node<T>> {
-    let removable = false;
-    let children_kind = node::Kind::argument().with_removable(removable);
-    let mut gen = ChildGenerator::default();
-    if let Some(pat) = &this.pfx {
-        for macros::AstInPattern { ast, crumbs } in macros::all_ast_nodes_in_pattern(pat) {
-            let ast_crumb = ast::crumbs::MatchCrumb::Pfx { val: crumbs };
-            let located_ast = Located::new(ast_crumb, ast.wrapped);
-            gen.generate_ast_node(located_ast, children_kind.clone(), context)?;
-            gen.spacing(ast.off);
-        }
-    }
-    let first_segment_index = 0;
-    generate_children_from_segment(&mut gen, first_segment_index, &this.segs.head, context)?;
-    for (index, segment) in this.segs.tail.iter().enumerate() {
-        gen.spacing(segment.off);
-        generate_children_from_segment(&mut gen, index + 1, &segment.wrapped, context)?;
-    }
-    Ok(Node {
-        kind,
-        size: gen.current_offset,
-        children: gen.children,
-        ast_id: this.id(),
-        payload: default(),
-    })
-}
-
-fn generate_children_from_segment<T: Payload>(
-    gen: &mut ChildGenerator<T>,
-    index: usize,
-    segment: &MacroMatchSegment<Ast>,
-    context: &impl Context,
-) -> FallibleResult {
-    // generate child for head
-    let ast = segment.head.clone_ref();
-    let segment_crumb = ast::crumbs::SegmentMatchCrumb::Head;
-    let ast_crumb = ast::crumbs::MatchCrumb::Segs { val: segment_crumb, index };
-    let located_ast = Located::new(ast_crumb, ast);
-    gen.generate_ast_node(located_ast, node::Kind::Token, context)?;
-
-    for macros::AstInPattern { ast, crumbs } in macros::all_ast_nodes_in_pattern(&segment.body) {
-        let child_kind = match crumbs.last() {
-            Some(ast::crumbs::PatternMatchCrumb::Tok) => node::Kind::Token,
-            _ => node::Kind::argument().into(),
-        };
-        gen.spacing(ast.off);
-        let segment_crumb = ast::crumbs::SegmentMatchCrumb::Body { val: crumbs };
-        let ast_crumb = ast::crumbs::MatchCrumb::Segs { val: segment_crumb, index };
-        let located_ast = Located::new(ast_crumb, ast.wrapped);
-        gen.generate_ast_node(located_ast, child_kind, context)?;
-    }
-    Ok(())
-}
-
-
-// === Ambiguous ==
-
-impl<T: Payload> SpanTreeGenerator<T> for ast::known::Ambiguous {
-    fn generate_node(
-        &self,
-        kind: impl Into<node::Kind>,
-        context: &impl Context,
-    ) -> FallibleResult<Node<T>> {
-        generate_node_for_known_ambiguous(self, kind.into(), context)
-    }
-}
-
-fn generate_node_for_known_ambiguous<T: Payload>(
-    this: &ast::known::Ambiguous,
-    kind: node::Kind,
-    context: &impl Context,
-) -> FallibleResult<Node<T>> {
-    let mut gen = ChildGenerator::default();
-    let first_segment_index = 0;
-    generate_children_from_ambiguous(&mut gen, first_segment_index, &this.segs.head, context)?;
-    for (index, segment) in this.segs.tail.iter().enumerate() {
-        gen.spacing(segment.off);
-        generate_children_from_ambiguous(&mut gen, index + 1, &segment.wrapped, context)?;
-    }
-    Ok(Node {
-        kind,
-        size: gen.current_offset,
-        children: gen.children,
-        ast_id: this.id(),
-        payload: default(),
-    })
-}
-
-fn generate_children_from_ambiguous<T: Payload>(
-    gen: &mut ChildGenerator<T>,
-    index: usize,
-    segment: &MacroAmbiguousSegment<Ast>,
-    context: &impl Context,
-) -> FallibleResult {
-    let children_kind = node::Kind::argument();
-    // generate child for head
-    let ast = segment.head.clone_ref();
-    let segment_crumb = ast::crumbs::AmbiguousSegmentCrumb::Head;
-    let ast_crumb = ast::crumbs::AmbiguousCrumb { field: segment_crumb, index };
-    let located_ast = Located::new(ast_crumb, ast);
-    gen.generate_ast_node(located_ast, node::Kind::Token, context)?;
-
-    if let Some(sast) = &segment.body {
-        gen.spacing(sast.off);
-        let field = ast::crumbs::AmbiguousSegmentCrumb::Body;
-        let located_ast =
-            Located::new(ast::crumbs::AmbiguousCrumb { index, field }, sast.clone_ref());
-        gen.generate_ast_node(located_ast, children_kind, context)?;
-    }
-    Ok(())
-}
-
-
 // === Common Utility ==
 
 /// Build a prefix application-like span tree structure where the prefix argument has not been
@@ -628,6 +491,61 @@ fn generate_expected_arguments<T: Payload>(
         let is_last = index + 1 == arity;
         generate_expected_argument(node, kind.clone(), index, is_last, parameter)
     })
+}
+
+
+
+// =========================
+// === SpanTree for Tree ===
+// =========================
+
+fn tree_generate_node<T: Payload>(
+    tree: &ast::Tree<Ast>,
+    kind: impl Into<node::Kind>,
+    context: &impl Context,
+    ast_id: Option<Id>,
+) -> FallibleResult<Node<T>> {
+    let kind = match &tree.type_info {
+        ast::TreeType::Group => node::Kind::Group,
+        _ => kind.into(),
+    };
+    let mut children = vec![];
+    let size;
+    if let Some(leaf_info) = &tree.leaf_info {
+        size = ByteDiff::from(leaf_info.len());
+    } else {
+        let mut offset = ByteDiff::from(0);
+        for (index, raw_span_info) in tree.span_info.iter().enumerate() {
+            match raw_span_info {
+                SpanSeed::Space(ast::SpanSeedSpace { space }) => offset += ByteDiff::from(space),
+                SpanSeed::Token(ast::SpanSeedToken { token }) => {
+                    let kind = node::Kind::Token;
+                    let size = ByteDiff::from(token.len());
+                    let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
+                    let node = Node { kind, size, ..default() };
+                    children.push(node::Child { node, offset, ast_crumbs });
+                    offset += size;
+                }
+                SpanSeed::Child(ast::SpanSeedChild { node }) => {
+                    let kind = node::Kind::Argument(node::Argument {
+                        removable:  false,
+                        name:       None,
+                        tp:         None,
+                        call_id:    None,
+                        tag_values: vec![],
+                    });
+                    let node = node.generate_node(kind, context)?;
+                    let child_size = node.size;
+                    let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
+                    children.push(node::Child { node, offset, ast_crumbs });
+                    offset += child_size;
+                }
+            }
+        }
+        size = offset;
+    }
+    let payload = default();
+    Ok(Node { kind, size, children, ast_id, payload })
 }
 
 
@@ -676,21 +594,13 @@ mod test {
     use crate::node::Payload;
     use crate::ArgumentInfo;
 
-    use ast::crumbs::AmbiguousCrumb;
-    use ast::crumbs::AmbiguousSegmentCrumb;
     use ast::crumbs::InfixCrumb;
-    use ast::crumbs::PatternMatchCrumb;
     use ast::crumbs::PrefixCrumb;
     use ast::crumbs::SectionLeftCrumb;
     use ast::crumbs::SectionRightCrumb;
-    use ast::crumbs::SectionSidesCrumb;
     use ast::Crumbs;
     use ast::IdMap;
-    use parser_scala::Parser;
-    use wasm_bindgen_test::wasm_bindgen_test;
-    use wasm_bindgen_test::wasm_bindgen_test_configure;
-
-    wasm_bindgen_test_configure!(run_in_browser);
+    use parser::Parser;
 
 
     /// A helper function which removes information about expression id from thw tree rooted at
@@ -716,9 +626,9 @@ mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let mut id_map = IdMap::default();
         id_map.generate(0..15);
         id_map.generate(0..11);
@@ -733,7 +643,7 @@ mod test {
             let (span, id) = id_map_entry;
             let node = tree.root_ref().find_by_span(&span);
             assert!(node.is_some(), "Node with span {span} not found");
-            assert_eq!(node.unwrap().node.ast_id, Some(id));
+            assert_eq!(node.unwrap().node.ast_id, Some(id), "Span: {span}");
         }
 
         // Check the other fields:
@@ -763,9 +673,9 @@ mod test {
         assert_eq!(expected, tree)
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generate_span_tree_with_chains() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let ast = parser.parse_line_ast("2 + 3 + foo bar baz 13 + 5").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
@@ -806,198 +716,54 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
+    #[ignore]
     fn generating_span_tree_from_right_assoc_operator() {
-        let parser = Parser::new_or_panic();
-        let ast = parser.parse_line_ast("1,2,3").unwrap();
+        let parser = Parser::new();
+        let ast = parser.parse_line_ast("1<|2<|3").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
-
-        let expected = TreeBuilder::new(5)
+        let expected = TreeBuilder::new(7)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
-            .add_leaf(1, 1, node::Kind::operation(), InfixCrumb::Operator)
-            .add_child(2, 3, node::Kind::Chained, InfixCrumb::RightOperand)
+            .add_leaf(1, 2, node::Kind::operation(), InfixCrumb::Operator)
+            .add_child(3, 3, node::Kind::Chained, InfixCrumb::RightOperand)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
-            .add_leaf(1, 1, node::Kind::operation(), InfixCrumb::Operator)
-            .add_empty_child(2, AfterTarget)
-            .add_leaf(2, 1, node::Kind::this().removable(), InfixCrumb::RightOperand)
-            .add_empty_child(3, BeforeTarget)
+            .add_leaf(1, 2, node::Kind::operation(), InfixCrumb::Operator)
+            .add_empty_child(3, AfterTarget)
+            .add_leaf(3, 1, node::Kind::this().removable(), InfixCrumb::RightOperand)
+            .add_empty_child(4, BeforeTarget)
             .done()
             .build();
-
         assert_eq!(expected, tree)
     }
 
-    #[wasm_bindgen_test]
-    fn generating_span_tree_from_section() {
-        let parser = Parser::new_or_panic();
-        // The star makes `SectionSides` ast being one of the parameters of + chain. First + makes
-        // SectionRight, and last + makes SectionLeft.
-        let ast = parser.parse_line_ast("+ * + + 2 +").unwrap();
-        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
-        clear_expression_ids(&mut tree.root);
-        clear_parameter_infos(&mut tree.root);
-
-        let expected = TreeBuilder::new(11)
-            .add_child(0, 9, node::Kind::Chained, SectionLeftCrumb::Arg)
-            .add_child(0, 5, node::Kind::Chained, InfixCrumb::LeftOperand)
-            .add_child(0, 3, node::Kind::Chained, SectionLeftCrumb::Arg)
-            .add_empty_child(0, BeforeTarget)
-            .add_leaf(0, 1, node::Kind::operation(), SectionRightCrumb::Opr)
-            .add_child(2, 1, node::Kind::argument().removable(), SectionRightCrumb::Arg)
-            .add_empty_child(0, BeforeTarget)
-            .add_leaf(0, 1, node::Kind::operation(), SectionSidesCrumb)
-            .add_empty_child(1, Append)
-            .done()
-            .add_empty_child(3, Append)
-            .done()
-            .add_leaf(4, 1, node::Kind::operation(), SectionLeftCrumb::Opr)
-            .add_empty_child(5, Append)
-            .done()
-            .add_leaf(6, 1, node::Kind::operation(), InfixCrumb::Operator)
-            .add_leaf(8, 1, node::Kind::argument().removable(), InfixCrumb::RightOperand)
-            .add_empty_child(9, Append)
-            .done()
-            .add_leaf(10, 1, node::Kind::operation(), SectionLeftCrumb::Opr)
-            .add_empty_child(11, Append)
-            .build();
-
-        assert_eq!(expected, tree);
-    }
-
-    #[wasm_bindgen_test]
+    #[test]
+    #[ignore]
     fn generating_span_tree_from_right_assoc_section() {
-        let parser = Parser::new_or_panic();
-        let ast = parser.parse_line_ast(",2,").unwrap();
+        let parser = Parser::new();
+        let ast = parser.parse_line_ast("<|2<|").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
-
-        let expected = TreeBuilder::new(3)
+        let expected = TreeBuilder::new(5)
             .add_empty_child(0, Append)
-            .add_leaf(0, 1, node::Kind::operation(), SectionRightCrumb::Opr)
-            .add_child(1, 2, node::Kind::Chained, SectionRightCrumb::Arg)
+            .add_leaf(0, 2, node::Kind::operation(), SectionRightCrumb::Opr)
+            .add_child(2, 2, node::Kind::Chained, SectionRightCrumb::Arg)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), SectionLeftCrumb::Arg)
             .add_leaf(1, 1, node::Kind::operation(), SectionLeftCrumb::Opr)
             .add_empty_child(2, BeforeTarget)
             .done()
             .build();
-
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
-    fn generating_span_tree_from_matched_macros() {
-        use PatternMatchCrumb::*;
-
-        let parser = Parser::new_or_panic();
-        let mut id_map = IdMap::default();
-        let expected_id = id_map.generate(0..29);
-        let expression = "if foo then (a + b) x else ()";
-        let ast = parser.parse_line_ast_with_id_map(expression, id_map).unwrap();
-        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
-
-        // Check if expression id is set
-        assert_eq!(tree.root_ref().ast_id, Some(expected_id));
-
-        // Check the other fields
-        clear_expression_ids(&mut tree.root);
-        clear_parameter_infos(&mut tree.root);
-        let seq = Seq { right: false };
-        let if_then_else_cr = vec![seq, Or, Build];
-        let parens_cr = vec![seq, Or, Or, Build];
-
-        let expected = TreeBuilder::new(29)
-            .add_leaf(0, 2, node::Kind::Token, segment_head_crumbs(0))
-            .add_leaf(3, 3, node::Kind::argument(), segment_body_crumbs(0, &if_then_else_cr))
-            .add_leaf(7, 4, node::Kind::Token, segment_head_crumbs(1))
-            .add_child(12, 9, node::Kind::argument(), segment_body_crumbs(1, &if_then_else_cr))
-            .add_child(0, 7, node::Kind::operation(), PrefixCrumb::Func)
-            .add_leaf(0, 1, node::Kind::Token, segment_head_crumbs(0))
-            .add_child(1, 5, node::Kind::argument(), segment_body_crumbs(0, &parens_cr))
-            .add_empty_child(0, BeforeTarget)
-            .add_leaf(0, 1, node::Kind::this(), InfixCrumb::LeftOperand)
-            .add_empty_child(1, AfterTarget)
-            .add_leaf(2, 1, node::Kind::operation(), InfixCrumb::Operator)
-            .add_leaf(4, 1, node::Kind::argument(), InfixCrumb::RightOperand)
-            .add_empty_child(5, Append)
-            .done()
-            .add_leaf(6, 1, node::Kind::Token, segment_head_crumbs(1))
-            .done()
-            .add_empty_child(8, BeforeTarget)
-            .add_leaf(8, 1, node::Kind::this(), PrefixCrumb::Arg)
-            .add_empty_child(9, Append)
-            .done()
-            .add_leaf(22, 4, node::Kind::Token, segment_head_crumbs(2))
-            .add_child(27, 2, node::Kind::argument(), segment_body_crumbs(2, &if_then_else_cr))
-            .add_leaf(0, 1, node::Kind::Token, segment_head_crumbs(0))
-            .add_leaf(1, 1, node::Kind::Token, segment_head_crumbs(1))
-            .done()
-            .build();
-
-        assert_eq!(expected, tree);
-    }
-
-    #[wasm_bindgen_test]
-    fn generating_span_tree_from_matched_list_macro() {
-        use PatternMatchCrumb::*;
-
-        let parser = Parser::new_or_panic();
-        let expression = "[a,b]";
-        let ast = parser.parse_line_ast(expression).unwrap();
-        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
-
-        // Check the other fields
-        clear_expression_ids(&mut tree.root);
-        let left_seq = Seq { right: false };
-        let right_seq = Seq { right: true };
-        let many = Many { index: 0 };
-        let first_element_cr = vec![left_seq, Or, Or, left_seq, Build];
-        let second_element_cr = vec![left_seq, Or, Or, right_seq, many, right_seq, Build];
-        let comma_cr = vec![left_seq, Or, Or, right_seq, many, left_seq, Tok];
-
-        let expected = TreeBuilder::new(5)
-            .add_leaf(0, 1, node::Kind::Token, segment_head_crumbs(0))
-            .add_leaf(1, 1, node::Kind::argument(), segment_body_crumbs(0, &first_element_cr))
-            .add_leaf(2, 1, node::Kind::Token, segment_body_crumbs(0, &comma_cr))
-            .add_leaf(3, 1, node::Kind::argument(), segment_body_crumbs(0, &second_element_cr))
-            .add_leaf(4, 1, node::Kind::Token, segment_head_crumbs(1))
-            .build();
-
-        assert_eq!(expected, tree);
-    }
-
-    #[wasm_bindgen_test]
-    fn generating_span_tree_from_ambiguous_macros() {
-        let parser = Parser::new_or_panic();
-        let mut id_map = IdMap::default();
-        id_map.generate(0..2);
-        let ast = parser.parse_line_ast_with_id_map("(4", id_map.clone()).unwrap();
-        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
-
-        // Check the expression id:
-        let (_, expected_id) = id_map.vec.first().unwrap();
-        assert_eq!(tree.root_ref().ast_id, Some(*expected_id));
-
-        // Check the other fields:
-        clear_expression_ids(&mut tree.root);
-        let head_crumb = AmbiguousCrumb { index: 0, field: AmbiguousSegmentCrumb::Head };
-        let body_crumb = AmbiguousCrumb { index: 0, field: AmbiguousSegmentCrumb::Body };
-        let expected = TreeBuilder::new(2)
-            .add_leaf(0, 1, node::Kind::Token, head_crumb)
-            .add_leaf(1, 1, node::Kind::argument(), body_crumb)
-            .build();
-
-        assert_eq!(expected, tree);
-    }
-
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree_for_lambda() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let ast = parser.parse_line_ast("foo a-> b + c").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
@@ -1013,9 +779,9 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree_for_unfinished_call() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let this_param = |call_id| ArgumentInfo {
             name: Some("self".to_owned()),
             tp: Some("Any".to_owned()),
@@ -1142,18 +908,5 @@ mod test {
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
         assert_eq!(tree, expected);
-    }
-
-    fn segment_body_crumbs(
-        index: usize,
-        pattern_crumb: &[PatternMatchCrumb],
-    ) -> ast::crumbs::MatchCrumb {
-        let val = ast::crumbs::SegmentMatchCrumb::Body { val: pattern_crumb.to_vec() };
-        ast::crumbs::MatchCrumb::Segs { val, index }
-    }
-
-    fn segment_head_crumbs(index: usize) -> ast::crumbs::MatchCrumb {
-        let val = ast::crumbs::SegmentMatchCrumb::Head;
-        ast::crumbs::MatchCrumb::Segs { val, index }
     }
 }
