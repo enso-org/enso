@@ -60,7 +60,7 @@ from project.Data.Boolean import all
     - Symmetry: if x == y then y == x
     - Reflexivity: x == x
     - Transitivity: if x < y and y < z then x < z
-    - Antisymmetry (?): if x > y then y < x
+    - if x > y then y < x
 
     Users are responsible for the compliance to the aforementioned semantics.
     Should the semantics be violated, an unexpected behavior may be encountered, e.g.,

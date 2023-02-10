@@ -449,8 +449,8 @@ type Any
 
 ## PRIVATE
    Checks if both comparators of the given objects are both of same type and ordered.
-   If they are not of same type, a `Type_Error` is thrown.
-   If the comparators are either `Incomparable`, or unordered, `False` is returned.
+   If they are not of same type, a `Type_Error` is thrown. If the comparators are
+   either `Incomparable`, or unordered, `Incomparable_Values` is thrown.
 assert_ordered_comparators : Any -> (Any -> Any) -> Any ! (Type_Error | Incomparable_Values)
 assert_ordered_comparators this that ~action =
     comp_this = Comparable.from this

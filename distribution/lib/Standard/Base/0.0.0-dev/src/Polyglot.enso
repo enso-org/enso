@@ -67,6 +67,8 @@ get_members object = @Builtin_Method "Polyglot.get_members"
 
     > Example
      Instantiate a new Java Integer with the value 1.
+         polyglot java import java.lang.Integer
+
          Polyglot.new Integer [1]
 new : Any -> Vector -> Any
 new constructor arguments = @Builtin_Method "Polyglot.new"
