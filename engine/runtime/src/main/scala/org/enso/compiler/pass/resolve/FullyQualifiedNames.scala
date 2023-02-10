@@ -346,22 +346,49 @@ case object FullyQualifiedNames extends IRPass {
 
     /** @inheritdoc */
     override def prepareForSerialization(compiler: Compiler): FQNResolution =
-      this
+      FQNResolution(target.prepareForSerialization(compiler))
 
     /** @inheritdoc */
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[FQNResolution] =
-      Some(this)
+      target.restoreFromSerialization(compiler).map(FQNResolution)
 
     /** @inheritdoc */
     override def duplicate(): Option[IRPass.Metadata] = Some(this)
   }
 
-  sealed trait PartiallyResolvedFQN
+  sealed trait PartiallyResolvedFQN {
+    def prepareForSerialization(compiler: Compiler): PartiallyResolvedFQN
+    def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[PartiallyResolvedFQN]
+  }
 
-  case class ResolvedLibrary(namespace: String) extends PartiallyResolvedFQN
+  case class ResolvedLibrary(namespace: String) extends PartiallyResolvedFQN {
+    override def prepareForSerialization(
+      compiler: Compiler
+    ): PartiallyResolvedFQN = this
+
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[PartiallyResolvedFQN] = Some(this)
+  }
   case class ResolvedModule(moduleRef: ModuleReference)
-      extends PartiallyResolvedFQN
+      extends PartiallyResolvedFQN {
+    override def prepareForSerialization(
+      compiler: Compiler
+    ): PartiallyResolvedFQN =
+      ResolvedModule(moduleRef.toAbstract)
+
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[PartiallyResolvedFQN] = {
+      val packageRepository = compiler.context.getPackageRepository
+      moduleRef
+        .toConcrete(packageRepository.getModuleMap)
+        .map(ResolvedModule(_))
+    }
+  }
 
 }
