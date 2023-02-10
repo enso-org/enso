@@ -1,5 +1,7 @@
 import project.Any.Any
 import project.Data.Vector.Vector
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Incomparable
 
 ## A function is any type that represents a not-yet evaluated computation.
 
@@ -64,3 +66,6 @@ curry f = x -> y -> f [x, y]
 # uncurry : (a -> b -> c) -> ([a, b] -> c)
 uncurry : (Any -> Any -> Any) -> (Vector Any -> Any)
 uncurry f = (pair -> f pair.first pair.second)
+
+## Functions are not comparable, even to themselves
+Comparable.from (_:Function) = Incomparable

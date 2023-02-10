@@ -187,5 +187,13 @@ spec =
                 dupl_tree = tree.deep_copy
                 Test.with_clue "Seed sed to 42" (tree == dupl_tree).should_be_true
 
+        Test.specify "functions should be incomparable, even to themselves" <|
+            my_func x = x + 1
+            (my_func == my_func).should_be_false
+            (my_func == Nothing).should_be_false
+            (my_func == Ordering.compare).should_be_false
+            (Ordering.compare == Ordering.compare).should_be_false
+            (Pair.Value == Pair.Value).should_be_false
+
 
 main = Test_Suite.run_main spec

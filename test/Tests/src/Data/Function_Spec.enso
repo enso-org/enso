@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Incomparable_Values
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -37,5 +38,24 @@ spec =
         Test.specify "uncurry on number list" <|
             times = uncurry (*)
             times [6, 7] . should_equal 42
+
+    Test.group "Functions" <|
+        Test.specify "Functions should have Incomparable comparator" <|
+            is_incomparable func = Meta.is_same_object (Comparable.from func) Incomparable
+            my_func x y = x + y
+
+            is_incomparable (x-> x+1) . should_be_true
+            is_incomparable my_func . should_be_true
+            is_incomparable (my_func 1) . should_be_true
+
+        Test.specify "Functions should be incomparable" <|
+            my_func x = x + 1
+            (my_func == my_func).should_be_false
+            (my_func == Nothing).should_be_false
+            (my_func == Ordering.compare).should_be_false
+            (Ordering.compare == Ordering.compare).should_be_false
+            (Pair.Value == Pair.Value).should_be_false
+            (identity == identity).should_be_false
+            (identity < identity).should_fail_with Incomparable_Values
 
 main = Test_Suite.run_main spec
