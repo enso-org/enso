@@ -5,6 +5,7 @@ import Standard.Test.Extensions
 
 polyglot java import java.nio.file.Path as JavaPath
 polyglot java import java.util.Random as Java_Random
+polyglot java import java.lang.Integer
 
 type CustomEqType
     C1 f1
@@ -160,6 +161,14 @@ spec =
             rect = Rect.Value (Point.Value 1 2) (Point.Value 3 4)
             four_field = FourFieldType.Value 1 2 3 4
             (rect == four_field).should_be_false
+
+        Test.specify "should handle equality of numbers with Polyglot.new" <|
+            int = Polyglot.new Integer [42]
+            double = Polyglot.new Double [42.0]
+            int.should_equal 42
+            double.should_equal 42
+            int.should_equal double
+
 
         Test.specify "should handle `==` on types" <|
             (Child == Child).should_be_true
