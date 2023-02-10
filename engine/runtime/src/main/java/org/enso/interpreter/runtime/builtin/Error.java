@@ -25,6 +25,7 @@ public class Error {
   private final UninitializedState uninitializedState;
   private final NoSuchMethod noSuchMethod;
   private final NoSuchConversion noSuchConversion;
+  private final IncomparableValues incomparableValues;
   private final ModuleNotInPackageError moduleNotInPackageError;
   private final ArithmeticError arithmeticError;
   private final InvalidArrayIndex invalidArrayIndex;
@@ -57,6 +58,7 @@ public class Error {
     uninitializedState = builtins.getBuiltinType(UninitializedState.class);
     noSuchMethod = builtins.getBuiltinType(NoSuchMethod.class);
     noSuchConversion = builtins.getBuiltinType(NoSuchConversion.class);
+    incomparableValues = builtins.getBuiltinType(IncomparableValues.class);
     moduleNotInPackageError = builtins.getBuiltinType(ModuleNotInPackageError.class);
     arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
     invalidArrayIndex = builtins.getBuiltinType(InvalidArrayIndex.class);
@@ -90,6 +92,10 @@ public class Error {
 
   public Atom makeUninitializedStateError(Object key) {
     return uninitializedState.newInstance(key);
+  }
+
+  public Atom makeIncomparableValuesError(Object left, Object right) {
+    return incomparableValues.newInstance(left, right);
   }
 
   public Type makeModuleNotInPackageError() {

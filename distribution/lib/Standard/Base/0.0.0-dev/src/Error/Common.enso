@@ -1,5 +1,9 @@
 import project.Data.Text.Text
+import project.Error.Error
 import project.Meta
+import project.Panic.Panic
+
+polyglot java import java.lang.ClassCastException
 
 ## An error indicating that no value was found.
 type Not_Found
@@ -110,6 +114,25 @@ type No_Such_Method
     method_name : Text
     method_name self =
         Meta.meta self.symbol . name
+
+@Builtin_Type
+type Incomparable_Values
+    ## PRIVATE
+       The error thrown when two objects are not comparable. That is, one cannot
+       call any of these operators: `==`, `<`, `>`, `<=`, and `>=`.
+
+       Arguments:
+       - left: The object on the left-hand side of the comparison.
+       - right: The object on the right-hand side of the comparison.
+    Error left right
+
+    ## ADVANCED
+       Catches possible errors from comparing values and throws an
+       `Incomparable_Values` if any occur.
+    handle_errors ~function =
+        handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values)
+        handle ClassCastException <| handle No_Such_Method.Error <| handle Type_Error.Error <| handle Unsupported_Argument_Types.Error <|
+            function.catch Type_Error.Error handler=(_-> Error.throw Incomparable_Values)
 
 ## An error that occurs when the enso_project function is called in a file
    that is not part of a project.

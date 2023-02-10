@@ -2,7 +2,7 @@ import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Error
-import project.Error.Incomparable_Values.Incomparable_Values
+import project.Error.Common.Incomparable_Values
 import project.Error.Common.No_Such_Conversion
 import project.Error.Common.Type_Error
 import project.Nothing.Nothing

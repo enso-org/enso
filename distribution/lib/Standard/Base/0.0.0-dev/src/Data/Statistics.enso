@@ -9,8 +9,8 @@ import project.Data.Ordering.Comparable
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Common.Incomparable_Values
 import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.Incomparable_Values.Incomparable_Values
 import project.Meta
 import project.Nothing.Nothing
 import project.Runtime.Ref.Ref
