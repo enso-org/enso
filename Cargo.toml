@@ -5,6 +5,7 @@ resolver = "2"
 # where plausible.
 members = [
   "app/gui",
+  "app/gui/language/parser",
   "app/gui/enso-profiler-enso-data",
   "build/cli",
   "build/macros",

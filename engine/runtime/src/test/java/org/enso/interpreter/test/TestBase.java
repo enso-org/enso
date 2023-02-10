@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import org.enso.interpreter.EnsoLanguage;
+import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -24,7 +25,7 @@ import org.graalvm.polyglot.proxy.ProxyExecutable;
 public abstract class TestBase {
   protected static Context createDefaultContext() {
     var context =
-        Context.newBuilder("enso")
+        Context.newBuilder()
             .allowExperimentalOptions(true)
             .allowIO(true)
             .allowAllAccess(true)
@@ -63,7 +64,9 @@ public abstract class TestBase {
 
   /**
    * Unwraps the `receiver` field from the Value. This is a hack to allow us to test execute methods
-   * of artificially created ASTs, e.g., single nodes.
+   * of artificially created ASTs, e.g., single nodes. More specifically, only unwrapped values are
+   * eligible to be passed to node's execute methods, we cannot pass {@link Value} directly to the
+   * node's execute methods.
    *
    * <p>Does something similar to what {@link
    * com.oracle.truffle.tck.DebuggerTester#getSourceImpl(Source)} does, but uses a different hack
@@ -75,6 +78,42 @@ public abstract class TestBase {
     unwrapperValue.execute(value);
     assertNotNull(unwrapper.args);
     return unwrapper.args[0];
+  }
+
+  /**
+   * Creates an Enso value from the given source.
+   *
+   * @param src One-line assignment into a variable
+   * @param imports Imports, may be empty.
+   */
+  protected static Value createValue(Context ctx, String src, String imports) {
+    if (src.lines().count() > 1 || imports == null) {
+      throw new IllegalArgumentException("src should have one line, imports must not be null");
+    }
+    var sb = new StringBuilder();
+    sb.append(imports);
+    sb.append(System.lineSeparator());
+    sb.append("my_var = ").append(src);
+    sb.append(System.lineSeparator());
+    Value tmpModule = ctx.eval("enso", sb.toString());
+    return tmpModule.invokeMember(Module.EVAL_EXPRESSION, "my_var");
+  }
+
+  protected static Value createValue(Context ctx, String src) {
+    return createValue(ctx, src, "");
+  }
+
+  /**
+   * Evaluates the given source as if it was in an unnamed module.
+   *
+   * @param src The source code of the module
+   * @return The value returned from the main method of the unnamed module.
+   */
+  protected static Value evalModule(Context ctx, String src) {
+    Value module = ctx.eval(Source.create("enso", src));
+    Value assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
+    Value mainMethod = module.invokeMember(Module.GET_METHOD, assocType, "main");
+    return mainMethod.execute();
   }
 
   /**

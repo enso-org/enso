@@ -373,7 +373,7 @@ sort_columns internal_columns order text_ordering =
             col -> col.name.to_case_insensitive_key locale=locale
     comparator = case text_ordering.sort_digits_as_numbers of
         True -> Natural_Order.compare
-        False -> .compare_to
+        False -> Ordering.compare
     internal_columns.sort order=order on=mapper by=comparator
 
 ## PRIVATE

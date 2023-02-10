@@ -43,6 +43,7 @@ class LambdaTest extends InterpreterTest {
     "work with recursion" in {
       val code =
         """
+          |import Standard.Base.Any.Any
           |main =
           |    sumTo = x -> if x == 0 then 0 else x + (sumTo (x-1))
           |    sumTo 10
@@ -105,6 +106,7 @@ class LambdaTest extends InterpreterTest {
     "recurse with closing over lexical scope" in {
       val code =
         """
+          |import Standard.Base.Any.Any
           |main =
           |    summator = current ->
           |        if current == 0 then 0 else (x -> summator (current - 1)) 0
@@ -135,6 +137,7 @@ class LambdaTest extends InterpreterTest {
     "call fully saturated lambdas returned with TCO" in {
       val code =
         """from Standard.Base.Data.Numbers import Number
+          |import Standard.Base.Any.Any
           |
           |Number.if_then_else self = ~t -> ~f -> if self == 0 then t else f
           |
