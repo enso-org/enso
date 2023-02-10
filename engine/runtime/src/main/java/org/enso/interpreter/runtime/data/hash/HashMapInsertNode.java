@@ -15,7 +15,7 @@ import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 
 @BuiltinMethod(
     type = "Map",
-    name = "insert",
+    name = "insert_builtin",
     description = """
         Returns newly created hash map with the given key value mapping.
         """,

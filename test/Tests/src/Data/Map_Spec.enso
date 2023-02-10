@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.No_Such_Key.No_Such_Key
 import Standard.Base.Data.Time.Date_Time.Date_Time
-from Standard.Base.Data.Map import Map
 from Standard.Base.Data.Ordering import Default_Unordered_Comparator
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -157,6 +156,12 @@ spec =
         Test.specify "should handle Nothing as values" <|
             Map.singleton 1 Nothing . at 1 . should_equal Nothing
             Map.singleton Nothing Nothing . at Nothing . should_equal Nothing
+
+        Test.specify "should not allow functions as keys" <|
+            my_func x = x + 1
+            Map.singleton my_func 23 . should_fail_with Illegal_Argument
+            Map.singleton Number.nan 23 . should_fail_with Illegal_Argument
+            (Map.insert "A" 1 . insert (x-> x+1)) . should_fail_with Illegal_Argument
 
         Test.specify "should support rewriting values with same keys" <|
             map = Map.empty.insert "a" 1 . insert "a" 42

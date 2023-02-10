@@ -1,3 +1,4 @@
+import project.Meta
 import project.Data.Numbers.Integer
 import project.Data.Vector.Vector
 import project.Data.Pair.Pair
@@ -7,13 +8,15 @@ import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.No_Such_Key.No_Such_Key
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Ordering import all
 from project import Error, Nothing, Any, Panic
 
 
 ## A key-value store. It is possible to use any type as keys and values and mix them in
-   one Map. Keys are checked for equality based on their hash code and `==` operator, which
-   is both an internal part of Enso. Enso is capable of computing a hash code, and checking
-   for equality any objects that can appear in Enso - primitives, Atoms, values coming from
+   one Map, with the exception of NaNs and functions, as they are incomparable. Keys are
+   checked for equality based on their hash code and `==` operator, which is both an
+   internal part of Enso. Enso is capable of computing a hash code, and checking for
+   equality any objects that can appear in Enso - primitives, Atoms, values coming from
    different languages, etc.
 
    A single key-value pair is called an *entry*.
@@ -29,6 +32,7 @@ type Map key value
     empty = @Builtin_Method "Map.empty"
 
     ## Returns a single-element map with the given key and value.
+       Throws `Illegal_Argument` if given an incomparable key.
        A Call to `Map.singleton key value` is the same as a call to
        `Map.empty.insert key value`.
 
@@ -42,8 +46,11 @@ type Map key value
              import Standard.Base.Data.Map.Map
 
              example_singleton = Map.singleton "my_key" 2
-    singleton : Any -> Any -> Map
-    singleton key value = Map.empty.insert key value
+    singleton : Any -> Any -> Map ! Illegal_Argument
+    singleton key value =
+        case Meta.is_same_object (Comparable.from key) Incomparable of
+            True -> Error.throw (Illegal_Argument.Error ("Incomparable key: " + key.to_text))
+            False -> Map.empty.insert key value
 
     ## Builds a map from a vector of key-value pairs, with each key-value pair
        represented as a 2 element vector.
@@ -85,6 +92,8 @@ type Map key value
     ## Inserts a key-value mapping into this map, overriding any existing
        instance of `key` with the new `value`.
 
+       Throws `Illegal_Argument` if the given key is incomparable.
+
        Note that since the return type is also a `Map`, multiple `insert`
        calls can be chained, e.g., `map.insert "A" 1 . insert "B" 2`.
 
@@ -104,8 +113,15 @@ type Map key value
              import Standard.Examples
 
              example_insert = Examples.map.insert 7 "seven"
-    insert : Any -> Any -> Map
-    insert self key value = @Builtin_Method "Map.insert"
+    insert : Any -> Any -> Map ! Illegal_Argument
+    insert self key value =
+        case Meta.is_same_object (Comparable.from key) Incomparable of
+            True -> Error.throw (Illegal_Argument.Error ("Incomparable key: " + key.to_text))
+            False -> self.insert_builtin key value
+
+    ## PRIVATE
+    insert_builtin : Any -> Any -> Map
+    insert_builtin self key value = @Builtin_Method "Map.insert_builtin"
 
     ## Removes an entry specified by the given key from this map, and
        returns a new map without this entry. Throw `No_Such_Key.Error`
