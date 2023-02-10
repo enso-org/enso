@@ -309,6 +309,10 @@ spec detailed setup =
             err3 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
             err3.should_fail_with Floating_Point_Equality
 
+            r4 = t1.compute 'if ([X] != 2) && ([X] + 0.5 != 2) then "A" else "B"'
+            r4.to_vector . should_equal ["B", "B", "A"]
+            Problems.expect_warning Floating_Point_Equality r4
+
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
         Test.specify "should report arithmetic errors" pending=db_pending <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]

@@ -282,13 +282,14 @@ spec setup =
 
             r2 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Report_Warning
             r2.at "ix" . to_vector . should_equal [3, 5]
-            warnings = Problems.get_attached_warnings r2
-            warnings.not_empty.should_be_true
-            warnings.each warn->
-                warn.should_be_a Floating_Point_Equality
+            Problems.expect_warning Floating_Point_Equality r2
 
             r3 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Report_Error
             r3.should_fail_with Floating_Point_Equality
+
+            r4 = t.filter "X" (Filter_Condition.Not_Equal 2)
+            r4.at "ix" . to_vector . should_equal [1, 2, 4]
+            Problems.expect_warning Floating_Point_Equality r4
 
     Test.group prefix+"Table.filter_by_expression" <|
         Test.specify "by a boolean column" <|
@@ -318,13 +319,14 @@ spec setup =
             r2 = t.filter_by_expression "[X] * [X] == 4.0" on_problems=Problem_Behavior.Report_Warning
 
             r2.at "ix" . to_vector . should_equal [3, 5]
-            warnings = Problems.get_attached_warnings r2
-            warnings.not_empty.should_be_true
-            warnings.each warn->
-                warn.should_be_a Floating_Point_Equality
+            Problems.expect_warning Floating_Point_Equality r2
 
             r3 = t.filter_by_expression "[X] * [X] == 4.0" on_problems=Problem_Behavior.Report_Error
             r3.should_fail_with Floating_Point_Equality
+
+            r4 = t.filter_by_expression "[X] * [X] != 4.0"
+            r4.at "ix" . to_vector . should_equal [1, 2, 4]
+            Problems.expect_warning Floating_Point_Equality r4
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
         Test.specify "should report issues: arithmetic error" pending=db_pending <|

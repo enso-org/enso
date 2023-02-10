@@ -107,14 +107,12 @@ type Column
        implemented.
     value_type : Value_Type
     value_type self =
+        ## TODO This is a temporary implementation that should be revised once
+           types are implemented properly.
         if self.sql_type.is_definitely_boolean then Value_Type.Boolean else
             if self.sql_type.is_definitely_text then Value_Type.Char else
-                ## TODO we could return integers here too but then we should
-                   check how many bits there are - and this is out of scope for
-                   this prototype especially as the method for checking the type
-                   is likely to change so this code would likely be thrown away.
-                   So we just fall back to unsupported (abusing it slightly).
-                Value_Type.Unsupported_Data_Type self.sql_type.name
+                if self.sql_type.is_definitely_double then Value_Type.Float else
+                    Value_Type.Unsupported_Data_Type self.sql_type.name
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this column.

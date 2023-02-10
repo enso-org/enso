@@ -133,10 +133,7 @@ spec setup =
             r1.at -1 . to_vector . should_equal [True, True, False]
 
             r2 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
-            warnings = Problems.get_attached_warnings r2
-            warnings.not_empty.should_be_true
-            warnings.each warn->
-                warn.should_be_a Floating_Point_Equality
+            Problems.expect_warning Floating_Point_Equality r2
             r2.at -1 . to_vector . should_equal [True, True, False]
 
             err3 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error

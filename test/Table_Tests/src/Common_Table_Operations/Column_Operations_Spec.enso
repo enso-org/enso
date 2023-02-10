@@ -68,6 +68,17 @@ spec setup =
             ((t.at "A") == (t.at "B")) . to_vector . should_equal r_sensitive
             ((t.at "A").equals_ignore_case (t.at "B")) . to_vector . should_equal r_insensitive
 
+        Test.specify "should report a warning if checking equality on floating point columns" <|
+            t = table_builder [["X", [1.0, 2.1, 3.2]], ["Y", [1.0, 2.0, 3.2]]]
+
+            r1 = (t.at "X") == (t.at "Y")
+            r1.to_vector . should_equal [True, False, True]
+            Problems.expect_warning Floating_Point_Equality r1
+
+            r2 = (t.at "X") != (t.at "Y")
+            r2.to_vector . should_equal [False, True, False]
+            Problems.expect_warning Floating_Point_Equality r2
+
     Test.group prefix+"Arithmetic and Boolean Column Operations" <|
         Test.specify "should allow basic operations" <|
             (x + y).to_vector . should_equal [3, 7, 10, Nothing]
@@ -111,9 +122,10 @@ spec setup =
             d = t.at "d"
 
             has_div_warnings location expected_rows result =
-                warnings = Problems.get_attached_warnings result
-                msg = "Division by zero (at rows " + expected_rows.to_text + ")."
-                warnings.first . should_equal (Arithmetic_Error.Error msg)
+                Test.with_clue location <|
+                    warnings = Problems.get_attached_warnings result
+                    msg = "Division by zero (at rows " + expected_rows.to_text + ")."
+                    warnings.first . should_equal (Arithmetic_Error.Error msg)
 
             r1 = a / b
             r1.to_vector.to_text . should_equal "[1.5, Infinity, NaN]"

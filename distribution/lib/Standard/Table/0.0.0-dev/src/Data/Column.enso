@@ -205,7 +205,8 @@ type Column
 
              example_neq = Examples.integer_column != 1
     != : Column | Any -> Problem_Behavior -> Column
-    != self other on_problems=Problem_Behavior.Report_Warning = (self == other).not
+    != self other on_problems=Problem_Behavior.Report_Warning =
+        (self.== other on_problems).not
 
     ## Element-wise order comparison.
 
@@ -1025,7 +1026,7 @@ type Column
     zip self that function skip_missing=True =
         s1 = self.java_column.getStorage
         s2 = that.java_column.getStorage
-        rs = s1.zip Nothing function s2 skip_missing
+        rs = s1.zip Nothing function s2 skip_missing Nothing
         Column.Value (Java_Column.new "Result" rs)
 
     ## ALIAS Rename Column
