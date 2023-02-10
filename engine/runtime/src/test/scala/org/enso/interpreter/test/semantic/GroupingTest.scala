@@ -32,6 +32,8 @@ class GroupingTest extends InterpreterTest {
     "work with forced terms and lazy arguments" in {
       val code =
         """
+          |import Standard.Base.Any.Any
+          |
           |main =
           |    ifTest = c -> (~ifT) -> ~ifF -> if c == 0 then ifT else ifF
           |    sum = c -> acc -> ifTest c acc (@Tail_Call sum c-1 acc+c)

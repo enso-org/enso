@@ -5,6 +5,7 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Ordering.Comparator
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -341,12 +342,13 @@ compute_fold counter current value =
         counter.increment
 
         if counter.comparatorError.not then
+            value_comparator = Comparable.from value
             if counter.minimum.is_nothing then counter.setMinimum value else
-                ordering = Incomparable_Values.handle_errors <| value.compare_to counter.minimum
+                ordering = Incomparable_Values.handle_errors <| value_comparator.compare value counter.minimum
                 if ordering.is_error then counter.failComparator else
                     if ordering == Ordering.Less then counter.setMinimum value
             if counter.maximum.is_nothing then counter.setMaximum value else
-                ordering = Incomparable_Values.handle_errors <| value.compare_to counter.maximum
+                ordering = Incomparable_Values.handle_errors <| value_comparator.compare value counter.maximum
                 if ordering.is_error then counter.failComparator else
                     if ordering == Ordering.Greater then counter.setMaximum value
 

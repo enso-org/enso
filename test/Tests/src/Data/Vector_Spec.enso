@@ -16,10 +16,12 @@ import Standard.Test.Extensions
 type T
     Value a b
 
-    == self that = self.a == that.a
+type T_Comparator
+    is_ordered = True
+    compare t1 t2 = Comparable.from t1.a . compare t1.a t2.a
+    hash t = Comparable.from t.a . hash t.a
 
-    compare_to self that = if self == that then Ordering.Equal else
-        if self.a > that.a then Ordering.Greater else Ordering.Less
+Comparable.from (_:T) = T_Comparator
 
 type My_Error
     Value a
@@ -28,10 +30,10 @@ type Foo
     Value vec
 
 compare_tco a b = case a.vec.length == b.vec.length of
-    False -> a.vec.length . compare_to b.vec.length
+    False -> Ordering.compare a.vec.length b.vec.length
     True ->
         go ix = if ix > a.vec.length then Ordering.Equal else
-            cmp = (a.vec.at ix) . compare_to (b.vec.at ix)
+            cmp = Ordering.compare (a.vec.at ix) (b.vec.at ix)
             case cmp of
                 Ordering.Equal -> @Tail_Call go ix+1
                 _ -> cmp
@@ -579,20 +581,20 @@ spec = Test.group "Vectors" <|
         small_expected = [T.Value -20 0, T.Value 4 0, T.Value -1 1, T.Value 1 3, T.Value 1 8, T.Value -1 10]
         small_vec.sort (on = _.b) . should_equal small_expected
 
-    Test.specify "should be able to use a custom comparator" <|
+    Test.specify "should be able to use a custom compare function" <|
         small_vec = [2, 7, -3, 383, -392, 28, -90]
         small_expected = [383, 28, 7, 2, -3, -90, -392]
-        small_vec.sort (by = l -> r -> r.compare_to l) . should_equal small_expected
+        small_vec.sort (by = l -> r -> Ordering.compare r l) . should_equal small_expected
 
     Test.specify "should allow tail-recursive comparators in sort" <|
          v = [Foo.Value [4,2,2], Foo.Value [1,2,3], Foo.Value [1,2,4]]
          r = [Foo.Value [1,2,3], Foo.Value [1,2,4], Foo.Value [4,2,2]]
          v.sort by=compare_tco . should_equal r
 
-    Test.specify "should be able to use a custom comparator and projection" <|
+    Test.specify "should be able to use a custom compare function and projection" <|
         small_vec = [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = [T.Value -1 10, T.Value 1 8, T.Value 1 3, T.Value -1 1, T.Value -20 0, T.Value 4 0]
-        small_vec.sort (on = _.b) (by = l -> r -> r.compare_to l) . should_equal small_expected
+        small_vec.sort (on = _.b) (by = l -> r -> Ordering.compare r l) . should_equal small_expected
 
     Test.specify "should be able to sort in descending order" <|
         small_vec = [2, 7, -3, 383, -392, 28, -90]
@@ -653,7 +655,7 @@ spec = Test.group "Vectors" <|
         [1, 1.0, 2, 2.0].distinct . should_equal [1, 2]
         [].distinct . should_equal []
 
-    Test.specify "should correctly handle distinct with custom types like Atoms that implement compare_to" <|
+    Test.specify "should correctly handle distinct with types that have custom comparators" <|
         [T.Value 1 2, T.Value 3 3, T.Value 1 2].distinct . should_equal [T.Value 1 2, T.Value 3 3]
 
     Test.specify "should return a vector containing only unique elements up to some criteria" <|
