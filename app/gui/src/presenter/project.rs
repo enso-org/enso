@@ -8,7 +8,6 @@ use crate::presenter;
 use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
-use enso_notification::Publisher;
 use ensogl::system::js;
 use ide_view as view;
 use ide_view::project::SearcherParams;
@@ -36,22 +35,16 @@ const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
 #[allow(unused)]
 #[derive(Debug)]
 struct Model {
-    controller:            controller::Project,
-    module_model:          model::Module,
-    graph_controller:      controller::ExecutedGraph,
-    ide_controller:        controller::Ide,
-    view:                  view::project::View,
-    status_bar:            view::status_bar::View,
-    graph:                 presenter::Graph,
-    code:                  presenter::Code,
-    searcher:              RefCell<Option<presenter::Searcher>>,
-    available_projects:    Rc<RefCell<Vec<(ImString, Uuid)>>>,
-    project_list_notifier: Publisher<ProjectListNotification>,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum ProjectListNotification {
-    ProjectListReady,
+    controller:         controller::Project,
+    module_model:       model::Module,
+    graph_controller:   controller::ExecutedGraph,
+    ide_controller:     controller::Ide,
+    view:               view::project::View,
+    status_bar:         view::status_bar::View,
+    graph:              presenter::Graph,
+    code:               presenter::Code,
+    searcher:           RefCell<Option<presenter::Searcher>>,
+    available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
 }
 
 impl Model {
@@ -74,7 +67,6 @@ impl Model {
         let code = presenter::Code::new(text_controller, &view);
         let searcher = default();
         let available_projects = default();
-        let project_list_notifier = default();
         Model {
             controller,
             module_model,
@@ -86,7 +78,6 @@ impl Model {
             code,
             searcher,
             available_projects,
-            project_list_notifier,
         }
     }
 
@@ -226,9 +217,8 @@ impl Model {
     }
 
     /// Prepare a list of projects to display in the Open Project dialog.
-    fn project_list_opened(&self) {
+    fn project_list_opened(&self, project_list_ready: frp::Source<()>) {
         let controller = self.ide_controller.clone_ref();
-        let notifier = self.project_list_notifier.clone_ref();
         let projects_list = self.available_projects.clone_ref();
         executor::global::spawn(async move {
             if let Ok(api) = controller.manage_projects() {
@@ -236,7 +226,7 @@ impl Model {
                     let projects = projects.into_iter();
                     let projects = projects.map(|p| (p.name.clone().into(), p.id)).collect_vec();
                     *projects_list.borrow_mut() = projects;
-                    notifier.notify(ProjectListNotification::ProjectListReady);
+                    project_list_ready.emit(());
                 }
             }
         })
@@ -327,7 +317,7 @@ impl Project {
             project_list.grid.model_for_entry <+ entry_model;
 
             open_project_list <- view.project_list_shown.on_true();
-            eval_ open_project_list(model.project_list_opened());
+            eval_ open_project_list(model.project_list_opened(project_list_ready.clone_ref()));
             selected_project <- project_list.grid.entry_selected.filter_map(|e| *e);
             eval selected_project(((row, _col)) model.open_project(row));
             project_list.grid.select_entry <+ selected_project.constant(None);
@@ -363,11 +353,9 @@ impl Project {
 
         let graph_controller = self.model.graph_controller.clone_ref();
 
-        let project_list_notifier = self.model.project_list_notifier.clone_ref();
         self.init_analytics()
             .setup_notification_handler()
             .attach_frp_to_values_computed_notifications(graph_controller, values_computed)
-            .attach_frp_to_project_list_notifications(project_list_notifier, project_list_ready)
     }
 
     fn init_analytics(self) -> Self {
@@ -421,22 +409,6 @@ impl Project {
                 | NotificationKind::MetadataChanged => model.set_project_changed(true),
             }
             futures::future::ready(())
-        });
-        self
-    }
-
-    fn attach_frp_to_project_list_notifications(
-        self,
-        notifications: Publisher<ProjectListNotification>,
-        project_list_ready: frp::Source<()>,
-    ) -> Self {
-        let weak = Rc::downgrade(&self.model);
-        let notifications = notifications.subscribe();
-        spawn_stream_handler(weak, notifications, move |notification, _| {
-            match notification {
-                ProjectListNotification::ProjectListReady => project_list_ready.emit(()),
-            }
-            std::future::ready(())
         });
         self
     }
