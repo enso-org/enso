@@ -90,9 +90,11 @@ public abstract class Storage<T> {
    */
   public abstract boolean isOpVectorized(String name);
 
-  protected abstract Storage<?> runVectorizedMap(String name, Object argument, MapOperationProblemBuilder problemBuilder);
+  protected abstract Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder);
 
-  protected abstract Storage<?> runVectorizedZip(String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder);
+  protected abstract Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder);
 
   /**
    * Runs a function on each non-missing element in this storage and gathers the results.
@@ -139,7 +141,11 @@ public abstract class Storage<T> {
    * @param problemBuilder a builder for reporting computation problems
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage<?> map(String name, Function<Object, Value> function, Value onMissing, MapOperationProblemBuilder problemBuilder) {
+  public final Storage<?> map(
+      String name,
+      Function<Object, Value> function,
+      Value onMissing,
+      MapOperationProblemBuilder problemBuilder) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, null, problemBuilder);
     }
@@ -169,7 +175,11 @@ public abstract class Storage<T> {
    * @return the result of running the function on all non-missing elements.
    */
   public final Storage<?> zip(
-      String name, BiFunction<Object, Object, Object> function, Storage<?> arg, boolean skipNa, MapOperationProblemBuilder problemBuilder) {
+      String name,
+      BiFunction<Object, Object, Object> function,
+      Storage<?> arg,
+      boolean skipNa,
+      MapOperationProblemBuilder problemBuilder) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedZip(name, arg, problemBuilder);
     }

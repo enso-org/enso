@@ -93,12 +93,14 @@ public final class LongStorage extends NumericStorage<Long> {
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
   }
 
@@ -204,43 +206,50 @@ public final class LongStorage extends NumericStorage<Long> {
     ops.add(
             new LongNumericOp(Maps.ADD) {
               @Override
-              public double doDouble(long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public double doDouble(
+                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return in + arg;
               }
 
               @Override
-              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(
+                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return in + arg;
               }
             })
         .add(
             new LongNumericOp(Maps.SUB) {
               @Override
-              public double doDouble(long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public double doDouble(
+                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return in - arg;
               }
 
               @Override
-              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(
+                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return in - arg;
               }
             })
         .add(
             new LongNumericOp(Maps.MUL) {
               @Override
-              public double doDouble(long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public double doDouble(
+                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return in * arg;
               }
 
               @Override
-              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(
+                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return in * arg;
               }
             })
         .add(
             new LongNumericOp(Maps.MOD) {
               @Override
-              public double doDouble(long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public double doDouble(
+                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 if (arg == 0.0) {
                   problemBuilder.reportDivisionByZero(ix);
                 }
@@ -248,7 +257,8 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(
+                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 if (arg == 0) {
                   problemBuilder.reportDivisionByZero(ix);
                   return null;
@@ -260,12 +270,14 @@ public final class LongStorage extends NumericStorage<Long> {
         .add(
             new LongNumericOp(Maps.POWER, true) {
               @Override
-              public double doDouble(long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public double doDouble(
+                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 return Math.pow(in, arg);
               }
 
               @Override
-              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(
+                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 throw new IllegalStateException(
                     "Internal error: Power operation should cast to double.");
               }
@@ -273,7 +285,8 @@ public final class LongStorage extends NumericStorage<Long> {
         .add(
             new LongNumericOp(Maps.DIV, true) {
               @Override
-              public double doDouble(long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public double doDouble(
+                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 if (arg == 0.0) {
                   problemBuilder.reportDivisionByZero(ix);
                 }
@@ -281,7 +294,8 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
+              public Long doLong(
+                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 throw new UnsupportedOperationException("Divide operation should cast to double.");
               }
             })
@@ -336,7 +350,8 @@ public final class LongStorage extends NumericStorage<Long> {
         .add(
             new LongBooleanOp(Maps.EQ) {
               @Override
-              public BoolStorage runMap(LongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runMap(
+                  LongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof Double) {
                   problemBuilder.reportFloatingPointEquality(-1);
                 }
@@ -344,7 +359,8 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public BoolStorage runZip(LongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runZip(
+                  LongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof DoubleStorage) {
                   problemBuilder.reportFloatingPointEquality(-1);
                 } else if (!(arg instanceof LongStorage)) {
