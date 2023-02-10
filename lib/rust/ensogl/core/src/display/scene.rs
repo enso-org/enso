@@ -719,7 +719,7 @@ pub struct SceneData {
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
-    persistent_shaders: Rc<Vec<shader::Code>>,
+    persistent_shaders: Rc<RefCell<Vec<shader::Code>>>,
 }
 
 impl SceneData {
@@ -728,7 +728,6 @@ impl SceneData {
         stats: &Stats,
         on_mut: OnMut,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
-        persistent_shaders: Vec<shader::Code>,
     ) -> Self {
         debug!("Initializing.");
         let display_mode = display_mode.clone_ref();
@@ -768,7 +767,7 @@ impl SceneData {
         let context_lost_handler = default();
         let pointer_position_changed = default();
         let shader_compiler = default();
-        let persistent_shaders = Rc::new(persistent_shaders);
+        let persistent_shaders = default();
         Self {
             display_object,
             display_mode,
@@ -813,10 +812,10 @@ impl SceneData {
         self.dirty.shape.set();
         self.renderer.set_context(context);
         if let Some(context) = context {
-            for code in self.persistent_shaders.iter() {
+            for code in self.persistent_shaders.borrow().iter() {
                 let code = shader::Sources {
                     fragment: Some(code.fragment.clone()),
-                    vertex: None,
+                    vertex: Some(code.vertex.clone()),
                 };
                 context.shader_compiler.submit_background_job(code);
             }
@@ -950,6 +949,10 @@ impl SceneData {
         let world_space = camera.inversed_view_projection_matrix() * clip_space;
         (inv_object_matrix * world_space).xy()
     }
+
+    pub fn set_persistent_shaders(&self, shaders: Vec<shader::Code>) {
+        *self.persistent_shaders.borrow_mut() = shaders;
+    }
 }
 
 
@@ -1031,9 +1034,8 @@ impl Scene {
         stats: &Stats,
         on_mut: OnMut,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
-        persistent_shaders: Vec<shader::Code>,
     ) -> Self {
-        let no_mut_access = SceneData::new(stats, on_mut, display_mode, persistent_shaders);
+        let no_mut_access = SceneData::new(stats, on_mut, display_mode);
         let this = Self { no_mut_access };
         this
     }

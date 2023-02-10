@@ -405,7 +405,7 @@ impl Symbol {
     }
 
     /// For each variable from the shader definition, looks up its position in geometry scopes.
-    fn discover_variable_bindings(
+    pub fn discover_variable_bindings(
         &self,
         global_variables: &UniformScope,
     ) -> Vec<shader::VarBinding> {

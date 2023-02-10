@@ -190,10 +190,19 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
 }
 
 /// Returns the source code for shaders that should be compiled as soon as a context is available.
-fn get_persistent_shaders() -> Vec<shader::Code> {
-    PRECOMPILED_SHADERS.with_borrow(|shaders| {
-        shaders.values().cloned().map(|PrecompiledShader(shader)| shader).collect()
-    })
+fn get_persistent_shaders(variables: &UniformScope) -> Vec<shader::Code> {
+    let mut shaders = vec![];
+    SHAPES_DEFINITIONS.with_borrow(|shapes| {
+        for shape_cons in shapes {
+            let symbol = &shape_cons().sprite().symbol;
+            let bindings = symbol.discover_variable_bindings(variables);
+            let shader = symbol.shader();
+            let version = crate::system::gpu::shader::glsl::Version::V300;
+            let code = shader.gen_gpu_code(version, &bindings);
+            shaders.push(code);
+        }
+    });
+    shaders
 }
 
 
@@ -417,8 +426,10 @@ impl WorldData {
         let scene_dirty = dirty::SharedBool::new(());
         let on_change = f!(scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
-        let default_scene = Scene::new(&stats, on_change, &display_mode, get_persistent_shaders());
-        let uniforms = Uniforms::new(&default_scene.variables);
+        let default_scene = Scene::new(&stats, on_change, &display_mode);
+        let variables = &default_scene.variables;
+        let uniforms = Uniforms::new(variables);
+        default_scene.set_persistent_shaders(get_persistent_shaders(variables));
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
