@@ -172,14 +172,6 @@ public final class EnsoDuration implements TruffleObject {
     return new EnsoDuration(duration.minus(interop.asDuration(durationObject)));
   }
 
-  @Builtin.Method(name = "compare_to_builtin", description = "Compares to other duration")
-  @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class)
-  public long compareTo(Object durationObject, InteropLibrary interop)
-      throws UnsupportedMessageException {
-    return duration.compareTo(interop.asDuration(durationObject));
-  }
-
   @ExportMessage
   public boolean isDuration() {
     return true;

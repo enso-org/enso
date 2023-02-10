@@ -55,11 +55,12 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """import Standard.Base.Data.List.List
+          |import Standard.Base.Any.Any
           |
           |main = (2-2 == 0).if_then_else (List.Cons 5 6) 0
           |""".stripMargin.linesIterator.mkString("\n")
-      instrumenter.assertNodeExists(44, 41, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(69, 13, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(73, 41, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(98, 13, classOf[ApplicationNode])
       eval(code)
       ()
     }
