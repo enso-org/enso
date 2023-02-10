@@ -203,17 +203,15 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
-       - on_problems: Specifies how to handle non-fatal problems within the
-         operation. Defaults to attaching a warning to the result.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Error Conditions
+       ! Warnings
 
          - If this operation results in comparing floating-point values for
-           equality which is not recommended, a `Floating_Point_Equality` is
-           reported according to the `on_problems` setting.
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
 
        > Example
          Compare two columns for pairwise equality.
@@ -228,9 +226,9 @@ type Column
              import Standard.Examples
 
              example_eq = Examples.integer_column == 1
-    == : Column | Any -> Problem_Behavior -> Column
-    == self other on_problems=Problem_Behavior.Report_Warning =
-        make_equality_check_with_floating_point_handling self other "==" on_problems
+    == : Column | Any -> Column
+    == self other =
+        make_equality_check_with_floating_point_handling self other "=="
 
     ## Element-wise case-insensitive text equality comparison.
 
@@ -252,17 +250,15 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
-       - on_problems: Specifies how to handle non-fatal problems within the
-         operation. Defaults to attaching a warning to the result.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Error Conditions
+       ! Warnings
 
          - If this operation results in comparing floating-point values for
-           equality which is not recommended, a `Floating_Point_Equality` is
-           reported according to the `on_problems` setting.
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
 
        > Example
          Compare two columns for pairwise inequality.
@@ -277,9 +273,9 @@ type Column
              import Standard.Examples
 
              example_neq = Examples.integer_column != 1
-    != : Column | Any -> Problem_Behavior -> Column
-    != self other on_problems=Problem_Behavior.Report_Warning =
-        make_equality_check_with_floating_point_handling self other "!=" on_problems
+    != : Column | Any -> Column
+    != self other =
+        make_equality_check_with_floating_point_handling self other "!="
 
     ## UNSTABLE
 
@@ -401,11 +397,14 @@ type Column
        - other: The value to divide `self` by. If `other` is a column, the
          division is performed pairwise between corresponding elements of `self`
          and `other`.
-       - on_problems: Specifies how to handle division by zero. Defaults to
-         attaching a warning to the result.
 
        Returns a column containing the result of dividing each element of `self`
        by `other`.
+
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
 
        > Example
          Divide the elements of one column by the elements of another.
@@ -420,9 +419,8 @@ type Column
              import Standard.Examples
 
              example_div = Examples.integer_column / 10
-    / : Column | Any -> Problem_Behavior -> Column
-    / self other on_problems=Problem_Behavior.Report_Warning =
-        _ = on_problems
+    / : Column | Any -> Column
+    / self other =
         self.make_binary_op "/" other new_type=SQL_Type.double
 
     ## Element-wise modulus.
@@ -431,11 +429,14 @@ type Column
        - other: The value to modulo `self` against. If `other` is a column, the
          modulus is performed pairwise between corresponding elements of `self`
          and `other`.
-       - on_problems: Specifies how to handle division by zero. Defaults to
-         attaching a warning to the result.
 
        Returns a column with results of modulus this column's elements against
        `other`.
+
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
 
        > Example
          Modulus of two columns against each other.
@@ -450,9 +451,8 @@ type Column
              import Standard.Examples
 
              example_mod = Examples.integer_column % 3
-    % : Column | Any -> Problem_Behavior -> Column
-    % self other on_problems=Problem_Behavior.Report_Warning =
-        _ = on_problems
+    % : Column | Any -> Column
+    % self other =
         self.make_binary_op "%" other
 
     ## ALIAS Power
@@ -909,7 +909,7 @@ make_text_case_op left op other case_sensitivity =
             left.make_unary_op "FOLD_CASE" . make_binary_op op ci_other new_type=SQL_Type.boolean
 
 ## PRIVATE
-make_equality_check_with_floating_point_handling column other op on_problems =
+make_equality_check_with_floating_point_handling column other op =
     other_name = case other of
         other_column : Column -> "["+other_column.name+"]"
         _ -> other.to_text
@@ -925,5 +925,5 @@ make_equality_check_with_floating_point_handling column other op on_problems =
             problem_builder.reportFloatingPointEquality -1
         _ -> Nothing
     result = column.make_binary_op op other new_type=SQL_Type.boolean
-    on_problems.attach_problems_after result <|
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems

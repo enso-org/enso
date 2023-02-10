@@ -117,17 +117,15 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
-       - on_problems: Specifies how to handle non-fatal problems within the
-         operation. Defaults to attaching a warning to the result.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Error Conditions
+       ! Warnings
 
          - If this operation results in comparing floating-point values for
-           equality which is not recommended, a `Floating_Point_Equality` is
-           reported according to the `on_problems` setting.
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
 
        > Example
          Compare two columns for pairwise equality.
@@ -142,8 +140,8 @@ type Column
              import Standard.Examples
 
              example_eq = Examples.integer_column == 1
-    == : Column | Any -> Problem_Behavior -> Column
-    == self other on_problems=Problem_Behavior.Report_Warning =
+    == : Column | Any -> Column
+    == self other =
         other_name = case other of
             other_column : Column -> "["+other_column.name+"]"
             _ -> other.to_text
@@ -153,7 +151,7 @@ type Column
                 problem_builder.reportFloatingPointEquality -1
                 a == b
             _ -> a == b
-        run_vectorized_binary_op_with_problem_handling self '==' fallback other location on_problems
+        run_vectorized_binary_op_with_problem_handling self '==' fallback other location
 
     ## Element-wise case-insensitive text equality comparison.
 
@@ -179,17 +177,15 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
-       - on_problems: Specifies how to handle non-fatal problems within the
-         operation. Defaults to attaching a warning to the result.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Error Conditions
+       ! Warnings
 
          - If this operation results in comparing floating-point values for
-           equality which is not recommended, a `Floating_Point_Equality` is
-           reported according to the `on_problems` setting.
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
 
        > Example
          Compare two columns for pairwise inequality.
@@ -204,9 +200,9 @@ type Column
              import Standard.Examples
 
              example_neq = Examples.integer_column != 1
-    != : Column | Any -> Problem_Behavior -> Column
-    != self other on_problems=Problem_Behavior.Report_Warning =
-        (self.== other on_problems).not
+    != : Column | Any -> Column
+    != self other =
+        (self == other).not
 
     ## Element-wise order comparison.
 
@@ -422,11 +418,14 @@ type Column
        - other: The value to divide `self` by. If `other` is a column, the
          division is performed pairwise between corresponding elements of `self`
          and `other`.
-       - on_problems: Specifies how to handle division by zero. Defaults to
-         attaching a warning to the result.
 
        Returns a column containing the result of dividing each element of `self`
        by `other`.
+
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
 
        > Example
          Divide the elements of one column by the elements of another.
@@ -441,8 +440,8 @@ type Column
              import Standard.Examples
 
              example_div = Examples.integer_column / 10
-    / : Column | Any -> Problem_Behavior -> Column
-    / self other on_problems=Problem_Behavior.Report_Warning =
+    / : Column | Any -> Column
+    / self other =
         other_name = case other of
             other_column : Column -> "["+other_column.name+"]"
             _ -> other.to_text
@@ -452,7 +451,7 @@ type Column
                 # TODO indices for fallback
                 problem_builder.reportDivisionByZero Nothing
                 Nothing
-        run_vectorized_binary_op_with_problem_handling self '/' fallback other location on_problems
+        run_vectorized_binary_op_with_problem_handling self '/' fallback other location
 
     ## Element-wise modulus.
 
@@ -460,11 +459,14 @@ type Column
        - other: The value to modulo `self` against. If `other` is a column, the
          modulus is performed pairwise between corresponding elements of `self`
          and `other`.
-       - on_problems: Specifies how to handle division by zero. Defaults to
-         attaching a warning to the result.
 
        Returns a column with results of modulus this column's elements against
        `other`.
+
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
 
        > Example
          Modulus of two columns against each other.
@@ -479,8 +481,8 @@ type Column
              import Standard.Examples
 
              example_mod = Examples.integer_column % 3
-    % : Column | Any -> Problem_Behavior -> Column
-    % self other on_problems=Problem_Behavior.Report_Warning =
+    % : Column | Any -> Column
+    % self other =
         other_name = case other of
             other_column : Column -> "["+other_column.name+"]"
             _ -> other.to_text
@@ -489,7 +491,7 @@ type Column
             if b != 0 then a % b else
                 # TODO indices for fallback
                 problem_builder.reportDivisionByZero Nothing
-        run_vectorized_binary_op_with_problem_handling self '%' fallback other location on_problems
+        run_vectorized_binary_op_with_problem_handling self '%' fallback other location
 
     ## ALIAS Power Columns
 
@@ -1405,7 +1407,7 @@ run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_nam
      `False`, the null values are passed as any other value and can have custom
      handling logic.
    - new_name: The name of the column created as the result of this operation.
-run_vectorized_binary_op_with_problem_handling column name fallback_fn operand location on_problems skip_nulls=True new_name="Result" =
+run_vectorized_binary_op_with_problem_handling column name fallback_fn operand location skip_nulls=True new_name="Result" =
     problem_builder = MapOperationProblemBuilder.new location
     applied_fn = fallback_fn problem_builder
     result = case operand of
@@ -1418,7 +1420,7 @@ run_vectorized_binary_op_with_problem_handling column name fallback_fn operand l
             s1 = column.java_column.getStorage
             rs = s1.bimap name applied_fn operand skip_nulls problem_builder
             Column.Value (Java_Column.new new_name rs)
-    on_problems.attach_problems_after result <|
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
 ## PRIVATE
