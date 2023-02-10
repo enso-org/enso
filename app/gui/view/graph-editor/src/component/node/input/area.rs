@@ -1166,9 +1166,10 @@ struct CallInfoMap {
 /// Information about the call expression, which are derived from the span tree.
 #[derive(Debug, Default)]
 struct CallInfo {
-    /// The AST ID associated with `This` span of the call expression.
+    /// The AST ID associated with `self` argument span of the call expression.
     target_id:     Option<ast::Id>,
-    /// The crumbs of last argument span associated with the call expression.
+    /// The crumbs of last argument span associated with the call expression. It can be any
+    /// argument, including `self`.
     last_argument: Option<Crumbs>,
 }
 
@@ -1178,11 +1179,10 @@ impl CallInfoMap {
         expression.root_ref().dfs(|node| {
             if let Some(call_id) = node.kind.call_id() {
                 let mut entry = call_info.entry(call_id).or_default();
-                if node.kind.is_this() {
+                if entry.target_id.is_none() {
                     entry.target_id = node.ast_id;
-                } else if node.kind.is_argument() {
-                    entry.last_argument = Some(node.crumbs.clone());
                 }
+                entry.last_argument = Some(node.crumbs.clone());
             }
         });
 

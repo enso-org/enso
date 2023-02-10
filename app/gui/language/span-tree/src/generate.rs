@@ -247,7 +247,7 @@ fn generate_node_for_ast<T: Payload>(
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
     if let Some(infix) = GeneralizedInfix::try_new(ast) {
-        generate_node_for_infix(infix, None, kind, context)
+        infix.generate_node(kind, context)
     } else {
         match ast.shape() {
             ast::Shape::Prefix(_) =>
@@ -283,34 +283,33 @@ fn generate_node_for_ast<T: Payload>(
 
 // === Operators (Sections and Infixes) ===
 
-fn generate_node_for_infix<T: Payload>(
-    infix: GeneralizedInfix,
-    prefix_app_base: Option<ApplicationBase>,
-    kind: node::Kind,
-    context: &impl Context,
-) -> FallibleResult<Node<T>> {
-    // Code like `ast.func` or `a+b+c`.
-
-    let chain = infix.flatten();
-    if let Some(app_base) = prefix_app_base {
-        // When this method call is part of a prefix chain, the parameters are handled externally.
-        return generate_node_for_opr_chain(chain, kind, app_base, context);
-    }
-
-    let app_base = ApplicationBase::from_infix(&infix);
-    if app_base.uses_method_notation {
-        // When this is a standalone infix with method notation, missing parameters needs to be
-        // handled here. It is guaranteed that no existing prefix arguments are present.
-        let arguments = app_base.known_arguments(context).unwrap_or_default();
-        let arity = arguments.len();
-        let base_node_kind = if arity == 0 { kind.clone() } else { node::Kind::Operation.into() };
-        let node = generate_node_for_opr_chain(chain, base_node_kind, app_base, context)?;
-        let provided_prefix_arg_count = 0;
-        let args_iter = arguments.into_iter();
-        Ok(generate_expected_arguments(node, kind, provided_prefix_arg_count, args_iter))
-    } else {
-        // For non-access infix operators, missing arguments are not handled at this level.
-        generate_node_for_opr_chain(chain, kind, app_base, context)
+impl<T: Payload> SpanTreeGenerator<T> for GeneralizedInfix {
+    fn generate_node(
+        &self,
+        kind: impl Into<node::Kind>,
+        context: &impl Context,
+    ) -> FallibleResult<Node<T>> {
+        // Code like `ast.func` or `a+b+c`.
+        let chain = self.flatten();
+        let kind = kind.into();
+        let app_base = ApplicationBase::from_infix(&self);
+        if app_base.uses_method_notation {
+            // This is a standalone method access chain, missing method parameters needs to be
+            // handled here. It is guaranteed that no existing prefix arguments are present, as
+            // method calls inside prefix chains are handled by `generate_node_for_prefix_chain` and
+            // never reach this point.
+            let arguments = app_base.known_arguments(context).unwrap_or_default();
+            let arity = arguments.len();
+            let base_node_kind =
+                if arity == 0 { kind.clone() } else { node::Kind::Operation.into() };
+            let node = generate_node_for_opr_chain(chain, base_node_kind, app_base, context)?;
+            let provided_prefix_arg_count = 0;
+            let args_iter = arguments.into_iter();
+            Ok(generate_expected_arguments(node, kind, provided_prefix_arg_count, args_iter))
+        } else {
+            // For non-access infix operators, missing arguments are not handled at this level.
+            generate_node_for_opr_chain(chain, kind, app_base, context)
+        }
     }
 }
 
@@ -445,8 +444,12 @@ fn generate_node_for_prefix_chain<T: Payload>(
     // Removing arguments is possible if there at least two of them
     let removable = this.args.len() >= 2;
 
+    // When using method notation, expand the infix access chain manually to maintain correct method
+    // application info and avoid generating expected arguments twice. Tree generator implementation
+    // on `GeneralizedInfix` will always assume that the infix access chain is a method call without
+    // any applied arguments, since it has no way of knowing that it is part of a prefix chain.
     let node = if let Some(infix) = GeneralizedInfix::try_new(&this.func) {
-        generate_node_for_infix(infix, Some(app_base), node::Kind::Operation, context)
+        generate_node_for_opr_chain(infix.flatten(), node::Kind::Operation, app_base, context)
     } else {
         this.func.generate_node(node::Kind::Operation, context)
     };
