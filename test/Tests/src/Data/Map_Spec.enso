@@ -3,6 +3,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.No_Such_Key.No_Such_Key
 import Standard.Base.Data.Time.Date_Time.Date_Time
 from Standard.Base.Data.Map import Map
+from Standard.Base.Data.Ordering import Default_Unordered_Comparator
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -74,6 +75,11 @@ spec =
             non_empty = Map.empty . insert "foo" 1234
             empty_map.is_empty . should_be_true
             non_empty.is_empty . should_be_false
+
+        Test.specify "should get default unordered comparator for polyglot maps" <|
+            Comparable.from (Map.empty) . should_equal Default_Unordered_Comparator
+            Comparable.from (js_empty_dict) . should_equal Default_Unordered_Comparator
+            Comparable.from (JavaMap.of "A" 1 "B" 2) . should_equal Default_Unordered_Comparator
 
         Test.specify "should compare two hash maps" <|
             (Map.singleton "a" 1).should_equal (Map.singleton "a" 1)
@@ -463,7 +469,7 @@ spec =
             map.to_vector.should_equal [["A", 1], ["B", 2], ["C", 3]]
 
         Test.specify "should treat Java Map as Enso map" <|
-            sort_by_keys vec = vec.sort by=x-> y-> x.first.compare_to y.first
+            sort_by_keys vec = vec.sort by=x-> y-> Ordering.compare x.first y.first
             jmap = JavaMap.of "A" 1 "B" 2
             (sort_by_keys jmap.to_vector) . should_equal [["A", 1], ["B", 2]]
             (sort_by_keys (jmap.insert "C" 3 . to_vector)) . should_equal [["A", 1], ["B", 2], ["C", 3]]

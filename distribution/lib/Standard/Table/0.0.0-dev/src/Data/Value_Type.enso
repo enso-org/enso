@@ -22,8 +22,12 @@ type Bits
         Bits.Bits_32 -> 32
         Bits.Bits_64 -> 64
 
-    ## PRIVATE
-    compare_to self other = self.to_bits . compare_to other.to_bits
+type Bits_Comparator
+    is_ordered = True
+    compare x y = Comparable.from x.to_bits . compare x.to_bits y.to_bits
+    hash x = Comparable.from x.to_bits . hash x.to_bits
+
+Comparable.from (_:Bits) = Bits_Comparator
 
 ## Represents the different possible types of values within RDBMS columns.
 type Value_Type
