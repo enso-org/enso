@@ -2125,12 +2125,13 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.xerial"          % "sqlite-jdbc"           % "3.36.0.3",
-      "org.postgresql"      % "postgresql"            % "42.4.0",
-      "com.amazon.redshift" % "redshift-jdbc42"       % "2.1.0.9",
-      "com.amazonaws"       % "aws-java-sdk-core"     % "1.12.273",
-      "com.amazonaws"       % "aws-java-sdk-redshift" % "1.12.273",
-      "com.amazonaws"       % "aws-java-sdk-sts"      % "1.12.273"
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "org.xerial"          % "sqlite-jdbc"             % "3.36.0.3",
+      "org.postgresql"      % "postgresql"              % "42.4.0",
+      "com.amazon.redshift" % "redshift-jdbc42"         % "2.1.0.9",
+      "com.amazonaws"       % "aws-java-sdk-core"       % "1.12.273",
+      "com.amazonaws"       % "aws-java-sdk-redshift"   % "1.12.273",
+      "com.amazonaws"       % "aws-java-sdk-sts"        % "1.12.273"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2144,6 +2145,7 @@ lazy val `std-database` = project
       result
     }.value
   )
+  .dependsOn(`std-base` % "provided")
 
 /* Note [Native Image Workaround for GraalVM 20.2]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

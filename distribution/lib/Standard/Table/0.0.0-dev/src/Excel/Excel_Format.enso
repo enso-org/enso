@@ -9,7 +9,7 @@ import project.Excel.Excel_Writer
 
 ## PRIVATE
    Resolve the xls_format setting to a boolean.
-should_treat_as_xls_format : (Boolean|Infer) -> File -> Boolean | Illegal_Argument
+should_treat_as_xls_format : (Boolean|Infer) -> File -> Boolean ! Illegal_Argument
 should_treat_as_xls_format xls_format file =
     if xls_format != Infer then xls_format else
         case file.extension of
