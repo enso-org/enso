@@ -18,10 +18,10 @@ spec =
             False.to_text . should_equal "False"
 
         Test.specify "should allow for comparing Bools" <|
-            True.compare_to True . should_equal Ordering.Equal
-            False.compare_to False . should_equal Ordering.Equal
-            True.compare_to False . should_equal Ordering.Greater
-            False.compare_to True . should_equal Ordering.Less
+            (True == True) . should_be_true
+            (False == False) . should_be_true
+            (True > False) . should_be_true
+            (False < True) . should_be_true
 
         Test.specify "should allow == operator" <|
             True.should_equal True

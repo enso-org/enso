@@ -23,8 +23,8 @@ polyglot java import com.ibm.icu.text.BreakIterator
 compare : Text -> Text -> Case_Sensitivity -> Ordering
 compare text1 text2 case_sensitivity=Case_Sensitivity.Sensitive =
     compare_text = case case_sensitivity of
-        Case_Sensitivity.Default -> _.compare_to _
-        Case_Sensitivity.Sensitive -> _.compare_to _
+        Case_Sensitivity.Default -> Ordering.compare _ _
+        Case_Sensitivity.Sensitive -> Ordering.compare _ _
         Case_Sensitivity.Insensitive locale -> a -> b -> a.compare_to_ignore_case b locale
 
     iter1 = BreakIterator.getCharacterInstance
@@ -60,7 +60,7 @@ compare text1 text2 case_sensitivity=Case_Sensitivity.Sensitive =
         [substring, decimal, pair.first, next_index]
 
 
-    ## Loop to computer the ordering of text1 and text2.
+    ## Loop to compute the ordering of text1 and text2.
        Ordering: Nothing < Number < Text
        prev1 - index to start of current character in text1.
        next1 - index to start of next character (or -1 if finished) in text1.
@@ -98,7 +98,7 @@ compare text1 text2 case_sensitivity=Case_Sensitivity.Sensitive =
                                 num_text2 = parsed2.at 0
                                 value2 = parsed2.at 1
 
-                                value_comparison = value1.compare_to value2
+                                value_comparison = Ordering.compare value1 value2
                                 if value_comparison != Ordering.Equal then value_comparison else
                                     text_comparison = compare_text num_text1 num_text2
                                     if text_comparison != Ordering.Equal then text_comparison else

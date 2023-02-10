@@ -14,31 +14,32 @@ type CustomEqType
         CustomEqType.C1 f1 -> f1
         CustomEqType.C2 f1 f2 -> f1 + f2
 
-    == self other = self.sum == other.sum
+type CustomEqType_Comparator
+    is_ordered = False
+    equals o1 o2 = o1.sum == o2.sum
+    hash o =
+        comp = Comparable.from o.sum
+        comp.hash o.sum
+
+Comparable.from (_:CustomEqType) = CustomEqType_Comparator
 
 type Child
     Value number
 
-    == : Any -> Boolean
-    == self other = case other of
-        _ : Child -> (self.number % 100) == (other.number % 100)
-        _ -> False
+type Child_Comparator
+    is_ordered = False
+    equals child1 child2 = child1.number % 100 == child2.number % 100
+    hash child =
+        comp = Comparable.from child.number
+        comp.hash (child.number % 100)
+
+Comparable.from (_:Child) = Child_Comparator
 
 type Parent
     Value child
 
-    == : Any -> Boolean
-    == self other = case other of
-        _ : Parent -> self.child == other.child
-        _ -> False
-
 type GrandParent
     Value parent
-
-    == : Any -> Boolean
-    == self other = case other of
-        _ : GrandParent -> self.parent == other.parent
-        _ -> False
 
 type ManyFieldType
     Value f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15
@@ -120,6 +121,9 @@ spec =
             ((Point.Value 'ś' 23.0) == (Point.Value 's\u0301' 23)) . should_be_true
 
         Test.specify "should dispatch to overriden `==` on atoms" <|
+            (Child.Value 11 == Child.Value 111) . should_be_true
+
+        Test.specify "should dispatch to overriden `==` on atoms transitively" <|
             child1 = Child.Value 11
             parent1 = Parent.Value child1
             grand_parent1 = GrandParent.Value parent1
@@ -130,11 +134,16 @@ spec =
 
             (grand_parent1 == grand_parent2).should_be_true
 
-        Test.specify "should handle `==` on types with many fields" <|
+        Test.specify "should handle `==` on types with many fields with custom comparator" <|
             many_fields1 = ManyFieldType.Value (Child.Value 1) (Child.Value 2) (Child.Value 3) (Child.Value 4) (Child.Value 5) (Child.Value 6) (Child.Value 7) (Child.Value 8) (Child.Value 9) (Child.Value 10) (Child.Value 11) (Child.Value 12) (Child.Value 13) (Child.Value 14) (Child.Value 15)
             many_fields2 = ManyFieldType.Value (Child.Value 101) (Child.Value 102) (Child.Value 103) (Child.Value 104) (Child.Value 105) (Child.Value 106) (Child.Value 107) (Child.Value 108) (Child.Value 109) (Child.Value 110) (Child.Value 111) (Child.Value 112) (Child.Value 113) (Child.Value 114) (Child.Value 115)
 
             (many_fields1 == many_fields2).should_be_true
+
+        Test.specify "should handle `==` on atoms with fields with mixed comparators" <|
+            obj_1 = FourFieldType.Value (Child.Value 1) 42 (Child.Value 2) 83
+            obj_2 = FourFieldType.Value (Child.Value 101) 42 (Child.Value 102) 83
+            (obj_1 == obj_2).should_be_true
 
         Test.specify "should be able to compare atoms with different constructors" <|
             ((CustomEqType.C1 10) == (CustomEqType.C2 7 3)).should_be_true
@@ -152,16 +161,16 @@ spec =
             four_field = FourFieldType.Value 1 2 3 4
             (rect == four_field).should_be_false
 
-        Test.specify "should handle `==` on types" pending="Blocked by https://www.pivotaltracker.com/story/show/184092284" <|
+        Test.specify "should handle `==` on types" <|
             (Child == Child).should_be_true
             (Child == Point).should_be_false
             (Point == Child).should_be_false
-            (JavaPath == Child).should_be_false
-            (Child == JavaPath).should_be_false
             (Boolean == Any).should_be_false
+            (Boolean == Boolean).should_be_true
+
+        Test.specify "should handle `==` on types with Any as first operand" pending="Any == Boolean resolves to Any.type.== static method call" <|
             (Any == Boolean).should_be_false
             (Any == Any).should_be_true
-            (Boolean == Boolean).should_be_true
 
         Test.specify "should dispatch to overriden `==` in vectors" <|
             ([(Child.Value 1)] == [(Child.Value 101)]).should_be_true

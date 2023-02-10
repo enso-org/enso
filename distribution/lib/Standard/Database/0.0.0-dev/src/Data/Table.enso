@@ -289,7 +289,7 @@ type Table
 
     ## Returns a new table with the columns sorted by name according to the
        specified sort method. By default, sorting will be according to
-       case-sensitive ascending order based on the `Text.compare_to` operator.
+       case-sensitive ascending order based on the normalized Unicode ordering.
 
        Arguments:
        - order: Whether sorting should be in ascending or descending order.

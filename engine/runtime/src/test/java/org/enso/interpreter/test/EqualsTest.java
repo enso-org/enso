@@ -1,16 +1,23 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -19,22 +26,18 @@ import org.junit.runner.RunWith;
 @RunWith(Theories.class)
 public class EqualsTest extends TestBase {
   private static Context context;
-  private EqualsAnyNode equalsNode;
-  private TestRootNode testRootNode;
+  private static EqualsNode equalsNode;
+  private static TestRootNode testRootNode;
 
   @BeforeClass
   public static void initContextAndData() {
     context = createDefaultContext();
     unwrappedValues = fetchAllUnwrappedValues();
-  }
-
-  @Before
-  public void initNodes() {
     executeInContext(
         context,
         () -> {
           testRootNode = new TestRootNode();
-          equalsNode = EqualsAnyNode.build();
+          equalsNode = EqualsNode.build();
           testRootNode.insertChildren(equalsNode);
           return null;
         });
@@ -98,6 +101,77 @@ public class EqualsTest extends TestBase {
           boolean firstResult = equalsNode.execute(value, value);
           boolean secondResult = equalsNode.execute(value, value);
           assertEquals("equals should be consistent", firstResult, secondResult);
+          return null;
+        });
+  }
+
+  /** Test for some specific values, for which we know that they are equal. */
+  @Test
+  public void testDateEquality() {
+    Object ensoDate =
+        unwrapValue(
+            context,
+            createValue(
+                context, "(Date.new 1999 3 23)", "import Standard.Base.Data.Time.Date.Date"));
+    Object javaDate = unwrapValue(context, context.asValue(LocalDate.of(1999, 3, 23)));
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoDate, javaDate));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTimeEquality() {
+    Object ensoTime =
+        unwrapValue(
+            context,
+            createValue(
+                context,
+                "Time_Of_Day.new 23 59",
+                "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day"));
+    Object javaDate = unwrapValue(context, context.asValue(LocalTime.of(23, 59)));
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoTime, javaDate));
+          return null;
+        });
+  }
+
+  @Test
+  public void testDateTimeEquality() {
+    Object ensoDateTime =
+        unwrapValue(
+            context,
+            createValue(
+                context,
+                "(Date_Time.new 1999 3 1 23 59)",
+                "import Standard.Base.Data.Time.Date_Time.Date_Time"));
+    Object javaDateTime =
+        unwrapValue(
+            context,
+            context.asValue(
+                ZonedDateTime.of(
+                    LocalDate.of(1999, 3, 1), LocalTime.of(23, 59), ZoneId.systemDefault())));
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoDateTime, javaDateTime));
+          return null;
+        });
+  }
+
+  @Test
+  public void testVectorsEquality() {
+    Object ensoVector =
+        unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base.import all"));
+    Object javaVector = unwrapValue(context, context.asValue(List.of(1, 2, 3)));
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoVector, javaVector));
           return null;
         });
   }

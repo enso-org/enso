@@ -202,7 +202,7 @@ public final class Type implements TruffleObject {
   @ExportMessage
   Object getMetaParents(@CachedLibrary("this") InteropLibrary lib)
       throws UnsupportedMessageException {
-    if (isNothing(lib)) {
+    if (isNothing(lib) || !hasMetaParents()) {
       throw UnsupportedMessageException.create();
     }
     assert supertype != null;

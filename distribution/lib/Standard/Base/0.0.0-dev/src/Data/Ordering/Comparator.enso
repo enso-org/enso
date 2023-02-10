@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text_Ordering.Text_Ordering
 import project.Error.Incomparable_Values.Incomparable_Values
@@ -11,18 +12,19 @@ from project.Data.Boolean import True, False
 polyglot java import org.enso.base.ObjectComparator
 
 ## ADVANCED
-   Creates a Java Comparator object which can call Enso compare_to
+   Creates a Java Comparator object which can call back to Enso for comparison
+   of non-primitive types.
 
    Arguments:
    - custom_comparator:
-     If `Nothing` will get a singleton instance for `.compare_to`.
-     Otherwise can support a custom fallback comparator.
+     If `Nothing` will get an ordered comparator from each element.
+     Otherwise can support a custom fallback compare function.
 new : Nothing | (Any -> Any -> Ordering) -> ObjectComparator
 new custom_comparator=Nothing =
     comparator_to_java cmp x y = Incomparable_Values.handle_errors (cmp x y . to_sign)
 
     case custom_comparator of
-        Nothing -> ObjectComparator.getInstance (comparator_to_java .compare_to)
+        Nothing -> ObjectComparator.getInstance (comparator_to_java Ordering.compare)
         _ -> ObjectComparator.new (comparator_to_java custom_comparator)
 
 ## ADVANCED
