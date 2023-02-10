@@ -3,7 +3,7 @@ import Standard.Base.Error.Common.Arithmetic_Error
 import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Common.Type_Error
 
-from Standard.Base.Data.Numbers import Number_Parse_Error
+from Standard.Base.Data.Numbers import all
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -452,6 +452,11 @@ spec =
             Number.nan==Number.nan . should_be_false
             Number.nan==0 . should_be_false
             Number.nan!=Number.nan . should_be_true
+
+        Test.specify "Nan should be incomparable" <|
+            Comparable.from Number.nan . should_equal Incomparable
+            Number.nan<0 . should_fail_with Incomparable_Values
+            Number.nan<Number.nan . should_fail_with Incomparable_Values
 
         Test.specify "should support inexact equality comparisons" <|
             1.0001 . equals 1.0002 epsilon=0.01 . should_be_true

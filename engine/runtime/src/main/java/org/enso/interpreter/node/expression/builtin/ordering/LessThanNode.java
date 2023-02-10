@@ -10,6 +10,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
@@ -54,18 +55,30 @@ public abstract class LessThanNode extends Node {
   }
 
   @Specialization
-  boolean lessDoubles(double self, double other) {
-    return self < other;
+  Object lessDoubles(double self, double other) {
+    if (Double.isNaN(self) || Double.isNaN(other)) {
+      return incomparableValues(self, other);
+    } else {
+      return self < other;
+    }
   }
 
   @Specialization
-  boolean lessLongDouble(long self, double other) {
-    return (double) self < other;
+  Object lessLongDouble(long self, double other) {
+    if (Double.isNaN(other)) {
+      return incomparableValues(self, other);
+    } else {
+      return (double) self < other;
+    }
   }
 
   @Specialization
-  boolean lessDoubleLong(double self, long other) {
-    return self < (double) other;
+  Object lessDoubleLong(double self, long other) {
+    if (Double.isNaN(self)) {
+      return incomparableValues(self, other);
+    } else {
+      return self < (double) other;
+    }
   }
 
   @Specialization
@@ -78,15 +91,27 @@ public abstract class LessThanNode extends Node {
     return self < (long) other;
   }
 
-
   @Specialization
-  boolean lessIntDouble(int self, double other) {
-    return (double) self < other;
+  boolean lessLongBigInt(long self, EnsoBigInteger bigInt) {
+    return BigInteger.valueOf(self).compareTo(bigInt.getValue()) < 0;
   }
 
   @Specialization
-  boolean lessDoubleInt(double self, int other) {
-    return self < (double) other;
+  Object lessIntDouble(int self, double other) {
+    if (Double.isNaN(other)) {
+      return incomparableValues(self, other);
+    } else {
+      return (double) self < other;
+    }
+  }
+
+  @Specialization
+  Object lessDoubleInt(double self, int other) {
+    if (Double.isNaN(self)) {
+      return incomparableValues(self, other);
+    } else {
+      return self < (double) other;
+    }
   }
 
   @Specialization
@@ -97,14 +122,22 @@ public abstract class LessThanNode extends Node {
 
   @Specialization
   @TruffleBoundary
-  boolean lessBitIntDouble(EnsoBigInteger self, double other) {
-    return self.doubleValue() < other;
+  Object lessBitIntDouble(EnsoBigInteger self, double other) {
+    if (Double.isNaN(other)) {
+      return incomparableValues(self, other);
+    } else {
+      return self.doubleValue() < other;
+    }
   }
 
   @Specialization
   @TruffleBoundary
-  boolean lessDoubleBigInt(double self, EnsoBigInteger other) {
-    return self < other.doubleValue();
+  Object lessDoubleBigInt(double self, EnsoBigInteger other) {
+    if (Double.isNaN(self)) {
+      return incomparableValues(self, other);
+    } else {
+      return self < other.doubleValue();
+    }
   }
 
   /**
@@ -299,7 +332,13 @@ public abstract class LessThanNode extends Node {
 
   @Fallback
   Object fallback(Object left, Object right) {
-    var typeError = EnsoContext.get(this).getBuiltins().error().makeTypeError(left, right, "right");
-    return DataflowError.withoutTrace(typeError, this);
+    return incomparableValues(left, right);
+  }
+
+  private Object incomparableValues(Object left, Object right) {
+    return DataflowError.withoutTrace(
+        EnsoContext.get(this).getBuiltins().error().makeIncomparableValuesError(left, right),
+        this
+    );
   }
 }
