@@ -67,8 +67,7 @@ const FRAME_TIME_THRESHOLD: Duration = (1000.0 / FPS_THRESHOLD).ms();
 /// a crude form of backpressure by blocking until all pending jobs complete. We are not sure if it
 /// is a feature or a bug. To learn more about our findings so far, see:
 /// https://github.com/enso-org/enso/pull/3378#issuecomment-1090958946
-//const MAX_PARALLEL_COMPILE_JOBS: usize = 2;
-const MAX_PARALLEL_COMPILE_JOBS: usize = 1000;
+const MAX_PARALLEL_COMPILE_JOBS: usize = 32;
 
 
 
@@ -106,10 +105,7 @@ impl<T> Job<T> {
 
     /// Return whether the job has been cancelled (by its handle being dropped).
     fn is_cancelled(&self) -> bool {
-        match self.handle.as_ref() {
-            Some(handle) if !handle.exists() => true,
-            _ => false,
-        }
+        self.handle.as_ref().map(|| !handle.exists()).unwrap_or_default()
     }
 }
 
