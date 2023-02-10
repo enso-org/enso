@@ -67,8 +67,7 @@ public class RuntimeOptions {
 
   public static final String EDITION_OVERRIDE_KEY_EMPTY = "";
   public static final String EDITION_OVERRIDE = optionName("editionOverride");
-  public static final OptionKey<String> EDITION_OVERRIDE_KEY =
-      new OptionKey<>(EDITION_OVERRIDE_KEY_EMPTY);
+  public static final OptionKey<String> EDITION_OVERRIDE_KEY = new OptionKey<>(EDITION_OVERRIDE_KEY_EMPTY);
   private static final OptionDescriptor EDITION_OVERRIDE_DESCRIPTOR =
       OptionDescriptor.newBuilder(EDITION_OVERRIDE_KEY, EDITION_OVERRIDE).build();
 
