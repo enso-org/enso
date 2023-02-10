@@ -4,12 +4,7 @@ use crate::api::Error::*;
 use crate::prelude::*;
 
 use crate::api;
-use crate::api::Ast;
-use crate::api::Metadata;
-use crate::api::ParsedSourceFile;
 
-use ast::id_map::JsonIdMap;
-use ast::IdMap;
 use std::fmt::Formatter;
 use websocket::stream::sync::TcpStream;
 use websocket::ClientBuilder;
@@ -93,22 +88,8 @@ impl From<serde_json::error::Error> for Error {
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
-    ParseRequest { program: String, ids: JsonIdMap },
-    ParseRequestWithMetadata { content: String },
     DocParserGenerateHtmlSource { program: String },
     DocParserGenerateHtmlFromDoc { code: String },
-}
-
-/// All responses that Parser Service might reply with.
-#[derive(Debug, serde::Deserialize)]
-pub enum Response<M> {
-    #[serde(bound(deserialize = "M: Metadata"))]
-    Success {
-        module: ParsedSourceFile<M>,
-    },
-    Error {
-        message: String,
-    },
 }
 
 /// All responses that Doc Parser Service might reply with.
@@ -172,19 +153,6 @@ mod internal {
         }
 
         /// Obtains a text message from peer and deserializes it using JSON
-        /// into a `Response`.
-        ///
-        /// Should be called exactly once after each `send_request` invocation.
-        pub fn recv_response<M: Metadata>(&mut self) -> Result<Response<M>> {
-            let response = self.connection.recv_message()?;
-            match response {
-                websocket::OwnedMessage::Text(text) =>
-                    crate::from_json_str_without_recursion_limit(&text).map_err(Into::into),
-                _ => Err(Error::NonTextResponse(response)),
-            }
-        }
-
-        /// Obtains a text message from peer and deserializes it using JSON
         /// into a `ResponseDoc`.
         ///
         /// Should be called exactly once after each `send_request` invocation.
@@ -194,15 +162,6 @@ mod internal {
                 websocket::OwnedMessage::Text(code) => Ok(serde_json::from_str(&code)?),
                 _ => Err(Error::NonTextResponse(response)),
             }
-        }
-
-        /// Sends given `Request` to peer and receives a `Response`.
-        ///
-        /// Both request and response are exchanged in JSON using text messages
-        /// over WebSocket.
-        pub fn rpc_call<M: Metadata>(&mut self, request: Request) -> Result<Response<M>> {
-            self.send_request(request)?;
-            self.recv_response()
         }
 
         /// Sends given `Request` to peer and receives a `ResponseDoc`.
@@ -235,30 +194,6 @@ impl Client {
         let client = Client::from_conf(&config)?;
         debug!("Established connection with {}", config.address_string());
         Ok(client)
-    }
-
-    /// Sends a request to parser service to parse Enso code.
-    pub fn parse(&mut self, program: String, ids: IdMap) -> api::Result<Ast> {
-        let ids = JsonIdMap::from_id_map(&ids, &program.as_str().into());
-        let request = Request::ParseRequest { program, ids };
-        let response = self.rpc_call::<serde_json::Value>(request)?;
-        match response {
-            Response::Success { module } => Ok(module.ast.into()),
-            Response::Error { message } => Err(ParsingError(message)),
-        }
-    }
-
-    /// Sends a request to parser service to parse code with metadata.
-    pub fn parse_with_metadata<M: Metadata>(
-        &mut self,
-        program: String,
-    ) -> api::Result<ParsedSourceFile<M>> {
-        let request = Request::ParseRequestWithMetadata { content: program };
-        let response = self.rpc_call(request)?;
-        match response {
-            Response::Success { module } => Ok(module),
-            Response::Error { message } => Err(ParsingError(message)),
-        }
     }
 
     /// Sends a request to parser service to generate HTML code from documented Enso code.

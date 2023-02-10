@@ -225,29 +225,26 @@ mod tests {
     use ast::macros::DocumentationCommentInfo;
     use ast::test_utils::expect_single_line;
     use ast::HasRepr;
-    use wasm_bindgen_test::wasm_bindgen_test;
-
-    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     /// Takes a program with main definition in root and returns main's graph.
-    fn main_graph(parser: &parser_scala::Parser, program: impl Str) -> GraphInfo {
-        let module = parser.parse_module(program.into(), default()).unwrap();
+    fn main_graph(parser: &parser::Parser, program: impl Str) -> GraphInfo {
+        let module = parser.parse_module(program.as_ref(), default()).unwrap();
         let name = DefinitionName::new_plain("main");
         let main = module.def_iter().find_by_name(&name).unwrap();
         GraphInfo::from_definition(main.item)
     }
 
-    fn find_graph(parser: &parser_scala::Parser, program: impl Str, name: impl Str) -> GraphInfo {
-        let module = parser.parse_module(program.into(), default()).unwrap();
+    fn find_graph(parser: &parser::Parser, program: impl Str, name: impl Str) -> GraphInfo {
+        let module = parser.parse_module(program.as_ref(), default()).unwrap();
         let crumbs = name.into().split('.').map(DefinitionName::new_plain).collect();
         let id = Id { crumbs };
         let definition = get_definition(&module, &id).unwrap();
         GraphInfo::from_definition(definition)
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn detect_a_node() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         // Each of these programs should have a `main` definition with a single `2+2` node.
         let programs = vec![
             "main = 2+2",
@@ -265,8 +262,8 @@ mod tests {
         }
     }
 
-    fn new_expression_node(parser: &parser_scala::Parser, expression: &str) -> NodeInfo {
-        let node_ast = parser.parse(expression.to_string(), default()).unwrap();
+    fn new_expression_node(parser: &parser::Parser, expression: &str) -> NodeInfo {
+        let node_ast = parser.parse(expression, default());
         let line_ast = expect_single_line(&node_ast).clone();
         NodeInfo::from_main_line_ast(&line_ast).unwrap()
     }
@@ -281,16 +278,16 @@ mod tests {
     fn assert_same(left: &NodeInfo, right: &NodeInfo) {
         assert_eq!(left.id(), right.id());
         assert_eq!(
-            left.documentation.as_ref().map(DocumentationCommentInfo::to_string),
-            right.documentation.as_ref().map(DocumentationCommentInfo::to_string)
+            left.documentation.as_ref().map(DocumentationCommentInfo::pretty_text),
+            right.documentation.as_ref().map(DocumentationCommentInfo::pretty_text)
         );
         assert_eq!(left.main_line.repr(), right.main_line.repr());
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn add_node_to_graph_with_single_line() {
         let program = "main = print \"hello\"";
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let mut graph = main_graph(&parser, program);
         let nodes = graph.nodes();
         assert_eq!(nodes.len(), 1);
@@ -310,14 +307,14 @@ mod tests {
         assert_all(nodes.as_slice(), &[node_to_add1, node_to_add0, initial_node]);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn add_node_to_graph_with_multiple_lines() {
         // TODO [dg] Also add test for binding node when it's possible to update its id.
         let program = r#"main =
     foo = node
     foo a = not_node
     print "hello""#;
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let mut graph = main_graph(&parser, program);
 
         let node_to_add0 = new_expression_node(&parser, "4 + 4");
@@ -365,7 +362,7 @@ mod tests {
         assert_eq!(graph.nodes()[1].expression().repr(), "not_node");
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn add_node_to_graph_with_blank_line() {
         // The trailing `foo` definition is necessary for the blank line after "node2" to be
         // included in the `main` block. Otherwise, the block would end on "node2" and the blank
@@ -376,7 +373,7 @@ mod tests {
     node2
 
 foo = 5";
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let mut graph = main_graph(&parser, program);
 
         let id2 = graph.nodes()[0].id();
@@ -396,15 +393,14 @@ foo = 5";
     node1
     node2
     node3
-    node4
-";
+    node4";
         // `foo` is not part of expected code, as it belongs to module, not `main` graph.
         graph.expect_code(expected_code);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn multiple_node_graph() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let program = r"
 main =
     ## Faux docstring
@@ -433,9 +429,9 @@ main =
         assert_eq!(nodes.len(), 4);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn removing_node_from_graph() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let program = r"
 main =
     foo = 2 + 2
@@ -459,9 +455,9 @@ main =
         graph.expect_code(expected_code);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn removing_last_node_from_graph() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let program = r"
 main =
     foo = 2 + 2";
@@ -477,9 +473,9 @@ main =
         graph.expect_code("main = Nothing");
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn add_first_node_to_empty_graph() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let program = r"main = Nothing";
         let mut graph = main_graph(&parser, program);
         assert!(graph.nodes().is_empty());
@@ -489,15 +485,14 @@ main =
         assert_eq!(graph.nodes()[0].expression().repr(), "node0");
     }
 
-
-    #[wasm_bindgen_test]
+    #[test]
     fn editing_nodes_expression_in_graph() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let program = r"
 main =
     foo = 2 + 2
     bar = 3 + 17";
-        let new_expression = parser.parse("print \"HELLO\"".to_string(), default()).unwrap();
+        let new_expression = parser.parse("print \"HELLO\"", default());
         let new_expression = expect_single_line(&new_expression).clone();
 
         let mut graph = main_graph(&parser, program);
