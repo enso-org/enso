@@ -24,7 +24,19 @@ public class ArithmeticError extends ColumnAggregatedProblems {
 
     @Override
     public String getMessage() {
-        String rowsStr = this.rows.stream().map(Object::toString).collect(Collectors.joining(", ", "[", "]"));
-        return message + " (at rows " + rowsStr + ").";
+        return message + " (at rows " + makeTruncatedRowsString() + ").";
+    }
+
+    private String makeTruncatedRowsString() {
+        int limit = 9;
+        String inner = rows.stream()
+                .limit(limit)
+                .map(Object::toString)
+                .collect(Collectors.joining(", "));
+        if (rows.size() > limit) {
+            inner += ", ...";
+        }
+
+        return "[" + inner + "]";
     }
 }

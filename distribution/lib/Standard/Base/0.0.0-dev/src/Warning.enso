@@ -45,6 +45,15 @@ type Warning
     set value warnings = set_array value warnings.to_array
 
     ## UNSTABLE
+       ADVANCED
+       Returns the provided value with any warnings removed from it.
+
+       Arguments:
+       - value: the value from which warnings should be removed.
+    clear : Any -> Any
+    clear value = Warning.set value []
+
+    ## UNSTABLE
        Maps warnings attached to a value.
 
        Arguments:

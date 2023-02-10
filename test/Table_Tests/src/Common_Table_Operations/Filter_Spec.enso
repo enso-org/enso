@@ -291,6 +291,40 @@ spec setup =
             r4.at "ix" . to_vector . should_equal [1, 2, 4]
             Problems.expect_warning Floating_Point_Equality r4
 
+        Test.specify "already existing warnings should not be escalated to errors in error handling mode" <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]], ["ix", [1, 2, 3]]]
+            c1 = t1.compute "3 / [X]" on_problems=Problem_Behavior.Report_Warning
+            Problems.expect_warning Arithmetic_Error c1
+
+            t2 = t1.set c1 new_name="Y"
+            Problems.expect_warning Arithmetic_Error t2
+
+            r1 = t2.filter "Y" (Filter_Condition.Equal 2)
+            Problems.expect_warning Arithmetic_Error r1
+            Problems.expect_warning Floating_Point_Equality r1
+            r1.at "ix" . to_vector . should_equal [1]
+
+            i1 = t2.filter "Y" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Ignore
+            Problems.expect_warning Arithmetic_Error i1
+            Problems.not_expect_warning Floating_Point_Equality i1
+            i1.at "ix" . to_vector . should_equal [1]
+
+            err1 = t2.filter "Y" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Report_Error
+            err1.should_fail_with Floating_Point_Equality
+
+            r2 = t2.filter "Y" (Filter_Condition.Not_Equal 2)
+            Problems.expect_warning Arithmetic_Error r2
+            Problems.expect_warning Floating_Point_Equality r2
+            r2.at "ix" . to_vector . should_equal [2, 3]
+
+            i2 = t2.filter "Y" (Filter_Condition.Not_Equal 2) on_problems=Problem_Behavior.Ignore
+            Problems.expect_warning Arithmetic_Error i2
+            Problems.not_expect_warning Floating_Point_Equality i2
+            i2.at "ix" . to_vector . should_equal [2, 3]
+
+            err2 = t2.filter "Y" (Filter_Condition.Not_Equal 2) on_problems=Problem_Behavior.Report_Error
+            err2.should_fail_with Floating_Point_Equality
+
     Test.group prefix+"Table.filter_by_expression" <|
         Test.specify "by a boolean column" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]

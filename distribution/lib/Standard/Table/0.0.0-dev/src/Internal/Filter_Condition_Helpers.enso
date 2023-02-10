@@ -15,8 +15,19 @@ from Standard.Base.Data.Filter_Condition.Filter_Condition import all
    are encountered.
 make_filter_column source_column filter_condition on_problems = case filter_condition of
     # Equality
-    Equal value -> (source_column.== value on_problems)
-    Not_Equal value -> (source_column.!= value on_problems)
+    Equal value ->
+        ## The case-of trick makes sure that any warnings or errors attached to
+           the input will be propagated to the output, while we can use cleared
+           values inside to ensure only new warnings are escalated according to
+           the `on_problems` setting.
+        case Pair.new source_column value of
+            _ -> on_problems.escalate_warnings <|
+                (Warning.clear source_column) == (Warning.clear value)
+    Not_Equal value ->
+        # Same as above.
+        case Pair.new source_column value of
+            _ -> on_problems.escalate_warnings <|
+                (Warning.clear source_column) != (Warning.clear value)
     # Nothing
     Is_Nothing -> source_column.is_missing
     Not_Nothing -> source_column.is_missing.not

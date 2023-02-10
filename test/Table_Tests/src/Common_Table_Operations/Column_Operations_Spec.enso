@@ -159,6 +159,15 @@ spec setup =
             r10.to_vector.to_text . should_equal "[NaN, NaN, NaN]"
             has_div_warnings "[c] % 0" [0, 1, 2] r10
 
+        Test.specify "should limit the number of rows listed in the message" <|
+            t1 = table_builder [["a", 0.up_to 200 . to_vector]]
+            zero = t1.at "a" - t1.at "a"
+            div = t1.at "a" / zero
+            warnings = Problems.get_attached_warnings div
+            warnings.not_empty.should_be_true
+            warning = warnings.first
+            warning.should_be_a Arithmetic_Error
+            warning.message . should_equal "Division by zero (at rows [0, 1, 2, 3, 4, 5, 6, 7, 8, ...])."
 
         Test.specify "should return null if one of arguments is missing" pending="TODO null handling" <|
             nulls = [Nothing, Nothing, Nothing, Nothing]
