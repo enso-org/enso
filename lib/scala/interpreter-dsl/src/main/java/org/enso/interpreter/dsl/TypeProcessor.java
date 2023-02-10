@@ -115,19 +115,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
         for (Map.Entry<String, BuiltinTypeConstr> entry : builtinTypes.get(f).entrySet()) {
           BuiltinTypeConstr constr = entry.getValue();
           if (!constr.getFullName().isEmpty()) {
-            out.println(
-                "  public static final String "
-                    + entry.getKey().toUpperCase()
-                    + " = \""
-                    + constr.getFullName()
-                    + "\";");
-
-            out.println(
-                    "  public static final String "
-                            + entry.getKey().toUpperCase() + "_BUILTIN"
-                            + " = "
-                            + toBuiltinName(constr.getFullName())
-                            + ";");
+            generateEntry(entry.getKey().toUpperCase(), constr.getFullName(), out);
           }
         }
       }
@@ -136,19 +124,27 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
           .values()
           .forEach(
               entry ->
-                entry.stdlibName().ifPresent(n ->
-                        out.println(
-                        "    public static final String "
-                                + entry.ensoName().toUpperCase()
-                                + " = \""
-                                + n
-                                + "\";")
-                )
+                entry.stdlibName().ifPresent(n -> generateEntry(entry.ensoName().toUpperCase(), n, out))
           );
 
       out.println();
       out.println("}");
     }
+  }
+
+  public void generateEntry(String name, String value, PrintWriter out) {
+    out.println(
+            "  public static final String "
+                    + name
+                    + " = \""
+                    + value
+                    + "\";");
+    out.println(
+            "  public static final String "
+                    + name + "_BUILTIN"
+                    + " = "
+                    + toBuiltinName(value)
+                    + ";");
   }
 
   private String toBuiltinName(String name) {
