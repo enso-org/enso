@@ -136,15 +136,21 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
           .values()
           .forEach(
               entry ->
-                entry.stdlibName().ifPresent(n ->
-                        out.println(
-                        "    public static final String "
-                                + entry.ensoName().toUpperCase()
-                                + " = \""
-                                + n
-                                + "\";")
-                )
-          );
+                entry.stdlibName().ifPresent(n -> {
+                  out.println(
+                          "  public static final String "
+                                  + entry.ensoName().toUpperCase()
+                                  + " = \""
+                                  + n
+                                  + "\";");
+                  out.println(
+                          "  public static final String "
+                                  + entry.ensoName().toUpperCase() + "_BUILTIN"
+                                  + " = \""
+                                  + n
+                                  + "\";");
+                        })
+                );
 
       out.println();
       out.println("}");
