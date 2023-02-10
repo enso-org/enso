@@ -51,7 +51,7 @@ Color unpremultiply(PremultipliedColor c) {
 
 /// Implements glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
 /// in the [`Color`]'s color space. See docs of [`Color`] to learn more.
-PremultipliedColor blend(PremultipliedColor bg, PremultipliedColor fg) {
+PremultipliedColor  blend(PremultipliedColor bg, PremultipliedColor fg) {
     vec4 raw = fg.repr.raw + (1.0 - fg.repr.raw.a) * bg.repr.raw;
     return PremultipliedColor(rgba(raw));
 }
@@ -84,6 +84,10 @@ BoundingBox bounding_box (float min_x, float max_x, float min_y, float max_y) {
 
 BoundingBox bounding_box (float w, float h) {
     return BoundingBox(-w, w, -h, h);
+}
+
+BoundingBox bounding_box (vec2 center_point, float w, float h) {
+    return BoundingBox(center_point.x - w, center_point.x + w, center_point.y - h, center_point.y + h);
 }
 
 BoundingBox bounding_box (vec2 size) {
@@ -295,9 +299,9 @@ struct Shape {
 
 Shape shape (Id id, BoundSdf bound_sdf, PremultipliedColor color) {
     float alpha = render(bound_sdf);
-//    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
         color.repr.raw *= alpha;
-//    }
+    }
     return Shape(id, bound_sdf, color, alpha);
 }
 
@@ -328,21 +332,27 @@ Shape debug_shape (BoundSdf bound_sdf) {
 Shape resample (Shape s, float multiplier) {
     Id id = s.id;
     BoundSdf sdf = resample(s.sdf, multiplier);
-    s.color.repr.raw.a /= s.alpha;
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        s.color.repr.raw.a /= s.alpha;
+    }
     return shape(id, sdf, s.color);
 }
 
 Shape pixel_snap (Shape s) {
     Id id = s.id;
     BoundSdf sdf = pixel_snap(s.sdf);
-    s.color.repr.raw.a /= s.alpha;
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        s.color.repr.raw.a /= s.alpha;
+    }
     return shape(id, sdf, s.color);
 }
 
 Shape grow (Shape s, float value) {
     Id id = s.id;
     BoundSdf sdf = grow(s.sdf,value);
-    s.color.repr.raw.a /= s.alpha;
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        s.color.repr.raw.a /= s.alpha;
+    }
     return shape(id, sdf, s.color);
 }
 
@@ -351,6 +361,11 @@ Shape inverse (Shape s1) {
 }
 
 Shape unify (Shape s1, Shape s2) {
+    if (input_display_mode == DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        if (s2.sdf.distance > s1.sdf.distance) {
+            s2.color.repr.raw *= s2.alpha;
+        }
+    }
     return shape(s1.id, unify(s1.sdf, s2.sdf), blend(s1.color, s2.color));
 }
 
@@ -367,9 +382,9 @@ Shape intersection_no_blend (Shape s1, Shape s2) {
 }
 
 Shape set_color(Shape shape, Rgba t) {
-//    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
         t.raw.a *= shape.alpha;
-//    }
+    }
     shape.color = premultiply(Color(t));
     return shape;
 }
@@ -382,23 +397,22 @@ Shape with_infinite_bounds (Shape s) {
 
 Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
     BoundingBox texture_bbox = bounding_box(tex_bbox.x, tex_bbox.z, tex_bbox.y, tex_bbox.w);
+    BoundingBox shape_bbox = bounding_box(position, (tex_bbox.z - tex_bbox.x) / 2.0, (tex_bbox.w - tex_bbox.y) / 2.0);
+    
     vec2 texture_bbox_center = (tex_bbox.xy + tex_bbox.zw) / 2.0;
     vec2 texture_position = texture_bbox_center + position;
     vec2 texture_uv = ((texture_position) / (vec2(textureSize(input_pass_cached_shapes, 0)))) + vec2(0.5, 0.5);
-    Rgba color_and_distance = contains(texture_bbox, texture_position) ? rgba(texture(input_pass_cached_shapes, texture_uv)) : rgba(0.0, 0.0, 0.0, 0.0);
+    Rgba color_and_distance;
+    if (contains(texture_bbox, texture_position)) {
+        color_and_distance = rgba(texture(input_pass_cached_shapes, texture_uv));
+    } else {
+        color_and_distance = rgba(0.0, 0.0, 0.0, 0.0);
+    }
+
     float distance = (-color_and_distance.raw.a + 0.5) * 16.0;
-    BoundSdf sdf = bound_sdf(distance, infinite()); // TODO[ao]: should be finite
-//    float alpha = render(sdf);
+    BoundSdf sdf = bound_sdf(distance, shape_bbox);
     Color shape_color = color(color_and_distance.raw.rgb, 1.0);
-//    if (texture_position.x - floor(texture_position.x) != 0.5) {
-//        shape_color = color(rgba(1.0, texture_position.x - floor(texture_position.x), 1.0, 1.0));
-//    }
-//    if (texture_position.y - floor(texture_position.y) != 0.5) {
-//        shape_color = color(rgba(1.0, 1.0, texture_position.y - floor(texture_position.y), 1.0));
-//    }
-//    Color color = color(vec3(0.0, 1.0, 0.0), 1.0);
     return shape(id, sdf, shape_color);
-//    return Shape(id, sdf, color, alpha);
 }
 
 

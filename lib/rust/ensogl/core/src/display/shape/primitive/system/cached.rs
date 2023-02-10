@@ -1,19 +1,19 @@
 use crate::prelude::*;
 
 use crate::data::bounding_box::BoundingBox;
+use crate::display::shape;
 use crate::display::shape::canvas;
 use crate::display::shape::canvas::Canvas;
 use crate::display::shape::class::ShapeRef;
 use crate::display::shape::system::cached::arrange_on_texture::arrange_shapes_on_texture;
 use crate::display::shape::system::cached::arrange_on_texture::ShapeWithPosition;
 use crate::display::shape::system::cached::arrange_on_texture::ShapeWithSize;
-use crate::display::shape::system::Shape;
 use crate::display::shape::AnyShape;
+use crate::display::shape::Parameter;
 use crate::display::shape::Var;
 use crate::display::world::CACHED_SHAPES_DEFINITIONS;
 use crate::display::IntoGlsl;
 use crate::gui::component::ShapeView;
-use crate::system::gpu;
 
 pub mod arrange_on_texture;
 
@@ -29,9 +29,11 @@ const INITIAL_TEXTURE_SIZE: i32 = 512;
 
 
 
-// ====================
+// ======================
+// === Texture Layout ===
+// ======================
+
 // === Texture Size ===
-// ====================
 
 thread_local! {
     static TEXTURE_SIZE: Cell<Vector2<i32>> = default();
@@ -41,11 +43,27 @@ pub fn texture_size() -> Vector2<i32> {
     TEXTURE_SIZE.get()
 }
 
+
+// === initialize_cached_shape_positions_in_texture ===
+
+pub fn initialize_cached_shape_positions_in_texture() {
+    CACHED_SHAPES_DEFINITIONS.with_borrow(|shape_defs| {
+        let with_sizes = shape_defs.iter().map(|def| ShapeWithSize { shape: def, size: def.size });
+        let arranged = arrange_shapes_on_texture(with_sizes, INITIAL_TEXTURE_SIZE);
+        TEXTURE_SIZE.set(arranged.texture_size);
+        for ShapeWithPosition { shape, position } in arranged.shape_positions {
+            (shape.position_on_texture_setter)(position)
+        }
+    })
+}
+
+
+
 // ===================
 // === CachedShape ===
 // ===================
 
-pub trait CachedShape: Shape {
+pub trait CachedShape: shape::system::Shape {
     const WIDTH: i32;
     const HEIGHT: i32;
     fn set_position_in_texture(position: Vector2);
@@ -70,50 +88,62 @@ pub trait CachedShape: Shape {
 }
 
 
-//TODO: can it be wrapper, not alias?
-pub type Parameter = Vector4;
+
+// ======================
+// === AnyCachedShape ===
+// ======================
 
 pub mod mutable {
     use super::*;
 
     #[derive(Debug)]
-    pub struct CachedShapeInstance {
-        pub parameter: Var<Parameter>,
+    pub struct AnyCachedShape {
+        pub tex_location: Var<Vector4>,
     }
 }
 
-pub type CachedShapeInstance = ShapeRef<mutable::CachedShapeInstance>;
+pub type AnyCachedShape = ShapeRef<mutable::AnyCachedShape>;
 
 #[allow(non_snake_case)]
-pub fn CachedShapeInstance(parameter: Var<Parameter>) -> CachedShapeInstance {
-    ShapeRef::new(mutable::CachedShapeInstance { parameter })
+pub fn Instance(tex_location: Var<Vector4>) -> AnyCachedShape {
+    ShapeRef::new(mutable::AnyCachedShape { tex_location })
 }
 
-impl AsOwned for CachedShapeInstance {
-    type Owned = CachedShapeInstance;
+impl AsOwned for AnyCachedShape {
+    type Owned = AnyCachedShape;
 }
 
-impl From<CachedShapeInstance> for AnyShape {
-    fn from(value: CachedShapeInstance) -> Self {
-        Self::new(value)
-    }
-}
-
-impl From<&CachedShapeInstance> for AnyShape {
-    fn from(value: &CachedShapeInstance) -> Self {
-        Self::new(value.clone())
-    }
-}
-
-impl canvas::Draw for CachedShapeInstance {
+impl canvas::Draw for AnyCachedShape {
     fn draw(&self, canvas: &mut Canvas) -> canvas::Shape {
         canvas.if_not_defined(self.id(), |canvas| {
             canvas.new_shape_from_expr(&format!(
                 "return cached_shape(Id({}), position, {});",
                 self.id(),
-                self.parameter.glsl()
+                self.tex_location.glsl()
             ))
         })
+    }
+}
+
+impl From<AnyCachedShape> for AnyShape {
+    fn from(value: AnyCachedShape) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&AnyCachedShape> for AnyShape {
+    fn from(value: &AnyCachedShape) -> Self {
+        Self::new(value.clone())
+    }
+}
+
+impl Parameter for AnyCachedShape {
+    type GpuType = Vector4;
+    type Variable = AnyCachedShape;
+
+    fn create_var(name: &str) -> Self::Variable {
+        let location: Var<Vector4> = name.into();
+        Instance(location)
     }
 }
 
@@ -161,7 +191,6 @@ macro_rules! cached_shape {
             use super::shape_system_definition::*;
             use super::shape_system_definition::Shape;
             use $crate::display::shape::primitive::system::cached::CachedShape;
-            use $crate::display::shape::primitive::system::cached::Parameter;
 
             thread_local! {
                 static POSITION_IN_TEXTURE: Cell<Vector2> = default();
@@ -178,7 +207,7 @@ macro_rules! cached_shape {
                 }
             }
 
-            pub fn as_param() -> Parameter {
+            pub fn as_param() -> Vector4 {
                 let bbox = <Shape as CachedShape>::location_in_texture();
                 Vector4(bbox.left(), bbox.bottom(), bbox.right(), bbox.top())
             }
@@ -207,18 +236,9 @@ macro_rules! cached_shape {
 
 
 
-pub fn initialize_cached_shape_positions_in_texture() {
-    CACHED_SHAPES_DEFINITIONS.with_borrow(|shape_defs| {
-        let with_sizes = shape_defs.iter().map(|def| ShapeWithSize { shape: def, size: def.size });
-        let arranged = arrange_shapes_on_texture(with_sizes, INITIAL_TEXTURE_SIZE);
-        TEXTURE_SIZE.set(arranged.texture_size);
-        for ShapeWithPosition { shape, position } in arranged.shape_positions {
-            (shape.position_on_texture_setter)(position)
-        }
-    })
-}
-
-
+// ============
+// === Test ===
+// ============
 
 #[cfg(test)]
 mod tests {

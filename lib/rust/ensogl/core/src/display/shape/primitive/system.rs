@@ -66,6 +66,7 @@ use crate::system::gpu::types::*;
 use crate::display;
 use crate::display::object::instance::GenericLayoutApi;
 use crate::display::shape::primitive::shader;
+use crate::display::shape::Var;
 use crate::display::symbol;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
@@ -536,6 +537,32 @@ where
 }
 
 
+// ====================
+// === GpuParameter ===
+// ====================
+
+/// A type which can be shape parameter.
+///
+/// All types representable in Glsl (primitives, Vectors etc.) implements this by default.
+pub trait Parameter {
+    /// The type representation in GLSL. To be usable, it should implement [`Storable`] trait.
+    type GpuType;
+
+    type Variable;
+
+    fn create_var(name: &str) -> Self::Variable;
+}
+
+impl<T: Storable> Parameter for T {
+    type GpuType = T;
+    type Variable = Var<T>;
+
+    default fn create_var(name: &str) -> Self::Variable {
+        name.into()
+    }
+}
+
+
 
 // ==============
 // === Macros ===
@@ -840,7 +867,7 @@ macro_rules! _shape {
                 ) -> Self::GpuParams {
                     $(
                         let name = stringify!($gpu_param);
-                        let val  = gpu::data::default::gpu_default::<$gpu_param_type>();
+                        let val  = gpu::data::default::gpu_default::<<$gpu_param_type as GpuParameter>::GpuType>();
                         let $gpu_param = shape_system.add_input(name,val);
                     )*
                     Self::GpuParams {$($gpu_param),*}
@@ -858,8 +885,7 @@ macro_rules! _shape {
                     // Silencing warnings about not used style.
                     let _unused = &$style;
                     $(
-                        let $gpu_param : $crate::display::shape::primitive::def::Var<$gpu_param_type> =
-                            concat!("input_",stringify!($gpu_param)).into();
+                        let $gpu_param = <$gpu_param_type as GpuParameter>::create_var(concat!("input_",stringify!($gpu_param)));
                         // Silencing warnings about not used shader input variables.
                         let _unused = &$gpu_param;
                     )*
@@ -886,7 +912,7 @@ macro_rules! _shape {
             #[derive(Debug)]
             #[allow(missing_docs)]
             pub struct InstanceParams {
-                $(pub $gpu_param : ProxyParam<Attribute<$gpu_param_type>>),*
+                $(pub $gpu_param : ProxyParam<Attribute<<$gpu_param_type as GpuParameter>::GpuType>>),*
             }
 
             impl InstanceParamsTrait for InstanceParams {
@@ -898,7 +924,7 @@ macro_rules! _shape {
             #[derive(Clone, CloneRef, Debug)]
             #[allow(missing_docs)]
             pub struct GpuParams {
-                $(pub $gpu_param: gpu::data::Buffer<$gpu_param_type>),*
+                $(pub $gpu_param: gpu::data::Buffer<<$gpu_param_type as GpuParameter>::GpuType>),*
             }
 
 

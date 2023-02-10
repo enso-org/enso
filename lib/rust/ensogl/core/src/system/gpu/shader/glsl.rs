@@ -646,24 +646,24 @@ define_prim_type! {
 
 impl PrimType {
     pub fn uniform_or_function_parameter_only(&self) -> bool {
-        match self {
-            PrimType::Sampler2d => true,
-            PrimType::Sampler3d => true,
-            PrimType::SamplerCube => true,
-            PrimType::Sampler2dShadow => true,
-            PrimType::SamplerCubeShadow => true,
-            PrimType::Sampler2dArray => true,
-            PrimType::Sampler2dArrayShadow => true,
-            PrimType::ISampler2d => true,
-            PrimType::ISampler3d => true,
-            PrimType::ISamplerCube => true,
-            PrimType::ISampler2dArray => true,
-            PrimType::USampler2d => true,
-            PrimType::USampler3d => true,
-            PrimType::USamplerCube => true,
-            PrimType::USampler2dArray => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            PrimType::Sampler2d
+                | PrimType::Sampler3d
+                | PrimType::SamplerCube
+                | PrimType::Sampler2dShadow
+                | PrimType::SamplerCubeShadow
+                | PrimType::Sampler2dArray
+                | PrimType::Sampler2dArrayShadow
+                | PrimType::ISampler2d
+                | PrimType::ISampler3d
+                | PrimType::ISamplerCube
+                | PrimType::ISampler2dArray
+                | PrimType::USampler2d
+                | PrimType::USampler3d
+                | PrimType::USamplerCube
+                | PrimType::USampler2dArray
+        )
     }
 }
 

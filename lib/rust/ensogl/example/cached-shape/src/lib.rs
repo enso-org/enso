@@ -58,7 +58,7 @@ pub mod data_input {
         (line + head).into()
     }
 
-    ensogl_core::cached_shape! { 48 x 48;
+    ensogl_core::cached_shape! { 96 x 96;
         (style: Style) {
             let vivid_color: Var<color::Rgba> = "srgba(1.0, 0.0, 0.0, 1.0)".into();
             let dull_color: Var<color::Rgba> = "srgba(0.0, 1.0, 0.0, 1.0)".into();
@@ -87,11 +87,10 @@ pub mod data_input {
 mod shape {
     use super::*;
     ensogl_core::shape! {
-        (_style: Style, shape_param: cached::Parameter) {
+        (_style: Style, shape: cached::AnyCachedShape) {
             let bg = Rect((100.px(), 100.px())).fill(color::Rgba::white());
-            let param = cached::CachedShapeInstance(shape_param);
-            let with_bg = &bg + &param;
-            param.into()
+            let with_bg = &bg + &shape;
+            with_bg.into()
         }
     }
 }
@@ -110,7 +109,7 @@ pub struct TextureSystemData {}
 impl TextureSystemData {
     fn material() -> Material {
         let mut material = Material::new();
-        let shader = "output_color = texture(input_pass_cached_shapes,input_uv); output_id=vec4(0.0,0.0,0.0,0.0);";
+        let shader = "output_color = texture(input_pass_cached_shapes,input_uv); output_color.rgb *= output_color.a; output_id=vec4(0.0,0.0,0.0,0.0);";
         material.add_input_def::<FloatSampler>("pass_cached_shapes");
         material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
         material.set_main(shader);
@@ -134,7 +133,7 @@ mod background {
     ensogl_core::shape! {
         below = [texture, icon1, icon2];
         (style: Style,) {
-            Rect((346.0.px(), 344.0.px())).fill(color::Rgba::white()).into()
+            Rect((346.0.px(), 344.0.px())).fill(color::Rgba::black()).into()
         }
     }
 }
@@ -178,15 +177,15 @@ pub fn main() {
     let shapes = [shape::View::new(), shape::View::new(), shape::View::new()];
     for shape in &shapes {
         shape.set_size(Vector2(100.0, 100.0));
-        world.default_scene.add_child(&shape);
-        world.default_scene.layers.main.add(&shape);
+        world.default_scene.add_child(shape);
+        world.default_scene.layers.main.add(shape);
     }
     shapes[0].set_xy((-60.0, 0.0));
-    shapes[0].shape_param.set(icon1::as_param());
+    shapes[0].shape.set(icon1::as_param());
     shapes[1].set_xy((60.0, 0.0));
-    shapes[1].shape_param.set(icon2::as_param());
+    shapes[1].shape.set(icon2::as_param());
     shapes[2].set_xy((180.0, 0.0));
-    shapes[2].shape_param.set(data_input::as_param());
+    shapes[2].shape.set(data_input::as_param());
 
     let icon1 = icon1::View::new();
     icon1.set_size(Vector2(100.0, 100.0));
