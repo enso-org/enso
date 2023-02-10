@@ -197,7 +197,7 @@ public final class Text implements TruffleObject {
     int outputLength = len + 2; // Precise if there are no special characters.
 
     // TODO This should be more extensible; while it's still a small fixed set,
-    // a switch is probably fastest (unconfirmed).
+    // a switch is probably fastest (unconfirmed)
 
     StringBuffer strBuf = new StringBuffer(outputLength);
 
