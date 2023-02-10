@@ -521,13 +521,11 @@ pub fn process(yaml_input: impl Read) -> Result<TokenStream> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::log::setup_logging;
 
     #[test]
     #[ignore]
     fn generate() -> Result {
-        setup_logging()?;
-        let yaml_contents = include_bytes!("../../build/paths.yaml");
+        let yaml_contents = include_bytes!("../../../build/paths.yaml");
         let code = process(yaml_contents.as_slice())?;
         debug!("{}", code);
         Ok(())

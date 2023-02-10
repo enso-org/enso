@@ -1,12 +1,17 @@
 use crate::prelude::*;
 
+use crate::project::gui;
 use crate::project::gui::ide_desktop_from_context;
+use crate::project::gui::GuiBuildWithWatchedWasm;
 use crate::project::Context;
+use crate::project::Gui;
+use crate::project::IsWatchable;
+use crate::project::Wasm;
 
+use crate::source::WatchTargetJob;
 use ide_ci::actions::artifacts::upload_compressed_directory;
 use ide_ci::actions::artifacts::upload_single_file;
 use ide_ci::actions::workflow::is_in_env;
-
 
 
 #[derive(Clone, Debug)]
@@ -104,6 +109,12 @@ pub struct Ide {
     pub target_arch: Arch,
 }
 
+impl Default for Ide {
+    fn default() -> Self {
+        Self { target_os: TARGET_OS, target_arch: TARGET_ARCH }
+    }
+}
+
 impl Ide {
     pub fn build(
         &self,
@@ -121,6 +132,21 @@ impl Ide {
                 .dist(&gui, &project_manager, &output_path, target_os, electron_target)
                 .await?;
             Ok(Artifact::new(target_os, target_arch, &version, output_path))
+        }
+        .boxed()
+    }
+
+    pub fn watch_thin(
+        &self,
+        context: &Context,
+        gui_watch_job: WatchTargetJob<Gui>,
+        get_project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
+    ) -> BoxFuture<'static, Result> {
+        let ide_desktop = ide_desktop_from_context(context);
+        let GuiBuildWithWatchedWasm { perhaps_watched_wasm, build_info } =
+            Gui.perhaps_setup_wasm_watcher(context.clone(), gui_watch_job);
+        async move {
+            ide_desktop.watch_thin(perhaps_watched_wasm, build_info, get_project_manager).await
         }
         .boxed()
     }

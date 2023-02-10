@@ -61,6 +61,13 @@ pub enum Command {
         #[clap(flatten)]
         project_manager: Source<Backend>,
     },
+    /// TODO
+    Watch2 {
+        #[clap(flatten)]
+        gui:             WatchJob<Gui>,
+        #[clap(flatten)]
+        project_manager: Source<Backend>,
+    },
     /// Runs integration tests. This involves building and spawning Project Manager, unless
     /// requested otherwise.
     IntegrationTest {

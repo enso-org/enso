@@ -1952,6 +1952,8 @@ version = "0.1.0"
 dependencies = [
  "enso-build-base",
  "enso-build-macros-lib",
+ "itertools",
+ "proc-macro2",
  "syn",
 ]
 

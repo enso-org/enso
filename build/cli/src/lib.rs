@@ -508,6 +508,17 @@ impl Processor {
                 }
                 .boxed()
             }
+            arg::ide::Command::Watch2 { gui, project_manager } => {
+                let context = self.context();
+                let watch_gui_job = self.resolve_watch_job(gui);
+                let project_manager = self.get(project_manager);
+                async move {
+                    crate::project::Ide::default()
+                        .watch_thin(&context, watch_gui_job.await?, project_manager)
+                        .await
+                }
+                .boxed()
+            }
             arg::ide::Command::IntegrationTest {
                 external_backend,
                 project_manager,
@@ -751,7 +762,7 @@ impl WatchResolvable for Gui {
         ctx: &Processor,
         from: <Self as IsWatchableSource>::WatchInput,
     ) -> Result<<Self as IsWatchable>::WatchInput> {
-        Ok(gui::WatchInput { wasm: Wasm::resolve_watch(ctx, from.wasm)?, shell: from.gui_shell })
+        Ok(gui::WatchInput { wasm: Wasm::resolve_watch(ctx, from.wasm)? })
     }
 }
 

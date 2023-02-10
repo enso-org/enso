@@ -10,6 +10,7 @@ use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
 use ide_ci::io::download_all;
+use ide_ci::ok_ready_boxed;
 use ide_ci::program::command;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::node::NpmCommand;
@@ -112,6 +113,16 @@ pub async fn download_js_assets(output_path: impl AsRef<Path>) -> Result {
     let mut archive = zip::ZipArchive::new(std::io::Cursor::new(archive))?;
     ide_ci::archive::zip::extract_subtree(&mut archive, &archived_asset_prefix, output)?;
     Ok(())
+}
+
+pub fn path_to_executable_in_pm_bundle(
+    artifact: &generated::ProjectManagerBundle,
+) -> Result<&Path> {
+    artifact
+        .bin
+        .project_managerexe
+        .strip_prefix(&artifact)
+        .context("Failed to generate in-bundle path to Project Manager executable.")
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -282,7 +293,6 @@ impl IdeDesktop {
         &self,
         wasm: impl Future<Output = Result<wasm::Artifact>>,
         build_info: &BuildInfo,
-        shell: bool,
     ) -> Result<Watcher> {
         // When watching we expect our artifacts to be served through server, not appear in any
         // specific location on the disk.
@@ -290,20 +300,12 @@ impl IdeDesktop {
         let watch_environment =
             ContentEnvironment::new(self, wasm, build_info, output_path).await?;
         Span::current().record("wasm", watch_environment.wasm.as_ref().as_str());
-        let child_process = if shell {
-            ide_ci::os::default_shell()
-                .cmd()?
-                .current_dir(&self.package_dir)
-                .try_applying(&watch_environment)?
-                .stdin(Stdio::inherit())
-                .spawn()?
-        } else {
-            self.npm()?
-                .try_applying(&watch_environment)?
-                .workspace(Workspaces::Content)
-                .run("watch", EMPTY_ARGS)
-                .spawn_intercepting()?
-        };
+        let child_process = self
+            .npm()?
+            .try_applying(&watch_environment)?
+            .workspace(Workspaces::Content)
+            .run("watch", EMPTY_ARGS)
+            .spawn_intercepting()?;
         Ok(Watcher { child_process, watch_environment })
     }
 
@@ -332,24 +334,15 @@ impl IdeDesktop {
 
         self.npm()?.install().run_ok().await?;
 
-        let engine_version_to_use = project_manager.engine_versions.iter().max();
-        if engine_version_to_use.is_none() {
-            warn!("Bundled Project Manager does not contain any Engine.");
-        }
+        let engine_version_to_use = project_manager.latest_engine_version()?;
+        let pm_in_bundle = path_to_executable_in_pm_bundle(&project_manager.path)?;
 
-        let pm_in_bundle = project_manager
-            .path
-            .bin
-            .project_managerexe
-            .strip_prefix(&project_manager.path)
-            .context("Failed to generate in-bundle path to Project Manager executable")?;
-
-        let content_build = self
+        let client_build = self
             .npm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
-            .set_env_opt(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, engine_version_to_use)?
+            .set_env(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, engine_version_to_use)?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, pm_in_bundle)?
             .workspace(Workspaces::Enso)
             .run("build", EMPTY_ARGS)
@@ -358,7 +351,7 @@ impl IdeDesktop {
         // &input.repo_root.dist.icons
         let icons_dist = TempDir::new()?;
         let icons_build = self.build_icons(&icons_dist);
-        let (icons, _content) = try_join(icons_build, content_build).await?;
+        let (icons, _content) = try_join(icons_build, client_build).await?;
 
 
         let python_path = if TARGET_OS == OS::MacOS {
@@ -391,6 +384,50 @@ impl IdeDesktop {
             .arg("--")
             .arg(target_os_flag(target_os)?)
             .args(target_args)
+            .run_ok()
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn watch_thin(
+        &self,
+        wasm_watch_job: BoxFuture<
+            'static,
+            Result<crate::project::PerhapsWatched<crate::project::Wasm>>,
+        >,
+        build_info: BoxFuture<'static, Result<BuildInfo>>,
+        get_project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
+    ) -> Result {
+        let npm_install_job = self.npm()?.install().run_ok();
+        let (_npm_installed, watched_wasm, project_manager) =
+            try_join!(npm_install_job, wasm_watch_job, get_project_manager)?;
+
+        let engine_version_to_use = project_manager.latest_engine_version()?;
+        let pm_in_bundle = path_to_executable_in_pm_bundle(&project_manager.path)?;
+
+        let gui_dir = TempDir::new()?;
+        let content_env = ContentEnvironment::new(
+            self,
+            ok_ready_boxed(watched_wasm.as_ref().clone()),
+            &build_info.await?,
+            &gui_dir,
+        )
+        .await?;
+
+
+        let temp_dir = TempDir::new()?;
+        self.npm()?
+            .try_applying(&content_env)?
+            // // .env("DEBUG", "electron-builder")
+            // .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
+            .set_env(env::ENSO_BUILD_IDE, temp_dir.path())?
+            .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
+            .set_env(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, engine_version_to_use)?
+            .set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, pm_in_bundle)?
+            .workspace(Workspaces::Enso)
+            // .args(["--loglevel", "verbose"])
+            .run("watch", EMPTY_ARGS)
             .run_ok()
             .await?;
 

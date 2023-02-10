@@ -16,7 +16,6 @@ import * as esbuildWatch from '../../esbuild-watch.js'
 import {log} from "../../../../dist/wasm";
 
 
-const guiDist = path.resolve(getGuiDirectory())
 const ideDist = getIdeDirectory()
 const projectManagerBundle = getProjectManagerBundle()
 
@@ -29,35 +28,77 @@ await fs.mkdir(ideDist, {recursive: true})
 //
 // let electronProcess: child_process.ChildProcess = null;
 
-
-console.log("Bundling client.")
-const clientBundlerOpts: esbuild.BuildOptions = {
-    ...clientBundler.bundlerOptionsFromEnv(),
-    outdir: path.resolve(ideDist),
-    watch: {
-        onRebuild(error, result) {
-            if (error) {
-                console.error('Watch build failed:', error)
-            } else {
-                console.log('Client bundle updated.')
+const bothBundlesReady = new Promise<void>(async (resolve, reject) => {
+    console.log("Bundling client.")
+    // let clientBuilt = false
+    // let contentBuilt = false
+    const clientBundlerOpts: esbuild.BuildOptions = {
+        ...clientBundler.bundlerOptionsFromEnv(),
+        outdir: path.resolve(ideDist),
+        watch: {
+            onRebuild(error, result) {
+                if (error) {
+                    console.error('Client watch bundle failed:', error)
+                    reject(error)
+                } else {
+                    console.log('Client bundle updated.')
+                    // clientBuilt = true
+                    // if (contentBuilt) {
+                    //     resolve()
+                    // }
+                }
             }
         }
     }
-}
-await esbuild.build(clientBundlerOpts)
+    let result1 = await esbuild.build(clientBundlerOpts)
+    console.log("Result of client bundling: ", result1);
 
+    console.log("Bundling content.")
+    let result2 = await esbuildWatch.watch({
+        ...contentBundler.bundlerOptionsFromEnv(),
+        outdir: path.resolve(ideDist, 'assets'),
+    }, () => {
+        console.log("Content bundle updated.")
+        // contentBuilt = true
+        // if (clientBuilt) {
+        //     resolve()
+        // }
+    })
+    console.log("Result of content bundling: ", result2);
 
-// const bundlerOptions = bundlerOptionsFromEnv()
-// bundlerOptions.outdir = path.resolve(ideDist)
-// await esbuild.build(bundlerOptions)
-
-console.log("Bundling content.")
-await esbuildWatch.watch({
-    ...contentBundler.bundlerOptionsFromEnv(),
-    outdir: path.resolve(ideDist, 'assets'),
-}, () => {
-    console.log("Content bundle updated.")
+    resolve()
 })
+//
+// console.log("Bundling client.")
+// const clientBundlerOpts: esbuild.BuildOptions = {
+//     ...clientBundler.bundlerOptionsFromEnv(),
+//     outdir: path.resolve(ideDist),
+//     watch: {
+//         onRebuild(error, result) {
+//             if (error) {
+//                 console.error('Watch build failed:', error)
+//             } else {
+//                 console.log('Client bundle updated.')
+//             }
+//         }
+//     }
+// }
+// await esbuild.build(clientBundlerOpts)
+//
+//
+// // const bundlerOptions = bundlerOptionsFromEnv()
+// // bundlerOptions.outdir = path.resolve(ideDist)
+// // await esbuild.build(bundlerOptions)
+
+// console.log("Bundling content.")
+// await esbuildWatch.watch({
+//     ...contentBundler.bundlerOptionsFromEnv(),
+//     outdir: path.resolve(ideDist, 'assets'),
+// }, () => {
+//     console.log("Content bundle updated.")
+// })
+
+await bothBundlesReady
 
 // await fs.cp(guiDist, path.join(ideDist), {recursive: true})
 

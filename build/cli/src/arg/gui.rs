@@ -28,11 +28,7 @@ pub struct BuildInput {
 #[derive(Args, Clone, Debug, PartialEq)]
 pub struct WatchInput {
     #[clap(flatten)]
-    pub wasm:      <Wasm as IsWatchableSource>::WatchInput,
-    /// Does not spawn the web-side watcher and dev-server. Instead, a nested shell session will be
-    /// created, allowing user to run arbitrary commands in gui build environment.
-    #[clap(long)]
-    pub gui_shell: bool,
+    pub wasm: <Wasm as IsWatchableSource>::WatchInput,
 }
 
 #[derive(Subcommand, Clone, Debug, PartialEq)]

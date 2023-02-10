@@ -105,6 +105,7 @@ export async function* files_to_copy_provider(wasm_artifacts: string, assets_pat
 export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
     const { output_path, ensogl_app_path, wasm_artifacts, assets_path } = args
     return  {
+        absWorkingDir: thisPath,
         bundle: true,
         entryPoints: [path.resolve(thisPath, 'src', 'index.ts')],
         outdir: output_path,
