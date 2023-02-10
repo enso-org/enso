@@ -422,8 +422,8 @@ type Column
        - other: The value to divide `self` by. If `other` is a column, the
          division is performed pairwise between corresponding elements of `self`
          and `other`.
-       - on_problems: What to do when a division by zero occurs. Defaults to
-         reporting a warning.
+       - on_problems: Specifies how to handle division by zero. Defaults to
+         attaching a warning to the result.
 
        Returns a column containing the result of dividing each element of `self`
        by `other`.
@@ -460,6 +460,8 @@ type Column
        - other: The value to modulo `self` against. If `other` is a column, the
          modulus is performed pairwise between corresponding elements of `self`
          and `other`.
+       - on_problems: Specifies how to handle division by zero. Defaults to
+         attaching a warning to the result.
 
        Returns a column with results of modulus this column's elements against
        `other`.
