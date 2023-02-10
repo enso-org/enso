@@ -207,6 +207,31 @@ public abstract class InvokeConversionNode extends BaseNode {
       guards = {
         "!typesLib.hasType(that)",
         "!typesLib.hasSpecialDispatch(that)",
+        "interop.fitsInLong(that)"
+      })
+  Object doConvertNumber(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      Object that,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+        conversionResolverNode.expectNonNull(
+            that,
+            extractConstructor(self),
+            EnsoContext.get(this).getBuiltins().number().getNumber(),
+            conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(
+      guards = {
+        "!typesLib.hasType(that)",
+        "!typesLib.hasSpecialDispatch(that)",
         "!interop.isTime(that)",
         "interop.isDate(that)",
       })
