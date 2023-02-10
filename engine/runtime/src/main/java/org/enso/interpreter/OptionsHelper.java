@@ -37,7 +37,7 @@ public class OptionsHelper {
 
   public static Optional<String> getEditionOverride(TruffleLanguage.Env env) {
     String option = env.getOptions().get(RuntimeOptions.EDITION_OVERRIDE_KEY);
-    if (option.equals(RuntimeOptions.EDITION_OVERRIDE_KEY_EMPTY)) {
+    if (option.equals("")) {
       return Optional.empty();
     } else {
       return Optional.of(option);

@@ -12,7 +12,6 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
   * @param contentRootUuid an id of content root
   * @param contentRootPath a path to the content root
   * @param profilingConfig an application profiling configuration
-  * @param editionOverride overrides edition specified in the project config
   */
 case class LanguageServerConfig(
   interface: String,
@@ -21,7 +20,6 @@ case class LanguageServerConfig(
   contentRootUuid: UUID,
   contentRootPath: String,
   profilingConfig: ProfilingConfig,
-  editionOverride: Option[String],
   name: String                                      = "language-server",
   computeExecutionContext: ExecutionContextExecutor = ExecutionContext.global
 )
