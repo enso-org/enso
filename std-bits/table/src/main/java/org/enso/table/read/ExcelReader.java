@@ -155,6 +155,17 @@ public class ExcelReader {
       throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
 
+    int sheetIndex = workbook.getSheetIndex(rangeNameOrAddress);
+    if (sheetIndex != -1) {
+        return readTable(
+            workbook,
+            sheetIndex,
+            null,
+            headers,
+            skip_rows,
+            row_limit == null ? Integer.MAX_VALUE : row_limit);
+    }
+
     Name name = workbook.getName(rangeNameOrAddress);
 
     ExcelRange excelRange;

@@ -4,6 +4,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import project.Data.Table.Table
 import project.Data.Match_Columns.Match_Columns
 import project.Excel.Excel_Reader
+import project.Excel.Excel_Workbook.Excel_Workbook
 import project.Excel.Excel_Section.Excel_Section
 import project.Excel.Excel_Writer
 
@@ -19,7 +20,6 @@ should_treat_as_xls_format xls_format file =
             ".xlt" -> True
             _ -> Error.throw (Illegal_Argument.Error ("Unknown file extension for Excel file (" + file.extension + ")"))
 
-
 ## Read the file to a `Table` from an Excel file
 type Excel_Format
     ## Read Excels files into a Table or Vector.
@@ -27,6 +27,7 @@ type Excel_Format
        Arguments:
        - section: The `Excel_Section` to read from the workbook.
          This can be one of:
+         - `Workbook` - open the workbook as a connection.
          - `Sheet_Names` - outputs a `Vector` of sheet names.
          - `Range_Names` - outputs a `Vector` of range names.
          - `Worksheet` - outputs a `Table` containing the specified sheet.
@@ -40,7 +41,7 @@ type Excel_Format
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
-    Excel (section:Excel_Section=Excel_Section.Worksheet) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer)
+    Excel (section:Excel_Section=Excel_Section.Workbook) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer)
 
     ## If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> Excel_Format | Nothing
@@ -59,7 +60,9 @@ type Excel_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         format = should_treat_as_xls_format self.xls_format file
-        Excel_Reader.read_file file self.section self.headers on_problems format
+        case self.section of
+            Excel_Section.Workbook -> Excel_Workbook.Value file format self.headers
+            _ -> Excel_Reader.read_file file self.section self.headers on_problems format
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
@@ -67,6 +70,9 @@ type Excel_Format
         format = should_treat_as_xls_format self.xls_format file
 
         case self.section of
+            Excel_Section.Workbook ->
+                if file.exists then Error.throw (Illegal_Argument.Error "Workbook cannot be used for `write`.") else
+                    self.write_table file (Excel_Workbook.Worksheet "Sheet1") on_existing_file match_columns on_problems
             Excel_Section.Sheet_Names -> Error.throw (Illegal_Argument.Error "Sheet_Names cannot be used for `write`.")
             Excel_Section.Range_Names -> Error.throw (Illegal_Argument.Error "Range_Names cannot be used for `write`.")
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format

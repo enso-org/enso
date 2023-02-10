@@ -1,0 +1,96 @@
+from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+
+from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Choice import Option
+import Standard.Base.Metadata.Display
+
+import project.Data.Table.Table
+import project.Excel.Excel_Reader
+import project.Excel.Excel_Section.Excel_Section
+
+type Excel_Workbook
+    Value file:File|Text xls_format:Boolean headers:(Boolean|Infer)=Infer
+
+    ## Returns the list of databases (or catalogs) for the connection.
+    databases : Nothing
+    databases self = Nothing
+
+    ## Returns the name of the current database (or catalog).
+    database : Text
+    database self = self.file.normalize.path
+
+    ## Returns a new Connection with the specified database set as default.
+
+       Arguments:
+        - database: The name of the database to connect to.
+    @database (Single_Choice display=Display.Always values=[Option 'Nothing'])
+    set_database : Text -> Excel_Workbook ! Illegal_Argument
+    set_database self database =
+        if database == self.database then self else
+            file = File.new database
+            if file.exists then Excel_Workbook.Value file self.xls_format else
+                Error.throw (Illegal_Argument.Error "The specified file does not exist.")
+
+    ## Returns the list of schemas for the connection within the current database (or catalog).
+    schemas : Vector (Text | Nothing)
+    schemas self = [Nothing]
+
+    ## Returns the name of the current schema.
+    schema : Text | Nothing
+    schema self = Nothing
+
+    ## Returns a new Connection with the specified schema set as default.
+
+       Arguments:
+        - schema: The name of the schema to connect to.
+    @schema (Single_Choice display=Display.Always values=[Option 'Nothing'])
+    set_schema : Text | Nothing -> Excel_Workbook ! Illegal_Argument
+    set_schema self schema =
+        if schema == self.schema then self else
+            Error.throw (Illegal_Argument.Error "Changing schema is not supported.")
+
+    ## Gets a list of the table types
+    table_types : Vector Text
+    table_types self = ['Worksheet', 'Named Range']
+
+    ## Returns a materialised Table of all the matching views and tables.
+
+       Arguments:
+       - name_like: The table name pattern to search for. Support SQL wildcards (`%`, `_`).
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to current schema).
+       - types: The table types to search for. The list of values can be obtained using the `table_types` method.
+       - all_fields: Return all the fields in the metadata table.
+    @types (self-> Single_Choice values=(self.table_types.map t-> Option t t.pretty))
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Table
+    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
+        sheets_raw = Excel_Reader.read_file self.file Excel_Section.Sheet_Names self.headers Report_Warning self.xls_format
+        sheets = sheets_raw.map s-> [s, 'Worksheet', self.database, Nothing]
+
+        range_names_raw = Excel_Reader.read_file self.file Excel_Section.Range_Names self.headers Report_Warning self.xls_format
+        ranges = range_names_raw.map r-> [r, 'Named Range', self.database, Nothing]
+
+        rows = sheets + ranges
+        Table.from_rows ['Name', 'Type', 'Database', 'Schema'] rows
+
+    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
+
+       Arguments:
+       - query: sheet name, range name or address to read from the workbook.
+       - alias: optionally specify a friendly alias for the query (unused).
+    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
+    query : Text -> Text -> Table
+    query self query alias="" =
+        _ = [alias]
+        self.read query
+
+    ## Execute the query and load the results into memory as a Table.
+
+       Arguments:
+       - query: sheet name, range name or address to read from the workbook.
+       - limit: the maximum number of rows to return.
+    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
+    read : Text -> Integer | Nothing -> Table
+    read self query limit=Nothing =
+        Excel_Reader.read_file self.file (Excel_Section.Cell_Range query 0 limit) self.headers Report_Warning self.xls_format

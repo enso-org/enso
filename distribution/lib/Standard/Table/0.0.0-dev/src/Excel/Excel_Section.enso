@@ -3,6 +3,9 @@ from Standard.Base import all
 import project.Excel.Excel_Range.Excel_Range
 
 type Excel_Section
+    ## Opens the Workbook as a Connection.
+    Workbook
+
     ## Gets a list of sheets within a workbook.
     Sheet_Names
 
