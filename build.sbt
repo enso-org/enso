@@ -2078,6 +2078,7 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "org.openpnp" % "opencv" % "4.5.1-2"
     ),
     Compile / packageBin := Def.task {
@@ -2092,6 +2093,7 @@ lazy val `std-image` = project
       result
     }.value
   )
+  .dependsOn(`std-base` % "provided")
 
 lazy val `std-google-api` = project
   .in(file("std-bits") / "google-api")
