@@ -5,7 +5,7 @@ import * as fs from 'fs'
 import * as mime from 'mime-types'
 import * as path from 'path'
 import * as portfinder from 'portfinder'
-import { logger } from '../../content/src/config'
+import { logger } from '../../../content/src/config'
 
 // ==============
 // === Config ===

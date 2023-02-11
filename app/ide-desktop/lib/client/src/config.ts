@@ -1,4 +1,5 @@
 import * as content from '../../content/src/config'
+import * as paths from './paths'
 
 // ==================
 // === WindowSize ===
@@ -38,7 +39,7 @@ export class WindowSize {
 // === Config ===
 // ==============
 
-export const options = content.options.merge(
+export const my_args = content.options.merge(
     new content.Group({
         options: {
             window: new content.Option({
@@ -135,7 +136,7 @@ export const options = content.options.merge(
                         description: 'Start the backend process.',
                     }),
                     projectManagerPath: new content.Option({
-                        default: '',
+                        default: paths.projectManager,
                         description:
                             'Set the path of a local project manager to use for running projects',
                     }),
@@ -353,5 +354,7 @@ export const options = content.options.merge(
         },
     })
 )
-options.groups.startup.options.platform.default = process.platform
-options.groups.startup.options.platform.value = process.platform
+my_args.groups.startup.options.platform.default = process.platform
+my_args.groups.startup.options.platform.value = process.platform
+
+export type Args = typeof my_args
