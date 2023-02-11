@@ -1,64 +1,61 @@
-'use strict'
+// FIXME: Issues to be resolved:
+// - https://github.com/yargs/yargs-parser/issues/468
+// - Add option to use metal backend on MacOS
+// - Enable vibrancy on MacOS
 
-import assert from 'node:assert'
-import buildCfg from '../../../build.json'
 import Electron from 'electron'
 import isDev from 'electron-is-dev'
 import path from 'node:path'
 import * as server from 'bin/server'
 import * as content from '../../content/src/config'
-import * as security from './security'
-import * as naming from './naming'
-import * as config from './config'
-import * as paths from './paths'
-
-import * as argParser from './arg-parser'
-import * as debug from './debug'
+import * as security from 'security'
+import * as naming from 'naming'
+import * as config from 'config'
+import * as paths from 'paths'
+import * as configParser from 'config/parser'
+import * as debug from 'debug'
 import * as projectManager from 'bin/project-manager'
 
 const logger = content.logger
+// const Option = content.Option
 
 // ============
 // === Help ===
 // ============
 
+/** The Electron application. It is responsible for starting all the required services, and
+ * displaying and managing the app window. */
 class App {
     window: null | Electron.BrowserWindow = null
     server: null | server.Server = null
     args: config.Args
     windowSize: config.WindowSize
-    // FIXME any
-    backendOptions: any
     isQuitting = false
     constructor() {
-        const { args, windowSize, backendOptions } = argParser.parseArgs()
+        const { args, windowSize } = configParser.parseArgs()
         this.args = args
         this.windowSize = windowSize
-        this.backendOptions = backendOptions
         security.enableAll()
-
         Electron.app.on('before-quit', () => (this.isQuitting = true))
-        Electron.app.whenReady().then(() => {
-            if (args.options.version.value) {
-                this.printVersionAndExit()
-            } else if (args.options.info.value) {
-                debug.printDebugInfo()
-            } else {
-                this.main()
-            }
-        })
+        Electron.app.whenReady().then(() => this.main())
     }
 
+    /** Main app entry point. */
     async main() {
         // We catch all errors here. Otherwise, it might be possible that the app will run partially
         // and the user will not see anything.
         try {
+            if (this.args.options.version.value) {
+                this.printVersionAndExit()
+            } else if (this.args.options.info.value) {
+                debug.printDebugInfoAndExit()
+            }
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
-                this.startBackend()
+                await this.startBackend()
                 await this.startContentServer()
-                this.createWindow()
+                await this.createWindow()
                 this.loadWindowContent()
             })
         } catch (err) {
@@ -67,22 +64,25 @@ class App {
         }
     }
 
-    startBackend() {
-        if (!this.args.groups.engine.options.backend.value) {
-            console.log('The app is configured not to run the backend process.')
+    async runIfEnabled(option: content.Option<boolean>, fn: () => Promise<void>) {
+        if (!option.value) {
+            logger.log(`The app is configured not to run the ${option.name}.`)
         } else {
-            const dashArgsOpt = this.backendOptions
-            const dashArgs = dashArgsOpt ? dashArgsOpt : []
-            const verboseArgs = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
-            const args2 = dashArgs.concat(verboseArgs)
-            return projectManager.spawn(this.args, args2)
+            fn()
         }
     }
 
+    /** Start the backend processes. */
+    async startBackend() {
+        await this.runIfEnabled(this.args.options.engine, async () => {
+            const backendOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
+            projectManager.spawn(this.args, backendOpts)
+        })
+    }
+
+    /** Start the content server, which will serve the application content (HTML) to the window */
     async startContentServer() {
-        if (!this.args.options.server.value) {
-            logger.log('The app is configured not to run the content server.')
-        } else {
+        await this.runIfEnabled(this.args.options.server, async () => {
             await logger.asyncGroupMeasured('Starting the content server.', async () => {
                 let serverCfg = new server.Config({
                     dir: paths.app,
@@ -90,15 +90,13 @@ class App {
                     fallback: '/assets/index.html',
                 })
                 this.server = await server.Server.create(serverCfg)
-                // origin = `http://localhost:${serverInstance.config.port}`
             })
-        }
+        })
     }
 
-    createWindow() {
-        if (!this.args.options.window.value) {
-            logger.log('The app is configured not to create a window.')
-        } else {
+    /** Create the Electron window and display it on the screen. */
+    async createWindow() {
+        await this.runIfEnabled(this.args.options.window, async () => {
             logger.groupMeasured('Creating the window.', () => {
                 const webPreferences = security.secureWebPreferences()
                 webPreferences.preload = path.join(paths.app, 'preload.cjs')
@@ -173,7 +171,7 @@ class App {
 
                 this.window = window
             })
-        }
+        })
     }
 
     serverPort(): number {
@@ -189,7 +187,7 @@ class App {
         if (window != null) {
             const urlCfg: { [key: string]: string } = {}
             for (const option of this.args.optionsRecursive()) {
-                if (option.setByUser) {
+                if (option.setByUser && option.passToApplication) {
                     urlCfg[option.qualifiedName()] = String(option.value)
                 }
             }
@@ -276,17 +274,3 @@ Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) =
         }
     })
 })
-
-// =============================
-// === Deprecations & Fixmes ===
-// =============================
-
-// FIXME Enable Metal backend on MacOS https://github.com/electron/electron/issues/22465
-
-// TODO[WD] Windows vibrancy
-// https://github.com/fstudio/clangbuilder/issues/39
-// https://github.com/Microsoft/vscode/issues/32257
-// https://github.com/arkenthera/electron-vibrancy/issues/21
-
-// TODO[WD] Window corner radius
-// https://github.com/electron/electron/issues/22542

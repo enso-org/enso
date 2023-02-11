@@ -1,11 +1,11 @@
 import chalk from 'chalk'
-import buildCfg from '../../../build.json'
-import * as config from './config'
-const yargs = require('yargs')
-import * as naming from './naming'
+import buildCfg from '../../../../build.json'
+import * as config from 'config'
+import yargs from 'yargs/yargs'
+import * as naming from 'naming'
 import stringLength from 'string-length'
 import { hideBin } from 'yargs/helpers'
-import { logger } from '../../content/src/config'
+import { logger } from '../../../content/src/config'
 
 // ============
 // === Help ===
@@ -36,7 +36,7 @@ class Section {
  */
 function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExtended: boolean }) {
     console.log(usage)
-    const terminalWidth = yargs.terminalWidth()
+    const totalWidth = logger.terminalWidth()
     const indentSize = 0
     const optionPrefix = '-'
     const spacing = 2
@@ -84,14 +84,14 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
     const borderStyle = (s: string) => chalk.gray(chalk.bold(s))
 
     const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
-    const rightWidth = terminalWidth - leftWidth
+    const rightWidth = totalWidth - leftWidth
 
     for (const [groupName, section] of Object.entries(sections)) {
         if (section.entries.length > 0) {
             console.log('\n\n')
             const groupTitle = chalk.bold(`${naming.camelCaseToTitle(groupName)} Options `)
             console.log(groupTitle)
-            const description = wordWrap(section.description, terminalWidth).join('\n')
+            const description = wordWrap(section.description, totalWidth).join('\n')
             console.log(description)
             console.log()
             section.entries.sort()
@@ -170,7 +170,7 @@ function wordWrap(str: string, width: number): string[] {
 // =====================
 
 export function parseArgs() {
-    const args = config.my_args
+    const args = config.config
     let argv = hideBin(process.argv)
 
     const yargOptions = args.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
@@ -201,9 +201,12 @@ export function parseArgs() {
     // === Parsing ===
 
     let parseError = null as null | Error
-    let xargs = optParser.parse(argv, {}, (err: Error) => {
-        parseError = err
-    })
+    let xargs = optParser.parse(argv, {}, (err: Error | undefined) => {
+        if (err != null) {
+            parseError = err
+        }
+    }) as { [key: string]: string }
+    const additionalOptions = xargs['--']
 
     for (const option of args.optionsRecursive()) {
         const arg = xargs[naming.camelToKebabCase(option.qualifiedName())]
@@ -222,9 +225,12 @@ export function parseArgs() {
         windowSize = parsedWindowSize
     }
 
-    if (parseError != null || args.options.help.value || args.options.helpExtended.value) {
+    const helpRequested = args.options.help.value || args.options.helpExtended.value
+    if (parseError != null || additionalOptions != null || helpRequested) {
         if (parseError != null) {
             logger.error(parseError.message)
+        } else if (additionalOptions != null) {
+            logger.error(`Unexpected options passed: '${additionalOptions}'.`)
         }
         printHelp({
             args,
@@ -234,7 +240,5 @@ export function parseArgs() {
         process.exit()
     }
 
-    const backendOptions = xargs['--']
-
-    return { args, windowSize, backendOptions }
+    return { args, windowSize }
 }

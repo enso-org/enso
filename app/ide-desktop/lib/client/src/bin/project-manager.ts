@@ -44,9 +44,9 @@ export function spawn(args: config.Args, processArgs: string[]) {
             const stderr = 'inherit' as const
             const stdio = [stdin, stdout, stderr]
             const out = child_process.spawn(binPath, processArgs, { stdio })
-            logger.log(`Project Manager has been spawned (pid = ${out.pid}).`)
+            logger.log(`Backend has been spawned (pid = ${out.pid}).`)
             out.on('exit', code => {
-                logger.log(`Project Manager exited with code ${code}.`)
+                logger.log(`Backend exited with code ${code}.`)
             })
             return out
         }
@@ -54,7 +54,7 @@ export function spawn(args: config.Args, processArgs: string[]) {
 }
 
 export async function version(args: config.Args) {
-    if (args.groups.engine.options.backend.value) {
+    if (args.options.engine.value) {
         return await exec(args, ['--version']).then(t => t.stdout)
     }
 }

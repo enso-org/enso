@@ -39,64 +39,74 @@ export class WindowSize {
 // === Config ===
 // ==============
 
-export const my_args = content.options.merge(
+export const config = content.options.merge(
     new content.Group({
         options: {
             window: new content.Option({
+                passToApplication: false,
                 default: true,
                 description:
                     'Show the window. If set to false, only the server will be run. You can use another ' +
                     'client or a browser to connect to it.',
             }),
             server: new content.Option({
+                passToApplication: false,
                 default: true,
                 description:
                     'Run the server. If set to false, you can connect to an existing server on the ' +
                     'provided `port`.',
             }),
-            showElectronOptions: new content.Option({
-                default: false,
-                description:
-                    'Show Electron options in the help. Should be used together with `-help`.',
-            }),
             info: new content.Option({
+                passToApplication: false,
                 default: false,
                 description: `Print the system debug info.`,
             }),
             version: new content.Option({
+                passToApplication: false,
                 default: false,
                 description: `Print the version.`,
             }),
             help: new content.Option({
+                passToApplication: false,
                 default: false,
                 description:
                     'Show the common configuration options help page. ' +
                     'To see all options, use `-full-help`.',
             }),
             helpExtended: new content.Option({
+                passToApplication: false,
                 default: false,
                 description:
                     'Show all the configuration options help page, including the less-common ' +
                     'options.',
+            }),
+            engine: new content.Option({
+                passToApplication: false,
+                default: true,
+                description: 'Start the engine process.',
             }),
         },
         groups: {
             window: new content.Group({
                 options: {
                     size: new content.Option({
+                        passToApplication: false,
                         default: WindowSize.default().pretty(),
                         description: `The initial window size.`,
                     }),
                     frame: new content.Option({
+                        passToApplication: false,
                         default: process.platform !== 'darwin',
                         defaultDescription: 'false on MacOS, true otherwise',
                         description: 'Draw window frame.',
                     }),
                     vibrancy: new content.Option({
+                        passToApplication: false,
                         default: false,
                         description: 'Use the vibrancy effect.',
                     }),
                     closeToQuit: new content.Option({
+                        passToApplication: false,
                         default: process.platform !== 'darwin',
                         defaultDescription: 'false on MacOS, true otherwise',
                         description:
@@ -110,6 +120,7 @@ export const my_args = content.options.merge(
             server: new content.Group({
                 options: {
                     port: new content.Option({
+                        passToApplication: false,
                         default: 8080,
                         description: `Port to use. In case the port is unavailable, next free port will be found.`,
                     }),
@@ -119,20 +130,24 @@ export const my_args = content.options.merge(
             performance: new content.Group({
                 options: {
                     backgroundThrottling: new content.Option({
+                        passToApplication: false,
                         default: false,
                         description: 'Throttle animations when run in background.',
                     }),
                     loadProfile: new content.Option({
+                        passToApplication: false,
                         // FIXME
                         default: [],
                         description:
                             'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
                     }),
                     saveProfile: new content.Option({
+                        passToApplication: false,
                         default: '',
                         description: 'Record a performance profile and write to a file.',
                     }),
                     workflow: new content.Option({
+                        passToApplication: false,
                         default: '',
                         description:
                             'Specify a workflow for profiling. Must be used with -entry-point=profile.',
@@ -142,14 +157,11 @@ export const my_args = content.options.merge(
 
             engine: new content.Group({
                 options: {
-                    backend: new content.Option({
-                        default: true,
-                        description: 'Start the backend process.',
-                    }),
                     projectManagerPath: new content.Option({
+                        passToApplication: false,
                         default: paths.projectManager,
                         description:
-                            'Set the path of a local project manager to use for running projects',
+                            'Set the path of a local project manager to use for running projects.',
                     }),
                 },
             }),
@@ -157,14 +169,17 @@ export const my_args = content.options.merge(
             debug: new content.Group({
                 options: {
                     verbose: new content.Option({
+                        passToApplication: false,
                         default: false,
                         description: `Increase logs verbosity. Affects both IDE and the backend.`,
                     }),
                     dev: new content.Option({
+                        passToApplication: false,
                         default: false,
                         description: 'Run the application in development mode.',
                     }),
                     devtron: new content.Option({
+                        passToApplication: false,
                         default: false,
                         description: 'Install the Devtron Developer Tools extension.',
                     }),
@@ -176,6 +191,7 @@ export const my_args = content.options.merge(
                     // https://www.electronjs.org/docs/latest/api/command-line-switches
 
                     authServerWhitelist: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -183,6 +199,7 @@ export const my_args = content.options.merge(
                             'enabled.',
                     }),
                     authNegotiateDelegateWhitelist: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -190,21 +207,25 @@ export const my_args = content.options.merge(
                             "required. Without '*' prefix the URL has to match exactly.",
                     }),
                     disableNtlmV2: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: false,
                         description: 'Disables NTLM v2 for posix platforms, no effect elsewhere.',
                     }),
                     disableHttpCache: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: false,
                         description: 'Disables the disk cache for HTTP requests.',
                     }),
                     disableHttp2: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: false,
                         description: 'Disable HTTP/2 and SPDY/3.1 protocols.',
                     }),
                     disableRendererBackgrounding: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: false,
                         description:
@@ -212,18 +233,21 @@ export const my_args = content.options.merge(
                             'processes.',
                     }),
                     diskCacheSize: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: 0,
                         description:
                             'Forces the maximum disk space to be used by the disk cache, in bytes.',
                     }),
                     enableLogging: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
                             "Prints Chromium's logging to stderr (or a log file, if provided as argument).",
                     }),
                     forceFieldtrials: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -231,6 +255,7 @@ export const my_args = content.options.merge(
                             "'WebRTC-Audio-Red-For-Opus/Enabled/'.",
                     }),
                     hostRules: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -238,23 +263,27 @@ export const my_args = content.options.merge(
                             "example, 'MAP * 127.0.0.1'.",
                     }),
                     hostResolverRules: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
                             "Like '--host-rules' but these rules only apply to the host resolver.",
                     }),
                     ignoreCertificateErrors: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: false,
                         description: 'Ignores certificate related errors.',
                     }),
                     ignoreConnectionsLimit: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
                             "Ignore the connections limit for domains list separated by ','.",
                     }),
                     jsFlags: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -262,11 +291,13 @@ export const my_args = content.options.merge(
                             '\'-electron-js-flags="--harmony_proxies --harmony_collections"\'.',
                     }),
                     lang: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description: 'Set a custom locale.',
                     }),
                     logFile: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -274,12 +305,14 @@ export const my_args = content.options.merge(
                             'The parent directory must exist.',
                     }),
                     logNetLog: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
                             'Enables net log events to be saved and writes them to the provided path.',
                     }),
                     logLevel: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -287,6 +320,7 @@ export const my_args = content.options.merge(
                             "The argument should be one of Chrome's LogSeverities.",
                     }),
                     noProxyServer: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: false,
                         description:
@@ -294,6 +328,7 @@ export const my_args = content.options.merge(
                             'any other proxy server flags that are passed.',
                     }),
                     noSandbox: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: false,
                         description:
@@ -301,6 +336,7 @@ export const my_args = content.options.merge(
                             'processes to run un-sandboxed. Should only be used for testing.',
                     }),
                     proxyBypassList: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -310,11 +346,13 @@ export const my_args = content.options.merge(
                             '\'--proxy-bypass-list "<local>;*.google.com;*foo.com;1.2.3.4:5678"\'.',
                     }),
                     proxyPacUrl: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description: 'Uses the PAC script at the specified url.',
                     }),
                     proxyServer: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -326,11 +364,13 @@ export const my_args = content.options.merge(
                             '[Chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).',
                     }),
                     remoteDebuggingPort: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description: 'Enables remote debugging over HTTP on the specified port.',
                     }),
                     v: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: 0,
                         description:
@@ -339,6 +379,7 @@ export const my_args = content.options.merge(
                             "'-electron-enable-logging' is also passed.",
                     }),
                     vmodule: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: '',
                         description:
@@ -349,12 +390,14 @@ export const my_args = content.options.merge(
                             "This switch only works when '-electron-enable-logging' is also passed.",
                     }),
                     force_high_performance_gpu: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: false,
                         description:
                             'Force using discrete GPU when there are multiple GPUs available.',
                     }),
                     force_low_power_gpu: new content.Option({
+                        passToApplication: false,
                         primary: false,
                         default: false,
                         description:
@@ -365,7 +408,7 @@ export const my_args = content.options.merge(
         },
     })
 )
-my_args.groups.startup.options.platform.default = process.platform
-my_args.groups.startup.options.platform.value = process.platform
+config.groups.startup.options.platform.default = process.platform
+config.groups.startup.options.platform.value = process.platform
 
-export type Args = typeof my_args
+export type Args = typeof config

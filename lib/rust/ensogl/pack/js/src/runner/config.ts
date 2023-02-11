@@ -52,6 +52,10 @@ export class Option<T> {
      * it can be set to `'true' on macOS and 'false' otherwise` to better explain mechanics for the
      * default value. */
     defaultDescription: null | string = null
+    /** If set to false, the option will not be passed to the application. This is useful when
+     * creating meta configuration options, that control some behavior, like the window style, but
+     * are not designed to control the core app behavior. */
+    passToApplication = true
     setByUser = false
     hidden: boolean
     /** Controls whether this option should be visible by default in the help message. Non-primary
@@ -63,6 +67,7 @@ export class Option<T> {
         defaultDescription?: string
         hidden?: boolean
         primary?: boolean
+        passToApplication?: boolean
     }) {
         this.default = cfg.default
         this.value = cfg.default
@@ -70,6 +75,7 @@ export class Option<T> {
         this.defaultDescription = cfg.defaultDescription ?? null
         this.hidden = cfg.hidden ?? false
         this.primary = cfg.primary ?? true
+        this.passToApplication = cfg.passToApplication ?? true
         if (typeof this.value === 'boolean') {
             this.type = 'boolean'
         } else if (typeof this.value === 'number') {

@@ -9,6 +9,7 @@ const Group = config.Group
 const logger = log.logger
 // const Options = config.Options
 export { Option, Group, logger }
+export type Option<T> = config.Option<T>
 
 // ===============
 // === Version ===
@@ -34,6 +35,12 @@ export class Version {
 // === Options ===
 // ===============
 
+// let foo: Option<boolean> = new config.Option({
+//     default: true,
+//     description:
+//         'Controls whether user authentication is enabled. This option is ignored if ' +
+//         'the app is run in the cloud.',
+// })
 export const options = config.options.merge(
     new config.Group({
         options: {

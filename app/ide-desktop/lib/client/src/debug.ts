@@ -29,7 +29,7 @@ async function getDebugInfo() {
     }
 }
 
-export async function printDebugInfo() {
+export async function printDebugInfoAndExit() {
     let info = await getDebugInfo()
     console.log(JSON.stringify(info, undefined, 4))
     process.exit()

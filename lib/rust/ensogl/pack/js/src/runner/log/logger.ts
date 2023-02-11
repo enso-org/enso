@@ -83,6 +83,10 @@ export abstract class Consumer {
     /** Log a message and end the last opened group. */
     abstract groupEnd(...args: unknown[]): void
 
+    terminalWidth(): number {
+        return process.stdout.columns
+    }
+
     /** Log a message. */
     log(...args: unknown[]) {
         this.message('log', ...args)
