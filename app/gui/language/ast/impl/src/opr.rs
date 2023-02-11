@@ -26,7 +26,7 @@ use crate::Shape;
 // =================
 
 /// Symbols that can appear in operator name, as per
-/// https://dev.enso.org/docs/enso/syntax/naming.html#operator-naming
+/// https://enso.org/docs/developer/enso/syntax/naming.html#operator-naming
 pub const SYMBOLS: [char; 25] = [
     '!', '$', '%', '&', '*', '+', '-', '/', '<', '>', '?', '^', '~', '|', ':', '\\', ',', '.', '(',
     ')', '[', ']', '{', '}', '=',
