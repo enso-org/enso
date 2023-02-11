@@ -5,17 +5,17 @@ const yargs = require('yargs')
 import * as naming from './naming'
 import stringLength from 'string-length'
 import { hideBin } from 'yargs/helpers'
+import { logger } from '../../content/src/config'
 
 // ============
 // === Help ===
 // ============
 
-const FULL_HELP_OPTION = 'full-help'
-
 let usage = chalk.bold(
-    `
-Enso ${buildCfg.version} command line interface.
-Usage: enso [options] [--] [backend args]`
+    `\nEnso ${buildCfg.version} command line interface.` +
+        `Usage: enso [options] [--] [backend args]` +
+        `\n\nAll the options can be provided both with single dash and double dash prefix. For ` +
+        `example, both '--help' and '-help' will print the help message.`
 )
 
 class Section {
@@ -26,7 +26,7 @@ class Section {
     }
 }
 
-/** We use custom help printer because Yargs has many issues:
+/** We use custom help printer because Yargs has several issues:
  * 1. The option ordering is random and there is no way to enforce it.
  * 2. The option groups ordering is random and there is no way to enforce it.
  * 3. Every option has a `[type`] annotation and there is no API to disable it.
@@ -34,22 +34,19 @@ class Section {
  * 5. Help coloring is not supported, and they do not want to support it:
  *    https://github.com/yargs/yargs/issues/251
  */
-function printHelp(cfg: {
-    args: config.Args
-    groupsOrdering: string[]
-    secondaryGroups: string[]
-    fullHelp: boolean
-}) {
+function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExtended: boolean }) {
     console.log(usage)
     const terminalWidth = yargs.terminalWidth()
     const indentSize = 0
     const optionPrefix = '-'
     const spacing = 2
     const sections: { [key: string]: Section } = {}
+    const topLevelSection = new Section()
+    topLevelSection.description =
+        'General application switches. For fine-grained control, see the available option groups.'
+    sections['topLevel'] = topLevelSection
     for (const groupName of cfg.groupsOrdering) {
-        if (cfg.fullHelp || !cfg.secondaryGroups.includes(groupName)) {
-            sections[groupName] = new Section()
-        }
+        sections[groupName] = new Section()
     }
     let maxOptionLength = 0
 
@@ -61,22 +58,27 @@ function printHelp(cfg: {
         }
         section.description = group.description
         for (const option of group.optionsRecursive()) {
-            const cmdOption = naming.camelToKebabCase(option.qualifiedName())
-            maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
-            const entry = [cmdOption, option]
-            section.entries.push(entry)
+            if (option.primary || cfg.helpExtended) {
+                const cmdOption = naming.camelToKebabCase(option.qualifiedName())
+                maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
+                const entry = [cmdOption, option]
+                section.entries.push(entry)
+            }
         }
     }
 
     for (const [optionName, option] of Object.entries(cfg.args.options)) {
-        const cmdOption = naming.camelToKebabCase(optionName)
-        maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
-        const entry = [cmdOption, option]
-        const section = sections[option.name]
-        if (section != null) {
-            section.entries.unshift(entry)
+        if (option.primary || cfg.helpExtended) {
+            const cmdOption = naming.camelToKebabCase(optionName)
+            maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
+            const entry = [cmdOption, option]
+            const section = sections[option.name]
+            if (section != null) {
+                section.entries.unshift(entry)
+            } else {
+                topLevelSection.entries.push(entry)
+            }
         }
-        // sections['global'].entries.push(entry)
     }
 
     const borderStyle = (s: string) => chalk.gray(chalk.bold(s))
@@ -85,14 +87,15 @@ function printHelp(cfg: {
     const rightWidth = terminalWidth - leftWidth
 
     for (const [groupName, section] of Object.entries(sections)) {
-        console.log('\n\n')
-        const groupTitle = chalk.bold(`${naming.camelCaseToTitle(groupName)} Options `)
-        console.log(groupTitle)
-        const description = wordWrap(section.description, terminalWidth).join('\n')
-        console.log(description)
-        console.log()
-        for (const [cmdOption, option] of section.entries) {
-            if (cfg.fullHelp || option.primary) {
+        if (section.entries.length > 0) {
+            console.log('\n\n')
+            const groupTitle = chalk.bold(`${naming.camelCaseToTitle(groupName)} Options `)
+            console.log(groupTitle)
+            const description = wordWrap(section.description, terminalWidth).join('\n')
+            console.log(description)
+            console.log()
+            section.entries.sort()
+            for (const [cmdOption, option] of section.entries) {
                 const indent = ' '.repeat(indentSize)
                 let left = indent + chalk.bold(chalk.green(optionPrefix + cmdOption))
                 const spaces = ' '.repeat(leftWidth - stringLength(left))
@@ -184,27 +187,22 @@ export function parseArgs() {
     let optParser = yargs()
         .version(false)
         .parserConfiguration({
+            // Allow single-dash arguments, like `-help`.
             'short-option-groups': false,
+            // Treat dot-arguments as string keys, like `foo.bar`.
             'dot-notation': false,
             // Makes all flags passed after '--' be one string.
             'populate--': true,
         })
+        .help(false)
         .strict()
         .options(yargOptions)
 
     // === Parsing ===
 
-    let xargs = optParser.parse(argv, {}, (err: any, argsDict: any, help: string) => {
-        console.log('!!!', err, help)
-        if (help) {
-            printHelp({
-                args,
-                groupsOrdering: [],
-                secondaryGroups: ['Electron Options'],
-                fullHelp: argsDict[FULL_HELP_OPTION],
-            })
-            process.exit()
-        }
+    let parseError = null as null | Error
+    let xargs = optParser.parse(argv, {}, (err: Error) => {
+        parseError = err
     })
 
     for (const option of args.optionsRecursive()) {
@@ -224,12 +222,14 @@ export function parseArgs() {
         windowSize = parsedWindowSize
     }
 
-    if (args.options.help.value || args.options.fullHelp.value) {
+    if (parseError != null || args.options.help.value || args.options.helpExtended.value) {
+        if (parseError != null) {
+            logger.error(parseError.message)
+        }
         printHelp({
             args,
             groupsOrdering: [],
-            secondaryGroups: ['Electron Options'],
-            fullHelp: args.options.fullHelp.value,
+            helpExtended: args.options.helpExtended.value,
         })
         process.exit()
     }

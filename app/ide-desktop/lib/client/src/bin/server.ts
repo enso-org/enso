@@ -7,6 +7,21 @@ import * as path from 'path'
 import * as portfinder from 'portfinder'
 import { logger } from '../../../content/src/config'
 
+// ======================
+// === URL Parameters ===
+// ======================
+
+/** Construct URL query with the given parameters. For each `key` - `value` pair,
+ * `key=value` will be added to the query. */
+export function urlParamsFromObject(obj: { [key: string]: string }) {
+    let params = []
+    for (let key in obj) {
+        let val = obj[key]
+        params.push(`${key}=${val}`)
+    }
+    return params.length == 0 ? '' : '?' + params.join('&')
+}
+
 // ==============
 // === Config ===
 // ==============
@@ -22,9 +37,9 @@ export class Config {
     }
 }
 
-// ============
-// === Port ===
-// ============
+// ===================
+// === Port Finder ===
+// ===================
 
 async function findPort(port: number): Promise<number> {
     return await portfinder.getPortPromise({ port, startPort: port })

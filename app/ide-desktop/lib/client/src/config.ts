@@ -73,9 +73,11 @@ export const my_args = content.options.merge(
                     'Show the common configuration options help page. ' +
                     'To see all options, use `-full-help`.',
             }),
-            fullHelp: new content.Option({
+            helpExtended: new content.Option({
                 default: false,
-                description: 'Show all the configuration options help page.',
+                description:
+                    'Show all the configuration options help page, including the less-common ' +
+                    'options.',
             }),
         },
         groups: {
@@ -93,6 +95,15 @@ export const my_args = content.options.merge(
                     vibrancy: new content.Option({
                         default: false,
                         description: 'Use the vibrancy effect.',
+                    }),
+                    closeToQuit: new content.Option({
+                        default: process.platform !== 'darwin',
+                        defaultDescription: 'false on MacOS, true otherwise',
+                        description:
+                            'Determines whether the app should quit when the window is closed. ' +
+                            'If false, the window will be hidden after pressing the close ' +
+                            'button. You can then bring the window back by pressing the app ' +
+                            'dock icon.',
                     }),
                 },
             }),
@@ -165,132 +176,132 @@ export const my_args = content.options.merge(
                     // https://www.electronjs.org/docs/latest/api/command-line-switches
 
                     authServerWhitelist: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             'A comma-separated list of servers for which integrated authentication is ' +
                             'enabled.',
                     }),
                     authNegotiateDelegateWhitelist: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             'A comma-separated list of servers for which delegation of user credentials is ' +
                             "required. Without '*' prefix the URL has to match exactly.",
                     }),
                     disableNtlmV2: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: false,
                         description: 'Disables NTLM v2 for posix platforms, no effect elsewhere.',
                     }),
                     disableHttpCache: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: false,
                         description: 'Disables the disk cache for HTTP requests.',
                     }),
                     disableHttp2: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: false,
                         description: 'Disable HTTP/2 and SPDY/3.1 protocols.',
                     }),
                     disableRendererBackgrounding: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: false,
                         description:
                             "Prevents Chromium from lowering the priority of invisible pages' renderer " +
                             'processes.',
                     }),
                     diskCacheSize: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: 0,
                         description:
                             'Forces the maximum disk space to be used by the disk cache, in bytes.',
                     }),
                     enableLogging: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             "Prints Chromium's logging to stderr (or a log file, if provided as argument).",
                     }),
                     forceFieldtrials: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             'Field trials to be forcefully enabled or disabled. For example, ' +
                             "'WebRTC-Audio-Red-For-Opus/Enabled/'.",
                     }),
                     hostRules: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             'A comma-separated list of rules that control how hostnames are mapped. For ' +
                             "example, 'MAP * 127.0.0.1'.",
                     }),
                     hostResolverRules: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             "Like '--host-rules' but these rules only apply to the host resolver.",
                     }),
                     ignoreCertificateErrors: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: false,
                         description: 'Ignores certificate related errors.',
                     }),
                     ignoreConnectionsLimit: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             "Ignore the connections limit for domains list separated by ','.",
                     }),
                     jsFlags: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             'Specifies the flags passed to the Node.js engine. For example, ' +
                             '\'-electron-js-flags="--harmony_proxies --harmony_collections"\'.',
                     }),
                     lang: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description: 'Set a custom locale.',
                     }),
                     logFile: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             "If '-electron-enable-logging' is specified, logs will be written to the given path. " +
                             'The parent directory must exist.',
                     }),
                     logNetLog: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             'Enables net log events to be saved and writes them to the provided path.',
                     }),
                     logLevel: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             "Sets the verbosity of logging when used together with '-electron-enable-logging'. " +
                             "The argument should be one of Chrome's LogSeverities.",
                     }),
                     noProxyServer: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: false,
                         description:
                             "Don't use a proxy server and always make direct connections. Overrides " +
                             'any other proxy server flags that are passed.',
                     }),
                     noSandbox: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: false,
                         description:
                             'Disables the Chromium sandbox. Forces renderer process and Chromium helper ' +
                             'processes to run un-sandboxed. Should only be used for testing.',
                     }),
                     proxyBypassList: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             'Instructs Electron to bypass the proxy server for the given ' +
@@ -299,12 +310,12 @@ export const my_args = content.options.merge(
                             '\'--proxy-bypass-list "<local>;*.google.com;*foo.com;1.2.3.4:5678"\'.',
                     }),
                     proxyPacUrl: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description: 'Uses the PAC script at the specified url.',
                     }),
                     proxyServer: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             "Use a specified proxy server ('address:port'), which overrides the system " +
@@ -315,12 +326,12 @@ export const my_args = content.options.merge(
                             '[Chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).',
                     }),
                     remoteDebuggingPort: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description: 'Enables remote debugging over HTTP on the specified port.',
                     }),
                     v: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: 0,
                         description:
                             'Gives the default maximal active V-logging level; 0 is the default. Normally ' +
@@ -328,7 +339,7 @@ export const my_args = content.options.merge(
                             "'-electron-enable-logging' is also passed.",
                     }),
                     vmodule: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: '',
                         description:
                             'Gives the per-module maximal V-logging levels to override the value given by ' +
@@ -338,13 +349,13 @@ export const my_args = content.options.merge(
                             "This switch only works when '-electron-enable-logging' is also passed.",
                     }),
                     force_high_performance_gpu: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: false,
                         description:
                             'Force using discrete GPU when there are multiple GPUs available.',
                     }),
                     force_low_power_gpu: new content.Option({
-                        hidden: true,
+                        primary: false,
                         default: false,
                         description:
                             'Force using integrated GPU when there are multiple GPUs available.',

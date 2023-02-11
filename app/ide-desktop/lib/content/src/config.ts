@@ -50,6 +50,10 @@ export const options = config.options.merge(
             }),
         },
         groups: {
+            dataCollection: new config.Group({
+                // In the future, we will place here fine-grained controls of what data we collect.
+            }),
+
             startup: new config.Group({
                 options: {
                     project: new config.Option({

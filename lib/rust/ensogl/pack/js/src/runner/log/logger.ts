@@ -243,7 +243,7 @@ export class Console extends Consumer {
                 const indentedArgs = coloredArgs.map(arg => arg.replaceAll('\n', `\n${indent}`))
                 c.log(this.indentShorter(), ...indentedArgs)
             } else {
-                c.log(...strArgs)
+                c.log(...coloredArgs)
             }
         }
     }

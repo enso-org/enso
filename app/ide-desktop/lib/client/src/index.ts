@@ -22,36 +22,25 @@ const logger = content.logger
 // === Help ===
 // ============
 
-let hideInsteadOfQuit = false
-
-let xserver = null
-let mainWindow: null | Electron.BrowserWindow = null
-let origin: null | string = null
-
-function urlParamsFromObject(obj: { [key: string]: string }) {
-    let params = []
-    for (let key in obj) {
-        let val = obj[key]
-        params.push(`${key}=${val}`)
-    }
-    return params.length == 0 ? '' : '?' + params.join('&')
-}
-
 class App {
     window: null | Electron.BrowserWindow = null
+    server: null | server.Server = null
     args: config.Args
     windowSize: config.WindowSize
     // FIXME any
     backendOptions: any
+    isQuitting = false
     constructor() {
         const { args, windowSize, backendOptions } = argParser.parseArgs()
         this.args = args
         this.windowSize = windowSize
         this.backendOptions = backendOptions
         security.enableAll()
+
+        Electron.app.on('before-quit', () => (this.isQuitting = true))
         Electron.app.whenReady().then(() => {
             if (args.options.version.value) {
-                printVersion(this.args)
+                this.printVersionAndExit()
             } else if (args.options.info.value) {
                 debug.printDebugInfo()
             } else {
@@ -100,8 +89,8 @@ class App {
                     port: this.args.groups.server.options.port.value,
                     fallback: '/assets/index.html',
                 })
-                xserver = await server.Server.create(serverCfg)
-                origin = `http://localhost:${xserver.config.port}`
+                this.server = await server.Server.create(serverCfg)
+                // origin = `http://localhost:${serverInstance.config.port}`
             })
         }
     }
@@ -169,8 +158,29 @@ class App {
                     Electron.app.quit()
                 })
 
+                window.on('close', evt => {
+                    if (!this.isQuitting && this.args.groups.window.options.closeToQuit.value) {
+                        evt.preventDefault()
+                        window.hide()
+                    }
+                })
+
+                Electron.app.on('activate', () => {
+                    if (this.args.groups.window.options.closeToQuit.value) {
+                        window.show()
+                    }
+                })
+
                 this.window = window
             })
+        }
+    }
+
+    serverPort(): number {
+        if (this.server != null) {
+            return this.server.config.port
+        } else {
+            return this.args.groups.server.options.port.value
         }
     }
 
@@ -183,18 +193,42 @@ class App {
                     urlCfg[option.qualifiedName()] = String(option.value)
                 }
             }
-            let params = urlParamsFromObject(urlCfg)
-            let address = `${origin}${params}`
-
-            logger.log(`Loading the window address ${address}`)
+            const params = server.urlParamsFromObject(urlCfg)
+            const address = `http://localhost:${this.serverPort()}${params}`
+            logger.log(`Loading the window address '${address}'.`)
             window.loadURL(address)
-            window.on('close', evt => {
-                if (hideInsteadOfQuit) {
-                    evt.preventDefault()
-                    window.hide()
-                }
-            })
         }
+    }
+
+    printVersionAndExit() {
+        let indent = ' '.repeat(4)
+        let maxNameLen = 0
+        for (let name in debug.versionInfo) {
+            if (name.length > maxNameLen) {
+                maxNameLen = name.length
+            }
+        }
+
+        console.log('Frontend:')
+        for (let [name, value] of Object.entries(debug.versionInfo)) {
+            let label = naming.capitalizeFirstLetter(name)
+            let spacing = ' '.repeat(maxNameLen - name.length)
+            console.log(`${indent}${label}:${spacing} ${value}`)
+        }
+
+        console.log('')
+        console.log('Backend:')
+        projectManager.version(this.args).then(backend => {
+            if (!backend) {
+                console.log(`${indent}No backend available.`)
+            } else {
+                let lines = backend.split(/\r?\n/).filter(line => line.length > 0)
+                for (let line of lines) {
+                    console.log(`${indent}${line}`)
+                }
+            }
+            process.exit()
+        })
     }
 }
 
@@ -202,56 +236,7 @@ class App {
 // === Events ===
 // ==============
 
-function printVersion(args: config.Args) {
-    let indent = ' '.repeat(4)
-    let maxNameLen = 0
-    for (let name in debug.versionInfo) {
-        if (name.length > maxNameLen) {
-            maxNameLen = name.length
-        }
-    }
-
-    console.log('Frontend:')
-    for (let name in debug.versionInfo) {
-        let label = naming.capitalizeFirstLetter(name)
-        let spacing = ' '.repeat(maxNameLen - name.length)
-        // @ts-ignore
-        console.log(`${indent}${label}:${spacing} ${versionInfo[name]}`)
-    }
-
-    console.log('')
-    console.log('Backend:')
-    projectManager.version(args).then(backend => {
-        if (!backend) {
-            console.log(`${indent}No backend available.`)
-        } else {
-            let lines = backend.split(/\r?\n/)
-            for (let line of lines) {
-                console.log(`${indent}${line}`)
-            }
-        }
-        process.exit()
-    })
-}
-
-Electron.app.on('activate', () => {
-    if (process.platform === 'darwin') {
-        if (mainWindow != null) {
-            mainWindow.show()
-        } else {
-            // FIXME
-        }
-    }
-})
-
 const app = new App()
-
-if (process.platform === 'darwin') {
-    hideInsteadOfQuit = true
-    Electron.app.on('before-quit', function () {
-        hideInsteadOfQuit = false
-    })
-}
 
 // =================
 // === Shortcuts ===
