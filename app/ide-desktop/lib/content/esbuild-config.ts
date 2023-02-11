@@ -34,7 +34,6 @@ export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
 // === Environment variables ===
 // =============================
 
-
 export interface Arguments {
     /** List of files to be copied from WASM artifacts. */
     wasm_artifacts: string
@@ -104,7 +103,7 @@ export async function* files_to_copy_provider(wasm_artifacts: string, assets_pat
 
 export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
     const { output_path, ensogl_app_path, wasm_artifacts, assets_path } = args
-    return  {
+    return {
         absWorkingDir: thisPath,
         bundle: true,
         entryPoints: [path.resolve(thisPath, 'src', 'index.ts')],
@@ -147,22 +146,42 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
     }
 }
 
+/** The basic, common settings for the bundler, based on the environment variables.
+ *
+ * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build).
+ **/
 export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
     return bundlerOptions(argumentsFromEnv())
 }
 
-/**
- * Spawn the esbuild watch process. It continuously runs, rebuilding the package.
+/** ESBuild options for spawning a watcher, that will continuously rebuild the package. */
+export function watchOptions(onRebuild?: () => void, inject?: esbuild.BuildOptions['inject']) {
+    return esbuildWatchHelper.toWatchOptions(bundlerOptionsFromEnv(), onRebuild, inject)
+}
+
+// /**
+//  * Spawn the esbuild watch process. It continuously runs, rebuilding the package.
+//  */
+// export async function watch(onRebuild?: () => void, inject?: esbuild.BuildOptions['inject']) {
+//     return esbuildWatchHelper.watch(bundlerOptionsFromEnv(), onRebuild, inject)
+// }
+
+/** ESBuild options for bundling (one-off build) the package.
+ *
+ * Relies on the environment variables to be set.
  */
-export async function watch(onRebuild?: () => void, inject?: esbuild.BuildOptions['inject']) {
-    return esbuildWatchHelper.watch(bundlerOptionsFromEnv(), onRebuild, inject)
+export function bundleOptions() {
+    const ret = bundlerOptionsFromEnv()
+    ret.watch = false
+    ret.incremental = false
+    return ret
 }
 
 /**
  * Bundles the package.
  */
 export async function bundle() {
-    return esbuild.build({ ...bundlerOptionsFromEnv(), watch: false, incremental: false })
+    return esbuild.build(bundleOptions())
 }
 
-export default { watch, bundle }
+export default { watchOptions, bundle, bundleOptions }

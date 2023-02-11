@@ -4,6 +4,7 @@
 use ide_ci::prelude::*;
 
 
+
 fn main() -> Result {
     println!("cargo:rerun-if-changed=paths.yaml");
     let yaml_contents = include_bytes!("paths.yaml");

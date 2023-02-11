@@ -4,6 +4,8 @@ use regex::Regex;
 use std::cell::OnceCell;
 use std::iter::zip;
 
+
+
 /// Sanitize string to be a valid Rust identifier.
 fn normalize_ident(ident: impl AsRef<str>, case: Case) -> Ident {
     let base = ident.as_ref();

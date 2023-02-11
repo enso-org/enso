@@ -1,6 +1,7 @@
 import path from 'node:path'
 import esbuild from 'esbuild'
 import { require_env, require_env_resolved_path } from '../../utils.js'
+import { getBundledEngineVersion, getIdeDirectory, getProjectManagerInBundlePath } from './paths.js'
 
 // ===================================================
 // === Constants provided through the environment. ===
@@ -31,14 +32,18 @@ export const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_V
  **/
 export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
     return bundlerOptions(
-        path.join(require_env_resolved_path('ENSO_BUILD_IDE'), 'client'),
-        require_env('ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH'),
-        require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION'),
+        path.join(getIdeDirectory(), 'client'),
+        getProjectManagerInBundlePath(),
+        getBundledEngineVersion()
     )
 }
 
 /// Get options without relying on the environment
-export function bundlerOptions(outdir: string, projectManagerInBundlePath: string, bundledEngineVersion: string): esbuild.BuildOptions {
+export function bundlerOptions(
+    outdir: string,
+    projectManagerInBundlePath: string,
+    bundledEngineVersion: string
+): esbuild.BuildOptions {
     return {
         bundle: true,
         outdir,

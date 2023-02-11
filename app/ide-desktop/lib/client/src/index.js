@@ -32,7 +32,8 @@ const appPath = Electron.app.getAppPath()
 const resources = isDev ? appPath : path.join(appPath, '..')
 
 /** Path to the project manager executable. */
-const project_manager_executable = path.join(resources,
+const project_manager_executable = path.join(
+    resources,
     project_manager_bundle,
     PROJECT_MANAGER_IN_BUNDLE_PATH // Placeholder for a bundler-provided define.
 )
@@ -267,7 +268,6 @@ optParser.options('enable-skip-and-freeze', {
 })
 
 // === Parsing ===
-
 
 function parseCmdArgs() {
     let argv = isDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv.slice(1)

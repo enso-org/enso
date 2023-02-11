@@ -2,14 +2,18 @@
 
 import * as esbuild from 'esbuild'
 
-/** Make a watcher for a given esbuild bundle option configuration.
+/** Transform a given esbuild bundle option configuration into a watch configuration.
  * @param config - Configuration for the esbuild command.
  * @param onRebuild - Callback to be called after each rebuild.
  * @param inject - See [esbuild docs](https://esbuild.github.io/api/#inject).
  *
  **/
-export async function watch(config: esbuild.BuildOptions, onRebuild?: () => void, inject?: esbuild.BuildOptions['inject']) {
-    return esbuild.build({
+export function toWatchOptions(
+    config: esbuild.BuildOptions,
+    onRebuild?: () => void,
+    inject?: esbuild.BuildOptions['inject']
+): esbuild.BuildOptions {
+    return {
         ...config,
         inject: [...(config.inject ?? []), ...(inject ?? [])],
         watch: {
@@ -18,5 +22,5 @@ export async function watch(config: esbuild.BuildOptions, onRebuild?: () => void
                 else onRebuild?.()
             },
         },
-    })
+    }
 }

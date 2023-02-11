@@ -1,116 +1,93 @@
-import * as clientBundler from './esbuild-config.js'
+/**
+ * This script is for watching the whole IDE and spawning the electron process.
+ *
+ * It sets up watchers for the client and content, and spawns the electron process with the IDE.
+ * The spawned electron process can then use its refresh capability to pull the latest changes
+ * from the watchers.
+ *
+ * This script exits once the electron process exits.
+ */
+
+
+import child_process from 'node:child_process'
+import path from 'node:path'
+import process from 'node:process'
+import fs from 'node:fs/promises'
+
 import esbuild from 'esbuild'
-import {
-    getGuiDirectory,
-    getIdeDirectory,
-    getProjectManagerBundle,
-    getProjectManagerInBundlePath,
-    project_manager_bundle
-} from './paths.js'
-import path from "node:path";
-import fs from "node:fs/promises";
-import * as assert from "assert";
-import child_process from "node:child_process";
+import * as assert from 'assert'
+
+import * as clientBundler from './esbuild-config.js'
+import { getIdeDirectory, getProjectManagerBundle, project_manager_bundle } from './paths.js'
 import * as contentBundler from '../content/esbuild-config.js'
 import * as esbuildWatch from '../../esbuild-watch.js'
-import {log} from "../../../../dist/wasm";
+import { log } from '../../../../dist/wasm'
 
+/** Set of esbuild watches for the client and content. */
+interface Watches {
+    client: esbuild.BuildResult
+    content: esbuild.BuildResult
+}
 
 const ideDist = getIdeDirectory()
 const projectManagerBundle = getProjectManagerBundle()
 
-console.log("Cleaning IDE dist directory.")
-await fs.rm(ideDist, {recursive: true, force: true})
-await fs.mkdir(ideDist, {recursive: true})
+console.log('Cleaning IDE dist directory.')
+await fs.rm(ideDist, { recursive: true, force: true })
+await fs.mkdir(ideDist, { recursive: true })
 
-// let contentBuilt = false
-// let clientBuilt = false
-//
-// let electronProcess: child_process.ChildProcess = null;
-
-const bothBundlesReady = new Promise<void>(async (resolve, reject) => {
-    console.log("Bundling client.")
-    // let clientBuilt = false
-    // let contentBuilt = false
+const bothBundlesReady = new Promise<Watches>(async (resolve, reject) => {
+    console.log('Bundling client.')
     const clientBundlerOpts: esbuild.BuildOptions = {
         ...clientBundler.bundlerOptionsFromEnv(),
         outdir: path.resolve(ideDist),
         watch: {
             onRebuild(error, result) {
                 if (error) {
+                    // We cannot carry on if the client failed to build, because electron executable
+                    // would immediately exit with an error.
                     console.error('Client watch bundle failed:', error)
                     reject(error)
                 } else {
                     console.log('Client bundle updated.')
-                    // clientBuilt = true
-                    // if (contentBuilt) {
-                    //     resolve()
-                    // }
                 }
-            }
-        }
+            },
+        },
     }
-    let result1 = await esbuild.build(clientBundlerOpts)
-    console.log("Result of client bundling: ", result1);
+    let client = await esbuild.build(clientBundlerOpts)
+    console.log('Result of client bundling: ', client)
 
-    console.log("Bundling content.")
-    let result2 = await esbuildWatch.watch({
-        ...contentBundler.bundlerOptionsFromEnv(),
-        outdir: path.resolve(ideDist, 'assets'),
-    }, () => {
-        console.log("Content bundle updated.")
-        // contentBuilt = true
-        // if (clientBuilt) {
-        //     resolve()
-        // }
-    })
-    console.log("Result of content bundling: ", result2);
-
-    resolve()
+    console.log('Bundling content.')
+    const contentOpts = contentBundler.watchOptions(() => console.log('Content bundle updated.'))
+    contentOpts.outdir = path.resolve(ideDist, 'assets')
+    const content = await esbuild.build(contentOpts)
+    console.log('Result of content bundling: ', content)
+    resolve({ client, content })
 })
-//
-// console.log("Bundling client.")
-// const clientBundlerOpts: esbuild.BuildOptions = {
-//     ...clientBundler.bundlerOptionsFromEnv(),
-//     outdir: path.resolve(ideDist),
-//     watch: {
-//         onRebuild(error, result) {
-//             if (error) {
-//                 console.error('Watch build failed:', error)
-//             } else {
-//                 console.log('Client bundle updated.')
-//             }
-//         }
-//     }
-// }
-// await esbuild.build(clientBundlerOpts)
-//
-//
-// // const bundlerOptions = bundlerOptionsFromEnv()
-// // bundlerOptions.outdir = path.resolve(ideDist)
-// // await esbuild.build(bundlerOptions)
 
-// console.log("Bundling content.")
-// await esbuildWatch.watch({
-//     ...contentBundler.bundlerOptionsFromEnv(),
-//     outdir: path.resolve(ideDist, 'assets'),
-// }, () => {
-//     console.log("Content bundle updated.")
-// })
+const watches = await bothBundlesReady
 
-await bothBundlesReady
+console.log('Exposing Project Manager bundle.')
+await fs.symlink(projectManagerBundle, path.join(ideDist, project_manager_bundle), 'dir')
 
-// await fs.cp(guiDist, path.join(ideDist), {recursive: true})
-
-console.log("Exposing Project Manager bundle.")
-await fs.symlink(projectManagerBundle,  path.join(ideDist, project_manager_bundle), 'dir')
-
-console.log("Spawning Electron process.")
+console.log('Spawning Electron process.')
 const electronArgs = [path.join(ideDist, 'index.cjs'), '--']
-const process = child_process.spawn('electron', electronArgs, {stdio: 'inherit', shell: true})
-
-// Wait till process finished.
-await new Promise((resolve, reject) => {
-    process.on('close', resolve)
-    process.on('error', reject)
+const electronProcess = child_process.spawn('electron', electronArgs, {
+    stdio: 'inherit',
+    shell: true,
 })
+
+console.log('Waiting for Electron process to finish.')
+await new Promise((resolve, reject) => {
+    electronProcess.on('close', resolve)
+    electronProcess.on('error', reject)
+})
+console.log('Electron process finished.')
+
+watches.client.stop()
+watches.content.stop()
+console.log('Stopped esbuild watches.')
+
+// The esbuild process seems to remain alive at this point and will keep our process from ending.
+// Thus, we exit manually. It seems to terminate the child esbuild process as well.
+process.exit(0)

@@ -5,9 +5,9 @@
  *
  */
 
-import {require_env} from "../../utils.js";
+import { require_env } from '../../utils.js'
 
-/** Path to the Project Manager bundle (relative to the Electron's `resource` directory). */
+/** Path to the Project Manager bundle within the electron distribution (relative to the electron's resources directory). */
 export const project_manager_bundle = 'enso'
 
 /** Distribution directory for IDE. */

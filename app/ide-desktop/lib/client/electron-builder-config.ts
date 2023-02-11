@@ -22,12 +22,16 @@ import build from '../../build.json' assert { type: 'json' }
 import yargs from 'yargs'
 import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
 
+/** The parts of the electron-builder configuration that we want to keep configurable.
+ *
+ * @see args definition for fields description.
+ * */
 export interface Arguments {
-    target: string;
-    iconsDist: string;
-    guiDist: string;
-    ideDist: string;
-    projectManagerDist: string;
+    target: string
+    iconsDist: string
+    guiDist: string
+    ideDist: string
+    projectManagerDist: string
     platform: Platform
 }
 
@@ -206,14 +210,11 @@ export async function buildPackage(args: Arguments) {
     // because of that.
     await fs.mkdir('node_modules', { recursive: true })
 
-    const config = createElectronBuilderConfig(args)
     const cli_opts: CliOptions = {
-        config,
+        config: createElectronBuilderConfig(args),
         targets: args.platform.createTarget(),
     }
-
     console.log('Building with configuration:', cli_opts)
-
     const result = await builder.build(cli_opts)
     console.log('Electron Builder is done. Result:', result)
 }
