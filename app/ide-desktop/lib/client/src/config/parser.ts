@@ -6,6 +6,7 @@ import * as naming from 'naming'
 import stringLength from 'string-length'
 import { hideBin } from 'yargs/helpers'
 import { logger } from '../../../content/src/config'
+import Electron from 'electron'
 
 // ============
 // === Help ===
@@ -128,10 +129,16 @@ function wordWrap(str: string, width: number): string[] {
     if (width <= 0) {
         return []
     }
+    let firstLine = true
     let line = ''
     const lines = []
     const inputLines = str.split('\n')
     for (const inputLine of inputLines) {
+        if (!firstLine) {
+            lines.push(line)
+            line = ''
+        }
+        firstLine = false
         for (let word of inputLine.split(' ')) {
             if (stringLength(word) > width) {
                 if (line.length > 0) {
@@ -165,13 +172,52 @@ function wordWrap(str: string, width: number): string[] {
     return lines
 }
 
+// ======================
+// === Chrome Options ===
+// ======================
+
+class ChromeOption {
+    constructor(public name: string, public value: undefined | string) {}
+}
+
+function argvAndChromeOptions(): { argv: string[]; chromeOptions: ChromeOption[] } {
+    const chromeOptionRegex = /--?chrome.([^=]*)(=(.*))?/
+    const processArgs = hideBin(process.argv)
+    const argv = []
+    const chromeOptions: ChromeOption[] = []
+    for (let i = 0; i < processArgs.length; i++) {
+        const processArg = processArgs[i]
+        if (processArg != null) {
+            const match = processArg.match(chromeOptionRegex)
+            if (match != null) {
+                const optionName = match[1] as string
+                const optionValue = match[3]
+                if (optionValue != null) {
+                    chromeOptions.push(new ChromeOption(optionName, optionValue))
+                } else {
+                    const nextArgValue = processArgs[i + 1]
+                    if (nextArgValue != null && !nextArgValue.startsWith('-')) {
+                        chromeOptions.push(new ChromeOption(optionName, nextArgValue))
+                        i++
+                    } else {
+                        chromeOptions.push(new ChromeOption(optionName, undefined))
+                    }
+                }
+            } else {
+                argv.push(processArg)
+            }
+        }
+    }
+    return { argv, chromeOptions }
+}
+
 // =====================
 // === Option Parser ===
 // =====================
 
 export function parseArgs() {
     const args = config.config
-    let argv = hideBin(process.argv)
+    const { argv, chromeOptions } = argvAndChromeOptions()
 
     const yargOptions = args.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
         const yargsParam = Object.assign({}, option)
@@ -206,7 +252,8 @@ export function parseArgs() {
             parseError = err
         }
     }) as { [key: string]: string }
-    const additionalOptions = xargs['--']
+    const unexpectedArgs = xargs['--']
+    console.log('xargs', xargs)
 
     for (const option of args.optionsRecursive()) {
         const arg = xargs[naming.camelToKebabCase(option.qualifiedName())]
@@ -225,13 +272,7 @@ export function parseArgs() {
         windowSize = parsedWindowSize
     }
 
-    const helpRequested = args.options.help.value || args.options.helpExtended.value
-    if (parseError != null || additionalOptions != null || helpRequested) {
-        if (parseError != null) {
-            logger.error(parseError.message)
-        } else if (additionalOptions != null) {
-            logger.error(`Unexpected options passed: '${additionalOptions}'.`)
-        }
+    const printHelpAndExit = () => {
         printHelp({
             args,
             groupsOrdering: [],
@@ -240,5 +281,16 @@ export function parseArgs() {
         process.exit()
     }
 
-    return { args, windowSize }
+    const helpRequested = args.options.help.value || args.options.helpExtended.value
+    if (helpRequested) {
+        printHelpAndExit()
+    } else if (parseError != null) {
+        logger.error(parseError.message)
+        printHelpAndExit()
+    } else if (unexpectedArgs != null) {
+        logger.error(`Unexpected arguments found: '${unexpectedArgs}'.`)
+        printHelpAndExit()
+    }
+
+    return { args, windowSize, chromeOptions }
 }

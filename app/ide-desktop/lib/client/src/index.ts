@@ -32,9 +32,12 @@ class App {
     windowSize: config.WindowSize
     isQuitting = false
     constructor() {
-        const { args, windowSize } = configParser.parseArgs()
+        const { args, windowSize, chromeOptions } = configParser.parseArgs()
         this.args = args
         this.windowSize = windowSize
+        for (const chromeOption of chromeOptions) {
+            Electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
+        }
         security.enableAll()
         Electron.app.on('before-quit', () => (this.isQuitting = true))
         Electron.app.whenReady().then(() => this.main())
@@ -64,6 +67,7 @@ class App {
         }
     }
 
+    /** Run the provided function if the provided option was enabled. Log a message otherwise. */
     async runIfEnabled(option: content.Option<boolean>, fn: () => Promise<void>) {
         if (!option.value) {
             logger.log(`The app is configured not to run the ${option.name}.`)
@@ -103,7 +107,7 @@ class App {
                 webPreferences.sandbox = true
                 webPreferences.backgroundThrottling =
                     this.args.groups.performance.options.backgroundThrottling.value
-                webPreferences.devTools = this.args.groups.debug.options.dev.value
+                webPreferences.devTools = this.args.groups.debug.options.devTools.value
 
                 let windowPreferences: Electron.BrowserWindowConstructorOptions = {
                     webPreferences,
@@ -125,7 +129,7 @@ class App {
                 const window = new Electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
 
-                if (this.args.groups.debug.options.dev.value) {
+                if (this.args.groups.debug.options.devTools.value) {
                     window.webContents.openDevTools()
                 }
 

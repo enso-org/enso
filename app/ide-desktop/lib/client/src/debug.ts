@@ -12,6 +12,7 @@ async function getDebugInfo() {
     return {
         version: versionInfo,
         creation: process.getCreationTime(),
+        // TODO: current time
         perf: {
             cpu: process.getCPUUsage(),
         },

@@ -1,3 +1,4 @@
+import chalk from 'chalk'
 import * as content from '../../content/src/config'
 import * as paths from './paths'
 
@@ -173,19 +174,30 @@ export const config = content.options.merge(
                         default: false,
                         description: `Increase logs verbosity. Affects both IDE and the backend.`,
                     }),
-                    dev: new content.Option({
+                    devTools: new content.Option({
                         passToApplication: false,
                         default: false,
                         description: 'Run the application in development mode.',
                     }),
-                    devtron: new content.Option({
-                        passToApplication: false,
-                        default: false,
-                        description: 'Install the Devtron Developer Tools extension.',
-                    }),
                 },
             }),
-            electron: new content.Group({
+            chrome: new content.Group({
+                description:
+                    `Chrome and Electron command line options. Please be advised that the ` +
+                    `provided list contains both Electron-specific options as well as a ` +
+                    `selection of Chrome command line options that are officially supported ` +
+                    `by Electron ` +
+                    `(https://www.electronjs.org/docs/latest/api/command-line-switches). For a ` +
+                    `comprehensive collection of Chrome options, you may refer to ` +
+                    `https://peter.sh/experiments/chromium-command-line-switches.` +
+                    `\n\n` +
+                    chalk.red(`WARNING: `) +
+                    `Neither the option names nor values undergo validation by ` +
+                    `Chrome due to the lack of an option validation API. This may result in the ` +
+                    `acceptance of invalid options, which will be silently ignored. To verify ` +
+                    `the successful passing of options to Chrome, the use of ` +
+                    `'-electron.disable-gpu' can be employed as a diagnostic measure, ` +
+                    `effectively preventing the display of WebGL canvas.`,
                 options: {
                     // === Electron Options ===
                     // https://www.electronjs.org/docs/latest/api/command-line-switches

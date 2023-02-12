@@ -36,7 +36,7 @@ function parseBoolean(value: any): boolean | null {
 export type OptionValue = string | boolean | number | string[]
 
 /** A valid configuration option type. */
-export type OptionType = 'string' | 'boolean' | 'number' | 'string[]'
+export type OptionType = 'string' | 'boolean' | 'number' | 'array'
 
 export type AnyOption = Option<OptionValue>
 
@@ -81,7 +81,7 @@ export class Option<T> {
         } else if (typeof this.value === 'number') {
             this.type = 'number'
         } else if (Array.isArray(this.value)) {
-            this.type = 'string[]'
+            this.type = 'array'
         } else {
             this.type = 'string'
         }
