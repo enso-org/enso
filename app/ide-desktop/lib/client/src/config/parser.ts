@@ -176,8 +176,13 @@ function wordWrap(str: string, width: number): string[] {
 // === Chrome Options ===
 // ======================
 
-class ChromeOption {
-    constructor(public name: string, public value: undefined | string) {}
+export class ChromeOption {
+    constructor(public name: string, public value?: undefined | string) {}
+
+    display(): string {
+        const value = this.value == null ? '' : `=${this.value}`
+        return `--${this.name}${value}`
+    }
 }
 
 function argvAndChromeOptions(): { argv: string[]; chromeOptions: ChromeOption[] } {

@@ -131,10 +131,108 @@ export const config = content.options.merge(
             performance: new content.Group({
                 options: {
                     backgroundThrottling: new content.Option({
-                        passToApplication: false,
+                        passToApplication: true,
                         default: false,
                         description: 'Throttle animations when run in background.',
                     }),
+
+                    forceHighPerformanceGpu: new content.Option({
+                        passToApplication: false,
+                        default: true,
+                        description:
+                            'Force using discrete GPU when there are multiple GPUs available',
+                    }),
+
+                    angleBackend: new content.Option({
+                        passToApplication: false,
+                        default: process.platform === 'darwin' ? 'metal' : 'default',
+                        defaultDescription: 'metal on MacOS, default otherwise',
+                        description:
+                            `Choose the graphics backend for ANGLE (graphics engine abstraction ` +
+                            `layer). The OpenGL backend is soon to be deprecated on Mac, and may ` +
+                            `contain driver bugs that are not planned to be fixed. The Metal ` +
+                            `backend is still experimental, and may contain bugs that are still ` +
+                            `being worked on. The Metal backend should be more performant.`,
+                    }),
+
+                    ignoreGpuBlocklist: new content.Option({
+                        passToApplication: false,
+                        default: true,
+                        description:
+                            `The built-in software rendering list is overridden, allowing for ` +
+                            `GPU acceleration on system configurations that do not inherently ` +
+                            `support it. It should be noted that some hardware configurations ` +
+                            `may have driver issues that could result in rendering ` +
+                            `discrepancies. Despite this, the utilization of GPU acceleration ` +
+                            `has the potential to significantly enhance the performance of the ` +
+                            `application in our specific use cases. This behavior can be ` +
+                            `observed in the following example: ` +
+                            `https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.`,
+                    }),
+
+                    disableSandbox: new content.Option({
+                        passToApplication: false,
+                        default: true,
+                        description:
+                            `The sandbox feature is disabled for all process types that are ` +
+                            `typically subjected to sandboxing. This option serves as a ` +
+                            `browser-level switch solely for testing purposes. Although Google ` +
+                            `discourages the use of this option, it is deemed safe for use in ` +
+                            `this particular instance as the browser is exclusively designed to ` +
+                            `display Enso, which already has unrestricted access to all files ` +
+                            `and system settings on the user's machine. This modification has ` +
+                            `been known to result in correct app behavior on certain systems, ` +
+                            `as demonstrated in this example: ` +
+                            `https://github.com/enso-org/enso/issues/3801.`,
+                    }),
+
+                    disableGpuSandbox: new content.Option({
+                        passToApplication: false,
+                        default: true,
+                        description:
+                            `Disables the GPU process sandbox. It should be noted that on ` +
+                            `certain hardware configurations, the utilization of GPU sandboxing ` +
+                            `may result in WebGL crashes. Despite Google's discouragement of ` +
+                            `this option, it is considered safe for use in this specific ` +
+                            `instance, as the browser is dedicated solely to the display of ` +
+                            `Enso, which has unrestricted access to all files and system ` +
+                            `settings on the user's machine. For a detailed explanation of ` +
+                            `instances where such crashes may occur, please refer to this ` +
+                            `document: https://wiki.archlinux.org/title/chromium.`,
+                    }),
+
+                    disableGpuVsync: new content.Option({
+                        passToApplication: false,
+                        default: true,
+                        description:
+                            `Disable the GPU Vertical Synchronization (VSync). This feature ` +
+                            `synchronizes the refresh rate and frame rate of the monitor to ` +
+                            `ensure optimal picture quality, particularly in gaming scenarios. ` +
+                            `However, in applications that heavily rely on a graphical user ` +
+                            `interface, the utilization of VSync is not deemed essential. By ` +
+                            `disabling this feature, performance may be improved on hardware ` +
+                            `configurations with limited capabilities. In addition, disabling ` +
+                            `VSync also has the potential to reduce rendering latency. For a ` +
+                            `comprehensive understanding of this aspect, please refer to this ` +
+                            `thread: https://bugs.chromium.org/p/chromium/issues/detail?id=460919.`,
+                    }),
+
+                    disableSmoothScrolling: new content.Option({
+                        passToApplication: false,
+                        default: true,
+                        description:
+                            `Disable smooth scrolling feature. This modification has the ` +
+                            `potential to reduce latency experienced with input devices. For ` +
+                            `further elaboration, please refer to this thread: ` +
+                            `https://news.ycombinator.com/item?id=28782493.`,
+                    }),
+
+                    enableNativeGpuMemoryBuffers: new content.Option({
+                        passToApplication: false,
+                        default: true,
+                        description: `Enable native CPU-mappable GPU memory buffer support on Linux.`,
+                    }),
+
                     loadProfile: new content.Option({
                         passToApplication: false,
                         // FIXME
@@ -187,8 +285,11 @@ export const config = content.options.merge(
                     `provided list contains both Electron-specific options as well as a ` +
                     `selection of Chrome command line options that are officially supported ` +
                     `by Electron ` +
-                    `(https://www.electronjs.org/docs/latest/api/command-line-switches). For a ` +
-                    `comprehensive collection of Chrome options, you may refer to ` +
+                    `(https://www.electronjs.org/docs/latest/api/command-line-switches). It is ` +
+                    `important to note that not all Chrome switches may be compatible with ` +
+                    `Electron. For example, the switch '-chrome.crash-test' is not functional in ` +
+                    `the Electron environment. For a comprehensive collection of Chrome options, ` +
+                    `you may refer to ` +
                     `https://peter.sh/experiments/chromium-command-line-switches.` +
                     `\n\n` +
                     chalk.red(`WARNING: `) +
@@ -241,7 +342,7 @@ export const config = content.options.merge(
                         primary: false,
                         default: false,
                         description:
-                            "Prevents Chromium from lowering the priority of invisible pages' renderer " +
+                            "Prevents Chrome from lowering the priority of invisible pages' renderer " +
                             'processes.',
                     }),
                     diskCacheSize: new content.Option({
@@ -256,7 +357,7 @@ export const config = content.options.merge(
                         primary: false,
                         default: '',
                         description:
-                            "Prints Chromium's logging to stderr (or a log file, if provided as argument).",
+                            "Prints Chrome's logging to stderr (or a log file, if provided as argument).",
                     }),
                     forceFieldtrials: new content.Option({
                         passToApplication: false,
@@ -344,7 +445,7 @@ export const config = content.options.merge(
                         primary: false,
                         default: false,
                         description:
-                            'Disables the Chromium sandbox. Forces renderer process and Chromium helper ' +
+                            'Disables the Chrome sandbox. Forces renderer process and Chrome helper ' +
                             'processes to run un-sandboxed. Should only be used for testing.',
                     }),
                     proxyBypassList: new content.Option({
@@ -373,7 +474,7 @@ export const config = content.options.merge(
                             'WebSocket requests. It is also noteworthy that not all proxy servers support HTTPS ' +
                             'and WebSocket requests. The proxy URL does not support username and password ' +
                             'authentication per ' +
-                            '[Chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).',
+                            '[Chrome issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).',
                     }),
                     remoteDebuggingPort: new content.Option({
                         passToApplication: false,
@@ -414,6 +515,30 @@ export const config = content.options.merge(
                         default: false,
                         description:
                             'Force using integrated GPU when there are multiple GPUs available.',
+                    }),
+
+                    enableBlinkFeatures: new content.Option({
+                        passToApplication: false,
+                        primary: false,
+                        default: '',
+                        description:
+                            `A list of Blink (Chrome's rendering engine) features separated ` +
+                            `by ',' like 'CSSVariables,KeyboardEventKey' to enable. The full ` +
+                            `list of supported feature strings can be found in the ` +
+                            `[RuntimeEnabledFeatures.json5](https://cs.chromium.org/chromium/src/third_party/blink/renderer/platform/runtime_enabled_features.json5?l=70) ` +
+                            `file.`,
+                    }),
+
+                    disableBlinkFeatures: new content.Option({
+                        passToApplication: false,
+                        primary: false,
+                        default: '',
+                        description:
+                            `A list of Blink (Chrome's rendering engine) features separated ` +
+                            `by ',' like 'CSSVariables,KeyboardEventKey' to disable. The full ` +
+                            `list of supported feature strings can be found in the ` +
+                            `[RuntimeEnabledFeatures.json5](https://cs.chromium.org/chromium/src/third_party/blink/renderer/platform/runtime_enabled_features.json5?l=70) ` +
+                            `file.`,
                     }),
                 },
             }),

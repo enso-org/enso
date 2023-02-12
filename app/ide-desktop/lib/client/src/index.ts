@@ -1,6 +1,5 @@
 // FIXME: Issues to be resolved:
 // - https://github.com/yargs/yargs-parser/issues/468
-// - Add option to use metal backend on MacOS
 // - Enable vibrancy on MacOS
 
 import Electron from 'electron'
@@ -17,7 +16,6 @@ import * as debug from 'debug'
 import * as projectManager from 'bin/project-manager'
 
 const logger = content.logger
-// const Option = content.Option
 
 // ============
 // === Help ===
@@ -35,12 +33,51 @@ class App {
         const { args, windowSize, chromeOptions } = configParser.parseArgs()
         this.args = args
         this.windowSize = windowSize
-        for (const chromeOption of chromeOptions) {
-            Electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
-        }
+        this.setChromeOptions(chromeOptions)
         security.enableAll()
         Electron.app.on('before-quit', () => (this.isQuitting = true))
         Electron.app.whenReady().then(() => this.main())
+        this.registerShortcuts()
+    }
+
+    /** Set Chrome options based on the user-provided ones and the app configuration options. */
+    setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
+        if (this.args.groups.performance.options.forceHighPerformanceGpu.value) {
+            chromeOptions.push(new configParser.ChromeOption('force_high_performance_gpu'))
+        }
+        if (this.args.groups.performance.options.ignoreGpuBlocklist.value) {
+            chromeOptions.push(new configParser.ChromeOption('ignore-gpu-blocklist'))
+        }
+        if (this.args.groups.performance.options.disableSandbox.value) {
+            chromeOptions.push(new configParser.ChromeOption('no-sandbox'))
+        }
+        if (this.args.groups.performance.options.disableGpuSandbox.value) {
+            chromeOptions.push(new configParser.ChromeOption('disable-gpu-sandbox'))
+        }
+        if (this.args.groups.performance.options.disableGpuVsync.value) {
+            chromeOptions.push(new configParser.ChromeOption('disable-gpu-vsync'))
+        }
+        if (this.args.groups.performance.options.enableNativeGpuMemoryBuffers.value) {
+            chromeOptions.push(new configParser.ChromeOption('enable-native-gpu-memory-buffers'))
+        }
+        if (this.args.groups.performance.options.disableSmoothScrolling.value) {
+            chromeOptions.push(new configParser.ChromeOption('disable-smooth-scrolling'))
+        }
+        chromeOptions.push(
+            new configParser.ChromeOption(
+                'use-angle',
+                this.args.groups.performance.options.angleBackend.value
+            )
+        )
+        chromeOptions.sort()
+        if (chromeOptions.length > 0) {
+            const desc = chromeOptions.map(t => `'${t.display()}'`).join(', ')
+            const explanation = `See '-help-extended' to learn why these options were enabled.`
+            logger.log(`Setting Chrome options: ${desc}. ${explanation}`)
+            for (const chromeOption of chromeOptions) {
+                Electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
+            }
+        }
     }
 
     /** Main app entry point. */
@@ -108,6 +145,11 @@ class App {
                 webPreferences.backgroundThrottling =
                     this.args.groups.performance.options.backgroundThrottling.value
                 webPreferences.devTools = this.args.groups.debug.options.devTools.value
+                webPreferences.enableBlinkFeatures =
+                    this.args.groups.chrome.options.enableBlinkFeatures.value
+                webPreferences.disableBlinkFeatures =
+                    this.args.groups.chrome.options.disableBlinkFeatures.value
+                webPreferences.spellcheck = false
 
                 let windowPreferences: Electron.BrowserWindowConstructorOptions = {
                     webPreferences,
@@ -161,16 +203,22 @@ class App {
                 })
 
                 window.on('close', evt => {
-                    if (!this.isQuitting && this.args.groups.window.options.closeToQuit.value) {
+                    if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
                         evt.preventDefault()
                         window.hide()
                     }
                 })
 
                 Electron.app.on('activate', () => {
-                    if (this.args.groups.window.options.closeToQuit.value) {
+                    if (!this.args.groups.window.options.closeToQuit.value) {
                         window.show()
                     }
+                })
+
+                window.webContents.on('render-process-gone', (event, details) => {
+                    // TODO: Ask the issue reporter for logs output and check if we can auto-fix it:
+                    //   https://github.com/enso-org/enso/issues/3801
+                    logger.error('Error, the render process crashed.', details)
                 })
 
                 this.window = window
@@ -232,6 +280,44 @@ class App {
             process.exit()
         })
     }
+
+    registerShortcuts() {
+        Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) => {
+            webContents.on('before-input-event', (beforeInputEvent, input) => {
+                const { code, alt, control, shift, meta, type } = input
+                if (type !== 'keyDown') {
+                    return
+                }
+                if (control && alt && shift && !meta && code === 'KeyI') {
+                    const focusedWindow = Electron.BrowserWindow.getFocusedWindow()
+                    if (focusedWindow) {
+                        focusedWindow.webContents.toggleDevTools()
+                        // FIXME: what if not
+                    }
+                }
+                if (control && alt && shift && !meta && code === 'KeyR') {
+                    const focusedWindow = Electron.BrowserWindow.getFocusedWindow()
+                    if (focusedWindow) {
+                        focusedWindow.reload()
+                        // FIXME: what if not
+                    }
+                }
+
+                let cmd_q = meta && !control && !alt && !shift && code === 'KeyQ'
+                let ctrl_q = !meta && control && !alt && !shift && code === 'KeyQ'
+                let alt_f4 = !meta && !control && alt && !shift && code === 'F4'
+                let ctrl_w = !meta && control && !alt && !shift && code === 'KeyW'
+                let quit_on_mac = process.platform === 'darwin' && (cmd_q || alt_f4)
+                let quit_on_win = process.platform === 'win32' && (alt_f4 || ctrl_w)
+                let quit_on_lin = process.platform === 'linux' && (alt_f4 || ctrl_q || ctrl_w)
+                let quit = quit_on_mac || quit_on_win || quit_on_lin
+
+                if (quit) {
+                    Electron.app.quit()
+                }
+            })
+        })
+    }
 }
 
 // ==============
@@ -243,38 +329,3 @@ const app = new App()
 // =================
 // === Shortcuts ===
 // =================
-
-Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) => {
-    webContents.on('before-input-event', (beforeInputEvent, input) => {
-        const { code, alt, control, shift, meta, type } = input
-        if (type !== 'keyDown') {
-            return
-        }
-        if (control && alt && shift && !meta && code === 'KeyI') {
-            const focusedWindow = Electron.BrowserWindow.getFocusedWindow()
-            if (focusedWindow) {
-                focusedWindow.webContents.toggleDevTools()
-                // FIXME: what if not
-            }
-        }
-        if (control && alt && shift && !meta && code === 'KeyR') {
-            const focusedWindow = Electron.BrowserWindow.getFocusedWindow()
-            if (focusedWindow) {
-                focusedWindow.reload()
-                // FIXME: what if not
-            }
-        }
-
-        let cmd_q = meta && !control && !alt && !shift && code === 'KeyQ'
-        let ctrl_q = !meta && control && !alt && !shift && code === 'KeyQ'
-        let alt_f4 = !meta && !control && alt && !shift && code === 'F4'
-        let ctrl_w = !meta && control && !alt && !shift && code === 'KeyW'
-        let quit_on_mac = process.platform === 'darwin' && (cmd_q || alt_f4)
-        let quit_on_win = process.platform === 'win32' && (alt_f4 || ctrl_w)
-        let quit_on_lin = process.platform === 'linux' && (alt_f4 || ctrl_q || ctrl_w)
-        let quit = quit_on_mac || quit_on_win || quit_on_lin
-        if (quit) {
-            Electron.app.quit()
-        }
-    })
-})
