@@ -239,10 +239,9 @@ mod test {
     use crate::SpanTree;
 
     use ast::HasRepr;
-    use parser_scala::Parser;
-    use wasm_bindgen_test::wasm_bindgen_test;
+    use parser::Parser;
 
-    #[wasm_bindgen_test]
+    #[test]
     fn actions_in_span_tree() {
         #[derive(Debug)]
         struct Case {
@@ -262,11 +261,12 @@ mod test {
                     panic!("Invalid case {:?}: no node with span {:?}", self, self.span)
                 });
                 let arg = Ast::new(ast::Var { name: "foo".to_string() }, None);
+                let case = format!("{self:?}");
                 let result = match &self.action {
                     Set => node.set(&ast, arg),
                     Erase => node.erase(&ast),
                 }
-                .unwrap();
+                .expect(&case);
                 let result_repr = result.repr();
                 assert_eq!(result_repr, self.expected, "Wrong answer for case {self:?}");
                 assert_eq!(ast_id, result.id, "Changed AST ID in case {self:?}");
@@ -280,9 +280,6 @@ mod test {
             , Case{expr:"a + b"      , span:4..5  , action:Set  , expected:"a + foo"        }
             , Case{expr:"a + b + c"  , span:0..1  , action:Set  , expected:"foo + b + c"    }
             , Case{expr:"a + b + c"  , span:4..5  , action:Set  , expected:"a + foo + c"    }
-            , Case{expr:"a , b , c"  , span:0..1  , action:Set  , expected:"foo , b , c"    }
-            , Case{expr:"a , b , c"  , span:4..5  , action:Set  , expected:"a , foo , c"    }
-            , Case{expr:"a , b , c"  , span:8..9  , action:Set  , expected:"a , b , foo"    }
             , Case{expr:"f a b"      , span:0..1  , action:Set  , expected:"foo a b"        }
             , Case{expr:"f a b"      , span:2..3  , action:Set  , expected:"f foo b"        }
             , Case{expr:"f a b"      , span:4..5  , action:Set  , expected:"f a foo"        }
@@ -298,10 +295,6 @@ mod test {
             , Case{expr:"+ b"        , span:3..3  , action:Set  , expected:"+ b + foo"      }
             , Case{expr:"a + b + c"  , span:0..0  , action:Set  , expected:"foo + a + b + c"}
             , Case{expr:"a + b + c"  , span:5..5  , action:Set  , expected:"a + b + foo + c"}
-            , Case{expr:"a , b , c"  , span:0..0  , action:Set  , expected:"foo , a , b , c"}
-            , Case{expr:"a , b , c"  , span:4..4  , action:Set  , expected:"a , foo , b , c"}
-            , Case{expr:"a , b , c"  , span:8..8  , action:Set  , expected:"a , b , foo , c"}
-            , Case{expr:"a , b , c"  , span:9..9  , action:Set  , expected:"a , b , c , foo"}
             , Case{expr:", b"        , span:3..3  , action:Set  , expected:", b , foo"      }
             , Case{expr:"f a b"      , span:2..2  , action:Set  , expected:"f foo a b"      }
             , Case{expr:"f a b"      , span:3..3  , action:Set  , expected:"f a foo b"      }
@@ -314,21 +307,18 @@ mod test {
             , Case{expr:"a + b + c"  , span:0..1  , action:Erase, expected:"b + c"          }
             , Case{expr:"a + b + c"  , span:4..5  , action:Erase, expected:"a + c"          }
             , Case{expr:"a + b + c"  , span:8..9  , action:Erase, expected:"a + b"          }
-            , Case{expr:"a , b , c"  , span:0..1  , action:Erase, expected:"b , c"          }
-            , Case{expr:"a , b , c"  , span:4..5  , action:Erase, expected:"a , c"          }
-            , Case{expr:"a , b , c"  , span:8..9  , action:Erase, expected:"a , b"          }
             , Case{expr:"f a b"      , span:2..3  , action:Erase, expected:"f b"            }
             , Case{expr:"f a b"      , span:4..5  , action:Erase, expected:"f a"            }
             , Case{expr:"(a + b + c)", span:5..6  , action:Erase, expected: "(a + c)"       }
             , Case{expr:"(a + b + c" , span:5..6  , action:Erase, expected: "(a + c"        }
             ];
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         for case in cases {
             case.run(&parser);
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn possible_actions_in_span_tree() {
         #[derive(Debug)]
         struct Case {
@@ -385,10 +375,9 @@ mod test {
             Case { expr: "[a,b]", span: 4..5, expected: &[] },
             Case { expr: "(a + b + c)", span: 5..6, expected: &[Set, Erase] },
             Case { expr: "(a", span: 1..2, expected: &[Set] },
-            Case { expr: "(a", span: 0..1, expected: &[] },
             Case { expr: "(a + b + c", span: 5..6, expected: &[Set, Erase] },
         ];
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         for case in cases {
             case.run(&parser);
         }

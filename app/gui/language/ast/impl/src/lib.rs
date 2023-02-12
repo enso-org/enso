@@ -3,6 +3,7 @@
 #![feature(generators, generator_trait)]
 #![feature(trivial_bounds)]
 #![feature(type_alias_impl_trait)]
+#![feature(let_chains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -16,12 +17,6 @@ use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
 
-use serde::de::Deserializer;
-use serde::de::Visitor;
-use serde::ser::SerializeStruct;
-use serde::ser::Serializer;
-use serde::Deserialize;
-use serde::Serialize;
 use uuid::Uuid;
 
 
@@ -114,28 +109,12 @@ pub struct NoSuchChild;
 
 
 
-// ============
-// === Tree ===
-// ============
-
-/// A tree structure where each node may store value of `V` and has arbitrary
-/// number of children nodes, each marked with a single `K`.
-///
-/// It is used to describe ambiguous macro match.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
-pub struct Tree<K, V> {
-    pub value:    Option<V>,
-    pub branches: Vec<(K, Tree<K, V>)>,
-}
-
-
-
 // ===============
 // === Shifted ===
 // ===============
 
 /// A value of type `T` annotated with offset value `off`.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize, Deref, DerefMut, Iterator)]
+#[derive(Clone, Eq, PartialEq, Debug, Deref, DerefMut, Iterator)]
 pub struct Shifted<T> {
     #[deref]
     #[deref_mut]
@@ -144,7 +123,7 @@ pub struct Shifted<T> {
 }
 
 /// A non-empty sequence of `T`s interspersed by offsets.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize, Iterator)]
+#[derive(Clone, Eq, PartialEq, Debug, Iterator)]
 pub struct ShiftedVec1<T> {
     pub head: T,
     pub tail: Vec<Shifted<T>>,
@@ -191,21 +170,6 @@ impl<T> Layer<T> for Layered<T> {
 
 
 
-// ============
-// === Unit ===
-// ============
-
-/// A unit type defined as an empty struct.
-///
-/// Because it is defined using {} syntax, serde_json will serialize it to
-/// an empty object rather than null node. This is to workaround issue with
-/// using units in `Option`, reported here:
-/// https://github.com/serde-rs/serde/issues/1690
-#[ast_node]
-pub struct Unit {}
-
-
-
 // ===========
 // === AST ===
 // ===========
@@ -216,9 +180,9 @@ pub struct Unit {}
 /// to either of the implementation need to be applied to the other one as well.
 ///
 /// Each AST node is annotated with span and an optional ID.
-#[derive(CloneRef, Eq, PartialEq, Debug, Deref, DerefMut)]
+#[derive(CloneRef, Eq, PartialEq, Debug, Deref)]
 pub struct Ast {
-    pub wrapped: Rc<WithID<WithLength<Shape<Ast>>>>,
+    wrapped: Rc<WithID<WithLength<Shape<Ast>>>>,
 }
 
 impl Clone for Ast {
@@ -282,7 +246,7 @@ impl Ast {
     }
 
     /// Just wraps shape, id and len into Ast node.
-    fn from_ast_id_len(shape: Shape<Ast>, id: Option<Id>, char_count: usize) -> Ast {
+    pub fn from_ast_id_len(shape: Shape<Ast>, id: Option<Id>, char_count: usize) -> Ast {
         let with_length = WithLength { wrapped: shape, length: char_count };
         let with_id = WithID { wrapped: with_length, id };
         Ast { wrapped: Rc::new(with_id) }
@@ -373,77 +337,6 @@ impl<T: Into<Shape<Ast>>> From<T> for Ast {
 }
 
 
-// === Serialization & Deserialization === //
-
-/// Literals used in `Ast` serialization and deserialization.
-pub mod ast_schema {
-    pub const STRUCT_NAME: &str = "Ast";
-    pub const SHAPE: &str = "shape";
-    pub const ID: &str = "id";
-    pub const LENGTH: &str = "span"; // scala parser is still using `span`
-    pub const FIELDS: [&str; 3] = [SHAPE, ID, LENGTH];
-    pub const COUNT: usize = FIELDS.len();
-}
-
-impl Serialize for Ast {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer {
-        use ast_schema::*;
-        let mut state = serializer.serialize_struct(STRUCT_NAME, COUNT)?;
-        state.serialize_field(SHAPE, &self.shape())?;
-        if self.id.is_some() {
-            state.serialize_field(ID, &self.id)?;
-        }
-        state.serialize_field(LENGTH, &self.length)?;
-        state.end()
-    }
-}
-
-/// Type to provide serde::de::Visitor to deserialize data into `Ast`.
-struct AstDeserializationVisitor;
-
-impl<'de> Visitor<'de> for AstDeserializationVisitor {
-    type Value = Ast;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use ast_schema::*;
-        write!(formatter, "an object with `{SHAPE}` and `{LENGTH}` fields")
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where A: serde::de::MapAccess<'de> {
-        use ast_schema::*;
-
-        let mut shape: Option<Shape<Ast>> = None;
-        let mut id: Option<Option<Id>> = None;
-        let mut len: Option<usize> = None;
-
-        while let Some(key) = map.next_key()? {
-            match key {
-                SHAPE => shape = Some(map.next_value()?),
-                ID => id = Some(map.next_value()?),
-                LENGTH => len = Some(map.next_value()?),
-                _ => {}
-            }
-        }
-
-        let shape = shape.ok_or_else(|| serde::de::Error::missing_field(SHAPE))?;
-        let id = id.unwrap_or(None); // allow missing `id` field
-        let len = len.ok_or_else(|| serde::de::Error::missing_field(LENGTH))?;
-        Ok(Ast::from_ast_id_len(shape, id, len))
-    }
-}
-
-impl<'de> Deserialize<'de> for Ast {
-    fn deserialize<D>(deserializer: D) -> Result<Ast, D::Error>
-    where D: Deserializer<'de> {
-        use ast_schema::FIELDS;
-        let visitor = AstDeserializationVisitor;
-        deserializer.deserialize_struct("AstOf", &FIELDS, visitor)
-    }
-}
-
-
 
 // =============
 // === Shape ===
@@ -455,20 +348,6 @@ impl<'de> Deserialize<'de> for Ast {
 #[ast(flat)]
 #[derive(HasTokens)]
 pub enum Shape<T> {
-    Unrecognized {
-        str: String,
-    },
-    Unexpected {
-        msg:    String,
-        stream: Vec<Shifted<T>>,
-    },
-    InvalidQuote {
-        quote: Builder,
-    },
-    InlineBlock {
-        quote: Builder,
-    },
-
     // === Identifiers ===
     Blank {},
     Var {
@@ -478,7 +357,8 @@ pub enum Shape<T> {
         name: String,
     },
     Opr {
-        name: String,
+        name:        String,
+        right_assoc: bool,
     },
     Annotation {
         name: String,
@@ -486,39 +366,11 @@ pub enum Shape<T> {
     Mod {
         name: String,
     },
-    InvalidSuffix {
-        elem:   T,
-        suffix: String,
-    },
 
     // === Number ===
     Number {
         base: Option<String>,
         int:  String,
-    },
-    DanglingBase {
-        base: String,
-    },
-
-    // === Text ===
-    TextLineRaw {
-        text: Vec<SegmentRaw>,
-    },
-    TextLineFmt {
-        text: Vec<SegmentFmt<T>>,
-    },
-    TextBlockRaw {
-        text:   Vec<TextBlockLine<SegmentRaw>>,
-        spaces: usize,
-        offset: usize,
-    },
-    TextBlockFmt {
-        text:   Vec<TextBlockLine<SegmentFmt<T>>>,
-        spaces: usize,
-        offset: usize,
-    },
-    TextUnclosed {
-        line: TextLine<T>,
     },
 
     // === Applications ===
@@ -557,9 +409,6 @@ pub enum Shape<T> {
     /// Block is the sequence of equally indented lines. Lines may contain some child `T` or be
     /// empty. Block is used for all code blocks except for the root one, which uses `Module`.
     Block {
-        /// Type of Block, depending on whether it is introduced by an operator.
-        /// Note [mwu] Doesn't really do anything right now, likely to be removed.
-        ty:          BlockType,
         /// Absolute's block indent, counting from the module's root.
         indent:      usize,
         /// Leading empty lines. Each line is represented by absolute count of spaces
@@ -569,146 +418,159 @@ pub enum Shape<T> {
         first_line:  BlockLine<T>,
         /// Rest of lines, each of them optionally having contents.
         lines:       Vec<BlockLine<Option<T>>>,
-        /// If false, the Block will start with a leading newline.
-        is_orphan:   bool,
     },
-
-    // === Macros ===
-    Match {
-        pfx:      Option<MacroPatternMatch<Shifted<T>>>,
-        segs:     ShiftedVec1<MacroMatchSegment<T>>,
-        resolved: Option<Ast>,
+    Tree {
+        /// The information needed to iterate child tokens and nodes.
+        span_info:        Vec<SpanSeed<T>>,
+        /// Semantic information about the node.
+        type_info:        TreeType,
+        /// Information needed to produce a representation, for nodes whose contents are not child
+        /// nodes.
+        leaf_info:        Option<String>,
+        /// Suitable for naming variables referring to this node.
+        descriptive_name: Option<&'static str>,
+        /// Extra characters after the node (e.g. a comment).
+        trailing_token:   Option<String>,
     },
-    Ambiguous {
-        segs:  ShiftedVec1<MacroAmbiguousSegment<T>>,
-        paths: Tree<Ast, Unit>,
-    },
-
-    // === Spaceless AST ===
-    Comment(Comment),
-    Documented(Documented<T>),
-    Import(Import<T>),
-    Export(Export<T>),
-    JavaImport(JavaImport<T>),
-    Mixfix(Mixfix<T>),
-    Group(Group<T>),
-    SequenceLiteral(SequenceLiteral<T>),
-    TypesetLiteral(TypesetLiteral<T>),
-    Def(Def<T>),
-    Foreign(Foreign),
-    Modified(Modified<T>),
 }
 
-/// Macrot that calls its argument (possibly other macro
+/// Macro that calls its argument (possibly other macro
 #[macro_export]
 macro_rules! with_shape_variants {
     ($f:ident) => {
-        $f! { [Unrecognized] [Unexpected Ast] [InvalidQuote] [InlineBlock]
-          [Blank] [Var] [Cons] [Opr] [Annotation] [Mod] [InvalidSuffix Ast]
-          [Number] [DanglingBase]
-          [TextLineRaw] [TextLineFmt Ast] [TextBlockRaw] [TextBlockFmt Ast] [TextUnclosed Ast]
+        $f! {
+          [Blank] [Var] [Cons] [Opr] [Annotation] [Mod]
+          [Number]
           [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
           [Module Ast] [Block Ast]
-          [Match Ast] [Ambiguous Ast]
-          // Note: Spaceless AST is intentionally omitted here.
+          [Tree Ast]
         }
     };
 }
 
 
+// === [`Tree`] data ===
 
-// ===============
-// === Builder ===
-// ===============
+/// Low-level builders.
+impl<T> Tree<T> {
+    pub fn expression(span_info: Vec<SpanSeed<T>>) -> Self {
+        Self {
+            span_info,
+            type_info: default(),
+            leaf_info: default(),
+            descriptive_name: default(),
+            trailing_token: default(),
+        }
+    }
 
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum Builder {
-    Empty,
-    Letter { char: char },
-    Space { span: usize },
-    Text { str: String },
-    Seq { first: Rc<Builder>, second: Rc<Builder> },
+    pub fn leaf(leaf_info: String) -> Self {
+        Self {
+            span_info:        default(),
+            type_info:        default(),
+            leaf_info:        Some(leaf_info),
+            descriptive_name: default(),
+            trailing_token:   None,
+        }
+    }
+
+    pub fn with_type_info(self, type_info: TreeType) -> Self {
+        let Self { span_info, type_info: _, leaf_info, descriptive_name, trailing_token } = self;
+        Self { span_info, type_info, leaf_info, descriptive_name, trailing_token }
+    }
+
+    pub fn with_descriptive_name(self, descriptive_name: &'static str) -> Self {
+        let Self { span_info, type_info, leaf_info, descriptive_name: _, trailing_token } = self;
+        Self {
+            span_info,
+            type_info,
+            leaf_info,
+            descriptive_name: Some(descriptive_name),
+            trailing_token,
+        }
+    }
+
+    pub fn with_trailing_token(self, trailing_token: String) -> Self {
+        let Self { span_info, type_info, leaf_info, descriptive_name, trailing_token: _ } = self;
+        Self {
+            span_info,
+            type_info,
+            leaf_info,
+            descriptive_name,
+            trailing_token: Some(trailing_token),
+        }
+    }
 }
 
+/// High-level helper builders.
+impl<T> Tree<T> {
+    pub fn lambda(span_info: Vec<SpanSeed<T>>) -> Self {
+        Tree::expression(span_info).with_type_info(TreeType::Lambda)
+    }
 
+    pub fn group(span_info: Vec<SpanSeed<T>>) -> Self {
+        Tree::expression(span_info).with_type_info(TreeType::Group)
+    }
 
-// ============
-// === Text ===
-// ============
+    pub fn text(leaf_info: String) -> Self {
+        Tree::leaf(leaf_info).with_descriptive_name("text")
+    }
 
-// === Text Block Lines ===
+    pub fn expression_with_comment(expression: Option<T>, space: usize, comment: String) -> Self {
+        let mut span_info = vec![];
+        span_info.extend(expression.map(SpanSeed::child));
+        span_info.extend(SpanSeed::space(space));
+        Tree::expression(span_info)
+            .with_type_info(TreeType::ExpressionWithComment)
+            .with_trailing_token(comment)
+    }
+}
 
+/// The semantic information about a node.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum TreeType {
+    /// A normal expression.
+    #[default]
+    Expression,
+    /// A documentation-comment.
+    Documentation { rendered: ImString },
+    /// An import declaration.
+    Import { module: Vec<ImString>, imported: ImportedNames },
+    /// A lambda.
+    Lambda,
+    /// A parenthesized expression.
+    Group,
+    /// A comment at the end of a line, possibly following an expression.
+    ExpressionWithComment,
+}
+
+/// Describes the names imported by an import declaration.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ImportedNames {
+    Module { alias: Option<String> },
+    All { except: std::collections::BTreeSet<String> },
+    List { names: std::collections::BTreeSet<String> },
+}
+
+/// Represents the syntax tree, and its correspondence to the source text; with context information
+/// provided by an evaluator, this can be used to produce a complete [`SpanTree`].
 #[ast]
-pub struct TextBlockLine<T> {
-    pub empty_lines: Vec<usize>,
-    pub text:        Vec<T>,
+pub enum SpanSeed<T> {
+    Space { space: usize },
+    Token { token: String },
+    Child { node: T },
 }
 
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum TextLine<T> {
-    TextLineRaw(TextLineRaw),
-    TextLineFmt(TextLineFmt<T>),
-}
+impl<T> SpanSeed<T> {
+    pub fn space(space: usize) -> Option<Self> {
+        match space {
+            0 => None,
+            space => Some(SpanSeed::Space(SpanSeedSpace { space })),
+        }
+    }
 
-
-// === Text Segments ===
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum SegmentRaw {
-    SegmentPlain(SegmentPlain),
-    SegmentRawEscape(SegmentRawEscape),
-}
-
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum SegmentFmt<T> {
-    SegmentPlain(SegmentPlain),
-    SegmentRawEscape(SegmentRawEscape),
-    SegmentExpr(SegmentExpr<T>),
-    SegmentEscape(SegmentEscape),
-}
-
-#[ast_node]
-pub struct SegmentPlain {
-    pub value: String,
-}
-#[ast_node]
-pub struct SegmentRawEscape {
-    pub code: RawEscape,
-}
-#[ast_node]
-pub struct SegmentExpr<T> {
-    pub value: Option<T>,
-}
-#[ast_node]
-pub struct SegmentEscape {
-    pub code: Escape,
-}
-
-
-// === Text Segment Escapes ===
-
-#[ast(flat)]
-#[derive(HasTokens)]
-pub enum RawEscape {
-    Unfinished {},
-    Invalid { str: char },
-    Slash {},
-    Quote {},
-    RawQuote {},
-}
-
-#[ast]
-#[derive(HasTokens)]
-pub enum Escape {
-    Character { c: char },
-    Control { name: String, code: u8 },
-    Number { digits: String },
-    Unicode16 { digits: String },
-    Unicode21 { digits: String },
-    Unicode32 { digits: String },
+    pub fn child(node: T) -> Self {
+        Self::Child(SpanSeedChild { node })
+    }
 }
 
 
@@ -717,12 +579,6 @@ pub enum Escape {
 // === Block ===
 // =============
 
-#[ast_node]
-pub enum BlockType {
-    Continuous {},
-    Discontinuous {},
-}
-
 /// Holder for line in `Block` or `Module`. Lines store value of `T` and trailing whitespace info.
 #[ast]
 pub struct BlockLine<T> {
@@ -730,222 +586,6 @@ pub struct BlockLine<T> {
     pub elem: T,
     /// The trailing whitespace in the line after the `elem`.
     pub off:  usize,
-}
-
-
-// =============
-// === Macro ===
-// =============
-
-#[ast]
-pub struct MacroMatchSegment<T> {
-    pub head: T,
-    pub body: MacroPatternMatch<Shifted<T>>,
-}
-
-#[ast]
-pub struct MacroAmbiguousSegment<T> {
-    pub head: T,
-    pub body: Option<Shifted<T>>,
-}
-
-pub type MacroPattern = Rc<MacroPatternRaw>;
-#[ast]
-pub enum MacroPatternRaw {
-    // === Boundary Patterns ===
-    Begin {},
-    End {},
-
-    // === Structural Patterns ===
-    Nothing {},
-    Seq { pat1: MacroPattern, pat2: MacroPattern },
-    Or { pat1: MacroPattern, pat2: MacroPattern },
-    Many { pat: MacroPattern },
-    Except { not: MacroPattern, pat: MacroPattern },
-
-    // === Meta Patterns ===
-    Build { pat: MacroPattern },
-    Err { msg: String, pat: MacroPattern },
-    Tag { tag: String, pat: MacroPattern },
-    Cls { cls: PatternClass, pat: MacroPattern },
-
-    // === Token Patterns ===
-    Tok { spaced: Spaced, ast: Ast },
-    Blank { spaced: Spaced },
-    Var { spaced: Spaced },
-    Cons { spaced: Spaced },
-    Opr { spaced: Spaced, max_prec: Option<usize> },
-    Annotation { spaced: Spaced },
-    Mod { spaced: Spaced },
-    Num { spaced: Spaced },
-    Text { spaced: Spaced },
-    Block { spaced: Spaced },
-    Macro { spaced: Spaced },
-    Invalid { spaced: Spaced },
-    FailedMatch { spaced: Spaced },
-}
-
-#[ast]
-pub enum PatternClass {
-    Normal,
-    Pattern,
-}
-pub type Spaced = Option<bool>;
-
-// Note: Switch Implementation
-#[ast(flat)]
-pub enum Switch<T> {
-    Left { value: T },
-    Right { value: T },
-}
-
-// Note: Switch Implementation
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Switch is not defined as Either<T,T> because an iterator generated for such
-// type would only iterate over right element, while we require both.
-//
-// Switch however does not need to be #[ast], when derive(Iterator) supports
-// enum with struct variants, this attribute should be possible to remove.
-
-impl<T> Deref for Switch<T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        match self {
-            Switch::Left(elem) => &elem.value,
-            Switch::Right(elem) => &elem.value,
-        }
-    }
-}
-
-impl<T> DerefMut for Switch<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        match self {
-            Switch::Left(elem) => &mut elem.value,
-            Switch::Right(elem) => &mut elem.value,
-        }
-    }
-}
-
-pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
-
-#[ast]
-#[derive(HasTokens)]
-pub enum MacroPatternMatchRaw<T> {
-    // === Boundary Matches ===
-    Begin { pat: MacroPatternRawBegin },
-    End { pat: MacroPatternRawEnd },
-
-    // === Structural Matches ===
-    Nothing { pat: MacroPatternRawNothing },
-    Seq { pat: MacroPatternRawSeq, elem: (MacroPatternMatch<T>, MacroPatternMatch<T>) },
-    Or { pat: MacroPatternRawOr, elem: Switch<MacroPatternMatch<T>> },
-    Many { pat: MacroPatternRawMany, elem: Vec<MacroPatternMatch<T>> },
-    Except { pat: MacroPatternRawExcept, elem: MacroPatternMatch<T> },
-
-    // === Meta Matches ===
-    Build { pat: MacroPatternRawBuild, elem: T },
-    Err { pat: MacroPatternRawErr, elem: T },
-    Tag { pat: MacroPatternRawTag, elem: MacroPatternMatch<T> },
-    Cls { pat: MacroPatternRawCls, elem: MacroPatternMatch<T> },
-
-    // === Token Matches ===
-    Tok { pat: MacroPatternRawTok, elem: T },
-    Blank { pat: MacroPatternRawBlank, elem: T },
-    Var { pat: MacroPatternRawVar, elem: T },
-    Cons { pat: MacroPatternRawCons, elem: T },
-    Opr { pat: MacroPatternRawOpr, elem: T },
-    Annotation { pat: MacroPatternRawAnnotation, elem: T },
-    Mod { pat: MacroPatternRawMod, elem: T },
-    Num { pat: MacroPatternRawNum, elem: T },
-    Text { pat: MacroPatternRawText, elem: T },
-    Block { pat: MacroPatternRawBlock, elem: T },
-    Macro { pat: MacroPatternRawMacro, elem: T },
-    Invalid { pat: MacroPatternRawInvalid, elem: T },
-    FailedMatch { pat: MacroPatternRawFailedMatch },
-}
-
-// =============================================================================
-// === Spaceless AST ===========================================================
-// =============================================================================
-
-#[ast]
-pub struct Comment {
-    pub lines: Vec<String>,
-}
-
-#[ast]
-pub struct Documented<T> {
-    pub doc: T,
-    pub emp: i32,
-    pub ast: T,
-}
-
-#[allow(non_snake_case)]
-#[ast]
-pub struct Import<T> {
-    pub path:        Vec<T>,
-    pub rename:      Option<T>,
-    pub isAll:       bool,
-    pub onlyNames:   Option<Vec<T>>,
-    pub hidingNames: Option<Vec<T>>,
-}
-
-#[allow(non_snake_case)]
-#[ast]
-pub struct Export<T> {
-    pub path:        Vec<T>,
-    pub rename:      Option<T>,
-    pub isAll:       bool,
-    pub onlyNames:   Option<Vec<T>>,
-    pub hidingNames: Option<Vec<T>>,
-}
-
-#[ast]
-pub struct JavaImport<T> {
-    pub path:   Vec<T>,
-    pub rename: Option<T>,
-}
-
-#[ast]
-pub struct Mixfix<T> {
-    pub name: Vec<T>,
-    pub args: Vec<T>,
-}
-
-#[ast]
-pub struct Group<T> {
-    pub body: Option<T>,
-}
-
-#[ast]
-pub struct SequenceLiteral<T> {
-    pub items: Vec<T>,
-}
-
-#[ast]
-pub struct TypesetLiteral<T> {
-    pub expression: Option<T>,
-}
-
-#[ast]
-pub struct Def<T> {
-    pub name: T, // being with Cons
-    pub args: Vec<T>,
-    pub body: Option<T>,
-}
-
-#[ast]
-pub struct Foreign {
-    pub indent: usize,
-    pub lang:   String,
-    pub code:   Vec<String>,
-}
-
-#[ast]
-pub struct Modified<T> {
-    pub modifier:   String,
-    pub definition: T,
 }
 
 
@@ -1211,11 +851,10 @@ pub trait HasID {
     fn id(&self) -> Option<Id>;
 }
 
-#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Deref, DerefMut)]
 pub struct WithID<T> {
     #[deref]
     #[deref_mut]
-    #[serde(flatten)]
     pub wrapped: T,
     pub id:      Option<Id>,
 }
@@ -1297,11 +936,10 @@ pub fn traverse_with_span(ast: &impl HasTokens, mut f: impl FnMut(enso_text::Ran
 ///
 /// Even if `T` is `Spanned`, keeping `length` variable is desired for performance
 /// purposes.
-#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Deref, DerefMut)]
 pub struct WithLength<T> {
     #[deref]
     #[deref_mut]
-    #[serde(flatten)]
     pub wrapped: T,
     pub length:  usize,
 }
@@ -1357,18 +995,11 @@ impl<T> Module<T> {
         let is_empty = |line: &&BlockLine<Option<T>>| line.elem.is_none();
         let empty_lines = self.lines.iter().take_while(is_empty);
         let empty_lines = empty_lines.map(|line| line.off).collect_vec();
-        let ty = BlockType::Discontinuous {};
         let first_line = self.lines.iter().find_map(|line| {
             Some(BlockLine { off: line.off, elem: line.elem.as_ref()?.clone() })
         })?;
         let lines = self.lines.iter().skip_while(is_empty).skip(1).cloned().collect();
-        // We virtually never want a block to be an orphan (i.e. start with a first line attached
-        // to whatever AST was there before). While it may seem tempting to have this for single
-        // line blocks, it does not make sense. If we want expression inline, it shouldn't be a
-        // block at all. Also, having inline expression can make invalid AST when the only line is
-        // an assignment and we want to use block as a definition's body.
-        let is_orphan = false;
-        Some(Block { ty, indent, empty_lines, first_line, lines, is_orphan })
+        Some(Block { indent, empty_lines, first_line, lines })
     }
 }
 
@@ -1459,18 +1090,11 @@ impl Block<Ast> {
     /// If there are no tail lines, the first line will be "inline" and the whole block.
     /// If there are tail lines, block will be leaded with a newline.
     pub fn from_lines(first_line: &Ast, tail_lines: &[Option<Ast>]) -> Block<Ast> {
-        let ty = BlockType::Discontinuous {};
         let indent = 0;
         let empty_lines = Vec::new();
         let first_line = BlockLine::new(first_line.clone_ref());
         let lines = tail_lines.iter().cloned().map(BlockLine::new).collect();
-        // We virtually never want a block to be an orphan (i.e. start with a first line attached
-        // to whatever AST was there before). While it may seem tempting to have this for single
-        // line blocks, it does not make sense. If we want expression inline, it shouldn't be a
-        // block at all. Also, having inline expression can make invalid AST when the only line is
-        // an assignment and we want to use block as a definition's body.
-        let is_orphan = false;
-        Block { ty, indent, empty_lines, first_line, lines, is_orphan }
+        Block { indent, empty_lines, first_line, lines }
     }
 }
 
@@ -1501,9 +1125,6 @@ impl Module<Ast> {
 // === AST ===
 
 impl Ast {
-    // TODO smart constructors for other cases
-    //  as part of https://github.com/enso-org/enso/issues/338
-
     /// Creates Blank ast node (underscore).
     pub fn blank() -> Ast {
         Ast::from(Blank {})
@@ -1536,7 +1157,9 @@ impl Ast {
 
     /// Creates an AST node with `Opr` shape.
     pub fn opr(name: impl Str) -> Ast {
-        let opr = Opr { name: name.into() };
+        let name = name.into();
+        let right_assoc = crate::assoc::Assoc::of(&name) == crate::assoc::Assoc::Right;
+        let opr = Opr { name, right_assoc };
         Ast::from(opr)
     }
 
@@ -1570,14 +1193,6 @@ impl Ast {
         Ast::from(opr)
     }
 
-    /// Creates an AST node with `InvalidSuffix` shape.
-    pub fn invalid_suffix(elem: impl Into<Ast>, suffix: impl Str) -> Ast {
-        let elem = elem.into();
-        let suffix = suffix.into();
-        let invalid_suffix = InvalidSuffix { elem, suffix };
-        Ast::from(invalid_suffix)
-    }
-
     /// Creates an AST node with `Infix` shape.
     pub fn infix(larg: impl Into<Ast>, opr: impl Str, rarg: impl Into<Ast>) -> Ast {
         let larg = larg.into();
@@ -1594,135 +1209,25 @@ impl Ast {
         Module::from_line(line_ast).into()
     }
 
-    /// Creates an AST node with `TextLineFmt` shape.
-    pub fn text_line_fmt(text: Vec<SegmentFmt<Ast>>) -> Ast {
-        let text_line_fmt = TextLineFmt { text };
-        Ast::from(text_line_fmt)
-    }
-
-    /// Creates an AST node with `TextUnclosed` shape.
-    pub fn text_unclosed(line: TextLine<Ast>) -> Ast {
-        let text_unclosed = TextUnclosed { line };
-        Ast::from(text_unclosed)
-    }
-
-    /// Creates an AST node with `TextBlockFmt` shape.
-    pub fn text_block_fmt(text: Vec<TextBlockLine<SegmentFmt<Ast>>>, offset: usize) -> Ast {
-        let spaces = 0;
-        let text_block_fmt = TextBlockFmt { text, spaces, offset };
-        Ast::from(text_block_fmt)
-    }
-
     /// Creates an AST node with `Infix` shape, where both its operands are Vars.
     pub fn infix_var(larg: impl Str, opr: impl Str, rarg: impl Str) -> Ast {
         let infix = Infix::from_vars(larg, opr, rarg);
         Ast::from(infix)
     }
-}
 
-
-// === Text Conversion Boilerplate ===
-
-// support for transitive conversions, like:
-// RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentRaw
-
-impl From<Unfinished> for SegmentRaw {
-    fn from(value: Unfinished) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl From<Invalid> for SegmentRaw {
-    fn from(value: Invalid) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl From<Slash> for SegmentRaw {
-    fn from(value: Slash) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl From<Quote> for SegmentRaw {
-    fn from(value: Quote) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl From<RawQuote> for SegmentRaw {
-    fn from(value: RawQuote) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-
-
-// === RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentFmt ===
-
-impl<T> From<Unfinished> for SegmentFmt<T> {
-    fn from(value: Unfinished) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl<T> From<Invalid> for SegmentFmt<T> {
-    fn from(value: Invalid) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl<T> From<Slash> for SegmentFmt<T> {
-    fn from(value: Slash) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl<T> From<Quote> for SegmentFmt<T> {
-    fn from(value: Quote) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-impl<T> From<RawQuote> for SegmentFmt<T> {
-    fn from(value: RawQuote) -> Self {
-        SegmentRawEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<Escape> for SegmentFmt<T> {
-    fn from(value: Escape) -> Self {
-        SegmentEscape { code: value }.into()
-    }
-}
-
-
-// === EscapeSth -> Escape -> SegmentEscape -> SegmentFmt ===
-
-impl<T> From<EscapeCharacter> for SegmentFmt<T> {
-    fn from(value: EscapeCharacter) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeControl> for SegmentFmt<T> {
-    fn from(value: EscapeControl) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeNumber> for SegmentFmt<T> {
-    fn from(value: EscapeNumber) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeUnicode16> for SegmentFmt<T> {
-    fn from(value: EscapeUnicode16) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeUnicode21> for SegmentFmt<T> {
-    fn from(value: EscapeUnicode21) -> Self {
-        SegmentEscape { code: value.into() }.into()
-    }
-}
-
-impl<T> From<EscapeUnicode32> for SegmentFmt<T> {
-    fn from(value: EscapeUnicode32) -> Self {
-        SegmentEscape { code: value.into() }.into()
+    /// Creates a raw text literal that evaluates to the given string.
+    pub fn raw_text_literal(value: impl Str) -> Ast {
+        let value: &str = value.as_ref();
+        let mut escaped = String::with_capacity(value.len() + 2);
+        escaped.push('\'');
+        for char in value.chars() {
+            match char {
+                '\'' => escaped.push_str("\\'"),
+                char => escaped.push(char),
+            }
+        }
+        escaped.push('\'');
+        Self::from(Tree::text(escaped))
     }
 }
 
@@ -1735,16 +1240,6 @@ impl<T> From<EscapeUnicode32> for SegmentFmt<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use serde::de::DeserializeOwned;
-
-    /// Assert that given value round trips JSON serialization.
-    fn round_trips<T>(input_val: &T)
-    where T: Serialize + DeserializeOwned + PartialEq + Debug {
-        let json_str = serde_json::to_string(&input_val).unwrap();
-        let deserialized_val: T = serde_json::from_str(&json_str).unwrap();
-        assert_eq!(*input_val, deserialized_val);
-    }
 
     #[test]
     fn ast_updating_id() {
@@ -1804,43 +1299,6 @@ mod tests {
     }
 
     #[test]
-    fn serialization_round_trip() {
-        let make_var = || Var { name: "foo".into() };
-        round_trips(&make_var());
-
-        let ast_without_id = Ast::new(make_var(), None);
-        round_trips(&ast_without_id);
-
-        let id = Id::parse_str("15").ok();
-        let ast_with_id = Ast::new(make_var(), id);
-        round_trips(&ast_with_id);
-    }
-
-    #[test]
-    fn deserialize_var() {
-        let var_name = "foo";
-        let uuid_str = "51e74fb9-75a4-499d-9ea3-a90a2663b4a1";
-
-        let sample_json = serde_json::json!({
-            "shape": { "Var":{"name": var_name}},
-            "id": uuid_str,
-            "span": var_name.len()
-        });
-        let sample_json_text = sample_json.to_string();
-        let ast: Ast = serde_json::from_str(&sample_json_text).unwrap();
-
-        let expected_uuid = Id::parse_str(uuid_str).ok();
-        assert_eq!(ast.id, expected_uuid);
-
-        let expected_length = 3;
-        assert_eq!(ast.length, expected_length);
-
-        let expected_var = Var { name: var_name.into() };
-        let expected_shape = Shape::from(expected_var);
-        assert_eq!(*ast.shape(), expected_shape);
-    }
-
-    #[test]
     /// Check if Ast can be iterated.
     fn iterating() {
         // TODO [mwu] When Repr is implemented, the below lambda sohuld be
@@ -1876,7 +1334,6 @@ mod tests {
 
     #[test]
     fn all_lines_of_block() {
-        let ty = BlockType::Discontinuous {};
         let indent = 4;
         let empty_lines = vec![5];
         let first_line = BlockLine { elem: Ast::var("head"), off: 3 };
@@ -1885,8 +1342,7 @@ mod tests {
             BlockLine { elem: None, off: 1 },
             BlockLine { elem: Some(Ast::var("tail2")), off: 3 },
         ];
-        let is_orphan = false;
-        let block = Block { ty, indent, empty_lines, first_line, lines, is_orphan };
+        let block = Block { indent, empty_lines, first_line, lines };
         let expected_repr = "\n     \n    head   \n    tail0  \n \n    tail2   ";
         assert_eq!(block.repr(), expected_repr);
 

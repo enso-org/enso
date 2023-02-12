@@ -128,6 +128,7 @@ class NamedArgumentsTest extends InterpreterTest {
     "work in a recursive context" in {
       val code =
         """import Standard.Base.Nothing
+          |import Standard.Base.Any.Any
           |
           |Nothing.summer = sumTo ->
           |  summator = (acc = 0) -> current ->
@@ -194,6 +195,8 @@ class NamedArgumentsTest extends InterpreterTest {
     "be usable with constructors" in {
       val code =
         """
+          |import Standard.Base.Any.Any
+          |
           |type C2
           |    Cons2 head rest
           |type Nil2
@@ -214,6 +217,8 @@ class NamedArgumentsTest extends InterpreterTest {
     "be usable and overridable in constructors" in {
       val code =
         """
+          |import Standard.Base.Any.Any
+          |
           |type Nil2
           |type C2
           |    Cons2 head (rest = Nil2)

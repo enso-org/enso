@@ -158,7 +158,7 @@ mod tests {
 
     use ast::crumbs;
     use ast::crumbs::InfixCrumb;
-    use parser_scala::Parser;
+    use parser::Parser;
 
     struct TestRun {
         graph:       GraphInfo,
@@ -182,7 +182,7 @@ mod tests {
         }
 
         fn from_main_def(code: impl Str) -> TestRun {
-            let parser = Parser::new_or_panic();
+            let parser = Parser::new();
             let module = parser.parse_module(code, default()).unwrap();
             let definition = DefinitionInfo::from_root_line(&module.lines[0]).unwrap();
             Self::from_definition(definition)
@@ -199,15 +199,15 @@ mod tests {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     pub fn connection_listing_test_plain() {
         use InfixCrumb::LeftOperand;
         use InfixCrumb::RightOperand;
 
         let code_block = r"
-d,e = p
+d = p
 a = d
-b = e
+b = d
 c = a + b
 fun a = a b
 f = fun 2";
@@ -221,21 +221,21 @@ f = fun 2";
         assert_eq!(&c.destination.crumbs, &crumbs![RightOperand, LeftOperand]);
 
         let c = &run.connections[1];
-        assert_eq!(run.endpoint_node_repr(&c.source), "b = e");
+        assert_eq!(run.endpoint_node_repr(&c.source), "b = d");
         assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
         assert_eq!(run.endpoint_node_repr(&c.destination), "c = a + b");
         assert_eq!(&c.destination.crumbs, &crumbs![RightOperand, RightOperand]);
 
         let c = &run.connections[2];
-        assert_eq!(run.endpoint_node_repr(&c.source), "d,e = p");
-        assert_eq!(&c.source.crumbs, &crumbs![LeftOperand, LeftOperand]);
+        assert_eq!(run.endpoint_node_repr(&c.source), "d = p");
+        assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
         assert_eq!(run.endpoint_node_repr(&c.destination), "a = d");
         assert_eq!(&c.destination.crumbs, &crumbs![RightOperand]);
 
         let c = &run.connections[3];
-        assert_eq!(run.endpoint_node_repr(&c.source), "d,e = p");
-        assert_eq!(&c.source.crumbs, &crumbs![LeftOperand, RightOperand]);
-        assert_eq!(run.endpoint_node_repr(&c.destination), "b = e");
+        assert_eq!(run.endpoint_node_repr(&c.source), "d = p");
+        assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
+        assert_eq!(run.endpoint_node_repr(&c.destination), "b = d");
         assert_eq!(&c.destination.crumbs, &crumbs![RightOperand]);
 
         // Note that line `fun a = a b` des not introduce any connections, as it is a definition.
@@ -243,13 +243,13 @@ f = fun 2";
         assert_eq!(run.connections.len(), 4);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     pub fn inline_definition() {
         let run = TestRun::from_main_def("main = a");
         assert!(run.connections.is_empty());
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     pub fn listing_dependent_nodes() {
         let code_block = "\
             f,g = p
@@ -259,7 +259,6 @@ f = fun 2";
             d = a + b
             e = b";
         let mut expected_dependent_nodes = HashMap::<&'static str, Vec<&'static str>>::new();
-        expected_dependent_nodes.insert("f,g = p", vec!["a = f", "b = g", "d = a + b", "e = b"]);
         expected_dependent_nodes.insert("a = f", vec!["d = a + b"]);
         expected_dependent_nodes.insert("b = g", vec!["d = a + b", "e = b"]);
         expected_dependent_nodes.insert("c = 2", vec![]);

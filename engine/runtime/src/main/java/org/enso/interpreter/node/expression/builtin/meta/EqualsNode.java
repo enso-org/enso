@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.ibm.icu.text.Normalizer;
-import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -19,45 +18,59 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
-
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Map;
-
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.callable.ExecuteCallNode;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNodeGen.InvokeEqualsNodeGen;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.expression.builtin.ordering.HasCustomComparatorNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.polyglot.MethodNames;
 
 @BuiltinMethod(
-    type = "Any",
-    name = "==",
-    description = "Implementation of Any.=="
+    type = "Comparable",
+    name = "equals_builtin",
+    description = """
+      Compares self with other object and returns True iff `self` is exactly the same as
+      the other object, including all its transitively accessible properties or fields.
+      Can handle arbitrary objects, including all foreign objects.
+      
+      Does not throw exceptions.
+      
+      Note that this is different than `Meta.is_same_object`, which checks whether two
+      references point to the same object on the heap.
+      """
 )
 @GenerateUncached
-public abstract class EqualsAnyNode extends Node {
+public abstract class EqualsNode extends Node {
 
   protected static String EQUALS_MEMBER_NAME = MethodNames.Function.EQUALS;
 
-  public static EqualsAnyNode build() {
-    return EqualsAnyNodeGen.create();
+  public static EqualsNode build() {
+    return EqualsNodeGen.create();
   }
 
-  public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object right);
+  public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
 
   /**
    * Primitive values
@@ -66,6 +79,11 @@ public abstract class EqualsAnyNode extends Node {
 
   @Specialization
   boolean equalsBoolean(boolean self, boolean other) {
+    return self == other;
+  }
+
+  @Specialization
+  boolean equalsBytes(byte self, byte other) {
     return self == other;
   }
 
@@ -133,15 +151,53 @@ public abstract class EqualsAnyNode extends Node {
 
   @Specialization
   boolean equalsUnresolvedSymbols(UnresolvedSymbol self, UnresolvedSymbol otherSymbol,
-                                  @Cached EqualsAnyNode equalsNode) {
+                                  @Cached EqualsNode equalsNode) {
     return self.getName().equals(otherSymbol.getName())
         && equalsNode.execute(self.getScope(), otherSymbol.getScope());
   }
 
   @Specialization
   boolean equalsUnresolvedConversion(UnresolvedConversion selfConversion, UnresolvedConversion otherConversion,
-                                     @Cached EqualsAnyNode equalsNode) {
+                                     @Cached EqualsNode equalsNode) {
     return equalsNode.execute(selfConversion.getScope(), otherConversion.getScope());
+  }
+
+  @Specialization
+  boolean equalsModuleScopes(ModuleScope selfModuleScope, ModuleScope otherModuleScope,
+      @Cached EqualsNode equalsNode) {
+    return equalsNode.execute(selfModuleScope.getModule(), otherModuleScope.getModule());
+  }
+
+  @Specialization
+  @TruffleBoundary
+  boolean equalsModules(Module selfModule, Module otherModule,
+      @Cached EqualsNode equalsNode) {
+    return equalsNode.execute(selfModule.getName().toString(), otherModule.getName().toString());
+  }
+
+  @Specialization
+  boolean equalsFiles(EnsoFile selfFile, EnsoFile otherFile,
+      @CachedLibrary(limit = "5") InteropLibrary interop) {
+    return equalsStrings(selfFile.getPath(), otherFile.getPath(), interop, interop);
+  }
+
+  /**
+   * There is no specialization for {@link TypesLibrary#hasType(Object)}, because also
+   * primitive values would fall into that specialization and it would be too complicated
+   * to make that specialization disjunctive. So we rather specialize directly for
+   * {@link Type types}.
+   */
+  @Specialization(guards = {
+      "typesLib.hasType(selfType)",
+      "typesLib.hasType(otherType)"
+  })
+  boolean equalsTypes(Type selfType, Type otherType,
+      @Cached EqualsNode equalsNode,
+      @CachedLibrary(limit = "5") TypesLibrary typesLib) {
+    return equalsNode.execute(
+        selfType.getQualifiedName().toString(),
+        otherType.getQualifiedName().toString()
+    );
   }
 
   /**
@@ -154,7 +210,7 @@ public abstract class EqualsAnyNode extends Node {
   boolean equalsWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
                              @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
                              @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-                             @Cached EqualsAnyNode equalsNode
+                             @Cached EqualsNode equalsNode
   ) {
     try {
       Object self =
@@ -193,23 +249,6 @@ public abstract class EqualsAnyNode extends Node {
     return selfInterop.isNull(selfNull) && otherInterop.isNull(otherNull);
   }
 
-  @Specialization(guards = {
-      "isHostObject(selfHostObject)",
-      "isHostObject(otherHostObject)",
-  })
-  boolean equalsHostObjects(
-      Object selfHostObject, Object otherHostObject,
-      @CachedLibrary(limit = "5") InteropLibrary interop
-  ) {
-    try {
-      return interop.asBoolean(
-          interop.invokeMember(selfHostObject, "equals", otherHostObject)
-      );
-    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
-             UnsupportedTypeException e) {
-      throw new IllegalStateException(e);
-    }
-  }
 
   @Specialization(guards = {
       "selfInterop.isBoolean(selfBoolean)",
@@ -271,7 +310,8 @@ public abstract class EqualsAnyNode extends Node {
           otherInterop.asTime(otherZonedDateTime),
           otherInterop.asTimeZone(otherZonedDateTime)
       );
-      return self.isEqual(other);
+      // We cannot use self.isEqual(other), because that does not include timezone.
+      return self.compareTo(other) == 0;
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
@@ -388,12 +428,16 @@ public abstract class EqualsAnyNode extends Node {
 
   @Specialization(guards = {
       "selfInterop.hasArrayElements(selfArray)",
-      "otherInterop.hasArrayElements(otherArray)"
+      "otherInterop.hasArrayElements(otherArray)",
+      "!selfInterop.hasHashEntries(selfArray)",
+      "!otherInterop.hasHashEntries(otherArray)",
   }, limit = "3")
   boolean equalsArrays(Object selfArray, Object otherArray,
                        @CachedLibrary("selfArray") InteropLibrary selfInterop,
                        @CachedLibrary("otherArray") InteropLibrary otherInterop,
-                       @Cached EqualsAnyNode equalsNode
+                       @Cached EqualsNode equalsNode,
+      @Cached HasCustomComparatorNode hasCustomComparatorNode,
+      @Cached InvokeAnyEqualsNode invokeAnyEqualsNode
   ) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
@@ -403,7 +447,15 @@ public abstract class EqualsAnyNode extends Node {
       for (long i = 0; i < selfSize; i++) {
         Object selfElem = selfInterop.readArrayElement(selfArray, i);
         Object otherElem = otherInterop.readArrayElement(otherArray, i);
-        if (!equalsNode.execute(selfElem, otherElem)) {
+        boolean elemsAreEqual;
+        if (selfElem instanceof Atom selfAtomElem
+            && otherElem instanceof Atom otherAtomElem
+            && hasCustomComparatorNode.execute(selfAtomElem)) {
+          elemsAreEqual = invokeAnyEqualsNode.execute(selfAtomElem, otherAtomElem);
+        } else {
+          elemsAreEqual = equalsNode.execute(selfElem, otherElem);
+        }
+        if (!elemsAreEqual) {
           return false;
         }
       }
@@ -415,13 +467,15 @@ public abstract class EqualsAnyNode extends Node {
 
   @Specialization(guards = {
       "selfInterop.hasHashEntries(selfHashMap)",
-      "otherInterop.hasHashEntries(otherHashMap)"
+      "otherInterop.hasHashEntries(otherHashMap)",
+      "!selfInterop.hasArrayElements(selfHashMap)",
+      "!otherInterop.hasArrayElements(otherHashMap)"
   }, limit = "3")
   boolean equalsHashMaps(Object selfHashMap, Object otherHashMap,
       @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
       @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
       @CachedLibrary(limit = "5") InteropLibrary entriesInterop,
-      @Cached EqualsAnyNode equalsNode) {
+      @Cached EqualsNode equalsNode) {
     try {
       int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
       int otherHashSize = (int) otherInterop.getHashSize(otherHashMap);
@@ -450,6 +504,68 @@ public abstract class EqualsAnyNode extends Node {
     }
   }
 
+  @Specialization(guards = {
+      "!isAtom(selfObject)",
+      "!isAtom(otherObject)",
+      "!isHostObject(selfObject)",
+      "!isHostObject(otherObject)",
+      "interop.hasMembers(selfObject)",
+      "interop.hasMembers(otherObject)",
+      "!interop.isDate(selfObject)",
+      "!interop.isDate(otherObject)",
+      "!interop.isTime(selfObject)",
+      "!interop.isTime(otherObject)",
+      // Objects with types are handled in `equalsTypes` specialization, so we have to
+      // negate the guards of that specialization here - to make the specializations
+      // disjunctive.
+      "!typesLib.hasType(selfObject)",
+      "!typesLib.hasType(otherObject)",
+  })
+  boolean equalsInteropObjectWithMembers(Object selfObject, Object otherObject,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "5") TypesLibrary typesLib,
+      @Cached EqualsNode equalsNode) {
+    try {
+      Object selfMembers = interop.getMembers(selfObject);
+      Object otherMembers = interop.getMembers(otherObject);
+      assert interop.getArraySize(selfMembers) < Integer.MAX_VALUE : "Long array sizes not supported";
+      int membersSize = (int) interop.getArraySize(selfMembers);
+      if (interop.getArraySize(otherMembers) != membersSize) {
+        return false;
+      }
+
+      // Check member names
+      String[] memberNames = new String[membersSize];
+      for (int i = 0; i < membersSize; i++) {
+        String selfMemberName = interop.asString(interop.readArrayElement(selfMembers, i));
+        String otherMemberName = interop.asString(interop.readArrayElement(otherMembers, i));
+        if (!equalsNode.execute(selfMemberName, otherMemberName)) {
+          return false;
+        }
+        memberNames[i] = selfMemberName;
+      }
+
+      // Check member values
+      for (int i = 0; i < membersSize; i++) {
+        if (interop.isMemberReadable(selfObject, memberNames[i]) &&
+            interop.isMemberReadable(otherObject, memberNames[i])) {
+          Object selfMember = interop.readMember(selfObject, memberNames[i]);
+          Object otherMember = interop.readMember(otherObject, memberNames[i]);
+          if (!equalsNode.execute(selfMember, otherMember)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    } catch (UnsupportedMessageException | InvalidArrayIndexException | UnknownIdentifierException e) {
+      throw new IllegalStateException(
+          String.format("One of the interop objects has probably wrongly specified interop API "
+              + "for members. selfObject = %s ; otherObject = %s", selfObject, otherObject),
+          e
+      );
+    }
+  }
+
   /** Equals for Atoms and AtomConstructors */
 
   @Specialization
@@ -458,13 +574,13 @@ public abstract class EqualsAnyNode extends Node {
   }
 
   /**
-   * How many {@link EqualsAnyNode} should be created for fields in specialization for atoms.
+   * How many {@link EqualsNode} should be created for fields in specialization for atoms.
    */
   static final int equalsNodeCountForFields = 10;
 
-  static EqualsAnyNode[] createEqualsNodes(int size) {
-    EqualsAnyNode[] nodes = new EqualsAnyNode[size];
-    Arrays.fill(nodes, EqualsAnyNode.build());
+  static EqualsNode[] createEqualsNodes(int size) {
+    EqualsNode[] nodes = new EqualsNode[size];
+    Arrays.fill(nodes, EqualsNode.build());
     return nodes;
   }
 
@@ -473,17 +589,14 @@ public abstract class EqualsAnyNode extends Node {
       Atom self,
       Atom other,
       @Cached LoopConditionProfile loopProfile,
-      @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsAnyNode[] fieldEqualsNodes,
-      @Cached InvokeEqualsNode atomInvokeEqualsNode,
+      @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsNode[] fieldEqualsNodes,
       @Cached ConditionProfile enoughEqualNodesForFieldsProfile,
       @Cached ConditionProfile constructorsNotEqualProfile,
       @CachedLibrary(limit = "3") StructsLibrary selfStructs,
-      @CachedLibrary(limit = "3") StructsLibrary otherStructs
+      @CachedLibrary(limit = "3") StructsLibrary otherStructs,
+      @Cached HasCustomComparatorNode hasCustomComparatorNode,
+      @Cached InvokeAnyEqualsNode invokeAnyEqualsNode
   ) {
-    if (atomOverridesEquals(self)) {
-      return atomInvokeEqualsNode.execute(self, other);
-    }
-
     if (constructorsNotEqualProfile.profile(
         self.getConstructor() != other.getConstructor()
     )) {
@@ -497,10 +610,19 @@ public abstract class EqualsAnyNode extends Node {
     if (enoughEqualNodesForFieldsProfile.profile(fieldsSize <= equalsNodeCountForFields)) {
       loopProfile.profileCounted(fieldsSize);
       for (int i = 0; loopProfile.inject(i < fieldsSize); i++) {
-        if (!fieldEqualsNodes[i].execute(
-            selfFields[i],
-            otherFields[i]
-        )) {
+        boolean fieldsAreEqual;
+        // We don't check whether `other` has the same type of comparator, that is checked in
+        // `Any.==` that we invoke here anyway.
+        if (selfFields[i] instanceof Atom selfAtomField
+            && otherFields[i] instanceof Atom otherAtomField
+            && hasCustomComparatorNode.execute(selfAtomField)) {
+          // If selfFields[i] has a custom comparator, we delegate to `Any.==` that deals with
+          // custom comparators. EqualsNode cannot deal with custom comparators.
+          fieldsAreEqual = invokeAnyEqualsNode.execute(selfAtomField, otherAtomField);
+        } else {
+          fieldsAreEqual = fieldEqualsNodes[i].execute(selfFields[i], otherFields[i]);
+        }
+        if (!fieldsAreEqual) {
           return false;
         }
       }
@@ -517,10 +639,10 @@ public abstract class EqualsAnyNode extends Node {
       boolean areFieldsSame;
       if (selfFields[i] instanceof Atom selfFieldAtom
           && otherFields[i] instanceof Atom otherFieldAtom
-          && atomOverridesEquals(selfFieldAtom)) {
-        areFieldsSame = InvokeEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
+          && HasCustomComparatorNode.getUncached().execute(selfFieldAtom)) {
+        areFieldsSame = InvokeAnyEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
       } else {
-        areFieldsSame = EqualsAnyNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
+        areFieldsSame = EqualsNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
       }
       if (!areFieldsSame) {
         return false;
@@ -529,102 +651,119 @@ public abstract class EqualsAnyNode extends Node {
     return true;
   }
 
-  /**
-   * Helper node for invoking `==` method on atoms, that override this method.
-   */
-  @GenerateUncached
-  static abstract class InvokeEqualsNode extends Node {
-    static InvokeEqualsNode getUncached() {
-      return InvokeEqualsNodeGen.getUncached();
-    }
-
-    static InvokeEqualsNode build() {
-      return InvokeEqualsNodeGen.create();
-    }
-
-    abstract boolean execute(Atom selfAtom, Atom otherAtom);
-
-    @Specialization(guards = "cachedSelfAtomCtor == selfAtom.getConstructor()")
-    boolean invokeEqualsCachedAtomCtor(Atom selfAtom, Atom otherAtom,
-                                       @Cached("selfAtom.getConstructor()") AtomConstructor cachedSelfAtomCtor,
-                                       @Cached("getEqualsMethod(cachedSelfAtomCtor)") Function equalsMethod,
-                                       @Cached ExecuteCallNode executeCallNode,
-                                       @CachedLibrary(limit = "3") InteropLibrary interop) {
-      assert atomOverridesEquals(selfAtom);
-      Object ret = executeCallNode.executeCall(
-          equalsMethod,
-          null,
-          State.create(EnsoContext.get(this)),
-          new Object[]{selfAtom, otherAtom}
+  @Specialization(guards = {
+      "isHostObject(selfHostObject)",
+      "isHostObject(otherHostObject)"
+  })
+  boolean equalsHostObjects(
+      Object selfHostObject, Object otherHostObject,
+      @CachedLibrary(limit = "5") InteropLibrary interop
+  ) {
+    try {
+      return interop.asBoolean(
+          interop.invokeMember(selfHostObject, "equals", otherHostObject)
       );
-      try {
-        return interop.asBoolean(ret);
-      } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    @TruffleBoundary
-    @Specialization(replaces = "invokeEqualsCachedAtomCtor")
-    boolean invokeEqualsUncached(Atom selfAtom, Atom otherAtom,
-                                 @Cached ExecuteCallNode executeCallNode) {
-      Function equalsMethod = getEqualsMethod(selfAtom.getConstructor());
-      Object ret = executeCallNode.executeCall(
-          equalsMethod,
-          null,
-          State.create(EnsoContext.get(this)),
-          new Object[]{selfAtom, otherAtom}
-      );
-      assert InteropLibrary.getUncached().isBoolean(ret);
-      try {
-        return InteropLibrary.getUncached().asBoolean(ret);
-      } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    @TruffleBoundary
-    static Function getEqualsMethod(AtomConstructor atomConstructor) {
-      Type atomType = atomConstructor.getType();
-      Function equalsFunction = atomConstructor
-          .getDefinitionScope()
-          .getMethods()
-          .get(atomType)
-          .get("==");
-      assert equalsFunction != null;
-      return equalsFunction;
+    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
+             UnsupportedTypeException e) {
+      throw new IllegalStateException(e);
     }
   }
 
-  /**
-   * Returns true if the given atom overrides `==` operator.
-   */
-  @TruffleBoundary
-  private static boolean atomOverridesEquals(Atom atom) {
-    var atomType = atom.getConstructor().getType();
-    Map<String, Function> methodsOnType = atom
-        .getConstructor()
-        .getDefinitionScope()
-        .getMethods()
-        .get(atomType);
-    if (methodsOnType != null) {
-      return methodsOnType.containsKey("==");
-    } else {
-      return false;
-    }
+  // HostFunction is identified by a qualified name, it is not a lambda.
+  // It has well-defined equality based on the qualified name.
+  @Specialization(guards = {
+      "isHostFunction(selfHostFunc)",
+      "isHostFunction(otherHostFunc)"
+  })
+  boolean equalsHostFunctions(Object selfHostFunc, Object otherHostFunc,
+      @CachedLibrary(limit = "5") InteropLibrary interop,
+      @Cached EqualsNode equalsNode) {
+    Object selfFuncStrRepr = interop.toDisplayString(selfHostFunc);
+    Object otherFuncStrRepr = interop.toDisplayString(otherHostFunc);
+    return equalsNode.execute(selfFuncStrRepr, otherFuncStrRepr);
   }
 
   @Fallback
   @TruffleBoundary
   boolean equalsGeneric(Object left, Object right,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+      @CachedLibrary(limit = "5") InteropLibrary interop,
+      @CachedLibrary(limit = "5") TypesLibrary typesLib) {
       return left == right
           || interop.isIdentical(left, right, interop)
-          || left.equals(right);
+          || left.equals(right)
+          || (isNullOrNothing(left, typesLib, interop) && isNullOrNothing(right, typesLib, interop));
+  }
+
+  private boolean isNullOrNothing(Object object, TypesLibrary typesLib, InteropLibrary interop) {
+    if (typesLib.hasType(object)) {
+      return typesLib.getType(object) == EnsoContext.get(this).getNothing();
+    } else if (interop.isNull(object)) {
+      return true;
+    } else {
+      return object == null;
+    }
+  }
+
+  static boolean isAtom(Object object) {
+    return object instanceof Atom;
   }
 
   @TruffleBoundary
   boolean isHostObject(Object object) {
     return EnsoContext.get(this).getEnvironment().isHostObject(object);
+  }
+
+  @TruffleBoundary
+  boolean isHostFunction(Object object) {
+    return EnsoContext.get(this).getEnvironment().isHostFunction(object);
+  }
+
+  /**
+   * Helper node for invoking `Any.==` method.
+   */
+  @GenerateUncached
+  static abstract class InvokeAnyEqualsNode extends Node {
+    static InvokeAnyEqualsNode getUncached() {
+      return EqualsNodeGen.InvokeAnyEqualsNodeGen.getUncached();
+    }
+
+    abstract boolean execute(Atom selfAtom, Atom otherAtom);
+
+    @Specialization
+    boolean invokeEqualsCachedAtomCtor(Atom selfAtom, Atom thatAtom,
+        @Cached(value = "getAnyEqualsMethod()", allowUncached = true) Function anyEqualsFunc,
+        @Cached(value = "buildInvokeFuncNodeForAnyEquals()", allowUncached = true) InvokeFunctionNode invokeAnyEqualsNode,
+        @CachedLibrary(limit = "3") InteropLibrary interop) {
+      // TODO: Shouldn't Comparable type be the very first argument? (synthetic self)?
+      Object ret = invokeAnyEqualsNode.execute(
+          anyEqualsFunc,
+          null,
+          State.create(EnsoContext.get(this)),
+          new Object[]{selfAtom, thatAtom}
+      );
+      try {
+        return interop.asBoolean(ret);
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException("Return value from Any== should be Boolean", e);
+      }
+
+    }
+
+    @TruffleBoundary
+    Function getAnyEqualsMethod() {
+      var anyType = EnsoContext.get(this).getBuiltins().any();
+      Function anyEqualsFunc =
+          anyType.getDefinitionScope().getMethods().get(anyType).get("==");
+      assert anyEqualsFunc != null : "Any.== method must exist";
+      return anyEqualsFunc;
+    }
+
+    InvokeFunctionNode buildInvokeFuncNodeForAnyEquals() {
+      return InvokeFunctionNode.build(
+          new CallArgumentInfo[]{new CallArgumentInfo("self"), new CallArgumentInfo("that")},
+          DefaultsExecutionMode.EXECUTE,
+          ArgumentsExecutionMode.EXECUTE
+      );
+    }
   }
 }

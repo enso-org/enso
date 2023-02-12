@@ -4,7 +4,6 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
-use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
 use enso_prelude::*;
 use enso_text::traits::*;

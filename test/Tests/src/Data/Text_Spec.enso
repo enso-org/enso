@@ -91,39 +91,39 @@ spec =
             complex_letter_1 . should_equal complex_letter_2
             complex_letter_1 . should_equal complex_letter_3
             complex_letter_3 . should_equal complex_letter_2
-            common_prefix+complex_letter_1+complex_letter_2+complex_letter_3 . compare_to common_prefix+complex_letter_3+complex_letter_1+complex_letter_2 . should_equal Ordering.Equal
+            Ordering.compare (common_prefix+complex_letter_1+complex_letter_2+complex_letter_3) (common_prefix+complex_letter_3+complex_letter_1+complex_letter_2) . should_equal Ordering.Equal
 
             'e\u{301}'=='e\u{302}' . should_be_false
 
             'a\u0321\u0302'=='a\u0302\u0321' . should_be_true
             'a\u0321\u0302'=='A\u0302\u0321' . should_be_false
 
-            accent_1+"a" . compare_to accent_2+"a" . should_equal Ordering.Equal
-            accent_1+"A" . compare_to accent_2+"a" . should_equal Ordering.Less
+            Ordering.compare accent_1+"a" accent_2+"a" . should_equal Ordering.Equal
+            Ordering.compare accent_1+"A" accent_2+"a" . should_equal Ordering.Less
             accent_1+"A" . compare_to_ignore_case accent_2+"a" . should_equal Ordering.Equal
-            accent_1+"a" . compare_to accent_2+"b" . should_equal Ordering.Less
+            Ordering.compare accent_1+"a"  accent_2+"b" . should_equal Ordering.Less
             accent_1+"a" . compare_to_ignore_case accent_2+"B" . should_equal Ordering.Less
-            accent_2+"a" . compare_to accent_1+"b" . should_equal Ordering.Less
-            accent_1+"a" . compare_to accent_2+"B" . should_equal Ordering.Greater
+            Ordering.compare accent_2+"a"  accent_1+"b" . should_equal Ordering.Less
+            Ordering.compare accent_1+"a"  accent_2+"B" . should_equal Ordering.Greater
             accent_1+"a" . compare_to_ignore_case accent_2+"B" . should_equal Ordering.Less
-            accent_1+"b" . compare_to accent_2+"a" . should_equal Ordering.Greater
-            accent_2+"b" . compare_to accent_1+"a" . should_equal Ordering.Greater
+            Ordering.compare accent_1+"b"  accent_2+"a" . should_equal Ordering.Greater
+            Ordering.compare accent_2+"b"  accent_1+"a" . should_equal Ordering.Greater
 
             # Handling of Nothing
             (accent_1 == Nothing) . should_be_false
             (accent_1 != Nothing) . should_be_true
-            accent_1 . compare_to Nothing . should_fail_with Type_Error.Error
+            Ordering.compare accent_1 Nothing . should_fail_with Type_Error.Error
             (accent_1 > Nothing) . should_fail_with Type_Error.Error
             accent_1 . compare_to_ignore_case Nothing . should_fail_with Type_Error.Error
 
             earlier_suffix = "aooooz"
             later_suffix = "bo"
-            common_prefix+complex_letter_1+earlier_suffix . compare_to common_prefix+complex_letter_2+later_suffix . should_equal Ordering.Less
-            common_prefix+complex_letter_2+earlier_suffix . compare_to common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
-            common_prefix+complex_letter_2+earlier_suffix . compare_to common_prefix+complex_letter_3+later_suffix . should_equal Ordering.Less
-            common_prefix+complex_letter_3+earlier_suffix . compare_to common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
-            common_prefix+complex_letter_3+later_suffix . compare_to common_prefix+complex_letter_1+earlier_suffix . should_equal Ordering.Greater
-            common_prefix+complex_letter_1+later_suffix . compare_to common_prefix+complex_letter_2+earlier_suffix . should_equal Ordering.Greater
+            Ordering.compare common_prefix+complex_letter_1+earlier_suffix  common_prefix+complex_letter_2+later_suffix . should_equal Ordering.Less
+            Ordering.compare common_prefix+complex_letter_2+earlier_suffix  common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
+            Ordering.compare common_prefix+complex_letter_2+earlier_suffix  common_prefix+complex_letter_3+later_suffix . should_equal Ordering.Less
+            Ordering.compare common_prefix+complex_letter_3+earlier_suffix  common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
+            Ordering.compare common_prefix+complex_letter_3+later_suffix  common_prefix+complex_letter_1+earlier_suffix . should_equal Ordering.Greater
+            Ordering.compare common_prefix+complex_letter_1+later_suffix  common_prefix+complex_letter_2+earlier_suffix . should_equal Ordering.Greater
 
         Test.specify "should correctly handle case-insensitive equality" <|
             "aBc" . equals_ignore_case "Abc" . should_be_true
