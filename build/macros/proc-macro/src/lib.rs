@@ -16,6 +16,8 @@ pub fn derive_arg_fn(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
         .into()
 }
 
+/// This macro takes a string literal with YAML description of file tree and generates wrapper
+/// classes. See the tests for this crate for usage examples.
 #[proc_macro]
 pub fn make_paths(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = syn::parse_macro_input!(item as syn::LitStr);

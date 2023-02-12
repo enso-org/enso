@@ -56,10 +56,12 @@ pub struct BuildInput {
     pub build_info: BoxFuture<'static, Result<BuildInfo>>,
 }
 
-
+/// Watcher of the GUI (including WASM watcher).
 #[derive(Debug)]
 pub struct Watcher {
+    /// WASM watcher.
     pub wasm: PerhapsWatched<Wasm>,
+    /// Watcher of the content project.
     pub web:  crate::project::Watcher<Gui, crate::ide::web::Watcher>,
 }
 
@@ -151,6 +153,9 @@ impl IsWatchable for Gui {
 }
 
 impl Gui {
+    /// Setup watcher for WASM.
+    ///
+    /// If the WASM is static (e.g. comes from a release), it will be just referenced.
     pub fn perhaps_setup_wasm_watcher(
         &self,
         context: Context,
@@ -160,13 +165,21 @@ impl Gui {
         let BuildInput { build_info, wasm } = inner;
         let WatchInput { wasm: wasm_watch_input } = watch_input;
         let perhaps_watched_wasm = perhaps_watch(Wasm, context, wasm, wasm_watch_input);
-        GuiBuildWithWatchedWasm { perhaps_watched_wasm, build_info }
+        GuiBuildWithWatchedWasm { perhaps_watched_wasm, build_info, destination }
     }
 }
 
+/// Watch job for the `Gui` target with already created watcher for the `Wasm` target.
+// Futures cannot be sensibly printed and there is little else of interest here.
+#[allow(missing_debug_implementations)]
 pub struct GuiBuildWithWatchedWasm {
+    /// WASM artifacts provider.
     pub perhaps_watched_wasm: BoxFuture<'static, Result<PerhapsWatched<Wasm>>>,
+    /// Information for GUI build.
     pub build_info:           BoxFuture<'static, Result<BuildInfo>>,
+    /// Path to the directory where the GUI should be built. Might be ignored in some watching
+    /// scenarios.
+    pub destination:          PathBuf,
 }
 
 #[derive(Clone, Derivative, Serialize, Deserialize)]

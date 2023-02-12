@@ -1,12 +1,9 @@
 use crate::prelude::*;
 
-use crate::project::gui;
 use crate::project::gui::ide_desktop_from_context;
 use crate::project::gui::GuiBuildWithWatchedWasm;
 use crate::project::Context;
 use crate::project::Gui;
-use crate::project::IsWatchable;
-use crate::project::Wasm;
 use crate::source::WatchTargetJob;
 
 use ide_ci::actions::artifacts::upload_compressed_directory;
@@ -137,17 +134,23 @@ impl Ide {
         .boxed()
     }
 
-    pub fn watch_thin(
+    /// Setup watch for IDE.
+    ///
+    /// This includes both WASM watcher and watcher for the web parts.
+    pub fn watch(
         &self,
         context: &Context,
         gui_watch_job: WatchTargetJob<Gui>,
         get_project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
+        ide_options: Vec<String>,
     ) -> BoxFuture<'static, Result> {
         let ide_desktop = ide_desktop_from_context(context);
-        let GuiBuildWithWatchedWasm { perhaps_watched_wasm, build_info } =
+        let GuiBuildWithWatchedWasm { perhaps_watched_wasm, build_info, destination: _ } =
             Gui.perhaps_setup_wasm_watcher(context.clone(), gui_watch_job);
         async move {
-            ide_desktop.watch_thin(perhaps_watched_wasm, build_info, get_project_manager).await
+            ide_desktop
+                .watch(perhaps_watched_wasm, build_info, get_project_manager, ide_options)
+                .await
         }
         .boxed()
     }

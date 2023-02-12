@@ -11,7 +11,7 @@ use futures_util::future::try_join;
 use futures_util::future::try_join4;
 use ide_ci::io::download_all;
 use ide_ci::ok_ready_boxed;
-use ide_ci::program::command;
+use ide_ci::program::command::FallibleManipulator;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
@@ -98,7 +98,7 @@ pub mod env {
 #[derive(Clone, Debug)]
 pub struct IconsArtifacts(pub PathBuf);
 
-impl command::FallibleManipulator for IconsArtifacts {
+impl FallibleManipulator for IconsArtifacts {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
         command.set_env(env::ENSO_BUILD_ICONS, &self.0)?;
         Ok(())
@@ -115,13 +115,14 @@ pub async fn download_js_assets(output_path: impl AsRef<Path>) -> Result {
     Ok(())
 }
 
+/// Get a relative path to the Project Manager executable in the PM bundle.
 pub fn path_to_executable_in_pm_bundle(
     artifact: &generated::ProjectManagerBundle,
 ) -> Result<&Path> {
     artifact
         .bin
         .project_managerexe
-        .strip_prefix(&artifact)
+        .strip_prefix(artifact)
         .context("Failed to generate in-bundle path to Project Manager executable.")
 }
 
@@ -176,7 +177,7 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
     }
 }
 
-impl<Assets: AsRef<Path>, Output: AsRef<Path>> command::FallibleManipulator
+impl<Assets: AsRef<Path>, Output: AsRef<Path>> FallibleManipulator
     for ContentEnvironment<Assets, Output>
 {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
@@ -204,6 +205,36 @@ pub fn target_os_flag(os: OS) -> Result<&'static str> {
         OS::Linux => Ok("--linux"),
         OS::MacOS => Ok("--mac"),
         _ => bail!("Not supported target for Electron client: {os}."),
+    }
+}
+
+/// Context information about Project Manager bundle that we provide to the client.
+#[derive(Clone, Debug)]
+pub struct ProjectManagerInfo {
+    /// Latest bundled engine version, that will be used as this IDE's default.
+    pub latest_bundled_engine: Version,
+    /// Root of the Project Manager bundle.
+    pub bundle_location:       PathBuf,
+    /// Relative path from the bundle location.
+    pub pm_executable:         PathBuf,
+}
+
+impl ProjectManagerInfo {
+    /// Collect information about the bundle that the client will need.
+    pub fn new(bundle: &crate::project::backend::Artifact) -> Result<Self> {
+        let latest_bundled_engine = bundle.latest_engine_version()?.clone();
+        let bundle_location = bundle.path.to_path_buf();
+        let pm_executable = path_to_executable_in_pm_bundle(&bundle.path)?.to_path_buf();
+        Ok(Self { latest_bundled_engine, bundle_location, pm_executable })
+    }
+}
+
+impl FallibleManipulator for ProjectManagerInfo {
+    fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
+        command.set_env(env::ENSO_BUILD_PROJECT_MANAGER, &self.bundle_location)?;
+        command.set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, &self.pm_executable)?;
+        command.set_env(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, &self.latest_bundled_engine)?;
+        Ok(())
     }
 }
 
@@ -309,6 +340,7 @@ impl IdeDesktop {
         Ok(Watcher { child_process, watch_environment })
     }
 
+    /// Build the full Electron package, using the electron-builder.
     #[tracing::instrument(name="Preparing distribution of the IDE.", skip_all, fields(
         dest = %output_path.as_ref().display(),
         ?gui,
@@ -333,26 +365,19 @@ impl IdeDesktop {
         }
 
         self.npm()?.install().run_ok().await?;
-
-        let engine_version_to_use = project_manager.latest_engine_version()?;
-        let pm_in_bundle = path_to_executable_in_pm_bundle(&project_manager.path)?;
-
+        let pm_bundle = ProjectManagerInfo::new(project_manager)?;
         let client_build = self
             .npm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
-            .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
-            .set_env(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, engine_version_to_use)?
-            .set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, pm_in_bundle)?
+            .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
             .run("build", EMPTY_ARGS)
             .run_ok();
 
-        // &input.repo_root.dist.icons
         let icons_dist = TempDir::new()?;
         let icons_build = self.build_icons(&icons_dist);
         let (icons, _content) = try_join(icons_build, client_build).await?;
-
 
         let python_path = if TARGET_OS == OS::MacOS {
             // On macOS electron-builder will fail during DMG creation if there is no python2
@@ -390,7 +415,8 @@ impl IdeDesktop {
         Ok(())
     }
 
-    pub async fn watch_thin(
+    /// Spawn the watch script for the client.
+    pub async fn watch(
         &self,
         wasm_watch_job: BoxFuture<
             'static,
@@ -398,36 +424,40 @@ impl IdeDesktop {
         >,
         build_info: BoxFuture<'static, Result<BuildInfo>>,
         get_project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
+        ide_options: Vec<String>,
     ) -> Result {
         let npm_install_job = self.npm()?.install().run_ok();
+        // TODO: This could be possibly optimized by awaiting WASM a bit later, and passing its
+        //       future to the ContentEnvironment. However, the code would get a little tricky.
+        //       Should be reconsidered in the future, based on actual timings.
         let (_npm_installed, watched_wasm, project_manager) =
             try_join!(npm_install_job, wasm_watch_job, get_project_manager)?;
 
-        let engine_version_to_use = project_manager.latest_engine_version()?;
-        let pm_in_bundle = path_to_executable_in_pm_bundle(&project_manager.path)?;
+        let pm_bundle = ProjectManagerInfo::new(&project_manager)?;
 
-        let gui_dir = TempDir::new()?;
+        let temp_dir_for_gui = TempDir::new()?;
         let content_env = ContentEnvironment::new(
             self,
             ok_ready_boxed(watched_wasm.as_ref().clone()),
             &build_info.await?,
-            &gui_dir,
+            &temp_dir_for_gui,
         )
         .await?;
 
+        let mut script_args = Vec::new();
+        if !ide_options.is_empty() {
+            script_args.push("--");
+            script_args.extend(ide_options.iter().map(String::as_str));
+        }
 
-        let temp_dir = TempDir::new()?;
+
+        let temp_dir_for_ide = TempDir::new()?;
         self.npm()?
             .try_applying(&content_env)?
-            // // .env("DEBUG", "electron-builder")
-            // .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
-            .set_env(env::ENSO_BUILD_IDE, temp_dir.path())?
-            .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
-            .set_env(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, engine_version_to_use)?
-            .set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, pm_in_bundle)?
+            .set_env(env::ENSO_BUILD_IDE, temp_dir_for_ide.path())?
+            .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
-            // .args(["--loglevel", "verbose"])
-            .run("watch", EMPTY_ARGS)
+            .run("watch", script_args)
             .run_ok()
             .await?;
 

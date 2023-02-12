@@ -269,6 +269,10 @@ optParser.options('enable-skip-and-freeze', {
 
 // === Parsing ===
 
+/** Parse the command line arguments.
+ *
+ * Supports both being run as a packaged application and being run using Electron executable.
+ */
 function parseCmdArgs() {
     let argv = isDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv.slice(1)
     return optParser.parse(argv)

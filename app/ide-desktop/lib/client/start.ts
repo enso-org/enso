@@ -1,3 +1,5 @@
+/** This script starts the IDE using the Electron executable. */
+
 import { bundlerOptionsFromEnv, outdir } from './esbuild-config.js'
 import esbuild from 'esbuild'
 import {
@@ -11,9 +13,6 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import * as assert from 'assert'
 import child_process from 'node:child_process'
-
-// We bundle together:
-// 1) The client code.
 
 const guiDist = path.resolve(getGuiDirectory())
 const ideDist = getIdeDirectory()

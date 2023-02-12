@@ -394,6 +394,9 @@ pub trait IsWatchable: IsTarget {
     ) -> BoxFuture<'static, Result<Self::Watcher>>;
 }
 
+/// Sets up a watcher, if a given target is built locally.
+///
+/// Otherwise, if static artifact is used, only its location will be referenced.
 pub fn perhaps_watch<T: IsWatchable>(
     target: T,
     context: Context,

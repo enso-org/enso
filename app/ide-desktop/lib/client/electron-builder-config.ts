@@ -24,7 +24,7 @@ import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
 
 /** The parts of the electron-builder configuration that we want to keep configurable.
  *
- * @see args definition for fields description.
+ * @see `args` definition below for fields description.
  * */
 export interface Arguments {
     target: string
@@ -76,6 +76,7 @@ export const args: Arguments = await yargs(process.argv.slice(2))
         },
     }).argv
 
+/** Based on the given arguments, creates a configuration for the Electron Builder. */
 export function createElectronBuilderConfig(args: Arguments): Configuration {
     return {
         appId: 'org.enso',
@@ -201,6 +202,7 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
     }
 }
 
+/** Build the IDE package with Electron Builder. */
 export async function buildPackage(args: Arguments) {
     // `electron-builder` checks for presence of `node_modules` directory. If it is not present, it will
     // install dependencies with `--production` flag (erasing all dev-only dependencies). This does not
