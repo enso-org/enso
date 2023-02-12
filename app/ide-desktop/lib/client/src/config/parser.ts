@@ -260,6 +260,9 @@ export function parseArgs() {
             'dot-notation': false,
             // Makes all flags passed after '--' be one string.
             'populate--': true,
+            // Do not expand `--foo-bar` to `--fooBar`. This prevents an error when both the former
+            // and later argument are reported as invalid at the same time.
+            'camel-case-expansion': false,
         })
         .help(false)
         .strict()
@@ -274,7 +277,6 @@ export function parseArgs() {
         }
     }) as { [key: string]: string }
     const unexpectedArgs = xargs['--']
-    console.log('xargs', xargs)
 
     for (const option of args.optionsRecursive()) {
         const arg = xargs[naming.camelToKebabCase(option.qualifiedName())]
