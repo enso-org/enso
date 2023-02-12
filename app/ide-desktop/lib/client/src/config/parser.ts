@@ -185,9 +185,25 @@ export class ChromeOption {
     }
 }
 
-function argvAndChromeOptions(): { argv: string[]; chromeOptions: ChromeOption[] } {
+/** Replaces `-no-...` with `--no-...`. This is a hotfix for Yargs bug:
+ * https://github.com/yargs/yargs-parser/issues/468 */
+function fixArgvNoPrefix(argv: string[]): string[] {
+    const singleDashPrefix = '-no-'
+    const doubleDashPrefix = '--no-'
+    return argv.map(arg => {
+        if (arg.startsWith(singleDashPrefix)) {
+            return doubleDashPrefix + arg.slice(singleDashPrefix.length)
+        } else {
+            return arg
+        }
+    })
+}
+
+function argvAndChromeOptions(processArgs: string[]): {
+    argv: string[]
+    chromeOptions: ChromeOption[]
+} {
     const chromeOptionRegex = /--?chrome.([^=]*)(=(.*))?/
-    const processArgs = hideBin(process.argv)
     const argv = []
     const chromeOptions: ChromeOption[] = []
     for (let i = 0; i < processArgs.length; i++) {
@@ -222,7 +238,7 @@ function argvAndChromeOptions(): { argv: string[]; chromeOptions: ChromeOption[]
 
 export function parseArgs() {
     const args = config.config
-    const { argv, chromeOptions } = argvAndChromeOptions()
+    const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(hideBin(process.argv)))
 
     const yargOptions = args.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
         const yargsParam = Object.assign({}, option)

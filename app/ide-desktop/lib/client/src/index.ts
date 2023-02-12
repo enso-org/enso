@@ -1,5 +1,4 @@
 // FIXME: Issues to be resolved:
-// - https://github.com/yargs/yargs-parser/issues/468
 // - Enable vibrancy on MacOS
 
 import Electron from 'electron'
@@ -42,42 +41,47 @@ class App {
 
     /** Set Chrome options based on the user-provided ones and the app configuration options. */
     setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
-        if (this.args.groups.performance.options.forceHighPerformanceGpu.value) {
-            chromeOptions.push(new configParser.ChromeOption('force_high_performance_gpu'))
-        }
-        if (this.args.groups.performance.options.ignoreGpuBlocklist.value) {
-            chromeOptions.push(new configParser.ChromeOption('ignore-gpu-blocklist'))
-        }
-        if (this.args.groups.performance.options.disableSandbox.value) {
-            chromeOptions.push(new configParser.ChromeOption('no-sandbox'))
-        }
-        if (this.args.groups.performance.options.disableGpuSandbox.value) {
-            chromeOptions.push(new configParser.ChromeOption('disable-gpu-sandbox'))
-        }
-        if (this.args.groups.performance.options.disableGpuVsync.value) {
-            chromeOptions.push(new configParser.ChromeOption('disable-gpu-vsync'))
-        }
-        if (this.args.groups.performance.options.enableNativeGpuMemoryBuffers.value) {
-            chromeOptions.push(new configParser.ChromeOption('enable-native-gpu-memory-buffers'))
-        }
-        if (this.args.groups.performance.options.disableSmoothScrolling.value) {
-            chromeOptions.push(new configParser.ChromeOption('disable-smooth-scrolling'))
-        }
-        chromeOptions.push(
-            new configParser.ChromeOption(
-                'use-angle',
-                this.args.groups.performance.options.angleBackend.value
-            )
-        )
-        chromeOptions.sort()
-        if (chromeOptions.length > 0) {
-            const desc = chromeOptions.map(t => `'${t.display()}'`).join(', ')
-            const explanation = `See '-help-extended' to learn why these options were enabled.`
-            logger.log(`Setting Chrome options: ${desc}. ${explanation}`)
-            for (const chromeOption of chromeOptions) {
-                Electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
+        const addIf = (
+            option: content.Option<boolean>,
+            chromeOptionName: string,
+            value?: string
+        ) => {
+            if (option.value) {
+                const chromeOption = new configParser.ChromeOption(chromeOptionName, value)
+                const chromeOptionStr = chromeOption.display()
+                const optionName = option.qualifiedName()
+                logger.log(`Setting '${chromeOptionStr}' because '${optionName}' was enabled.`)
+                chromeOptions.push(new configParser.ChromeOption(chromeOptionName, value))
             }
         }
+        const add = (option: string, value?: string) =>
+            chromeOptions.push(new configParser.ChromeOption(option, value))
+        logger.groupMeasured('Setting Chrome options', () => {
+            addIf(this.args.groups.performance.options.disableGpuSandbox, 'disable-gpu-sandbox')
+            addIf(this.args.groups.performance.options.disableGpuVsync, 'disable-gpu-vsync')
+            addIf(this.args.groups.performance.options.disableSandbox, 'no-sandbox')
+            addIf(
+                this.args.groups.performance.options.disableSmoothScrolling,
+                'disable-smooth-scrolling'
+            )
+            addIf(
+                this.args.groups.performance.options.enableNativeGpuMemoryBuffers,
+                'enable-native-gpu-memory-buffers'
+            )
+            addIf(
+                this.args.groups.performance.options.forceHighPerformanceGpu,
+                'force_high_performance_gpu'
+            )
+            addIf(this.args.groups.performance.options.ignoreGpuBlocklist, 'ignore-gpu-blocklist')
+            add('use-angle', this.args.groups.performance.options.angleBackend.value)
+            chromeOptions.sort()
+            if (chromeOptions.length > 0) {
+                for (const chromeOption of chromeOptions) {
+                    Electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
+                }
+                logger.log(`See '-help-extended' to learn why these options were enabled.`)
+            }
+        })
     }
 
     /** Main app entry point. */
@@ -109,7 +113,7 @@ class App {
         if (!option.value) {
             logger.log(`The app is configured not to run the ${option.name}.`)
         } else {
-            fn()
+            await fn()
         }
     }
 
