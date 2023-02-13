@@ -198,6 +198,7 @@ impl List {
         let local_scope_id = self.local_scope.component_id;
         let id_and_looked_up_entry = |id| Some((id, db.lookup(id).ok()?));
         let ids_and_entries = entry_ids.into_iter().filter_map(id_and_looked_up_entry);
+        let keep_private_components = self.keep_private_components;
         for (id, entry) in ids_and_entries {
             self.allowed_favorites.insert(id);
             let component = Component::new_from_database_entry(id, entry.clone_ref());
@@ -210,7 +211,7 @@ impl List {
                     let namespace = &parent_group.qualified_name.project().namespace;
                     let in_local_namespace = namespace == LOCAL_NAMESPACE;
                     let keep_private_component =
-                        in_local_scope || in_local_namespace || self.keep_private_components;
+                        in_local_scope || in_local_namespace || keep_private_components;
                     if !component.is_private() || keep_private_component {
                         parent_group.content.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
@@ -226,7 +227,7 @@ impl List {
                         let in_local_namespace =
                             project.map(|name| name.namespace == LOCAL_NAMESPACE).unwrap_or(false);
                         let keep_private_component =
-                            in_local_namespace || self.keep_private_components;
+                            in_local_namespace || keep_private_components;
                         if !component.is_private() || keep_private_component {
                             flatten_group.entries.borrow_mut().push(component.clone_ref());
                             component_inserted_somewhere = true;
