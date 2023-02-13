@@ -226,8 +226,7 @@ impl List {
                         let project = flatten_group.project.as_ref();
                         let in_local_namespace =
                             project.map(|name| name.namespace == LOCAL_NAMESPACE).unwrap_or(false);
-                        let keep_private_component =
-                            in_local_namespace || keep_private_components;
+                        let keep_private_component = in_local_namespace || keep_private_components;
                         if !component.is_private() || keep_private_component {
                             flatten_group.entries.borrow_mut().push(component.clone_ref());
                             component_inserted_somewhere = true;
