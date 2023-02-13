@@ -91,6 +91,8 @@
 - [The correct default visualisation for tables is shown on new nodes.][4120]
 - [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
   contain suggestions which are based on evaluated data.
+- [Added a shortcut to show internal components (private API) in the component
+  browser.][5582]
 
 #### EnsoGL (rendering engine)
 
@@ -470,6 +472,7 @@
 [4097]: https://github.com/enso-org/enso/pull/4097
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4072]: https://github.com/enso-org/enso/pull/4072
+[5582]: https://github.com/enso-org/enso/pull/5582
 
 #### Enso Compiler
 
