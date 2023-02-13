@@ -43,7 +43,7 @@ public abstract class PrintlnNode extends Node {
     try {
       print(ctx.getOut(), strings.asString(message));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible. self is guaranteed to be a string");
+      throw new IllegalStateException("Impossible. `message` is guaranteed to be a string");
     }
     return ctx.getNothing();
   }

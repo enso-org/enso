@@ -2,7 +2,8 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
@@ -357,23 +358,4 @@ type Time_Of_Day
     format : Text -> Text
     format self pattern = @Builtin_Method "Time_Of_Day.format"
 
-    ## Compares `self` to `that` to produce an ordering.
-
-       Arguments:
-       - that: The other `Time_Of_Day` to compare against.
-
-       > Example
-         Compare two times for their ordering.
-
-             from Standard.Base import Time_Of_Day
-
-             example_compare_to =
-                 time_1 = Time_Of_Day.new hour=2 minute=30
-                 time_2 = Time_Of_Day.new minute=50
-                 time_1.compare_to time_2
-    compare_to : Time_Of_Day -> Ordering
-    compare_to self that = case that of
-        _ : Time_Of_Day ->
-            sign = Time_Utils.compare_to_localtime self that
-            Ordering.from_sign sign
-        _ -> Error.throw (Type_Error.Error Time_Of_Day that "that")
+Comparable.from (_:Time_Of_Day) = Default_Ordered_Comparator

@@ -9,12 +9,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { path = "../../../language/ast/impl" }
+parser = { path = "../../../language/parser" }
 enso-frp = { path = "../../../../../lib/rust/frp" }
 ensogl = { path = "../../../../../lib/rust/ensogl" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ide-view = { path = "../.." }
-parser-scala = { path = "../../../language/parser" }
 span-tree = { path = "../../../language/span-tree" }
 uuid = { version = "0.8", features = ["v4", "wasm-bindgen"] }
 wasm-bindgen = { workspace = true }

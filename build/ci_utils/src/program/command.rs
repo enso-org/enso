@@ -345,7 +345,7 @@ impl Command {
                     tracing::Span::current().record("status", exit_status.code());
                 })
                 .await?;
-            status_checker(status).context(format!("Command failed: {}", pretty))
+            status_checker(status).context(format!("Command failed: {pretty}"))
         }
         .instrument(span.exit())
         .boxed()
@@ -379,7 +379,7 @@ impl Command {
             })?;
             Result::Ok(output)
         }
-        .map_err(move |e| e.context(format!("Failed to get output of the command: {}", pretty)))
+        .map_err(move |e| e.context(format!("Failed to get output of the command: {pretty}")))
         .instrument(span.exit())
         .boxed()
     }
@@ -400,13 +400,13 @@ impl Command {
 
         let current_span = tracing::Span::current();
         if current_span.field("command").is_some() {
-            tracing::Span::current().record("command", &field::display(&pretty));
+            tracing::Span::current().record("command", field::display(&pretty));
             debug!("Spawning.");
         } else {
             debug!("Spawning {}.", pretty);
         }
 
-        self.inner.spawn().context(format!("Failed to spawn: {}", pretty)).inspect(|child| {
+        self.inner.spawn().context(format!("Failed to spawn: {pretty}")).inspect(|child| {
             if let Some(pid) = child.id() {
                 current_span.record("pid", pid);
             }

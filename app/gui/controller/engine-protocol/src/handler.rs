@@ -287,7 +287,7 @@ mod tests {
     #[test]
     fn test_closed_socked_event_passing() {
         let mut transport = MockTransport::new();
-        let processor = |msg| panic!("Must never be called in this test, but got {:?}!", msg);
+        let processor = |msg| panic!("Must never be called in this test, but got {msg:?}!");
         let handler = Handler::<i32, (), ()>::new(transport.clone_ref(), processor);
         let mut runner = handler.runner().boxed_local();
         let mut events = handler.event_stream().boxed_local();
@@ -299,7 +299,7 @@ mod tests {
         runner.expect_pending();
 
         let event = events.expect_next();
-        assert!(matches!(event, Event::Closed), "Event was: {:?}", event);
+        assert!(matches!(event, Event::Closed), "Event was: {event:?}");
         events.expect_pending();
     }
 }

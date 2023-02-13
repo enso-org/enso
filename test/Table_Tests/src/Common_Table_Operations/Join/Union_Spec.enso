@@ -91,7 +91,7 @@ spec setup =
             t4 = t1.union [t2, t3] keep_unmatched_columns=False on_problems=Problem_Behavior.Ignore
             t4.should_fail_with No_Output_Columns
 
-        Test.specify "should ignore colum names when matching by position" <|
+        Test.specify "should ignore column names when matching by position" <|
             t1 = table_builder [["A", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
             t2 = table_builder [["X", [4, 5, 6]], ["A", ["d", "e", "f"]]]
 

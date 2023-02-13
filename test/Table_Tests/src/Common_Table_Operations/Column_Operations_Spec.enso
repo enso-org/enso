@@ -120,18 +120,24 @@ spec setup =
             ((t.at "A").between (t.at "B") (t.at "C")) . to_vector . should_equal r
 
     Test.group prefix+"Column Operations - Text" <|
-        t3 = table_builder [["s1", ["foobar", "bar", "baz", Nothing]], ["s2", ["foo", "ar", "a", Nothing]]]
+        t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
         s1 = t3.at "s1"
         s2 = t3.at "s2"
         Test.specify "should handle basic Text operations" <|
-            s1.starts_with s2 . to_vector . should_equal [True, False, False, Nothing]
-            s1.starts_with "foo" . to_vector . should_equal [True, False, False, Nothing]
-            s1.starts_with "ba" . to_vector . should_equal [False, True, True, Nothing]
+            s1.starts_with s2 . to_vector . should_equal [True, False, False, False, Nothing]
+            s1.starts_with s2 Case_Sensitivity.Insensitive . to_vector . should_equal [True, False, False, True, Nothing]
+            s1.starts_with "foo" . to_vector . should_equal [True, False, False, False, Nothing]
+            s1.starts_with "ba" . to_vector . should_equal [False, True, True, False, Nothing]
+            s1.starts_with "ba" Case_Sensitivity.Insensitive . to_vector . should_equal [False, True, True, True, Nothing]
 
-            s1.contains s2 . to_vector . should_equal [True, True, True, Nothing]
-            s1.contains "a" . to_vector . should_equal [True, True, True, Nothing]
-            s1.contains "oo" . to_vector . should_equal [True, False, False, Nothing]
+            s1.contains s2 . to_vector . should_equal [True, True, True, False, Nothing]
+            s1.contains s2 Case_Sensitivity.Insensitive . to_vector . should_equal [True, True, True, True, Nothing]
+            s1.contains "a" . to_vector . should_equal [True, True, True, False, Nothing]
+            s1.contains "oo" . to_vector . should_equal [True, False, False, False, Nothing]
+            s1.contains "a" Case_Sensitivity.Insensitive . to_vector . should_equal [True, True, True, True, Nothing]
 
-            s1.ends_with s2 . to_vector . should_equal [False, True, False, Nothing]
-            s1.ends_with "ar" . to_vector . should_equal [True, True, False, Nothing]
-            s1.ends_with "a" . to_vector . should_equal [False, False, False, Nothing]
+            s1.ends_with s2 . to_vector . should_equal [False, True, False, False, Nothing]
+            s1.ends_with s2 Case_Sensitivity.Insensitive . to_vector . should_equal [False, True, False, True, Nothing]
+            s1.ends_with "ar" . to_vector . should_equal [True, True, False, False, Nothing]
+            s1.ends_with "a" . to_vector . should_equal [False, False, False, False, Nothing]
+            s1.ends_with "b" Case_Sensitivity.Insensitive . to_vector . should_equal [False, False, False, True, Nothing]

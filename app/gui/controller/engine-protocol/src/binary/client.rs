@@ -390,7 +390,7 @@ mod tests {
         let (event, tail) = event_fut.expect_ready();
         match event.expect("Expected some notification.") {
             Event::Notification(notification) => assert_eq!(notification, expected_notification),
-            event => panic!("Expected notification event, got: {:?}", event),
+            event => panic!("Expected notification event, got: {event:?}"),
         }
         tail.boxed_local().expect_pending();
     }

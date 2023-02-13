@@ -37,7 +37,7 @@ class ModuleCache(private val module: Module) {
     *
     * @param module the module representation to be saved
     * @param context the language context in which saving is taking place
-    * @param useGlobalCacheLocations
+    * @param useGlobalCacheLocations if true, will use global caches' location, local one otherwise
     * @return returns the location of the cache if successful, and [[None]] if
     *         it was unable to save
     */
@@ -490,9 +490,7 @@ object ModuleCache {
 
   val irCacheDataExtension: String     = ".ir"
   val irCacheMetadataExtension: String = ".meta"
-
-  val maximumBlockSizeBytes: Int = 1 * 1024 * 1024 * 10 // 10 MB
-  val metadataCharset: Charset   = StandardCharsets.UTF_8
+  val metadataCharset: Charset         = StandardCharsets.UTF_8
 
   /** The default logging level. */
   private val logLevel = Level.FINEST

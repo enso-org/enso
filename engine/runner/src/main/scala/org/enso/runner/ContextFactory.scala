@@ -5,7 +5,7 @@ import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
 }
-import org.enso.polyglot.{PolyglotContext, RuntimeOptions}
+import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
 
 import java.io.{InputStream, OutputStream}
@@ -46,6 +46,7 @@ class ContextFactory {
       .newBuilder()
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
+      .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
       .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")

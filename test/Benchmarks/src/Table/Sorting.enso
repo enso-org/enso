@@ -1,15 +1,24 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Sort_Column_Selector
-from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table import Table, Sort_Column
 
 from Standard.Test import Bench
 
 type My
     Data x
 
-    compare_to self other =
-        other.x . compare_to self.x
+type My_Comparator
+    is_ordered = True
+
+    compare my_1 my_2 =
+        comparator = Comparable.from my_2.x
+        comparator.compare my_2.x my_1.x
+
+    hash my =
+        comparator = Comparable.from my.x
+        comparator.hash my.x
+
+Comparable.from (_:My) = My_Comparator
 
 vector_size = 100000
 iter_size = 20
@@ -27,13 +36,13 @@ bench =
     dates_table = Table.new [['dates', dates]]
     objects_table = Table.new [['objects', objects]]
 
-    Bench.measure (ints_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by ints" iter_size num_iterations
+    Bench.measure (ints_table.order_by [Sort_Column.Index 0]) "Table.order_by ints" iter_size num_iterations
     Bench.measure (ints.sort) "Vector.sort ints" iter_size num_iterations
 
-    Bench.measure (dates_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by dates" iter_size num_iterations
+    Bench.measure (dates_table.order_by [Sort_Column.Index 0]) "Table.order_by dates" iter_size num_iterations
     Bench.measure (dates.sort) "Vector.sort dates" iter_size num_iterations
 
-    Bench.measure (objects_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by objects" iter_size num_iterations
+    Bench.measure (objects_table.order_by [Sort_Column.Index 0]) "Table.order_by objects" iter_size num_iterations
     Bench.measure (objects.sort) "Vector.sort objects" iter_size num_iterations
 
 main = bench

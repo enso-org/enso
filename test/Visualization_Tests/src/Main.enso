@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import Test_Suite
 
+import project.Default_Visualizations_Spec
 import project.Geo_Map_Spec
 import project.Helpers_Spec
 import project.Histogram_Spec
@@ -14,6 +15,7 @@ import project.Visualization_Spec
 import project.Widgets_Spec
 
 main = Test_Suite.run_main <|
+    Default_Visualizations_Spec.spec
     Geo_Map_Spec.spec
     Helpers_Spec.spec
     Histogram_Spec.spec

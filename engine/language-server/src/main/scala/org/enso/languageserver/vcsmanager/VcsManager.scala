@@ -53,7 +53,7 @@ class VcsManager(
           _    <- vcs.init(root.toPath)
         } yield ()
       exec
-        .execTimed(config.timeout, result)
+        .execTimed(config.initTimeout, result)
         .map(VcsProtocol.InitRepoResponse)
         .pipeTo(sender())
     case VcsProtocol.SaveRepo(_, repoRoot, name) =>

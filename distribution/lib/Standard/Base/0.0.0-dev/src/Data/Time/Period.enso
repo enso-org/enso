@@ -2,6 +2,8 @@ import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Incomparable
 import project.Data.Text.Text
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
@@ -128,11 +130,3 @@ type Period
                 case err of
                     DateTimeException -> Error.throw Time_Error.Error "Period subtraction failed"
                     ArithmeticException -> Error.throw Illegal_Argument.Error "Arithmetic error"
-
-    ## Just throws `Incomparable_Values`, because periods cannot be
-       compared without additional context.
-
-       To compare two Periods, use something like:
-       `(start_date + period1) .compare_to (start_date + period2)`
-    compare_to : Period -> Nothing ! Incomparable_Values
-    compare_to self _ = Error.throw Incomparable_Values
