@@ -955,7 +955,7 @@ impl TimeProvider for Performance {
 // === FrameCounter ===
 // ====================
 
-type Counter = Rc<std::cell::Cell<i32>>;
+type Counter = Rc<Cell<i32>>;
 
 #[derive(Debug)]
 /// A counter that counts the number of frames that have passed since its initialization.
