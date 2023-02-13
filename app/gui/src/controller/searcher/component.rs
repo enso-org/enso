@@ -9,6 +9,7 @@ use crate::model::suggestion_database;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
+use engine_protocol::language_server::DocSection;
 
 
 // ==============
@@ -161,6 +162,18 @@ impl Component {
             Some(subsequence) => MatchInfo::Matches { subsequence },
             None => MatchInfo::DoesNotMatch,
         };
+    }
+
+    /// Check whether the component contains the "PRIVATE" tag.
+    pub fn is_private(&self) -> bool {
+        match &self.data {
+            Data::FromDatabase { entry, .. } => entry.documentation.iter().any(|doc| match doc {
+                DocSection::Tag { name, .. } =>
+                    name == ast::constants::PRIVATE_DOC_SECTION_TAG_NAME,
+                _ => false,
+            }),
+            _ => false,
+        }
     }
 }
 
