@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -9,30 +10,56 @@ import Standard.Test.Extensions
 type Ord
     Value number
 
-    compare_to : Ord -> Ordering
-    compare_to self that = if self.number == that.number then Ordering.Equal else
-        if self.number > that.number then Ordering.Greater else Ordering.Less
+type Ord_Comparator
+    is_ordered = True
+    compare x y = (Comparable.from x.number) . compare x.number y.number
+    hash x = (Comparable.from x.number) . hash x.number
+
+Comparable.from (_:Ord) = Ord_Comparator
+
+## Unordered pair
+type UPair
+    Value x y
+
+type UPair_Comparator
+    is_ordered = False
+
+    equals pair1 pair2 =
+        if pair1.x == pair2.x && pair1.y == pair2.y then True else
+            if pair1.x == pair2.y && pair1.y == pair2.x then True else
+                False
+
+    hash upair =
+        x_comp = Comparable.from upair.x
+        y_comp = Comparable.from upair.y
+        (x_comp.hash upair.x) + (y_comp.hash upair.y)
+
+Comparable.from (_ : UPair) = UPair_Comparator
+
+type Parent
+    Value child
 
 # === The Tests ===
 
 spec =
+    Test.group "Default ordered comparator" <|
+        Test.specify "should support custom ordered comparator" <|
+            Ordering.compare (Ord.Value 1) (Ord.Value 2) . should_equal Ordering.Less
+            Ordering.compare (Ord.Value 1) (Ord.Value 1) . should_equal Ordering.Equal
+            Ordering.compare (Ord.Value 20) (Ord.Value 1) . should_equal Ordering.Greater
+
+        Test.specify "should support equality for custom ordered comparators in atom field" <|
+            ((Parent.Value (Ord.Value 1)) == (Parent.Value (Ord.Value 1))) . should_be_true
+            ((Parent.Value (Ord.Value 1)) == (Parent.Value (Ord.Value 22))) . should_be_false
+
+        Test.specify "should throw Incomparable_Values when comparing types with unordered comparator" <|
+            Ordering.compare (UPair.Value 1 2) (UPair.Value 2 1) . should_fail_with Incomparable_Values
+
+        Test.specify "should throw Type_Error when comparing different types" <|
+            Ordering.compare (UPair.Value 1 2) (Ord.Value 2) . should_fail_with Type_Error.Error
+            Ordering.compare 1 Nothing . should_fail_with Type_Error.Error
+
     Test.group "Ordering" <|
-
-        Test.specify "should allow comparing Less" <|
-            left = Ord.Value 1032
-            right = Ord.Value 101111
-            left.compare_to right . should_equal Ordering.Less
-
-        Test.specify "should allow comparing Equal" <|
-            left = Ord.Value 1032
-            right = Ord.Value 1032
-            left.compare_to right . should_equal Ordering.Equal
-
-        Test.specify "should allow comparing Greater" <|
-            left = Ord.Value 1032
-            right = Ord.Value -1
-            left.compare_to right . should_equal Ordering.Greater
-
         Test.specify "should allow conversion to sign representation" <|
             Ordering.Less.to_sign . should_equal -1
             Ordering.Equal.to_sign . should_equal 0
@@ -44,15 +71,15 @@ spec =
             Ordering.from_sign 1 . should_equal Ordering.Greater
 
         Test.specify "should be ordered itself" <|
-            Ordering.Less.compare_to Ordering.Less . should_equal Ordering.Equal
-            Ordering.Less.compare_to Ordering.Equal . should_equal Ordering.Less
-            Ordering.Less.compare_to Ordering.Greater . should_equal Ordering.Less
-            Ordering.Equal.compare_to Ordering.Less . should_equal Ordering.Greater
-            Ordering.Equal.compare_to Ordering.Equal . should_equal Ordering.Equal
-            Ordering.Equal.compare_to Ordering.Greater . should_equal Ordering.Less
-            Ordering.Greater.compare_to Ordering.Less . should_equal Ordering.Greater
-            Ordering.Greater.compare_to Ordering.Equal . should_equal Ordering.Greater
-            Ordering.Greater.compare_to Ordering.Greater . should_equal Ordering.Equal
+            Ordering.compare Ordering.Less Ordering.Less . should_equal Ordering.Equal
+            Ordering.compare Ordering.Less Ordering.Equal . should_equal Ordering.Less
+            Ordering.compare Ordering.Less Ordering.Greater . should_equal Ordering.Less
+            Ordering.compare Ordering.Equal Ordering.Less . should_equal Ordering.Greater
+            Ordering.compare Ordering.Equal Ordering.Equal . should_equal Ordering.Equal
+            Ordering.compare Ordering.Equal Ordering.Greater . should_equal Ordering.Less
+            Ordering.compare Ordering.Greater Ordering.Less . should_equal Ordering.Greater
+            Ordering.compare Ordering.Greater Ordering.Equal . should_equal Ordering.Greater
+            Ordering.compare Ordering.Greater Ordering.Greater . should_equal Ordering.Equal
 
         Test.specify "should allow lexicographical composition" <|
             Ordering.Less.and_then Ordering.Less . should_equal Ordering.Less
@@ -66,8 +93,8 @@ spec =
             Ordering.Greater.and_then Ordering.Greater . should_equal Ordering.Greater
 
         Test.specify "should fail with Type_Error for wrong type of that" <|
-            Ordering.Less.compare_to 1 . should_fail_with Type_Error.Error
-            Ordering.Less.compare_to Nothing . should_fail_with Type_Error.Error
-            Ordering.Less.compare_to "Hello" . should_fail_with Type_Error.Error
+            Ordering.compare Ordering.Less 1 . should_fail_with Type_Error.Error
+            Ordering.compare Ordering.Less Nothing . should_fail_with Type_Error.Error
+            Ordering.compare Ordering.Less "Hello" . should_fail_with Type_Error.Error
 
 main = Test_Suite.run_main spec

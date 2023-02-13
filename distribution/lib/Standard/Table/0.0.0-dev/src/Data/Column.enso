@@ -1172,7 +1172,7 @@ type Column
          this rule, ignoring the ascending / descending setting.
        - by: function taking two items in this column and returning an
          ordering. If specified, it is used instead of the natural
-         (`.compare_to`) ordering.
+         ordering of the values.
 
        > Example
          Sorting a column in ascending order.
@@ -1191,14 +1191,14 @@ type Column
                  Examples.integer_column.sort Sort_Direction.Descending missing_last=False
 
        > Example
-         Sorting `column` in ascending order, using a custom comparator
+         Sorting `column` in ascending order, using a custom comparison
          function.
 
              import Standard.Examples
 
              example_sort =
-                 my_comparator a b = a.abs.compare_to b.abs
-                 Examples.decimal_column.sort by=my_comparator
+                 my_compare a b = Ordering.compare a.abs b.abs
+                 Examples.decimal_column.sort by=my_compare
     sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
     sort self order=Sort_Direction.Ascending missing_last=True by=Nothing =
         order_bool = case order of

@@ -400,9 +400,7 @@ impl QueryData {
     /// Escape a string to be used as a visualization argument. Transforms the string into an enso
     /// expression with string literal.
     fn escape_visualization_argument(arg: &str) -> String {
-        let segment = ast::SegmentPlain { value: arg.into() };
-        let text = ast::TextLineRaw { text: vec![segment.into()] };
-        text.repr()
+        Ast::raw_text_literal(arg).repr()
     }
 
     /// Escape a list of strings to be used as a visualization argument. Transforms the strings into

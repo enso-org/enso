@@ -152,7 +152,7 @@ impl Nodes {
         removed_views
     }
 
-    /// Remove node represented by given view (if any) and return it's AST ID.
+    /// Remove node represented by given view (if any) and return its AST ID.
     pub fn remove_node(&mut self, node: ViewNodeId) -> Option<AstNodeId> {
         let ast_id = self.ast_node_by_view_id.remove(&node)?;
         self.nodes.remove(&ast_id);
@@ -827,10 +827,10 @@ impl<'a> ViewChange<'a> {
 mod tests {
     use super::*;
     use engine_protocol::language_server::MethodPointer;
-    use parser_scala::Parser;
+    use parser::Parser;
 
     fn create_test_node(expression: &str) -> controller::graph::Node {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let ast = parser.parse_line_ast(expression).unwrap();
         controller::graph::Node {
             info:     double_representation::node::NodeInfo {
@@ -969,7 +969,7 @@ mod tests {
     fn refreshing_node_expression() {
         let Fixture { state, nodes } = Fixture::setup_nodes(&["foo bar"]);
         let node_id = nodes[0].node.id();
-        let new_ast = Parser::new_or_panic().parse_line_ast("foo baz").unwrap().with_id(node_id);
+        let new_ast = Parser::new().parse_line_ast("foo baz").unwrap().with_id(node_id);
         let new_node = controller::graph::Node {
             info:     double_representation::node::NodeInfo {
                 documentation: None,

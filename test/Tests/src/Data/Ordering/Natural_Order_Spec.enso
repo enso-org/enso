@@ -37,7 +37,7 @@ spec = Test.group "Natural Order" <|
         Natural_Order.compare "100-200.300" "1.2.3" . should_equal Ordering.Greater
         Natural_Order.compare "1.2.3" "4.5.6" . should_equal Ordering.Less
 
-        ".".compare_to "-" . should_equal Ordering.Greater
+        Ordering.compare "." "-" . should_equal Ordering.Greater
         Natural_Order.compare "4-5-6" "4.5.6" . should_equal Ordering.Less
         Natural_Order.compare "4-5-6" "100-200.300" . should_equal Ordering.Less
 

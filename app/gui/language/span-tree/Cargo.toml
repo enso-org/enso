@@ -13,5 +13,5 @@ enso-profiler = { path = "../../../../lib/rust/profiler" }
 failure = { workspace = true }
 
 [dev-dependencies]
-parser-scala = { path = "../parser" }
+parser = { path = "../parser" }
 wasm-bindgen-test = { workspace = true }

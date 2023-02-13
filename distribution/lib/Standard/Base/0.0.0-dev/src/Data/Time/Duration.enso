@@ -2,7 +2,8 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Pair.Pair
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
@@ -167,25 +168,6 @@ type Duration
             Panic.catch ArithmeticException (self.minus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
 
-    ## Compares `self` to `that` to produce an ordering.
-
-       Arguments:
-       - that: The other `Duration` to compare against.
-
-       > Example
-         Compare two durations for their ordering.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_compare_to =
-                 duration_1 = (Duration.new hour=1)
-                 duration_2 = (Duration.new minutes=60) + (Duration.new minutes=5)
-                 duration_1.compare_to duration_2
-    compare_to : Duration -> Ordering
-    compare_to self that = case that of
-        _ : Duration -> Ordering.from_sign (self.compare_to_builtin that)
-        _ -> Error.throw (Type_Error.Error Duration that "that")
-
     ## Get the portion of the duration expressed in nanoseconds.
 
        > Example
@@ -312,3 +294,5 @@ type Duration
              example_is_empty = Duration.zero.is_empty
     is_empty : Boolean
     is_empty self = self.to_vector . all (==0)
+
+Comparable.from (_:Duration) = Default_Ordered_Comparator
