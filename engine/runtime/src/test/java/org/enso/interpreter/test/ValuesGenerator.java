@@ -10,6 +10,7 @@ import java.time.LocalTime;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -324,8 +325,9 @@ class ValuesGenerator {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
       collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.now").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.new 1999 3 23").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.now").type());
-      collect.add(v(null, "import Standard.Base.Data.Time.Time_Zone.Time_Zone", "Time_Zone.new").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.parse '2021-01-01T00:30:12.7102[UTC]'").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day", "Time_Of_Day.now").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Duration.Duration", "Duration.new").type());
       for (var v : collect) {
@@ -338,7 +340,9 @@ class ValuesGenerator {
 
     if (languages.contains(Language.JAVA)) {
       collect.add(ctx.asValue(LocalDate.of(2022, 12, 10)));
+      collect.add(ctx.asValue(LocalDate.of(1999, 3, 23)));
       collect.add(ctx.asValue(LocalTime.of(12, 35)));
+      collect.add(ctx.asValue(ZonedDateTime.of(2021, 1, 1, 0, 30, 12, 710200000, ZoneId.of("Z"))));
     }
 
     return collect;

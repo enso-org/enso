@@ -7,8 +7,8 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -24,22 +24,18 @@ public class HashCodeTest extends TestBase {
   private static Context context;
   private static final InteropLibrary interop = InteropLibrary.getUncached();
 
-  private HashCodeAnyNode hashCodeNode;
-  private EqualsAnyNode equalsNode;
-  private TestRootNode testRootNode;
+  private static HashCodeNode hashCodeNode;
+  private static EqualsNode equalsNode;
+  private static TestRootNode testRootNode;
 
   @BeforeClass
   public static void initContextAndData() {
     context = createDefaultContext();
     // Initialize datapoints here, to make sure that it is initialized just once.
     unwrappedValues = fetchAllUnwrappedValues();
-  }
-
-  @Before
-  public void initNodes() {
     executeInContext(context, () -> {
-      hashCodeNode = HashCodeAnyNode.build();
-      equalsNode = EqualsAnyNode.build();
+      hashCodeNode = HashCodeNode.build();
+      equalsNode = EqualsNode.build();
       testRootNode = new TestRootNode();
       testRootNode.insertChildren(hashCodeNode, equalsNode);
       return null;

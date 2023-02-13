@@ -240,13 +240,6 @@ impl AliasAnalyzer {
             self.process_assignment(&assignment);
         } else if let Some(lambda) = ast::macros::as_lambda(ast) {
             self.process_lambda(&lambda);
-        } else if let Ok(macro_match) = ast::known::Match::try_from(ast) {
-            // Macros (except for lambdas which were covered in the previous check) never introduce
-            // new scopes or different context. We skip the keywords ("if" in "if-then-else" is not
-            // an identifier) and process the matched subtrees as usual.
-            self.process_given_subtrees(macro_match.shape(), macro_match.iter_pat_match_subcrumbs())
-        } else if let Ok(ambiguous) = ast::known::Ambiguous::try_from(ast) {
-            self.process_given_subtrees(ambiguous.shape(), ambiguous.iter_pat_match_subcrumbs())
         } else if self.is_in_pattern() {
             // We are in the pattern (be it a lambda's or assignment's left side). Three options:
             // 1) This is a destructuring pattern match using infix syntax, like `head,tail`.
@@ -371,8 +364,6 @@ mod tests {
     use super::test_utils::*;
     use super::*;
 
-    wasm_bindgen_test_configure!(run_in_browser);
-
     /// Checks if actual observed sequence of located identifiers matches the expected one.
     /// Expected identifiers are described as code spans in the node's text representation.
     fn validate_identifiers(
@@ -386,7 +377,7 @@ mod tests {
     }
 
     /// Runs the test for the given test case description.
-    fn run_case(parser: &parser_scala::Parser, case: Case) {
+    fn run_case(parser: &parser::Parser, case: Case) {
         debug!("\n===========================================================================\n");
         debug!("Case: {}", case.code);
         let ast = parser.parse_line_ast(&case.code).unwrap();
@@ -397,15 +388,15 @@ mod tests {
     }
 
     /// Runs the test for the test case expressed using markdown notation. See `Case` for details.
-    fn run_markdown_case(parser: &parser_scala::Parser, marked_code: impl AsRef<str>) {
+    fn run_markdown_case(parser: &parser::Parser, marked_code: impl AsRef<str>) {
         debug!("Running test case for {}", marked_code.as_ref());
         let case = Case::from_markdown(marked_code.as_ref());
         run_case(parser, case)
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn test_alias_analysis() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let test_cases = [
             "»foo«",
             "«five» = 5",
@@ -433,21 +424,11 @@ mod tests {
             "»A« -> »b«",
             "a -> »A« -> a",
             "a -> a -> »A«",
-            "x»,«y -> »B«",
-            "x»,«y -> y",
-            "x »,« »Y« -> _",
             "(»foo«)",
             "(«foo») = (»bar«)",
             "if »A« then »B«",
             "if »a« then »b« else »c«",
-            "case »foo« of\n    »Number« a -> a\n    »Wildcard« -> »bar«\n    a»,«b -> a",
-            // === Macros Ambiguous ===
             "(»foo«",
-            "if »a«",
-            "case »a«",
-            // "->»a«", // TODO [mwu] restore (and implement) when parser is able to parse this
-            // "a ->",  // TODO [mwu] restore (and implement) when parser is able to parse this
-
             // === Definition ===
             "«foo» a b c = »foo« a »d«",
             "«foo» a b c = d -> a d",

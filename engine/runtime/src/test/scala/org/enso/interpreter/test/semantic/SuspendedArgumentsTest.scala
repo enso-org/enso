@@ -24,6 +24,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
     "not get executed upfront" in {
       val code =
         """import Standard.Base.IO
+          |import Standard.Base.Any.Any
           |
           |main =
           |    foo = i -> ~x -> ~y -> if i == 0 then x else y
@@ -36,6 +37,8 @@ class SuspendedArgumentsTest extends InterpreterTest {
     "work well with tail recursion" in {
       val code =
         """
+          |import Standard.Base.Any.Any
+          |
           |main =
           |    ifTest = c -> ~ifT -> ~ifF -> if c == 0 then ifT else ifF
           |    sum = c -> acc -> ifTest c acc (@Tail_Call sum c-1 acc+c)
@@ -78,6 +81,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
     "work properly with oversaturated arguments" in {
       val code =
         """import Standard.Base.IO
+          |import Standard.Base.Any.Any
           |
           |main =
           |    ifTest = c -> ~ifT -> ~ifF -> if c == 0 then ifT else ifF

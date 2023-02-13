@@ -13,7 +13,6 @@ failure = { workspace = true }
 lazy_static = { workspace = true }
 regex = { workspace = true }
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = { workspace = true }
 uuid = { version = "0.8.1", features = ["serde", "v4", "wasm-bindgen"] }
 ast-macros = { path = "../macros" }
 enso-data-structures = { path = "../../../../../lib/rust/data-structures" }
