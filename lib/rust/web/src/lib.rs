@@ -975,7 +975,6 @@ impl FrameCounter {
         let closure_handle = Rc::new(RefCell::new(None));
         let closure_handle_internal = Rc::downgrade(&closure_handle);
         let js_on_frame_handle_id = Rc::new(Cell::new(0));
-        ();
         let js_on_frame_handle_id_internal = Rc::downgrade(&js_on_frame_handle_id);
         *closure_handle.as_ref().borrow_mut() = Some(Closure::new(move |_| {
             frames_handle.upgrade().map(|fh| fh.as_ref().update(|value| value.saturating_add(1)));
