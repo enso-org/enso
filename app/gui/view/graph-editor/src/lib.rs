@@ -96,7 +96,8 @@ const SNAP_DISTANCE_THRESHOLD: f32 = 10.0;
 const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS: f32 = 300.0;
 /// Number of frames we expect to pass during the
 /// `VIZ_PREVIEW_MODE_TOGGLE_TIME_MS` interval. Assumes 60fps.  
-const VIZ_PREVIEW_MODE_TOGGLE_FRAMES: i32 = (VIZ_PREVIEW_MODE_TOGGLE_TIME_MS / 16.0) as i32;
+const VIZ_PREVIEW_MODE_TOGGLE_FRAMES: i32 =
+    (VIZ_PREVIEW_MODE_TOGGLE_TIME_MS / 1000.0 * 60.0) as i32;
 const MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH: f32 = 52.0;
 const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
 /// Horizontal and vertical offset between traffic lights and window border

@@ -27,6 +27,7 @@
 
 use crate::prelude::*;
 
+use std::cell::Cell;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 
@@ -962,7 +963,7 @@ type Counter = Rc<std::cell::Cell<i32>>;
 /// Uses `request_animation_frame` under the hood to count frames.
 pub struct FrameCounter {
     frames:                Counter,
-    js_on_frame_handle_id: i32,
+    js_on_frame_handle_id: Rc<Cell<i32>>,
     _closure_handle:       Rc<RefCell<Option<Closure<(dyn FnMut(f64))>>>>,
 }
 
@@ -973,30 +974,41 @@ impl FrameCounter {
         let frames_handle = Rc::downgrade(&frames);
         let closure_handle = Rc::new(RefCell::new(None));
         let closure_handle_internal = Rc::downgrade(&closure_handle);
-        *closure_handle.borrow_mut() = Some(Closure::new(move |_| {
+        let js_on_frame_handle_id = Rc::new(Cell::new(0));
+        ();
+        let js_on_frame_handle_id_internal = Rc::downgrade(&js_on_frame_handle_id);
+        *closure_handle.as_ref().borrow_mut() = Some(Closure::new(move |_| {
             frames_handle.upgrade().map(|fh| fh.as_ref().update(|value| value.saturating_add(1)));
             closure_handle_internal.upgrade().map(|maybe_handle| {
-                maybe_handle
-                    .borrow_mut()
-                    .as_ref()
-                    .map(|handle| window.request_animation_frame_with_closure_or_panic(handle))
+                maybe_handle.borrow_mut().as_ref().map(|handle| {
+                    let new_handle_id =
+                        window.request_animation_frame_with_closure_or_panic(handle);
+                    js_on_frame_handle_id_internal
+                        .upgrade()
+                        .map(|handle_id| handle_id.as_ref().set(new_handle_id));
+                });
             });
         }));
-        let js_on_frame_handle_id = window.request_animation_frame_with_closure_or_panic(
-            closure_handle.borrow().as_ref().unwrap(),
-        );
 
+        js_on_frame_handle_id.as_ref().set(window.request_animation_frame_with_closure_or_panic(
+            closure_handle.borrow().as_ref().unwrap(),
+        ));
+
+        debug_assert!(closure_handle.borrow().is_some());
         Self { frames, js_on_frame_handle_id, _closure_handle: closure_handle }
     }
 
     /// Returns the number of frames that have passed since the counter was created.
     pub fn frames_since_start(&self) -> i32 {
+        web_sys::console::error_1(&format!("Frames: {}", self.frames.as_ref().get()).into());
+
         self.frames.as_ref().get()
     }
 }
 
 impl Drop for FrameCounter {
     fn drop(&mut self) {
-        window.cancel_animation_frame_or_warn(self.js_on_frame_handle_id);
+        web_sys::console::error_1(&"FrameCounter dropped.".into());
+        window.cancel_animation_frame_or_warn(self.js_on_frame_handle_id.get());
     }
 }
