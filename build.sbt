@@ -2212,25 +2212,9 @@ buildEngineDistribution := {
 
 lazy val runEngineDistribution = inputKey[Unit]("Run the engine distribution with arguments")
 runEngineDistribution := {
-  import scala.collection.JavaConverters._
-
   buildEngineDistribution.value
   val args: Seq[String] = spaceDelimited("<arg>").parsed
-  val enso = engineDistributionRoot.value / "bin" / "enso"
-  val log = streams.value.log
-  log.info(s"Executing $enso ${args.mkString(" ")}")
-  val pb = new ProcessBuilder()
-  val all = new java.util.ArrayList[String]()
-  all.add(enso.getAbsolutePath())
-  all.addAll(args.asJava)
-  pb.command(all)
-  pb.inheritIO()
-  val p = pb.start()
-  val exitCode = p.waitFor()
-  if (exitCode != 0) {
-    log.warn(enso + " finished with exit code " + exitCode)
-  }
-  exitCode == 0
+  DistributionPackage.runEnginePackage(engineDistributionRoot.value, args, streams.value.log)
 }
 
 val stdBitsProjects =
