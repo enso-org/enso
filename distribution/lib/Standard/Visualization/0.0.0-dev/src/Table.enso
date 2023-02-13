@@ -152,7 +152,6 @@ get_column_width column =
     max (column.to_vector.map (x -> get_longest_line x.to_text))
 
 ## Return the height of the row defined by the given index.
-get_row_height : Table.Table -> Integer -> Integer
 get_row_height table row_ix =
     columns = table.columns
     row = columns.map (column -> column.at row_ix)
@@ -170,7 +169,6 @@ find_first_over_cum_sum items target  =
 
 ## Return the index of the column that is at the end of the given text width, when starting from the
    given start column index.
-find_end_column : Table.Table -> Integer -> Integer -> Integer -> Integer
 find_end_column table start_column_ix chunks chunk_size =
     table_columns_count = table.columns.length
     column_to_check = start_column_ix.up_to table_columns_count
@@ -183,7 +181,6 @@ find_end_column table start_column_ix chunks chunk_size =
 
 ## Return the index of the row that is at the end of the given text height, when starting from the
    given start row index.
-find_end_row : Table.Table -> Integer -> Integer -> Integer
 find_end_row table start_row_ix max_height =
     table_row_count = (table.columns.get 0).length
     rows_to_check = start_row_ix.up_to table_row_count
