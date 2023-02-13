@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Column, Delimited
 import Standard.Table.Main as Table_Module
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 from project.Util import all
@@ -111,10 +111,11 @@ spec =
 
     Test.group "Integration" <|
         Test.specify "should be able to round-trip a table with all kinds of weird characters to CSV and back" <|
-            t = Table.new [['name', ['Śłąęźż");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,', '\'', 'a\n\nb', 'a\tc', Nothing, Nothing, Nothing, '42', '💁👌🎍😍']], ['X', [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]]]
-            out = enso_project.data / 'integrate.csv'
+            t = Table.new [['name', ['Śłąęźż");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,', '\'', 'a\n\nb', 'a\tc', Nothing, Nothing, Nothing, '42', '💁👌🎍😍']], ['X', [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110]]]
+            out = enso_project.data / 'transient' / 'integrate.csv'
             out.delete_if_exists
-            t.write out
+            Problems.assume_no_problems <|
+                t.write out
             t2 = out.read
             t2.should_equal t
             t2.print
