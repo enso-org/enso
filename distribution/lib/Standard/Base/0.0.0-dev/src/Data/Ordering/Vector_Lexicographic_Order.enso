@@ -9,7 +9,7 @@ from project.Data.Boolean import True, False
    Arguments:
    - vector1: The first vector to compare.
    - vector2: The second vector to compare.
-   - element_comparator (optional): A custom comparator defining the order
+   - element_comparator (optional): A custom compare function defining the order
      between particular elements. Uses the default ordering by default.
 
    Returns whether `vector1` is less, equal or greater than `vector2` according
@@ -30,7 +30,7 @@ from project.Data.Boolean import True, False
          Vector_Lexicographic_Order.compare [] [1] == Ordering.Less
          Vector_Lexicographic_Order.compare [1] [1] == Ordering.Equal
 compare : Vector -> Vector -> (Any -> Any -> Ordering) -> Ordering
-compare vector1 vector2 (element_comparator = _.compare_to _) =
+compare vector1 vector2 (element_comparator = Ordering.compare _ _) =
     is_index_contained_in_both ix = ix<vector1.length && ix<vector2.length
     go ix = case is_index_contained_in_both ix of
         True ->
@@ -48,5 +48,5 @@ compare vector1 vector2 (element_comparator = _.compare_to _) =
             ## At least one of the vectors ran out of elements. In that case,
                the longer Vector is the greater one and if both have the same
                length that means they must have been equal.
-            vector1.length . compare_to vector2.length
+            Ordering.compare vector1.length vector2.length
     go 0

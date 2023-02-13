@@ -9,7 +9,7 @@ compare_all_adjacent text_vector =
     res
 
 bench =
-    ## The `Text.compare_to` benchmarks check both scenarios where the Texts are
+    ## The `Text` compare benchmarks check both scenarios where the Texts are
        short and very long - both checking the case where the difference appears
        early or late in the long string. This is to see well any overheads
        related to preprocessing the whole string and any possible early

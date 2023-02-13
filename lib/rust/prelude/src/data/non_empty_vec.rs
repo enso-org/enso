@@ -284,7 +284,7 @@ where I: vec_indexed_by::Index
     }
 
     /// Get the tail reference.
-    pub fn tail(&mut self) -> &[T]
+    pub fn tail(&self) -> &[T]
     where I: From<u8> {
         &self.elems[I::from(1_u8)..]
     }
