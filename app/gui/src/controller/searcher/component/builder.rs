@@ -209,7 +209,9 @@ impl List {
                     let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
                     let namespace = &parent_group.qualified_name.project().namespace;
                     let in_local_namespace = namespace == LOCAL_NAMESPACE;
-                    if !component.is_private() || in_local_scope || in_local_namespace {
+                    let keep_private_component =
+                        in_local_scope || in_local_namespace || self.keep_private_components;
+                    if !component.is_private() || keep_private_component {
                         parent_group.content.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
                         let not_module = entry.kind != Kind::Module;
@@ -223,7 +225,9 @@ impl List {
                         let project = flatten_group.project.as_ref();
                         let in_local_namespace =
                             project.map(|name| name.namespace == LOCAL_NAMESPACE).unwrap_or(false);
-                        if !component.is_private() || in_local_namespace {
+                        let keep_private_component =
+                            in_local_namespace || self.keep_private_components;
+                        if !component.is_private() || keep_private_component {
                             flatten_group.entries.borrow_mut().push(component.clone_ref());
                             component_inserted_somewhere = true;
                         }
