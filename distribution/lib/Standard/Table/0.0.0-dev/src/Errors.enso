@@ -105,7 +105,7 @@ type Invalid_Aggregation
 
     to_display_text : Text
     to_display_text self =
-        "The "+self.column+" could not be calculated at "+self.row.to_text+" : "+self.message
+        "The "+self.column+" could not be calculated at "+self.rows.short_display_text+": "+self.message
 
 ## Indicates that some operation relies on equality on floating-point values,
    which is not recommended.
@@ -122,7 +122,7 @@ type Unquoted_Delimiter
 
     to_display_text : Text
     to_display_text self =
-        "The "+self.column+" at row "+self.row.to_text+" contains the delimiter and there is no specified quote character."
+        "The "+self.column+" at rows "+self.rows.short_display_text+" contains the delimiter and there is no specified quote character."
 
 ## Warning when additional warnings occurred.
 type Additional_Warnings
