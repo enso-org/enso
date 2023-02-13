@@ -205,13 +205,17 @@ impl<'a> ApplicationBase<'a> {
         }
 
         let invocation_info = context.call_info(self.call_id?, self.function_name.as_deref())?;
-        let is_static = invocation_info.is_static;
+        let self_in_access = !invocation_info.is_constructor
+            && (!invocation_info.called_on_type.unwrap_or(false) || invocation_info.is_static);
+
         let parameters = invocation_info.with_call_id(self.call_id).parameters;
         let mut deque: VecDeque<ArgumentInfo> = parameters.into();
+        let first_argument_name = deque.front().and_then(|arg| arg.name.as_ref());
+        let has_self_argument = first_argument_name.map_or(false, |name| name == node::This::NAME);
 
         // When a method notation is used on non-static invocation, the first `self` argument is
         // already present the access chain. Remove it from the list of expected prefix arguments.
-        if self.uses_method_notation && !is_static {
+        if self.uses_method_notation && has_self_argument && self_in_access {
             deque.pop_front();
         }
         Some(deque)
@@ -847,8 +851,7 @@ mod test {
         let mut id_map = IdMap::default();
         let call_id = id_map.generate(0..3);
         let ast = parser.parse_line_ast_with_id_map("foo", id_map).unwrap();
-        let invocation_info =
-            CalledMethodInfo { is_static: false, parameters: vec![this_param(None)] };
+        let invocation_info = CalledMethodInfo { parameters: vec![this_param(None)], ..default() };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
@@ -869,8 +872,7 @@ mod test {
         let mut id_map = IdMap::default();
         let call_id = id_map.generate(0..8);
         let ast = parser.parse_line_ast_with_id_map("foo here", id_map).unwrap();
-        let invocation_info =
-            CalledMethodInfo { is_static: false, parameters: vec![this_param(None)] };
+        let invocation_info = CalledMethodInfo { parameters: vec![this_param(None)], ..default() };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
@@ -892,8 +894,8 @@ mod test {
         let call_id = Some(id_map.generate(0..8));
         let ast = parser.parse_line_ast_with_id_map("foo here", id_map).unwrap();
         let invocation_info = CalledMethodInfo {
-            is_static:  false,
             parameters: vec![this_param(None), param1(None), param2(None)],
+            ..default()
         };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
@@ -925,8 +927,8 @@ mod test {
         let call_id = Some(id_map.generate(0..8));
         let ast = parser.parse_line_ast_with_id_map("here.foo", id_map).unwrap();
         let invocation_info = CalledMethodInfo {
-            is_static:  false,
             parameters: vec![this_param(None), param1(None), param2(None)],
+            ..default()
         };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
