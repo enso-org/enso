@@ -47,7 +47,7 @@ impl Handle {
     /// Create IDE Controller for a given opened project.
     pub fn new(project: model::Project) -> Self {
         let status_notifications = default();
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let private_cb_entries_visibility_flag = default();
         Self { status_notifications, parser, project, private_cb_entries_visibility_flag }
     }
@@ -75,7 +75,7 @@ impl Handle {
         )
         .await?;
         let status_notifications = default();
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let private_cb_entries_visibility_flag = default();
         Ok(Self { status_notifications, parser, project, private_cb_entries_visibility_flag })
     }
