@@ -20,6 +20,14 @@ module.exports = {
             'allowAny': true,
             'allowBoolean': true,
         }],
+        // React 17 and later supports async functions as event handlers, so we need to disable this
+        // rule to avoid false positives.
+        //
+        // See: https://github.com/typescript-eslint/typescript-eslint/pull/4623
+        '@typescript-eslint/no-misused-promises': [
+            'error',
+            { "checksVoidReturn": { "attributes": false } }
+        ],
         'jsdoc/check-access': 'warn',
         'jsdoc/check-alignment': 'warn',
         'jsdoc/check-indentation': 'warn',

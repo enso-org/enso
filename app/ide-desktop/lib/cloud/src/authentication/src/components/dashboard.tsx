@@ -1,8 +1,11 @@
-/** @file Main dashboard container responsible for listing users projects as well as others interactive components. */
+/**
+ * @file Main dashboard container responsible for listing user's projects as well as other
+ * interactive components.
+ */
 
 import * as React from 'react'
 
-import withRouter from '../navigation/withRouter'
+import withRouter from '../navigation'
 
 
 
@@ -11,7 +14,6 @@ import withRouter from '../navigation/withRouter'
 // ==========================
 
 const dashboardContainer: React.FC<any> = () => {
-
     return (
         <div>
             <h1>Hello Enso Cloud</h1>

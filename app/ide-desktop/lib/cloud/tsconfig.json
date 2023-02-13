@@ -7,14 +7,21 @@
     "moduleResolution": "node",
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true,
+    // FIXME [NP]: This must be set to `false` to avoid a false positive on the line `import * as
+    //   React from 'react'`, which is necessary to make the `react` module work with Electron.
+    //   Without setting this to `false`, we get unused local errors when running the cloud
+    //   dashboard outside of Electron.
+    "noUnusedLocals": false,
     "noUnusedParameters": true,
     "removeComments": true,
     "resolveJsonModule": true,
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": false,
-    "target": "es5",
+    // FIXME [NP]: By itself, the `authentication` module has no issues transforming `const` to
+    //   `es5` but for some reason this fails when building for Electron. So this line was changed
+    //   from `es5` to `es2019` to make it work. Do we need to support older browsers or is this ok?
+    "target": "es2019",
     "lib": [
       "dom",
       "dom.iterable",

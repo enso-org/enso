@@ -2,9 +2,9 @@
   "name": "enso-studio-authentication",
   "version": "1.0.0",
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": "./src/index.tsx",
   "devDependencies": {
+    "tailwindcss": "^3.2.6",
     "typescript": "^4.9.3"
   }
 }
-

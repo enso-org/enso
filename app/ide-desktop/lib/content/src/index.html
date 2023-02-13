@@ -29,11 +29,23 @@
     <title>Enso</title>
     <link rel="stylesheet" href="/assets/style.css" />
     <link rel="stylesheet" href="/assets/docsStyle.css" />
+    <!--
+      FIXME [NP]: Ask @mwu how to get TailwindCSS to play nice with the fact that
+      `lib/authentication` is a dependency of `lib/content` and `lib/cloud` and not its own
+      standalone package, so that we can use `@tailwind` directives in the `index.html` file.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="/assets/index.js" defer></script>
     <script type="module" src="/assets/run.js" defer></script>
   </head>
   <body>
     <div class="titlebar"></div>
+    <!--
+      This `div` is used to render the authentication/dashboard app. It is kept separate from the
+      `root` `div`, which used used to render the IDE. This is done to ensure the two do not
+      interfere with each other.
+    -->
+    <div id="authentication"></div>
     <div id="root"></div>
     <noscript>
       This page requires JavaScript to run. Please enable it in your browser.
