@@ -106,6 +106,8 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<void>;
     signInWithGitHub: () => Promise<void>;
     signInWithPassword: (email: string, password: string) => Promise<void>;
+    forgotPassword: (email: string) => Promise<void>;
+    resetPassword: (email: string, code: string, password: string) => Promise<void>;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -146,12 +148,20 @@ const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const signInWithPassword = async (email: string, password: string) => {
     await Auth.signIn(email, password);
   };
+  const forgotPassword = async (email: string) => {
+    await Auth.forgotPassword(email);
+  }
+  const resetPassword = async (email: string, code: string, password: string) => {
+    await Auth.forgotPasswordSubmit(email, code, password)
+  };
 
   const value = {
     signUp,
     signInWithGoogle,
     signInWithGitHub,
     signInWithPassword,
+    forgotPassword,
+    resetPassword,
   };
 
   return (

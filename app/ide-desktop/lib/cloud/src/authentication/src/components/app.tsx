@@ -6,6 +6,8 @@ import toast from "react-hot-toast"
 
 import { AuthProvider } from '../authentication';
 import DashboardContainer from "./dashboard";
+import ForgotPasswordContainer from "./forgotPassword";
+import ResetPasswordContainer from "./resetPassword";
 import LoginContainer from "./login";
 import RegistrationContainer from "./registration";
 import { Toaster } from 'react-hot-toast';
@@ -58,6 +60,8 @@ const AppRouter: React.FC<any> = () => {
         <Route index element={<LoginContainer />} />
         <Route path={"/login"} element={<LoginContainer />} />
         <Route path={"/registration"} element={<RegistrationContainer />} />
+        <Route path={"/forgot-password"} element={<ForgotPasswordContainer />} />
+        <Route path={"/reset-password"} element={<ResetPasswordContainer />} />
       </React.Fragment>
     </Routes>
   )

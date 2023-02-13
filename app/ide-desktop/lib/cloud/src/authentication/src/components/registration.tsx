@@ -50,7 +50,7 @@ const registrationContainer: React.FC<any> = () => {
             Create new account
           </div>
 
-          <form onSubmit={(event) => signUp(event)}>
+          <form onSubmit={signUp}>
             <div className="flex flex-col mb-4">
               <label
                 htmlFor="email"
