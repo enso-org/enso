@@ -251,12 +251,12 @@ impl Group {
 
     pub fn best_match(&self) -> Option<Component> {
         // self.sort_by_match_reverse();
-        // error!("----");
-        // self.entries.borrow().iter().for_each(|e| {
-        //     if e.score() > 0.0 {
-        //         error!("entry_match: {:?}: {:?}", e.label(), e.score())
-        //     }
-        // });
+        error!("----");
+        self.entries.borrow().iter().for_each(|e| {
+            if e.score() > 0.0 {
+                error!("entry_match: {:?}: {:?}", e.label(), e.score())
+            }
+        });
         self.entries
             .borrow()
             .iter()

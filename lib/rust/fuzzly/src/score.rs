@@ -335,4 +335,17 @@ mod test {
         let text = "";
         assert_eq!(find_best_subsequence(text, pattern, mock_metric::Sum::default()), None);
     }
+
+    #[test]
+    fn finding_best_scoring_item() {
+        let pattern = "list";
+        let text1 = "File list";
+        let text2 = "File list immediate children";
+        let metric = crate::metric::SubsequentLettersBonus::default();
+
+        let score1 = find_best_subsequence(text1, pattern, metric).unwrap().score;
+        let score2 = find_best_subsequence(text2, pattern, metric).unwrap().score;
+
+        assert!(score1 > score2, "Score of the first text should be higher than the second one");
+    }
 }
