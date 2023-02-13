@@ -159,13 +159,6 @@ export function watchOptions(onRebuild?: () => void, inject?: esbuild.BuildOptio
     return esbuildWatchHelper.toWatchOptions(bundlerOptionsFromEnv(), onRebuild, inject)
 }
 
-// /**
-//  * Spawn the esbuild watch process. It continuously runs, rebuilding the package.
-//  */
-// export async function watch(onRebuild?: () => void, inject?: esbuild.BuildOptions['inject']) {
-//     return esbuildWatchHelper.watch(bundlerOptionsFromEnv(), onRebuild, inject)
-// }
-
 /** ESBuild options for bundling (one-off build) the package.
  *
  * Relies on the environment variables to be set.
