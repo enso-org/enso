@@ -848,8 +848,7 @@ impl TryFrom<Entry> for language_server::MethodPointer {
 impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
     fn from(entry: &Entry) -> span_tree::generate::context::CalledMethodInfo {
         let parameters = entry.arguments.iter().map(to_span_tree_param).collect();
-        let is_constructor = matches!(entry.kind, Kind::Constructor);
-        span_tree::generate::context::CalledMethodInfo { is_constructor, parameters }
+        span_tree::generate::context::CalledMethodInfo { is_static: entry.is_static, parameters }
     }
 }
 

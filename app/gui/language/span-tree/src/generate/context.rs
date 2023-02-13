@@ -13,11 +13,12 @@ use ast::Id;
 /// Additional information available on nodes that are an invocation of a known methods.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CalledMethodInfo {
-    /// Whether or not this call represents a type constructor. Type constructors do not have an
-    /// associated `self` parameter in the parameters list.
-    pub is_constructor: bool,
+    /// Whether or not this call represents a static method. When a call is static, the potential
+    /// associated `self` argument is not part of the access chain. Instead it is treated as an
+    /// ordinary prefix argument.
+    pub is_static:  bool,
     /// Information about arguments taken by a called method.
-    pub parameters:     Vec<ArgumentInfo>,
+    pub parameters: Vec<ArgumentInfo>,
 }
 
 impl CalledMethodInfo {
