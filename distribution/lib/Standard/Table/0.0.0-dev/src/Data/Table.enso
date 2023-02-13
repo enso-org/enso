@@ -232,6 +232,18 @@ type Table
             _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if java_column.is_nothing then if_missing else Column.Value java_column
 
+    ## Gets the first column
+    first_column : Column ! Index_Out_Of_Bounds
+    first_column self = self.at 0
+
+    ## Gets the second column
+    second_column : Column ! Index_Out_Of_Bounds
+    second_column self = self.at 1
+
+    ## Gets the last column
+    last_column : Column ! Index_Out_Of_Bounds
+    last_column self = self.at (self.column_count - 1)
+
     ## Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.java_table.getColumns.length
