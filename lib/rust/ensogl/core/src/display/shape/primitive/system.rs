@@ -632,7 +632,7 @@ macro_rules! _shape_old {
             // =============
 
             /// The type of the shape. It also contains the parameters of the shape. The parameters
-            /// are stored in this type in order to simplify bounds for utlities managing shape
+            /// are stored in this type in order to simplify bounds for utilities managing shape
             /// systems. For example, if we would like to handle any shape with given parameters,
             /// we will be processing [`ShapeSystem<S>`] and we can add bounds to [`S`] to reflect
             /// what parameters it should contain.
@@ -788,7 +788,7 @@ macro_rules! _shape {
             // =============
 
             /// The type of the shape. It also contains the parameters of the shape. The parameters
-            /// are stored in this type in order to simplify bounds for utlities managing shape
+            /// are stored in this type in order to simplify bounds for utilities managing shape
             /// systems. For example, if we would like to handle any shape with given parameters,
             /// we will be processing [`ShapeSystem<S>`] and we can add bounds to [`S`] to reflect
             /// what parameters it should contain.
