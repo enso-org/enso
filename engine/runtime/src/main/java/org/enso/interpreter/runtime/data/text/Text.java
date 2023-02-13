@@ -193,19 +193,36 @@ public final class Text implements TruffleObject {
       boolean allowSideEffects,
       @Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
     String str = toJavaStringNode.execute(this);
-    // TODO This should be more extensible
-    String replaced =
-        str.replace("\\", "\\\\")
-            .replace("'", "\\'")
-            .replace("\n", "\\n")
-            .replace("\t", "\\t")
-            .replace("\u0007", "\\a")
-            .replace("\u0008", "\\b")
-            .replace("\u000c", "\\f")
-            .replace("\r", "\\r")
-            .replace("\u000B", "\\v")
-            .replace("\u001B", "\\e");
-    return "'" + replaced + "'";
+    int len = str.length();
+    int outputLength = len + 2; // Precise if there are no special characters.
+
+    // TODO This should be more extensible; while it's still a small fixed set,
+    // a switch is probably fastest (unconfirmed)
+
+    StringBuffer strBuf = new StringBuffer(outputLength);
+
+    strBuf.append('\'');
+
+    for (int i = 0; i < len; ++i) {
+      char c = str.charAt(i);
+      switch (c) {
+        case '\\' -> strBuf.append("\\\\");
+        case '\'' -> strBuf.append("\\'");
+        case '\n' -> strBuf.append("\\n");
+        case '\t' -> strBuf.append("\\t");
+        case '\u0007' -> strBuf.append("\\a");
+        case '\u0008' -> strBuf.append("\\b");
+        case '\u000c' -> strBuf.append("\\f");
+        case '\r' -> strBuf.append("\\r");
+        case '\u000B' -> strBuf.append("\\v");
+        case '\u001B' -> strBuf.append("\\e");
+        default -> strBuf.append(c);
+      }
+    }
+
+    strBuf.append('\'');
+
+    return strBuf.toString();
   }
 
   @ExportMessage
