@@ -105,8 +105,8 @@ includes the official discord and GitHub repositories under `enso-org`.
 
 The following members of the Enso organisation can be contacted as moderators:
 
-- [`@joenash`](https://github.com/joenash)
-- [`@iamrecursion`](https://github.com/iamrecursion)
+- [`@wdanilo`](https://github.com/wdanilo)
+- [`@sylwiabr`](https://github.com/sylwiabr)
 
 Alternatively, you can send an email to the moderation team at
 [moderators@enso.org](mailto:moderators@enso.org).
