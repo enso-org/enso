@@ -957,7 +957,7 @@ impl TimeProvider for Performance {
 type Counter = Rc<std::cell::Cell<i32>>;
 
 #[derive(Debug)]
-/// A counter that counts frames thr frames that have passed since its initialization.
+/// A counter that counts the number of frames that have passed since its initialization.
 ///
 /// Uses `request_animation_frame` under the hood to count frames.
 pub struct FrameCounter {
