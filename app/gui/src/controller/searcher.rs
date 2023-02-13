@@ -26,7 +26,7 @@ use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 use flo_stream::Subscriber;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 // ==============
@@ -1792,7 +1792,7 @@ pub mod test {
             project.expect_qualified_name().returning_st(move || project_qname.clone());
             project.expect_name().returning_st(move || project_name.clone());
             let project = Rc::new(project);
-            ide.expect_parser().return_const(Parser::new_or_panic());
+            ide.expect_parser().return_const(Parser::new());
             let current_project = project.clone_ref();
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
@@ -2138,7 +2138,7 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn parsed_input() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
 
         fn args_reprs(prefix: &ast::prefix::Chain) -> Vec<String> {
             prefix.args.iter().map(|arg| arg.repr()).collect()
@@ -2201,9 +2201,7 @@ pub mod test {
         let expression = parsed.expression.unwrap();
         assert_eq!(expression.off, 0);
         assert_eq!(expression.func.repr(), "foo");
-        assert_eq!(args_reprs(&expression), vec![" bar".to_string()]);
-        assert_eq!(parsed.pattern_offset, 1);
-        assert_eq!(parsed.pattern.as_str(), "(baz ");
+        assert_eq!(args_reprs(&expression), vec![" bar".to_string(), " (baz".to_string()]);
     }
 
     fn are_same(
@@ -2287,7 +2285,7 @@ pub mod test {
             }
 
             fn run(&self) {
-                let parser = Parser::new_or_panic();
+                let parser = Parser::new();
                 let ast = parser.parse_line_ast(self.before).unwrap();
                 let new_ast = apply_this_argument("foo", &ast);
                 assert_eq!(new_ast.repr(), self.after, "Case {self:?} failed: {ast:?}");
@@ -2439,7 +2437,7 @@ pub mod test {
 
         let module = searcher.graph.graph().module.clone_ref();
         // Setup searcher.
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let picked_method = FragmentAddedByPickingSuggestion {
             id:                CompletedFragmentId::Function,
             picked_suggestion: action::Suggestion::FromDatabase(entry4),
@@ -2522,7 +2520,7 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn simple_function_call_parsing() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
 
         let ast = parser.parse_line_ast("foo").unwrap();
         let call = SimpleFunctionCall::try_new(&ast).expect("Returned None for \"foo\"");

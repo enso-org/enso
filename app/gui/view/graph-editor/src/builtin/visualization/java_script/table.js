@@ -183,10 +183,13 @@ class TableVisualization extends Visualization {
                 let to_render = content
                 if (content instanceof Object) {
                     const type = content.type
-                    if (type === 'Date') {
+                    if (type === 'BigInt') {
+                        to_render = BigInt(content.value)
+                    } else if (type === 'Date') {
                         to_render = new Date(content.year, content.month - 1, content.day)
                             .toISOString()
                             .substring(0, 10)
+                        to_render = '<span style="white-space: nowrap;">' + to_render + '</span>'
                     } else if (type === 'Time_Of_Day') {
                         const js_date = new Date(
                             0,
@@ -200,6 +203,7 @@ class TableVisualization extends Visualization {
                         to_render =
                             js_date.toTimeString().substring(0, 8) +
                             (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
+                        to_render = '<span style="white-space: nowrap;">' + to_render + '</span>'
                     } else if (type === 'Date_Time') {
                         const js_date = new Date(
                             content.year,
@@ -213,6 +217,7 @@ class TableVisualization extends Visualization {
                         to_render =
                             js_date.toISOString().substring(0, 19).replace('T', ' ') +
                             (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
+                        to_render = '<span style="white-space: nowrap;">' + to_render + '</span>'
                     }
                 }
                 result += '<td class="plaintext">' + to_render + '</td>'

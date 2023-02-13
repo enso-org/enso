@@ -1,14 +1,182 @@
+import project.Any.Any
+import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
 import project.Error.Common.Type_Error
 import project.Error.Error
+import project.Error.Incomparable_Values.Incomparable_Values
+import project.Error.Unimplemented.Unimplemented
+import project.Nothing
+import project.Meta
+import project.Meta.Atom
+from project.Data.Boolean import all
+
+## Provides custom ordering, equality check and hash code for types that need it.
+
+    The Enso runtime system offers default implementation of _equality_
+    as well as capability to _compute hash code_ (for use in `Map`) automatically.
+    The default implementation is sufficient for most of the programming activities.
+    Especially when defining new type and its constructors, they get sensible
+    implementation of both functions.
+
+    Should there be a need to redefine the default implementation, here is a way:
+    Define conversion function `Comparable.from` for your `type` and return pointer to
+    another `type` that satisfies either of the following two definitions:
+
+    ```
+    type Ordered_Comparator T
+        is_ordered = True
+        compare : T -> T -> Ordering
+        hash : T -> Integer
+
+    type Unordered_Comparator T
+        is_ordered = False
+        equals : T -> T -> Boolean
+        hash : T -> Integer
+    ```
+
+    Or `Incomparable` in case that the type `T` should not be compared at all.
+
+    Note that there has to be `is_ordered` method defined which returns a Boolean
+    indicating that the comparator is ordered. This is currently needed as there is
+    no way to define interfaces in Enso.
+
+    An _unordered comparator_ has to implement both `equals` and `hash` to define
+    a _total_ custom equality. By _total_, we mean that every instance of the type
+    has to be either equal or not equal, which is represented by the type signature
+    of `equals` - just `Boolean` is returned without any errors thrown.
+
+    An _ordered comparator_ has `compare` method instead of `equals` method, that is
+    expected to return `Ordering` signaling that an instance of the type is either
+    less than, equal to, or greater than the other instance. This relation is also
+    _total_, meaning that all the instances of the type are comparable.
+
+    The runtime expects the following semantics for all the comparators:
+    - Hash consistency:
+      - If x == y then hash(x) == hash(y)
+      - If hash(x) != hash(y) then x != y
+    - Consistency: if x == y then x == y for all the subsequent invocations.
+    - Symmetry: if x == y then y == x
+    - Reflexivity: x == x
+    - Transitivity: if x < y and y < z then x < z
+    - Antisymmetry (?): if x > y then y < x
+
+    Users are responsible for the compliance to the aforementioned semantics.
+    Should the semantics be violated, an unexpected behavior may be encountered, e.g.,
+    `Array.sort` may return unexpected results or fail with `Incomparable_Values`.
+
+
+    > Example
+        Comparator for an unordered Pair `UPair`. In this example, we can see an
+        implementation of the `hash` method that delegates to hash methods of
+        fields.
+
+        ```
+        type UPair
+            Value x y
+
+        type UPair_Comparator
+            is_ordered = False
+
+            equals pair1 pair2 =
+                if pair1.x == pair2.x && pair1.y == pair2.y then True else
+                    if pair1.x == pair2.y && pair1.y == pair2.x then True else
+                        False
+
+            hash upair =
+                x_comp = Comparable.from upair.x
+                y_comp = Comparable.from upair.y
+                (x_comp.hash upair.x) + (y_comp.hash upair.y)
+
+        Comparable.from (_ : UPair) = UPair_Comparator
+        ```
+
+    > Example
+        Representation of _rational numbers_ as a pair of integers needs a
+        special equality. Here is a way to define it:
+
+        ```
+        type Rational
+            Fraction (numerator:Integer) (denominator:Integer)
+
+        Comparable.from (_:Rational) = Rational_Ordering
+
+        type Rational_Ordering
+            is_ordered = True
+            compare self r1 r2 =
+                v1 = r1.numerator * r2.denominator
+                v2 = r2.numerator * r1.denominator
+                if v1 < v2 then Ordering.Less else
+                    if v1 > v2 then Ordering.Greater else
+                        Ordering.Equal
+            hash self r1 = 42 # or something better
+        ```
+
+        By defining the `Rational_Ordering` and making it available via
+        `Comparable.from (_:Rational)` method, all parts of the Enso system will use
+        the custom comparator whenever equality or hash code is needed.
+
+        The equality check of two objects:
+        - verifies both objects share the same type of `comparator`
+        - consults their `compare`, or `equals` method, based on whether the comparator is
+          ordered or unordered.
+        - if the result is `Ordering.Equal` the system also checks that both instances have the same `hash`
+        - the `hash` code check may be done only from time to time to speed things up
+@Builtin_Type
+type Comparable
+    ## PRIVATE
+       Called as a callback from internal engine code for an atom with a custom
+       comparator. It is assumed that the given atom has a custom comparator, that is
+       a comparator different than `Default_Unordered_Comparator`.
+    hash_callback : Atom -> Integer
+    hash_callback atom = (Comparable.from atom).hash atom
+
+    ## PRIVATE
+       A custom comparator is any comparator that is different than the
+       default ones.
+    has_custom_comparator : Atom -> Boolean
+    has_custom_comparator atom =
+        comp = Comparable.from atom
+        (comp.is_a Default_Unordered_Comparator).not && (comp.is_a Default_Ordered_Comparator).not
+
+## Singleton denoting that values of certain type are not comparable.
+type Incomparable
+    Singleton
+
+## Default implementation of unordered comparator.
+@Builtin_Type
+type Default_Unordered_Comparator
+    is_ordered = False
+
+    equals : Any -> Any -> Boolean
+    equals x y = Comparable.equals_builtin x y
+
+    hash : Any -> Integer
+    hash object = Comparable.hash_builtin object
+
+
+## Default implementation of an ordered _comparator_. Handles only primitive types,
+   does not handle atoms, or vectors. Any type that requires an ordering, must
+   define its own ordered comparator.
+@Builtin_Type
+type Default_Ordered_Comparator
+    is_ordered = True
+
+    ## Handles only primitive types, not atoms or vectors.
+    compare : Any -> Any -> Ordering
+    compare x y =
+        if Comparable.less_than_builtin x y then Ordering.Less else
+            if Comparable.equals_builtin x y then Ordering.Equal else
+                if Comparable.less_than_builtin y x then Ordering.Greater
+
+    hash : Number -> Integer
+    hash x = Comparable.hash_builtin x
+
+
+Comparable.from (_:Any) = Default_Unordered_Comparator
+
 
 ## Types representing the ordering of values.
-
-   These are intended to be returned from the `compare_to` function, that has a
-   type as follows for a type `A`: `A.compare_to : A -> Ordering`.
-
-   The result should be returned in terms of how `self` orders in comparison to
-   `that`. So, if `self` is greater than `that`, you should return `Greater.`
 @Builtin_Type
 type Ordering
     ## A representation that the first value orders as less than the second.
@@ -19,6 +187,14 @@ type Ordering
 
     ## A representation that the first value orders as greater than the second.
     Greater
+
+    ## Compares to values and returns an Ordering
+    compare : Any -> Any -> Ordering ! (Incomparable_Values | Type_Error)
+    compare x y =
+        if x < y then Ordering.Less else
+            if x == y then Ordering.Equal else
+                if x > y then Ordering.Greater else
+                    Error.throw Incomparable_Values
 
     ## Converts the ordering to the signed notion of ordering based on integers.
 
@@ -42,11 +218,6 @@ type Ordering
         Ordering.Equal -> other
         Ordering.Greater -> Ordering.Greater
 
-    compare_to : Ordering -> Ordering
-    compare_to self that = case that of
-        _ : Ordering -> self.to_sign.compare_to that.to_sign
-        _ -> Error.throw (Type_Error.Error Ordering that "that")
-
     ## Converts a sign-based representation of ordering to Enso's native ordering.
 
        Arguments:
@@ -59,3 +230,10 @@ type Ordering
     from_sign : Integer -> Ordering
     from_sign sign = if sign == 0 then Ordering.Equal else
         if sign > 0 then Ordering.Greater else Ordering.Less
+
+type Ordering_Comparator
+    is_ordered = True
+    compare x y = (Comparable.from x.to_sign).compare x.to_sign y.to_sign
+    hash x = x.to_sign
+
+Comparable.from (_:Ordering) = Ordering_Comparator

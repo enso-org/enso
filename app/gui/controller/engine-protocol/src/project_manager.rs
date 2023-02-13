@@ -1,7 +1,7 @@
 //! Client library for the JSON-RPC-based Project Manager service.
 //!
 //! The all methods and types are derived from Engine RPC API described
-//! here https://dev.enso.org/docs/enso/language-server/protocol-project-manager.html
+//! here https://enso.org/docs/developer/enso/language-server/protocol-project-manager.html
 
 //FIXME: We need to review the structures' names in Enso Protocol specification
 // https://github.com/enso-org/enso/issues/708

@@ -9,7 +9,8 @@ class RecursionFixtures extends DefaultInterpreterRunner {
   val hundred: Long        = 100
 
   val sumTCOCode =
-    """
+    """import Standard.Base.Any.Any
+      |
       |main = sumTo ->
       |    summator = acc -> current ->
       |        if current == 0 then acc else @Tail_Call summator acc+current current-1
@@ -20,7 +21,8 @@ class RecursionFixtures extends DefaultInterpreterRunner {
   val sumTCO = getMain(sumTCOCode)
 
   val sumTCOFoldLikeCode =
-    """
+    """import Standard.Base.Any.Any
+      |
       |main = sumTo ->
       |    summator = acc -> i -> f ->
       |        if i == 0 then acc else @Tail_Call summator (f acc i) (i - 1) f
@@ -30,7 +32,8 @@ class RecursionFixtures extends DefaultInterpreterRunner {
   val sumTCOFoldLike = getMain(sumTCOFoldLikeCode)
 
   val sumRecursiveCode =
-    """
+    """import Standard.Base.Any.Any
+      |
       |main = sumTo ->
       |    summator = i -> if i == 0 then 0 else i + summator (i - 1)
       |    res = summator sumTo
@@ -39,7 +42,8 @@ class RecursionFixtures extends DefaultInterpreterRunner {
   val sumRecursive = getMain(sumRecursiveCode)
 
   val oversaturatedRecursiveCallTCOCode =
-    """
+    """import Standard.Base.Any.Any
+      |
       |main = sumTo ->
       |    summator = acc -> i -> f ->
       |        if i == 0 then acc else @Tail_Call summator (f acc i) (i - 1) f

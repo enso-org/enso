@@ -45,7 +45,6 @@ pub fn ast_node(
     let output = quote! {
         #[derive(Clone,Eq,PartialEq,Debug)]
         #[derive(Iterator)]
-        #[derive(Serialize,Deserialize)]
         #input
     };
     output.into()
@@ -282,33 +281,4 @@ pub fn derive_has_tokens(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 pub fn has_tokens(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let maker = syn::parse::<TokenDescription>(input).unwrap();
     maker.has_tokens().into()
-}
-
-/// Generates `HasTokens` instances that are just sum of their parts.
-///
-/// Takes 1+ parameters:
-/// * first goes the typename for which implementations are generated (can take type parameters, as
-///   long as they implement `HasTokens`)
-/// * then arbitrary number (0 or more) of expressions, that shall yield values implementing
-///   `HasTokens`. The `self` can be used in th expressions.
-///
-/// For example, for invocation:
-/// ```text
-/// has_tokens!(SegmentExpr<T>, EXPR_QUOTE, self.value, EXPR_QUOTE);
-/// ```
-/// the following output is produced:
-///    ```text
-///    impl<T: HasTokens> HasTokens for SegmentExpr<T> {
-///        fn feed_to(&self, consumer:&mut impl TokenConsumer) {
-///            EXPR_QUOTE.feed(consumer);
-///            self.value.feed(consumer);
-///            EXPR_QUOTE.feed(consumer);
-///        }
-///    }
-///    ```
-
-/// Generates `HasTokens` implementations for spaceless AST that panics when used.
-#[proc_macro]
-pub fn spaceless_ast(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    crate::token::spaceless_ast(input)
 }

@@ -11,7 +11,7 @@ use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::known;
 use ast::opr;
-use parser_scala::Parser;
+use parser::Parser;
 use std::iter::FusedIterator;
 
 
@@ -284,9 +284,7 @@ impl DefinitionInfo {
         let elem = line.elem.ok_or(MissingLineWithAst)?;
         let off = line.off;
         let first_line = ast::BlockLine { elem, off };
-        let is_orphan = false;
-        let ty = ast::BlockType::Discontinuous {};
-        let block = ast::Block { ty, indent, empty_lines, first_line, lines, is_orphan };
+        let block = ast::Block { indent, empty_lines, first_line, lines };
         let body_ast = Ast::new(block, None);
         self.set_body_ast(body_ast);
         Ok(())
@@ -603,10 +601,6 @@ mod tests {
     use crate::module;
     use crate::INDENT;
 
-    use wasm_bindgen_test::wasm_bindgen_test;
-
-    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-
     fn assert_eq_strings(lhs: Vec<impl Str>, rhs: Vec<impl Str>) {
         let lhs = lhs.iter().map(|s| s.as_ref()).collect_vec();
         let rhs = rhs.iter().map(|s| s.as_ref()).collect_vec();
@@ -621,9 +615,9 @@ mod tests {
         format!("    {line}")
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_definition_to_add() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let mut to_add = ToAdd {
             name:                     DefinitionName::new_method("Main", "add"),
             explicit_parameter_names: vec!["arg1".into(), "arg2".into()],
@@ -649,9 +643,9 @@ mod tests {
         assert_eq!(ast.repr(), "Main.add arg1 arg2 =\n        arg1 + arg2\n        arg1 - arg2");
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn definition_name_tests() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let ast = parser.parse_line_ast("Foo.Bar.baz").unwrap();
         let name = DefinitionName::from_ast(&ast).unwrap();
 
@@ -664,16 +658,16 @@ mod tests {
         assert_eq!(ast.get_traversing(&name.extended_target[1].crumbs).unwrap().repr(), "Bar");
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn definition_name_rejecting_incomplete_names() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let ast = parser.parse_line_ast("Foo. .baz").unwrap();
         assert!(DefinitionName::from_ast(&ast).is_none());
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn definition_info_name() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let ast = parser.parse_line_ast("Foo.bar a b c = baz").unwrap();
         let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
 
@@ -681,9 +675,9 @@ mod tests {
         assert_eq!(ast.get_traversing(&definition.name.crumbs).unwrap().repr(), "Foo.bar");
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn located_definition_args() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let ast = parser.parse_line_ast("foo bar baz = a + b + c").unwrap();
         let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
         let (arg0, arg1) = definition.args.expect_tuple();
@@ -700,7 +694,7 @@ mod tests {
         assert_eq!(ast.get_traversing(&arg1.crumbs).unwrap(), &arg1.item);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn match_is_not_definition() {
         let cons = Ast::cons("Foo");
         let arg = Ast::number(5);
@@ -723,28 +717,24 @@ mod tests {
         assert!(def_opt.is_some());
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn list_definition_test() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
 
-        // TODO [mwu]
-        //  Due to a parser bug, extension methods defining operators cannot be currently
-        //  correctly recognized. When it is fixed, the following should be also supported
-        //  and covered in test: `Int.+ a = _` and `Int.+ = _`.
-        //  Issue link: https://github.com/enso-org/enso/issues/565
         let definition_lines = vec![
             "main = _",
             "Foo.Bar.foo = _",
             "Foo.Bar.baz a b = _",
-            "+ = _",
+            "+ a = _",
+            "Int.+ a = _",
             "bar = _",
             "add a b = 50",
             "* a b = _",
         ];
         let expected_def_names_in_module =
-            vec!["main", "Foo.Bar.foo", "Foo.Bar.baz", "+", "bar", "add", "*"];
+            vec!["main", "Foo.Bar.foo", "Foo.Bar.baz", "+", "Int.+", "bar", "add", "*"];
         // In definition there are no extension methods nor arg-less definitions.
-        let expected_def_names_in_def = vec!["add", "*"];
+        let expected_def_names_in_def = vec!["+", "add", "*"];
 
         // === Program with definitions in root ===
         let program = definition_lines.join("\n");
@@ -770,7 +760,7 @@ mod tests {
         assert_eq_strings(to_names(&nested_defs), expected_def_names_in_def);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn finding_root_definition() {
         let program_to_expected_main_pos = vec![
             ("main = bar", 0),
@@ -780,7 +770,7 @@ mod tests {
             ("foo = bar\n\nmain = bar", 2),
         ];
 
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let main_id = Id::new_plain_name("main");
         for (program, expected_line_index) in program_to_expected_main_pos {
             let module = parser.parse_module(program, default()).unwrap();
@@ -793,7 +783,7 @@ mod tests {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn getting_nested_definition() {
         let program = r"
 main =
@@ -806,7 +796,7 @@ main =
 
     add foo bar";
 
-        let module = parser_scala::Parser::new_or_panic().parse_module(program, default()).unwrap();
+        let module = parser::Parser::new().parse_module(program, default()).unwrap();
         let check_def = |id, expected_body| {
             let definition = module::get_definition(&module, &id).unwrap();
             assert_eq!(definition.body().repr(), expected_body);

@@ -7,7 +7,7 @@ use crate::prelude::*;
 
 use double_representation::name::project;
 use mockall::automock;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 // ==============

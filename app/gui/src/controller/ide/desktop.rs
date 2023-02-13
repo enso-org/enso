@@ -15,7 +15,7 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectMetadata;
 use engine_protocol::project_manager::ProjectName;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -70,7 +70,7 @@ impl Handle {
     ) -> Self {
         let current_project = Rc::new(CloneCell::new(project));
         let status_notifications = default();
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let notifications = default();
         let private_cb_entries_visibility_flag = default();
         Self {

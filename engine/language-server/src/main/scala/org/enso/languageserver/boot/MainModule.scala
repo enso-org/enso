@@ -1,6 +1,7 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
+import buildinfo.Info
 import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
@@ -53,6 +54,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URI
 import java.time.Clock
+
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -65,7 +67,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   private val log = LoggerFactory.getLogger(this.getClass)
   log.info(
-    "Initializing main module of the Language Server from [{}, {}]",
+    "Initializing main module of the Language Server from [{}, {}, {}]",
+    Info.currentEdition,
     serverConfig,
     logLevel
   )
@@ -284,6 +287,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
     )
     .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
+    .option(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
     .option(
       RuntimeServerInfo.JOB_PARALLELISM_OPTION,
       Runtime.getRuntime.availableProcessors().toString

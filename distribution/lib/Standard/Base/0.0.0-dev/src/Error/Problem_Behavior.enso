@@ -35,14 +35,15 @@ type Problem_Behavior
        dataflow error. If the value already contained any dataflow error, that
        error takes precedence.
     attach_problem_after : Any -> Any -> Any
-    attach_problem_after self decorated_value ~problem = case self of
+    attach_problem_after self decorated_value problem = case self of
         Ignore ->
-            decorated_value
+            if decorated_value.is_error then decorated_value else
+                if problem.is_error then problem else decorated_value
         Report_Warning ->
             Warning.attach problem decorated_value
         Report_Error ->
-            case decorated_value of
-                _ -> Error.throw problem
+            if decorated_value.is_error then decorated_value else
+                Error.throw problem
 
     ## ADVANCED
        UNSTABLE
@@ -53,13 +54,11 @@ type Problem_Behavior
        If it is set to Report_Warning, the value is returned with the problem
        attached as a warning.
        If it is set to Report_Error, the problem is returned in the form of
-       a dataflow error. The problem takes precedence over any errors that may
-       have been contained in the value - in such case the `decorated_value` is
-       not computed at all.
+       a dataflow error.
     attach_problem_before : Any -> Any -> Any
     attach_problem_before self problem ~decorated_value = case self of
         Ignore ->
-            decorated_value
+            if problem.is_error then problem else decorated_value
         Report_Warning ->
             Warning.attach problem decorated_value
         Report_Error ->
@@ -88,7 +87,7 @@ type Problem_Behavior
     attach_problems_before : Vector -> Any -> Any
     attach_problems_before self problems ~decorated_value = case self of
         Ignore ->
-            decorated_value
+            if problems.is_error then problems else decorated_value
         Report_Warning ->
             problems.fold decorated_value acc-> problem->
                 Warning.attach problem acc
@@ -116,14 +115,15 @@ type Problem_Behavior
              problem_behavior.attach_problems_after result <|
                  perform_post_process_checks_and_return_problems
     attach_problems_after : Any -> Vector -> Any
-    attach_problems_after self decorated_value ~problems = case self of
+    attach_problems_after self decorated_value problems = case self of
         Ignore ->
-            decorated_value
+            if decorated_value.is_error then decorated_value else
+                if problems.is_error then problems else decorated_value
         Report_Warning ->
             problems.fold decorated_value acc-> problem->
                 Warning.attach problem acc
-        Report_Error -> case decorated_value of
-            _ -> if problems.is_empty then decorated_value else
+        Report_Error ->
+            if decorated_value.is_error || problems.is_empty then decorated_value else
                 Error.throw problems.first
 
     ## ADVANCED
