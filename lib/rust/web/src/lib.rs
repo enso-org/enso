@@ -999,15 +999,12 @@ impl FrameCounter {
 
     /// Returns the number of frames that have passed since the counter was created.
     pub fn frames_since_start(&self) -> i32 {
-        web_sys::console::error_1(&format!("Frames: {}", self.frames.as_ref().get()).into());
-
         self.frames.as_ref().get()
     }
 }
 
 impl Drop for FrameCounter {
     fn drop(&mut self) {
-        web_sys::console::error_1(&"FrameCounter dropped.".into());
         window.cancel_animation_frame_or_warn(self.js_on_frame_handle_id.get());
     }
 }
