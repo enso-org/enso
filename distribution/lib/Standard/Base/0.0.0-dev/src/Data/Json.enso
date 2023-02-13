@@ -22,7 +22,8 @@ import project.Warning.Warning
 from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
 import project.Metadata.Display
-
+# We need to import conversion methods from Ordering, therefore, we import all
+from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, True, False
 
 ## Methods for serializing from and to JSON.
@@ -174,19 +175,6 @@ type JS_Object
     to_json : Text
     to_json self = self.to_text
 
-    ## Checks if this JS_Object is equal to another JS_Object.
-
-       Arguments:
-       - that: The map to compare `self` to.
-    == : JS_Object -> Boolean
-    == self that = case that of
-        _ : JS_Object ->
-            self_keys = self.field_names
-            that_keys = that.field_names
-            self_keys.length == that_keys.length && self_keys.all key->
-                (self.get key == that.at key).catch No_Such_Key.Error _->False
-        _ -> False
-
     ## UNSTABLE
 
        Transform the vector into text for displaying as part of its default
@@ -194,6 +182,29 @@ type JS_Object
     to_default_visualization_data : Text
     to_default_visualization_data self =
         render self
+
+## PRIVATE
+type JS_Object_Comparator
+    is_ordered : Boolean
+    is_ordered = False
+
+    equals : JS_Object -> JS_Object -> Boolean
+    equals obj1 obj2 =
+        obj1_keys = obj1.field_names
+        obj2_keys = obj2.field_names
+        obj1_keys.length == obj2_keys.length && obj1_keys.all key->
+            (obj1.get key == obj2.at key).catch No_Such_Key.Error _->False
+
+    hash : JS_Object -> Integer
+    hash obj =
+        values_hashes = obj.field_names.map field_name->
+            val = obj.get field_name
+            Comparable.from val . hash val
+        # Return sum, as we don't care about ordering of field names
+        values_hashes.fold 0 (+)
+
+Comparable.from (_:JS_Object) = JS_Object_Comparator
+
 
 ## PRIVATE
    Render the JS_Object to Text with truncated depth.

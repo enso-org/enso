@@ -11,8 +11,8 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.Vector;
@@ -58,8 +58,8 @@ public final class EnsoHashMap implements TruffleObject {
     return new EnsoHashMap(mapBuilder, snapshotSize);
   }
 
-  static EnsoHashMap createEmpty(HashCodeAnyNode hashCodeAnyNode, EqualsAnyNode equalsNode) {
-    return new EnsoHashMap(EnsoHashMapBuilder.create(hashCodeAnyNode, equalsNode), 0);
+  static EnsoHashMap createEmpty(HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+    return new EnsoHashMap(EnsoHashMapBuilder.create(hashCodeNode, equalsNode), 0);
   }
 
   EnsoHashMapBuilder getMapBuilder() {
@@ -100,7 +100,7 @@ public final class EnsoHashMap implements TruffleObject {
   @Builtin.Method
   @Builtin.Specialize
   public static EnsoHashMap empty(
-      @Cached HashCodeAnyNode hashCodeNode, @Cached EqualsAnyNode equalsNode) {
+      @Cached HashCodeNode hashCodeNode, @Cached EqualsNode equalsNode) {
     return createEmpty(hashCodeNode, equalsNode);
   }
 

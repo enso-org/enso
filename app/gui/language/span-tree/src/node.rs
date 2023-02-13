@@ -8,7 +8,6 @@ use crate::iter::LeafIterator;
 use crate::iter::TreeFragment;
 use crate::ArgumentInfo;
 
-use ast::crumbs::IntoCrumbs;
 use enso_text as text;
 
 
@@ -65,12 +64,6 @@ impl<T: Payload> Node<T> {
         default()
     }
 
-    /// Define a new child by using the `ChildBuilder` pattern. Consumes self.
-    pub fn new_child(mut self, f: impl FnOnce(ChildBuilder<T>) -> ChildBuilder<T>) -> Self {
-        ChildBuilder::apply_to_node(&mut self, f);
-        self
-    }
-
     /// Payload mapping utility.
     pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Node<S> {
         let kind = self.kind;
@@ -86,15 +79,9 @@ impl<T: Payload> Node<T> {
 
 #[allow(missing_docs)]
 impl<T: Payload> Node<T> {
-    // FIXME[WD]: This is a hack, which just checks token placement, not a real solution.
-    /// Check whether the node is a parensed expression.
     pub fn is_parensed(&self) -> bool {
-        let check = |t: Option<&Child<T>>| {
-            t.map(|t| t.kind == Kind::Token && t.size.value == 1) == Some(true)
-        };
-        check(self.children.first()) && check(self.children.last()) && self.children.len() == 3
+        self.kind == Kind::Group
     }
-
     pub fn is_root(&self) -> bool {
         self.kind.is_root()
     }
@@ -211,116 +198,6 @@ impl<T> Deref for Child<T> {
 impl<T> DerefMut for Child<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.node
-    }
-}
-
-
-
-// ====================
-// === ChildBuilder ===
-// ====================
-
-/// A builder pattern for `SpanTree`. A think wrapper for `Child` which adds useful methods for
-/// building properties of the current node.
-///
-/// This builder exposes two main functions - `new_child`, and `add_child`. The former provides a
-/// nice, user-friendly interface for building a `SpanTree`, while the later provides a very
-/// explicit argument setting interface meant for building `SpanTree` for shape testing purposes.
-#[derive(Debug)]
-#[allow(missing_docs)]
-pub struct ChildBuilder<T = ()> {
-    pub child: Child<T>,
-}
-
-impl<T> Deref for ChildBuilder<T> {
-    type Target = Child<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.child
-    }
-}
-
-impl<T> DerefMut for ChildBuilder<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.child
-    }
-}
-
-impl<T: Payload> ChildBuilder<T> {
-    /// Constructor.
-    pub fn new(child: Child<T>) -> Self {
-        Self { child }
-    }
-
-    /// Add new child and use the `ChildBuilder` pattern to define its properties. This is a smart
-    /// child constructor. This function will automatically compute all not provided properties,
-    /// such as span or offset. Moreover, it will default all other not provided fields.
-    pub fn new_child(mut self, f: impl FnOnce(Self) -> Self) -> Self {
-        Self::apply_to_node(&mut self.node, f);
-        self
-    }
-
-    /// Define a new child by using the `ChildBuilder` pattern.
-    fn apply_to_node(node: &mut Node<T>, f: impl FnOnce(ChildBuilder<T>) -> ChildBuilder<T>) {
-        let mut new_child = Child::default();
-        let offset = node.size;
-        new_child.offset = offset;
-        let builder = ChildBuilder::new(new_child);
-        let child = f(builder).child;
-        let offset_diff = child.offset - offset;
-        node.size = node.size + child.size + offset_diff;
-        node.children.push(child);
-    }
-
-    /// Add new child and use the `ChildBuilder` pattern to define its properties. This function
-    /// accepts explicit list of arguments and disables all automatic computation of spans and
-    /// offsets. It is useful for testing purposes.
-    pub fn add_child(
-        mut self,
-        offset: usize,
-        size: usize,
-        kind: Kind,
-        crumbs: impl IntoCrumbs,
-        f: impl FnOnce(Self) -> Self,
-    ) -> Self {
-        let child: ChildBuilder<T> = ChildBuilder::new(default());
-        let child = f(child.offset(offset.into()).size(size.into()).kind(kind).crumbs(crumbs));
-        self.node.children.push(child.child);
-        self
-    }
-
-    /// Offset setter.
-    pub fn offset(mut self, offset: ByteDiff) -> Self {
-        self.offset = offset;
-        self
-    }
-
-    /// Crumbs setter.
-    pub fn crumbs(mut self, crumbs: impl IntoCrumbs) -> Self {
-        self.ast_crumbs = crumbs.into_crumbs();
-        self
-    }
-
-    /// Kind setter.
-    pub fn kind(mut self, kind: impl Into<Kind>) -> Self {
-        self.node.kind = kind.into();
-        self
-    }
-
-    /// Size setter.
-    pub fn size(mut self, size: ByteDiff) -> Self {
-        self.node.size = size;
-        self
-    }
-
-    /// Expression ID setter.
-    pub fn ast_id(mut self, id: ast::Id) -> Self {
-        self.node.ast_id = Some(id);
-        self
-    }
-
-    /// Expression ID generator.
-    pub fn new_ast_id(self) -> Self {
-        self.ast_id(ast::Id::new_v4())
     }
 }
 
@@ -545,7 +422,7 @@ impl<'a, T: Payload> Ref<'a, T> {
                     !ch.ast_crumbs.is_empty() && ast_crumbs.starts_with(&ch.ast_crumbs)
                 })
                 .or_else(|| {
-                    // We try to find appriopriate node second time, this time expecting case of
+                    // We try to find appropriate node second time, this time expecting case of
                     // "prefix-like" nodes with `InsertionPoint(ExpectedArgument(_))`. See also docs
                     // for `generate::generate_expected_argument`.
                     // TODO[ao]: As implementation of SpanTree will extend there may be some day
@@ -561,7 +438,7 @@ impl<'a, T: Payload> Ref<'a, T> {
         }
     }
 
-    /// Get the node which exactly matches the given Span. If there many such node's, it pick first
+    /// Get the node which exactly matches the given Span. If there are many such nodes, pick first
     /// found by DFS.
     pub fn find_by_span(self, span: &text::Range<Byte>) -> Option<Ref<'a, T>> {
         if self.span() == *span {

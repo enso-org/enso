@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { path = "../language/ast/impl" }
+parser = { path = "../language/parser" }
 enso-config = { path = "../config" }
 enso-frp = { path = "../../../lib/rust/frp" }
 enso-prelude = { path = "../../../lib/rust/prelude" }
@@ -23,7 +24,6 @@ ensogl-hardcoded-theme = { path = "../../../lib/rust/ensogl/app/theme/hardcoded"
 ide-view-component-browser = { path = "component-browser" }
 ide-view-documentation = { path = "documentation" }
 ide-view-graph-editor = { path = "graph-editor" }
-parser-scala = { path = "../language/parser" }
 span-tree = { path = "../language/span-tree" }
 js-sys = { workspace = true }
 multi-map = { workspace = true }

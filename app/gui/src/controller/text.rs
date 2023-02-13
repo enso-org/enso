@@ -152,7 +152,7 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
     use enso_text::index::*;
-    use parser_scala::Parser;
+    use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     fn setup_mock_project(setup: impl FnOnce(&mut model::project::MockAPI)) -> model::Project {
@@ -171,7 +171,7 @@ mod test {
         test.run_task(async move {
             let ls = language_server::Connection::new_mock_rc(default());
             let path = model::module::Path::from_mock_module_name("Test");
-            let parser = Parser::new().unwrap();
+            let parser = Parser::new();
             let module_res =
                 controller::Module::new_mock(path, "main = 2+2", default(), ls, parser, default());
             let module = module_res.unwrap();
@@ -204,7 +204,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn obtain_text_controller_for_module() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         TestWithLocalPoolExecutor::set_up().run_task(async move {
             let code = "2 + 2".to_string();
             let undo = default();

@@ -552,7 +552,7 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("1")
   }
 
-  it should "send method pointer updates" in {
+  it should "send method pointer updates of methods" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -621,7 +621,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
           )
@@ -646,7 +646,12 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "bar")
       ),
-      TestMessages.update(contextId, idMainM, "Enso_Test.Test.A.AT"),
+      TestMessages.update(
+        contextId,
+        idMainM,
+        "Enso_Test.Test.A.AT",
+        Api.MethodPointer("Enso_Test.Test.A", "Enso_Test.Test.A.AT", "A")
+      ),
       TestMessages.update(
         contextId,
         idMainP,
@@ -664,6 +669,80 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("79")
+  }
+
+  it should "send method pointer updates of constructors" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idA      = metadata.addItem(47, 3, "aa")
+    val idB      = metadata.addItem(59, 6, "ab")
+    val idC      = metadata.addItem(70, 7, "ac")
+
+    val code =
+      """type T
+        |    A
+        |    B x
+        |    C y z
+        |
+        |main =
+        |    a = T.A
+        |    b = T.B 42
+        |    T.C a b
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idA,
+        "Enso_Test.Test.Main.T",
+        Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
+      ),
+      TestMessages.update(
+        contextId,
+        idB,
+        "Enso_Test.Test.Main.T",
+        Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "B")
+      ),
+      TestMessages.update(
+        contextId,
+        idC,
+        "Enso_Test.Test.Main.T",
+        Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "C")
+      ),
+      context.executionComplete(contextId)
+    )
   }
 
   it should "send updates from last line" in {

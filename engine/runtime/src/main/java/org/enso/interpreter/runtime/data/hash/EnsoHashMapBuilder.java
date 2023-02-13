@@ -3,8 +3,8 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import java.util.ArrayList;
 import java.util.List;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.Equivalence;
 
@@ -18,14 +18,14 @@ public final class EnsoHashMapBuilder {
   /** All entries stored by their sequential index. */
   private final List<StorageEntry> sequentialEntries;
 
-  private final HashCodeAnyNode hashCodeNode;
-  private final EqualsAnyNode equalsNode;
+  private final HashCodeNode hashCodeNode;
+  private final EqualsNode equalsNode;
   private int size;
 
-  private EnsoHashMapBuilder(HashCodeAnyNode hashCodeAnyNode, EqualsAnyNode equalsNode) {
-    this.storage = EconomicMap.create(new StorageStrategy(equalsNode, hashCodeAnyNode));
+  private EnsoHashMapBuilder(HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+    this.storage = EconomicMap.create(new StorageStrategy(equalsNode, hashCodeNode));
     this.sequentialEntries = new ArrayList<>();
-    this.hashCodeNode = hashCodeAnyNode;
+    this.hashCodeNode = hashCodeNode;
     this.equalsNode = equalsNode;
   }
 
@@ -56,7 +56,7 @@ public final class EnsoHashMapBuilder {
    * @param hashCodeNode Node that will be stored in the storage for invoking `hash_code` on keys.
    * @param equalsNode Node that will be stored in the storage for invoking `==` on keys.
    */
-  public static EnsoHashMapBuilder create(HashCodeAnyNode hashCodeNode, EqualsAnyNode equalsNode) {
+  public static EnsoHashMapBuilder create(HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     return new EnsoHashMapBuilder(hashCodeNode, equalsNode);
   }
 
@@ -164,13 +164,13 @@ public final class EnsoHashMapBuilder {
 
   /**
    * Custom {@link Equivalence} used for the {@link EconomicMap} that delegates {@code equals} to
-   * {@link EqualsAnyNode} and {@code hash_code} to {@link HashCodeAnyNode}.
+   * {@link EqualsNode} and {@code hash_code} to {@link HashCodeNode}.
    */
   private static final class StorageStrategy extends Equivalence {
-    private final EqualsAnyNode equalsNode;
-    private final HashCodeAnyNode hashCodeNode;
+    private final EqualsNode equalsNode;
+    private final HashCodeNode hashCodeNode;
 
-    private StorageStrategy(EqualsAnyNode equalsNode, HashCodeAnyNode hashCodeNode) {
+    private StorageStrategy(EqualsNode equalsNode, HashCodeNode hashCodeNode) {
       this.equalsNode = equalsNode;
       this.hashCodeNode = hashCodeNode;
     }

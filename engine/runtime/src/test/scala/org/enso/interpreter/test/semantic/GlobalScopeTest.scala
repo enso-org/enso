@@ -59,6 +59,7 @@ class GlobalScopeTest extends InterpreterTest {
     "be able to mutually recurse in the global scope" in {
       val code =
         """import Standard.Base.Nothing
+          |import Standard.Base.Any.Any
           |
           |Nothing.decrementCall = number ->
           |  res = number - 1
