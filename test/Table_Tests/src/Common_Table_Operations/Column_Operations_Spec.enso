@@ -159,7 +159,7 @@ spec setup =
             r10.to_vector.to_text . should_equal "[NaN, NaN, NaN]"
             has_div_warnings "[c] % 0" [0, 1, 2] r10
 
-        Test.specify "should limit the number of rows listed in the message" <|
+        Test.specify "should limit the number of rows listed in the message" pending=db_pending <|
             t1 = table_builder [["a", 0.up_to 200 . to_vector]]
             zero = t1.at "a" - t1.at "a"
             div = t1.at "a" / zero
