@@ -970,14 +970,17 @@ impl FrameCounter {
     /// Creates a new frame counter.
     pub fn start_counting() -> Self {
         let frames: Counter = default();
-        let frames_handle = Rc::clone(&frames);
+        let frames_handle = Rc::downgrade(&frames);
         let closure_handle = Rc::new(RefCell::new(None));
-        let closure_handle_internal = Rc::clone(&closure_handle);
+        let closure_handle_internal = Rc::downgrade(&closure_handle);
         *closure_handle.borrow_mut() = Some(Closure::new(move |_| {
-            frames_handle.as_ref().update(|value| value.saturating_add(1));
-            window.request_animation_frame_with_closure_or_panic(
-                closure_handle_internal.borrow().as_ref().unwrap(),
-            );
+            frames_handle.upgrade().map(|fh| fh.as_ref().update(|value| value.saturating_add(1)));
+            closure_handle_internal.upgrade().map(|maybe_handle| {
+                maybe_handle
+                    .borrow_mut()
+                    .as_ref()
+                    .map(|handle| window.request_animation_frame_with_closure_or_panic(handle))
+            });
         }));
         let js_on_frame_handle_id = window.request_animation_frame_with_closure_or_panic(
             closure_handle.borrow().as_ref().unwrap(),
