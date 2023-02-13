@@ -172,6 +172,17 @@ public class DelimitedWriter {
     }
   }
 
+  private boolean containsOtherCharactersThatNeedQuoting(String value) {
+    for (int i = 0; i < value.length(); ++i) {
+      char c = value.charAt(i);
+      if (c == delimiter || c == '\n' || c == '\r' || (commentChar != '\0' && c == commentChar)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   /**
    * Wraps the value in quotes, escaping any characters if necessary.
    *
@@ -185,12 +196,10 @@ public class DelimitedWriter {
 
     boolean containsQuote = value.indexOf(quoteChar) >= 0;
     boolean containsQuoteEscape = quoteEscape != null && value.indexOf(quoteEscapeChar) >= 0;
-    boolean shouldQuote =
-        wantsQuoting
-            || containsQuote
-            || containsQuoteEscape
-            || value.indexOf(delimiter) >= 0
-            || value.indexOf(commentChar) >= 0;
+    boolean shouldQuote = wantsQuoting
+        || containsQuote
+        || containsQuoteEscape
+        || containsOtherCharactersThatNeedQuoting(value);
     if (!shouldQuote) {
       return value;
     }
