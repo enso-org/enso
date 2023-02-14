@@ -286,12 +286,7 @@ pub enum NotificationKind {
     /// The metadata (e.g. some node's position) has been changed.
     MetadataChanged,
     /// The source file was changed by the language server and the module content is reloaded.
-    Reloaded {
-        /// Content summary of the changed file.
-        summary: synchronized::ContentSummary,
-        /// The text change description due to parsing of the reloaded content.
-        change:  engine_protocol::language_server::TextEdit,
-    },
+    Reloaded,
 }
 
 /// Notification about change in module content.

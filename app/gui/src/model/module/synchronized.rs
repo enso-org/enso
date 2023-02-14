@@ -37,7 +37,7 @@ use parser::Parser;
 /// The minimal information about module's content, required to do properly invalidation of opened
 /// module in Language Server.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ContentSummary {
+struct ContentSummary {
     digest:      Sha3_224,
     /// The Engine's Locations are in java Characters, which are equal to UTF16 Code Units.
     /// See https://docs.oracle.com/javase/8/docs/api/java/lang/Character.html
@@ -198,11 +198,11 @@ impl Module {
         let file_path = self.path();
         self.language_server.client.close_text_file(file_path).await?;
         let opened = self.language_server.client.open_text_file(file_path).await?;
-        self.update_module_content(opened.content.into(), parser)
+        self.update_module_content_from_ls(opened.content.into(), parser).await
     }
 
     /// Apply text changes received from the language server.
-    pub fn apply_text_change_from_ls(
+    pub async fn apply_text_change_from_ls(
         &self,
         edits: Vec<TextEdit>,
         parser: &Parser,
@@ -217,18 +217,27 @@ impl Module {
             let change = TextChange { range, text };
             content.apply_change(change);
         }
-        self.update_module_content(content, parser)
+        self.update_module_content_from_ls(content, parser).await
     }
 
     /// Update the module content. The provided new content should match the current content of the
     /// file on the language server. This function updates the module content to be in sync with the
     /// language server file content.
-    fn update_module_content(&self, content: text::Rope, parser: &Parser) -> FallibleResult {
+    async fn update_module_content_from_ls(&self, content: text::Rope, parser: &Parser) -> FallibleResult {
         let summary = ContentSummary::new(&content);
-        let source = parser.parse_with_metadata(content.to_string())?;
+        let source = parser.parse_with_metadata(content.to_string());
         let new_content = source.serialize()?.content;
         let change = TextEdit::from_prefix_postfix_differences(&content, new_content);
-        self.model.set_content(source, NotificationKind::Reloaded { summary, change })
+
+        let transaction = self.model.repository().transaction("Setting module's content");
+        transaction.fill_content(self.id(), self.content().borrow().clone());
+
+        let new_file = source.serialize()?;
+        self.notify_language_server(&summary, &new_file, vec![change]).await?;
+        let notification = Notification::new(new_file, NotificationKind::Reloaded);
+        self.model.content().replace(source);
+        self.model.notifications().notify(notification);
+        Ok(())
     }
 }
 
@@ -421,9 +430,8 @@ impl Module {
                     let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
                     profiler::await_!(notify_ls, _profiler)
                 }
-                NotificationKind::Reloaded { summary, change } => {
-                    let notify_ls = self.notify_language_server(&summary, &new_file, vec![change]);
-                    profiler::await_!(notify_ls, _profiler)
+                NotificationKind::Reloaded => {
+                    Ok(ParsedContentSummary::from_source(&new_file))
                 }
             },
         }

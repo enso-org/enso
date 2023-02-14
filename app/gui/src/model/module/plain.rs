@@ -65,7 +65,7 @@ impl Module {
     /// the module's state is guaranteed to remain unmodified and the notification will not be
     /// emitted.
     #[profile(Debug)]
-    pub fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
+    fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
             debug!("Ignoring spurious update.");
             return Ok(());
@@ -123,6 +123,21 @@ impl Module {
     /// Get the module's ID.
     pub fn id(&self) -> model::module::Id {
         self.path.id()
+    }
+
+    /// Get the module's content.
+    pub fn content(&self) -> &RefCell<Content> {
+        &self.content
+    }
+
+    /// Get the module's notification publisher.
+    pub fn notifications(&self) -> &notification::Publisher<Notification> {
+        &self.notifications
+    }
+
+    /// Get the module's undo/redo repository.
+    pub fn repository(&self) -> &Rc<model::undo_redo::Repository> {
+        &self.repository
     }
 }
 
