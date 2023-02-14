@@ -19,7 +19,6 @@
     "lib/client",
     "lib/cloud",
     "lib/cloud/src/authentication",
-    "lib/cloud2",
     "lib/content",
     "lib/copy-plugin",
     "lib/icons",
