@@ -835,7 +835,7 @@ mod test {
         // An example with single call and expected arguments.
         // See also `generate::test::generating_span_tree_for_unfinished_call`
         let tree: SpanTree = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::Chained, ast::crumbs::Crumbs::default())
+            .add_child(0, 8, node::Kind::chained(), ast::crumbs::Crumbs::default())
             .add_child(0, 8, node::Kind::Operation, ast::crumbs::Crumbs::default())
             .add_leaf(0, 4, node::Kind::this(), LeftOperand)
             .add_leaf(4, 1, node::Kind::Operation, Operator)

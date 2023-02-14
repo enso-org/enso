@@ -371,19 +371,23 @@ fn generate_node_for_opr_chain<T: Payload>(
             node.set_argument_info(target_arg_info);
         }
 
-        let infix_argument_info = if !app_base.uses_method_notation {
+        let infix_right_argument_info = if !app_base.uses_method_notation {
             app_base.set_call_id(elem.infix_id);
             app_base.known_arguments(context).and_then(|mut infix_args| {
-                // For resolved infix arguments, the arity should always be 2.
+                // For resolved infix arguments, the arity should always be 2. First always
+                // corresponds to already generated node, and second is the argument that is about
+                // to be generated.
                 if infix_args.len() != 2 {
                     error!("Infix operator should have arity 2, but got {:?}", infix_args.len());
                 }
-                // For infix, first argument is `self`. Assign it to the parent chained node.
-                if let Some(info) = infix_args.pop_front() {
+                
+                let infix_left_argument_info = infix_args.pop_front();
+                let infix_right_argument_info = infix_args.pop_front();
+
+                if let Some(info) = infix_left_argument_info {
                     node.set_argument_info(info);
                 }
-                // Return second infix argument info for assignment to the argument node.
-                infix_args.pop_front()
+                infix_right_argument_info
             })
         } else {
             None
@@ -399,11 +403,11 @@ fn generate_node_for_opr_chain<T: Payload>(
             let arg_ast = Located::new(arg_crumbs, operand.arg.clone_ref());
             gen.spacing(operand.offset);
 
-            let arg = node::Kind::argument().with_removable(removable);
-            let arg_child = gen.generate_ast_node(arg_ast, arg, context)?;
+            let argument_kind = node::Kind::argument().with_removable(removable);
+            let argument = gen.generate_ast_node(arg_ast, argument_kind, context)?;
 
-            if let Some(infix_argument_info) = infix_argument_info {
-                arg_child.node.set_argument_info(infix_argument_info)
+            if let Some(info) = infix_right_argument_info {
+                argument.node.set_argument_info(info);
             }
         }
 
@@ -458,9 +462,9 @@ fn generate_node_for_prefix_chain<T: Payload>(
     let removable = this.args.len() >= 2;
 
     // When using method notation, expand the infix access chain manually to maintain correct method
-    // application info and avoid generating expected arguments twice. Tree generator implementation
-    // on `GeneralizedInfix` will always assume that the infix access chain is a method call without
-    // any applied arguments, since it has no way of knowing that it is part of a prefix chain.
+    // application info and avoid generating expected arguments twice. We cannot use the
+    // `generate_node` implementation on `GeneralizedInfix`, because it always treats the 
+    // access chain as a method call without any arguments applied.
     let node = if let Some(infix) = GeneralizedInfix::try_new(&this.func) {
         generate_node_for_opr_chain(infix.flatten(), node::Kind::Operation, app_base, context)
     } else {
