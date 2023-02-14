@@ -11,7 +11,7 @@ import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location
-import project.Data.Text.Matching_Mode
+import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Regex_Matcher.Regex_Matcher
@@ -229,7 +229,7 @@ Text.characters self =
          example_match =
              regex = "a[ab]c"
              "aabbbbccccaabcaaaa".match regex == "abc"
-Text.match : Text -> (Matching_Mode.First | Matching_Mode.Last) -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
+Text.match : Text -> Matching_Mode -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
 Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value =
     case self.locate term mode matcher of
         Nothing -> Nothing
@@ -1171,7 +1171,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
          "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
          "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
-Text.locate : Text -> (Matching_Mode.First | Matching_Mode.Last) -> (Text_Matcher | Regex_Matcher) -> Span | Nothing
+Text.locate : Text -> Matching_Mode -> (Text_Matcher | Regex_Matcher) -> Span | Nothing
 Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_span = case mode of
