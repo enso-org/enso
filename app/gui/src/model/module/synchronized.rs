@@ -223,7 +223,11 @@ impl Module {
     /// Update the module content. The provided new content should match the current content of the
     /// file on the language server. This function updates the module content to be in sync with the
     /// language server file content.
-    async fn update_module_content_from_ls(&self, content: text::Rope, parser: &Parser) -> FallibleResult {
+    async fn update_module_content_from_ls(
+        &self,
+        content: text::Rope,
+        parser: &Parser,
+    ) -> FallibleResult {
         let summary = ContentSummary::new(&content);
         let source = parser.parse_with_metadata(content.to_string());
         let new_content = source.serialize()?.content;
@@ -430,9 +434,7 @@ impl Module {
                     let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
                     profiler::await_!(notify_ls, _profiler)
                 }
-                NotificationKind::Reloaded => {
-                    Ok(ParsedContentSummary::from_source(&new_file))
-                }
+                NotificationKind::Reloaded => Ok(ParsedContentSummary::from_source(&new_file)),
             },
         }
     }
