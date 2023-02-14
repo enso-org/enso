@@ -8,7 +8,7 @@ import buildCfg from '../../../build.json'
 // @ts-ignore
 import * as app from '../../../../../target/ensogl-pack/dist/index'
 import * as semver from 'semver'
-import { Version, options } from './config'
+import { Version, options } from 'enso-content-config'
 
 const logger = app.log.logger
 const config = app.config

@@ -1,7 +1,7 @@
 import child_process, { SpawnOptions } from 'child_process'
 import * as config from 'config'
 import fss from 'node:fs'
-import { logger } from '../../../content/src/config'
+import { logger } from 'enso-content-config'
 import util from 'node:util'
 const execFile = util.promisify(child_process.execFile)
 

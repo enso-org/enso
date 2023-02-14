@@ -5,7 +5,7 @@ import yargs from 'yargs/yargs'
 import * as naming from 'naming'
 import stringLength from 'string-length'
 import { hideBin } from 'yargs/helpers'
-import { logger } from '../../../content/src/config'
+import { logger } from 'enso-content-config'
 import Electron from 'electron'
 
 // ============

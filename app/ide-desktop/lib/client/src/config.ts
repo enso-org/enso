@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import * as content from '../../content/src/config'
+import * as content from 'enso-content-config'
 import * as paths from 'paths'
 import * as naming from 'naming'
 

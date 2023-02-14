@@ -3,7 +3,6 @@
 import path, { dirname } from 'node:path'
 import esbuild from 'esbuild'
 import { require_env, require_env_resolved_path } from '../../utils.js'
-import aliasPlugin from 'esbuild-plugin-alias'
 import { fileURLToPath } from 'node:url'
 
 // ===================================================
@@ -21,9 +20,6 @@ const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION'
 
 export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
 
-/** The main JS bundle to load WASM and JS wasm-pack bundles. */
-export const ensogl_app_path = `/Users/wdanilo/Dev/enso/target/ensogl-pack/dist/index.js`
-
 // ================
 // === Bundling ===
 // ================
@@ -33,7 +29,6 @@ const bundlerOptions: esbuild.BuildOptions = {
     outdir,
     entryPoints: ['src/index.ts', 'src/preload.ts'],
     outbase: 'src',
-    plugins: [aliasPlugin({ ensogl_app: ensogl_app_path })],
     format: 'cjs',
     outExtension: { '.js': '.cjs' },
     platform: 'node',

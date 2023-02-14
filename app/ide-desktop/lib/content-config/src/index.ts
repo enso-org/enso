@@ -35,12 +35,6 @@ export class Version {
 // === Options ===
 // ===============
 
-// let foo: Option<boolean> = new config.Option({
-//     default: true,
-//     description:
-//         'Controls whether user authentication is enabled. This option is ignored if ' +
-//         'the app is run in the cloud.',
-// })
 export const options = config.options.merge(
     new config.Group({
         options: {
@@ -58,7 +52,19 @@ export const options = config.options.merge(
         },
         groups: {
             dataCollection: new config.Group({
-                // In the future, we will place here fine-grained controls of what data we collect.
+                description: 'Controls whether anonymous usage data should be collected.',
+                options: {
+                    usageStatistics: new config.Option({
+                        default: '',
+                        description:
+                            'Controls whether anonymous usage statistics should be collected.',
+                    }),
+                    crashReports: new config.Option({
+                        default: '',
+                        description:
+                            'Controls whether anonymous crash reports should be collected.',
+                    }),
+                },
             }),
 
             startup: new config.Group({
@@ -128,11 +134,6 @@ export const options = config.options.merge(
 
             style: new config.Group({
                 options: {
-                    // frame: new config.Option({
-                    //     default: false,
-                    //     description:
-                    //         'Controls whether a window frame should be visible. Works in native app only.',
-                    // }),
                     nodeLabels: new config.Option({
                         default: true,
                         description: `Controls whether node labels should be visible.`,

@@ -8,7 +8,7 @@
 import Electron from 'electron'
 import path from 'node:path'
 import * as server from 'bin/server'
-import * as content from '../../content/src/config'
+import * as content from 'enso-content-config'
 import * as security from 'security'
 import * as naming from 'naming'
 import * as config from 'config'

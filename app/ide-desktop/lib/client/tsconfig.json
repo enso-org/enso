@@ -2,6 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": "./src",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "paths": {
+      "@ensogl-app": ["../../../../target/ensogl-pack/dist/index"],
+      "@build-cfg": ["../../build.json"]
+    }
   }
 }
