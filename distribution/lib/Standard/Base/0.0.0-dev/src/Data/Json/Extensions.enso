@@ -45,6 +45,11 @@ Number.to_js_object self = case self of
     Number -> JS_Object.from_pairs [["type", "Number"]]
     Integer -> JS_Object.from_pairs [["type", "Integer"]]
     Decimal -> JS_Object.from_pairs [["type", "Decimal"]]
+    _ : Integer ->
+        ## JS Safe Integer range -(2^53 - 1) to (2^53 - 1)
+        js_max_integer = 9007199254740991
+        if self >= -js_max_integer && self < js_max_integer then self else
+            JS_Object.from_pairs [["type", "BigInt"], ["value", self.to_text]]
     _ -> self
 
 ## Converts the given value to a JSON serializable object.

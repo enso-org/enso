@@ -13,7 +13,11 @@ import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -48,6 +52,21 @@ public abstract class TypeOfNode extends Node {
   @Specialization
   Object doString(String value) {
     return EnsoContext.get(this).getBuiltins().text();
+  }
+
+  @Specialization
+  Object doPanicException(PanicException value) {
+    return EnsoContext.get(this).getBuiltins().panic();
+  }
+
+  @Specialization
+  Object doPanicSentinel(PanicSentinel value) {
+    return EnsoContext.get(this).getBuiltins().panic();
+  }
+
+  @Specialization
+  Object doWarning(WithWarnings value) {
+    return execute(value.getValue());
   }
 
   @Specialization(

@@ -2,11 +2,13 @@ from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Column_Selector
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Sum, Count, Group_By
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Average, Count, Group_By, Sum
 import Standard.Table.Data.Expression.Expression_Error
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Such_Column, Invalid_Aggregate_Column
+from Standard.Table.Errors import all
 
-from Standard.Test import Test
+from Standard.Database.Errors import SQL_Error
+
+from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -22,24 +24,24 @@ spec setup =
         table2 = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
         Test.specify "should cross_tab counts by default using first column as names" <|
             t1 = table.cross_tab
+            t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
             t1.at "x" . to_vector . should_equal [4]
             t1.at "y" . to_vector . should_equal [3]
             t1.at "z" . to_vector . should_equal [2]
 
         Test.specify "should allow a different aggregate" <|
             t1 = table.cross_tab values=[Sum "Value"]
+            t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
             t1.at "x" . to_vector . should_equal [10]
             t1.at "y" . to_vector . should_equal [18]
             t1.at "z" . to_vector . should_equal [17]
 
         Test.specify "should allow a custom expression for the aggregate" <|
             t1 = table.cross_tab values=[Sum "[Value]*[Value]"]
+            t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
             t1.at "x" . to_vector . should_equal [30]
             t1.at "y" . to_vector . should_equal [110]
             t1.at "z" . to_vector . should_equal [145]
@@ -47,23 +49,23 @@ spec setup =
         Test.specify "should allow a chosen column" <|
             t = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Species", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             t1 = t.cross_tab [] "Species"
+            t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
             t1.at "x" . to_vector . should_equal [4]
             t1.at "y" . to_vector . should_equal [3]
             t1.at "z" . to_vector . should_equal [2]
 
             t2 = t.cross_tab [] 1
+            t2.column_names . should_equal ["x", "y", "z"]
             t2.row_count . should_equal 1
-            t2.column_count . should_equal 3
             t2.at "x" . to_vector . should_equal [4]
             t2.at "y" . to_vector . should_equal [3]
             t2.at "z" . to_vector . should_equal [2]
 
         Test.specify "should allow a grouping" <|
             t1 = table2.cross_tab ["Group"] "Key"
+            t1.column_names . should_equal ["Group", "x", "y", "z"]
             t1.row_count . should_equal 2
-            t1.column_count . should_equal 4
             t1.at "Group" . to_vector . should_equal ["A", "B"]
             t1.at "x" . to_vector . should_equal [2, 2]
             t1.at "y" . to_vector . should_equal [2, 1]
@@ -71,8 +73,8 @@ spec setup =
 
         Test.specify "should allow a grouping by text" <|
             t1 = table2.cross_tab "Group" "Key"
+            t1.column_names . should_equal ["Group", "x", "y", "z"]
             t1.row_count . should_equal 2
-            t1.column_count . should_equal 4
             t1.at "Group" . to_vector . should_equal ["A", "B"]
             t1.at "x" . to_vector . should_equal [2, 2]
             t1.at "y" . to_vector . should_equal [2, 1]
@@ -80,8 +82,8 @@ spec setup =
 
         Test.specify "should allow multiple values aggregates" <|
             t1 = table.cross_tab values=[Count, Sum "Value"]
-            t1.row_count . should_equal 1
             t1.column_names . should_equal ["x Count", "x Sum Value", "y Count", "y Sum Value", "z Count", "z Sum Value"]
+            t1.row_count . should_equal 1
             t1.at "x Count" . to_vector . should_equal [4]
             t1.at "x Sum Value" . to_vector . should_equal [10]
             t1.at "y Count" . to_vector . should_equal [3]
@@ -130,3 +132,30 @@ spec setup =
         Test.specify "should not allow Group_By for values" <|
             err1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=Problem_Behavior.Ignore
             err1.should_fail_with Illegal_Argument.Error
+
+        Test.specify "should gracefully handle duplicate aggregate names" pending="TODO: this should be fixed as part of https://github.com/enso-org/enso/issues/5151" <|
+            action = table.cross_tab [] "Key" values=[Count new_name="Agg1", Sum "Value" new_name="Agg1"]
+            tester table =
+                table.column_names . should_equal ["x Agg1", "x Agg1_1", "y Agg1", "y Agg1_1", "z Agg1", "z Agg1_1"]
+            problems = [Duplicate_Output_Column_Names.Error ["Agg1"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should fail on invalid aggregations" <|
+            table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["TextValue", ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.cross_tab [] "Key" values=[Average "TextValue"] on_problems=pb
+                case setup.is_database of
+                    True ->
+                        err.should_fail_with SQL_Error
+                    False ->
+                        err.should_fail_with Invalid_Aggregation
+                        err.catch . should_equal (Invalid_Aggregation.Error "Average TextValue" [0, 4, 7] "Cannot convert to a number.")
+
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.cross_tab [] "Key" values=[Average "Value", Sum "TextValue"] on_problems=pb
+                case setup.is_database of
+                    True ->
+                        err.should_fail_with SQL_Error
+                    False ->
+                        err.should_fail_with Invalid_Aggregation
+                        err.catch . should_equal (Invalid_Aggregation.Error "Sum TextValue" [0, 4, 7] "Cannot convert to a number.")

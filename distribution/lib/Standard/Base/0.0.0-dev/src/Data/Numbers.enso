@@ -1,4 +1,6 @@
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Error.Common.Arithmetic_Error
@@ -529,19 +531,6 @@ type Decimal
     ceil : Integer
     ceil self = @Builtin_Method "Decimal.ceil"
 
-    ## Compares the two operands to determine the ordering of this with
-       respect to that.
-
-       Arguments:
-       - that: The operand to order this with respect to.
-
-       > Example
-         Computing the ordering of 1.732 and 4 (Less).
-
-             1.732.compare_to 4
-    compare_to : Number -> Ordering
-    compare_to self that = @Builtin_Method "Decimal.compare_to"
-
     ## Computes the nearest integer below this decimal.
 
        This method provides a means of converting a Decimal to an Integer.
@@ -768,19 +757,6 @@ type Integer
     ceil : Integer
     ceil self = @Builtin_Method "Integer.ceil"
 
-    ## Compares the two operands to determine the ordering of this with
-       respect to that.
-
-       Arguments:
-       - that: The operand to order this with respect to.
-
-       > Example
-         Computing the ordering of 1 and 4 (Less).
-
-             1.compare_to 4
-    compare_to : Number -> Ordering
-    compare_to self that = @Builtin_Method "Integer.compare_to"
-
     ## Computes the integer division of this by that.
 
        Arguments:
@@ -963,6 +939,8 @@ type Integer
         Internally handles the parsing.
 
     parse_builtin text radix = @Builtin_Method "Integer.parse"
+
+Comparable.from (_:Number) = Default_Ordered_Comparator
 
 ## UNSTABLE
 

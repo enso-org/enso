@@ -6,6 +6,7 @@ import java.util.List;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
@@ -88,13 +89,15 @@ public final class DoubleStorage extends NumericStorage<Double> {
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(String name, Object argument) {
-    return ops.runMap(name, this, argument);
+  protected Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+    return ops.runMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
-    return ops.runZip(name, this, argument);
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+    return ops.runZip(name, this, argument, problemBuilder);
   }
 
   private Storage<?> fillMissingDouble(double arg) {
@@ -186,42 +189,54 @@ public final class DoubleStorage extends NumericStorage<Double> {
     ops.add(
             new DoubleNumericOp(Maps.ADD) {
               @Override
-              protected double doDouble(double a, double b) {
+              protected double doDouble(
+                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
                 return a + b;
               }
             })
         .add(
             new DoubleNumericOp(Maps.SUB) {
               @Override
-              protected double doDouble(double a, double b) {
+              protected double doDouble(
+                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
                 return a - b;
               }
             })
         .add(
             new DoubleNumericOp(Maps.MUL) {
               @Override
-              protected double doDouble(double a, double b) {
+              protected double doDouble(
+                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
                 return a * b;
               }
             })
         .add(
             new DoubleNumericOp(Maps.DIV) {
               @Override
-              protected double doDouble(double a, double b) {
+              protected double doDouble(
+                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
+                if (b == 0.0) {
+                  problemBuilder.reportDivisionByZero(ix);
+                }
                 return a / b;
               }
             })
         .add(
             new DoubleNumericOp(Maps.MOD) {
               @Override
-              protected double doDouble(double a, double b) {
+              protected double doDouble(
+                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
+                if (b == 0.0) {
+                  problemBuilder.reportDivisionByZero(ix);
+                }
                 return a % b;
               }
             })
         .add(
             new DoubleNumericOp(Maps.POWER) {
               @Override
-              protected double doDouble(double a, double b) {
+              protected double doDouble(
+                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
                 return Math.pow(a, b);
               }
             })
@@ -241,6 +256,26 @@ public final class DoubleStorage extends NumericStorage<Double> {
             })
         .add(
             new DoubleBooleanOp(Maps.EQ) {
+              @Override
+              public BoolStorage runMap(
+                  DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+                if (arg != null) {
+                  problemBuilder.reportFloatingPointEquality(-1);
+                }
+                return super.runMap(storage, arg, problemBuilder);
+              }
+
+              @Override
+              public BoolStorage runZip(
+                  DoubleStorage storage,
+                  Storage<?> arg,
+                  MapOperationProblemBuilder problemBuilder) {
+                if (arg.countMissing() < arg.size()) {
+                  problemBuilder.reportFloatingPointEquality(-1);
+                }
+                return super.runZip(storage, arg, problemBuilder);
+              }
+
               @Override
               protected boolean doDouble(double a, double b) {
                 return a == b;

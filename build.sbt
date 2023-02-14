@@ -689,7 +689,7 @@ lazy val rustParserTargetDirectory =
 val generateRustParserLib =
   TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
 `syntax-rust-definition` / generateRustParserLib := {
-  import sys.process._
+  val log = state.value.log
   val libGlob =
     (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
 
@@ -700,8 +700,7 @@ val generateRustParserLib =
     (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
   ) {
     val os = System.getProperty("os.name")
-    val baseCommand = Seq(
-      "cargo",
+    val baseArguments = Seq(
       "build",
       "-p",
       "enso-parser-jni",
@@ -710,11 +709,11 @@ val generateRustParserLib =
       "--out-dir",
       (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
     )
-    val releaseMode = baseCommand ++
+    val adjustedArguments = baseArguments ++
       (if (BuildInfo.isReleaseMode)
          Seq("--release")
        else Seq())
-    releaseMode !
+    Cargo.run(adjustedArguments, log)
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
@@ -729,7 +728,8 @@ val generateParserJavaSources = TaskKey[Seq[File]](
 `syntax-rust-definition` / generateParserJavaSources := {
   generateRustParser(
     (`syntax-rust-definition` / Compile / sourceManaged).value,
-    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges
+    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges,
+    state.value.log
   )
 }
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
@@ -737,26 +737,25 @@ val generateParserJavaSources = TaskKey[Seq[File]](
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
   (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
 
-def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
+def generateRustParser(base: File, changes: sbt.nio.FileChanges, log: ManagedLogger): Seq[File] = {
   import scala.jdk.CollectionConverters._
   import java.nio.file.Paths
 
-  import sys.process._
   val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
   val fullPkg    = Paths.get(base.toString, syntaxPkgs).toFile
   if (!fullPkg.exists()) {
     fullPkg.mkdirs()
   }
   if (changes.hasChanges) {
-    Seq(
-      "cargo",
+    val args = Seq(
       "run",
       "-p",
       "enso-parser-generate-java",
       "--bin",
       "enso-parser-generate-java",
       fullPkg.toString
-    ) !
+    )
+    Cargo.run(args, log)
   }
   FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
 }

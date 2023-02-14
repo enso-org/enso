@@ -13,10 +13,10 @@ use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
-use parser_scala::api::ParsedSourceFile;
-use parser_scala::api::PruneUnusedIds;
-use parser_scala::api::SourceFile;
-use parser_scala::Parser;
+use parser::api::ParsedSourceFile;
+use parser::api::PruneUnusedIds;
+use parser::api::SourceFile;
+use parser::Parser;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -340,7 +340,7 @@ impl PruneUnusedIds for Metadata {
     }
 }
 
-impl parser_scala::api::Metadata for Metadata {}
+impl parser::api::Metadata for Metadata {}
 
 impl Default for Metadata {
     fn default() -> Self {
@@ -738,7 +738,7 @@ pub mod test {
             parser: &Parser,
             repository: Rc<model::undo_redo::Repository>,
         ) -> Module {
-            let ast = parser.parse_module(self.code.clone(), self.id_map.clone()).unwrap();
+            let ast = parser.parse_module(&self.code, self.id_map.clone()).unwrap();
             let module = Plain::new(self.path.clone(), ast, self.metadata.clone(), repository);
             Rc::new(module)
         }
@@ -746,8 +746,7 @@ pub mod test {
 
     pub fn plain_from_code(code: impl Into<String>) -> Module {
         let urm = default();
-        MockData { code: code.into(), ..default() }
-            .plain(&parser_scala::Parser::new_or_panic(), urm)
+        MockData { code: code.into(), ..default() }.plain(&parser::Parser::new(), urm)
     }
 
     #[test]
@@ -783,7 +782,7 @@ pub mod test {
         assert_eq!(qualified.to_string(), "n.P.Foo.Bar");
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn outdated_metadata_parses() {
         // Metadata here will fail to serialize because `File` is not a valid qualified name.
         // Expected behavior is that invalid metadata parts will be filled with defaults.
@@ -794,8 +793,7 @@ main = 5
 #### METADATA ####
 [[{"index":{"value":7},"size":{"value":8}},"04f2bbe4-6291-4bad-961c-146228f3aee4"],[{"index":{"value":15},"size":{"value":1}},"20f4e5e3-3ab4-4c68-ae7a-d261d3f23af0"],[{"index":{"value":16},"size":{"value":13}},"746b453a-3fed-4128-86ce-a3853ef684b0"],[{"index":{"value":0},"size":{"value":29}},"aead2cca-c429-47f2-85ef-fe090433990b"],[{"index":{"value":30},"size":{"value":4}},"063ab796-e79b-4037-bf94-1f24c9545b9a"],[{"index":{"value":35},"size":{"value":1}},"4b4992bd-7d8e-401b-aebf-42b30a4a5cae"],[{"index":{"value":37},"size":{"value":1}},"1d6660c6-a70b-4eeb-b5f7-82f05a51df25"],[{"index":{"value":30},"size":{"value":8}},"ad5b88bf-0cdb-4eba-90fe-07afc37e3953"],[{"index":{"value":0},"size":{"value":39}},"602dfcea-2321-48fa-95b1-1f58fb028099"]]
 {"ide":{"node":{"1d6660c6-a70b-4eeb-b5f7-82f05a51df25":{"position":{"vector":[-75.5,52]},"intended_method":{"module":"Base.System.File","defined_on_type":"File","name":"read"}}}}}"#;
-        let result = Parser::new_or_panic().parse_with_metadata::<Metadata>(code.into());
-        let file = result.unwrap();
+        let file = Parser::new().parse_with_metadata::<Metadata>(code);
         assert_eq!(file.ast.repr(), "import Standard.Visualization\nmain = 5");
         assert_eq!(file.metadata.ide.node.len(), 1);
         let id = ast::Id::from_str("1d6660c6-a70b-4eeb-b5f7-82f05a51df25").unwrap();

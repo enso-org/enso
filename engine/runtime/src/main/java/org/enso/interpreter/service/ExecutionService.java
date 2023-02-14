@@ -5,6 +5,8 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -156,7 +158,7 @@ public class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
-    Optional<EventBinding<ExecutionEventListener>> listener =
+    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service ->
                 service.bind(
@@ -176,7 +178,7 @@ public class ExecutionService {
       interopLibrary.execute(call);
     } finally {
       context.getThreadManager().leave(p);
-      listener.ifPresent(EventBinding::dispose);
+      eventNodeFactory.ifPresent(EventBinding::dispose);
     }
   }
 
@@ -302,7 +304,7 @@ public class ExecutionService {
     Consumer<Exception> onExceptionalCallback =
         (value) -> context.getLogger().finest("_ON_ERROR " + value);
 
-    Optional<EventBinding<ExecutionEventListener>> listener =
+    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service ->
                 service.bind(
@@ -322,7 +324,7 @@ public class ExecutionService {
       return interopLibrary.execute(function, arguments);
     } finally {
       context.getThreadManager().leave(p);
-      listener.ifPresent(EventBinding::dispose);
+      eventNodeFactory.ifPresent(EventBinding::dispose);
     }
   }
 

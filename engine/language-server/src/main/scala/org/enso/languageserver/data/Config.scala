@@ -57,18 +57,20 @@ object FileManagerConfig {
   *
   * @param initTimeout vcs init operation timeout
   * @param timeout default vcs operation timeout
+  * @param asyncInit flag indicating that vcs initialization should be non-blocking
   */
 case class VcsManagerConfig(
   initTimeout: FiniteDuration,
-  timeout: FiniteDuration
+  timeout: FiniteDuration,
+  asyncInit: Boolean
 ) {
   val dataDirectory: Path =
     Path.of(ProjectDirectoriesConfig.DataDirectory)
 }
 
 object VcsManagerConfig {
-  def apply(): VcsManagerConfig =
-    VcsManagerConfig(initTimeout = 5.seconds, 5.seconds)
+  def apply(asyncInit: Boolean = true): VcsManagerConfig =
+    VcsManagerConfig(initTimeout = 5.seconds, 5.seconds, asyncInit)
 }
 
 /** Configuration of the execution context.

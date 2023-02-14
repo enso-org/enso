@@ -9,20 +9,6 @@ use syn::Token;
 
 
 
-/// Generates `HasTokens` implementations for spaceless AST that panics when used.
-pub fn spaceless_ast(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let target = syn::parse::<PathSegment>(input).unwrap();
-    let ty_args = path_segment_generic_args(&target);
-    let ret = quote! {
-        impl<#(#ty_args),*> HasTokens for #target {
-            fn feed_to(&self, consumer:&mut impl TokenConsumer) {
-                panic!("HasTokens not supported for Spaceless AST!")
-            }
-        }
-    };
-    ret.into()
-}
-
 /// Inner logic for `derive_has_tokens`.
 pub fn derive_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnum) -> TokenStream {
     let ident = &decl.ident;

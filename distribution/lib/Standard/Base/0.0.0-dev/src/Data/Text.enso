@@ -5,6 +5,7 @@ import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Meta
 
+from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Text_Utils
@@ -32,23 +33,6 @@ type Text
              "Hello" + ", world!"
     + : Text -> Text
     + self that = @Builtin_Method "Text.+"
-
-    ## Compare two texts to discover their ordering.
-
-       Arguments:
-       - that: The text to order `self` with respect to.
-
-       > Example
-         Checking how "a" orders in relation to "b".
-
-             "a".compare_to "b"
-    compare_to : Text -> Ordering
-    compare_to self that = case that of
-        _ : Text ->
-            is_normalized = self.is_normalized && that.is_normalized
-            comparison_result = Text_Utils.compare self that is_normalized
-            Ordering.from_sign comparison_result
-        _ -> Error.throw (Type_Error.Error Text that "that")
 
     ## Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
@@ -134,3 +118,5 @@ type Text
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self
+
+Comparable.from (_:Text) = Default_Ordered_Comparator
