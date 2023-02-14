@@ -67,7 +67,7 @@ const FRAME_TIME_THRESHOLD: Duration = (1000.0 / FPS_THRESHOLD).ms();
 /// a crude form of backpressure by blocking until all pending jobs complete. We are not sure if it
 /// is a feature or a bug. To learn more about our findings so far, see:
 /// https://github.com/enso-org/enso/pull/3378#issuecomment-1090958946
-const MAX_PARALLEL_COMPILE_JOBS: usize = 2000;
+const MAX_PARALLEL_COMPILE_JOBS: usize = 16;
 
 
 
@@ -238,7 +238,6 @@ impl Compiler {
         profiler: profiler::Debug,
         on_ready: F,
     ) -> JobHandle {
-        //info!("submit: {}", &input.fragment);
         let strong_handle = JobHandle::new();
         let handle = strong_handle.downgrade();
         let on_ready: Box<dyn FnOnce(shader::Program)> = Box::new(on_ready);
@@ -288,13 +287,13 @@ impl CompilerData {
     ) {
         let cache_key = ShaderCache::code_key(&input);
         match self.cache.get_program(cache_key) {
-            Some(ProgramCacheEntry::Submitted) => {
+            Some(ProgramCacheEntry::Submitted { waiters }) => {
                 debug!("Awaiting shader compilation {cache_key:?}.");
                 // This shader is currently being processed by another job. Create a new job that
                 // will wait for that job to finish.
                 let job = Job { input: (), handle, on_ready, profiler, cache_key };
-                self.cache.add_to_waiting_list(job);
-                self.dirty = true;
+                waiters.push(job);
+                debug_assert!(self.dirty);
             }
             Some(ProgramCacheEntry::Validated(program)) => {
                 debug!("Reusing cached shader {cache_key:?}.");
@@ -394,8 +393,8 @@ impl CompilerData {
     /// it is costly and can prevent the parallelism altogether. To learn more, see:
     /// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#dont_check_shader_compile_status_unless_linking_fails
     fn current_parallel_job_count(&self) -> usize {
+        // [`compile`] is the only excluded queue, because those jobs are waiting to start.
         [
-            self.jobs.compile.len(),
             self.jobs.compile_poll.len(),
             self.jobs.compile_check.len(),
             self.jobs.link.len(),
@@ -561,7 +560,7 @@ impl CompilerData {
                 } else {
                     // No waiting jobs, cancel the compilation process.
                     self.cache.program_canceled(cache_key);
-                    trace!("Job handle dropped, skipping.");
+                    info!("Job handle dropped, skipping.");
                     continue;
                 }
             }
@@ -615,13 +614,12 @@ struct ShaderCache {
     vertex_shaders:   HashMap<ShaderHash, Shader<Vertex>>,
     fragment_shaders: HashMap<ShaderHash, Shader<Fragment>>,
     programs:         HashMap<ShaderCacheKey, ProgramCacheEntry>,
-    waiting_jobs:     HashMap<ShaderCacheKey, Vec<Job<()>>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum ProgramCacheEntry {
     /// Shader program is already submitted for compilation.
-    Submitted,
+    Submitted { waiters: Vec<Job<()>> },
     /// Shader program was already compiled and linked successfully.
     Validated(shader::Program),
     /// Compilation of this shader program already failed.
@@ -634,38 +632,33 @@ impl ShaderCache {
         code.as_ref().map(|shader| shader.as_ref().map(ShaderHash::new))
     }
 
-    fn get_program(&self, key: ShaderCacheKey) -> Option<&ProgramCacheEntry> {
-        self.programs.get(&key)
-    }
-
-    fn add_to_waiting_list(&mut self, job: Job<()>) {
-        self.waiting_jobs.entry(job.cache_key).or_default().push(job);
+    fn get_program(&mut self, key: ShaderCacheKey) -> Option<&mut ProgramCacheEntry> {
+        self.programs.get_mut(&key)
     }
 
     /// Get single job that is awaiting for the completed compilation under specific cache entry.
     /// Only returns jobs that were not cancelled yet. All jobs that were scanned and found to be
     /// cancelled will be removed from the waiting list to avoid processing them in the future.
     fn take_next_waiting_job(&mut self, key: ShaderCacheKey) -> Option<Job<()>> {
-        let jobs = self.waiting_jobs.get_mut(&key)?;
-        while let Some(job) = jobs.pop() {
-            if !job.is_cancelled() {
-                return Some(job);
+        if let Some(ProgramCacheEntry::Submitted { waiters }) = self.get_program(key) {
+            while let Some(job) = waiters.pop() {
+                if !job.is_cancelled() {
+                    return Some(job);
+                }
             }
         }
         None
     }
 
     fn program_submitted(&mut self, key: ShaderCacheKey) {
-        self.programs.insert(key, ProgramCacheEntry::Submitted);
+        self.programs.insert(key, ProgramCacheEntry::Submitted { waiters: default() });
     }
 
     fn program_failed(&mut self, key: ShaderCacheKey) {
-        self.waiting_jobs.remove(&key);
         self.programs.insert(key, ProgramCacheEntry::Failed);
     }
 
     fn program_canceled(&mut self, key: ShaderCacheKey) {
-        self.waiting_jobs.remove(&key);
         self.programs.remove(&key);
     }
 
@@ -675,8 +668,7 @@ impl ShaderCache {
         program: shader::Program,
         on_ready: Option<impl FnOnce(shader::Program)>,
     ) {
-        self.programs.insert(key, ProgramCacheEntry::Validated(program.clone()));
-
+        let entry = self.programs.insert(key, ProgramCacheEntry::Validated(program.clone()));
         // Complete all jobs that were scheduled for this program. This must be done after the cache
         // entry is updated, in case the job callback schedules another compilation of the same
         // shader program. We want those submissions to recognize cache status as validated and
@@ -684,8 +676,8 @@ impl ShaderCache {
         if let Some(on_ready) = on_ready {
             on_ready(program.clone());
         }
-        if let Some(jobs) = self.waiting_jobs.remove(&key) {
-            for job in jobs {
+        if let Some(ProgramCacheEntry::Submitted { waiters }) = entry {
+            for job in waiters {
                 if !job.is_cancelled() {
                     if let Some(on_ready) = job.on_ready {
                         (on_ready)(program.clone());

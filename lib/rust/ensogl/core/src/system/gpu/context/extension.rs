@@ -4,8 +4,9 @@ use crate::prelude::*;
 
 use crate::system::gpu::data::GlEnum;
 
-use web_sys::{WebGl2RenderingContext, WebGlShader};
+use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlProgram;
+use web_sys::WebGlShader;
 
 
 

@@ -25,7 +25,6 @@
 #![feature(auto_traits)]
 #![feature(int_roundings)]
 #![feature(let_chains)]
-#![feature(trait_upcasting)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

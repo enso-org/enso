@@ -87,6 +87,17 @@ fn init_context() {
 /// A constructor of view of some specific shape.
 pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
 
+/// The definition of shapes created with the `shape!` macro.
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct ShapeDefinition {
+    /// Location in the source code that the shape was defined.
+    pub definition_path: &'static str,
+    /// A constructor of single shape view.
+    #[derivative(Debug = "ignore")]
+    pub cons:            ShapeCons,
+}
+
 /// The definition of shapes created with the `cached_shape!` macro.
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -101,7 +112,7 @@ pub struct CachedShapeDefinition {
 thread_local! {
     /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
     /// program execution, before the `main` function is called.
-    pub static SHAPES_DEFINITIONS: RefCell<Vec<(&'static str, ShapeCons)>> = default();
+    pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeDefinition>> = default();
 
     /// All shapes defined with the `cached_shape!` macro. They will be populated on the beginning
     /// of program execution, before the `main` function is called.
@@ -178,8 +189,8 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
     let mut map = HashMap::new();
     SHAPES_DEFINITIONS.with(|shapes| {
-        for (_, shape_cons) in shapes.borrow().iter() {
-            let shape = shape_cons();
+        for shape in shapes.borrow().iter() {
+            let shape = (shape.cons)();
             let path = shape.definition_path();
             let code = shape.abstract_shader_code_in_glsl_310();
             map.insert(path, code);
@@ -189,43 +200,28 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     map
 }
 
-/// Returns the source code for shaders that should be compiled as soon as a context is available.
-pub fn get_persistent_shaders() -> Vec<shader::Code> { // variables: &UniformScope
-    let mut shaders = vec![];
-    //PRECOMPILED_SHADERS.with_borrow(|shaders| info!("PRECOMPILED_SHADERS: {shaders:?}"));
+
+
+// ===================================
+// === Eager shaders instantiation ===
+// ===================================
+
+/// Begin compilation of all shaders that will be needed for the default scene.
+#[profile(Task)]
+pub fn instantiate_shaders() {
     SHAPES_DEFINITIONS.with_borrow(|shapes| {
-        with_context(|t| {
-            //let layer = &t.layers.root;
-            for (path, shape_cons) in shapes {
-                let do_it = match path {
-                    //_ if path.starts_with("app/gui/view/component-browser") => true,
-                    _ => true,
-                };
-                if do_it {
-                    let shape = shape_cons();
-                }
-                //scene().add_child(&*shape);
-                //layer.add(&*shape);
-                //mem::forget(shape);
-                //let shape: Box<dyn display::Object> = shape_cons();
-                //layer.remove(&*shape);
-                //mem::forget(shape);
+        for shape in shapes {
+            let path = &shape.definition_path;
+            let preload = match path {
+                _ if path.starts_with("app/gui/view/debug_scene/") => false,
+                _ if path.starts_with("lib/rust/ensogl/example/") => false,
+                _ => true,
+            };
+            if preload {
+                let _shape = (shape.cons)();
             }
-        });
-    });
-    /*
-    SHAPES_DEFINITIONS.with_borrow(|shapes| {
-        for shape_cons in shapes {
-            let symbol = &shape_cons().sprite().symbol;
-            let bindings = symbol.discover_variable_bindings(variables);
-            let shader = symbol.shader();
-            let version = crate::system::gpu::shader::glsl::Version::V300;
-            let code = shader.gen_gpu_code(version, &bindings);
-            shaders.push(code);
         }
     });
-     */
-    shaders
 }
 
 
@@ -442,7 +438,6 @@ pub struct WorldData {
 impl WorldData {
     /// Create and initialize new world instance.
     pub fn new(frp: &api::private::Output) -> Self {
-        get_persistent_shaders();
         let frp = frp.clone_ref();
         let stats = Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
@@ -451,8 +446,7 @@ impl WorldData {
         let on_change = f!(scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
         let default_scene = Scene::new(&stats, on_change, &display_mode);
-        let variables = &default_scene.variables;
-        let uniforms = Uniforms::new(variables);
+        let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
@@ -486,6 +480,7 @@ impl WorldData {
         self.init_environment();
         self.init_composer();
         self.init_debug_hotkeys();
+        instantiate_shaders();
         self
     }
 
@@ -498,7 +493,6 @@ impl WorldData {
         let display_mode = self.display_mode.clone_ref();
         let display_mode_uniform = self.uniforms.display_mode.clone_ref();
         let emit_measurements_handle = self.emit_measurements_handle.clone_ref();
-        let scene = self.default_scene.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
             let digit_prefix = "Digit";
@@ -521,8 +515,6 @@ impl WorldData {
                 } else if key == "KeyQ" {
                     enso_debug_api::save_profile(&profiler::internal::get_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
-                } else if key == "KeyL" {
-                    scene.debug_layer_contents();
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
                     if let Some(mode) = glsl::codes::DisplayModes::from_value(code_value) {

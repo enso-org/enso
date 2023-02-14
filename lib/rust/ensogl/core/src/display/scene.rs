@@ -719,7 +719,6 @@ pub struct SceneData {
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
-    persistent_shaders: Rc<RefCell<Vec<shader::Code>>>,
 }
 
 impl SceneData {
@@ -767,7 +766,6 @@ impl SceneData {
         let context_lost_handler = default();
         let pointer_position_changed = default();
         let shader_compiler = default();
-        let persistent_shaders = default();
         Self {
             display_object,
             display_mode,
@@ -793,7 +791,6 @@ impl SceneData {
             shader_compiler,
             extensions,
             disable_context_menu,
-            persistent_shaders,
         }
         .init()
     }
@@ -811,20 +808,6 @@ impl SceneData {
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
         self.renderer.set_context(context);
-        if let Some(context) = context {
-            /*
-            if self.persistent_shaders.borrow().is_empty() {
-                *self.persistent_shaders.borrow_mut() = world::get_persistent_shaders();
-            }
-             */
-            for code in self.persistent_shaders.borrow().iter() {
-                let code = shader::Sources {
-                    fragment: Some(code.fragment.clone()),
-                    vertex: Some(code.vertex.clone()),
-                };
-                context.shader_compiler.submit_background_job(code);
-            }
-        }
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {
@@ -953,14 +936,6 @@ impl SceneData {
         let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
         let world_space = camera.inversed_view_projection_matrix() * clip_space;
         (inv_object_matrix * world_space).xy()
-    }
-
-    pub fn set_persistent_shaders(&self, shaders: Vec<shader::Code>) {
-        *self.persistent_shaders.borrow_mut() = shaders;
-    }
-
-    pub fn debug_layer_contents(&self) {
-        warn!("{:?}", &self.layers);
     }
 }
 

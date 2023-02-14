@@ -73,8 +73,11 @@ pub type Code = Sources<String, String>;
 pub type CompiledCode = Sources<Shader<Vertex>, Shader<Fragment>>;
 
 impl<V, F> Sources<V, F> {
-    /// Apply a [`Into::into`] to the [`vertex`] and [`fragment`] elements and return the result.
-    pub fn into<V1, F1>(self) -> Sources<V1, F1> where V: Into<V1>, F: Into<F1> {
+    /// Apply [`Into::into`] to the [`vertex`] and [`fragment`] elements and return the result.
+    pub fn into<V1, F1>(self) -> Sources<V1, F1>
+    where
+        V: Into<V1>,
+        F: Into<F1>, {
         let Sources { vertex, fragment } = self;
         let vertex = vertex.into();
         let fragment = fragment.into();
@@ -92,7 +95,8 @@ impl<V, F> Sources<V, F> {
 
 impl<VF> Sources<VF, VF> {
     /// Apply a function to the [`vertex`] and [`fragment`] elements and return the result.
-    pub fn map<VF1, F>(self, f: F) -> Sources<VF1, VF1> where F: Fn(VF) -> VF1 {
+    pub fn map<VF1, F>(self, f: F) -> Sources<VF1, VF1>
+    where F: Fn(VF) -> VF1 {
         let Sources { vertex, fragment } = self;
         let vertex = f(vertex);
         let fragment = f(fragment);
