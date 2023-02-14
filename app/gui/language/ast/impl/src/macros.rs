@@ -21,7 +21,7 @@ pub mod skip_and_freeze;
 // ==================================
 
 /// The keyword introducing an qualified import declaration. See:
-/// https://dev.enso.org/docs/enso/syntax/imports.html#import-syntax
+/// https://enso.org/docs/developer/enso/syntax/imports.html#import-syntax
 pub const QUALIFIED_IMPORT_KEYWORD: &str = "import";
 
 /// The keyword introducing an unqualified import declaration.

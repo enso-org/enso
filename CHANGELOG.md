@@ -86,6 +86,8 @@
   present only when the argument is of type that has a predefined set of values.
 - [Separate component browser navigator sections for modules imported from
   different namespaces][4044]
+- [Internal components (private API) are not displayed in the component
+  browser.][4085]
 - [The correct default visualisation for tables is shown on new nodes.][4120]
 - [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
   contain suggestions which are based on evaluated data.
@@ -464,6 +466,7 @@
 [4052]: https://github.com/enso-org/enso/pull/4052
 [4063]: https://github.com/enso-org/enso/pull/4063
 [4078]: https://github.com/enso-org/enso/pull/4078
+[4085]: https://github.com/enso-org/enso/pull/4085
 [4097]: https://github.com/enso-org/enso/pull/4097
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4072]: https://github.com/enso-org/enso/pull/4072
@@ -560,6 +563,7 @@
 - [Profile engine startup][4110]
 - [Report type of polyglot values][4111]
 - [Engine can now recover from serialization failures][5591]
+- [Update to GraalVM 22.3.1][5602]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -654,6 +658,7 @@
 [4110]: https://github.com/enso-org/enso/pull/4110
 [4111]: https://github.com/enso-org/enso/pull/4111
 [5591]: https://github.com/enso-org/enso/pull/5591
+[5602]: https://github.com/enso-org/enso/pull/5602
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

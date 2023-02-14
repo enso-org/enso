@@ -34,9 +34,7 @@ import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionKey;
 
-import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
@@ -79,9 +77,6 @@ public class EnsoContext {
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
-
-  private final Assumption chromeInspectorNotAttached =
-      Truffle.getRuntime().createAssumption("chromeInspectorNotAttached");
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
   private final IOPermissions rootIOPermissions;
@@ -216,11 +211,6 @@ public class EnsoContext {
    */
   public final Compiler getCompiler() {
     return compiler;
-  }
-
-  /** Returns an {@link Assumption} that Chrome inspector is not attached to this context. */
-  public Assumption getChromeInspectorNotAttached() {
-    return chromeInspectorNotAttached;
   }
 
   /**

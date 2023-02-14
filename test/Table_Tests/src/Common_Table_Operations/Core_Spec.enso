@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
@@ -6,7 +7,7 @@ from Standard.Table import Set_Mode
 from Standard.Table.Errors import all
 import Standard.Table.Data.Expression.Expression_Error
 
-from Standard.Test import Test
+from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -123,6 +124,28 @@ spec setup =
             t1 = table_builder [["X", [1,2,3]]]
             t1.set "[unknown] + 10" new_name="Z" . should_fail_with No_Such_Column
             t1.set "[[[[" . should_fail_with Expression_Error.Syntax_Error
+
+        Test.specify "should forward expression problems" <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+
+            r1 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
+            Problems.assume_no_problems r1
+            r1.at -1 . to_vector . should_equal [True, True, False]
+
+            r2 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
+            Problems.expect_warning Floating_Point_Equality r2
+            r2.at -1 . to_vector . should_equal [True, True, False]
+
+            err3 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
+            err3.should_fail_with Floating_Point_Equality
+
+            # These errors currently only work in in-memory.
+            if setup.is_database.not then
+                action2 = t1.set "3 / [X]" new_name="Z" on_problems=_
+                tester2 table =
+                    table.at "Z" . to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
+                problems2 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
+                Problems.test_problem_handling action2 problems2 tester2
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|

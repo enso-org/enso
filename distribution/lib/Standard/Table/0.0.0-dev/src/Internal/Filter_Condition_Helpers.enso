@@ -13,10 +13,18 @@ from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
    It also performs validation and will throw errors if unexpected column types
    are encountered.
-make_filter_column source_column filter_condition = case filter_condition of
+make_filter_column source_column filter_condition on_problems = case filter_condition of
     # Equality
-    Equal value -> (source_column == value)
-    Not_Equal value -> (source_column != value)
+    Equal value ->
+        Warning.with_suspended source_column source_column->
+            Warning.with_suspended value value->
+                on_problems.escalate_warnings <|
+                    source_column == value
+    Not_Equal value ->
+        Warning.with_suspended source_column source_column->
+            Warning.with_suspended value value->
+                on_problems.escalate_warnings <|
+                    source_column != value
     # Nothing
     Is_Nothing -> source_column.is_missing
     Not_Nothing -> source_column.is_missing.not
