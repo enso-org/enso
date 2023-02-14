@@ -852,7 +852,11 @@ pub mod test {
             };
             edit_handler.update_ls_content(&edit);
             fixture.run_until_stalled();
-            module.apply_text_change_from_ls(vec![edit], &parser).unwrap();
+            module
+                .apply_text_change_from_ls(vec![edit], &parser)
+                .boxed_local()
+                .expect_ready()
+                .unwrap();
             fixture.run_until_stalled();
         };
 
