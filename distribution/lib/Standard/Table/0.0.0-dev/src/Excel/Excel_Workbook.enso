@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 
 from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Metadata.Choice import Option
@@ -65,14 +66,23 @@ type Excel_Workbook
     @types (self-> Single_Choice values=(self.table_types.map t-> Option t t.pretty))
     tables : Text -> Text -> Text -> Vector -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
-        sheets_raw = Excel_Reader.read_file self.file Excel_Section.Sheet_Names self.headers Report_Warning self.xls_format
-        sheets = sheets_raw.map s-> [s, 'Worksheet', self.database, Nothing]
+        _ = [all_fields]
+        rows = if (schema != Nothing) then [] else
+            file = File.new database
 
-        range_names_raw = Excel_Reader.read_file self.file Excel_Section.Range_Names self.headers Report_Warning self.xls_format
-        ranges = range_names_raw.map r-> [r, 'Named Range', self.database, Nothing]
+            sheets_raw = Excel_Reader.read_file file Excel_Section.Sheet_Names self.headers Report_Warning self.xls_format
+            sheets = if types=Nothing || types.contains "Worksheet" then sheets_raw.map s-> [s, 'Worksheet', database, Nothing] else []
 
-        rows = sheets + ranges
-        Table.from_rows ['Name', 'Type', 'Database', 'Schema'] rows
+            range_names_raw = Excel_Reader.read_file file Excel_Section.Range_Names self.headers Report_Warning self.xls_format
+            ranges = if types=Nothing || types.contains "Named Range" then range_names_raw.map r-> [r, 'Named Range', database, Nothing] else []
+
+            sheets + ranges
+
+        filtered = if name_like == Nothing then rows else
+            regex = sql_like_to_regex name_like
+            rows.filter r-> regex.matches r.first
+
+        Table.from_rows ['Name', 'Type', 'Database', 'Schema'] filtered
 
     ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
 
