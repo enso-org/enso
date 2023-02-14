@@ -978,15 +978,15 @@ impl FrameCounter {
         let js_on_frame_handle_id_internal = Rc::downgrade(&js_on_frame_handle_id);
         *closure_handle.as_ref().borrow_mut() = Some(Closure::new(move |_| {
             frames_handle.upgrade().map(|fh| fh.as_ref().update(|value| value.saturating_add(1)));
-            closure_handle_internal.upgrade().map(|maybe_handle| {
-                maybe_handle.borrow_mut().as_ref().map(|handle| {
+            if let Some(maybe_handle) = closure_handle_internal.upgrade() {
+                if let Some(handle) = maybe_handle.borrow_mut().as_ref() {
                     let new_handle_id =
                         window.request_animation_frame_with_closure_or_panic(handle);
-                    js_on_frame_handle_id_internal
-                        .upgrade()
-                        .map(|handle_id| handle_id.as_ref().set(new_handle_id));
-                });
-            });
+                    if let Some(handle_id) = js_on_frame_handle_id_internal.upgrade() {
+                        handle_id.as_ref().set(new_handle_id)
+                    }
+                }
+            }
         }));
 
         js_on_frame_handle_id.as_ref().set(window.request_animation_frame_with_closure_or_panic(
