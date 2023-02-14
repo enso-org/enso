@@ -563,7 +563,7 @@ type Table
            - If there are duplicate column names in the output table,
              a `Duplicate_Output_Column_Names`.
            - If grouping on or computing the `Mode` on a floating point number,
-             a `Floating_Point_Grouping`.
+             a `Floating_Point_Equality`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
@@ -573,7 +573,7 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
-    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Grouping | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
 
@@ -700,9 +700,9 @@ type Table
          - If no valid columns are selected, a `No_Input_Columns_Selected`, is
            reported as a dataflow error regardless of setting.
          - If floating points values are present in the distinct columns, a
-           `Floating_Point_Grouping` is reported according to the `on_problems`
+           `Floating_Point_Equality` is reported according to the `on_problems`
            setting.
-    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Grouping
+    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
         key_columns = self.columns_helper.select_columns selector=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
@@ -870,6 +870,8 @@ type Table
          of `Filter_Condition` or a predicate taking a cell value and returning
          a boolean value indicating whether the corresponding row should be kept
          or not.
+       - on_problems: Specifies how to handle if a non-fatal problem occurs,
+         attaching a warning by default.
 
        ! Error Conditions
 
@@ -879,6 +881,10 @@ type Table
            is raised.
          - If the column is an invalid type for the filter, an
            `Invalid_Value_Type` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If filtering by equality on a floating-point column,
+             a `Floating_Point_Equality`.
 
        > Example
          Get people older than 30.
@@ -901,16 +907,16 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     @filter Filter_Condition.default_widget
-    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column filter=(Filter_Condition.Is_True) = case column of
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
+    filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
-                _ : Filter_Condition -> mask (make_filter_column column filter)
+                _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
                 _ : Function -> mask (column.map filter)
         _ ->
             table_at = self.at column
-            self.filter table_at filter
+            self.filter table_at filter on_problems
 
     ## ALIAS Filter Rows
 
@@ -919,6 +925,8 @@ type Table
 
        Arguments:
        - expression: The expression to evaluate to filter the rows.
+       - on_problems: Specifies how to handle non-fatal problems, attaching a
+         warning by default.
 
        ! Error Conditions
 
@@ -928,14 +936,22 @@ type Table
            `Expression_Error` dataflow error is raised.
          - If the expression returns a column that does not have a boolean type,
            an `Invalid_Value_Type` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If the expression checks equality on a floating-point column,
+             a `Floating_Point_Equality`.
+           - If an arithmetic error occurs when computing the expression,
+             an `Arithmetic_Error`.
+           - If more than 10 rows encounter computation issues,
+             an `Additional_Warnings`.
 
        > Example
          Select people celebrating a jubilee.
 
              people.filter_by_expression "[age] % 10 == 0"
-    filter_by_expression : Text -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    filter_by_expression self expression =
-        column = self.compute expression
+    filter_by_expression : Text -> Problem_Behavior -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    filter_by_expression self expression on_problems=Report_Warning =
+        column = self.compute expression on_problems
         self.filter column Filter_Condition.Is_True
 
     ## PRIVATE
@@ -1006,6 +1022,18 @@ type Table
            `Existing_Column` dataflow error is raised.
          - If the column name is not present and `set_mode` is `Update`, a
            `Missing_Column` dataflow error is raised.
+         - If a column name referenced from within an expression cannot be
+           found, a `No_Such_Column` dataflow error is raised.
+         - If the provided expression is invalid, a corresponding
+           `Expression_Error` dataflow error is raised.
+         - The following problems with expression evaluation may be reported
+           according to the `on_problems` setting:
+           - If the expression checks equality on a floating-point column,
+             a `Floating_Point_Equality`.
+           - If an arithmetic error occurs when computing the expression,
+             an `Arithmetic_Error`.
+           - If more than 10 rows encounter computation issues,
+             an `Additional_Warnings`.
 
        > Example
          Create a table where the values of the total stock in the inventory is
@@ -1018,10 +1046,10 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
-    set : Column | Text -> Text | Nothing -> Table ! Existing_Column | Missing_Column
-    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update =
+    set : Column | Text -> Text | Nothing -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
-            _ : Text -> self.compute column
+            _ : Text -> self.compute column on_problems
             _ : Column -> column
         renamed = if new_name.is_nothing then resolved else resolved.rename new_name
         to_add = case set_mode of
@@ -1038,13 +1066,33 @@ type Table
 
        Arguments:
        - expression: The expression to evaluate.
-    compute : Text -> Column
-    compute self expression =
+       - on_problems: Specifies how to handle non-fatal problems, attaching a
+         warning by default.
+
+       ! Error Conditions
+
+         - If a column name cannot be found, a `No_Such_Column` dataflow error
+           is raised.
+         - If the provided expression is invalid, a corresponding
+           `Expression_Error` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If the expression checks equality on a floating-point column,
+             a `Floating_Point_Equality`.
+           - If an arithmetic error occurs when computing the expression,
+             an `Arithmetic_Error`.
+           - If more than 10 rows encounter computation issues,
+             an `Additional_Warnings`.
+    compute : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    compute self expression on_problems=Report_Warning =
         get_column name = self.at name
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
+        problems = Warning.get_all new_column . map .value
         new_name = Expression.to_column_name expression
-        new_column.rename new_name
+        result = new_column.rename new_name
+        on_problems.attach_problems_before problems <|
+            Warning.set result []
 
     ## Returns the vector of columns contained in this table.
 
@@ -1109,7 +1157,7 @@ type Table
            (for example comparing numeric types with text), an
            `Invalid_Value_Type` is reported.
          - If decimal columns are joined on equality, a
-           `Floating_Point_Grouping` is reported.
+           `Floating_Point_Equality` is reported.
 
          In any of the above cases, if a problem occurs, the resulting table
          will have the desired structure, but it will be empty to indicate that
@@ -1513,12 +1561,12 @@ type Table
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If grouping on, using as the column name, or computing the `Mode` on
-             a floating point number, a `Floating_Point_Grouping`.
+             a floating point number, a `Floating_Point_Equality`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
-    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Grouping | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True

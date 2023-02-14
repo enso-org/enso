@@ -41,6 +41,7 @@ import project.Data.Ordering.Comparator_Spec
 import project.Data.Ordering.Natural_Order_Spec
 import project.Data.Ordering.Vector_Lexicographic_Order_Spec
 import project.Data.Pair_Spec
+import project.Data.Problems_Spec
 import project.Data.Range_Spec
 import project.Data.Ref_Spec
 import project.Data.Time.Spec as Time_Spec
@@ -121,6 +122,7 @@ main = Test_Suite.run_main <|
     Python_Interop_Spec.spec
     R_Interop_Spec.spec
     Pair_Spec.spec
+    Problems_Spec.spec
     Range_Spec.spec
     Ref_Spec.spec
     Default_Regex_Engine_Spec.spec
