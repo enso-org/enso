@@ -88,15 +88,15 @@ const AppRouter: React.FC<any> = () => {
         <Route path={"/login"} element={<LoginContainer />} />
         */}
         {/* FIXME [NP]: remove all the exact matches? */}
-        <Route exact path={LOGIN_PATH} element={<LoginContainer />} />
-        <Route exact path={REGISTRATION_PATH} element={<RegistrationContainer />} />
-        <Route exact path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
-        <Route exact path={SET_USERNAME_PATH} element={<SetUsernameContainer />} />
-        <Route exact path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
-        <Route exact path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
+        <Route path={LOGIN_PATH} element={<LoginContainer />} />
+        <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} />
+        <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
+        <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} />
+        <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
+        <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
         {/* FIXME [NP]: why do we need this extra one for electron to work? */}
-        <Route exact path={DASHBOARD_PATH} element={<DashboardContainer />} />
-        <Route exact index element={<LoginContainer />} />
+        <Route path={DASHBOARD_PATH} element={<DashboardContainer />} />
+        <Route index element={<LoginContainer />} />
       </React.Fragment>
     </Routes>
   )

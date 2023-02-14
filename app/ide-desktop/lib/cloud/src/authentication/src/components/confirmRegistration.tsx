@@ -1,4 +1,4 @@
-import { Auth } from "aws-amplify";
+import { Auth } from "@aws-amplify/auth";
 import { toast } from "react-hot-toast";
 import { FC, FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
