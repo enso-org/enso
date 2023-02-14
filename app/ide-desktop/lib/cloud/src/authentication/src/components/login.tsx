@@ -1,12 +1,13 @@
 /** @file Login container responsible for rendering and interactions in sign in flow. */
 
 import * as React from 'react'
-import { useState } from 'react'
-import { Link } from 'react-router-dom';
+import { FC, FormEvent, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../authentication';
 import { useInput } from '../hooks';
 
 import withRouter from '../navigation'
+import { DASHBOARD_PATH } from './app';
 
 
 
@@ -31,10 +32,27 @@ const createAccountIconData = "M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4
 // === loginContainer ===
 // ======================
 
-const loginContainer: React.FC<any> = () => {
+const loginContainer: FC<any> = () => {
     const auth = useAuth();
+    const navigate = useNavigate();
     const { value: email, bind: bindEmail } = useInput("")
     const { value: password, bind: bindPassword } = useInput("")
+
+    // FIXME [NP]: remove this redirect
+    if (auth.session?.state == "full") {
+        navigate(DASHBOARD_PATH)
+    }
+
+    const handleSignInWithGoogle = async (event: FormEvent) => {
+        event.preventDefault();
+        await auth.signInWithGoogle();
+    }
+
+    const handleSignInWithPassword = async (event: FormEvent) => {
+        event.preventDefault();
+        await auth.signInWithPassword(email, password);
+        navigate(DASHBOARD_PATH)
+    }
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -43,7 +61,7 @@ const loginContainer: React.FC<any> = () => {
             Login To Your Account
           </div>
           <button
-            onClick={auth.signInWithGoogle}
+            onClick={handleSignInWithGoogle}
             className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
           >
             <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
@@ -70,7 +88,7 @@ const loginContainer: React.FC<any> = () => {
             </div>
           </div>
           <div className="mt-10">
-            <form onSubmit={() => auth.signInWithPassword(email, password)}>
+            <form onSubmit={handleSignInWithPassword}>
               <div className="flex flex-col mb-6">
                 <label
                   htmlFor="email"

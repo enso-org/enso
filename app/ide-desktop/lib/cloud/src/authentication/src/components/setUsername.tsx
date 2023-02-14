@@ -7,10 +7,10 @@ import { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import toast from "react-hot-toast";
 
-import { useAuth } from '../authentication';
+import { PartialUserSession, useAuth } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
-import { setUsername } from '../api'
+import { setUsername, SetUsernameBody } from '../api'
 
 
 
@@ -18,16 +18,31 @@ import { setUsername } from '../api'
 // === setUsernameContainer ===
 // ============================
 
-const setUsernameContainer: React.FC<any> = () => {
-    const { accessToken, email } = useAuth();
+interface SetUsernameProps {
+    session: PartialUserSession,
+}
+
+const setUsernameContainer: React.FC<any> = (
+    // FIXME [NP]
+   // { session }: SetUsernameProps,
+) => {
+    //const { accessToken, email } = session;
+    const { session } = useAuth();
     const navigate = useNavigate();
+
+    console.log("session: ", session)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
+    const accessToken = session?.accessToken!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
+    const email = session?.email!;
 
     const { value: username, bind: bindUsername } = useInput("")
 
-    const setUsername = async (event: FormEvent<HTMLFormElement>) => {
+    const handleSetUsername = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        await setUsername(accessToken, username, email);
+        const body: SetUsernameBody = { userName: username, userEmail: email };
+        await setUsername(accessToken, body);
         navigate("/");
     };
 
@@ -38,7 +53,7 @@ const setUsernameContainer: React.FC<any> = () => {
             Set your username
           </div>
           <div className="mt-10">
-            <form onSubmit={setUsername}>
+            <form onSubmit={handleSetUsername}>
               <div className="flex flex-col mb-6">
                 <div className="relative">
                   <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">

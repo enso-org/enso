@@ -223,6 +223,12 @@ class Main {
                     //appInstance.config.params.authenticationEnabled.value &&
                     //appInstance.config.params.entry.value != appInstance.config.params.entry.default
                 ) {
+                    //const hideAuth = () => {
+                    //    const auth = document.getElementById('authentication')
+                    //    const root = document.getElementById('root')
+                    //    auth?.style = 'display: none'
+                    //    root?.style = 'display: block'
+                    //}
                     authentication.run(logger)
                     // appInstance.config.email.value = user.email
                     appInstance.run()
