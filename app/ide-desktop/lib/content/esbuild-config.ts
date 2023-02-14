@@ -113,7 +113,7 @@ const config: esbuild.BuildOptions = {
     minify: true,
     metafile: true,
     publicPath: '/assets',
-    platform: 'node',
+    platform: 'browser',
     incremental: true,
     color: true,
     logOverride: {
