@@ -1,11 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron')
-
-// ===================
-// === Debug Tools ===
-// ===================
-
-// TODO[WD] Enable after making preload configurable (we do not want to load it always)
-// require('devtron').install()
+import * as ipc from 'ipc'
 
 // ==================
 // === Debug APIs ===
@@ -17,15 +11,14 @@ const { contextBridge, ipcRenderer } = require('electron')
 // Shutdown-related commands and events.
 contextBridge.exposeInMainWorld('enso_lifecycle', {
     // Allows application-exit to be initiated from WASM code.
-    //
     // This is used, for example, in a key binding (Ctrl+Alt+Q) that saves a performance profile and exits.
-    quit: () => ipcRenderer.send('quit-ide'),
+    quit: () => ipcRenderer.send(ipc.channel.quit),
 })
 
 // Save and load profile data.
 let onProfiles: any = []
 let profilesLoaded: any
-ipcRenderer.on('profiles-loaded', (event, profiles) => {
+ipcRenderer.on(ipc.channel.profilesLoaded, (event, profiles) => {
     for (const callback of onProfiles) {
         callback(profiles)
     }
@@ -34,7 +27,7 @@ ipcRenderer.on('profiles-loaded', (event, profiles) => {
 })
 contextBridge.exposeInMainWorld('enso_profiling_data', {
     // Delivers profiling log.
-    saveProfile: (data: any) => ipcRenderer.send('save-profile', data),
+    saveProfile: (data: any) => ipcRenderer.send(ipc.channel.saveProfile, data),
     // Requests any loaded profiling logs.
     loadProfiles: (callback: any) => {
         if (profilesLoaded === undefined) {

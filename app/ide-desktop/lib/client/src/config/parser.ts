@@ -12,12 +12,13 @@ import Electron from 'electron'
 // === Help ===
 // ============
 
-let usage = chalk.bold(
-    `\nEnso ${buildCfg.version} command line interface.` +
-        `Usage: enso [options] [--] [backend args]` +
-        `\n\nAll the options can be provided both with single dash and double dash prefix. For ` +
-        `example, both '--help' and '-help' will print the help message.`
-)
+let usage =
+    chalk.bold(`\nEnso ${buildCfg.version} command line interface.` + `Usage: enso [options]`) +
+    `\n\nBoth single-dash and double-dash prefixes are accepted for all options. For ` +
+    `instance, the help message can be displayed by entering either '--help' or '-help'. The ` +
+    `'-no-' prefix may be utilized to disable a specific option. For example, to connect to ` +
+    `the application from a web-browser, the creation of a window can be suppressed by ` +
+    `entering either '-window=false' or '-no-window'.`
 
 class Section {
     entries: any[] = []
@@ -275,12 +276,15 @@ export function parseArgs() {
         if (err != null) {
             parseError = err
         }
-    }) as { [key: string]: string }
+    }) as { [key: string]: any }
     const unexpectedArgs = xargs['--']
 
     for (const option of args.optionsRecursive()) {
         const arg = xargs[naming.camelToKebabCase(option.qualifiedName())]
-        if (arg != null) {
+        const isArray = Array.isArray(arg)
+        // Yargs parses missing array options as `[undefined]`.
+        const isInvalidArray = isArray && arg.length == 1 && arg[0] == null
+        if (arg != null && !isInvalidArray) {
             option.value = arg
             option.setByUser = true
         }

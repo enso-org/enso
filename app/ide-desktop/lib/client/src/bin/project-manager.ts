@@ -31,10 +31,10 @@ async function exec(args: config.Args, processArgs: string[]) {
 
 /** Spawn Project Manager process.
  *
- * The standard output and error handles will be inherited, i.e. will be redirected to the
- * electron's app output and error handles. Input is piped to this process, so it will not be
- * closed, until this process finished. */
-export function spawn(args: config.Args, processArgs: string[]) {
+ * The standard output and error handles will be redirected to the electron's app output and error
+ * handles. Input is piped to this process, so it will not be closed, until this process
+ * finished. */
+export function spawn(args: config.Args, processArgs: string[]): child_process.ChildProcess {
     return logger.groupMeasured(
         `Starting the backend process with the following options: ${processArgs}`,
         () => {
@@ -43,12 +43,10 @@ export function spawn(args: config.Args, processArgs: string[]) {
             const stdout = 'inherit' as const
             const stderr = 'inherit' as const
             const stdio = [stdin, stdout, stderr]
-            const out = child_process.spawn(binPath, processArgs, { stdio })
-            logger.log(`Backend has been spawned (pid = ${out.pid}).`)
-            out.on('exit', code => {
-                logger.log(`Backend exited with code ${code}.`)
-            })
-            return out
+            const process = child_process.spawn(binPath, processArgs, { stdio })
+            logger.log(`Backend has been spawned (pid = ${process.pid}).`)
+            process.on('exit', code => logger.log(`Backend exited with code ${code}.`))
+            return process
         }
     )
 }

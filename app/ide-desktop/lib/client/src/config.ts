@@ -1,6 +1,14 @@
 import chalk from 'chalk'
 import * as content from '../../content/src/config'
-import * as paths from './paths'
+import * as paths from 'paths'
+import * as naming from 'naming'
+
+// =================
+// === Constants ===
+// =================
+
+export const helpExtendedName = 'helpExtended'
+export const helpExtendedOptionName = naming.camelToKebabCase(helpExtendedName)
 
 // ==================
 // === WindowSize ===
@@ -47,7 +55,7 @@ export const config = content.options.merge(
                 passToApplication: false,
                 default: true,
                 description:
-                    'Show the window. If set to false, only the server will be run. You can use another ' +
+                    'Show the window. If set to false, only the server is run. You can use another ' +
                     'client or a browser to connect to it.',
             }),
             server: new content.Option({
@@ -60,7 +68,9 @@ export const config = content.options.merge(
             info: new content.Option({
                 passToApplication: false,
                 default: false,
-                description: `Print the system debug info.`,
+                description:
+                    `Print the system debug information. It is recommended to copy the output ` +
+                    `of this command when submitting a report regarding any bugs encountered.`,
             }),
             version: new content.Option({
                 passToApplication: false,
@@ -74,7 +84,7 @@ export const config = content.options.merge(
                     'Show the common configuration options help page. ' +
                     'To see all options, use `-full-help`.',
             }),
-            helpExtended: new content.Option({
+            [helpExtendedName]: new content.Option({
                 passToApplication: false,
                 default: false,
                 description:
@@ -155,88 +165,10 @@ export const config = content.options.merge(
                             `being worked on. The Metal backend should be more performant.`,
                     }),
 
-                    ignoreGpuBlocklist: new content.Option({
-                        passToApplication: false,
-                        default: true,
-                        description:
-                            `The built-in software rendering list is overridden, allowing for ` +
-                            `GPU acceleration on system configurations that do not inherently ` +
-                            `support it. It should be noted that some hardware configurations ` +
-                            `may have driver issues that could result in rendering ` +
-                            `discrepancies. Despite this, the utilization of GPU acceleration ` +
-                            `has the potential to significantly enhance the performance of the ` +
-                            `application in our specific use cases. This behavior can be ` +
-                            `observed in the following example: ` +
-                            `https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.`,
-                    }),
-
-                    disableSandbox: new content.Option({
-                        passToApplication: false,
-                        default: true,
-                        description:
-                            `The sandbox feature is disabled for all process types that are ` +
-                            `typically subjected to sandboxing. This option serves as a ` +
-                            `browser-level switch solely for testing purposes. Although Google ` +
-                            `discourages the use of this option, it is deemed safe for use in ` +
-                            `this particular instance as the browser is exclusively designed to ` +
-                            `display Enso, which already has unrestricted access to all files ` +
-                            `and system settings on the user's machine. This modification has ` +
-                            `been known to result in correct app behavior on certain systems, ` +
-                            `as demonstrated in this example: ` +
-                            `https://github.com/enso-org/enso/issues/3801.`,
-                    }),
-
-                    disableGpuSandbox: new content.Option({
-                        passToApplication: false,
-                        default: true,
-                        description:
-                            `Disables the GPU process sandbox. It should be noted that on ` +
-                            `certain hardware configurations, the utilization of GPU sandboxing ` +
-                            `may result in WebGL crashes. Despite Google's discouragement of ` +
-                            `this option, it is considered safe for use in this specific ` +
-                            `instance, as the browser is dedicated solely to the display of ` +
-                            `Enso, which has unrestricted access to all files and system ` +
-                            `settings on the user's machine. For a detailed explanation of ` +
-                            `instances where such crashes may occur, please refer to this ` +
-                            `document: https://wiki.archlinux.org/title/chromium.`,
-                    }),
-
-                    disableGpuVsync: new content.Option({
-                        passToApplication: false,
-                        default: true,
-                        description:
-                            `Disable the GPU Vertical Synchronization (VSync). This feature ` +
-                            `synchronizes the refresh rate and frame rate of the monitor to ` +
-                            `ensure optimal picture quality, particularly in gaming scenarios. ` +
-                            `However, in applications that heavily rely on a graphical user ` +
-                            `interface, the utilization of VSync is not deemed essential. By ` +
-                            `disabling this feature, performance may be improved on hardware ` +
-                            `configurations with limited capabilities. In addition, disabling ` +
-                            `VSync also has the potential to reduce rendering latency. For a ` +
-                            `comprehensive understanding of this aspect, please refer to this ` +
-                            `thread: https://bugs.chromium.org/p/chromium/issues/detail?id=460919.`,
-                    }),
-
-                    disableSmoothScrolling: new content.Option({
-                        passToApplication: false,
-                        default: true,
-                        description:
-                            `Disable smooth scrolling feature. This modification has the ` +
-                            `potential to reduce latency experienced with input devices. For ` +
-                            `further elaboration, please refer to this thread: ` +
-                            `https://news.ycombinator.com/item?id=28782493.`,
-                    }),
-
-                    enableNativeGpuMemoryBuffers: new content.Option({
-                        passToApplication: false,
-                        default: true,
-                        description: `Enable native CPU-mappable GPU memory buffer support on Linux.`,
-                    }),
-
                     loadProfile: new content.Option({
                         passToApplication: false,
                         // FIXME
-                        default: [],
+                        default: [] as string[],
                         description:
                             'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
                     }),
@@ -250,6 +182,84 @@ export const config = content.options.merge(
                         default: '',
                         description:
                             'Specify a workflow for profiling. Must be used with -entry-point=profile.',
+                    }),
+                    ignoreGpuBlocklist: new content.Option({
+                        passToApplication: false,
+                        primary: false,
+                        default: true,
+                        description:
+                            `The built-in software rendering list is overridden, allowing for ` +
+                            `GPU acceleration on system configurations that do not inherently ` +
+                            `support it. It should be noted that some hardware configurations ` +
+                            `may have driver issues that could result in rendering ` +
+                            `discrepancies. Despite this, the utilization of GPU acceleration ` +
+                            `has the potential to significantly enhance the performance of the ` +
+                            `application in our specific use cases. This behavior can be ` +
+                            `observed in the following example: ` +
+                            `https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.`,
+                    }),
+                    disableSandbox: new content.Option({
+                        passToApplication: false,
+                        primary: false,
+                        default: true,
+                        description:
+                            `The sandbox feature is disabled for all process types that are ` +
+                            `typically subjected to sandboxing. This option serves as a ` +
+                            `browser-level switch solely for testing purposes. Although Google ` +
+                            `discourages the use of this option, it is deemed safe for use in ` +
+                            `this particular instance as the browser is exclusively designed to ` +
+                            `display Enso, which already has unrestricted access to all files ` +
+                            `and system settings on the user's machine. This modification has ` +
+                            `been known to result in correct app behavior on certain systems, ` +
+                            `as demonstrated in this example: ` +
+                            `https://github.com/enso-org/enso/issues/3801.`,
+                    }),
+                    disableGpuSandbox: new content.Option({
+                        passToApplication: false,
+                        primary: false,
+                        default: true,
+                        description:
+                            `Disables the GPU process sandbox. It should be noted that on ` +
+                            `certain hardware configurations, the utilization of GPU sandboxing ` +
+                            `may result in WebGL crashes. Despite Google's discouragement of ` +
+                            `this option, it is considered safe for use in this specific ` +
+                            `instance, as the browser is dedicated solely to the display of ` +
+                            `Enso, which has unrestricted access to all files and system ` +
+                            `settings on the user's machine. For a detailed explanation of ` +
+                            `instances where such crashes may occur, please refer to this ` +
+                            `document: https://wiki.archlinux.org/title/chromium.`,
+                    }),
+                    disableGpuVsync: new content.Option({
+                        passToApplication: false,
+                        primary: false,
+                        default: true,
+                        description:
+                            `Disable the GPU Vertical Synchronization (VSync). This feature ` +
+                            `synchronizes the refresh rate and frame rate of the monitor to ` +
+                            `ensure optimal picture quality, particularly in gaming scenarios. ` +
+                            `However, in applications that heavily rely on a graphical user ` +
+                            `interface, the utilization of VSync is not deemed essential. By ` +
+                            `disabling this feature, performance may be improved on hardware ` +
+                            `configurations with limited capabilities. In addition, disabling ` +
+                            `VSync also has the potential to reduce rendering latency. For a ` +
+                            `comprehensive understanding of this aspect, please refer to this ` +
+                            `thread: https://bugs.chromium.org/p/chromium/issues/detail?id=460919.`,
+                    }),
+                    disableSmoothScrolling: new content.Option({
+                        passToApplication: false,
+                        primary: false,
+                        default: true,
+                        description:
+                            `Disable smooth scrolling feature. This modification has the ` +
+                            `potential to reduce latency experienced with input devices. For ` +
+                            `further elaboration, please refer to this thread: ` +
+                            `https://news.ycombinator.com/item?id=28782493.`,
+                    }),
+                    enableNativeGpuMemoryBuffers: new content.Option({
+                        passToApplication: false,
+                        primary: false,
+                        default: true,
+                        description: `Enable native CPU-mappable GPU memory buffer support on Linux.`,
                     }),
                 },
             }),
