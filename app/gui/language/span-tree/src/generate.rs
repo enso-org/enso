@@ -297,16 +297,24 @@ impl<T: Payload> SpanTreeGenerator<T> for GeneralizedInfix {
         // Code like `ast.func` or `a+b+c`.
         let chain = self.flatten();
         let kind = kind.into();
-        let app_base = ApplicationBase::from_infix(&self);
+        let mut app_base = ApplicationBase::from_infix(&self);
         if app_base.uses_method_notation {
             // This is a standalone method access chain, missing method parameters needs to be
             // handled here. It is guaranteed that no existing prefix arguments are present, as
             // method calls inside prefix chains are handled by `generate_node_for_prefix_chain` and
             // never reach this point.
-            let arguments = app_base.known_arguments(context).unwrap_or_default();
+            let arguments = app_base.known_arguments(context);
+            let args_resolved = arguments.is_some();
+            let arguments = arguments.unwrap_or_default();
             let arity = arguments.len();
             let base_node_kind =
                 if arity == 0 { kind.clone() } else { node::Kind::Operation.into() };
+
+            // When arguments were not resolved, clear the call information. Otherwise it would be
+            // incorrectly assigned to the access chain target span.
+            if !args_resolved {
+                app_base.set_call_id(None);
+            }
             let node = generate_node_for_opr_chain(chain, base_node_kind, app_base, context)?;
             let provided_prefix_arg_count = 0;
             let args_iter = arguments.into_iter();
