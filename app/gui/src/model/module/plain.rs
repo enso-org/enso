@@ -130,14 +130,9 @@ impl Module {
         &self.content
     }
 
-    /// Get the module's notification publisher.
-    pub fn notifications(&self) -> &notification::Publisher<Notification> {
-        &self.notifications
-    }
-
-    /// Get the module's undo/redo repository.
-    pub fn repository(&self) -> &Rc<model::undo_redo::Repository> {
-        &self.repository
+    /// Publish a notification about changes in the module's content.
+    pub fn notify(&self, notification: Notification) {
+        self.notifications.notify(notification);
     }
 }
 

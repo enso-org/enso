@@ -198,7 +198,7 @@ impl Module {
         let file_path = self.path();
         self.language_server.client.close_text_file(file_path).await?;
         let opened = self.language_server.client.open_text_file(file_path).await?;
-        self.update_module_content_from_ls(opened.content.into(), parser).await
+        self.set_module_content_from_ls(opened.content.into(), parser).await
     }
 
     /// Apply text changes received from the language server.
@@ -217,30 +217,30 @@ impl Module {
             let change = TextChange { range, text };
             content.apply_change(change);
         }
-        self.update_module_content_from_ls(content, parser).await
+        self.set_module_content_from_ls(content, parser).await
     }
 
-    /// Update the module content. The provided new content should match the current content of the
-    /// file on the language server. This function updates the module content to be in sync with the
-    /// language server file content.
-    async fn update_module_content_from_ls(
+    /// Update the module with content received from the language server. This function takes the
+    /// file content as reloaded from the language server, or reconstructed from a `text/didChange`
+    /// notification. It parses the new file content and updates the module with the parsed content.
+    /// The module content changes during parsing, and the language server is notified of this
+    /// change. Lastly, a notification of `NotificationKind::Reloaded` is emitted to synchronize the
+    /// notification handler.
+    async fn set_module_content_from_ls(
         &self,
         content: text::Rope,
         parser: &Parser,
     ) -> FallibleResult {
-        let summary = ContentSummary::new(&content);
-        let source = parser.parse_with_metadata(content.to_string());
-        let new_content = source.serialize()?.content;
-        let change = TextEdit::from_prefix_postfix_differences(&content, new_content);
-
-        let transaction = self.model.repository().transaction("Setting module's content");
+        let transaction = self.undo_redo_repository().transaction("Setting module's content");
         transaction.fill_content(self.id(), self.content().borrow().clone());
-
-        let new_file = source.serialize()?;
-        self.notify_language_server(&summary, &new_file, vec![change]).await?;
-        let notification = Notification::new(new_file, NotificationKind::Reloaded);
-        self.model.content().replace(source);
-        self.model.notifications().notify(notification);
+        let parsed_source = parser.parse_with_metadata(content.to_string());
+        let source = parsed_source.serialize()?;
+        self.content().replace(parsed_source);
+        let summary = ContentSummary::new(&content);
+        let change = TextEdit::from_prefix_postfix_differences(&content, &source.content);
+        self.notify_language_server(&summary, &source, vec![change]).await?;
+        let notification = Notification::new(source, NotificationKind::Reloaded);
+        self.notify(notification);
         Ok(())
     }
 }
