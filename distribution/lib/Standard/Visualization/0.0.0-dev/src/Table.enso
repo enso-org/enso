@@ -147,7 +147,6 @@ get_longest_line text =
     max (text.lines.map (line -> line.length))
 
 ## Return the length of the longest line in the given column.
-get_column_width : Table.Column -> Integer
 get_column_width column =
     max (column.to_vector.map (x -> get_longest_line x.to_text))
 
