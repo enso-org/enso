@@ -1171,9 +1171,9 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
          "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
          "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
-Text.locate : Text -> Matching_Mode -> (Text_Matcher | Regex_Matcher) -> Span | Nothing
-Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sensitive = case matcher of
-    Text_Matcher.Case_Sensitive ->
+Text.locate : Text -> Matching_Mode -> Case_Sensitivity -> Span | Nothing
+Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Sensitive ->
         codepoint_span = case mode of
             Matching_Mode.First -> Text_Utils.span_of self term
             Matching_Mode.Last -> Text_Utils.last_span_of self term
@@ -1184,7 +1184,7 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
                guaranteed to be the same.
             end = start + term.length
             Span.Value (start.up_to end) self
-    Text_Matcher.Case_Insensitive locale -> case term.is_empty of
+    Case_Sensitivity.Inensitive locale -> case term.is_empty of
         True -> case mode of
             Matching_Mode.First -> Span.Value (0.up_to 0) self
             Matching_Mode.Last ->
@@ -1198,15 +1198,6 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
                 Nothing -> Nothing
                 grapheme_span ->
                     Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
-    _ -> case mode of
-        Matching_Mode.First ->
-            case matcher.compile term . match self Matching_Mode.First of
-                Nothing -> Nothing
-                match -> match.span 0 . to_grapheme_span
-        Matching_Mode.Last ->
-            case matcher.compile term . match self Regex_Mode.All of
-                Nothing -> Nothing
-                matches -> matches.last.span 0 . to_grapheme_span
 
 ## ALIAS index_of_all, position_of_all, span_of_all
    Finds all the locations of the `term` in the input.
@@ -1273,9 +1264,9 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
          match_1 . map .length == [2, 3]
          match_2 = ligatures . locate_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
-Text.locate_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Span
-Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case matcher of
-    Text_Matcher.Case_Sensitive ->
+Text.locate_all : Text -> Case_Sensitivity -> Vector Span
+Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case case_sensitivity of
+    Case_Sensitivity.Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
         grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
         ## While the codepoint_spans may have different code unit lengths
@@ -1285,14 +1276,10 @@ Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_em
         grahpeme_ixes . map start->
             end = start+offset
             Span.Value (start.up_to end) self
-    Text_Matcher.Case_Insensitive locale ->
+    Case_Sensitivity.Insensitive locale ->
         grapheme_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all_case_insensitive self term locale.java_locale
         grapheme_spans.map grapheme_span->
             Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
-    _ : Regex_Matcher ->
-        case matcher.compile term . match self Regex_Mode.All of
-            Nothing -> []
-            matches -> matches.map m-> m.span 0 . to_grapheme_span
 
 ## Find the first index of the `term` in the input.
    Returns `Nothing` if the term was not found in the input.
@@ -1322,12 +1309,12 @@ Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_em
 
          "Hello World!".index_of "J" == Nothing
          "Hello World!".index_of "o" == 4
-Text.index_of : Text -> Integer -> (Text_Matcher | Regex_Matcher) -> Integer | Nothing
-Text.index_of self term="" start=0 matcher=Text_Matcher.Case_Sensitive =
+Text.index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
+Text.index_of self term="" start=0 case_sensitivity=Case_Sensitivity.Sensitive =
     used_start = if start < 0 then start+self.length else start
     if used_start < 0 || used_start > self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length+1) else
         used = if used_start == 0 then self else self.drop used_start
-        span = used.locate term Matching_Mode.First matcher
+        span = used.locate term Matching_Mode.First case_sensitivity
         if span.is_nothing then Nothing else span.start+used_start
 
 ## Find the last index of the `term` in the input.
@@ -1358,12 +1345,12 @@ Text.index_of self term="" start=0 matcher=Text_Matcher.Case_Sensitive =
 
          "Hello World!".last_index_of "J" == Nothing
          "Hello World!".last_index_of "o" == 7
-Text.last_index_of : Text -> Integer -> (Text_Matcher | Regex_Matcher) -> Integer | Nothing
-Text.last_index_of self term="" start=-1 matcher=Text_Matcher.Case_Sensitive =
+Text.last_index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
+Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensitive =
     used_start = if start < 0 then start+self.length else start
     if used_start < 0 || used_start >= self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length) else
         used = if used_start == self.length-1 then self else self.take used_start+1
-        span = used.locate term Matching_Mode.Last matcher
+        span = used.locate term Matching_Mode.Last case_sensitivity
         if span.is_nothing then Nothing else span.start
 
 ## PRIVATE
