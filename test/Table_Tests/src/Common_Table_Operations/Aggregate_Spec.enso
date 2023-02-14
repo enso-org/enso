@@ -1325,7 +1325,7 @@ spec setup =
         Test.specify "should warn if grouping on a floating point" <|
             action = table.aggregate [Group_By 1] on_problems=_
             # All rows are marked as floating point, because the integers get coerced to double when stored in DoubleStorage
-            problems = [Floating_Point_Grouping.Error "Value"]
+            problems = [Floating_Point_Equality.Error "Value"]
             tester = expect_column_names ["Value"]
             Problems.test_problem_handling action problems tester
 
@@ -1410,8 +1410,8 @@ spec setup =
             new_table = table.aggregate [Group_By "Float", Count]
             problems = Problems.get_attached_warnings new_table
             problems.length . should_equal 1
-            problems.at 0 . is_a Floating_Point_Grouping.Error . should_be_true
-            problems.at 0 . column . should_equal "Float"
+            problems.at 0 . is_a Floating_Point_Equality.Error . should_be_true
+            problems.at 0 . location . should_equal "Float"
 
     if is_database then
         Test.group prefix+"Table.aggregate should report unsupported operations but not block other aggregations in warning mode" <|

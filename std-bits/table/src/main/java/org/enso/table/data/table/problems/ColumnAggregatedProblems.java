@@ -6,17 +6,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class ColumnAggregatedProblems implements Problem {
-  private final String columnName;
+  private final String locationName;
   protected final List<Integer> rows;
 
-  protected ColumnAggregatedProblems(String columnName, int row) {
-    this.columnName = columnName;
+  protected ColumnAggregatedProblems(String locationName, Integer row) {
+    this.locationName = locationName;
     this.rows = new ArrayList<>();
     this.rows.add(row);
   }
 
-  public String getColumnName() {
-    return columnName;
+  public String getLocationName() {
+    return locationName;
   }
 
   public int[] getRows() {

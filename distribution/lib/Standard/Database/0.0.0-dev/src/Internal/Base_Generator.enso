@@ -172,7 +172,7 @@ base_dialect =
 
     arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["^", make_function "POWER"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["TRUE", make_constant "TRUE"], ["FALSE", make_constant "FALSE"]]
-    eq = lift_binary_op "=" make_equals
+    eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
     compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
