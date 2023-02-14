@@ -111,14 +111,16 @@ spec =
 
     Test.group "Integration" <|
         Test.specify "should be able to round-trip a table with all kinds of weird characters to CSV and back" <|
-            t = Table.new [['name', ['Śłąęźż");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,', '\'', 'a\n\nb', 'a\tc', Nothing, Nothing, Nothing, '42', '💁👌🎍😍']], ['X', [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110]]]
+            names = ['Śłąęźż");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,', '\'', 'a\n\nb', 'a\tc', Nothing, Nothing, Nothing, '42', '💁👌🎍😍', '', 'null?\0?', 'FFFD', '\uFFFD', '\r\n', 'a\r\nb\n\rc\rd\ne', 'what about these # ?? // /* hmm */ is it included?']
+            d = Date_Time.new 2015 10 29 23 55 49
+            t = Table.new [['name', names], ['header\nspanning\nmultiple\nlines', names.map_with_index ix-> _-> ix*10], ['dates', names.map_with_index ix-> _-> d + Duration.new hours=3*ix]]
             out = enso_project.data / 'transient' / 'integrate.csv'
             out.delete_if_exists
+
             Problems.assume_no_problems <|
                 t.write out
-            t2 = out.read
+            t2 = out.read (Delimited ',' . with_comments)
             t2.should_equal t
-            t2.print
             out.delete_if_exists
 
 
