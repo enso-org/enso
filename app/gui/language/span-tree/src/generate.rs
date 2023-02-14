@@ -307,8 +307,7 @@ impl<T: Payload> SpanTreeGenerator<T> for GeneralizedInfix {
             let args_resolved = arguments.is_some();
             let arguments = arguments.unwrap_or_default();
             let arity = arguments.len();
-            let base_node_kind =
-                if arity == 0 { kind.clone() } else { node::Kind::Operation };
+            let base_node_kind = if arity == 0 { kind.clone() } else { node::Kind::Operation };
 
             // When arguments were not resolved, clear the call information. Otherwise it would be
             // incorrectly assigned to the access chain target span.
