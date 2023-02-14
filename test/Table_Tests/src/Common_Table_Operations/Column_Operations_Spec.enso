@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
 
 from Standard.Table.Errors import all
 
@@ -67,6 +68,17 @@ spec setup =
             ((t.at "A") == (t.at "B")) . to_vector . should_equal r_sensitive
             ((t.at "A").equals_ignore_case (t.at "B")) . to_vector . should_equal r_insensitive
 
+        Test.specify "should report a warning if checking equality on floating point columns" <|
+            t = table_builder [["X", [1.0, 2.1, 3.2]], ["Y", [1.0, 2.0, 3.2]]]
+
+            r1 = (t.at "X") == (t.at "Y")
+            r1.to_vector . should_equal [True, False, True]
+            Problems.expect_warning Floating_Point_Equality r1
+
+            r2 = (t.at "X") != (t.at "Y")
+            r2.to_vector . should_equal [False, True, False]
+            Problems.expect_warning Floating_Point_Equality r2
+
     Test.group prefix+"Arithmetic and Boolean Column Operations" <|
         Test.specify "should allow basic operations" <|
             (x + y).to_vector . should_equal [3, 7, 10, Nothing]
@@ -100,6 +112,62 @@ spec setup =
 
             r3 = (t.at "A") / 2
             r3 . to_vector . should_equal [0.5, 2.5, 5.0, 50.0]
+
+        db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
+        Test.specify "should allow division by 0 and report warnings" pending=db_pending <|
+            t = table_builder [["a", [3, 1, 0]], ["b", [2, 0, 0]], ["c", [1.5, 1.5, 0.0]], ["d", [1.5, 0.0, 0.0]]]
+            a = t.at "a"
+            b = t.at "b"
+            c = t.at "c"
+            d = t.at "d"
+
+            has_div_warnings location expected_rows result =
+                Test.with_clue location <|
+                    warnings = Problems.get_attached_warnings result
+                    msg = "Division by zero (at rows " + expected_rows.to_text + ")."
+                    warnings.first . should_equal (Arithmetic_Error.Error msg)
+
+            r1 = a / b
+            r1.to_vector.to_text . should_equal "[1.5, Infinity, NaN]"
+            has_div_warnings "[a] / [b]" [1, 2] r1
+            r2 = c / d
+            r2.to_vector.to_text . should_equal "[1.0, Infinity, NaN]"
+            has_div_warnings "[c] / [d]" [1, 2] r2
+            r3 = a / d
+            r3.to_vector.to_text . should_equal "[2.0, Infinity, NaN]"
+            has_div_warnings "[a] / [d]" [1, 2] r3
+            r4 = a / 0
+            r4.to_vector.to_text . should_equal "[Infinity, Infinity, NaN]"
+            has_div_warnings "[a] / 0" [0, 1, 2] r4
+            r5 = c / 0
+            r5.to_vector.to_text . should_equal "[Infinity, Infinity, NaN]"
+            has_div_warnings "[c] / 0" [0, 1, 2] r5
+
+            r6 = a % b
+            r6.to_vector.to_text . should_equal "[1, Nothing, Nothing]"
+            has_div_warnings "[a] % [b]" [1, 2] r6
+            r7 = c % d
+            r7.to_vector.to_text . should_equal "[0.0, NaN, NaN]"
+            has_div_warnings "[c] % [d]" [1, 2] r7
+            r8 = a % d
+            r8.to_vector.to_text . should_equal "[0.0, NaN, NaN]"
+            has_div_warnings "[a] % [d]" [1, 2] r8
+            r9 = a % 0
+            r9.to_vector.to_text . should_equal "[Nothing, Nothing, Nothing]"
+            has_div_warnings "[a] % 0" [0, 1, 2] r9
+            r10 = c % 0
+            r10.to_vector.to_text . should_equal "[NaN, NaN, NaN]"
+            has_div_warnings "[c] % 0" [0, 1, 2] r10
+
+        Test.specify "should limit the number of rows listed in the message" pending=db_pending <|
+            t1 = table_builder [["a", 0.up_to 200 . to_vector]]
+            zero = t1.at "a" - t1.at "a"
+            div = t1.at "a" / zero
+            warnings = Problems.get_attached_warnings div
+            warnings.not_empty.should_be_true
+            warning = warnings.first
+            warning.should_be_a Arithmetic_Error
+            warning.message . should_equal "Division by zero (at rows [0, 1, 2, 3, 4, 5, 6, 7, 8, ...])."
 
         Test.specify "should return null if one of arguments is missing" pending="TODO null handling" <|
             nulls = [Nothing, Nothing, Nothing, Nothing]

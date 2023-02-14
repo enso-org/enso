@@ -22,4 +22,10 @@ public class BitSets {
       }
     }
   }
+
+  public static BitSet makeDuplicate(BitSet source) {
+    BitSet result = new BitSet();
+    result.or(source);
+    return result;
+  }
 }

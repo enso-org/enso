@@ -355,7 +355,7 @@ spec setup =
                 t1.at "Y" . to_vector . should_equal [10,  20,  20]
                 t1.at "Z" . to_vector . should_equal [1.5, 2.0, 2.0]
                 t1.at "W" . to_vector . should_equal [2,   1,   3]
-            problems1 = [Floating_Point_Grouping.Error "X", Floating_Point_Grouping.Error "Z"]
+            problems1 = [Floating_Point_Equality.Error "X", Floating_Point_Equality.Error "Z"]
             Problems.test_problem_handling action1 problems1 tester1
 
             action2 = t1.join t2 on=(Join_Condition.Equals "X" "W") on_problems=_
@@ -366,7 +366,7 @@ spec setup =
                 t1.at "Y" . to_vector . should_equal [20]
                 t1.at "Z" . to_vector . should_equal [1.5]
                 t1.at "W" . to_vector . should_equal [2]
-            problems2 = [Floating_Point_Grouping.Error "X"]
+            problems2 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action2 problems2 tester2
 
             # But joining on the Between condition should not give such warnings
@@ -384,7 +384,7 @@ spec setup =
                     t1.at "Y" . to_vector . should_equal [20, 20, 30, 30]
                     t1.at "Z" . to_vector . should_equal [2.0, 2.0, 2.0, 2.0]
                     t1.at "W" . to_vector . should_equal [1, 3, 1, 3]
-                problems3 = [Floating_Point_Grouping.Error "Z", Floating_Point_Grouping.Error "X"]
+                problems3 = [Floating_Point_Equality.Error "Z", Floating_Point_Equality.Error "X"]
                 Problems.test_problem_handling action3 problems3 tester3
 
         Test.specify "should correctly handle nulls in equality conditions" pending=db_todo <|
@@ -432,7 +432,9 @@ spec setup =
             t3.at "Y" . to_vector . should_equal [4, 4]
             t3.at "Right_X" . to_vector . should_equal [1, 2]
 
-            t1.join t2 on=(Join_Condition.Equals "X" "Y") on_problems=Problem_Behavior.Report_Error . should_fail_with Duplicate_Output_Column_Names
+            err1 = t1.join t2 on=(Join_Condition.Equals "X" "Y") on_problems=Problem_Behavior.Report_Error
+            err1.should_fail_with Duplicate_Output_Column_Names
+            err1.catch.column_names . should_equal ["X", "Y"]
 
             t4 = table_builder [["Right_X", [1, 1]], ["X", [1, 2]], ["Y", [3, 4]], ["Right_Y_2", [2, 2]]]
             t5 = table_builder [["Right_X", [2, 1]], ["X", [2, 2]], ["Y", [2, 2]], ["Right_Y", [2, 2]], ["Right_Y_1", [2, 2]], ["Right_Y_4", [2, 2]]]
@@ -440,9 +442,10 @@ spec setup =
             t6 = t4.join t5 on=(Join_Condition.Equals "X" "Y")
             expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_Right_X", "Right_X_1", "Right_Y_3", "Right_Y", "Right_Y_1", "Right_Y_4"] t6
 
-            t7 = t1.join t2 right_prefix=""
-            expect_column_names ["X", "Y", "Y_1"] t7
-            Problems.get_attached_warnings t7 . should_equal [Duplicate_Output_Column_Names.Error ["Y"]]
+            action = t1.join t2 right_prefix="" on_problems=_
+            tester = expect_column_names ["X", "Y", "Y_1"]
+            problems = [Duplicate_Output_Column_Names.Error ["Y"]]
+            Problems.test_problem_handling action problems tester
 
             t8 = t1.join t2 right_prefix="P"
             expect_column_names ["X", "Y", "PY"] t8

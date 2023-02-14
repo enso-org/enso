@@ -107,13 +107,14 @@ type Invalid_Aggregation
     to_display_text self =
         "The "+self.column+" could not be calculated at "+self.row.to_text+" : "+self.message
 
-## Indicates that a floating point number was used in a grouping.
-type Floating_Point_Grouping
-    Error (column:Text)
+## Indicates that some operation relies on equality on floating-point values,
+   which is not recommended.
+type Floating_Point_Equality
+    Error (location:Text)
 
     to_display_text : Text
     to_display_text self =
-        "Grouping on floating points is not recommended (within "+self.column+")."
+        "Relying on equality of floating-point numbers is not recommended (within "+self.location+")."
 
 ## Indicates that a text value with a delimiter was included in a concatenation without any quote character
 type Unquoted_Delimiter
