@@ -119,6 +119,7 @@ fn init(app: &Application) {
         .expect("Couldn't find Graph class.");
     let visualization = vis_class.new_instance(app).expect("Couldn't create visualiser.");
     visualization.activate.emit(());
+    scene.add_child(&visualization);
 
     let network = enso_frp::Network::new("VisualizationExample");
     enso_frp::extend! { network
@@ -137,7 +138,6 @@ fn init(app: &Application) {
             let data = generate_data(
                 (time_info.since_animation_loop_started.unchecked_raw() / 1000.0).into(),
             );
-            let data = Rc::new(data);
             let content = serde_json::to_value(data).unwrap();
             let data = Data::from(content);
 
@@ -146,6 +146,7 @@ fn init(app: &Application) {
             // Temporary code removing the web-loader instance.
             // To be changed in the future.
             if was_rendered && !loader_hidden {
+                visualization.set_size.emit(Vector2(300.0, 300.0));
                 web::document
                     .get_element_by_id("loader")
                     .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));

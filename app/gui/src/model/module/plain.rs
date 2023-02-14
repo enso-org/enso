@@ -19,9 +19,9 @@ use double_representation::definition::DefinitionInfo;
 use double_representation::definition::DefinitionProvider;
 use double_representation::import;
 use flo_stream::Subscriber;
-use parser_scala::api::ParsedSourceFile;
-use parser_scala::api::SourceFile;
-use parser_scala::Parser;
+use parser::api::ParsedSourceFile;
+use parser::api::SourceFile;
+use parser::Parser;
 use std::collections::hash_map::Entry;
 
 
@@ -178,7 +178,7 @@ impl model::module::API for Module {
         let replaced_end = code.offset_to_location_snapped(change.range.end);
         let replaced_location = enso_text::Range::new(replaced_start, replaced_end);
         code.apply_change(change.as_ref());
-        let new_ast = parser.parse(code.into(), new_id_map)?.try_into()?;
+        let new_ast = parser.parse(code.to_string(), new_id_map).try_into()?;
         let notification = NotificationKind::CodeChanged { change, replaced_location };
         self.update_content(notification, |content| content.ast = new_ast)
     }
@@ -318,7 +318,7 @@ fn restore_edited_node_in_graph(
                     "Restoring edited node {node_id} to original expression \
                                     \"{previous_expression}\"."
                 );
-                graph.edit_node(node_id, Parser::new()?.parse_line_ast(previous_expression)?)?;
+                graph.edit_node(node_id, Parser::new().parse_line_ast(previous_expression)?)?;
                 md_entry.get_mut().intended_method = previous_intended_method;
             }
             None => {}
@@ -360,7 +360,7 @@ mod test {
             range: enso_text::Range::new(2.byte(), 5.byte()),
             text:  "- abc".to_string(),
         };
-        module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
+        module.apply_code_change(change, &Parser::new(), default()).unwrap();
         assert_eq!("2 - abc", module.ast().repr());
     }
 
@@ -391,7 +391,7 @@ mod test {
             range: enso_text::Range::new(0.byte(), 1.byte()),
             text:  "foo".to_string(),
         };
-        module.apply_code_change(change.clone(), &Parser::new_or_panic(), default()).unwrap();
+        module.apply_code_change(change.clone(), &Parser::new(), default()).unwrap();
         let replaced_location = enso_text::Range {
             start: enso_text::Location { line: 0.into(), offset: 0.byte() },
             end:   enso_text::Location { line: 0.into(), offset: 1.byte() },

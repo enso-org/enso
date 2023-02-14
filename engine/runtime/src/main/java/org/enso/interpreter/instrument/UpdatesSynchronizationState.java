@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.CompilerDirectives;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -87,6 +89,7 @@ public class UpdatesSynchronizationState {
    *
    * @param key the expression id.
    */
+  @CompilerDirectives.TruffleBoundary
   public void setExpressionUnsync(UUID key) {
     synchronized (expressionsState) {
       expressionsState.remove(key);
@@ -123,6 +126,7 @@ public class UpdatesSynchronizationState {
    *
    * @param key the expression id.
    */
+  @CompilerDirectives.TruffleBoundary
   public void setVisualisationUnsync(UUID key) {
     synchronized (visualisationsState) {
       visualisationsState.remove(key);

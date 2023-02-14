@@ -11,6 +11,7 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.graalvm.polyglot.Value;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
@@ -104,8 +105,10 @@ public class Column {
    */
   public static Column fromItems(String name, List<Value> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
-    for (Value item : items) {
-      Object converted = Polyglot_Utils.convertPolyglotValue(item);
+    // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
+    // to revert replace with: for (Value item : items) {
+    for (Object item : items) {
+      Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
       builder.appendNoGrow(converted);
     }
     var storage = builder.seal();
@@ -120,12 +123,28 @@ public class Column {
    * @return a column with given name and items
    */
   public static Column fromRepeatedItems(String name, List<Value> items, int repeat) {
+    if (repeat < 1) {
+      throw new IllegalArgumentException("Repeat count must be positive.");
+    }
+
+    if (repeat == 1) {
+      return fromItems(name, items);
+    }
+
     var totalSize = items.size() * repeat;
+
+    var values = new ArrayList<Object>(items.size());
+    // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
+    // to revert replace with: for (Value item : items) {
+    for (Object item : items) {
+      Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
+      values.add(converted);
+    }
+
     var builder = new InferredBuilder(totalSize);
     for (int i = 0; i < totalSize; i++) {
-      var item = items.get(i % items.size());
-      var converted = Polyglot_Utils.convertPolyglotValue(item);
-      builder.appendNoGrow(converted);
+      var item = values.get(i % items.size());
+      builder.appendNoGrow(item);
     }
     return new Column(name, builder.seal());
   }

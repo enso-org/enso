@@ -76,6 +76,9 @@ import project.Data.Maybe.Maybe
 import project.Data.Noise
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Incomparable
+import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
 import project.Data.Range.Range
@@ -127,6 +130,9 @@ export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Ordering
+export project.Data.Ordering.Comparable
+export project.Data.Ordering.Incomparable
+export project.Data.Ordering.Default_Ordered_Comparator
 export project.Data.Ordering.Sort_Direction.Sort_Direction
 export project.Data.Pair.Pair
 export project.Data.Range.Range
