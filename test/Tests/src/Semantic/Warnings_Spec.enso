@@ -147,6 +147,20 @@ spec = Test.group "Dataflow Warnings" <|
         rewarned.should_equal 'foo'
         Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
 
+    Test.specify "should allow to clear warnings" <|
+        warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
+        cleared = Warning.clear warned
+        cleared.should_equal 'foo'
+        Warning.get_all cleared . map .value . should_equal []
+
+    Test.specify "should allow to run a function suspending warnings attached to an argument and reattach them to the result" <|
+        x = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
+        y = Warning.with_suspended x x->
+            count = Warning.get_all x . length
+            Warning.attach "BAZ" count
+        y . should_equal 0
+        Warning.get_all y . map .value . should_contain_the_same_elements_as [4, 3, 2, 1, "BAZ"]
+
     Test.specify "should allow to map the warnings, selectively" <|
         warned = attach_four_warnings "foo"
         mapped = map_odd_warnings warned
