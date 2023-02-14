@@ -8,6 +8,7 @@ import Standard.Table.Data.Storage.Storage
 
 import project.Id.Id
 from project.Text import get_lazy_visualisation_text_window
+import project.Table as Table_Visualisation
 
 ## UNSTABLE
    ADVANCED
@@ -302,3 +303,10 @@ Row.default_visualization self = Id.table
 Row.to_default_visualization_data : Text
 Row.to_default_visualization_data self =
     self.to_vector.to_default_visualization_data
+
+## UNSTABLE
+   ADVANCED
+   Returns the data requested to render a lazy view of the default visualisation.
+Table.to_lazy_visualization_data : Vector Integer ->  Vector Integer -> Vector Integer -> Text
+Table.to_lazy_visualization_data self table_cell_position text_window_position text_window_size chunk_size =
+    Table_Visualisation.get_lazy_visualisation_data self table_cell_position text_window_position text_window_size chunk_size
