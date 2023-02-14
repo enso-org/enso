@@ -30,7 +30,8 @@ test_problem_handling action expected_problems result_checker =
         error_result.catch . should_equal first_problem frames_to_skip=3
     warnings_checker warnings =
         ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
-        warnings . should_contain_the_same_elements_as expected_problems frames_to_skip=3
+        Test.with_clue "The warnings were "+warnings.to_text+'.\n' <|
+            warnings . should_contain_the_same_elements_as expected_problems frames_to_skip=3
     test_advanced_problem_handling action error_checker warnings_checker result_checker
 
 ## UNSTABLE
@@ -71,4 +72,31 @@ assume_no_problems result =
     if result.is_error then
         loc = Meta.get_source_location 3
         Test.fail "Expected the result to not be an error, but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
-    (get_attached_warnings result).should_equal []
+    warnings = get_attached_warnings result
+    if warnings.not_empty then
+        loc = Meta.get_source_location 3
+        Test.fail "Expected the result to not contain any warnings, but it did: "+warnings.to_text+" (at "+loc+")."
+
+## UNSTABLE
+   Checks if the provided value has a warning of the specified type.
+
+   It allows other warnings to be present also.
+expect_warning : Any -> Any -> Nothing
+expect_warning expected_warning_type result =
+    warnings = get_attached_warnings result
+    found = warnings.find if_missing=Nothing x-> x.is_a expected_warning_type
+    if found.is_nothing then
+        loc = Meta.get_source_location 3
+        Test.fail "Expected the result to contain a warning of type "+expected_warning_type.to_text+", but it did not. The warnings were "+warnings.to_text+' (at '+loc+').'
+
+## UNSTABLE
+   Checks if the provided value does _not_ have a warning of the specified type.
+
+   It allows other warnings to be present also.
+not_expect_warning : Any -> Any -> Nothing
+not_expect_warning expected_warning_type result =
+    warnings = get_attached_warnings result
+    found = warnings.find if_missing=Nothing x-> x.is_a expected_warning_type
+    if found.is_nothing.not then
+        loc = Meta.get_source_location 3
+        Test.fail 'The result contained a warning it was not supposed to: '+found.to_text+' (at '+loc+').'

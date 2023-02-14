@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 
 import com.ibm.icu.impl.UnicodeRegex;
 import org.enso.base.Regex_Utils;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -35,7 +36,7 @@ public class LikeOp extends StringBooleanOp {
   }
 
   @Override
-  public BoolStorage runMap(SpecializedStorage<String> storage, Object arg) {
+  public BoolStorage runMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
