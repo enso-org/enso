@@ -222,10 +222,10 @@ impl Default for Kind {
 /// expression.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Chained {
-    /// The AST ID of function application that this Chained is a target of. If this is a part of an
-    /// infix operator chain (e.g. `1 + 2 + 3`) and this chained represents `1 + 2` subexpression,
-    /// it is effectively a target (`self`) argument of the second `+` operator. In that case the
-    /// `call_id` will point at its parent `1 + 2 + 3` expression.
+    /// The AST ID of function application that this Chained is a target of. If this is a part of
+    /// an infix operator chain (e.g. `1 + 2 + 3`) and this chained represents `1 + 2`
+    /// subexpression, it is effectively a target (`self`) argument of the second `+` operator.
+    /// In that case the `call_id` will point at its parent `1 + 2 + 3` expression.
     pub call_id: Option<ast::Id>,
 }
 

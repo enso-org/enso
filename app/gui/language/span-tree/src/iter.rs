@@ -94,7 +94,7 @@ impl<'a, T> LeafIterator<'a, T> {
     fn can_descend(&self, current_node: &Node<T>) -> bool {
         match &self.fragment {
             TreeFragment::AllNodes => true,
-            TreeFragment::ChainAndDirectChildren => current_node.kind.is_chained()
+            TreeFragment::ChainAndDirectChildren => current_node.kind.is_chained(),
         }
     }
 }
@@ -130,7 +130,7 @@ mod tests {
         // gg-children:     ()()     ()() ()
 
         let tree: SpanTree = TreeBuilder::new(14)
-            .add_child(0, 10, Kind::chained() vec![LeftOperand])
+            .add_child(0, 10, Kind::chained(), vec![LeftOperand])
             .add_leaf(0, 3, Kind::this(), vec![LeftOperand])
             .add_leaf(4, 1, Kind::Operation, vec![Operator])
             .add_child(6, 3, Kind::argument(), vec![RightOperand])
@@ -139,10 +139,10 @@ mod tests {
             .done()
             .done()
             .add_leaf(11, 1, Kind::Operation, vec![Operator])
-            .add_child(13, 1, Kind::chained() vec![RightOperand])
+            .add_child(13, 1, Kind::chained(), vec![RightOperand])
             .add_leaf(0, 3, Kind::this(), vec![LeftOperand])
             .add_leaf(4, 1, Kind::Operation, vec![Operator])
-            .add_child(6, 5, Kind::chained() vec![RightOperand])
+            .add_child(6, 5, Kind::chained(), vec![RightOperand])
             .add_leaf(0, 1, Kind::this(), vec![LeftOperand])
             .add_leaf(2, 1, Kind::Operation, vec![Operator])
             .add_leaf(4, 1, Kind::argument(), vec![RightOperand])

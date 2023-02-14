@@ -267,7 +267,7 @@ fn generate_node_for_ast<T: Payload>(
                 let payload = default();
                 if let Some(info) = ast.id.and_then(|id| context.call_info(id, name)) {
                     let node = {
-                        let kind = node::Kind::Operation.into();
+                        let kind = node::Kind::Operation;
                         Node { kind, size, children, ast_id, payload }
                     };
                     // Note that in this place it is impossible that Ast is in form of
@@ -297,7 +297,7 @@ impl<T: Payload> SpanTreeGenerator<T> for GeneralizedInfix {
         // Code like `ast.func` or `a+b+c`.
         let chain = self.flatten();
         let kind = kind.into();
-        let mut app_base = ApplicationBase::from_infix(&self);
+        let mut app_base = ApplicationBase::from_infix(self);
         if app_base.uses_method_notation {
             // This is a standalone method access chain, missing method parameters needs to be
             // handled here. It is guaranteed that no existing prefix arguments are present, as
@@ -308,7 +308,7 @@ impl<T: Payload> SpanTreeGenerator<T> for GeneralizedInfix {
             let arguments = arguments.unwrap_or_default();
             let arity = arguments.len();
             let base_node_kind =
-                if arity == 0 { kind.clone() } else { node::Kind::Operation.into() };
+                if arity == 0 { kind.clone() } else { node::Kind::Operation };
 
             // When arguments were not resolved, clear the call information. Otherwise it would be
             // incorrectly assigned to the access chain target span.
@@ -380,7 +380,7 @@ fn generate_node_for_opr_chain<T: Payload>(
                 if infix_args.len() != 2 {
                     error!("Infix operator should have arity 2, but got {:?}", infix_args.len());
                 }
-                
+
                 let infix_left_argument_info = infix_args.pop_front();
                 let infix_right_argument_info = infix_args.pop_front();
 
@@ -463,7 +463,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
 
     // When using method notation, expand the infix access chain manually to maintain correct method
     // application info and avoid generating expected arguments twice. We cannot use the
-    // `generate_node` implementation on `GeneralizedInfix`, because it always treats the 
+    // `generate_node` implementation on `GeneralizedInfix`, because it always treats the
     // access chain as a method call without any arguments applied.
     let node = if let Some(infix) = GeneralizedInfix::try_new(&this.func) {
         generate_node_for_opr_chain(infix.flatten(), node::Kind::Operation, app_base, context)
