@@ -983,7 +983,7 @@ impl Handle {
             model::module::NotificationKind::Invalidate
             | model::module::NotificationKind::CodeChanged { .. }
             | model::module::NotificationKind::MetadataChanged
-            | model::module::NotificationKind::Reloaded { .. } => Notification::Invalidate,
+            | model::module::NotificationKind::Reloaded => Notification::Invalidate,
         });
         let db_sub = self.suggestion_db.subscribe().map(|notification| match notification {
             model::suggestion_database::Notification::Updated => Notification::PortsUpdate,
