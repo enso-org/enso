@@ -1,8 +1,7 @@
 from Standard.Base import all hiding First, Last
 
-from Standard.Table import Table, Sort_Column, Column_Selector
+from Standard.Table import Table, Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
 import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import all
 
@@ -1309,7 +1308,7 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should ignore Count_Distinct if no columns matched" <|
-            action = table.aggregate [Count_Distinct (Column_Selector.By_Index [-100]), Count] on_problems=_
+            action = table.aggregate [Count_Distinct [-100], Count] on_problems=_
             problems = [Column_Indexes_Out_Of_Range.Error [-100]]
             tester = expect_column_names ["Count"]
             Problems.test_problem_handling action problems tester

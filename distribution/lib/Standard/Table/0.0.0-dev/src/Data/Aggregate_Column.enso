@@ -31,7 +31,7 @@ type Aggregate_Column
          multiple selection.
        - new_name: name of new column.
        - ignore_nothing: if all values are Nothing won't be included.
-    Count_Distinct (columns:(Text | Integer | Vector (Integer|Text|Column_Selector))=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False)
+    Count_Distinct (columns:(Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector))=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False)
 
     ## ALIAS Count_Not_Null
 
