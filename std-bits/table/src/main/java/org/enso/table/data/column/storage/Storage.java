@@ -9,6 +9,7 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
@@ -89,9 +90,11 @@ public abstract class Storage<T> {
    */
   public abstract boolean isOpVectorized(String name);
 
-  protected abstract Storage<?> runVectorizedMap(String name, Object argument);
+  protected abstract Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder);
 
-  protected abstract Storage<?> runVectorizedZip(String name, Storage<?> argument);
+  protected abstract Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder);
 
   /**
    * Runs a function on each non-missing element in this storage and gathers the results.
@@ -109,9 +112,10 @@ public abstract class Storage<T> {
       String name,
       BiFunction<Object, Object, Object> function,
       Object argument,
-      boolean skipNulls) {
+      boolean skipNulls,
+      MapOperationProblemBuilder problemBuilder) {
     if (name != null && isOpVectorized(name)) {
-      return runVectorizedMap(name, argument);
+      return runVectorizedMap(name, argument, problemBuilder);
     }
     Builder builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
@@ -134,11 +138,16 @@ public abstract class Storage<T> {
    *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
    * @param onMissing the value to place for missing cells, usually just null
+   * @param problemBuilder a builder for reporting computation problems
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage<?> map(String name, Function<Object, Value> function, Value onMissing) {
+  public final Storage<?> map(
+      String name,
+      Function<Object, Value> function,
+      Value onMissing,
+      MapOperationProblemBuilder problemBuilder) {
     if (name != null && isOpVectorized(name)) {
-      return runVectorizedMap(name, null);
+      return runVectorizedMap(name, null, problemBuilder);
     }
     Object missingValue = Polyglot_Utils.convertPolyglotValue(onMissing);
     Builder builder = new InferredBuilder(size());
@@ -162,12 +171,17 @@ public abstract class Storage<T> {
    *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
    * @param skipNa whether rows containing missing values should be passed to the function.
+   * @param problemBuilder the builder used for reporting computation problems
    * @return the result of running the function on all non-missing elements.
    */
   public final Storage<?> zip(
-      String name, BiFunction<Object, Object, Object> function, Storage<?> arg, boolean skipNa) {
+      String name,
+      BiFunction<Object, Object, Object> function,
+      Storage<?> arg,
+      boolean skipNa,
+      MapOperationProblemBuilder problemBuilder) {
     if (name != null && isOpVectorized(name)) {
-      return runVectorizedZip(name, arg);
+      return runVectorizedZip(name, arg, problemBuilder);
     }
     Builder builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {

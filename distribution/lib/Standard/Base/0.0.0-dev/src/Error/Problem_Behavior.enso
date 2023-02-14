@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Warning.Warning
+from project import all
 
 from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
@@ -149,3 +150,16 @@ type Problem_Behavior
     default_widget =
         values = ["Report_Error", "Report_Warning", "Ignore"]
         Single_Choice (values.map n-> Option n) display=Display.Expanded_Only
+
+    ## ADVANCED
+       Checks any warnings reported by the `action` and reports them according
+       to this problem behavior - they may be kept as-is, ignored or escalated
+       to errors.
+
+       If the `action` itself yields a dataflow error, that error is passed
+       as-is, regardless of the problem behavior settings.
+    escalate_warnings self ~action =
+        result = action
+        warnings = Warning.get_all result . map .value
+        cleared_result = Warning.set result []
+        self.attach_problems_after cleared_result warnings

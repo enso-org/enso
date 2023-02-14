@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
@@ -32,7 +33,7 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
   }
 
   @Override
-  public BoolStorage runMap(DoubleStorage storage, Object arg) {
+  public BoolStorage runMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     Double v = tryCast(arg);
     if (v != null) {
       double x = v;
@@ -59,7 +60,7 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
   }
 
   @Override
-  public BoolStorage runZip(DoubleStorage storage, Storage<?> arg) {
+  public BoolStorage runZip(DoubleStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof DoubleStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();

@@ -1,9 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
-from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Additional_Invalid_Rows, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Additional_Invalid_Rows, Invalid_Aggregation, Floating_Point_Equality, Unquoted_Delimiter, Additional_Warnings
 
 polyglot java import org.enso.table.problems.AggregatedProblems
+polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
@@ -19,12 +21,14 @@ polyglot java import org.enso.table.util.problems.InvalidNames
    Convert a Java problem into its Enso equivalent.
 translate_problem p = case p of
     _ : InvalidAggregation ->
-        err = Invalid_Aggregation.Error p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage
+        err = Invalid_Aggregation.Error p.getLocationName (Vector.from_polyglot_array p.getRows) p.getMessage
         Error.throw err
+    _ : ArithmeticError ->
+        Arithmetic_Error.Error p.getMessage
     _ : FloatingPointGrouping ->
-        Floating_Point_Grouping.Error p.getColumnName
+        Floating_Point_Equality.Error p.getLocationName
     _ : UnquotedDelimiter ->
-        Unquoted_Delimiter.Error p.getColumnName (Vector.from_polyglot_array p.getRows)
+        Unquoted_Delimiter.Error p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : InvalidRow ->
         Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row)
     _ : AdditionalInvalidRows ->
