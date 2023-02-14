@@ -696,7 +696,7 @@ type Output_Stream
         File_Error.handle_java_exceptions self.file <|
             java_stream.write contents.to_array
             java_stream.flush
-        Nothing
+            Nothing
 
     ## ADVANCED
 
