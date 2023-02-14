@@ -3,7 +3,12 @@ package org.enso.compiler
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{
+  FreshNameSupply,
+  InlineContext,
+  ModuleContext,
+  SuggestionBuilder
+}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Expression
 import org.enso.compiler.data.CompilerConfig
@@ -28,6 +33,7 @@ import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -54,6 +60,10 @@ class Compiler(
   )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
+  private val suggestionsSerializationManager: SuggestionsSerializationManager =
+    new SuggestionsSerializationManager(
+      context.getLogger(classOf[SuggestionsSerializationManager])
+    )
   private val logger: TruffleLogger = context.getLogger(getClass)
   private val output: PrintStream =
     if (config.outputRedirect.isDefined)
@@ -80,7 +90,7 @@ class Compiler(
   }
 
   /** Lazy-initializes the IR for the builtins module. */
-  def initializeBuiltinsIr(): Unit = {
+  private def initializeBuiltinsIr(): Unit = {
     if (!builtins.isIrInitialized) {
       logger.log(
         Compiler.defaultLogLevel,
@@ -112,20 +122,6 @@ class Compiler(
           useGlobalCacheLocations = true // Builtins can't have a local cache.
         )
       }
-    }
-  }
-
-  /** Runs the import resolver on the given module.
-    *
-    * @param module the entry module for import resolution
-    * @return the list of modules imported by `module`
-    */
-  def runImportsResolution(module: Module): List[Module] = {
-    initialize()
-    try {
-      importResolver.mapImports(module)
-    } catch {
-      case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
     }
   }
 
@@ -182,11 +178,21 @@ class Compiler(
                 mod
             }.toList
 
-            runInternal(
-              packageModules,
-              generateCode = false,
-              shouldCompileDependencies
-            )
+            val compilerResult =
+              runInternal(
+                packageModules,
+                generateCode = false,
+                shouldCompileDependencies
+              )
+
+            val suggestions =
+              compilerResult.compiledModules
+                .flatMap { module =>
+                  SuggestionBuilder(module)
+                    .build(module.getName, module.getIr)
+                    .toVector
+                }
+            suggestionsSerializationManager.serialize(suggestions, pkg)
         }
     }
   }
