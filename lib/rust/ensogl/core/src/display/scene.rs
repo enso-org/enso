@@ -812,6 +812,11 @@ impl SceneData {
         self.dirty.shape.set();
         self.renderer.set_context(context);
         if let Some(context) = context {
+            /*
+            if self.persistent_shaders.borrow().is_empty() {
+                *self.persistent_shaders.borrow_mut() = world::get_persistent_shaders();
+            }
+             */
             for code in self.persistent_shaders.borrow().iter() {
                 let code = shader::Sources {
                     fragment: Some(code.fragment.clone()),
@@ -952,6 +957,10 @@ impl SceneData {
 
     pub fn set_persistent_shaders(&self, shaders: Vec<shader::Code>) {
         *self.persistent_shaders.borrow_mut() = shaders;
+    }
+
+    pub fn debug_layer_contents(&self) {
+        warn!("{:?}", &self.layers);
     }
 }
 

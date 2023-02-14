@@ -67,7 +67,7 @@ const FRAME_TIME_THRESHOLD: Duration = (1000.0 / FPS_THRESHOLD).ms();
 /// a crude form of backpressure by blocking until all pending jobs complete. We are not sure if it
 /// is a feature or a bug. To learn more about our findings so far, see:
 /// https://github.com/enso-org/enso/pull/3378#issuecomment-1090958946
-const MAX_PARALLEL_COMPILE_JOBS: usize = 32;
+const MAX_PARALLEL_COMPILE_JOBS: usize = 2000;
 
 
 
@@ -238,6 +238,7 @@ impl Compiler {
         profiler: profiler::Debug,
         on_ready: F,
     ) -> JobHandle {
+        //info!("submit: {}", &input.fragment);
         let strong_handle = JobHandle::new();
         let handle = strong_handle.downgrade();
         let on_ready: Box<dyn FnOnce(shader::Program)> = Box::new(on_ready);
@@ -301,7 +302,8 @@ impl CompilerData {
                 // callback to be called from within the job runner during next processing round.
                 if let Some(callback) = on_ready {
                     let program = program.clone();
-                    self.callbacks.push(DeferredCallback { callback, program })
+                    self.callbacks.push(DeferredCallback { callback, program });
+                    self.dirty = true;
                 }
             }
             Some(ProgramCacheEntry::Failed) => {
@@ -436,36 +438,22 @@ impl CompilerData {
                 })
             });
             profiler.pause();
-            let vertex = match vertex {
-                Some(vertex) => Some(vertex?),
-                None => None,
-            };
-            let fragment = match fragment {
-                Some(fragment) => Some(fragment?),
-                None => None,
-            };
-            match (vertex, fragment) {
+            let handle = job.handle;
+            let on_ready = job.on_ready;
+            let cache_key = job.cache_key;
+            match (vertex.transpose()?, fragment.transpose()?) {
                 (Some(vertex), Some(fragment)) => {
                     let input = shader::Sources { vertex, fragment };
-                    let handle = job.handle;
-                    let on_ready = job.on_ready;
-                    let cache_key = job.cache_key;
                     let link_job = Job { input, handle, on_ready, profiler, cache_key };
                     this.jobs.link.push(link_job);
                 }
                 (Some(vertex), None) => {
                     let input = vertex.native;
-                    let handle = job.handle;
-                    let on_ready = job.on_ready;
-                    let cache_key = job.cache_key;
                     let job = Job { input, handle, cache_key, on_ready, profiler };
                     this.queue_shader_check_job(job);
                 }
                 (None, Some(fragment)) => {
                     let input = fragment.native;
-                    let handle = job.handle;
-                    let on_ready = job.on_ready;
-                    let cache_key = job.cache_key;
                     let job = Job { input, handle, cache_key, on_ready, profiler };
                     this.queue_shader_check_job(job);
                 }

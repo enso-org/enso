@@ -60,6 +60,7 @@
 //! shape system will be detached from the parent display object (and not attached to another one),
 //! it will also be moved to the `DETACHED` layer.
 
+use std::fmt::Formatter;
 use crate::prelude::*;
 use crate::system::gpu::types::*;
 
@@ -82,9 +83,67 @@ use super::def;
 // === ShapeSystemId ===
 // =====================
 
-newtype_prim_no_default_no_display! {
-    /// The ID of a user generated shape system.
-    ShapeSystemId(std::any::TypeId);
+/// The ID of a user generated shape system.
+#[derive(Copy, Clone, CloneRef, Eq, Hash, Ord, PartialOrd, PartialEq, Debug)]
+pub struct ShapeSystemId {
+    definition_path: DistinctStr,
+}
+
+impl ShapeSystemId {
+    #[inline(always)]
+    pub fn of<S: Shape>() -> Self {
+        let definition_path = DistinctStr::new_unchecked(S::definition_path());
+        Self { definition_path }
+    }
+}
+
+
+////////
+
+#[derive(Copy, Clone, Eq, Ord)]
+pub struct DistinctStr(&'static str);
+
+impl DistinctStr {
+    /// Cast the input to a [`DistinctStr`].
+    #[inline(always)]
+    const fn new_unchecked(s: &'static str) -> Self {
+        Self(s)
+    }
+}
+
+impl PartialEq for DistinctStr {
+    #[inline(always)]
+    fn eq(&self, other: &Self) -> bool {
+        self.0.as_ptr() == other.0.as_ptr()
+    }
+}
+
+impl PartialOrd for DistinctStr {
+    #[inline(always)]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.as_ptr().partial_cmp(&other.0.as_ptr())
+    }
+}
+
+impl Hash for DistinctStr {
+    #[inline(always)]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.as_ptr().hash(state)
+    }
+}
+
+impl Debug for DistinctStr {
+    #[inline(always)]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl CloneRef for DistinctStr {
+    #[inline(always)]
+    fn clone_ref(&self) -> Self {
+        *self
+    }
 }
 
 
@@ -249,8 +308,8 @@ pub struct ShapeSystemStandardData<S: Shape> {
 
 impl<S: Shape> ShapeSystem<S> {
     /// The ID of this shape system.
-    pub const fn id() -> ShapeSystemId {
-        ShapeSystemId::new(std::any::TypeId::of::<S>())
+    pub fn id() -> ShapeSystemId {
+        ShapeSystemId::of::<S>()
     }
 
     /// Reference to the underlying sprite system.
@@ -874,7 +933,8 @@ macro_rules! _shape {
             #[before_main]
             pub fn register_shape() {
                 $crate::display::world::SHAPES_DEFINITIONS.with(|shapes| {
-                    shapes.borrow_mut().push(Box::new(|| Box::new(View::new())));
+                    let path = Shape::definition_path();
+                    shapes.borrow_mut().push((path, Box::new(|| Box::new(View::new()))));
                 });
             }
 
