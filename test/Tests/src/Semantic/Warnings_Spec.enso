@@ -236,4 +236,14 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all res . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
         Warning.get_all (res.at 2) . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
 
+    Test.specify "should be preserved over arbitrary dataflow dependencies between values introduced using `if_not_error`" <|
+        a = Warning.attach "a" 1
+        b = Warning.attach "b" 2
+
+        r = a.if_not_error b
+        r.should_equal 2
+        Warning.get_all r . map .value . should_contain_the_same_elements_as ["b", "a"]
+        Warning.get_all a . map .value . should_contain_the_same_elements_as ["a"]
+        Warning.get_all b . map .value . should_contain_the_same_elements_as ["b"]
+
 main = Test_Suite.run_main spec
