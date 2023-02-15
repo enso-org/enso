@@ -108,7 +108,7 @@ const setUsernameContainer: React.FC<any> = (
     );
 }
 
-export default withRouter(withPartialUser(setUsernameContainer))
+export default withRouter(setUsernameContainer)
 
 
 

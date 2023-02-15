@@ -1,11 +1,11 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 
 import * as React from 'react'
-import { FormEvent } from 'react'
+import { FC, FormEvent } from 'react'
 import { Link } from 'react-router-dom';
 import toast from "react-hot-toast";
 
-import { useAuth, withoutUser } from '../authentication';
+import { withoutUser } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
 
@@ -15,14 +15,16 @@ import { useInput } from '../hooks'
 // === registrationContainer ===
 // =============================
 
-const registrationContainer: React.FC<any> = () => {
-    const auth = useAuth();
+interface RegistrationContainerProps {
+  signUp: (email: string, password: string) => void
+}
 
+const registrationContainer: FC<RegistrationContainerProps> = ({ signUp }) => {
     const { value: email, bind: bindEmail } = useInput("")
     const { value: password, bind: bindPassword } = useInput("")
     const { value: confirmPassword, bind: bindConfirmPassword } = useInput("")
 
-    const signUp = async (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         // The password & confirm password fields must match.
@@ -32,8 +34,8 @@ const registrationContainer: React.FC<any> = () => {
           return
         }
 
-        await auth.signUp(email, password)
-    };
+        signUp(email, password)
+      };
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-300 px-4 py-8">
@@ -42,7 +44,7 @@ const registrationContainer: React.FC<any> = () => {
             Create new account
           </div>
 
-          <form onSubmit={signUp}>
+          <form onSubmit={handleSubmit}>
             <div className="flex flex-col mb-4">
               <label
                 htmlFor="email"
@@ -192,4 +194,4 @@ const registrationContainer: React.FC<any> = () => {
     );
 }
 
-export default withRouter(withoutUser(registrationContainer))
+export default withRouter(registrationContainer)

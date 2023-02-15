@@ -4,7 +4,7 @@ import * as React from 'react'
 import { Routes, Route, BrowserRouter, HashRouter, MemoryRouter } from 'react-router-dom'
 import toast from "react-hot-toast"
 
-import { AuthProvider } from '../authentication';
+import { AuthProvider, ProtectedRoute, useAuth } from '../authentication';
 import DashboardContainer from "./dashboard";
 import ForgotPasswordContainer from "./forgotPassword";
 import ResetPasswordContainer from "./resetPassword";
@@ -85,24 +85,30 @@ const App = ({ runningOnDesktop }: AppProps) => {
 //   allow that. Do we want to allow that, even if it would disable the lint for non-React code?
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter: React.FC<any> = () => {
+  const { signUp, session } = useAuth();
+
   return (
     <Routes>
       <React.Fragment>
-        {/* FIXME [NP]: Uncomment this after testing */}
-        {/*
-        <Route index element={<DashboardContainer />} />
-        <Route path={"/login"} element={<LoginContainer />} />
-        */}
-        {/* FIXME [NP]: remove all the exact matches? */}
-        <Route path={LOGIN_PATH} element={<LoginContainer />} />
-        <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} />
+        {/* Login & registration pages are visible to unauthenticated users. */}
+        <Route element={<ProtectedRoute isAllowed={!session} redirectPath={SET_USERNAME_PATH} />}>
+          <Route path={LOGIN_PATH} element={<LoginContainer />} />
+          <Route path={REGISTRATION_PATH} element={<RegistrationContainer signUp={signUp} />} />
+        </Route>
+        {/* Set username page is visible to authenticated users who haven't finished registration. */}
+        <Route element={<ProtectedRoute isAllowed={session?.state == "partial"} redirectPath={DASHBOARD_PATH} />}>
+          <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} />
+        </Route>
+        {/* Dashboard is visible to authenticated users who have finished registration. */}
+        <Route element={<ProtectedRoute isAllowed={session?.state == "full"} redirectPath={LOGIN_PATH}/>}>
+          {/* FIXME [NP]: why do we need this extra one for electron to work? */}
+          <Route path={DASHBOARD_PATH} element={<DashboardContainer session={session} />} />
+          <Route index element={<DashboardContainer session={session} />} />
+        </Route>
+        {/* Other routes are always accessible since they don't rely on auth status */}
         <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
-        <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} />
         <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
         <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
-        {/* FIXME [NP]: why do we need this extra one for electron to work? */}
-        <Route path={DASHBOARD_PATH} element={<DashboardContainer />} />
-        <Route index element={<DashboardContainer />} />
       </React.Fragment>
     </Routes>
   )

@@ -223,4 +223,4 @@ interface LinkProps {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 //const Link = ({ href, children, className }: LinkProps) => <a href={href} className={className}>{children}</a>;
 
-export default withRouter(withoutUser(loginContainer))
+export default withRouter(loginContainer)

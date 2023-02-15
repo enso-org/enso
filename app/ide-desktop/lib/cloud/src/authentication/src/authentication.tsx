@@ -6,8 +6,8 @@
  * hook also provides methods for registering a user, logging in, logging out, etc.
  */
 import { Auth, CognitoHostedUIIdentityProvider, SignUpParams } from '@aws-amplify/auth'
-import { ComponentType, createContext, FC, ReactNode, useContext, useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { ComponentType, createContext, FC, ReactElement, ReactNode, useContext, useEffect, useState } from 'react';
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { getUsersMe, Organization } from './api';
 import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, SET_USERNAME_PATH } from './components/app';
 import { toast } from "react-hot-toast"
@@ -588,4 +588,30 @@ export const withUser = <T extends object>(
   // convenient to have it available to the component, without the component having to call
   // `useAuth` and check for authentication itself.
   return <Component session={session} {...props} />;
+}
+
+
+
+// ======================
+// === ProtectedRoute ===
+// ======================
+
+interface ProtectedRouteProps {
+  isAllowed: boolean;
+  redirectPath?: string;
+  children?: ReactElement
+}
+
+//export const ProtectedRoute: FC<ProtectedRouteProps> = ({ isAllowed, redirectPath = LOGIN_PATH, children }): ReactNode => {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const ProtectedRoute: FC<ProtectedRouteProps> = ({ isAllowed, redirectPath = LOGIN_PATH, children }) => {
+  if (!isAllowed) {
+    // FIXME [NP]: remove
+    console.log("ProtectedRoute: redirecting to", redirectPath)
+    return <Navigate to={redirectPath} />;
+  }
+
+    // FIXME [NP]: remove
+    console.log("ProtectedRoute: rendering children")
+  return children ? children : <Outlet />;
 }

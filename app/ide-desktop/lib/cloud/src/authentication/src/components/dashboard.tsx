@@ -26,4 +26,4 @@ const dashboardContainer: FC<any> = ({ session }: { session: FullUserSession }) 
     )
 }
 
-export default withRouter(withUser(dashboardContainer))
+export default withRouter(dashboardContainer)
