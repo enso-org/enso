@@ -130,6 +130,8 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
     }
 }
 
+/** Wraps the text to a specific output width. If a word is longer than the output width, it will be
+ * split. */
 function wordWrap(str: string, width: number): string[] {
     if (width <= 0) {
         logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
@@ -205,6 +207,8 @@ function fixArgvNoPrefix(argv: string[]): string[] {
     })
 }
 
+/** Parse the given list of arguments into two distinct sets: regular arguments and those specific
+ * to Chrome. */
 function argvAndChromeOptions(processArgs: string[]): {
     argv: string[]
     chromeOptions: ChromeOption[]
@@ -277,15 +281,15 @@ export function parseArgs() {
     // === Parsing ===
 
     let parseError = null as null | Error
-    let xargs = optParser.parse(argv, {}, (err: Error | undefined) => {
+    let parsedArgs = optParser.parse(argv, {}, (err: Error | undefined) => {
         if (err != null) {
             parseError = err
         }
     }) as { [key: string]: any }
-    const unexpectedArgs = xargs['--']
+    const unexpectedArgs = parsedArgs['--']
 
     for (const option of args.optionsRecursive()) {
-        const arg = xargs[naming.camelToKebabCase(option.qualifiedName())]
+        const arg = parsedArgs[naming.camelToKebabCase(option.qualifiedName())]
         const isArray = Array.isArray(arg)
         // Yargs parses missing array options as `[undefined]`.
         const isInvalidArray = isArray && arg.length == 1 && arg[0] == null

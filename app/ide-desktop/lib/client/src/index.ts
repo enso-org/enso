@@ -42,7 +42,8 @@ class App {
         this.registerShortcuts()
     }
 
-    /** Set Chrome options based on the app configuration. */
+    /** Set Chrome options based on the app configuration. For comprehensive list of available
+     * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
     setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
         const addIf = (opt: content.Option<boolean>, chromeOptName: string, value?: string) => {
             if (opt.value) {
