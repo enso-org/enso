@@ -1,6 +1,5 @@
 package org.enso.pkg
 
-import scala.jdk.CollectionConverters._;
 import com.oracle.truffle.api.CompilerDirectives
 
 /** Represents a qualified name of a source item.
@@ -40,12 +39,15 @@ case class QualifiedName(path: List[String], item: String) {
     this.copy(path = namespace :: newName :: path.drop(2))
   }
 
-  /** Gets the path portion of the qualified name as a Java list.
+  /** Checks if this name is a child of `other` name.
     *
-    * @return a Java list representation of the path portion of the qualified name.
+    * @param other the parent qualified name
+    * @return `true` if this name is a child of `other` qualified name
     */
-  def pathAsJava(): java.util.List[String] = {
-    path.asJava
+  def isChildOf(other: QualifiedName): Boolean = {
+    !other.path
+      .zip(path :+ item)
+      .forall(Function.tupled(_ == _))
   }
 }
 

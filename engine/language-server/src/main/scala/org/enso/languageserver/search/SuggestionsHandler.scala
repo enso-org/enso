@@ -122,7 +122,7 @@ final class SuggestionsHandler(
   override def receive: Receive =
     initializing(SuggestionsHandler.Initialization())
 
-  def initializing(init: SuggestionsHandler.Initialization): Receive = {
+  private def initializing(init: SuggestionsHandler.Initialization): Receive = {
     case ProjectNameChangedEvent(oldName, newName) =>
       logger.info(
         "Initializing: project name changed from [{}] to [{}].",
@@ -178,7 +178,7 @@ final class SuggestionsHandler(
     case _ => stash()
   }
 
-  def verifying(
+  private def verifying(
     projectName: String,
     graph: TypeGraph
   ): Receive = {
@@ -206,7 +206,7 @@ final class SuggestionsHandler(
       stash()
   }
 
-  def initialized(
+  private def initialized(
     projectName: String,
     graph: TypeGraph,
     clients: Set[ClientId],

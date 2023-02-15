@@ -58,7 +58,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     * @param files the list of files to compile.
     * @param ctx the runtime context
     */
-  protected def ensureCompiledFiles(
+  private def ensureCompiledFiles(
     files: Iterable[File]
   )(implicit ctx: RuntimeContext): CompilationStatus = {
     val modules = files.flatMap { file =>
@@ -66,7 +66,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     }
     val moduleCompilationStatus = modules.map(ensureCompiledModule)
     val modulesInScope =
-      getModulesInScope.filterNot(m => modules.exists(_ == m))
+      getProjectModulesInScope.filterNot(m => modules.exists(_ == m))
     val scopeCompilationStatus = ensureCompiledScope(modulesInScope)
     (moduleCompilationStatus.flatten ++ scopeCompilationStatus).maxOption
       .getOrElse(CompilationStatus.Success)
@@ -433,11 +433,22 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     module.getIr.getMetadata(CachePreferenceAnalysis)
   }
 
-  /** Get all modules in the current compiler scope. */
-  private def getModulesInScope(implicit
+  /** Get all project modules in the current compiler scope. */
+  private def getProjectModulesInScope(implicit
     ctx: RuntimeContext
-  ): Iterable[Module] =
-    ctx.executionService.getContext.getTopScope.getModules.asScala
+  ): Iterable[Module] = {
+    val packageRepository =
+      ctx.executionService.getContext.getCompiler.packageRepository
+    val mainPackageName = packageRepository.getMainProjectPackage.map(pkg =>
+      QualifiedName.fromString(pkg.libraryName.qualifiedName)
+    )
+    packageRepository.getModuleMap
+    val modulesInScope =
+      ctx.executionService.getContext.getTopScope.getModules.asScala
+    modulesInScope.filter { module =>
+      mainPackageName.exists(module.getName.isChildOf)
+    }
+  }
 
   /** Check if stack belongs to the provided module.
     *
