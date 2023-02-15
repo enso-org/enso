@@ -5,7 +5,7 @@
 
 import * as React from 'react'
 import { FC } from 'react'
-import { FullUserSession, useAuth, withUser } from '../authentication'
+import { useAuth, useFullUserSession } from '../authentication';
 
 import withRouter from '../navigation'
 
@@ -15,12 +15,13 @@ import withRouter from '../navigation'
 // === dashboardContainer ===
 // ==========================
 
-const dashboardContainer: FC<any> = ({ session }: { session: FullUserSession }) => {
-    const { signOut } = useAuth()
+const dashboardContainer: FC = () => {
+    const { signOut } = useAuth();
+    const { email } = useFullUserSession();
 
     return (
         <div>
-            <h1>Welcome to Enso Cloud {session.email}</h1>
+            <h1>Welcome to Enso Cloud {email}</h1>
             <a onClick={signOut}>Sign Out</a>
         </div>
     )

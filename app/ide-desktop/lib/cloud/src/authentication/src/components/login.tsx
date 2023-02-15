@@ -1,12 +1,16 @@
 /** @file Login container responsible for rendering and interactions in sign in flow. */
 
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import * as React from 'react'
-import { FC, FormEvent } from 'react'
+import { FC } from 'react'
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth, withoutUser } from '../authentication';
-import { useInput } from '../hooks';
+import { faGoogle, faGithub } from '@fortawesome/free-brands-svg-icons';
 
+import { useAuth } from '../authentication';
+import { useInput } from '../hooks';
 import withRouter from '../navigation'
+import { handleEvent } from '../utils';
+import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from './app';
 
 
 
@@ -31,13 +35,10 @@ const createAccountIconData = "M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4
 // === loginContainer ===
 // ======================
 
-const loginContainer: FC<any> = () => {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const loginContainer: FC = () => {
     const { search } = useLocation();
-    const {
-      signInWithGoogle,
-      signInWithGitHub,
-      signInWithPassword,
-    } = useAuth();
+    const { signInWithGoogle, signInWithGitHub, signInWithPassword } = useAuth();
 
     // Parse the email from the query params.
     const query = new URLSearchParams(search);
@@ -46,16 +47,6 @@ const loginContainer: FC<any> = () => {
     const { value: email, bind: bindEmail } = useInput(initialEmail ?? "")
     const { value: password, bind: bindPassword } = useInput("")
 
-    const handleSignInWithGoogle = async (event: FormEvent) => {
-        event.preventDefault();
-        await signInWithGoogle();
-    }
-
-    const handleSignInWithPassword = async (event: FormEvent) => {
-        event.preventDefault();
-        await signInWithPassword(email, password);
-    }
-
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
         <div className="flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full max-w-md">
@@ -63,22 +54,20 @@ const loginContainer: FC<any> = () => {
             Login To Your Account
           </div>
           <button
-            onClick={handleSignInWithGoogle}
+            onClick={handleEvent(signInWithGoogle)}
             className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
           >
             <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
-              {/* FIXME [NP]: Uncomment this after testing */}
-              {/*<FontAwesomeIcon icon={['fab', 'google']} />*/}
+              <FontAwesomeIcon icon={faGoogle} />
             </span>
             <span>Login with Google</span>
           </button>
           <button
-            onClick={signInWithGitHub}
+            onClick={handleEvent(signInWithGitHub)}
             className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
           >
             <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
-              {/* FIXME [NP]: Uncomment this after testing */}
-              {/*<FontAwesomeIcon icon={["fab", "github"]} />*/}
+              <FontAwesomeIcon icon={faGithub} />
             </span>
             <span>Login with Github</span>
           </button>
@@ -90,7 +79,7 @@ const loginContainer: FC<any> = () => {
             </div>
           </div>
           <div className="mt-10">
-            <form onSubmit={handleSignInWithPassword}>
+            <form onSubmit={handleEvent(async () => signInWithPassword(email, password))}>
               <div className="flex flex-col mb-6">
                 <label
                   htmlFor="email"
@@ -141,7 +130,7 @@ const loginContainer: FC<any> = () => {
               <div className="flex items-center mb-6 -mt-4">
                 <div className="flex ml-auto">
                   <Link
-                    to="/forgot-password"
+                    to={FORGOT_PASSWORD_PATH}
                     className="inline-flex text-xs sm:text-sm text-blue-500 hover:text-blue-700"
                   >
                     Forgot Your Password?
@@ -162,7 +151,7 @@ const loginContainer: FC<any> = () => {
           </div>
           <div className="flex justify-center items-center mt-6">
             <Link
-              to="/registration"
+              to={REGISTRATION_PATH}
               className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
             >
               <Svg data={createAccountIconData} />
@@ -202,25 +191,5 @@ const Svg = ({ data }: { data: string }) =>
   </span>;
 
 
-
-
-// ============
-// === Link ===
-// ============
-
-
-// === LinkProps ===
-
-interface LinkProps {
-    href: React.AnchorHTMLAttributes<HTMLAnchorElement>['href'];
-    children: React.ReactNode;
-    className: React.AnchorHTMLAttributes<HTMLAnchorElement>['className'];
-}
-
-
-// === Link ===
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-//const Link = ({ href, children, className }: LinkProps) => <a href={href} className={className}>{children}</a>;
 
 export default withRouter(loginContainer)

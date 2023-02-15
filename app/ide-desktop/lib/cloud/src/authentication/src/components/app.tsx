@@ -1,10 +1,9 @@
 /** @file Main App module responsible for rendering virtual router. */
 
 import * as React from 'react'
-import { Routes, Route, BrowserRouter, HashRouter, MemoryRouter } from 'react-router-dom'
-import toast from "react-hot-toast"
+import { Routes, Route, BrowserRouter, MemoryRouter } from 'react-router-dom'
 
-import { AuthProvider, ProtectedRoute, useAuth } from '../authentication';
+import { AuthProvider, GuestLayout, ProtectedLayout, useAuth } from '../authentication';
 import DashboardContainer from "./dashboard";
 import ForgotPasswordContainer from "./forgotPassword";
 import ResetPasswordContainer from "./resetPassword";
@@ -13,7 +12,6 @@ import RegistrationContainer from "./registration";
 import ConfirmRegistrationContainer from "./confirmRegistration";
 import SetUsernameContainer from "./setUsername";
 import { Toaster } from 'react-hot-toast';
-import Login from './login';
 
 
 
@@ -85,27 +83,22 @@ const App = ({ runningOnDesktop }: AppProps) => {
 //   allow that. Do we want to allow that, even if it would disable the lint for non-React code?
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter: React.FC<any> = () => {
-  const { signUp, session } = useAuth();
-
   return (
     <Routes>
       <React.Fragment>
         {/* Login & registration pages are visible to unauthenticated users. */}
-        <Route element={<ProtectedRoute isAllowed={!session} redirectPath={SET_USERNAME_PATH} />}>
-          <Route path={LOGIN_PATH} element={<LoginContainer />} />
-          <Route path={REGISTRATION_PATH} element={<RegistrationContainer signUp={signUp} />} />
+        <Route element={<GuestLayout />}>
+          <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
+          <Route path={LOGIN_PATH} element={<LoginContainer />} /> 
         </Route>
-        {/* Set username page is visible to authenticated users who haven't finished registration. */}
-        <Route element={<ProtectedRoute isAllowed={session?.state == "partial"} redirectPath={DASHBOARD_PATH} />}>
-          <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} />
-        </Route>
-        {/* Dashboard is visible to authenticated users who have finished registration. */}
-        <Route element={<ProtectedRoute isAllowed={session?.state == "full"} redirectPath={LOGIN_PATH}/>}>
+        {/* Protected pages are visible to authenticated users. */}
+        <Route element={<ProtectedLayout />}>
           {/* FIXME [NP]: why do we need this extra one for electron to work? */}
-          <Route path={DASHBOARD_PATH} element={<DashboardContainer session={session} />} />
-          <Route index element={<DashboardContainer session={session} />} />
+          <Route index element={<DashboardContainer />} />
+          <Route path={DASHBOARD_PATH} element={<DashboardContainer />} /> 
+          <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
         </Route>
-        {/* Other routes are always accessible since they don't rely on auth status */}
+        {/* Other pages are visible to unauthenticated and authenticated users. */}
         <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
         <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
         <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />

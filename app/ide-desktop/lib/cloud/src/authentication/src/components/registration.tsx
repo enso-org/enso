@@ -1,13 +1,14 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 
 import * as React from 'react'
-import { FC, FormEvent } from 'react'
+import { FC } from 'react'
 import { Link } from 'react-router-dom';
 import toast from "react-hot-toast";
 
-import { withoutUser } from '../authentication';
+import { useAuth } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
+import { handleEvent } from '../utils';
 
 
 
@@ -15,27 +16,22 @@ import { useInput } from '../hooks'
 // === registrationContainer ===
 // =============================
 
-interface RegistrationContainerProps {
-  signUp: (email: string, password: string) => void
-}
-
-const registrationContainer: FC<RegistrationContainerProps> = ({ signUp }) => {
+const registrationContainer: FC = () => {
+    const { signUp } = useAuth();
     const { value: email, bind: bindEmail } = useInput("")
     const { value: password, bind: bindPassword } = useInput("")
     const { value: confirmPassword, bind: bindConfirmPassword } = useInput("")
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const handleSubmit = () => {
+      // The password & confirm password fields must match.
+      // FIXME [NP]: test this?
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match.")
+        return Promise.resolve()
+      }
 
-        // The password & confirm password fields must match.
-        // FIXME [NP]: test this?
-        if (password !== confirmPassword) {
-          toast.error("Passwords do not match.")
-          return
-        }
-
-        signUp(email, password)
-      };
+      return signUp(email, password)
+    };
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-300 px-4 py-8">
@@ -44,7 +40,7 @@ const registrationContainer: FC<RegistrationContainerProps> = ({ signUp }) => {
             Create new account
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleEvent(handleSubmit)}>
             <div className="flex flex-col mb-4">
               <label
                 htmlFor="email"

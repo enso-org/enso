@@ -3,13 +3,13 @@
  * flow.
  */
 import * as React from 'react'
-import { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import toast from "react-hot-toast";
 
 import { useAuth } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
+import { handleEvent } from '../utils';
 
 
 
@@ -18,30 +18,20 @@ import { useInput } from '../hooks'
 // ==============================
 
 const resetPasswordContainer: React.FC<any> = () => {
-    const auth = useAuth();
-    const navigate = useNavigate();
+    const { resetPassword } = useAuth();
 
     const { value: email, bind: bindEmail } = useInput("")
     const { value: code, bind: bindCode } = useInput("");
     const { value: newPassword, bind: bindNewPassword } = useInput("");
     const { value: newPasswordConfirm, bind: bindNewPasswordConfirm } = useInput("");
 
-    const resetPassword = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
+    const handleSubmit = () => {
         if (newPassword !== newPasswordConfirm) {
             toast.error("Passwords do not match");
-            return;
+            return Promise.resolve();
         }
 
-        try {
-            await auth.resetPassword(email, code, newPassword);
-            navigate("/login")
-        } catch (error: any) {
-            // FIXME [NP]: remove this lint?
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-            toast.error(error.message)
-        }
+        return resetPassword(email, code, newPassword)
     };
 
     return (
@@ -51,7 +41,7 @@ const resetPasswordContainer: React.FC<any> = () => {
             Reset Your Password
           </div>
           <div className="mt-10">
-            <form onSubmit={resetPassword}>
+            <form onSubmit={handleEvent(handleSubmit)}>
               <div className="flex flex-col mb-6">
                 <label
                   htmlFor="email"

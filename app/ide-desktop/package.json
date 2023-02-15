@@ -32,7 +32,7 @@
     "patch-package": "^6.4.7"
   },
   "scripts": {
-    "dev": "npm exec --workspace enso-studio-cloud -- react-scripts start",
+    "dev": "PORT=8081 npm exec --workspace enso-studio-cloud -- react-scripts start",
     "dev2": "npm exec --workspace cloud-dashboard -- next dev -p 8081",
     "watch": "npm run watch --workspace enso-studio-content",
     "postinstall": "patch-package"

@@ -1,9 +1,9 @@
-import { Auth } from "@aws-amplify/auth";
-import { toast } from "react-hot-toast";
-import { FC, FormEvent, useEffect } from "react";
+import { FC, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LOGIN_PATH } from "./app";
 import withRouter from "../navigation";
+import { useAuth } from "../authentication";
+import toast from "react-hot-toast";
 
 
 
@@ -11,7 +11,8 @@ import withRouter from "../navigation";
 // === confirmRegistrationContainer ===
 // ====================================
 
-const confirmRegistrationContainer: FC<any> = () => {
+const confirmRegistrationContainer: FC = () => {
+  const { confirmSignUp } = useAuth();
   const { search } = useLocation();
   const navigate = useNavigate();
 
@@ -23,32 +24,22 @@ const confirmRegistrationContainer: FC<any> = () => {
 
   useEffect(() => {
     if (!email || !verificationCode) {
-      // FIXME [NP]: we used to pass ?confirmed=false, make sure this still works.
-      //navigate(LOGIN_PATH, { search: `?=${email}`);
       navigate(LOGIN_PATH);
-    } else {
-      // FIXME [NP]: encode email here
-      navigate(LOGIN_PATH + `?email=${email}`);
       return;
-      navigate(LOGIN_PATH, { state: { confirmed: false, initialEmail: email } });
-      //// FIXME [NP]: hide the library details
-      //console.log("Confirming registration for user: ", email, verificationCode)
-      //Auth
-      //  .confirmSignUp(email, verificationCode)
-      //  // FIXME [NP]: we used to pass ?confirmed=true, make sure this still works.
-      //  .then(() => navigate(LOGIN_PATH, { state: { confirmed: true } }))
-      //  .then(() => toast.success("Your account has been confirmed! Please log in."))
-      //  // FIXME [NP]: ensure we handle the error appropriately.
-      //  .catch((error) => {
-      //    console.error(error);
-      //    toast.error("Something went wrong! Please try again or contact the administrators.");
-      //  })
     }
-  }, [])
 
+    confirmSignUp(email, verificationCode)
+      // FIXME [NP]: encode ONLY email here, not the whole query string
+      .then(() => navigate(LOGIN_PATH + search.toString()))
+      .catch((error) => {
+        // FIXME [NP]: handle this error properly
+        console.error(error)
+        toast.error("Something went wrong! Please try again or contact the administrators.");
+        navigate(LOGIN_PATH);
+      })
+  }, [])
  
-  // FIXME [NP]: maybe take the user to the login page straight away?
   return (<div></div>);
 }
 
-export default withRouter(confirmRegistrationContainer)
+export default withRouter(confirmRegistrationContainer);

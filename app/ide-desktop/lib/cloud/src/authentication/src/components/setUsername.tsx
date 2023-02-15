@@ -3,15 +3,12 @@
  * registration.
  */
 import * as React from 'react'
-import { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom';
-import toast from "react-hot-toast";
+import { FC } from 'react'
 
-import { PartialUserSession, useAuth, withPartialUser } from '../authentication';
+import { useAuth, usePartialUserSession } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
-import { setUsername, SetUsernameBody } from '../api'
-import { DASHBOARD_PATH } from './app';
+import { handleEvent } from '../utils';
 
 
 
@@ -19,32 +16,11 @@ import { DASHBOARD_PATH } from './app';
 // === setUsernameContainer ===
 // ============================
 
-interface SetUsernameProps {
-    session: PartialUserSession,
-}
+const setUsernameContainer: FC = () => {
+    const { setUsername } = useAuth();
+    const { accessToken, email } = usePartialUserSession();
 
-const setUsernameContainer: React.FC<any> = (
-    // FIXME [NP]
-   // { session }: SetUsernameProps,
-) => {
-    //const { accessToken, email } = session;
-    const { session } = useAuth();
-    const navigate = useNavigate();
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
-    const accessToken = session?.accessToken!;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
-    const email = session?.email!;
-
-    const { value: username, bind: bindUsername } = useInput("")
-
-    const handleSetUsername = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        const body: SetUsernameBody = { userName: username, userEmail: email };
-        await setUsername(accessToken, body);
-        navigate(DASHBOARD_PATH);
-    };
+    const { value: username, bind: bindUsername } = useInput('');
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -53,7 +29,7 @@ const setUsernameContainer: React.FC<any> = (
             Set your username
           </div>
           <div className="mt-10">
-            <form onSubmit={handleSetUsername}>
+            <form onSubmit={handleEvent(() => setUsername(accessToken, username, email))}>
               <div className="flex flex-col mb-6">
                 <div className="relative">
                   <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">

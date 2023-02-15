@@ -3,6 +3,7 @@
  * @file Helper decorator that allows for defining virtual router definition with a react component.
  */
 
+import { FC } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 
@@ -15,11 +16,11 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
  * Function that upgrades a React component to a React higher-order component with emulated normal
  * routing in the browser.
  */
-function withRouter (Component: any) {
+const withRouter = <T extends object>(Component: FC<T>) => {
   /**
    * Adds window navigation props to given component that emulates normal routing in the browser.
    */
-  function componentWithRouterProp (props: any) {
+  const componentWithRouterProp: FC<T> = (props) => {
     const location = useLocation()
     const navigate = useNavigate()
     const params = useParams()

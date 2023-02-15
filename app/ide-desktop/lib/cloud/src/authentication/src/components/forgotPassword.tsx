@@ -3,13 +3,12 @@
  * flow.
  */
 import * as React from 'react'
-import { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom';
-import toast from "react-hot-toast";
+import { Link } from 'react-router-dom';
 
 import { useAuth } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
+import { handleEvent } from '../utils';
 
 
 
@@ -18,23 +17,9 @@ import { useInput } from '../hooks'
 // ===============================
 
 const forgotPasswordContainer: React.FC<any> = () => {
-    const { forgotPassword }= useAuth();
-    const navigate = useNavigate();
+    const { forgotPassword } = useAuth();
 
     const { value: email, bind: bindEmail } = useInput("")
-
-    const handleForgotPassword = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        try {
-            await forgotPassword(email);
-            navigate("/reset-password")
-        } catch (error: any) {
-            // FIXME [NP]: remove this lint?
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-            toast.error(error.message)
-        }
-    };
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -43,7 +28,7 @@ const forgotPasswordContainer: React.FC<any> = () => {
             Forgot Your Password?
           </div>
           <div className="mt-10">
-            <form onSubmit={handleForgotPassword}>
+            <form onSubmit={handleEvent(async () => await forgotPassword(email))}>
               <div className="flex flex-col mb-6">
                 <label
                   htmlFor="email"

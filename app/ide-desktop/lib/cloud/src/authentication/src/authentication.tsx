@@ -7,9 +7,10 @@
  */
 import { Auth, CognitoHostedUIIdentityProvider, SignUpParams } from '@aws-amplify/auth'
 import { ComponentType, createContext, FC, ReactElement, ReactNode, useContext, useEffect, useState } from 'react';
-import { Navigate, Outlet, useNavigate } from 'react-router-dom';
-import { getUsersMe, Organization } from './api';
-import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, SET_USERNAME_PATH } from './components/app';
+import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
+import { getUsersMe, Organization, SetUsernameBody } from './api';
+import * as api from './api';
+import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
 import { toast } from "react-hot-toast"
 import { AuthError } from '@aws-amplify/auth/lib-esm/Errors';
 
@@ -28,7 +29,7 @@ type AuthOptions = ReturnType<typeof Auth['configure']>
 
 // === UserSession ===
 
-type UserSession =
+export type UserSession =
   | FullUserSession
   | PartialUserSession;
 
@@ -210,12 +211,16 @@ interface AuthContextType {
     ///
     /// Does not rely on external identity providers (e.g., Google, GitHub).
     signUp: (email: string, password: string) => Promise<void>;
+    /// Method for confirming a user's email address after they attempt to sign up.
+    confirmSignUp: (email: string, code: string) => Promise<void>;
+    /// Method for assigning a user a username after they have signed up and confirmed their email.
+    setUsername: (accessToken: string, username: string, email: string) => Promise<void>;
     /// Method for signing in a user via their Google account.
     ///
     /// This method will open a new browser window to allow the user to authenticate with Google.
     /// Once the user has authenticated, the browser window will close, and the user will be signed
     /// in.
-    signInWithGoogle: () => Promise<void>;
+    signInWithGoogle: () => Promise<void>
     /// Method for signing in a user via their GitHub account.
     ///
     /// This method will open a new browser window to allow the user to authenticate with GitHub.
@@ -302,6 +307,7 @@ export const AuthProvider = ({ runningOnDesktop, children }: { runningOnDesktop:
           // to log this error, so we'll just ignore it and keep the session blank.
           if (error === "No current user") {
             setInitialized(true)
+            setSession(undefined);
             return;
           }
           throw error
@@ -389,6 +395,36 @@ export const AuthProvider = ({ runningOnDesktop, children }: { runningOnDesktop:
       toast.success("We have sent you an email with further instructions!")
   };
 
+  const confirmSignUp = async (email: string, code: string) => {
+    const loading = toast.loading("Please wait...");
+    try {
+      // FIXME [NP]: ensure we handle the error appropriately.
+      await Auth.confirmSignUp(email, code)
+    } catch (error) {
+      if (isAmplifyError(error)) {
+        if (error.code === "NotAuthorizedException") {
+          if (error.message === "User cannot be confirmed. Current status is CONFIRMED") {
+            toast.success("Your account has already been confirmed! Please log in.")
+            navigate(LOGIN_PATH)
+            return
+          }
+        }
+      }
+    }finally {
+      toast.dismiss(loading)
+    }
+
+    toast.success("Your account has been confirmed! Please log in.")
+    navigate(LOGIN_PATH)
+  }
+
+  const setUsername = async (accessToken: string, username: string, email: string) => {
+      const body: SetUsernameBody = { userName: username, userEmail: email };
+      await api.setUsername(accessToken, body);
+      toast.success("Your username has been set!")
+      navigate(DASHBOARD_PATH);
+  };
+
   const signInWithGoogle = async () => {
     await Auth.federatedSignIn({ provider: CognitoHostedUIIdentityProvider.Google })
   };
@@ -433,19 +469,64 @@ export const AuthProvider = ({ runningOnDesktop, children }: { runningOnDesktop:
   };
 
   const forgotPassword = async (email: string) => {
-    await Auth.forgotPassword(email);
+    const loading = toast.loading("Please wait...");
+    try {
+      await Auth.forgotPassword(email);
+    } catch (error) {
+      if (isAmplifyError(error)) {
+        if (error.code === "UserNotFoundException") {
+          toast.error("User not found. Please register first.")
+          return
+        }
+      }
+
+      throw error
+    } finally {
+      toast.dismiss(loading);
+    }
+
+    toast.success("We have sent you an email with further instructions!")
+    navigate(RESET_PASSWORD_PATH)
   }
 
   const resetPassword = async (email: string, code: string, password: string) => {
-    await Auth.forgotPasswordSubmit(email, code, password)
+    const loading = toast.loading("Please wait...");
+    try {
+      await Auth.forgotPasswordSubmit(email, code, password)
+    } catch (error) {
+      if (isAuthError(error)) {
+        toast.error(error.log)
+        return
+      }
+
+      if (isAmplifyError(error)) {
+        toast.error(error.message)
+        return
+      }
+
+      throw error
+    } finally {
+      toast.dismiss(loading);
+    }
+
+    toast.success("Successfully reset password!")    
+    navigate(LOGIN_PATH)
   };
 
   const signOut = async () => {
     await Auth.signOut();
+
+    // Now that we've logged in, we need to refresh the session so that the user's token is cleared.
+    setRefresh(refresh + 1);
+
+    toast.success("Successfully logged out!")
+    navigate(LOGIN_PATH)
   }
 
   const value = {
     signUp,
+    confirmSignUp,
+    setUsername,
     signInWithGoogle,
     signInWithGitHub,
     signInWithPassword,
@@ -606,12 +687,72 @@ interface ProtectedRouteProps {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ProtectedRoute: FC<ProtectedRouteProps> = ({ isAllowed, redirectPath = LOGIN_PATH, children }) => {
   if (!isAllowed) {
-    // FIXME [NP]: remove
-    console.log("ProtectedRoute: redirecting to", redirectPath)
     return <Navigate to={redirectPath} />;
   }
 
-    // FIXME [NP]: remove
-    console.log("ProtectedRoute: rendering children")
   return children ? children : <Outlet />;
+}
+
+
+//export const ProtectedRoute: FC<ProtectedRouteProps> = ({ isAllowed, redirectPath = LOGIN_PATH, children }): ReactNode => {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const ProtectedRoute2: FC<ProtectedRouteProps> = ({ isAllowed, redirectPath = LOGIN_PATH, children }) => {
+  if (!isAllowed) {
+    return <Navigate to={redirectPath} />;
+  }
+
+  return children ? children : <Outlet />;
+}
+
+
+
+
+interface Config {
+  redirectCondition: (props: any) => boolean;
+  redirectPath: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const withRedirectIfUnauthorized = (config: Config) => <T extends object>(Component: FC<T>): FC<T> => (props) => {
+  const { redirectCondition, redirectPath } = config;
+
+  if (redirectCondition(props)) {
+    return <Navigate to={redirectPath} />;
+  }
+
+  return <Component {...props} />;
+}
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const ProtectedLayout = () => {
+  const { session } = useAuth();
+
+  if (!session) {
+    return <Navigate to={LOGIN_PATH} />;
+  }
+
+  return <Outlet context={ session } />;
+}
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const GuestLayout = () => {
+  const { session } = useAuth();
+
+  if (session?.state == "partial") {
+    return <Navigate to={SET_USERNAME_PATH} />;
+  }
+
+  if (session?.state == "full") {
+    return <Navigate to={DASHBOARD_PATH} />;
+  }
+
+  return <Outlet />;
+}
+
+export const usePartialUserSession = () => {
+  return useOutletContext<PartialUserSession>();
+}
+
+export const useFullUserSession = () => {
+  return useOutletContext<FullUserSession>();
 }
