@@ -8,6 +8,7 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
+use ensogl_component::drop_down::DropdownValue;
 
 
 
@@ -46,7 +47,10 @@ ensogl::define_endpoints_2! {
 pub struct Metadata {
     pub kind:            Kind,
     pub display:         Display,
-    pub dynamic_entries: Vec<ImString>,
+    /// Entries that should be displayed by the widget, as proposed by language server. This list
+    /// is not exhaustive. The widget implementation might present additional options or allow
+    /// arbitrary user input.
+    pub dynamic_entries: Vec<Entry>,
 }
 
 /// Widget display mode. Determines when the widget should be expanded.
@@ -61,6 +65,36 @@ pub enum Display {
     /// The widget should only be in its expanded mode whe the whole node is expanded.
     #[serde(rename = "Expanded_Only")]
     ExpandedOnly,
+}
+
+/// Widget entry. Represents a possible value choice on the widget, as proposed by the language
+/// server.
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+pub struct Entry {
+    /// The expression that should be inserted by the widget. Note that  this expression can still
+    /// be preprocessed by the widget before being inserted into the node.
+    pub value: ImString,
+    /// The text that should be displayed by the widget to represent this option. The exact
+    /// appearance of the label is up to the widget implementation.
+    pub label: ImString,
+}
+
+impl Entry {
+    /// Create an entry with the same value and label.
+    pub fn from_value(value: ImString) -> Self {
+        Self { label: value.clone(), value }
+    }
+
+    /// Cloning entry value getter.
+    pub fn value(&self) -> ImString {
+        self.value.clone()
+    }
+}
+
+impl DropdownValue for Entry {
+    fn label(&self) -> ImString {
+        self.label.clone()
+    }
 }
 
 /// The data of node port that this widget is attached to. Available immediately after widget
@@ -243,14 +277,28 @@ impl KindModel {
         match self {
             KindModel::SingleChoice(inner) => {
                 let dynamic_entries = meta.as_ref().map(|meta| meta.dynamic_entries.clone());
-                let tag_values = node_data.argument_info.tag_values.iter().map(Into::into);
-                let entries = dynamic_entries.unwrap_or_else(|| tag_values.collect());
+                let entries = dynamic_entries
+                    .unwrap_or_else(|| self.map_tag_values(&node_data.argument_info.tag_values));
 
                 inner.set_port_size(node_data.port_size);
                 inner.set_entries(entries);
             }
         }
     }
+
+    fn map_tag_values(&self, tag_values: &[String]) -> Vec<Entry> {
+        tag_values
+            .iter()
+            .map(|tag_value| {
+                let value: ImString = tag_value.into();
+                Entry {
+                    label: value.clone(), // TODO: shorten - nocheckin
+                    value,
+                }
+            })
+            .collect()
+    }
+
     fn kind(&self) -> Kind {
         match self {
             Self::SingleChoice(_) => Kind::SingleChoice,
@@ -357,8 +405,8 @@ impl SingleChoiceModel {
         self.dropdown.borrow_mut().set_port_size(port_size);
     }
 
-    fn set_entries(&self, values: Vec<ImString>) {
-        self.dropdown.borrow_mut().set_entries(values);
+    fn set_entries(&self, entries: Vec<Entry>) {
+        self.dropdown.borrow_mut().set_entries(entries);
     }
 }
 
@@ -382,14 +430,17 @@ enum LazyDropdown {
         app:               Application,
         display_object:    display::object::Instance,
         dropdown_y:        f32,
-        entries:           Vec<ImString>,
+        entries:           Vec<Entry>,
         set_current_value: frp::Sampler<Option<ImString>>,
         is_open:           frp::Sampler<bool>,
         output_value:      frp::Any<Option<ImString>>,
     },
-    Initialized(Dropdown<ImString>, frp::Network),
+    Initialized {
+        _network:    frp::Network,
+        dropdown:    Dropdown<Entry>,
+        set_entries: frp::Any<Vec<Entry>>,
+    },
 }
-
 
 impl LazyDropdown {
     fn new(
@@ -417,7 +468,7 @@ impl LazyDropdown {
     fn set_port_size(&mut self, new_port_size: Vector2) {
         let y = -new_port_size.y() - DROPDOWN_Y_OFFSET;
         match self {
-            LazyDropdown::Initialized(dropdown, ..) => {
+            LazyDropdown::Initialized { dropdown, .. } => {
                 dropdown.set_y(y);
             }
             LazyDropdown::NotInitialized { dropdown_y, .. } => {
@@ -426,10 +477,10 @@ impl LazyDropdown {
         }
     }
 
-    fn set_entries(&mut self, new_entries: Vec<ImString>) {
+    fn set_entries(&mut self, new_entries: Vec<Entry>) {
         match self {
-            LazyDropdown::Initialized(dropdown, ..) => {
-                dropdown.set_all_entries(new_entries);
+            LazyDropdown::Initialized { set_entries, .. } => {
+                set_entries.emit(new_entries);
             }
             LazyDropdown::NotInitialized { entries, .. } => {
                 *entries = new_entries;
@@ -440,7 +491,7 @@ impl LazyDropdown {
     #[profile(Detail)]
     fn initialize_on_open(&mut self) {
         match self {
-            LazyDropdown::Initialized(..) => {}
+            LazyDropdown::Initialized { .. } => {}
             LazyDropdown::NotInitialized {
                 app,
                 display_object,
@@ -450,27 +501,29 @@ impl LazyDropdown {
                 set_current_value,
                 output_value,
             } => {
-                let dropdown = app.new_view::<Dropdown<ImString>>();
+                let dropdown = app.new_view::<Dropdown<Entry>>();
                 display_object.add_child(&dropdown);
                 app.display.default_scene.layers.above_nodes.add(&dropdown);
                 dropdown.set_y(*dropdown_y);
                 dropdown.set_max_open_size(Vector2(300.0, 500.0));
-                dropdown.set_all_entries(std::mem::take(entries));
                 dropdown.allow_deselect_all(true);
 
                 frp::new_network! { network
                     init <- source_();
-                    current_value <- all(set_current_value, &init)._0();
-                    dropdown.set_selected_entries <+ current_value.map(|s| s.iter().cloned().collect());
-                    first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
+                    set_entries <- any(...);
 
-                    is_open <- all(is_open, &init)._0();
-                    dropdown.set_open <+ is_open.on_change();
+                    dropdown.set_all_entries <+ set_entries;
+                    selected_entry <- set_entries.all_with(set_current_value, entry_for_current_value);
+                    dropdown.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
 
+                    dropdown_output <- dropdown.selected_entries.map(|e| e.iter().next().map(Entry::value));
                     // Emit the output value only after actual user action. This prevents the
                     // dropdown from emitting its initial value when it is opened, which can
                     // represent slightly different version of code than actually written.
-                    output_value <+ first_selected_entry.sample(&dropdown.user_select_action);
+                    output_value <+ dropdown_output.sample(&dropdown.user_select_action);
+
+                    is_open <- all(is_open, &init)._0();
+                    dropdown.set_open <+ is_open.on_change();
 
                     // Close the dropdown after a short delay after selection. Because the dropdown
                     // value application triggers operations that can introduce a few dropped frames,
@@ -481,10 +534,22 @@ impl LazyDropdown {
                     eval close_after_selection_timer.on_expired((()) display_object.blur());
                 }
 
-
+                set_entries.emit(std::mem::take(entries));
                 init.emit(());
-                *self = LazyDropdown::Initialized(dropdown, network);
+                *self = LazyDropdown::Initialized { _network: network, dropdown, set_entries };
             }
         }
     }
+}
+
+fn entry_for_current_value(
+    all_entries: &Vec<Entry>,
+    current_value: &Option<ImString>,
+) -> Option<Entry> {
+    let current_value = current_value.clone()?;
+    let found_entry = all_entries.iter().find(|entry| entry.value.as_ref() == current_value);
+    let with_fallback =
+        found_entry.cloned().unwrap_or_else(|| Entry::from_value(current_value.clone()));
+    warn!("entry_for_current_value: {:?} -> {:?}", current_value, with_fallback);
+    Some(with_fallback)
 }
