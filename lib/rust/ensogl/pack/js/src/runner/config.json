@@ -7,11 +7,11 @@
   },
   "groups": {
     "loader": {
-      "description": "Options of the application loader. The Loader downloads application assets, compiles the WASM code, and runs the chosen application entry points.",
+      "description": "Options for the application loader, which downloads assets, compiles WASM code, and runs entry points.",
       "options": {
         "spinner": {
           "default": true,
-          "description": "Controls whether the visual loader should be visible on the screen when downloading and compiling WASM sources.",
+          "description": "Controls the visibility of the visual loader while downloading and compiling WASM sources.",
           "primary": false
         },
         "wasmUrl": {
@@ -31,21 +31,21 @@
         },
         "downloadToInitRatio": {
           "default": 1.0,
-          "description": "The (time needed for WASM download) / (total time including WASM download and WASM app initialization). In case of small WASM apps this can be set to 1.0. In case of bigger WASM apps, it is desired to show the progress bar growing up to e.g. 70% and leaving the last 30% for WASM app init.",
+          "description": "The ratio of time needed for WASM download to the total time, including WASM app initialization. For small WASM apps, this can be set to 1.0. For larger apps, it is desirable to show the progress bar up to 70% and leave the last 30% for WASM app init.",
           "primary": false
         }
       }
     },
     "startup": {
-      "description": "Options controlling the behavior of the application at startup. For example, they allow choosing the application entry point to be run.",
+      "description": "Options for controlling the application behavior at startup, such as selecting the entry point to run.",
       "options": {
         "entry": {
           "default": "ide",
-          "description": "The application entry point. Most of the entry points are debug utilities allowing testing the look and feel of graphical interface components. Use `_` to list available entry points."
+          "description": "The application entry point. Most entry points are debug utilities for testing graphical interface components. Use '_' to list available entry points."
         },
         "maxBeforeMainTimeMs": {
           "default": 300,
-          "description": "The maximum time in milliseconds before main entry points are allowed to run. After this time, an error will be printed, but the execution will continue.",
+          "description": "The maximum time in milliseconds before the main entry points are allowed to run. After this time, an error will be printed, but execution will continue.",
           "primary": false
         }
       }
