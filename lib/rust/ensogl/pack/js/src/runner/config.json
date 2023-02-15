@@ -2,7 +2,7 @@
   "options": {
     "debug": {
       "default": false,
-      "description": "Controls the debug mode for the application. In this mode, all logs are printed to the console, and EnsoGL extensions are loaded. Otherwise, logs are hidden unless explicitly shown with `showLogs`."
+      "description": "Controls the debug mode for the application. In this mode, all logs are printed to the console, and EnsoGL extensions are loaded. Otherwise, logs are hidden unless explicitly shown with 'showLogs'."
     }
   },
   "groups": {

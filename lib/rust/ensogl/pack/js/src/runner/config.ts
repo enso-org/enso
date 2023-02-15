@@ -138,6 +138,7 @@ type GroupsRecord = Record<string, AnyGroup>
 
 /** Options group. The same as `Group` but with elided generic parameters. */
 export interface AnyGroup {
+    name: string
     description: string
     options: OptionsRecord
     groups: GroupsRecord
@@ -152,6 +153,7 @@ export interface AnyGroup {
 /** Options group. Allows defining nested options. The class is generic in order to allow TypeScript
  * to infer the types of its children and thus allow accessing them in a type-safe way. */
 export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
+    name = 'unnamed'
     description: string
     options: Options = {} as Options
     groups: Groups = {} as Groups
@@ -188,6 +190,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
         } else {
             const groups = this.groups as GroupsRecord
             groups[name] = group
+            group.name = name
         }
         group.setPath([name])
     }

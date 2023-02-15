@@ -33,6 +33,7 @@
         },
         "platform": {
           "default": "web",
+          "defaultDescription": "'web' if run in the browser, operating system name otherwise`",
           "description": "The host platform on which the application is running. This is used to adjust some user interface elements. For example, on macOS, the window close buttons are integrated into the top application panel.",
           "primary": false
         }
@@ -75,6 +76,7 @@
     },
 
     "style": {
+      "description": "The available visual and tactile configurations of the application.",
       "options": {
         "nodeLabels": {
           "default": true,

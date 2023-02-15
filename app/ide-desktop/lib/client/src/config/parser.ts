@@ -309,7 +309,7 @@ export function parseArgs() {
     const printHelpAndExit = (exitCode?: number) => {
         printHelp({
             args,
-            groupsOrdering: [],
+            groupsOrdering: [args.groups.loader.name],
             helpExtended: args.options.helpExtended.value,
         })
         process.exit(exitCode)

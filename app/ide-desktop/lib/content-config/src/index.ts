@@ -75,6 +75,7 @@ export const options = config.options.merge(
                     }),
                     platform: new config.Option({
                         default: 'web',
+                        defaultDescription: `'web' if run in the browser, operating system name otherwise`,
                         description:
                             'The host platform the app is running on. This is used to adjust some UI elements. ' +
                             'For example, on macOS, the window close buttons are integrated to the top app panel.',
@@ -122,8 +123,6 @@ export const options = config.options.merge(
                         description:
                             'Controls whether the minimum engine version check should be performed.',
                     }),
-                    // //FIXME:
-                    // // @ts-ignore
                     // preferredVersion: new config.Option({
                     //     default: Version.ide,
                     //     description: `The preferred engine version.`,
@@ -132,6 +131,7 @@ export const options = config.options.merge(
             }),
 
             style: new config.Group({
+                description: `The available visual and tactile configurations of the application.`,
                 options: {
                     nodeLabels: new config.Option({
                         default: true,
