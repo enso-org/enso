@@ -58,7 +58,7 @@ spec setup =
 
         Test.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["foo", "bar", "foo_1", "foo_2"] <| table.select_columns [By_Name "b.*" Case_Sensitivity.Sensitive use_regex=True, By_Name "f.+" Case_Sensitivity.Sensitive use_regex=True]
-            expect_column_names ["bar", "foo", "foo_1", "foo_2"] <| table.select_columns [By_Name "b.*" Case_Sensitivity.Sensitive use_regex=True, By_Name "f.+" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names ["bar", "foo", "foo_1", "foo_2"] <| table.select_columns [By_Name "b.*" Case_Sensitivity.Sensitive use_regex=True, By_Name "f.+" Case_Sensitivity.Sensitive use_regex=True] reorder=True
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = [1, 0, 100, -200, 300]
