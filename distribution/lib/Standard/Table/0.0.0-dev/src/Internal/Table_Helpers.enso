@@ -150,7 +150,7 @@ type Table_Column_Helper
     select_columns_helper self selectors reorder problem_builder =
         resolve_selector selector = case selector of
             name : Text -> resolve_selector (Column_Selector.By_Name name Case_Sensitivity.Sensitive False)
-            ix : Integer -> if is_index_valid self.internal_columns.length ix then self.internal_columns.at ix else
+            ix : Integer -> if is_index_valid self.internal_columns.length ix then [self.internal_columns.at ix] else
                 problem_builder.report_oob_indices [ix]
                 []
             Column_Selector.By_Name name case_sensitivity use_regex ->
@@ -197,7 +197,7 @@ type Table_Column_Helper
             _ : Vector -> selectors
             _ -> [selectors]
         selected_columns = vector.map resolve_selector . flatten
-        if reorder.not then selected_columns . distinct on=_.name else
+        if reorder.not then selected_columns.distinct on=_.name else
             map = Map.from_vector (selected_columns.map column-> [column.name, True])
             self.internal_columns.filter column-> map.contains_key column.name
 
@@ -398,7 +398,7 @@ select_indices_preserving_order vector indices =
    Checks if the given index is in the valid range for the provided vector.
 is_index_valid : Integer -> Integer -> Boolean
 is_index_valid length ix =
-    ix>=-length && ix<length
+    (ix >= -length) && (ix<length)
 
 ## PRIVATE
    A helper method to match columns by name
