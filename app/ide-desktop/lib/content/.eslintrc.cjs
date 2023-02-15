@@ -1,3 +1,5 @@
+// TODO: Some of the config options are commented out because eslint is not configured properly.
+// This will be fixed in the future.
 module.exports = {
     extends: [
         'eslint:recommended',

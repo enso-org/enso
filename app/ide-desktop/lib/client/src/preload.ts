@@ -22,9 +22,9 @@ contextBridge.exposeInMainWorld('enso_lifecycle', {
 })
 
 // Save and load profile data.
-let onProfiles: any = []
-let profilesLoaded: any
-ipcRenderer.on(ipc.channel.profilesLoaded, (event, profiles) => {
+let onProfiles: ((profiles: string[]) => void)[] = []
+let profilesLoaded: string[]
+ipcRenderer.on(ipc.channel.profilesLoaded, (event, profiles: string[]) => {
     for (const callback of onProfiles) {
         callback(profiles)
     }
@@ -35,7 +35,7 @@ contextBridge.exposeInMainWorld('enso_profiling_data', {
     // Delivers profiling log.
     saveProfile: (data: any) => ipcRenderer.send(ipc.channel.saveProfile, data),
     // Requests any loaded profiling logs.
-    loadProfiles: (callback: any) => {
+    loadProfiles: (callback: (profiles: string[]) => void) => {
         if (profilesLoaded === undefined) {
             ipcRenderer.send('load-profiles')
             onProfiles.push(callback)

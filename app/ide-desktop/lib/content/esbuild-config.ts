@@ -156,7 +156,6 @@ export async function bundle() {
     try {
         return esbuild.build({ ...config, watch: false, incremental: false })
     } catch (error) {
-        console.error('ERROR!!!!!!!')
         console.error(error)
         throw error
     }

@@ -1,13 +1,12 @@
+/** @file Configuration options of the application content (the web part). */
+
 import * as semver from 'semver'
-// import * as app from '../../../../../target/ensogl-pack/dist/index.js'
 import { log, config, App } from '../../../../../target/ensogl-pack/dist/index'
 import buildCfg from '../../../build.json'
 
-// const config = app.config
 const Option = config.Option
 const Group = config.Group
 const logger = log.logger
-// const Options = config.Options
 export { Option, Group, logger }
 export type Option<T> = config.Option<T>
 

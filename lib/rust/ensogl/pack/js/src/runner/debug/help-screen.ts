@@ -77,7 +77,6 @@ export class HelpScreen {
             sectionDiv.style.marginTop = '16px'
             sectionDiv.style.padding = `${sectionPaddingPx}px`
             sectionDiv.style.border = '3px solid #000000c9'
-            // sectionDiv.style.background = '#00000010'
             sectionDiv.style.borderRadius = sectionBackgroundRadius
             sectionDiv.style.maxWidth = '800px'
 
@@ -87,18 +86,14 @@ export class HelpScreen {
             sectionTitleDiv.style.fontSize = '16px'
             sectionTitleDiv.style.marginBottom = '6px'
             sectionTitleDiv.style.marginLeft = '2px'
-            // sectionTitleDiv.style.color = '#2382cd'
             sectionDiv.appendChild(sectionTitleDiv)
             sectionTitleDiv.appendChild(sectionTitle)
 
             if (section.description) {
                 const sectionDescriptionDiv = document.createElement('div')
                 const sectionDescription = document.createTextNode(section.description)
-                // sectionDescriptionDiv.style.fontWeight = 'bold'
-                // sectionDescriptionDiv.style.fontSize = '16px'
                 sectionDescriptionDiv.style.marginBottom = '16px'
                 sectionDescriptionDiv.style.marginLeft = '2px'
-                // sectionDescriptionDiv.style.color = '#2382cd'
                 sectionDiv.appendChild(sectionDescriptionDiv)
                 sectionDescriptionDiv.appendChild(sectionDescription)
             }

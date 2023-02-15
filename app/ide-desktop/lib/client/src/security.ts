@@ -17,10 +17,9 @@ const webViewUrlWhitelist: string[] = []
 // === Utils ===
 // =============
 
-export function secureWebPreferences(webPreferences?: Electron.WebPreferences) {
-    if (!webPreferences) {
-        webPreferences = {}
-    }
+/** Secure the web preferences of a new window. It deletes potentially unsecure options, making them
+ * revert to secure defaults. */
+export function secureWebPreferences(webPreferences: Electron.WebPreferences) {
     delete webPreferences.preload
     delete webPreferences.nodeIntegration
     delete webPreferences.nodeIntegrationInWorker

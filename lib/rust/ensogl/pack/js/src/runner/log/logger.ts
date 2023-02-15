@@ -83,7 +83,9 @@ export abstract class Consumer {
     /** Log a message and end the last opened group. */
     abstract groupEnd(...args: unknown[]): void
 
-    terminalWidth(): number {
+    /** The width of the terminal in columns. In case there is no terminal, e.g. when the output
+     * stream is redirected to a file, this results in a `undefined`. */
+    terminalWidth(): number | undefined {
         return process.stdout.columns
     }
 

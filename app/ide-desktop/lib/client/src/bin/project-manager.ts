@@ -15,8 +15,7 @@ export function pathOrPanic(args: config.Args): string {
     let binPath = args.groups.engine.options.projectManagerPath.value
     let binExists = fss.existsSync(binPath)
     if (!binExists) {
-        logger.error(`Could not find the project manager binary at ${binPath}.`)
-        process.exit(1)
+        throw new Error(`Could not find the project manager binary at ${binPath}.`)
     }
     return binPath
 }

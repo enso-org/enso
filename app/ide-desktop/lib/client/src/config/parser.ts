@@ -1,3 +1,5 @@
+/** @file Command line options parser. */
+
 import chalk from 'chalk'
 import buildCfg from '../../../../build.json'
 import * as config from 'config'
@@ -28,7 +30,10 @@ class Section {
     }
 }
 
-/** We use custom help printer because Yargs has several issues:
+/** Command line help printer. The `groupsOrdering` parameter specifies the order in which the
+ * option groups should be printed. Groups not specified will be printed in the definition order.
+ *
+ * We use custom help printer because Yargs has several issues:
  * 1. The option ordering is random and there is no way to enforce it.
  * 2. The option groups ordering is random and there is no way to enforce it.
  * 3. Every option has a `[type`] annotation and there is no API to disable it.
@@ -38,7 +43,7 @@ class Section {
  */
 function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExtended: boolean }) {
     console.log(usage)
-    const totalWidth = logger.terminalWidth()
+    const totalWidth = logger.terminalWidth() ?? 80
     const indentSize = 0
     const optionPrefix = '-'
     const spacing = 2
@@ -128,6 +133,7 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
 
 function wordWrap(str: string, width: number): string[] {
     if (width <= 0) {
+        logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
         return []
     }
     let firstLine = true
@@ -178,7 +184,7 @@ function wordWrap(str: string, width: number): string[] {
 // ======================
 
 export class ChromeOption {
-    constructor(public name: string, public value?: undefined | string) {}
+    constructor(public name: string, public value?: string) {}
 
     display(): string {
         const value = this.value == null ? '' : `=${this.value}`
@@ -241,7 +247,7 @@ export function parseArgs() {
     const args = config.config
     const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(hideBin(process.argv)))
 
-    const yargOptions = args.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
+    const yargsOptions = args.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
         const yargsParam = Object.assign({}, option)
         // @ts-ignore
         yargsParam.requiresArg = ['string', 'array'].includes(yargsParam.type)
@@ -267,7 +273,7 @@ export function parseArgs() {
         })
         .help(false)
         .strict()
-        .options(yargOptions)
+        .options(yargsOptions)
 
     // === Parsing ===
 
@@ -291,21 +297,22 @@ export function parseArgs() {
     }
 
     let windowSize = config.WindowSize.default()
-    const parsedWindowSize = config.WindowSize.parse(args.groups.window.options.size.value)
+    const providedWindowSize = args.groups.window.options.size.value
+    const parsedWindowSize = config.WindowSize.parse(providedWindowSize)
 
     if (parsedWindowSize instanceof Error) {
-        throw 'wrong window size'
+        throw new Error(`Wrong window size provided: '${providedWindowSize}'.`)
     } else {
         windowSize = parsedWindowSize
     }
 
-    const printHelpAndExit = () => {
+    const printHelpAndExit = (exitCode?: number) => {
         printHelp({
             args,
             groupsOrdering: [],
             helpExtended: args.options.helpExtended.value,
         })
-        process.exit()
+        process.exit(exitCode)
     }
 
     const helpRequested = args.options.help.value || args.options.helpExtended.value
@@ -313,10 +320,10 @@ export function parseArgs() {
         printHelpAndExit()
     } else if (parseError != null) {
         logger.error(parseError.message)
-        printHelpAndExit()
+        printHelpAndExit(1)
     } else if (unexpectedArgs != null) {
         logger.error(`Unexpected arguments found: '${unexpectedArgs}'.`)
-        printHelpAndExit()
+        printHelpAndExit(1)
     }
 
     return { args, windowSize, chromeOptions }

@@ -26,10 +26,13 @@
     "string-length": "^5.0.1",
     "yargs": "17.6.2"
   },
+  "comments": {
+    "electron-builder": "We cannot update it to never version because of NSIS installer issue: https://github.com/enso-org/enso/issues/5169"
+  },
   "devDependencies": {
     "crypto-js": "4.1.1",
     "electron": "23.0.0",
-    "electron-builder": "^23.6.0",
+    "electron-builder": "^22.14.13",
     "electron-notarize": "1.2.2",
     "enso-copy-plugin": "^1.0.0",
     "esbuild": "^0.15.14",
