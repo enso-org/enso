@@ -36,7 +36,7 @@ public class DelimitedReader {
    * I considered to  choose `\u0F8EE` which comes from the Private Use Area of the Basic Multilingual Plane. Is has no
    * meaning designated by the Unicode standard.
    */
-  private static final char UNUSED_CHARACTER = '\0';
+  public static final char UNUSED_CHARACTER = '\0';
 
   private static final String COLUMN_NAME = "Column";
   private static final char noQuoteCharacter = '\0';

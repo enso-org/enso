@@ -2,6 +2,7 @@ package org.enso.table.write;
 
 import org.enso.table.data.table.Table;
 import org.enso.table.formatting.DataFormatter;
+import org.enso.table.read.DelimitedReader;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -108,7 +109,7 @@ public class DelimitedWriter {
 
       commentChar = comment.charAt(0);
     } else {
-      commentChar = '\0';
+      commentChar = DelimitedReader.UNUSED_CHARACTER;
     }
 
     this.writeQuoteBehavior = writeQuoteBehavior;
@@ -144,7 +145,7 @@ public class DelimitedWriter {
   }
 
   private boolean wantsQuotesInAlwaysMode(Object value) {
-    return value instanceof String || !isNonTextPrimitive(value);
+    return !isNonTextPrimitive(value);
   }
 
   private boolean isNonTextPrimitive(Object value) {
@@ -163,24 +164,13 @@ public class DelimitedWriter {
 
   private void writeCell(String value, boolean isLastInRow, boolean wantsQuoting)
       throws IOException {
-    String processed = value == null ? "" : quotingEnabled() ? quote(value, wantsQuoting) : value;
+    String processed = value == null ? "" : quote(value, wantsQuoting);
     output.write(processed);
     if (isLastInRow) {
       output.write(newline);
     } else {
       output.write(delimiter);
     }
-  }
-
-  private boolean containsOtherCharactersThatNeedQuoting(String value) {
-    for (int i = 0; i < value.length(); ++i) {
-      char c = value.charAt(i);
-      if (c == delimiter || c == '\n' || c == '\r' || (commentChar != '\0' && c == commentChar)) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   /**
@@ -194,14 +184,45 @@ public class DelimitedWriter {
       return emptyValue;
     }
 
-    boolean containsQuote = value.indexOf(quoteChar) >= 0;
-    boolean containsQuoteEscape = quoteEscape != null && value.indexOf(quoteEscapeChar) >= 0;
-    boolean shouldQuote =
-        wantsQuoting
-            || containsQuote
-            || containsQuoteEscape
-            || containsOtherCharactersThatNeedQuoting(value);
+    boolean containsQuote = false;
+    boolean containsQuoteEscape = false;
+    boolean containsCharactersThatNeedQuoting = false;
+
+    for (int i = 0; i < value.length(); ++i) {
+      char c = value.charAt(i);
+      containsQuote |= c == quoteChar;
+      containsQuoteEscape |= (quoteEscape != null) && (c == quoteEscapeChar);
+      containsCharactersThatNeedQuoting |= containsQuote || containsQuoteEscape;
+      containsCharactersThatNeedQuoting |= c == delimiter || c == '\n' || c == '\r';
+      /*
+       * TODO This should be checking if commenting is enabled, but currently
+       * due to limitations of the reader library it is always enabled, just
+       * sometimes the comment char is set to `\0`. See the documentation of
+       * {@link DelimitedReader#UNUSED_CHARACTER}.
+       *
+       * See issue https://github.com/enso-org/enso/issues/5655
+       */
+      containsCharactersThatNeedQuoting |= c == commentChar;
+
+      // Early short-circuit where further iterations will not yield any new information.
+      if (containsQuote && containsQuoteEscape) {
+        break;
+      }
+    }
+
+    if (!quotingEnabled()) {
+      if (containsCharactersThatNeedQuoting) {
+        // TODO warn
+      }
+
+      return value;
+    }
+
+    // Quoting is enabled.
+
+    boolean shouldQuote = wantsQuoting || containsCharactersThatNeedQuoting;
     if (!shouldQuote) {
+      // But the particular value does not need to be quoted, and it was not requested to be quoted.
       return value;
     }
 
