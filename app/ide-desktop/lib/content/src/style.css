@@ -2,14 +2,14 @@
 
 @font-face {
   font-family: "M PLUS 1";
-  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
+  src: url("/MPLUS1[wght].ttf") format("truetype");
   font-weight: 100;
   font-display: block;
 }
 
 @font-face {
   font-family: "M PLUS 1";
-  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
+  src: url("/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 200;
   font-display: block;
@@ -17,7 +17,7 @@
 
 @font-face {
   font-family: "M PLUS 1";
-  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
+  src: url("/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 300;
   font-display: block;
@@ -25,7 +25,7 @@
 
 @font-face {
   font-family: "M PLUS 1";
-  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
+  src: url("/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 400;
   font-display: block;
@@ -33,7 +33,7 @@
 
 @font-face {
   font-family: "M PLUS 1";
-  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
+  src: url("/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 500;
   font-display: block;
@@ -41,7 +41,7 @@
 
 @font-face {
   font-family: "M PLUS 1";
-  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
+  src: url("/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 600;
   font-display: block;
@@ -49,7 +49,7 @@
 
 @font-face {
   font-family: "M PLUS 1";
-  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
+  src: url("/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 700;
   font-display: block;
@@ -57,7 +57,7 @@
 
 @font-face {
   font-family: "M PLUS 1";
-  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
+  src: url("/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 800;
   font-display: block;
@@ -65,7 +65,7 @@
 
 @font-face {
   font-family: "M PLUS 1";
-  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
+  src: url("/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 900;
   font-display: block;

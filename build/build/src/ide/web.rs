@@ -265,6 +265,18 @@ impl IdeDesktop {
         self.npm()?
             .try_applying(&env)?
             .workspace(Workspaces::Content)
+            .run("lint", EMPTY_ARGS)
+            .run_ok()
+            .await?;
+        self.npm()?
+            .try_applying(&env)?
+            .workspace(Workspaces::Content)
+            .run("typecheck", EMPTY_ARGS)
+            .run_ok()
+            .await?;
+        self.npm()?
+            .try_applying(&env)?
+            .workspace(Workspaces::Content)
             .run("build", EMPTY_ARGS)
             .run_ok()
             .await?;

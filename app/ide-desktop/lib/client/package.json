@@ -17,6 +17,7 @@
   "description": "Enso Data Processing Environment.",
   "main": "index.cjs",
   "dependencies": {
+    "@types/mime-types": "^2.1.1",
     "chalk": "^5.2.0",
     "create-servers": "^3.2.0",
     "electron-is-dev": "^2.0.0",
@@ -36,6 +37,8 @@
     "ts-node": "^10.9.1"
   },
   "scripts": {
+    "typecheck": "npx tsc --noEmit",
+    "lint": "npx --yes eslint src",
     "start": "electron ../../../../dist/content -- ",
     "build": "ts-node bundle.ts",
     "dist": "ts-node electron-builder-config.ts"

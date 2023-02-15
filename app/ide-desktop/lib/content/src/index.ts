@@ -1,30 +1,29 @@
-/// This module is responsible for loading the WASM binary, its dependencies, and providing the
-/// user with a visual representation of this process (welcome screen). It also implements a view
-/// allowing to choose a debug rendering test from.
+/** @file This module is responsible for loading the WASM binary, its dependencies, and providing
+ * the user with a visual representation of this process (welcome screen). It also implements a view
+ * allowing to choose a debug rendering test from. */
 
 // @ts-ignore
 import globalConfig from '../../../../gui/config.yaml'
-import buildCfg from '../../../build.json'
 // @ts-ignore
 import * as app from '../../../../../target/ensogl-pack/dist/index'
 import * as semver from 'semver'
 import { Version, options } from 'enso-content-config'
 
 const logger = app.log.logger
-const config = app.config
 
 // =============
 // === Fetch ===
 // =============
 
-const Timeout = (time: number) => {
-    let controller = new AbortController()
+const timeout = (time: number) => {
+    const controller = new AbortController()
     setTimeout(() => controller.abort(), time * 1000)
     return controller
 }
 
-async function fetchTimeout(url: string, timeout: number): Promise<any> {
-    return fetch(url, { signal: Timeout(10).signal }).then(response => {
+/** A version of `fetch` which timeouts after the provided time. */
+async function fetchTimeout(url: string, timeoutSeconds: number): Promise<any> {
+    return fetch(url, { signal: timeout(timeoutSeconds).signal }).then(response => {
         const statusCodeOK = 200
         if (response.status === statusCodeOK) {
             return response.json()
@@ -34,14 +33,12 @@ async function fetchTimeout(url: string, timeout: number): Promise<any> {
     })
 }
 
-/// Return `true` if the current application version is still supported
-/// and `false` otherwise.
-///
-/// Function downloads the application config containing the minimum supported
-/// version from GitHub and compares it with the version of the `client` js
-/// package. When the function is unable to download the application config, or
-/// one of the compared versions does not match the semver scheme, it returns
-/// `true`.
+/** Return `true` if the current application version is still supported and `false` otherwise.
+ *
+ * Function downloads the application config containing the minimum supported version from GitHub
+ * and compares it with the version of the `client` js package. When the function is unable to
+ * download the application config, or one of the compared versions does not match the semver
+ * scheme, it returns `true`. */
 async function checkMinSupportedVersion(config: typeof options) {
     if (config.groups.engine.options.skipMinVersionCheck.value === true) {
         return true
@@ -57,13 +54,14 @@ async function checkMinSupportedVersion(config: typeof options) {
     }
 }
 
+/** Display information that the current app version is deprecated. */
 function displayDeprecatedVersionDialog() {
     const versionCheckText = document.createTextNode(
         'This version is no longer supported. Please download a new one.'
     )
 
-    let root = document.getElementById('root')
-    let versionCheckDiv = document.createElement('div')
+    const root = document.getElementById('root')
+    const versionCheckDiv = document.createElement('div')
     versionCheckDiv.id = 'version-check'
     versionCheckDiv.className = 'auth-info'
     versionCheckDiv.style.display = 'block'
@@ -80,13 +78,12 @@ function displayDeprecatedVersionDialog() {
 // ========================
 
 class Main {
-    async main(inputConfig: any) {
-        // FIXME: use inputConfig
+    async main() {
         const config = {
             loader: {
-                wasmUrl: 'assets/pkg-opt.wasm',
-                jsUrl: 'assets/pkg.js',
-                shadersUrl: 'assets/shaders',
+                wasmUrl: 'pkg-opt.wasm',
+                jsUrl: 'pkg.js',
+                shadersUrl: 'shaders',
             },
         }
 

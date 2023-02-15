@@ -1,5 +1,12 @@
+/** @file Application debug information. */
+
 import buildCfg from '../../../build.json'
 
+// ==================
+// === Debug Info ===
+// ==================
+
+/** Information about versions of different application components. */
 export const versionInfo = {
     version: buildCfg.version,
     build: buildCfg.commit,
@@ -7,12 +14,14 @@ export const versionInfo = {
     chrome: process.versions.chrome,
 }
 
-async function getDebugInfo() {
+async function getInfo() {
     let procMemInfo = await process.getProcessMemoryInfo()
     return {
         version: versionInfo,
-        creation: process.getCreationTime(),
-        // TODO: current time
+        time: {
+            current: Date.now(),
+            creation: process.getCreationTime(),
+        },
         perf: {
             cpu: process.getCPUUsage(),
         },
@@ -26,12 +35,13 @@ async function getDebugInfo() {
             platform: process.platform,
             arch: process.arch,
             version: process.getSystemVersion(),
+            uptime: process.uptime(),
         },
     }
 }
 
-export async function printDebugInfoAndExit() {
-    let info = await getDebugInfo()
+export async function printInfoAndExit() {
+    let info = await getInfo()
     console.log(JSON.stringify(info, undefined, 4))
     process.exit()
 }

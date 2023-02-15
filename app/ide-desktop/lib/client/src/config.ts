@@ -1,7 +1,10 @@
+/** @file Configuration of the application. It extends the web application configuration with
+ * Electron-specific options. */
+
 import chalk from 'chalk'
 import * as content from 'enso-content-config'
-import * as paths from 'paths'
 import * as naming from 'naming'
+import * as paths from 'paths'
 
 // =================
 // === Constants ===
@@ -64,13 +67,6 @@ export const config = content.options.merge(
                 description:
                     'Run the server. If set to false, you can connect to an existing server on the ' +
                     'provided `port`.',
-            }),
-            info: new content.Option({
-                passToApplication: false,
-                default: false,
-                description:
-                    `Print the system debug information. It is recommended to copy the output ` +
-                    `of this command when submitting a report regarding any bugs encountered.`,
             }),
             version: new content.Option({
                 passToApplication: false,
@@ -176,11 +172,15 @@ export const config = content.options.merge(
                         passToApplication: false,
                         default: '',
                         description: 'Record a performance profile and write to a file.',
+                        // To see the results - the main tool is profiling run-graph in profiling.md
                     }),
                     workflow: new content.Option({
                         passToApplication: false,
                         default: '',
                         description:
+                            // workflow = help
+                            // workflow - automated action
+                            // defined - app/gui/src/profile_workflow
                             'Specify a workflow for profiling. Must be used with -entry-point=profile.',
                     }),
                     ignoreGpuBlocklist: new content.Option({
@@ -277,6 +277,13 @@ export const config = content.options.merge(
 
             debug: new content.Group({
                 options: {
+                    info: new content.Option({
+                        passToApplication: false,
+                        default: false,
+                        description:
+                            `Print the system debug information. It is recommended to copy the output ` +
+                            `of this command when submitting a report regarding any bugs encountered.`,
+                    }),
                     verbose: new content.Option({
                         passToApplication: false,
                         default: false,

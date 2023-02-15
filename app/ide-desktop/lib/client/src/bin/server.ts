@@ -1,11 +1,20 @@
+/** @file A simple HTTP server which serves application data to the Electron web-view. */
+
 // @ts-expect-error
 import createServer from 'create-servers'
 import * as fs from 'fs'
-// @ts-expect-error
 import * as mime from 'mime-types'
 import * as path from 'path'
 import * as portfinder from 'portfinder'
 import { logger } from 'enso-content-config'
+
+// =================
+// === Constants ===
+// =================
+
+const responses = {
+    ok: 200,
+}
 
 // ======================
 // === URL Parameters ===
@@ -15,9 +24,8 @@ import { logger } from 'enso-content-config'
  * `key=value` will be added to the query. */
 export function urlParamsFromObject(obj: { [key: string]: string }) {
     let params = []
-    for (let key in obj) {
-        let val = obj[key]
-        params.push(`${key}=${val}`)
+    for (const [key, value] of Object.entries(obj)) {
+        params.push(`${key}=${encodeURIComponent(value)}`)
     }
     return params.length == 0 ? '' : '?' + params.join('&')
 }
@@ -26,14 +34,13 @@ export function urlParamsFromObject(obj: { [key: string]: string }) {
 // === Config ===
 // ==============
 
+/** Server configuration. */
 export class Config {
     dir: string
     port: number
-    fallback: string
-    constructor(cfg: { dir: string; port: number; fallback: string }) {
+    constructor(cfg: { dir: string; port: number }) {
         this.dir = cfg.dir
         this.port = cfg.port
-        this.fallback = cfg.fallback
     }
 }
 
@@ -41,6 +48,8 @@ export class Config {
 // === Port Finder ===
 // ===================
 
+/** Determines the initial available communication endpoint, starting from the specified port, to
+ * provide file hosting services. */
 async function findPort(port: number): Promise<number> {
     return await portfinder.getPortPromise({ port, startPort: port })
 }
@@ -60,6 +69,7 @@ export class Server {
         this.config = config
     }
 
+    /** Server constructor. */
     static async create(config: Config): Promise<Server> {
         let local_config = Object.assign({}, config)
         local_config.port = await findPort(local_config.port)
@@ -73,9 +83,7 @@ export class Server {
             this.server = createServer(
                 {
                     http: this.config.port,
-                    handler: (request: any, response: any) => {
-                        this.process(request.url, response)
-                    },
+                    handler: this.process.bind(this),
                 },
                 (err: any) => {
                     if (err) {
@@ -90,22 +98,18 @@ export class Server {
         })
     }
 
-    process(resource: any, response: any) {
+    process(request: { url: string }, response: any) {
+        const resource = request.url == '/' ? '/index.html' : request.url
         let resource_file = `${this.config.dir}${resource}`
         fs.readFile(resource_file, (err: any, data: any) => {
             if (err) {
-                let fallback = this.config.fallback
-                if (resource === fallback) {
-                    logger.error(`Fallback resource '${resource}' not found.`)
-                } else {
-                    this.process(fallback, response)
-                }
+                logger.error(`Resource '${resource}' not found.`)
             } else {
                 let contentType = mime.contentType(path.extname(resource_file))
                 let contentLength = data.length
                 response.setHeader('Content-Type', contentType)
                 response.setHeader('Content-Length', contentLength)
-                response.writeHead(200)
+                response.writeHead(responses.ok)
                 response.end(data)
             }
         })
