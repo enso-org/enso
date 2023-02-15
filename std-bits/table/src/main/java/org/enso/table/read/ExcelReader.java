@@ -34,7 +34,7 @@ public class ExcelReader {
    * @param stream an {@link InputStream} allowing to read the XLS(X) file contents.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Workbook} containing the specified data.
-   * @throws IOException
+   * @throws IOException - when the input stream cannot be read.
    */
   public static Workbook readWorkbook(InputStream stream, boolean xls_format) throws IOException {
     return getWorkbook(stream, xls_format);
@@ -58,7 +58,6 @@ public class ExcelReader {
    *
    * @param workbook a {@link Workbook} to read the sheet names from.
    * @return a String[] containing the sheet names.
-   * @throws IOException when the input stream cannot be read.
    */
   public static String[] readSheetNames(Workbook workbook) {
     int sheetCount = workbook.getNumberOfSheets();
@@ -87,13 +86,10 @@ public class ExcelReader {
    *
    * @param workbook a {@link Workbook} to read the sheet names from.
    * @return a String[] containing the range names.
-   * @throws IOException when the input stream cannot be read.
    */
   public static String[] readRangeNames(Workbook workbook) {
     var names = workbook.getAllNames();
-    return names.stream()
-            .map(Name::getNameName)
-            .toArray(String[]::new);
+    return names.stream().map(Name::getNameName).toArray(String[]::new);
   }
 
   /**
@@ -170,8 +166,8 @@ public class ExcelReader {
   }
 
   /**
-   * Reads a range by sheet name, named range or address for the specified
-   * XLSX/XLS file into a table.
+   * Reads a range by sheet name, named range or address for the specified XLSX/XLS file into a
+   * table.
    *
    * @param stream an {@link InputStream} allowing to read the XLSX file contents.
    * @param rangeNameOrAddress sheet name, range name or address to read.
@@ -192,17 +188,11 @@ public class ExcelReader {
       boolean xls_format)
       throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
-    return readRangeByName(
-        workbook,
-        rangeNameOrAddress,
-        headers,
-        skip_rows,
-        row_limit);
+    return readRangeByName(workbook, rangeNameOrAddress, headers, skip_rows, row_limit);
   }
 
   /**
-   * Reads a range by sheet name, named range or address for the workbook into a
-   * table.
+   * Reads a range by sheet name, named range or address for the workbook into a table.
    *
    * @param workbook a {@link Workbook} to read from.
    * @param rangeNameOrAddress sheet name, range name or address to read.
@@ -210,25 +200,24 @@ public class ExcelReader {
    * @param skip_rows skip rows from the top of the range.
    * @param row_limit maximum number of rows to read.
    * @return a {@link Table} containing the specified data.
-   * @throws IOException when the input stream cannot be read.
    * @throws InvalidLocationException when the range name or address is not found.
    */
   public static WithProblems<Table> readRangeByName(
-          Workbook workbook,
-          String rangeNameOrAddress,
-          ExcelHeaders.HeaderBehavior headers,
-          int skip_rows,
-          Integer row_limit)
-          throws IOException, InvalidLocationException {
+      Workbook workbook,
+      String rangeNameOrAddress,
+      ExcelHeaders.HeaderBehavior headers,
+      int skip_rows,
+      Integer row_limit)
+      throws InvalidLocationException {
     int sheetIndex = workbook.getSheetIndex(rangeNameOrAddress);
     if (sheetIndex != -1) {
-        return readTable(
-            workbook,
-            sheetIndex,
-            null,
-            headers,
-            skip_rows,
-            row_limit == null ? Integer.MAX_VALUE : row_limit);
+      return readTable(
+          workbook,
+          sheetIndex,
+          null,
+          headers,
+          skip_rows,
+          row_limit == null ? Integer.MAX_VALUE : row_limit);
     }
 
     Name name = workbook.getName(rangeNameOrAddress);
