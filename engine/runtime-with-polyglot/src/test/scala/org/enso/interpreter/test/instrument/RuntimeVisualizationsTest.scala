@@ -3059,6 +3059,9 @@ class RuntimeVisualizationsTest
         s"$moduleName.Newtype",
         payload = Api.ExpressionUpdate.Payload.Value(
           Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'")))
+        ),
+        methodPointer = Some(
+          Api.MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
         )
       ),
       context.executionComplete(contextId)
@@ -3157,7 +3160,7 @@ class RuntimeVisualizationsTest
       TestMessages.update(
         contextId,
         idY,
-        ConstantsGen.INTEGER,
+        ConstantsGen.INTEGER_BUILTIN,
         Api.MethodPointer(moduleName, s"$moduleName.T", "inc")
       ),
       context.executionComplete(contextId)

@@ -147,7 +147,7 @@ mod tests {
     #[ignore]
     async fn test_is_enabled() -> Result {
         setup_logging()?;
-        let graal_version = Version::parse("22.3.0").unwrap();
+        let graal_version = Version::parse("22.3.1").unwrap();
         let java_version = java::LanguageVersion(11);
         let os = TARGET_OS;
         let arch = Arch::X86_64;
@@ -166,14 +166,14 @@ mod tests {
     /// Check that we correctly recognize both the GraalVM version and the Java version.
     #[test]
     fn version_recognize() {
-        let version_string = r"openjdk 11.0.17 2022-10-18
-OpenJDK Runtime Environment GraalVM CE 22.3.0 (build 11.0.17+8-jvmci-22.3-b08)
-OpenJDK 64-Bit Server VM GraalVM CE 22.3.0 (build 11.0.17+8-jvmci-22.3-b08, mixed mode, sharing)";
+        let version_string = r"openjdk 11.0.18 2023-01-17
+OpenJDK Runtime Environment GraalVM CE 22.3.1 (build 11.0.18+10-jvmci-22.3-b13)
+OpenJDK 64-Bit Server VM GraalVM CE 22.3.1 (build 11.0.18+10-jvmci-22.3-b13, mixed mode, sharing)";
 
         let found_graal = graal_version_from_version_string(version_string).unwrap();
-        assert_eq!(found_graal, Version::new(22, 3, 0));
+        assert_eq!(found_graal, Version::new(22, 3, 1));
 
         let found_java = Java.parse_version(version_string).unwrap();
-        assert_eq!(found_java, Version::new(11, 0, 17));
+        assert_eq!(found_java, Version::new(11, 0, 18));
     }
 }

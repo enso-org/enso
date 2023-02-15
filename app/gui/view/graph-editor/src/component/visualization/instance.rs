@@ -153,7 +153,7 @@ pub struct Frp {
     /// This event should be emitted to set a new code of the preprocessor. The preprocessor is
     /// a function called on the Engine side before sending data to IDE, allowing us to do some
     /// compression or filtering for the best performance. See also _Lazy Visualization_ section
-    /// [here](http://dev.enso.org/docs/ide/product/visualizations.html).
+    /// [here](https://enso.org/docs/developer/ide/product/visualizations.html).
     pub preprocessor_change: frp::Any<PreprocessorConfiguration>,
 }
 

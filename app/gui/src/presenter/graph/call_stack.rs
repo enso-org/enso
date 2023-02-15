@@ -45,16 +45,18 @@ impl Model {
         debug!("Requesting entering the node {node_id}.");
         analytics::remote_log_event("integration::node_entered");
         if let Some(call) = self.state.ast_node_id_of_view(node_id) {
-            match self.controller.node_method_pointer(call) {
-                Ok(method_pointer) => {
-                    let definition = (*method_pointer).clone();
-                    let local_call = LocalCall { call, definition };
-                    self.enter_expression(local_call);
+            if let Ok(computed_value) = self.controller.node_computed_value(call) {
+                if let Some(method_pointer) = computed_value.method_call.as_ref() {
+                    let local_call = LocalCall { call, definition: method_pointer.clone() };
+                    self.enter_expression(local_call)
+                } else {
+                    info!("Ignoring request to enter non-enterable node {call}.")
                 }
-                Err(_) => info!("Ignoring request to enter non-enterable node {call}."),
+            } else {
+                info!("Ignoring request to enter not computed node {call}.")
             }
         } else {
-            error!("Cannot enter {node_id:?}: no AST node bound to the view.");
+            error!("Cannot enter {node_id:?}: no AST node bound to the view.")
         }
     }
 

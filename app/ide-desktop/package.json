@@ -20,6 +20,7 @@
     "lib/cloud",
     "lib/cloud/src/authentication",
     "lib/content",
+    "lib/content-config",
     "lib/copy-plugin",
     "lib/icons",
     "lib/server"

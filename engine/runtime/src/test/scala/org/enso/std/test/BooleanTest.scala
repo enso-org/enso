@@ -26,6 +26,7 @@ class BooleanTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.Boolean import all
           |import Standard.Base.IO
+          |import Standard.Base.Any.Any
           |
           |Boolean.isTrue self = self
           |

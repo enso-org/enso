@@ -11,7 +11,7 @@ use crate::model::project::synchronized::Properties;
 
 use double_representation::name::project;
 use engine_protocol::project_manager::ProjectName;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -46,7 +46,7 @@ impl Handle {
     /// Create IDE Controller for a given opened project.
     pub fn new(project: model::Project) -> Self {
         let status_notifications = default();
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         Self { status_notifications, parser, project }
     }
 
@@ -73,7 +73,7 @@ impl Handle {
         )
         .await?;
         let status_notifications = default();
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         Ok(Self { status_notifications, parser, project })
     }
 }

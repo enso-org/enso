@@ -1,6 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
+from Standard.Table.Errors import Floating_Point_Equality, Additional_Warnings
 import Standard.Table.Data.Expression.Expression_Error
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -30,10 +33,7 @@ spec detailed setup =
     epsilon=0.0000000001
 
     tester expression value =
-        new_table = test_table.set expression new_name="NEW_COL"
-        new_table.column_count . should_equal (test_table.column_count + 1)
-        new_column = new_table.at -1
-        new_column.name . should_equal "NEW_COL"
+        new_column = test_table.compute expression
         expected = case value of
             _ : Vector -> value
             _ -> Vector.new test_table.row_count _->value
@@ -293,3 +293,87 @@ spec detailed setup =
 
         specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
             expression_test "Not([C], 'Hello')" Expression_Error.Argument_Mismatch
+
+    Test.group prefix+"Warnings should be reported" <|
+        Test.specify "should report floating point equality" <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+
+            r1 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
+            Problems.assume_no_problems r1
+            r1.to_vector . should_equal [True, True, False]
+
+            r2 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
+            Problems.get_attached_warnings r2 . each warn->
+                warn.should_be_a Floating_Point_Equality
+            r2.to_vector . should_equal [True, True, False]
+
+            err3 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
+            err3.should_fail_with Floating_Point_Equality
+
+            r4 = t1.compute 'if ([X] != 2) && ([X] + 0.5 != 2) then "A" else "B"'
+            r4.to_vector . should_equal ["B", "B", "A"]
+            Problems.expect_warning Floating_Point_Equality r4
+
+        db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
+        Test.specify "should report arithmetic errors" pending=db_pending <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+
+            action1 = t1.compute "3 / [X]" on_problems=_
+            tester1 column =
+                column.to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
+            problems1 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
+            Problems.test_problem_handling action1 problems1 tester1
+
+        Test.specify "already existing warnings should not be escalated to errors in error handling mode (1)" pending=db_pending <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+            c1 = t1.compute "3 / [X]" on_problems=Problem_Behavior.Report_Warning
+            Problems.expect_warning Arithmetic_Error c1
+
+            t2 = t1.set c1 new_name="Y"
+            Problems.expect_warning Arithmetic_Error t2
+            Problems.expect_warning Arithmetic_Error (t2.at "Y")
+
+            c2 = t2.compute "[Y] >= 42.0" on_problems=Problem_Behavior.Report_Error
+            Problems.expect_warning Arithmetic_Error c2
+            c2.to_vector . should_equal [False, False, True]
+
+            c3 = t2.compute "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
+            c3.should_fail_with Floating_Point_Equality
+
+            t3 = t2.set 'if [Y] == 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t3.should_fail_with Floating_Point_Equality
+
+            t4 = t2.set 'if [Y] >= 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t4.at "Z" . to_vector . should_equal ["B", "B", "A"]
+            # Should still keep the inherited warning from "Y".
+            Problems.expect_warning Arithmetic_Error t4
+
+        Test.specify "already existing warnings should not be escalated to errors in error handling mode (2)" <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+            c1 = Warning.attach (Illegal_State.Error "FOO") (t1.compute "[X] + 3.0")
+            Problems.expect_warning Illegal_State c1
+
+            t2 = t1.set c1 new_name="Y"
+            Problems.expect_warning Illegal_State t2
+            Problems.expect_warning Illegal_State (t2.at "Y")
+
+            c2 = t2.compute "[Y] >= 3.5" on_problems=Problem_Behavior.Report_Error
+            Problems.expect_warning Illegal_State c2
+            c2.to_vector . should_equal [True, True, False]
+
+            c3 = t2.compute "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
+            c3.should_fail_with Floating_Point_Equality
+
+            c4 = t2.compute "[Y] == 3.0" on_problems=Problem_Behavior.Report_Warning
+            c4.to_vector . should_equal [False, False, True]
+            Problems.expect_warning Floating_Point_Equality c4
+            # Should still keep the inherited warning from "Y".
+            Problems.expect_warning Illegal_State c4
+
+            t3 = t2.set 'if [Y] == 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t3.should_fail_with Floating_Point_Equality
+
+            t4 = t2.set 'if [Y] >= 3.5 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t4.at "Z" . to_vector . should_equal ["A", "A", "B"]
+            # Should still keep the inherited warning from "Y".
+            Problems.expect_warning Illegal_State t4

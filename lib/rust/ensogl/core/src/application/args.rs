@@ -214,41 +214,43 @@ macro_rules! read_args {
                 /// Constructor.
                 fn new() -> Self {
                     let js_app = ensogl::system::js::app::app();
-                    match js_app {
-                        Err(_) => {
-                            error!("Cannot get the JS application. Using default arguments.");
-                            default()
-                        }
-                        Ok(js_app) => {
-                            let mut params = js_app.config().params().to_hash_map();
-                            $(
-                                let js_name = $crate::application::args::snake_case_to_camel_case
-                                    (stringify!{$field});
-                                let $field = if let Some(param) = params.remove(&js_name) {
-                                    let str_value = param.value();
-                                    let value = $crate::application::args::OptArgReader::read_arg(&str_value);
-                                    match value {
-                                        Err(err) => {
-                                            let tp = stringify!{$field_type};
-                                            error!("Config error. Invalid value '{str_value:?}' for parameter \
-                                                '{js_name}' of type '${tp}'. {err}");
-                                            default()
-                                        }
-                                        Ok(value) => value,
-                                    }
-                                } else {
-                                    warn!("Config error. Rust config parameter '{js_name}' not found in \
-                                        JavaScript.");
-                                    default()
-                                };
-                            )*
-                            for js_name in params.keys() {
-                                warn!("Config error. JavaScript config parameter '{js_name}' not found in \
-                                    Rust.");
-                            }
-                            Self {$($field),*}
-                        }
-                    }
+                    default()
+                    // FIXME
+                    // match js_app {
+                    //     Err(_) => {
+                    //         error!("Cannot get the JS application. Using default arguments.");
+                    //         default()
+                    //     }
+                    //     Ok(js_app) => {
+                    //         let mut params = js_app.config().params().to_hash_map();
+                    //         $(
+                    //             let js_name = $crate::application::args::snake_case_to_camel_case
+                    //                 (stringify!{$field});
+                    //             let $field = if let Some(param) = params.remove(&js_name) {
+                    //                 let str_value = param.value();
+                    //                 let value = $crate::application::args::OptArgReader::read_arg(&str_value);
+                    //                 match value {
+                    //                     Err(err) => {
+                    //                         let tp = stringify!{$field_type};
+                    //                         error!("Config error. Invalid value '{str_value:?}' for parameter \
+                    //                             '{js_name}' of type '${tp}'. {err}");
+                    //                         default()
+                    //                     }
+                    //                     Ok(value) => value,
+                    //                 }
+                    //             } else {
+                    //                 warn!("Config error. Rust config parameter '{js_name}' not found in \
+                    //                     JavaScript.");
+                    //                 default()
+                    //             };
+                    //         )*
+                    //         for js_name in params.keys() {
+                    //             warn!("Config error. JavaScript config parameter '{js_name}' not found in \
+                    //                 Rust.");
+                    //         }
+                    //         Self {$($field),*}
+                    //     }
+                    // }
                 }
 
                 /// Reflection mechanism to get string representation of argument names.

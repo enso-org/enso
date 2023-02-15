@@ -5,7 +5,7 @@ use crate::prelude::*;
 use double_representation::definition;
 use double_representation::definition::DefinitionName;
 use double_representation::module;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -74,7 +74,7 @@ impl Example {
     ) -> FallibleResult<definition::ToAdd> {
         let base_name = self.function_name();
         let name = DefinitionName::new_plain(module.generate_name(&base_name)?);
-        let code_ast = parser.parse_module(self.code.clone(), default())?;
+        let code_ast = parser.parse_module(&self.code, default())?;
         let body_block = code_ast.shape().as_block(0).ok_or(InvalidExample)?;
         let body_ast = Ast::new(body_block, None);
         Ok(definition::ToAdd::new_with_body(name, default(), body_ast))

@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@ensogl-app": ["../../../../target/ensogl-pack/dist/index"],
+      "@build-cfg": ["../../build.json"]
+    }
+  }
+}

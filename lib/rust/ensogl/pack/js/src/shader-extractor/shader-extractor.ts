@@ -15,8 +15,8 @@ import * as runner from 'runner/index'
  * not optimized shaders and saves them to files. */
 class App extends runner.App {
     override async loadWasm() {
-        const mainJsUrl = path.join(__dirname, this.config.params.pkgJsUrl.value)
-        const mainWasmUrl = path.join(__dirname, this.config.params.pkgWasmUrl.value)
+        const mainJsUrl = path.join(__dirname, this.config.groups.loader.options.jsUrl.value)
+        const mainWasmUrl = path.join(__dirname, this.config.groups.loader.options.wasmUrl.value)
         const mainJs = await fs.readFile(mainJsUrl, 'utf8')
         const mainWasm = await fs.readFile(mainWasmUrl)
         this.wasm = await this.compileAndRunWasm(mainJs, mainWasm)
@@ -49,7 +49,6 @@ class App extends runner.App {
         const outDir = parser.args.outDir.value
         if (outDir) {
             await log.Task.asyncRun('Running the program.', async () => {
-                app.config.print()
                 await app.loadAndInitWasm()
                 const r = app.runBeforeMainEntryPoints().then(() => {
                     return app.extractShaders(outDir)

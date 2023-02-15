@@ -1,7 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Expression.Expression_Error
@@ -272,6 +274,58 @@ spec setup =
             t.filter 4 . should_fail_with Index_Out_Of_Bounds.Error
             t.filter 4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 1)
 
+        Test.specify "should report issues: floating point equality" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10.0, 2.0001, 2.0, 4.5, 2.0]]]
+
+            r1 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Ignore
+            r1.at "ix" . to_vector . should_equal [3, 5]
+            Problems.assume_no_problems r1
+
+            r2 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Report_Warning
+            r2.at "ix" . to_vector . should_equal [3, 5]
+            Problems.expect_warning Floating_Point_Equality r2
+
+            r3 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Report_Error
+            r3.should_fail_with Floating_Point_Equality
+
+            r4 = t.filter "X" (Filter_Condition.Not_Equal 2)
+            r4.at "ix" . to_vector . should_equal [1, 2, 4]
+            Problems.expect_warning Floating_Point_Equality r4
+
+        Test.specify "already existing warnings should not be escalated to errors in error handling mode" <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]], ["ix", [1, 2, 3]]]
+            c1 = Warning.attach (Illegal_State.Error "FOO") (t1.compute "3.0 + [X]")
+            Problems.expect_warning Illegal_State c1
+
+            t2 = t1.set c1 new_name="Y"
+            Problems.expect_warning Illegal_State t2
+
+            r1 = t2.filter "Y" (Filter_Condition.Equal 5)
+            Problems.expect_warning Illegal_State r1
+            Problems.expect_warning Floating_Point_Equality r1
+            r1.at "ix" . to_vector . should_equal [2]
+
+            i1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=Problem_Behavior.Ignore
+            Problems.expect_warning Illegal_State i1
+            Problems.not_expect_warning Floating_Point_Equality i1
+            i1.at "ix" . to_vector . should_equal [2]
+
+            err1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=Problem_Behavior.Report_Error
+            err1.should_fail_with Floating_Point_Equality
+
+            r2 = t2.filter "Y" (Filter_Condition.Not_Equal 5)
+            Problems.expect_warning Illegal_State r2
+            Problems.expect_warning Floating_Point_Equality r2
+            r2.at "ix" . to_vector . should_equal [1, 3]
+
+            i2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=Problem_Behavior.Ignore
+            Problems.expect_warning Illegal_State i2
+            Problems.not_expect_warning Floating_Point_Equality i2
+            i2.at "ix" . to_vector . should_equal [1, 3]
+
+            err2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=Problem_Behavior.Report_Error
+            err2.should_fail_with Floating_Point_Equality
+
     Test.group prefix+"Table.filter_by_expression" <|
         Test.specify "by a boolean column" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
@@ -290,3 +344,30 @@ spec setup =
             t.filter_by_expression "Starts_With(b)" . should_fail_with Expression_Error.Argument_Mismatch
             t.filter_by_expression "[missing]" . should_fail_with No_Such_Column.Error
             t.filter_by_expression "[ix]" . should_fail_with Invalid_Value_Type.Error
+
+        Test.specify "should report issues: floating point equality" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10.0, 2.0001, 2.0, 4.5, -2.0]]]
+            r1 = t.filter_by_expression "[X] * [X] == 4.0" on_problems=Problem_Behavior.Ignore
+            Problems.assume_no_problems r1
+            r1.at "ix" . to_vector . should_equal [3, 5]
+
+            r2 = t.filter_by_expression "[X] * [X] == 4.0" on_problems=Problem_Behavior.Report_Warning
+
+            r2.at "ix" . to_vector . should_equal [3, 5]
+            Problems.expect_warning Floating_Point_Equality r2
+
+            r3 = t.filter_by_expression "[X] * [X] == 4.0" on_problems=Problem_Behavior.Report_Error
+            r3.should_fail_with Floating_Point_Equality
+
+            r4 = t.filter_by_expression "[X] * [X] != 4.0"
+            r4.at "ix" . to_vector . should_equal [1, 2, 4]
+            Problems.expect_warning Floating_Point_Equality r4
+
+        db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
+        Test.specify "should report issues: arithmetic error" pending=db_pending <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [2.0, 2.0, 0.0, 1.0, 2.0]]]
+            action = t.filter_by_expression "8.0 / [X] <= 4.0" on_problems=_
+            tester table =
+                table . at "ix" . to_vector . should_equal [1, 2, 5]
+            problems = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
+            Problems.test_problem_handling action problems tester

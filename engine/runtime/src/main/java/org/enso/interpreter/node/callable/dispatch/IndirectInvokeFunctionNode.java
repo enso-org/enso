@@ -29,7 +29,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
    * Executes the {@link IndirectInvokeFunctionNode} to apply the function to given arguments.
    *
    * @param callable the function to call
-   * @param callerFrame the caller frame to pass to the function
+   * @param callerFrame the caller frame to pass to the function, may be null.
    * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code function}
    * @param schema the names and ordering of arguments for this call site

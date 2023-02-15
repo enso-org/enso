@@ -10,9 +10,6 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
-from Standard.Base.Metadata.Widget import Single_Choice
-import Standard.Base.Metadata.Display
-
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
 import project.Data.Column as Column_Module
@@ -38,6 +35,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+import project.Internal.Widget_Helpers
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
@@ -198,7 +196,7 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.at -1
-    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
+    @selector Widget_Helpers.make_column_name_selector
     at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer ->
@@ -225,7 +223,7 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.get -1
-    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
+    @selector Widget_Helpers.make_column_name_selector
     get : Text | Integer -> Any -> Column | Any
     get self selector=0 ~if_missing=Nothing =
         java_column = case selector of
@@ -404,8 +402,7 @@ type Table
 
     ## Returns a new table with the columns sorted by name according to the
        specified sort method. By default, sorting will be according to
-       case-sensitive ascending order based on the `compare_to` operator for
-       `Text`.
+       case-sensitive ascending order based on the normalized Unicode ordering.
 
        Arguments:
        - order: Whether sorting should be in ascending or descending order.
@@ -557,6 +554,8 @@ type Table
            `Group_By` columns are reported as dataflow errors regardless of
            these settings, as a missing grouping will completely change
            semantics of the query.
+         - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
+           raised.
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If there are invalid column names in the output table,
@@ -564,8 +563,7 @@ type Table
            - If there are duplicate column names in the output table,
              a `Duplicate_Output_Column_Names`.
            - If grouping on or computing the `Mode` on a floating point number,
-             a `Floating_Point_Grouping`.
-           - If an aggregation fails, an `Invalid_Aggregation`.
+             a `Floating_Point_Equality`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
@@ -575,7 +573,7 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
-    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Grouping | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
 
@@ -702,9 +700,9 @@ type Table
          - If no valid columns are selected, a `No_Input_Columns_Selected`, is
            reported as a dataflow error regardless of setting.
          - If floating points values are present in the distinct columns, a
-           `Floating_Point_Grouping` is reported according to the `on_problems`
+           `Floating_Point_Equality` is reported according to the `on_problems`
            setting.
-    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Grouping
+    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
         key_columns = self.columns_helper.select_columns selector=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
@@ -872,6 +870,8 @@ type Table
          of `Filter_Condition` or a predicate taking a cell value and returning
          a boolean value indicating whether the corresponding row should be kept
          or not.
+       - on_problems: Specifies how to handle if a non-fatal problem occurs,
+         attaching a warning by default.
 
        ! Error Conditions
 
@@ -881,6 +881,10 @@ type Table
            is raised.
          - If the column is an invalid type for the filter, an
            `Invalid_Value_Type` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If filtering by equality on a floating-point column,
+             a `Floating_Point_Equality`.
 
        > Example
          Get people older than 30.
@@ -901,19 +905,18 @@ type Table
          Select people celebrating a jubilee.
 
              people.filter "age" (age -> (age%10 == 0))
-    @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
-    @filter Filter_Condition.widget_for_filter_condition
-    @on_problems (Single_Choice ["Report_Error", "Report_Warning", "Ignore"] display=Display.Expanded_Only)
-    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column filter=(Filter_Condition.Is_True) = case column of
+    @column Widget_Helpers.make_column_name_selector
+    @filter Filter_Condition.default_widget
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
+    filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
-                _ : Filter_Condition -> mask (make_filter_column column filter)
+                _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
                 _ : Function -> mask (column.map filter)
         _ ->
             table_at = self.at column
-            self.filter table_at filter
+            self.filter table_at filter on_problems
 
     ## ALIAS Filter Rows
 
@@ -922,6 +925,8 @@ type Table
 
        Arguments:
        - expression: The expression to evaluate to filter the rows.
+       - on_problems: Specifies how to handle non-fatal problems, attaching a
+         warning by default.
 
        ! Error Conditions
 
@@ -931,14 +936,22 @@ type Table
            `Expression_Error` dataflow error is raised.
          - If the expression returns a column that does not have a boolean type,
            an `Invalid_Value_Type` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If the expression checks equality on a floating-point column,
+             a `Floating_Point_Equality`.
+           - If an arithmetic error occurs when computing the expression,
+             an `Arithmetic_Error`.
+           - If more than 10 rows encounter computation issues,
+             an `Additional_Warnings`.
 
        > Example
          Select people celebrating a jubilee.
 
              people.filter_by_expression "[age] % 10 == 0"
-    filter_by_expression : Text -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    filter_by_expression self expression =
-        column = self.compute expression
+    filter_by_expression : Text -> Problem_Behavior -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    filter_by_expression self expression on_problems=Report_Warning =
+        column = self.compute expression on_problems
         self.filter column Filter_Condition.Is_True
 
     ## PRIVATE
@@ -1009,6 +1022,18 @@ type Table
            `Existing_Column` dataflow error is raised.
          - If the column name is not present and `set_mode` is `Update`, a
            `Missing_Column` dataflow error is raised.
+         - If a column name referenced from within an expression cannot be
+           found, a `No_Such_Column` dataflow error is raised.
+         - If the provided expression is invalid, a corresponding
+           `Expression_Error` dataflow error is raised.
+         - The following problems with expression evaluation may be reported
+           according to the `on_problems` setting:
+           - If the expression checks equality on a floating-point column,
+             a `Floating_Point_Equality`.
+           - If an arithmetic error occurs when computing the expression,
+             an `Arithmetic_Error`.
+           - If more than 10 rows encounter computation issues,
+             an `Additional_Warnings`.
 
        > Example
          Create a table where the values of the total stock in the inventory is
@@ -1021,10 +1046,10 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
-    set : Text -> Column | Text -> Table ! Existing_Column | Missing_Column
-    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update =
+    set : Column | Text -> Text | Nothing -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
-            _ : Text -> self.compute column
+            _ : Text -> self.compute column on_problems
             _ : Column -> column
         renamed = if new_name.is_nothing then resolved else resolved.rename new_name
         to_add = case set_mode of
@@ -1041,13 +1066,33 @@ type Table
 
        Arguments:
        - expression: The expression to evaluate.
-    compute : Text -> Column
-    compute self expression =
+       - on_problems: Specifies how to handle non-fatal problems, attaching a
+         warning by default.
+
+       ! Error Conditions
+
+         - If a column name cannot be found, a `No_Such_Column` dataflow error
+           is raised.
+         - If the provided expression is invalid, a corresponding
+           `Expression_Error` dataflow error is raised.
+         - Additionally, the following problems may be reported according to the
+           `on_problems` setting:
+           - If the expression checks equality on a floating-point column,
+             a `Floating_Point_Equality`.
+           - If an arithmetic error occurs when computing the expression,
+             an `Arithmetic_Error`.
+           - If more than 10 rows encounter computation issues,
+             an `Additional_Warnings`.
+    compute : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    compute self expression on_problems=Report_Warning =
         get_column name = self.at name
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
+        problems = Warning.get_all new_column . map .value
         new_name = Expression.to_column_name expression
-        new_column.rename new_name
+        result = new_column.rename new_name
+        on_problems.attach_problems_before problems <|
+            Warning.set result []
 
     ## Returns the vector of columns contained in this table.
 
@@ -1112,7 +1157,7 @@ type Table
            (for example comparing numeric types with text), an
            `Invalid_Value_Type` is reported.
          - If decimal columns are joined on equality, a
-           `Floating_Point_Grouping` is reported.
+           `Floating_Point_Equality` is reported.
 
          In any of the above cases, if a problem occurs, the resulting table
          will have the desired structure, but it will be empty to indicate that
@@ -1142,7 +1187,8 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
-    @join_kind (Single_Choice ["Join_Kind.Inner", "Join_Kind.Left_Outer", "Join_Kind.Right_Outer", "Join_Kind.Full", "Join_Kind.Left_Exclusive", "Join_Kind.Right_Exclusive"]])
+    @join_kind Widget_Helpers.join_kind_selector
+    @on Widget_Helpers.make_column_name_selector
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
         if check_table "right" right then
@@ -1510,16 +1556,17 @@ type Table
          - If a column selector in `values` given as a `Text` and it does not
            match any columns in the input table nor is it a valid expression, an
            `Invalid_Aggregate_Column` dataflow error is raised.
+         - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
+           raised.
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If grouping on, using as the column name, or computing the `Mode` on
-             a floating point number, a `Floating_Point_Grouping`.
-           - If an aggregation fails, an `Invalid_Aggregation`.
+             a floating point number, a `Floating_Point_Equality`.
            - If when concatenating values there is an quoted delimited,
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
-    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Grouping | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
@@ -1552,7 +1599,8 @@ type Table
                     c -> Aggregate_Column_Helper.default_aggregate_column_name c all_same
 
             data_columns = validated_values.map c->
-                col_name = c.new_name.if_nothing (name_mapper c)
+                col_name = c.new_name.if_nothing <|
+                    Aggregate_Column_Helper.default_aggregate_column_name c
                 Aggregate_Column_Helper.java_aggregator col_name c
 
             result = case matched_name.is_empty of
@@ -1560,7 +1608,9 @@ type Table
                     group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
                     index.makeTable (group_by + data_columns).to_array
                 False ->
-                    index.makeCrossTabTable java_key_columns.to_array matched_name.first.java_column data_columns.to_array
+                    aggregate_names = validated_values.map c->
+                        c.new_name.if_nothing (name_mapper c)
+                    index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
