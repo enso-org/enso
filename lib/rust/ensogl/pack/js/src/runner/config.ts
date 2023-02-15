@@ -122,9 +122,9 @@ export class Option<T> {
     }
 }
 
-// ==============
+// ===============
 // === Options ===
-// ==============
+// ===============
 
 export interface StringConfig {
     [key: string]: string | StringConfig

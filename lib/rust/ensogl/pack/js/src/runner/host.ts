@@ -1,5 +1,7 @@
 /** @file Utilities to work with the host environment, whether it is a browser of node. */
 
+import { logger } from './log'
+
 // ======================
 // === Host Utilities ===
 // ======================
@@ -17,30 +19,33 @@ const node = !browser
 // const global = {}
 global ??= window
 
+interface UrlParams {
+    [key: string]: string | UrlParams
+}
+
 /** Returns the parameters passed in the URL query string. */
-function urlParams(): Record<string, Record<string, any>> {
+function urlParams(): UrlParams {
     if (browser) {
-        const out: Record<string, Record<string, any>> = {}
+        const out: UrlParams = {}
         const urlParams = new URLSearchParams(window.location.search)
         for (const [name, value] of urlParams.entries()) {
+            let obj = out
             const path = name.split('.')
-            // FIXME: handle more segments
-            const segment1 = path[0]
-            let segment2 = path[1]
-            if (segment1 != null) {
-                if (segment2 == null) {
-                    segment2 = segment1
-                }
-                const outSegment1 = out[segment1]
-                if (outSegment1 == null) {
-                    const entry: Record<string, any> = {}
-                    entry[segment2] = value
-                    out[segment1] = entry
-                } else {
-                    outSegment1[segment2] = value
-                }
+            const lastSegment = path.pop()
+            if (lastSegment == null) {
+                logger.error(`Invalid URL parameter name: '${name}'`)
             } else {
-                // TODO
+                let segment = null
+                while ((segment = path.shift()) != null) {
+                    const nextObj = obj[segment] ?? {}
+                    if (typeof nextObj === 'string') {
+                        logger.error(`Duplicate URL parameter name: '${name}'`)
+                    } else {
+                        obj[segment] = nextObj
+                        obj = nextObj
+                    }
+                }
+                obj[lastSegment] = value
             }
         }
         return out

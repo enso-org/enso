@@ -1,0 +1,120 @@
+{
+  "options": {
+    "authentication": {
+      "default": true,
+      "description": "Determines whether user authentication is enabled. This option is disregarded if the application is executed in the cloud."
+    },
+
+    "dataCollection": {
+      "default": true,
+      "description": "Determines whether anonymous usage data is to be collected."
+    }
+  },
+  "groups": {
+    "dataCollection": {
+      "description": "Controls the collection of anonymous usage data.",
+      "options": {
+        "usageStatistics": {
+          "default": "",
+          "description": "Determines whether anonymous usage statistics are to be collected."
+        },
+        "crashReports": {
+          "default": "",
+          "description": "Determines whether anonymous crash reports are to be collected."
+        }
+      }
+    },
+
+    "startup": {
+      "options": {
+        "project": {
+          "default": "",
+          "description": "The name of the project to open at startup. If the project does not exist, it will be created."
+        },
+        "platform": {
+          "default": "web",
+          "description": "The host platform on which the application is running. This is used to adjust some user interface elements. For example, on macOS, the window close buttons are integrated into the top application panel.",
+          "primary": false
+        }
+      }
+    },
+
+    "engine": {
+      "description": "Options that control the Enso Engine, the data processing backend.",
+      "options": {
+        "projectManagerUrl": {
+          "default": "",
+          "description": "The address of the Project Manager service."
+        },
+        "rpcUrl": {
+          "default": "",
+          "description": "The address of the Language Server RPC endpoint. This argument should be provided together with `dataUrl`, `namespace`, and `project` options. They enable Enso to connect directly to an already-spawned Language Server of some project."
+        },
+        "dataUrl": {
+          "default": "",
+          "description": "The address of the Language Server Data endpoint. This argument should be provided together with `rpcUrl`, `namespace`, and `project` options. They enable Enso to connect directly to an already-spawned Language Server of some project."
+        },
+        "namespace": {
+          "default": "local",
+          "description": "The namespace of the opened project. It can be used when connecting to an existing Language Server process."
+        },
+        "configUrl": {
+          "default": "https://raw.githubusercontent.com/enso-org/ide/develop/config.json",
+          "description": "The URL of the application configuration. Used to check for available updates."
+        },
+        "skipMinVersionCheck": {
+          "default": "EVAL(Version.isDev())",
+          "defaultDescription": "true in local builds, false otherwise.",
+          "description": "Determines whether the minimum engine version check should be performed."
+        },
+        "preferredVersion": {
+          "default": "EVAL(Version.ide)",
+          "description": "The preferred engine version."
+        }
+      }
+    },
+
+    "style": {
+      "options": {
+        "nodeLabels": {
+          "default": true,
+          "description": "Determines whether node labels should be visible."
+        }
+      }
+    },
+
+    "featurePreview": {
+      "description": "Options that enable experimental features that are not yet stable.",
+      "options": {
+        "newComponentBrowser": {
+          "default": true,
+          "description": "Indicates whether the new component browser should be enabled."
+        }
+      }
+    },
+
+    "authentication": {
+      "description": "Options to manage application authentication properties.",
+      "options": {
+        "email": {
+          "default": "",
+          "description": "The user email, if any."
+        }
+      }
+    },
+
+    "profile": {
+      "description": "Options for diagnosing application performance problems.",
+      "options": {
+        "testWorkflow": {
+          "default": "",
+          "description": "Selects the area of the application to be profiled when using the ./run profile command."
+        },
+        "emitUserTimingMeasurements": {
+          "default": false,
+          "description": "When enabled, profiling measurements will be submitted continuously to the User Timing Web API, which can be viewed using standard developer tools. Note that this mode significantly affects performance."
+        }
+      }
+    }
+  }
+}
