@@ -196,10 +196,11 @@ public class DelimitedWriter {
 
     boolean containsQuote = value.indexOf(quoteChar) >= 0;
     boolean containsQuoteEscape = quoteEscape != null && value.indexOf(quoteEscapeChar) >= 0;
-    boolean shouldQuote = wantsQuoting
-        || containsQuote
-        || containsQuoteEscape
-        || containsOtherCharactersThatNeedQuoting(value);
+    boolean shouldQuote =
+        wantsQuoting
+            || containsQuote
+            || containsQuoteEscape
+            || containsOtherCharactersThatNeedQuoting(value);
     if (!shouldQuote) {
       return value;
     }
