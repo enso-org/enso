@@ -8,6 +8,7 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
+use crate::microtasks::next_tick;
 use crate::network::*;
 use crate::node::*;
 use crate::prelude::*;
@@ -140,6 +141,22 @@ impl Network {
         T1: EventOutput,
         T2: EventOutput, {
         self.register(OwnedBatch::new(label, input, event))
+    }
+
+    /// Delay and deduplicate the incoming events until the next tick. Once an event is received,
+    /// it will be emitted on the next tick. If multiple events are received before the next tick,
+    /// only the last one will be emitted.
+    ///
+    /// Input:  -----1--2-3-------
+    /// Tick:   ---x---x---x---x--
+    /// Output: -------1---3------
+    ///
+    /// The ticks are implemented as javascript event loop microtasks. The microtasks are inserted
+    /// into the event queue as needed, always before the next repaint. Read more about microtasks:
+    /// https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide
+    pub fn next_tick<T>(&self, label: Label, event: &T) -> Stream<Output<T>>
+    where T: EventOutput {
+        self.register(OwnedNextTick::new(label, event))
     }
 
     /// Fold the incoming value using [`Monoid`] implementation.
@@ -1737,7 +1754,7 @@ impl<T: EventOutput> OwnedTrace<T> {
 
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
-        debug!("[FRP] {}: {:?}", self.label(), event);
+        warn!("[FRP] {}: {:?}", self.label(), event);
         debug!("[FRP] {}", stack);
         self.emit_event(stack, event);
     }
@@ -2214,6 +2231,57 @@ impl<T: HasOutput> stream::WeakEventConsumer<Output<T>> for Weak<BatchCollector<
     }
 }
 
+
+// ================
+// === NextTick ===
+// ================
+
+#[derive(Debug)]
+pub struct NextTickData<T: HasOutput> {
+    next_value:   RefCell<Option<Output<T>>>,
+    task_handler: RefCell<Option<enso_callback::Handle>>,
+}
+
+pub type OwnedNextTick<T> = stream::Node<NextTickData<T>>;
+pub type NextTick<T> = stream::WeakNode<NextTickData<T>>;
+
+impl<T: HasOutput> HasOutput for NextTickData<T> {
+    type Output = Output<T>;
+}
+
+impl<T: EventOutput> OwnedNextTick<T> {
+    /// Constructor.
+    pub fn new(label: Label, input: &T) -> Self {
+        let definition = NextTickData { next_value: default(), task_handler: default() };
+        Self::construct_and_connect(label, input, definition)
+    }
+}
+
+impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedNextTick<T> {
+    fn on_event(&self, _stack: CallStack, value: &Output<T>) {
+        let mut next_value = self.next_value.borrow_mut();
+        let not_scheduled = next_value.is_none();
+        next_value.replace(value.clone());
+
+        if not_scheduled {
+            let weak = self.downgrade();
+            let handler = next_tick(move || {
+                if let Some(node) = weak.upgrade() {
+                    if let Some(value) = node.next_value.borrow_mut().take() {
+                        node.emit_event(&default(), &value);
+                    }
+                }
+            });
+            self.task_handler.replace(Some(handler));
+        }
+    }
+}
+
+impl<T: EventOutput> stream::InputBehaviors for NextTickData<T> {
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![]
+    }
+}
 
 
 // ===========

@@ -513,7 +513,8 @@ impl LazyDropdown {
                     set_entries <- any(...);
 
                     dropdown.set_all_entries <+ set_entries;
-                    selected_entry <- set_entries.all_with(set_current_value, entry_for_current_value);
+                    entries_and_value <- all(&set_entries, set_current_value).next_tick();
+                    selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
                     dropdown.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
 
                     dropdown_output <- dropdown.selected_entries.map(|e| e.iter().next().map(Entry::value));
