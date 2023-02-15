@@ -76,7 +76,7 @@ type Excel_Format
                 sheet_name = if file.exists.not then "Sheet1" else
                     names = Excel_Reader.read_file file Excel_Section.Sheet_Names False on_problems format
                     name_map = Map.from_vector (names.map n-> [n, 1])
-                    idx = 1.up_to 256 . find n-> name_map.contains_key ("Sheet" + n.to_text)
+                    idx = 1.up_to 256 . find n-> (name_map.contains_key ("Sheet" + n.to_text) . not)
                     "Sheet" + idx.to_text
                 Excel_Writer.write_file file table on_existing_file (Excel_Section.Worksheet sheet_name) True match_columns on_problems format
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format
