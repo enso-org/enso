@@ -36,7 +36,7 @@ polyglot java import org.enso.base.Array_Builder
    raised.
    Otherwise, the file is created with the encoded text written to it.
 
-   The method returns the file descriptor that has been written to.
+   The method returns a `File` object for the written file.
 Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> File ! Encoding_Error | Illegal_Argument | File_Error
 Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Problem_Behavior.Report_Warning =
     bytes = self.bytes encoding on_problems
@@ -61,7 +61,7 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
    raised.
    Otherwise, the file is created with the encoded text written to it.
 
-   The method returns the file descriptor that has been written to.
+   The method returns a `File` object for the written file.
 
    > Example
      Write the UTF-8 bytes of the text "$£§€¢" to a file.

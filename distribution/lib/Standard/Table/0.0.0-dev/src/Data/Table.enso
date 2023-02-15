@@ -1706,8 +1706,7 @@ type Table
          raised.
        - Other specific errors or warnings that can be raised depend on the
          format argument.
-       - On success, the file descriptor representing the written file is
-         returned.
+       - On success, a `File` object for the written file is returned.
 
        ? `File_Format` write behaviors
 
