@@ -39,7 +39,7 @@ import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
 
-from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
+from project.Data.Column_Type_Selection import Auto
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
@@ -734,16 +734,34 @@ type Table
 
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
-       type (columns with other types are not affected). If `column_types` are
-       provided, only selected columns are parsed, according to the specified
-       type.
+       type (columns with other types are not affected).
 
        The default parser options only parse values where the process is
        reversible (e.g., 0123 would not be converted to an integer as there is
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
-    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
-    parse_values self value_formatter=Data_Formatter.Value column_types=Nothing on_problems=Report_Warning =
+
+       Arguments:
+       - columns: The columns to parse. If not specified, all text columns
+         will be parsed.
+       - type: The type to parse the columns to. Defaults to `Auto` meaning that
+         the type will be inferred from the data. TODO inference rules
+       - format: The formatting settings to use when parsing the columns.
+         Defaults to `Nothing` meaning that the default formatting settings will
+         be used. These settings can be overridden by providing a custom
+         `Data_Formatter`. Alternatively, when type is `Date`, `Date_Time`,
+         `Time_Of_Day` or `Boolean`, a text format can be used to specify the
+         format for the chosen datatype. For dates, it is the usual date format
+         notation, and for booleans it should be two values that represent true
+         and false, separated by a `|`.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         TODO
+    parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Table
+    parse_values columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Nothing on_problems=Report_Warning =
         columns = self.columns
         problem_builder = Vector.new_builder
 

@@ -119,6 +119,13 @@ type Value_Type
         Value_Type.Float _ -> True
         _ -> False
 
+    ## UNSTABLE
+       Checks if the `Value_Type` represents a text type.
+    is_text : Boolean
+    is_text self = case self of
+        Value_Type.Char _ _ -> True
+        _ -> False
+
     ## PRIVATE
        Finds a type that can fit both a current type and a new type.
     reconcile_types current new = case current of
