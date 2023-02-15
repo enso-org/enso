@@ -106,6 +106,7 @@ impl Debug for Expression {
     }
 }
 
+
 // === Pretty printing debug adapter ===
 
 /// Debug adapter used for pretty-printing the `Expression` span tree. Can be used to print the

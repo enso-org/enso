@@ -24,8 +24,8 @@ use enso_text::text;
 use enso_text::Location;
 use enso_text::Range;
 use flo_stream::Subscriber;
-use parser_scala::api::SourceFile;
-use parser_scala::Parser;
+use parser::api::SourceFile;
+use parser::Parser;
 
 
 
@@ -172,9 +172,7 @@ impl Module {
         info!("Read content of the module {path}, digest is {:?}", opened.current_version);
         let end_of_file_byte = content.last_line_end_location();
         let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
-        // TODO[ao] We should not fail here when metadata are malformed, but discard them and set
-        //  default instead.
-        let source = parser.parse_with_metadata(opened.content)?;
+        let source = parser.parse_with_metadata(opened.content);
         let digest = opened.current_version;
         let summary = ContentSummary { digest, end_of_file };
         let model = model::module::Plain::new(path, source.ast, source.metadata, repository);
@@ -726,12 +724,12 @@ pub mod test {
             let parser = data.parser.clone();
             let module = fixture.synchronized_module();
 
-            let new_content = "main =\n    println \"Test\"".to_string();
+            let new_content = "main =\n    println \"Test\"";
             let new_ast = parser.parse_module(new_content, default()).unwrap();
             module.update_ast(new_ast).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
             let change = TextChange { range: (20..24).into(), text: "Test 2".to_string() };
-            module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
+            module.apply_code_change(change, &Parser::new(), default()).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
         };
 

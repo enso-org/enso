@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -73,13 +74,15 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(String name, Object argument) {
-    return ops.runMap(name, this, argument);
+  protected Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+    return ops.runMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
-    return ops.runZip(name, this, argument);
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+    return ops.runZip(name, this, argument, problemBuilder);
   }
 
   @Override

@@ -14,7 +14,7 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::ContentRoot;
 use flo_stream::Subscriber;
 use mockall::automock;
-use parser_scala::Parser;
+use parser::Parser;
 use uuid::Uuid;
 
 

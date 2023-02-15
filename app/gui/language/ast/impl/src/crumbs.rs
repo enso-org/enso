@@ -7,10 +7,9 @@ use enso_text::index::*;
 use crate::enumerate_non_empty_lines;
 use crate::known;
 use crate::HasTokens;
-use crate::MacroPatternMatch;
 use crate::Shape;
-use crate::Shifted;
 use crate::ShiftedVec1;
+use crate::SpanSeed;
 use crate::TokenConsumer;
 
 use enso_text as text;
@@ -162,41 +161,6 @@ macro_rules! crumbs {
 ///
 /// Crumbs are potentially invalidated by any AST change.
 
-// === InvalidSuffix ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct InvalidSuffixCrumb;
-
-
-// === TextLineFmt ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TextLineFmtCrumb {
-    pub segment_index: usize,
-}
-
-
-// === TextBlockFmt ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TextBlockFmtCrumb {
-    pub text_line_index: usize,
-    pub segment_index:   usize,
-}
-
-
-// === TextUnclosed ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TextUnclosedCrumb {
-    pub text_line_crumb: TextLineFmtCrumb,
-}
-
-
 // === Prefix ===
 
 #[allow(missing_docs)]
@@ -263,119 +227,6 @@ pub enum BlockCrumb {
     HeadLine,
     /// Index in the sequence of "rest of" lines (not counting the HeadLine).
     TailLine { tail_index: usize },
-}
-
-
-// === Import ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ImportCrumb {
-    Path { index: usize },
-    Rename,
-    OnlyNames { index: usize },
-    HidingNames { index: usize },
-}
-
-// === Export ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ExportCrumb {
-    Path { index: usize },
-    Rename,
-    OnlyNames { index: usize },
-    HidingNames { index: usize },
-}
-
-
-// === Mixfix ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum MixfixCrumb {
-    Name { index: usize },
-    Args { index: usize },
-}
-
-
-// === Group ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct GroupCrumb;
-
-
-// === Def ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum DefCrumb {
-    Name,
-    Args { index: usize },
-    Body,
-}
-
-
-// === Match ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum MatchCrumb {
-    Pfx { val: Vec<PatternMatchCrumb> },
-    Segs { val: SegmentMatchCrumb, index: usize },
-}
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum PatternMatchCrumb {
-    Begin,
-    End,
-    Nothing,
-    Build,
-    Err,
-    Tok,
-    Blank,
-    Var,
-    Cons,
-    Opr,
-    Annotation,
-    Mod,
-    Num,
-    Text,
-    Block,
-    Macro,
-    Invalid,
-    Except,
-    Tag,
-    Cls,
-    Or,
-    Seq { right: bool },
-    Many { index: usize },
-}
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum SegmentMatchCrumb {
-    Head,
-    Body { val: Vec<PatternMatchCrumb> },
-}
-
-
-// === Ambiguous ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct AmbiguousCrumb {
-    pub index: usize,
-    pub field: AmbiguousSegmentCrumb,
-}
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum AmbiguousSegmentCrumb {
-    Head,
-    Body,
 }
 
 
@@ -464,10 +315,7 @@ impl IntoIterator for Crumb {
 
 
 impl_crumbs! {
-    ( InvalidSuffix , InvalidSuffixCrumb , is_invalid_suffix ),
-    ( TextLineFmt   , TextLineFmtCrumb   , is_text_line_fmt  ),
-    ( TextBlockFmt  , TextBlockFmtCrumb  , is_text_block_fmt ),
-    ( TextUnclosed  , TextUnclosedCrumb  , is_text_unclosed  ),
+    // Translated types
     ( Prefix        , PrefixCrumb        , is_prefix         ),
     ( Infix         , InfixCrumb         , is_infix          ),
     ( SectionLeft   , SectionLeftCrumb   , is_section_left   ),
@@ -475,13 +323,8 @@ impl_crumbs! {
     ( SectionSides  , SectionSidesCrumb  , is_section_sides  ),
     ( Module        , ModuleCrumb        , is_module         ),
     ( Block         , BlockCrumb         , is_block          ),
-    ( Match         , MatchCrumb         , is_match          ),
-    ( Ambiguous     , AmbiguousCrumb     , is_ambiguous      ),
-    ( Import        , ImportCrumb        , is_import         ),
-    ( Export        , ExportCrumb        , is_export         ),
-    ( Mixfix        , MixfixCrumb        , is_mixfix         ),
-    ( Group         , GroupCrumb         , is_group          ),
-    ( Def           , DefCrumb           , is_def            )
+    // Tree
+    ( Tree          , TreeCrumb          , is_tree           )
 }
 
 
@@ -526,129 +369,6 @@ pub trait Crumbable {
     fn children<'a>(&'a self) -> Box<dyn Iterator<Item = ChildAst<'a>> + 'a> {
         let iter = self.enumerate().map(|(crumb, ast)| ChildAst::new(crumb, ast));
         Box::new(iter)
-    }
-}
-
-impl Crumbable for crate::InvalidSuffix<Ast> {
-    type Crumb = InvalidSuffixCrumb;
-
-    fn get(&self, _crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        Ok(&self.elem)
-    }
-
-    fn set(&self, _crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut ret = self.clone();
-        ret.elem = new_ast;
-        Ok(ret)
-    }
-
-    fn iter_subcrumbs(&self) -> Box<dyn Iterator<Item = Self::Crumb>> {
-        Box::new(std::iter::once(InvalidSuffixCrumb))
-    }
-}
-
-impl Crumbable for crate::TextLineFmt<Ast> {
-    type Crumb = TextLineFmtCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        let segment = self.text.get_or_err(crumb.segment_index, "text segment")?;
-        if let crate::SegmentFmt::SegmentExpr(expr) = segment {
-            expr.value.as_ref().ok_or_else(|| NotPresent("expression".into()).into())
-        } else {
-            Err(NotPresent("expression segment".into()).into())
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut text = self.clone();
-        let segment = text.text.get_mut_or_err(crumb.segment_index, "text segment")?;
-        if let crate::SegmentFmt::SegmentExpr(expr) = segment {
-            expr.value = Some(new_ast);
-            Ok(text)
-        } else {
-            Err(NotPresent("expression segment".into()).into())
-        }
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        Box::new(self.text.iter().enumerate().filter_map(|(segment_index, segment)| {
-            if let crate::SegmentFmt::SegmentExpr(_) = segment {
-                Some(TextLineFmtCrumb { segment_index })
-            } else {
-                None
-            }
-        }))
-    }
-}
-
-impl Crumbable for crate::TextBlockFmt<Ast> {
-    type Crumb = TextBlockFmtCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        let line = self.text.get_or_err(crumb.text_line_index, "line")?;
-        let segment = line.text.get_or_err(crumb.segment_index, "segment")?;
-        if let crate::SegmentFmt::SegmentExpr(expr) = segment {
-            expr.value.as_ref().ok_or_else(|| NotPresent("expression value".into()).into())
-        } else {
-            Err(NotPresent("expression segment".into()).into())
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut text = self.clone();
-        let line = text.text.get_mut_or_err(crumb.text_line_index, "line")?;
-        let segment = line.text.get_mut_or_err(crumb.segment_index, "segment")?;
-        if let crate::SegmentFmt::SegmentExpr(expr) = segment {
-            expr.value = Some(new_ast);
-            Ok(text)
-        } else {
-            Err(NotPresent("expression segment".into()).into())
-        }
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        Box::new(self.text.iter().enumerate().flat_map(|(text_line_index, line)| {
-            line.text
-                .iter()
-                .enumerate()
-                .filter(|(_, segment)| matches!(segment, crate::SegmentFmt::SegmentExpr(_)))
-                .map(move |(segment_index, _)| TextBlockFmtCrumb { text_line_index, segment_index })
-        }))
-    }
-}
-
-impl Crumbable for crate::TextUnclosed<Ast> {
-    type Crumb = TextUnclosedCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        if let crate::TextLine::TextLineFmt(text_line) = &self.line {
-            text_line.get(&crumb.text_line_crumb)
-        } else {
-            Err(NotPresent("formatted text line".into()).into())
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut text = self.clone();
-        if let crate::TextLine::TextLineFmt(text_line) = text.line {
-            let text_line_fmt = text_line.set(&crumb.text_line_crumb, new_ast)?;
-            text.line = crate::TextLine::TextLineFmt(text_line_fmt);
-            Ok(text)
-        } else {
-            Err(NotPresent("formatted text line".into()).into())
-        }
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        if let crate::TextLine::TextLineFmt(text_line) = &self.line {
-            Box::new(
-                text_line
-                    .iter_subcrumbs()
-                    .map(|text_line_crumb| TextUnclosedCrumb { text_line_crumb }),
-            )
-        } else {
-            Box::new(std::iter::empty())
-        }
     }
 }
 
@@ -836,569 +556,6 @@ impl Crumbable for crate::Block<Ast> {
     }
 }
 
-/// Helper function for getting an Ast from MacroPatternMatch based on crumb position.
-fn pattern_get<'a>(
-    pat: &'a MacroPatternMatch<Shifted<Ast>>,
-    path: &[PatternMatchCrumb],
-) -> FallibleResult<&'a Ast> {
-    use crate::MacroPatternMatchRaw::*;
-
-    let missing = |str: &str| Result::Err(NotPresent(str.into()).into());
-
-    let mut pattern = pat;
-    for crumb in path {
-        match (pattern.deref(), crumb) {
-            (Begin(_), PatternMatchCrumb::Begin) => return missing("elem"),
-            (End(_), PatternMatchCrumb::End) => return missing("elem"),
-            (Nothing(_), PatternMatchCrumb::Nothing) => return missing("elem"),
-            (Build(pat), PatternMatchCrumb::Build) => return Ok(&pat.elem.wrapped),
-            (Err(pat), PatternMatchCrumb::Err) => return Ok(&pat.elem.wrapped),
-            (Tok(pat), PatternMatchCrumb::Tok) => return Ok(&pat.elem.wrapped),
-            (Blank(pat), PatternMatchCrumb::Blank) => return Ok(&pat.elem.wrapped),
-            (Var(pat), PatternMatchCrumb::Var) => return Ok(&pat.elem.wrapped),
-            (Cons(pat), PatternMatchCrumb::Cons) => return Ok(&pat.elem.wrapped),
-            (Opr(pat), PatternMatchCrumb::Opr) => return Ok(&pat.elem.wrapped),
-            (Annotation(pat), PatternMatchCrumb::Annotation) => return Ok(&pat.elem.wrapped),
-            (Mod(pat), PatternMatchCrumb::Mod) => return Ok(&pat.elem.wrapped),
-            (Num(pat), PatternMatchCrumb::Num) => return Ok(&pat.elem.wrapped),
-            (Text(pat), PatternMatchCrumb::Text) => return Ok(&pat.elem.wrapped),
-            (Block(pat), PatternMatchCrumb::Block) => return Ok(&pat.elem.wrapped),
-            (Macro(pat), PatternMatchCrumb::Macro) => return Ok(&pat.elem.wrapped),
-            (Invalid(pat), PatternMatchCrumb::Invalid) => return Ok(&pat.elem.wrapped),
-            (Except(pat), PatternMatchCrumb::Except) => pattern = &pat.elem,
-            (Tag(pat), PatternMatchCrumb::Tag) => pattern = &pat.elem,
-            (Cls(pat), PatternMatchCrumb::Cls) => pattern = &pat.elem,
-            (Or(pat), PatternMatchCrumb::Or) => pattern = &pat.elem,
-            (Seq(pat), PatternMatchCrumb::Seq { right }) =>
-                pattern = if *right { &pat.elem.1 } else { &pat.elem.0 },
-            (Many(pat), PatternMatchCrumb::Many { index }) =>
-                pattern = pat.elem.get_or_err(*index, "elem")?,
-            _ => return missing("crumb"),
-        }
-    }
-    missing("crumb")
-}
-
-/// Helper function that updates Ast in MacroPatternMatch based on crumb position.
-fn pattern_set(
-    pat: &MacroPatternMatch<Shifted<Ast>>,
-    path: &[PatternMatchCrumb],
-    ast: Ast,
-) -> FallibleResult<MacroPatternMatch<Shifted<Ast>>> {
-    use crate::MacroPatternMatchRaw::*;
-
-    let missing = |str: &str| Result::Err(NotPresent(str.into()).into());
-
-    let mut result = pat.clone();
-    let mut pattern = Rc::make_mut(&mut result);
-    for crumb in path {
-        match (pattern, crumb) {
-            (Begin(_), PatternMatchCrumb::Begin) => return missing("elem"),
-            (End(_), PatternMatchCrumb::End) => return missing("elem"),
-            (Nothing(_), PatternMatchCrumb::Nothing) => return missing("elem"),
-            (Build(pat), PatternMatchCrumb::Build) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Err(pat), PatternMatchCrumb::Err) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Tok(pat), PatternMatchCrumb::Tok) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Blank(pat), PatternMatchCrumb::Blank) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Var(pat), PatternMatchCrumb::Var) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Cons(pat), PatternMatchCrumb::Cons) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Opr(pat), PatternMatchCrumb::Opr) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Annotation(pat), PatternMatchCrumb::Annotation) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Mod(pat), PatternMatchCrumb::Mod) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Num(pat), PatternMatchCrumb::Num) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Text(pat), PatternMatchCrumb::Text) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Block(pat), PatternMatchCrumb::Block) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Macro(pat), PatternMatchCrumb::Macro) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Invalid(pat), PatternMatchCrumb::Invalid) => {
-                pat.elem.wrapped = ast;
-                break;
-            }
-            (Except(pat), PatternMatchCrumb::Except) => {
-                pat.elem = pat.elem.clone();
-                pattern = Rc::make_mut(&mut pat.elem);
-            }
-            (Tag(pat), PatternMatchCrumb::Tag) => {
-                pat.elem = pat.elem.clone();
-                pattern = Rc::make_mut(&mut pat.elem);
-            }
-            (Cls(pat), PatternMatchCrumb::Cls) => {
-                pat.elem = pat.elem.clone();
-                pattern = Rc::make_mut(&mut pat.elem);
-            }
-            (Or(pat), PatternMatchCrumb::Or) => {
-                pat.elem = pat.elem.clone();
-                pattern = Rc::make_mut(&mut pat.elem);
-            }
-            (Seq(pat), PatternMatchCrumb::Seq { right }) =>
-                if *right {
-                    pat.elem.1 = pat.elem.1.clone();
-                    pattern = Rc::make_mut(&mut pat.elem.1);
-                } else {
-                    pat.elem.0 = pat.elem.0.clone();
-                    pattern = Rc::make_mut(&mut pat.elem.0);
-                },
-            (Many(pat), PatternMatchCrumb::Many { index }) => {
-                let elem = pat.elem.get_mut_or_err(*index, "elem")?;
-                *elem = elem.clone();
-                pattern = Rc::make_mut(elem);
-            }
-            _ => return missing("crumb"),
-        }
-    }
-    Ok(result)
-}
-
-/// Helper function that returns subcrumbs for MacroPatternMatch.
-fn pattern_subcrumbs(pat: &MacroPatternMatch<Shifted<Ast>>) -> Vec<Vec<PatternMatchCrumb>> {
-    use crate::MacroPatternMatchRaw::*;
-
-    let mut crumbs = vec![];
-    let mut patterns = vec![(vec![], pat)];
-    while let Some((mut crumb, pattern)) = patterns.pop() {
-        match pattern.deref() {
-            Begin(_) => (),
-            End(_) => (),
-            Nothing(_) => (),
-            Build(_) => {
-                crumb.push(PatternMatchCrumb::Build);
-                crumbs.push(crumb)
-            }
-            Err(_) => {
-                crumb.push(PatternMatchCrumb::Err);
-                crumbs.push(crumb)
-            }
-            Tok(_) => {
-                crumb.push(PatternMatchCrumb::Tok);
-                crumbs.push(crumb)
-            }
-            Blank(_) => {
-                crumb.push(PatternMatchCrumb::Blank);
-                crumbs.push(crumb)
-            }
-            Var(_) => {
-                crumb.push(PatternMatchCrumb::Var);
-                crumbs.push(crumb)
-            }
-            Cons(_) => {
-                crumb.push(PatternMatchCrumb::Cons);
-                crumbs.push(crumb)
-            }
-            Opr(_) => {
-                crumb.push(PatternMatchCrumb::Opr);
-                crumbs.push(crumb)
-            }
-            Annotation(_) => {
-                crumb.push(PatternMatchCrumb::Annotation);
-                crumbs.push(crumb)
-            }
-            Mod(_) => {
-                crumb.push(PatternMatchCrumb::Mod);
-                crumbs.push(crumb)
-            }
-            Num(_) => {
-                crumb.push(PatternMatchCrumb::Num);
-                crumbs.push(crumb)
-            }
-            Text(_) => {
-                crumb.push(PatternMatchCrumb::Text);
-                crumbs.push(crumb)
-            }
-            Block(_) => {
-                crumb.push(PatternMatchCrumb::Block);
-                crumbs.push(crumb)
-            }
-            Macro(_) => {
-                crumb.push(PatternMatchCrumb::Macro);
-                crumbs.push(crumb)
-            }
-            Invalid(_) => {
-                crumb.push(PatternMatchCrumb::Invalid);
-                crumbs.push(crumb)
-            }
-            FailedMatch(_) => (),
-            Except(pat) => {
-                crumb.push(PatternMatchCrumb::Except);
-                patterns.push((crumb, &pat.elem))
-            }
-            Tag(pat) => {
-                crumb.push(PatternMatchCrumb::Tag);
-                patterns.push((crumb, &pat.elem))
-            }
-            Cls(pat) => {
-                crumb.push(PatternMatchCrumb::Cls);
-                patterns.push((crumb, &pat.elem))
-            }
-            Or(pat) => {
-                crumb.push(PatternMatchCrumb::Or);
-                patterns.push((crumb, &pat.elem));
-            }
-            Seq(pat) => {
-                let mut crumb1 = crumb.clone();
-                let mut crumb2 = crumb.clone();
-                crumb1.push(PatternMatchCrumb::Seq { right: false });
-                crumb2.push(PatternMatchCrumb::Seq { right: true });
-                patterns.push((crumb2, &pat.elem.1));
-                patterns.push((crumb1, &pat.elem.0));
-            }
-            Many(pat) =>
-                for (index, pat) in pat.elem.iter().enumerate().rev() {
-                    let mut new_crumb = crumb.clone();
-                    new_crumb.push(PatternMatchCrumb::Many { index });
-                    patterns.push((new_crumb, pat));
-                },
-        }
-    }
-    crumbs
-}
-
-impl Crumbable for crate::Match<Ast> {
-    type Crumb = MatchCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        match crumb {
-            MatchCrumb::Pfx { val } => match &self.pfx {
-                None => Err(NotPresent("prefix".into()).into()),
-                Some(pat) => pattern_get(pat, val),
-            },
-            MatchCrumb::Segs { val, index } => match &val {
-                SegmentMatchCrumb::Head => Ok(&self.segs.get_or_err(*index, "elem")?.head),
-                SegmentMatchCrumb::Body { val } =>
-                    pattern_get(&self.segs.get_or_err(*index, "elem")?.body, val),
-            },
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self>
-    where Self: Sized {
-        let mut new_self = self.clone();
-
-        match crumb {
-            MatchCrumb::Pfx { val } => match new_self.pfx {
-                None => return Err(NotPresent("prefix".into()).into()),
-                Some(pat) => new_self.pfx = Some(pattern_set(&pat, val, new_ast)?),
-            },
-
-            MatchCrumb::Segs { index, val: SegmentMatchCrumb::Body { val } } => {
-                let mut seg = new_self.segs.get_mut_or_err(*index, "segment")?;
-                seg.body = pattern_set(&seg.body, val, new_ast)?
-            }
-            MatchCrumb::Segs { index, val: SegmentMatchCrumb::Head } => {
-                let mut seg = new_self.segs.get_mut_or_err(*index, "segment")?;
-                seg.head = new_ast
-            }
-        }
-        Ok(new_self)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let mut crumbs = vec![];
-        if let Some(pat) = &self.pfx {
-            for crumb in pattern_subcrumbs(pat) {
-                crumbs.push(MatchCrumb::Pfx { val: crumb });
-            }
-        }
-        for (index, seg) in self.segs.iter().enumerate() {
-            crumbs.push(MatchCrumb::Segs { index, val: SegmentMatchCrumb::Head });
-            for crumb in pattern_subcrumbs(&seg.body) {
-                crumbs.push(MatchCrumb::Segs { index, val: SegmentMatchCrumb::Body { val: crumb } })
-            }
-        }
-        Box::new(crumbs.into_iter())
-    }
-}
-
-impl Crumbable for crate::Ambiguous<Ast> {
-    type Crumb = AmbiguousCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        let seg = self.segs.get_or_err(crumb.index, "seg")?;
-        let ast = match crumb.field {
-            AmbiguousSegmentCrumb::Head => &seg.head,
-            AmbiguousSegmentCrumb::Body =>
-                &seg.body.as_ref().ok_or_else(|| NotPresent("body".into()))?.wrapped,
-        };
-        Ok(ast)
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut new_self = self.clone();
-        let mut seg = new_self.segs.get_mut_or_err(crumb.index, "seg")?;
-        match crumb.field {
-            AmbiguousSegmentCrumb::Head => seg.head = new_ast,
-            AmbiguousSegmentCrumb::Body =>
-                seg.body.as_mut().ok_or_else(|| NotPresent("body".into()))?.wrapped = new_ast,
-        };
-        Ok(new_self)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let head = |index| AmbiguousCrumb { index, field: AmbiguousSegmentCrumb::Head };
-        let body = |index| AmbiguousCrumb { index, field: AmbiguousSegmentCrumb::Body };
-        let crumbs = self.segs.iter().enumerate().flat_map(move |(index, seg)| {
-            iter::once(head(index)).chain(seg.body.iter().map(move |_| body(index)))
-        });
-        Box::new(crumbs)
-    }
-}
-
-impl Crumbable for crate::Import<Ast> {
-    type Crumb = ImportCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        match crumb {
-            ImportCrumb::Path { index } =>
-                self.path.get_or_err(*index, "path").map_err(|err| err.into()),
-            ImportCrumb::Rename =>
-                self.rename.as_ref().ok_or_else(|| NotPresent("rename".into()).into()),
-            ImportCrumb::OnlyNames { index } => self
-                .onlyNames
-                .as_ref()
-                .ok_or_else(|| failure::Error::from(NotPresent("onlyNames".into())))?
-                .get_or_err(*index, "onlyNames")
-                .map_err(|err| err.into()),
-            ImportCrumb::HidingNames { index } => self
-                .hidingNames
-                .as_ref()
-                .ok_or_else(|| failure::Error::from(NotPresent("hidingNames".into())))?
-                .get_or_err(*index, "hidingNames")
-                .map_err(|err| err.into()),
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut import = self.clone();
-        match crumb {
-            ImportCrumb::Path { index } => {
-                let path = import.path.get_mut_or_err(*index, "path")?;
-                *path = new_ast;
-            }
-            ImportCrumb::Rename => {
-                import.rename = Some(new_ast);
-            }
-            ImportCrumb::OnlyNames { index } => {
-                let only_names = import.onlyNames.clone();
-                let mut only_names = only_names
-                    .ok_or_else(|| failure::Error::from(NotPresent("onlyNames".into())))?;
-                let elem = only_names.get_mut_or_err(*index, "onlyNames")?;
-                *elem = new_ast;
-                import.onlyNames = Some(only_names);
-            }
-            ImportCrumb::HidingNames { index } => {
-                let hiding_names = import.onlyNames.clone();
-                let mut hiding_names = hiding_names
-                    .ok_or_else(|| failure::Error::from(NotPresent("hidingNames".into())))?;
-                let elem = hiding_names.get_mut_or_err(*index, "hidingNames")?;
-                *elem = new_ast;
-                import.hidingNames = Some(hiding_names);
-            }
-        }
-        Ok(import)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let path_iter = self.path.iter().enumerate().map(|(index, _)| ImportCrumb::Path { index });
-        let rename_iter = self.rename.iter().map(|_| ImportCrumb::Rename);
-        let only_iter = self
-            .onlyNames
-            .iter()
-            .flat_map(|v| v.iter().enumerate().map(|(index, _)| ImportCrumb::OnlyNames { index }));
-        let hiding_iter = self.hidingNames.iter().flat_map(|v| {
-            v.iter().enumerate().map(|(index, _)| ImportCrumb::HidingNames { index })
-        });
-        Box::new(path_iter.chain(rename_iter).chain(only_iter).chain(hiding_iter))
-    }
-}
-
-impl Crumbable for crate::Export<Ast> {
-    type Crumb = ExportCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        match crumb {
-            ExportCrumb::Path { index } =>
-                self.path.get_or_err(*index, "path").map_err(|err| err.into()),
-            ExportCrumb::Rename =>
-                self.rename.as_ref().ok_or_else(|| NotPresent("rename".into()).into()),
-            ExportCrumb::OnlyNames { index } => self
-                .onlyNames
-                .as_ref()
-                .ok_or_else(|| failure::Error::from(NotPresent("onlyNames".into())))?
-                .get_or_err(*index, "onlyNames")
-                .map_err(|err| err.into()),
-            ExportCrumb::HidingNames { index } => self
-                .hidingNames
-                .as_ref()
-                .ok_or_else(|| failure::Error::from(NotPresent("hidingNames".into())))?
-                .get_or_err(*index, "hidingNames")
-                .map_err(|err| err.into()),
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut export = self.clone();
-        match crumb {
-            ExportCrumb::Path { index } => {
-                let path = export.path.get_mut_or_err(*index, "path")?;
-                *path = new_ast;
-            }
-            ExportCrumb::Rename => {
-                export.rename = Some(new_ast);
-            }
-            ExportCrumb::OnlyNames { index } => {
-                let only_names = export.onlyNames.clone();
-                let mut only_names = only_names
-                    .ok_or_else(|| failure::Error::from(NotPresent("onlyNames".into())))?;
-                let elem = only_names.get_mut_or_err(*index, "onlyNames")?;
-                *elem = new_ast;
-                export.onlyNames = Some(only_names);
-            }
-            ExportCrumb::HidingNames { index } => {
-                let hiding_names = export.onlyNames.clone();
-                let mut hiding_names = hiding_names
-                    .ok_or_else(|| failure::Error::from(NotPresent("hidingNames".into())))?;
-                let elem = hiding_names.get_mut_or_err(*index, "hidingNames")?;
-                *elem = new_ast;
-                export.hidingNames = Some(hiding_names);
-            }
-        }
-        Ok(export)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let path_iter = self.path.iter().enumerate().map(|(index, _)| ExportCrumb::Path { index });
-        let rename_iter = self.rename.iter().map(|_| ExportCrumb::Rename);
-        let only_iter = self
-            .onlyNames
-            .iter()
-            .flat_map(|v| v.iter().enumerate().map(|(index, _)| ExportCrumb::OnlyNames { index }));
-        let hiding_iter = self.hidingNames.iter().flat_map(|v| {
-            v.iter().enumerate().map(|(index, _)| ExportCrumb::HidingNames { index })
-        });
-        Box::new(path_iter.chain(rename_iter).chain(only_iter).chain(hiding_iter))
-    }
-}
-
-impl Crumbable for crate::Mixfix<Ast> {
-    type Crumb = MixfixCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        match crumb {
-            MixfixCrumb::Name { index } =>
-                self.name.get_or_err(*index, "name").map_err(|err| err.into()),
-            MixfixCrumb::Args { index } =>
-                self.args.get_or_err(*index, "arg").map_err(|err| err.into()),
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut mixfix = self.clone();
-        match crumb {
-            MixfixCrumb::Name { index } => {
-                *mixfix.name.get_mut_or_err(*index, "name")? = new_ast;
-            }
-            MixfixCrumb::Args { index } => {
-                *mixfix.args.get_mut_or_err(*index, "arg")? = new_ast;
-            }
-        }
-        Ok(mixfix)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let name_iter = self.name.iter().enumerate().map(|(index, _)| MixfixCrumb::Name { index });
-        let args_iter = self.args.iter().enumerate().map(|(index, _)| MixfixCrumb::Args { index });
-        Box::new(name_iter.chain(args_iter))
-    }
-}
-
-impl Crumbable for crate::Group<Ast> {
-    type Crumb = GroupCrumb;
-
-    fn get(&self, _crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        Ok(self.body.as_ref().ok_or_else(|| NotPresent("body".into()))?)
-    }
-
-    fn set(&self, _crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut group = self.clone();
-        group.body = Some(new_ast);
-        Ok(group)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        Box::new(self.body.iter().map(|_| GroupCrumb))
-    }
-}
-
-impl Crumbable for crate::Def<Ast> {
-    type Crumb = DefCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        match crumb {
-            DefCrumb::Name => Ok(&self.name),
-            DefCrumb::Args { index } =>
-                self.args.get_or_err(*index, "arg").map_err(|err| err.into()),
-            DefCrumb::Body => self.body.as_ref().ok_or_else(|| NotPresent("body".into()).into()),
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut def = self.clone();
-        match crumb {
-            DefCrumb::Name => def.name = new_ast,
-            DefCrumb::Args { index } => {
-                let arg = def.args.get_mut_or_err(*index, "arg")?;
-                *arg = new_ast;
-            }
-            DefCrumb::Body => def.body = Some(new_ast),
-        }
-        Ok(def)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let name_iter = std::iter::once(DefCrumb::Name);
-        let args_iter = self.args.iter().enumerate().map(|(index, _)| DefCrumb::Args { index });
-        let body_iter = self.body.iter().map(|_| DefCrumb::Body);
-        Box::new(name_iter.chain(args_iter).chain(body_iter))
-    }
-}
-
 /// Just delegates the implementation to shape.
 impl Crumbable for Ast {
     type Crumb = Crumb;
@@ -1438,6 +595,49 @@ where
     fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
         self.ast().iter_subcrumbs()
     }
+}
+
+
+
+// ===================
+// === Tree crumbs ===
+// ===================
+
+impl Crumbable for crate::Tree<Ast> {
+    type Crumb = TreeCrumb;
+
+    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
+        match self
+            .span_info
+            .get(crumb.index)
+            .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?
+        {
+            SpanSeed::Child(crate::SpanSeedChild { node }) => Ok(node),
+            _ => Err(MismatchedCrumbType.into()),
+        }
+    }
+
+    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
+        let mut result = self.clone();
+        let child = result
+            .span_info
+            .get_mut(crumb.index)
+            .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?;
+        *child = SpanSeed::Child(crate::SpanSeedChild { node: new_ast });
+        Ok(result)
+    }
+
+    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
+        Box::new(self.span_info.iter().enumerate().filter_map(|(index, thing)| {
+            matches!(thing, SpanSeed::Child(_)).as_some(TreeCrumb { index })
+        }))
+    }
+}
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct TreeCrumb {
+    pub index: usize,
 }
 
 
@@ -1674,35 +874,6 @@ mod tests {
     }
 
 
-    // === InvalidSuffix ===
-
-    #[test]
-    fn invalid_suffix_crumb() -> FallibleResult {
-        let elem = Ast::var("foo");
-        let ast = Ast::invalid_suffix(elem, "@");
-        let to_crumb_enum = Crumb::InvalidSuffix;
-        let baz = Ast::var("baz");
-
-        assert_eq!(ast.repr(), "foo@");
-        assert_eq!(get(to_crumb_enum, &ast, InvalidSuffixCrumb)?.repr(), "foo");
-        assert_eq!(set(to_crumb_enum, &ast, InvalidSuffixCrumb, baz)?.repr(), "baz@");
-
-        Ok(())
-    }
-
-    #[test]
-    fn iterate_invalid_suffix() -> FallibleResult {
-        let elem = Ast::var("foo");
-        let ast = Ast::invalid_suffix(elem, "@");
-
-        let mut iter = ast.iter_subcrumbs();
-
-        assert_eq!(iter.next(), Some(Crumb::InvalidSuffix(InvalidSuffixCrumb)));
-        assert_eq!(iter.next(), None);
-
-        Ok(())
-    }
-
     // === Infix ===
 
     #[test]
@@ -1763,147 +934,6 @@ mod tests {
         assert_eq!(get(&[RightOperand, LeftOperand])?.repr(), "foo");
         assert_eq!(get(&[RightOperand, RightOperand])?.repr(), "bar");
         Ok(())
-    }
-
-
-
-    // ===========
-    // == Text ===
-    // ===========
-
-
-    // === TextLineFmt ===
-
-    #[test]
-    fn text_line_fmt_crumb() {
-        let expr = SegmentExpr { value: Some(Ast::var("foo")) };
-        let text = vec![SegmentFmt::SegmentExpr(expr)];
-        let ast = Ast::text_line_fmt(text);
-        let to_crumb_enum = Crumb::TextLineFmt;
-        let bar = Ast::var("bar");
-        let crumb = TextLineFmtCrumb { segment_index: 0 };
-
-        assert_eq!(ast.repr(), "'`foo`'");
-        assert_eq!(get(to_crumb_enum, &ast, crumb).unwrap().repr(), "foo");
-        assert_eq!(set(to_crumb_enum, &ast, crumb, bar).unwrap().repr(), "'`bar`'");
-    }
-
-    #[test]
-    fn iterate_text_line_fmt() {
-        let expr1 = SegmentExpr { value: Some(Ast::var("foo")) };
-        let expr2 = SegmentPlain { value: "qux".into() };
-        let expr3 = SegmentExpr { value: Some(Ast::var("bar")) };
-        let text = vec![
-            SegmentFmt::SegmentExpr(expr1),
-            SegmentFmt::SegmentPlain(expr2),
-            SegmentFmt::SegmentExpr(expr3),
-        ];
-        let ast = Ast::text_line_fmt(text);
-
-        let (segment1, segment2) = ast.iter_subcrumbs().expect_tuple();
-
-        assert_eq!(segment1, Crumb::TextLineFmt(TextLineFmtCrumb { segment_index: 0 }));
-        assert_eq!(segment2, Crumb::TextLineFmt(TextLineFmtCrumb { segment_index: 2 }));
-    }
-
-    // === TextBlockFmt ===
-
-    #[test]
-    fn text_block_fmt_crumb() {
-        let empty_lines = default();
-        let expr = SegmentExpr { value: Some(Ast::var("foo")) };
-        let text = vec![SegmentFmt::SegmentExpr(expr)];
-        let line1 = TextBlockLine { empty_lines, text };
-
-        let empty_lines = default();
-        let expr = SegmentExpr { value: Some(Ast::var("bar")) };
-        let text = vec![SegmentFmt::SegmentExpr(expr)];
-        let line2 = TextBlockLine { empty_lines, text };
-
-        let lines = vec![line1, line2];
-        let ast = Ast::text_block_fmt(lines, 0);
-        let qux = Ast::var("qux");
-        let baz = Ast::var("baz");
-
-        let to_crumb_enum = Crumb::TextBlockFmt;
-        assert_eq!(ast.repr(), "'''\n`foo`\n`bar`");
-
-        let crumb1 = TextBlockFmtCrumb { text_line_index: 0, segment_index: 0 };
-        let crumb2 = TextBlockFmtCrumb { text_line_index: 1, segment_index: 0 };
-
-        assert_eq!(get(to_crumb_enum, &ast, crumb1).unwrap().repr(), "foo");
-        assert_eq!(get(to_crumb_enum, &ast, crumb2).unwrap().repr(), "bar");
-
-        assert_eq!(set(to_crumb_enum, &ast, crumb1, qux).unwrap().repr(), "'''\n`qux`\n`bar`");
-        assert_eq!(set(to_crumb_enum, &ast, crumb2, baz).unwrap().repr(), "'''\n`foo`\n`baz`");
-    }
-
-    #[test]
-    fn iterate_text_block_fmt() {
-        let empty_lines = default();
-        let expr = SegmentExpr { value: Some(Ast::var("foo")) };
-        let text = vec![SegmentFmt::SegmentExpr(expr)];
-        let line1 = TextBlockLine { empty_lines, text };
-
-        let empty_lines = default();
-        let expr = SegmentPlain { value: "qux".into() };
-        let text = vec![SegmentFmt::SegmentPlain(expr)];
-        let line2 = TextBlockLine { empty_lines, text };
-
-        let empty_lines = default();
-        let expr1 = SegmentPlain { value: "qux".into() };
-        let expr2 = SegmentExpr { value: Some(Ast::var("bar")) };
-        let text = vec![SegmentFmt::SegmentPlain(expr1), SegmentFmt::SegmentExpr(expr2)];
-        let line3 = TextBlockLine { empty_lines, text };
-
-        let lines = vec![line1, line2, line3];
-        let ast = Ast::text_block_fmt(lines, 0);
-
-        let crumb1 = TextBlockFmtCrumb { text_line_index: 0, segment_index: 0 };
-        let crumb2 = TextBlockFmtCrumb { text_line_index: 2, segment_index: 1 };
-
-        let (line1, line2) = ast.iter_subcrumbs().expect_tuple();
-
-        assert_eq!(line1, Crumb::TextBlockFmt(crumb1));
-        assert_eq!(line2, Crumb::TextBlockFmt(crumb2));
-    }
-
-
-    // == TextUnclosed ===
-
-    #[test]
-    fn text_unclosed_crumb() {
-        let expr = SegmentExpr { value: Some(Ast::var("foo")) };
-        let text = vec![SegmentFmt::SegmentExpr(expr)];
-        let text_line = TextLineFmt { text };
-        let line = TextLine::TextLineFmt(text_line);
-        let ast = Ast::text_unclosed(line);
-        let to_crumb_enum = Crumb::TextUnclosed;
-        let bar = Ast::var("bar");
-        let text_line_crumb = TextLineFmtCrumb { segment_index: 0 };
-        let crumb = TextUnclosedCrumb { text_line_crumb };
-
-        assert_eq!(ast.repr(), "'`foo`");
-        assert_eq!(get(to_crumb_enum, &ast, crumb).unwrap().repr(), "foo");
-        assert_eq!(set(to_crumb_enum, &ast, crumb, bar).unwrap().repr(), "'`bar`");
-    }
-
-    #[test]
-    fn iterate_text_unclosed() {
-        let expr1 = SegmentExpr { value: Some(Ast::var("foo")) };
-        let expr2 = SegmentExpr { value: Some(Ast::var("bar")) };
-        let text = vec![SegmentFmt::SegmentExpr(expr1), SegmentFmt::SegmentExpr(expr2)];
-        let text_line = TextLineFmt { text };
-        let line = TextLine::TextLineFmt(text_line);
-        let ast = Ast::text_unclosed(line);
-        let text_line_crumb = TextLineFmtCrumb { segment_index: 0 };
-        let crumb1 = TextUnclosedCrumb { text_line_crumb };
-        let text_line_crumb = TextLineFmtCrumb { segment_index: 1 };
-        let crumb2 = TextUnclosedCrumb { text_line_crumb };
-
-        let (segment1, segment2) = ast.iter_subcrumbs().expect_tuple();
-        assert_eq!(segment1, Crumb::TextUnclosed(crumb1));
-        assert_eq!(segment2, Crumb::TextUnclosed(crumb2));
     }
 
 
@@ -2112,114 +1142,6 @@ mod tests {
         let item2 = item.clone().map(|item| item.len());
         assert_eq!(item2.item, 3);
         assert_eq!(item.crumbs, item2.crumbs);
-    }
-
-
-    // === Match ===
-
-    fn match_() -> Match<Ast> {
-        let var = Ast::var("");
-        let pat = Rc::new(MacroPatternRaw::Nothing(MacroPatternRawNothing {}));
-        let tok = Rc::new(MacroPatternMatchRaw::Tok(MacroPatternMatchRawTok {
-            pat:  MacroPatternRawTok { spaced: None, ast: var.clone() },
-            elem: Shifted { off: 0, wrapped: var.clone() },
-        }));
-        let body = Rc::new(MacroPatternMatchRaw::Seq(MacroPatternMatchRawSeq {
-            pat:  MacroPatternRawSeq { pat1: pat.clone(), pat2: pat },
-            elem: (tok.clone(), tok),
-        }));
-        let segs = ShiftedVec1 {
-            head: MacroMatchSegment { head: var.clone(), body: body.clone() },
-            tail: vec![],
-        };
-        Match { pfx: Some(body), segs, resolved: Some(var) }
-    }
-
-    #[test]
-    fn iterate_match() {
-        let crumb1 = vec![PatternMatchCrumb::Seq { right: false }, PatternMatchCrumb::Tok];
-        let crumb2 = vec![PatternMatchCrumb::Seq { right: true }, PatternMatchCrumb::Tok];
-        let (c1, c2, c3, c4, c5) = match_().iter_subcrumbs().expect_tuple();
-        assert_eq!(c1, MatchCrumb::Pfx { val: crumb1.clone() });
-        assert_eq!(c2, MatchCrumb::Pfx { val: crumb2.clone() });
-        assert_eq!(c3, MatchCrumb::Segs { val: SegmentMatchCrumb::Head, index: 0 });
-        assert_eq!(c4, MatchCrumb::Segs {
-            val:   SegmentMatchCrumb::Body { val: crumb1 },
-            index: 0,
-        });
-        assert_eq!(c5, MatchCrumb::Segs {
-            val:   SegmentMatchCrumb::Body { val: crumb2 },
-            index: 0,
-        });
-    }
-
-    #[test]
-    fn mismatch_match() {
-        let match_ = match_();
-        let incorrect1 = match_.get(&MatchCrumb::Pfx { val: vec![] });
-        let incorrect2 =
-            match_.get(&MatchCrumb::Pfx { val: vec![PatternMatchCrumb::Seq { right: true }] });
-        let incorrect3 = match_.get(&MatchCrumb::Pfx {
-            val: vec![PatternMatchCrumb::Seq { right: false }, PatternMatchCrumb::Seq {
-                right: true,
-            }],
-        });
-        incorrect1.expect_err("Using empty  crumb on match should fail");
-        incorrect2.expect_err("Using 1'seq' crumb on match should fail");
-        incorrect3.expect_err("Using 2'seq' crumb on match should fail");
-    }
-
-    #[test]
-    fn modify_match() {
-        let crumb1 = vec![PatternMatchCrumb::Seq { right: false }, PatternMatchCrumb::Tok];
-        let crumb2 = vec![PatternMatchCrumb::Seq { right: true }, PatternMatchCrumb::Tok];
-        let crumb3 = MatchCrumb::Pfx { val: crumb1.clone() };
-        let crumb4 = MatchCrumb::Pfx { val: crumb2.clone() };
-        let crumb5 = MatchCrumb::Segs { val: SegmentMatchCrumb::Head, index: 0 };
-        let crumb6 = MatchCrumb::Segs { val: SegmentMatchCrumb::Body { val: crumb1 }, index: 0 };
-        let crumb7 = MatchCrumb::Segs { val: SegmentMatchCrumb::Body { val: crumb2 }, index: 0 };
-        let match1 = match_();
-        let ast = [match1.resolved.clone().unwrap(), Ast::var("X"), Ast::var("Y"), Ast::var("Z")];
-        let match2 = match1.set(&crumb3, ast[1].clone()).unwrap();
-        let match3 = match2.set(&crumb5, ast[2].clone()).unwrap();
-        let match4 = match3.set(&crumb7, ast[3].clone()).unwrap();
-
-        assert_eq!(match1.get(&crumb3).unwrap(), &ast[0]);
-        assert_eq!(match1.get(&crumb4).unwrap(), &ast[0]);
-        assert_eq!(match1.get(&crumb5).unwrap(), &ast[0]);
-        assert_eq!(match1.get(&crumb6).unwrap(), &ast[0]);
-        assert_eq!(match1.get(&crumb7).unwrap(), &ast[0]);
-
-        assert_eq!(match4.get(&crumb3).unwrap(), &ast[1]);
-        assert_eq!(match4.get(&crumb4).unwrap(), &ast[0]);
-        assert_eq!(match4.get(&crumb5).unwrap(), &ast[2]);
-        assert_eq!(match4.get(&crumb6).unwrap(), &ast[0]);
-        assert_eq!(match4.get(&crumb7).unwrap(), &ast[3]);
-    }
-
-    #[test]
-    fn ambiguous() {
-        let ast = [Ast::var("A"), Ast::var("B"), Ast::var("C")];
-        let body = Some(Shifted::new(0, ast[1].clone()));
-        let seg1 = MacroAmbiguousSegment { head: ast[0].clone(), body };
-        let seg2 = MacroAmbiguousSegment { head: ast[2].clone(), body: None };
-        let segs = ShiftedVec1 { head: seg1, tail: vec![Shifted::new(0, seg2)] };
-        let paths = Tree { value: None, branches: vec![] };
-        let shape = Ambiguous { segs, paths };
-
-        let (c1, c2, c3) = shape.iter_subcrumbs().expect_tuple();
-
-        assert_eq!(c1, AmbiguousCrumb { index: 0, field: AmbiguousSegmentCrumb::Head });
-        assert_eq!(c2, AmbiguousCrumb { index: 0, field: AmbiguousSegmentCrumb::Body });
-        assert_eq!(c3, AmbiguousCrumb { index: 1, field: AmbiguousSegmentCrumb::Head });
-
-        assert_eq!(shape.set(&c1, ast[1].clone()).unwrap().get(&c1).unwrap(), &ast[1]);
-        assert_eq!(shape.set(&c2, ast[2].clone()).unwrap().get(&c2).unwrap(), &ast[2]);
-        assert_eq!(shape.set(&c3, ast[1].clone()).unwrap().get(&c3).unwrap(), &ast[1]);
-
-        assert_eq!(shape.get(&c1).unwrap(), &ast[0]);
-        assert_eq!(shape.get(&c2).unwrap(), &ast[1]);
-        assert_eq!(shape.get(&c3).unwrap(), &ast[2]);
     }
 
 

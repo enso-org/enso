@@ -16,7 +16,7 @@ use crate::node::NodeInfo;
 
 use ast::crumbs::Located;
 use ast::BlockLine;
-use parser_scala::Parser;
+use parser::Parser;
 use std::collections::BTreeSet;
 
 
@@ -441,9 +441,9 @@ mod tests {
     }
 
     #[allow(unused_parens)] // False warning.
-    #[wasm_bindgen_test]
+    #[test]
     fn test_collapse() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let module_name = "Main".to_owned();
         let introduced_name = Identifier::try_from("custom_new").unwrap();
         let refactored_name = DefinitionName::new_plain("custom_old");

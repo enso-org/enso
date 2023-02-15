@@ -25,7 +25,7 @@ use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectName;
 use flo_stream::Subscriber;
 use json_rpc::error::RpcError;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -287,9 +287,9 @@ impl Project {
         let language_server = language_server_rpc.clone();
         let module_registry = default();
         let execution_contexts = default();
+        let parser = Parser::new();
         let visualization =
             controller::Visualization::new(language_server, embedded_visualizations);
-        let parser = Parser::new_or_panic();
         let language_server = &*language_server_rpc;
         let suggestion_db = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db = Rc::new(suggestion_db.await.map_err(&wrap)?);
