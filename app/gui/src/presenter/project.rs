@@ -243,8 +243,8 @@ impl Model {
             let app = js::app_or_panic();
             app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
             view.hide_graph_editor();
-            controller.close_project();
             if let Ok(api) = controller.manage_projects() {
+                api.close_project();
                 let uuid = projects_list.borrow().get(id).map(|(_name, uuid)| *uuid);
                 if let Some(uuid) = uuid {
                     if let Err(error) = api.open_project(uuid).await {

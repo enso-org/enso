@@ -84,6 +84,8 @@ impl Model {
 
     fn close_project(&self) {
         *self.current_project.borrow_mut() = None;
+        // Clear the graph editor so that it will not display any nodes from the previous
+        // project when the new project is loaded.
         self.view.project().graph().remove_all_nodes();
     }
 

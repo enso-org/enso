@@ -93,11 +93,6 @@ impl API for Handle {
         self.current_project.get()
     }
 
-    fn close_project(&self) {
-        self.current_project.set(None);
-        self.notifications.notify(Notification::ProjectClosed);
-    }
-
     fn status_notifications(&self) -> &StatusNotificationPublisher {
         &self.status_notifications
     }
@@ -142,6 +137,11 @@ impl ManagingProjectAPI for Handle {
             Ok(())
         }
         .boxed_local()
+    }
+
+    fn close_project(&self) {
+        self.current_project.set(None);
+        self.notifications.notify(Notification::ProjectClosed);
     }
 
     #[profile(Objective)]
