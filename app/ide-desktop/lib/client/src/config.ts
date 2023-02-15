@@ -112,6 +112,7 @@ export const config = content.options.merge(
                         passToWebApplication: false,
                         default: false,
                         description: `Enable the vibrancy effect.`,
+                        primary: false,
                     }),
                     closeToQuit: new content.Option({
                         passToWebApplication: false,
@@ -121,6 +122,7 @@ export const config = content.options.merge(
                             `Determine whether the app should quit when the window is closed. ` +
                             `If set to false, the window will be hidden after pressing the close ` +
                             `button. You can bring the window back by pressing the app dock icon.`,
+                        primary: false,
                     }),
                 },
             }),
@@ -144,7 +146,7 @@ export const config = content.options.merge(
                 options: {
                     backgroundThrottling: new content.Option({
                         passToWebApplication: true,
-                        default: false,
+                        default: true,
                         description: 'Throttle animations when run in background.',
                     }),
 
@@ -165,32 +167,6 @@ export const config = content.options.merge(
                             `contain driver bugs that are not planned to be fixed. The Metal ` +
                             `backend is still experimental, and may contain bugs that are still ` +
                             `being worked on. The Metal backend should be more performant.`,
-                    }),
-
-                    loadProfile: new content.Option({
-                        passToWebApplication: false,
-                        // FIXME
-                        default: [] as string[],
-                        description:
-                            `Load a performance profile. For use with developer tools such as ` +
-                            `the 'profiling-run-graph' entry point.`,
-                    }),
-                    saveProfile: new content.Option({
-                        passToWebApplication: false,
-                        default: '',
-                        description:
-                            `Record a performance profile and save it to a file. To view the ` +
-                            `results, use the 'profiling-run-graph' entry point, such as ` +
-                            `'enso -entry-point=profiling-run-graph -load-profile=profile.json'.`,
-                    }),
-                    workflow: new content.Option({
-                        passToWebApplication: false,
-                        default: '',
-                        description:
-                            `Specify a workflow for profiling. A workflow is a script of ` +
-                            `automated actions, such as adding nodes or opening visualizations. ` +
-                            `To view the list of available workflows, use '-workflow=help'. This ` +
-                            `option must be used with '-entry-point=profile'.`,
                     }),
                     ignoreGpuBlocklist: new content.Option({
                         passToWebApplication: false,
@@ -273,6 +249,39 @@ export const config = content.options.merge(
                 },
             }),
 
+            profile: new content.Group({
+                options: {
+                    loadWorkflowProfile: new content.Option({
+                        passToWebApplication: false,
+                        default: [] as string[],
+                        description:
+                            `Load a performance profile. For use with developer tools such as ` +
+                            `the 'profiling-run-graph' entry point.`,
+                        primary: false,
+                    }),
+                    saveWorkflowProfile: new content.Option({
+                        passToWebApplication: false,
+                        default: '',
+                        description:
+                            `Record a performance profile and save it to a file. To view the ` +
+                            `results, use the 'profiling-run-graph' entry point, such as ` +
+                            `'enso -startup.entry-point=profiling-run-graph -profile.load-workflow-profile=profile.json'.`,
+                        primary: false,
+                    }),
+                    workflow: new content.Option({
+                        passToWebApplication: false,
+                        default: '',
+                        description:
+                            `Specify a workflow for profiling. A workflow is a script of ` +
+                            `automated actions, such as adding nodes or opening visualizations. ` +
+                            `To view the list of available workflows, use ` +
+                            `'-profile.workflow=help'. This option must be used with ` +
+                            `'-startup.entry-point=profile'.`,
+                        primary: false,
+                    }),
+                },
+            }),
+
             engine: new content.Group({
                 options: {
                     projectManagerPath: new content.Option({
@@ -281,6 +290,7 @@ export const config = content.options.merge(
                         description:
                             'Set the path of a local project manager executable to use for ' +
                             'running projects.',
+                        primary: false,
                     }),
                 },
             }),

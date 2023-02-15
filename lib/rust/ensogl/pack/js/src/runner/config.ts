@@ -230,6 +230,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
                 }
                 result.options[otherOptionName] = otherOption
             }
+            result.name = this.name
             result.description = this.description
             return result as this & Other
         }

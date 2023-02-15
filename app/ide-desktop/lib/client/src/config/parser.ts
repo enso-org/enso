@@ -88,8 +88,6 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
         }
     }
 
-    const borderStyle = (s: string) => chalk.gray(chalk.bold(s))
-
     const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
     const rightWidth = totalWidth - leftWidth
 
@@ -116,8 +114,9 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
                 let otherSentences = option.description.slice(firstSentence.length)
 
                 const def = option.defaultDescription ?? option.default
+                const defIsEmptyArray = Array.isArray(def) && def.length === 0
                 let defaults = ''
-                if (def != null && def !== '') {
+                if (def != null && def !== '' && !defIsEmptyArray) {
                     defaults = ` Defaults to ${chalk.green(def)}.`
                 }
                 let description = firstSentence + defaults + chalk.gray(otherSentences)
@@ -309,7 +308,21 @@ export function parseArgs() {
     const printHelpAndExit = (exitCode?: number) => {
         printHelp({
             args,
-            groupsOrdering: [args.groups.loader.name],
+            groupsOrdering: [
+                args.groups.loader.name,
+                args.groups.startup.name,
+                args.groups.style.name,
+                args.groups.featurePreview.name,
+                args.groups.window.name,
+                args.groups.server.name,
+                args.groups.engine.name,
+                args.groups.performance.name,
+                args.groups.debug.name,
+                args.groups.profile.name,
+                args.groups.authentication.name,
+                args.groups.dataCollection.name,
+                args.groups.chrome.name,
+            ],
             helpExtended: args.options.helpExtended.value,
         })
         process.exit(exitCode)

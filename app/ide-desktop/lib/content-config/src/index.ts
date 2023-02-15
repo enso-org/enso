@@ -42,11 +42,13 @@ export const options = config.options.merge(
                 description:
                     'Controls whether user authentication is enabled. This option is ignored if ' +
                     'the app is run in the cloud.',
+                primary: false,
             }),
 
             dataCollection: new config.Option({
                 default: true,
                 description: 'Controls whether anonymous usage data should be collected.',
+                primary: false,
             }),
         },
         groups: {
@@ -57,11 +59,13 @@ export const options = config.options.merge(
                         default: '',
                         description:
                             'Controls whether anonymous usage statistics should be collected.',
+                        primary: false,
                     }),
                     crashReports: new config.Option({
                         default: '',
                         description:
                             'Controls whether anonymous crash reports should be collected.',
+                        primary: false,
                     }),
                 },
             }),
@@ -90,6 +94,7 @@ export const options = config.options.merge(
                     projectManagerUrl: new config.Option({
                         default: '',
                         description: 'An address of the Project Manager service.',
+                        primary: false,
                     }),
                     rpcUrl: new config.Option({
                         default: '',
@@ -97,6 +102,7 @@ export const options = config.options.merge(
                             'An address of the Language Server RPC endpoint. This argument should be provided ' +
                             'together with `dataUrl` ,`namespace`, and `project` options. They make ' +
                             'Enso connect directly to the already spawned Language Server of some project.',
+                        primary: false,
                     }),
                     dataUrl: new config.Option({
                         default: '',
@@ -104,24 +110,28 @@ export const options = config.options.merge(
                             'An address of the Language Server Data endpoint. This argument should be provided ' +
                             'together with `dataUrl` ,`namespace`, and `project` options. They make ' +
                             'Enso connect directly to the already spawned Language Server of some project.',
+                        primary: false,
                     }),
                     namespace: new config.Option({
                         default: 'local',
                         description:
                             'Namespace of the opened project. May be used when connecting to ' +
                             'existing Language Server process.',
+                        primary: false,
                     }),
                     configUrl: new config.Option({
                         default:
                             'https://raw.githubusercontent.com/enso-org/ide/develop/config.json',
                         description:
                             'The application config URL. Used to check for available updates.',
+                        primary: false,
                     }),
                     skipMinVersionCheck: new config.Option({
                         default: Version.isDev(),
                         defaultDescription: 'true in local builds, false otherwise.',
                         description:
                             'Controls whether the minimum engine version check should be performed.',
+                        primary: false,
                     }),
                     // preferredVersion: new config.Option({
                     //     default: Version.ide,
@@ -159,6 +169,7 @@ export const options = config.options.merge(
                     email: new config.Option({
                         default: '',
                         description: 'The user email, if any.',
+                        primary: false,
                     }),
                 },
             }),
@@ -169,8 +180,9 @@ export const options = config.options.merge(
                     testWorkflow: new config.Option({
                         default: '',
                         description:
-                            'When profiling the application (e.g. with the `./run profile` ' +
-                            'command), this argument chooses what is profiled.',
+                            `When profiling the application with the './run profile' command, ` +
+                            `this argument chooses what is profiled.`,
+                        primary: false,
                     }),
                     emitUserTimingMeasurements: new config.Option({
                         default: false,
@@ -179,6 +191,7 @@ export const options = config.options.merge(
                             'to the User Timing Web API so that they can be viewed with standard ' +
                             'developer tools. Note that this mode has a significant performance ' +
                             'impact.',
+                        primary: false,
                     }),
                 },
             }),

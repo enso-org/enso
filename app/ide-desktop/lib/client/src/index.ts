@@ -187,7 +187,7 @@ class App {
     initIpc() {
         electron.ipcMain.on(ipc.channel.error, (event, data) => logger.error(`IPC error: ${data}`))
         let profilePromises: Promise<string>[] = []
-        const argProfiles = this.args.groups.performance.options.loadProfile.value
+        const argProfiles = this.args.groups.profile.options.loadWorkflowProfile.value
         if (argProfiles) {
             profilePromises = argProfiles.map((path: string) => fs.readFile(path, 'utf8'))
         }
@@ -197,7 +197,7 @@ class App {
                 event.reply('profiles-loaded', profiles)
             })
         })
-        const profileOutPath = this.args.groups.performance.options.saveProfile.value
+        const profileOutPath = this.args.groups.profile.options.saveWorkflowProfile.value
         if (profileOutPath) {
             electron.ipcMain.on(ipc.channel.saveProfile, (event, data) => {
                 fss.writeFileSync(profileOutPath, data)
@@ -223,7 +223,7 @@ class App {
         if (window != null) {
             const urlCfg: { [key: string]: string } = {}
             for (const option of this.args.optionsRecursive()) {
-                if (option.setByUser && option.passToApplication) {
+                if (option.setByUser && option.passToWebApplication) {
                     urlCfg[option.qualifiedName()] = String(option.value)
                 }
             }
