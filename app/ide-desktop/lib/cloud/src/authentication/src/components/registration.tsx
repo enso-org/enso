@@ -9,6 +9,7 @@ import { useAuth } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
 import { handleEvent } from '../utils';
+import { LOGIN_PATH } from './app';
 
 
 
@@ -167,7 +168,7 @@ const registrationContainer: FC = () => {
         </div>
         <div className="flex justify-center items-center mt-6">
           <Link
-            to="/login"
+            to={LOGIN_PATH}
             className="inline-flex items-center font-bold text-indigo-500 hover:text-indigo-700 text-sm text-center"
           >
             <span>

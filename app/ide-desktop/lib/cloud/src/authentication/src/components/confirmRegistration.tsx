@@ -17,7 +17,7 @@ const confirmRegistrationContainer: FC = () => {
   const navigate = useNavigate();
 
   // Parse the verification code & email from the query params.
-  // FIXME [NP]: refactor to hook, here and in login
+  // FIXME [NP]: refactor to hook, here, in login, and in reset password
   const query = new URLSearchParams(search);
   const verificationCode = query.get("verification_code");
   const email = query.get("email");

@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { Routes, Route, BrowserRouter, MemoryRouter } from 'react-router-dom'
 
-import { AuthProvider, GuestLayout, ProtectedLayout, useAuth } from '../authentication';
+import { AuthProvider, GuestLayout, ProtectedLayout } from '../authentication';
 import DashboardContainer from "./dashboard";
 import ForgotPasswordContainer from "./forgotPassword";
 import ResetPasswordContainer from "./resetPassword";
@@ -12,6 +12,7 @@ import RegistrationContainer from "./registration";
 import ConfirmRegistrationContainer from "./confirmRegistration";
 import SetUsernameContainer from "./setUsername";
 import { Toaster } from 'react-hot-toast';
+import { FC, Fragment } from 'react';
 
 
 
@@ -55,7 +56,8 @@ export interface AppProps {
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const App = ({ runningOnDesktop }: AppProps) => {
+const App = (props: AppProps) => {
+  const { runningOnDesktop } = props;
   // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unnecessary-condition
   const Router = runningOnDesktop ? MemoryRouter : BrowserRouter;
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
@@ -82,10 +84,10 @@ const App = ({ runningOnDesktop }: AppProps) => {
 // FIXME [NP]: React components are expected to use PascalCase, but our linter is not configured to
 //   allow that. Do we want to allow that, even if it would disable the lint for non-React code?
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const AppRouter: React.FC<any> = () => {
+const AppRouter: FC = () => {
   return (
     <Routes>
-      <React.Fragment>
+      <Fragment>
         {/* Login & registration pages are visible to unauthenticated users. */}
         <Route element={<GuestLayout />}>
           <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
@@ -102,7 +104,7 @@ const AppRouter: React.FC<any> = () => {
         <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
         <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
         <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
-      </React.Fragment>
+      </Fragment>
     </Routes>
   )
 }

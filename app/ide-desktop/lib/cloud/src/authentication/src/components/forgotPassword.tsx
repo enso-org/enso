@@ -9,6 +9,7 @@ import { useAuth } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
 import { handleEvent } from '../utils';
+import { LOGIN_PATH } from './app';
 
 
 
@@ -86,7 +87,7 @@ const forgotPasswordContainer: React.FC<any> = () => {
           </div>
           <div className="flex justify-center items-center mt-6">
             <Link
-              to="/login"
+              to={LOGIN_PATH}
               className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
             >
               <span>

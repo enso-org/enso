@@ -3,13 +3,14 @@
  * flow.
  */
 import * as React from 'react'
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import toast from "react-hot-toast";
 
 import { useAuth } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
 import { handleEvent } from '../utils';
+import { LOGIN_PATH } from './app';
 
 
 
@@ -19,9 +20,15 @@ import { handleEvent } from '../utils';
 
 const resetPasswordContainer: React.FC<any> = () => {
     const { resetPassword } = useAuth();
+    const { search } = useLocation();
 
-    const { value: email, bind: bindEmail } = useInput("")
-    const { value: code, bind: bindCode } = useInput("");
+    // Parse the verification code & email from the query params.
+    const query = new URLSearchParams(search);
+    const initialCode = query.get("verification_code");
+    const initialEmail = query.get("email");
+
+    const { value: email, bind: bindEmail } = useInput(initialEmail ?? "")
+    const { value: code, bind: bindCode } = useInput(initialCode ?? "");
     const { value: newPassword, bind: bindNewPassword } = useInput("");
     const { value: newPasswordConfirm, bind: bindNewPasswordConfirm } = useInput("");
 
@@ -195,7 +202,7 @@ const resetPasswordContainer: React.FC<any> = () => {
           </div>
           <div className="flex justify-center items-center mt-6">
             <Link
-              to="/login"
+              to={LOGIN_PATH}
               className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
             >
               <span>
