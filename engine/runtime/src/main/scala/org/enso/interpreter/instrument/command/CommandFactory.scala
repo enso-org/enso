@@ -56,9 +56,6 @@ object CommandFactory {
       case payload: Api.InvalidateModulesIndexRequest =>
         new InvalidateModulesIndexCmd(request.requestId, payload)
 
-      case payload: Api.VerifyModulesIndexRequest =>
-        new VerifyModulesIndexCmd(request.requestId, payload)
-
       case _: Api.GetTypeGraphRequest =>
         new GetTypeGraphCommand(request.requestId)
 

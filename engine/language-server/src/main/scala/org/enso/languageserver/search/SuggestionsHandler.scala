@@ -178,34 +178,6 @@ final class SuggestionsHandler(
     case _ => stash()
   }
 
-  private def verifying(
-    projectName: String,
-    graph: TypeGraph
-  ): Receive = {
-    case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
-      logger.info("Verifying: got verification response.")
-      val removeAction = for {
-        _ <- versionsRepo.remove(toRemove)
-        _ <- suggestionsRepo.removeModules(toRemove)
-      } yield SuggestionsHandler.Verified
-      removeAction.pipeTo(self)
-
-    case SuggestionsHandler.Verified =>
-      logger.info("Verified.")
-      context.become(initialized(projectName, graph, Set(), State()))
-      unstashAll()
-
-    case Status.Failure(ex) =>
-      logger.error(
-        "Database verification failure [{}]. {}",
-        ex.getClass,
-        ex.getMessage
-      )
-
-    case _ =>
-      stash()
-  }
-
   private def initialized(
     projectName: String,
     graph: TypeGraph,
@@ -235,7 +207,7 @@ final class SuggestionsHandler(
       state.suggestionUpdatesQueue.enqueue(msg)
 
     case SuggestionUpdatesBatch(updates) if state.isSuggestionUpdatesRunning =>
-      state.suggestionUpdatesQueue.enqueueAll(updates)
+      state.suggestionUpdatesQueue.prependAll(updates)
 
     case SuggestionUpdatesBatch(updates) =>
       val modules = updates.map(_.module)
@@ -515,17 +487,9 @@ final class SuggestionsHandler(
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
     logger.debug("Trying to initialize with state [{}]", state)
     state.initialized.fold(context.become(initializing(state))) {
-      case (name, graph) =>
+      case (projectName, graph) =>
         logger.debug("Initialized with state [{}].", state)
-        val requestId = UUID.randomUUID()
-        suggestionsRepo.getAllModules
-          .map { modules =>
-            runtimeConnector ! Api.Request(
-              requestId,
-              Api.VerifyModulesIndexRequest(modules)
-            )
-          }
-        context.become(verifying(name, graph))
+        context.become(initialized(projectName, graph, Set(), State()))
         unstashAll()
     }
   }
@@ -783,9 +747,6 @@ object SuggestionsHandler {
       new ProjectNameUpdated(projectName, Seq())
   }
 
-  /** The notification that the suggestions database has been verified. */
-  case object Verified
-
   /** The notification that the suggestion updates are processed. */
   case object SuggestionUpdatesCompleted
 
@@ -843,7 +804,7 @@ object SuggestionsHandler {
     * @param config the server configuration
     * @param contentRootManager the content root manager
     * @param suggestionsRepo the suggestions repo
-    * @param fileVersionsRepo the file versions repo
+    * @param versionsRepo the versions repo
     * @param sessionRouter the session router
     * @param runtimeConnector the runtime connector
     * @param docSectionsBuilder the builder of documentation sections
@@ -852,7 +813,7 @@ object SuggestionsHandler {
     config: Config,
     contentRootManager: ContentRootManager,
     suggestionsRepo: SuggestionsRepo[Future],
-    fileVersionsRepo: VersionsRepo[Future],
+    versionsRepo: VersionsRepo[Future],
     sessionRouter: ActorRef,
     runtimeConnector: ActorRef,
     docSectionsBuilder: DocSectionsBuilder = DocSectionsBuilder()
@@ -862,7 +823,7 @@ object SuggestionsHandler {
         config,
         contentRootManager,
         suggestionsRepo,
-        fileVersionsRepo,
+        versionsRepo,
         sessionRouter,
         runtimeConnector,
         docSectionsBuilder

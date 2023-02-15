@@ -218,14 +218,6 @@ object Runtime {
         name  = "invalidateModulesIndexResponse"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VerifyModulesIndexRequest],
-        name  = "verifyModulesIndexRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VerifyModulesIndexResponse],
-        name  = "verifyModulesIndexResponse"
-      ),
-      new JsonSubTypes.Type(
         value = classOf[Api.GetTypeGraphRequest],
         name  = "getTypeGraphRequest"
       ),
@@ -1522,20 +1514,6 @@ object Runtime {
 
     /** Signals that the module indexes has been invalidated. */
     final case class InvalidateModulesIndexResponse() extends ApiResponse
-
-    /** A request to verify the modules in the suggestions database.
-      *
-      * @param modules the list of modules
-      */
-    final case class VerifyModulesIndexRequest(modules: Seq[String])
-        extends ApiRequest
-
-    /** A response to the module verification request.
-      *
-      * @param remove the list of modules to remove from suggestions database.
-      */
-    final case class VerifyModulesIndexResponse(remove: Seq[String])
-        extends ApiResponse
 
     /** A request for the type hierarchy graph. */
     final case class GetTypeGraphRequest() extends ApiRequest
