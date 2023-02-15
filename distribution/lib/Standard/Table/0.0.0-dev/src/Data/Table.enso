@@ -1706,8 +1706,8 @@ type Table
          raised.
        - Other specific errors or warnings that can be raised depend on the
          format argument.
-       - Otherwise, the file is loaded following the rules of the format
-         parameter.
+       - On success, the file descriptor representing the written file is
+         returned.
 
        ? `File_Format` write behaviors
 
@@ -1733,7 +1733,7 @@ type Table
              from Standard.Table import Excel
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         file = File.new path
         case format of

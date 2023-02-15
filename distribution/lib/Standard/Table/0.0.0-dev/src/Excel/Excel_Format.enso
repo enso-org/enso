@@ -82,11 +82,11 @@ type Excel_Format
         - on_existing_file: What to do if the file already exists.
         - match_columns: How to match columns between the table and the file.
         - on_problems: What to do if there are problems reading the file.
-    write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
+    write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems =
         format = should_treat_as_xls_format self.xls_format file
 
-        case self.section of
+        r = case self.section of
             Excel_Section.Sheet_Names -> Error.throw (Illegal_Argument.Error "Sheet_Names cannot be used for `write`.")
             Excel_Section.Range_Names -> Error.throw (Illegal_Argument.Error "Range_Names cannot be used for `write`.")
             Excel_Section.Workbook ->
@@ -98,3 +98,4 @@ type Excel_Format
                         "Sheet" + idx.to_text
                 Excel_Writer.write_file file table on_existing_file (Excel_Section.Worksheet sheet_name) True match_columns on_problems format
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format
+        r.if_not_error file
