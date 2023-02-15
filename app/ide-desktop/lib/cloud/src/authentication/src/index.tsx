@@ -16,7 +16,8 @@
 import * as React from 'react'
 import * as ReactDOM from 'react-dom/client'
 
-import App, { AppProps } from './components/app'
+import App from './components/app'
+import * as app from './components/app'
 import "./styles/index.css"
 
 
@@ -47,4 +48,5 @@ export const run = (logger: Console, props: AppProps) => {
     ReactDOM.createRoot(root).render(<App {...props} />);
 }
 
+export type AppProps = app.AppProps
 export default { run }

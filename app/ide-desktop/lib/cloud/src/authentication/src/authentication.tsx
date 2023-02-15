@@ -261,8 +261,15 @@ const AuthContext = createContext<AuthContextType>(
 // === AuthProvider ===
 // ====================
 
+interface AuthProviderProps {
+    runningOnDesktop: boolean;
+    onAuthenticated: () => void;
+    children: ReactNode;
+}
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const AuthProvider = ({ runningOnDesktop, children }: { runningOnDesktop: boolean, children: ReactNode }): JSX.Element => {
+export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
+  const { runningOnDesktop, onAuthenticated, children } = props
   const navigate = useNavigate();
   const [initialized, setInitialized] = useState(false);
   const [session, setSession] = useState<UserSession | undefined>(undefined);
@@ -342,6 +349,9 @@ export const AuthProvider = ({ runningOnDesktop, children }: { runningOnDesktop:
             accessToken,
             organization
           }
+
+          // FIXME [NP]: is this the correct place to do this?
+          onAuthenticated()
         }
 
         // FIXME [NP]: remove this

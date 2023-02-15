@@ -46,7 +46,9 @@ export const SET_USERNAME_PATH = "/set-username";
 export interface AppProps {
   /// If this is the desktop IDE, this must be set to `true`. If this is the web IDE, this must be
   /// set to `false`.
-  runningOnDesktop: boolean;  
+  runningOnDesktop: boolean;
+  /// Callback to execute once the user has authenticated successfully.
+  onAuthenticated: () => void;
 }
 
 /**
@@ -57,7 +59,7 @@ export interface AppProps {
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const App = (props: AppProps) => {
-  const { runningOnDesktop } = props;
+  const { runningOnDesktop, onAuthenticated } = props;
   // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unnecessary-condition
   const Router = runningOnDesktop ? MemoryRouter : BrowserRouter;
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
@@ -66,7 +68,7 @@ const App = (props: AppProps) => {
     <>
       <Toaster position="top-center" reverseOrder={false} />
       <Router>
-        <AuthProvider runningOnDesktop={runningOnDesktop} >
+        <AuthProvider runningOnDesktop={runningOnDesktop} onAuthenticated={onAuthenticated} >
           <AppRouter />
         </AuthProvider>
       </Router>

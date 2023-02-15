@@ -8,6 +8,7 @@ import buildCfg from '../../../build.json'
 import * as app from 'ensogl_app'
 import * as semver from 'semver'
 import * as authentication from 'enso-studio-authentication'
+import { AppProps } from 'enso-studio-authentication'
 
 const logger = app.log.logger
 const config = app.config
@@ -229,9 +230,16 @@ class Main {
                     //    auth?.style = 'display: none'
                     //    root?.style = 'display: block'
                     //}
-                    authentication.run(logger)
-                    // appInstance.config.email.value = user.email
-                    appInstance.run()
+                    const props: AppProps = {
+                        // This package is an Electron desktop app (i.e., not in the Cloud), so
+                        // we're running on the desktop.
+                        runningOnDesktop: true,
+                        onAuthenticated: () => {
+                            // appInstance.config.email.value = user.email
+                            appInstance.run()
+                        }
+                    }
+                    authentication.run(logger, props)
                 } else {
                     appInstance.run()
                 }

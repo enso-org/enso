@@ -9,6 +9,7 @@ const props: AppProps = {
     // This package is a standalone React app (i.e., IDE deployed to the Cloud), so we're not
     // running on the desktop.
     runningOnDesktop: false,
+    onAuthenticated: () => {}
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
