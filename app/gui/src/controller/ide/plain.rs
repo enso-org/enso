@@ -82,6 +82,7 @@ impl controller::ide::API for Handle {
     fn current_project(&self) -> Option<model::Project> {
         Some(self.project.clone_ref())
     }
+    fn close_project(&self) {}
     fn status_notifications(&self) -> &StatusNotificationPublisher {
         &self.status_notifications
     }

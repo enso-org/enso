@@ -92,6 +92,12 @@ impl API for Handle {
     fn current_project(&self) -> Option<model::Project> {
         self.current_project.get()
     }
+
+    fn close_project(&self) {
+        self.current_project.set(None);
+        self.notifications.notify(Notification::ProjectClosed);
+    }
+
     fn status_notifications(&self) -> &StatusNotificationPublisher {
         &self.status_notifications
     }
@@ -132,8 +138,7 @@ impl ManagingProjectAPI for Handle {
             let project_mgr = self.project_manager.clone_ref();
             let new_project = Project::new_opened(project_mgr, new_project_id);
             self.current_project.set(Some(new_project.await?));
-            let notify = self.notifications.publish(Notification::NewProjectCreated);
-            executor::global::spawn(notify);
+            self.notifications.notify(Notification::NewProjectCreated);
             Ok(())
         }
         .boxed_local()
@@ -150,7 +155,7 @@ impl ManagingProjectAPI for Handle {
             let project_mgr = self.project_manager.clone_ref();
             let new_project = model::project::Synchronized::new_opened(project_mgr, id);
             self.current_project.set(Some(new_project.await?));
-            executor::global::spawn(self.notifications.publish(Notification::ProjectOpened));
+            self.notifications.notify(Notification::ProjectOpened);
             Ok(())
         }
         .boxed_local()

@@ -82,6 +82,11 @@ impl Model {
         });
     }
 
+    fn close_project(&self) {
+        *self.current_project.borrow_mut() = None;
+        self.view.project().graph().remove_all_nodes();
+    }
+
     /// Open a project by name. It makes two calls to Project Manager: one for listing projects and
     /// a second one for opening the project.
     #[profile(Task)]
@@ -211,6 +216,9 @@ impl Presenter {
                 controller::ide::Notification::NewProjectCreated
                 | controller::ide::Notification::ProjectOpened =>
                     model.setup_and_display_new_project(),
+                controller::ide::Notification::ProjectClosed => {
+                    model.close_project();
+                }
             }
             futures::future::ready(())
         });

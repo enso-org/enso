@@ -106,6 +106,8 @@ pub enum Notification {
     NewProjectCreated,
     /// User opened an existing project.
     ProjectOpened,
+    /// User closed the project.
+    ProjectClosed,
 }
 
 
@@ -171,6 +173,9 @@ pub trait API: Debug {
     ///
     /// Returns `None` if no project is opened at the moment.
     fn current_project(&self) -> Option<model::Project>;
+
+    /// Close the currently opened project. Does nothing if no project is open.
+    fn close_project(&self);
 
     /// Getter of Status Notification Publisher.
     fn status_notifications(&self) -> &StatusNotificationPublisher;
