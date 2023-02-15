@@ -45,5 +45,13 @@ object Template {
     override val name = "stargazers"
   }
 
-  val allTemplates = Seq(Default, Orders, Restaurants, Stargazers)
+  val allTemplates = Seq(
+    Default,
+    Orders,
+    Restaurants,
+    Stargazers,
+    ColoradoCovid,
+    Kmeans,
+    NasdaqReturns
+  )
 }
