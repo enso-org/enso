@@ -67,8 +67,9 @@ public final class WithWarnings implements TruffleObject {
     return allWarnings;
   }
 
-  public ArrayRope<Warning> collectWarnings() {
-    return warnings;
+  /** @return the number of warnings. */
+  public int getWarningsCount() {
+    return warnings.size();
   }
 
   public ArrayRope<Warning> getReassignedWarnings(Node location) {

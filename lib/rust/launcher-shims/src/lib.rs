@@ -68,7 +68,7 @@ pub fn wrap_launcher(version: impl AsRef<str>) {
                 exit(1)
             },
         Err(error) => {
-            eprintln!("{}", error);
+            eprintln!("{error}");
             exit(1)
         }
     };

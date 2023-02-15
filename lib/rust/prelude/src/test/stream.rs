@@ -63,7 +63,7 @@ pub trait StreamTestExt<S: ?Sized + Stream> {
         match self.manual_poll_next() {
             Poll::Pending => {}
             Poll::Ready(Some(item)) =>
-                panic!("There should be no value ready, yet the stream yielded {:?}", item),
+                panic!("There should be no value ready, yet the stream yielded {item:?}"),
             Poll::Ready(None) => {
                 panic!("Stream has terminated, while it should be waiting for the next value.")
             }
@@ -93,8 +93,7 @@ pub trait StreamTestExt<S: ?Sized + Stream> {
                 }
                 _ => panic!(
                     "Stream yielded item that did not match to any of the given predicates. \
-                    Item: {:?}",
-                    item
+                    Item: {item:?}"
                 ),
             }
         }

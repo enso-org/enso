@@ -17,6 +17,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.{RevCommit, RevWalk}
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.{CanonicalTreeParser, FileTreeIterator}
+import org.eclipse.jgit.util.FS.FileStoreAttributes
 import org.eclipse.jgit.util.SystemReader
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
@@ -30,7 +31,8 @@ import zio.blocking.effectBlocking
 
 import java.time.Instant
 
-private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
+private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
+    extends VcsApi[BlockingIO] {
 
   private val gitDir = ensoDataDirectory
     .map(_.resolve(VcsApi.DefaultRepoDir))
@@ -53,6 +55,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
   override def init(root: Path): BlockingIO[VcsFailure, Unit] = {
     effectBlocking {
+      FileStoreAttributes.setBackground(asyncInit)
       val rootFile = root.toFile
       if (!rootFile.exists()) {
         throw new FileNotFoundException("unable to find project repo: " + root)
@@ -110,6 +113,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         .setAll(true)
         .setMessage("Initial commit")
         .setAuthor(AuthorName, AuthorEmail)
+        .setNoVerify(true)
         .call()
       ()
     }.mapError(errorHandling)
@@ -349,9 +353,10 @@ object Git {
     * user's home directory.
     */
   def withEmptyUserConfig(
-    dataDir: Option[Path]
+    dataDir: Option[Path],
+    asyncInit: Boolean
   ): VcsApi[BlockingIO] = {
     SystemReader.setInstance(new EmptyUserConfigReader)
-    new Git(dataDir)
+    new Git(dataDir, asyncInit)
   }
 }

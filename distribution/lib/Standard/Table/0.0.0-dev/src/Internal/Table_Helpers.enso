@@ -8,7 +8,6 @@ import project.Data.Column.Column
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Position.Position
-import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Value_Type.Value_Type
@@ -16,7 +15,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch
+from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch, Ambiguous_Column_Rename, Invalid_Aggregate_Column
 
 polyglot java import java.util.HashSet
 
@@ -53,13 +52,15 @@ type Table_Column_Helper
          criteria, it is placed in the group belonging to the first matching
          criterion on the list. If a single criterion's group has more than one
          element, their relative order is the same as in the input.
+       - error_on_missing_columns: Specifies if missing columns should be raised
+         as error regardless of `on_problems`.
        - on_problems: Specifies the behavior when a problem occurs during the
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    select_columns : Vector | Column_Selector -> Boolean -> Problem_Behavior -> Vector
-    select_columns self selector reorder on_problems =
-        problem_builder = Problem_Builder.new
+    select_columns : Vector | Column_Selector -> Boolean -> Boolean -> Problem_Behavior -> Vector
+    select_columns self selector reorder error_on_missing_columns on_problems =
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         result = self.select_columns_helper selector reorder problem_builder
         problem_builder.attach_problems_before on_problems <|
             if result.is_empty then Error.throw No_Output_Columns else result
@@ -75,13 +76,15 @@ type Table_Column_Helper
 
        Arguments:
        - selector: Column selection criteria or vector of column names.
+       - error_on_missing_columns: Specifies if missing columns should be raised
+         as error regardless of `on_problems`.
        - on_problems: Specifies the behavior when a problem occurs during the
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    remove_columns : Vector | Column_Selector -> Problem_Behavior -> Vector
-    remove_columns self selector on_problems =
-        problem_builder = Problem_Builder.new
+    remove_columns : Vector | Column_Selector -> Boolean -> Problem_Behavior -> Vector
+    remove_columns self selector error_on_missing_columns on_problems =
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selector reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
         result = self.internal_columns.filter column->
@@ -104,13 +107,15 @@ type Table_Column_Helper
          order in which they should appear in the result.
        - position: Specifies how to place the selected columns in relation to
          the columns which were not matched by the `selector` (if any).
+       - error_on_missing_columns: Specifies if missing columns should be raised
+         as error regardless of `on_problems`.
        - on_problems: Specifies the behavior when a problem occurs during the
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    reorder_columns : Vector | Column_Selector -> Position -> Problem_Behavior -> Vector
-    reorder_columns self selector position on_problems =
-        problem_builder = Problem_Builder.new
+    reorder_columns : Vector | Column_Selector -> Position -> Boolean -> Problem_Behavior -> Vector
+    reorder_columns self selector position error_on_missing_columns on_problems =
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selector reorder=True problem_builder
         problem_builder.attach_problems_before on_problems <|
             selected_names = Map.from_vector (selection.map column-> [column.name, True])
@@ -145,7 +150,7 @@ type Table_Column_Helper
         _ : Vector ->
             self.select_columns_helper (Column_Selector.By_Name selector) reorder problem_builder
         Column_Selector.By_Name names matcher ->
-            valid_names = validate_unique names problem_builder.report_duplicate_column_selectors
+            valid_names = validate_unique names (_->Nothing)
             Matching.match_criteria_callback matcher self.internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
         Column_Selector.By_Index indices ->
             good_indices = validate_indices self.internal_columns.length indices problem_builder . map .first
@@ -154,10 +159,6 @@ type Table_Column_Helper
                     select_indices_reordering self.internal_columns good_indices
                 False ->
                     select_indices_preserving_order self.internal_columns good_indices
-        Column_Selector.By_Column columns ->
-            column_names = columns.map .name
-            new_selector = Column_Selector.By_Name column_names Text_Matcher.Case_Sensitive
-            self.select_columns_helper new_selector reorder=reorder problem_builder=problem_builder
         Column_Selector.Blank_Columns when_any treat_nans_as_blank -> if self.internal_columns.is_empty then [] else
             blanks = self.internal_columns.map_with_index ix-> internal_column->
                 column = self.make_column internal_column
@@ -177,7 +178,7 @@ type Table_Column_Helper
                adding a new column with a clashing name will not affect any
                other columns computed from the old column with that name.
             table_with_blank_indicators = blanks.fold self.table table-> blanks_col->
-                table.set blanks_col.name blanks_col
+                table.set blanks_col
             just_indicators = table_with_blank_indicators.select_columns (blanks.map .name) on_problems=Problem_Behavior.Report_Error
             # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
             col_aggregate = if when_any then Maximum _ else Minimum _
@@ -204,18 +205,19 @@ type Table_Column_Helper
                     _ -> Panic.throw (Illegal_State.Error "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
 
     ## PRIVATE
-       A helper function which selects a single column from the table. It is aligned
-       with the `select_columns_helper`, apart from Blank_Columns selector which is
-       only handled by the other method but not this one.
-    resolve_column_helper : (Integer | Text | Column) -> Problem_Builder -> Any | Nothing
-    resolve_column_helper self selector problem_builder = case selector of
+       A helper function which selects a single column from the table.
+
+       It may allow selection of columns by index, name or computing a derived
+       expression.
+    resolve_column_or_expression : (Integer | Text | Column) -> Problem_Builder -> Any | Nothing
+    resolve_column_or_expression self selector problem_builder = case selector of
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
-                if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
-                    expression = (self.table.evaluate selector).catch Any _->Nothing
-                    if Nothing != expression then expression else
-                        problem_builder.report_missing_input_columns [selector]
+                if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "Bug in Table library: A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
+                    (self.table.compute selector).catch Any expression_error->
+                        invalid_column = Invalid_Aggregate_Column.Error selector expression_error
+                        problem_builder.report_other_warning invalid_column
                         Nothing
         _ : Integer -> case is_index_valid self.internal_columns.length selector of
             True -> self.internal_columns.at selector
@@ -224,7 +226,7 @@ type Table_Column_Helper
                 Nothing
         ## A wildcard to match any backend's column.
         _ ->
-            self.resolve_column_helper selector.name problem_builder=problem_builder
+            self.resolve_column_or_expression selector.name problem_builder=problem_builder
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
@@ -240,51 +242,64 @@ type Table_Column_Helper
    - internal_columns: A list of all columns in a table.
    - mapping: A selector specifying which columns should be moved and the order
      in which they should appear in the result.
+   - error_on_missing_columns: If set to `True`, missing columns are treated as
+     error regardless of `on_problems`.
    - on_problems: Specifies the behavior when a problem occurs during the
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-rename_columns : Vector -> Column_Name_Mapping -> Problem_Behavior -> Map
-rename_columns internal_columns mapping on_problems =
+rename_columns : Vector -> Column_Name_Mapping -> Boolean -> Problem_Behavior -> Map
+rename_columns internal_columns mapping error_on_missing_columns on_problems =
     unique = Unique_Name_Strategy.new
     col_count = internal_columns.length
-    problem_builder = Problem_Builder.new
+    problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
-    name_mapper vec ms =
-        good_names = validate_unique vec (problem_callback = v-> problem_builder.report_duplicate_column_selectors (v.map c->(c.at 0))) (on = x-> (x.at 0))
-        matched = HashSet.new
+    ## Computes the new name for a By_Name rename condition.first_new_name
 
-        mapper = name->
-            index = 0.up_to good_names.length . find i->(ms.match_single_criterion name ((good_names.at i).at 0))
-            case index of
-                Nothing -> Nothing
-                _ ->
-                    matched.add index
-                    new_name = case ms of
-                        _ : Regex_Matcher ->
-                            pattern = ms.compile ((good_names.at index).at 0)
-                            pattern.replace name ((good_names.at index).at 1)
-                        _ : Text_Matcher -> (good_names.at index).at 1
-                    unique.make_unique new_name
+       In case of text matching, that is just the new provided name.
+       In case of regex matching, the substitutions are performed.
+    make_new_name name matching_criterion new_name matching_strategy = case matching_strategy of
+        _ : Regex_Matcher ->
+            pattern = matching_strategy.compile matching_criterion
+            pattern.replace name new_name
+        _ : Text_Matcher -> new_name
 
-        new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
-        unused = good_names.filter_with_index i->_->(matched.contains i).not . map e->(e.at 0)
-        problem_builder.report_missing_input_columns unused
-        new_names
+    ## Computes a vector of pairs, where each pairs is one of the columns from
+       the original table and a list of new names proposed for it.
 
-    mapped = case mapping of
-        Column_Name_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) Text_Matcher.Case_Sensitive
-        Column_Name_Mapping.By_Name map ms -> name_mapper map.to_vector ms
+       The list can be empty if the column remains unchanged. The list may also
+       contain multiple entries if multiple matchers have matched the column.
+    columns_with_proposed_new_names = case mapping of
+        Column_Name_Mapping.By_Name map matching_strategy ->
+            name_selectors = map.to_vector
+            match_matrix = Matching.make_match_matrix matching_strategy objects=internal_columns criteria=name_selectors object_name_mapper=(.name) criterion_mapper=(.first)
+            problem_builder.report_missing_input_columns <|
+                match_matrix.unmatched_criteria.map .first
+            internal_columns.map_with_index i-> column->
+                matching_selectors = match_matrix.criteria_matching_object i
+                new_names = matching_selectors.map selector->
+                    make_new_name column.name selector.first selector.second matching_strategy
+                Pair.new column new_names
         Column_Name_Mapping.By_Index map ->
-            good_indices = validate_indices col_count map.keys problem_builder
+            index_selectors = map.to_vector
+            partitioned_selectors = index_selectors.partition selector->
+                is_index_valid col_count selector.first
+            inbound_selectors = partitioned_selectors.first
+            oob_indices = partitioned_selectors.second . map .first
+            problem_builder.report_oob_indices oob_indices
 
-            index_map = Map.from_vector <| good_indices.map p->[p.at 0, map.get (p.at 1)]
+            index_mapping = inbound_selectors.fold Map.empty acc-> selector->
+                ix = selector.first
+                resolved_ix = resolve_index col_count ix
 
-            new_names = 0.up_to col_count . map i->
-                target = index_map.get i Nothing
-                if target.is_nothing then Nothing else unique.make_unique target
+                matches = acc.get resolved_ix []
+                acc.insert resolved_ix matches+[selector]
 
-            new_names
+            internal_columns.map_with_index i-> column->
+                matching_selectors = index_mapping.get i []
+                new_names = matching_selectors.map selector->
+                    selector.second
+                Pair.new column new_names
         Column_Name_Mapping.By_Position vec ->
             good_names = case vec.length > col_count of
                 True ->
@@ -292,15 +307,48 @@ rename_columns internal_columns mapping on_problems =
                     vec.take (First col_count)
                 False -> vec
 
-            new_names = 0.up_to col_count . map i->if i>=good_names.length then Nothing else
-                unique.make_unique (good_names.at i)
-            new_names
+            new_names = good_names.map (name-> [name]) . pad col_count []
+            internal_columns.zip new_names Pair.new
 
-    processed = mapped.map_with_index i->n->
-        n.if_nothing (unique.make_unique (internal_columns.at i).name)
+    ## Resolves actual new names for renamed columns.
+
+       If a column received ambiguous new names, an error is raised.
+       If a column is not renamed, `Not_Renamed` is given as its new name.
+       (We do not use Nothing, to be able to handle the case where the new name
+       is set to `Nothing`.)
+    columns_with_new_names = columns_with_proposed_new_names.map p->
+        column = p.first
+        new_names = p.second
+        if new_names.is_empty then Pair.new column Not_Renamed else
+            first_new_name = new_names.first
+            names_unambiguous = new_names.all (== first_new_name)
+            if names_unambiguous then Pair.new column first_new_name else
+                Error.throw (Ambiguous_Column_Rename.Error column.name new_names)
+
+    ## Renamed names take precedence, so we first deduplicate those.
+
+       This will replace the renamed columns with their effective names, while
+       keeping the unaffected columns as original pairs, so that they are marked
+       for processing in the next step.
+    after_renames = columns_with_new_names.map p->
+        new_name = p.second
+        case new_name of
+            Not_Renamed -> p
+            _ -> unique.make_unique new_name
+
+    ## Then we ensure that the names of not-renamed columns are also unique and
+       return the effective column names for each column.
+    new_column_names = after_renames.map x-> case x of
+        Pair.Value unchanged_column Not_Renamed ->
+            unique.make_unique unchanged_column.name
+        renamed_column_name : Text -> renamed_column_name
 
     problem_builder.report_unique_name_strategy unique
-    problem_builder.attach_problems_before on_problems processed
+    problem_builder.attach_problems_before on_problems new_column_names
+
+## PRIVATE
+   An internal marker type for `rename_columns`.
+type Not_Renamed
 
 ## PRIVATE
    A helper function encapsulating shared code for `sort_columns`
@@ -325,7 +373,7 @@ sort_columns internal_columns order text_ordering =
             col -> col.name.to_case_insensitive_key locale=locale
     comparator = case text_ordering.sort_digits_as_numbers of
         True -> Natural_Order.compare
-        False -> .compare_to
+        False -> Ordering.compare
     internal_columns.sort order=order on=mapper by=comparator
 
 ## PRIVATE
@@ -390,10 +438,10 @@ validate_indices length indices problem_builder on=(x->x) =
     oob_indices = partitioned_indices.second
     problem_builder.report_oob_indices (oob_indices.map on)
 
-    uniques = validate_unique inbound_indices problem_builder.report_duplicate_column_selectors on=on
+    uniques = validate_unique inbound_indices (_->Nothing) on=on
 
     resolver = ix->(resolve_index length (on ix))
-    alias_uniques = validate_unique uniques problem_builder.report_input_indices_already_matched on=resolver
+    alias_uniques = validate_unique uniques (_->Nothing) on=resolver
     good_indices = alias_uniques.map i->[resolver i, i]
     good_indices
 
@@ -421,122 +469,41 @@ type Column_Transform_Element
     Value column associated_selector
 
 ## PRIVATE
-prepare_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) | Sort_Column_Selector -> Problem_Builder -> Vector Column_Transform_Element
+prepare_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
-    selected_elements = case column_selectors of
-        _ : Text ->
-            unified_name_selectors = [Sort_Column.Name column_selectors]
-            select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
-        Sort_Column.Name _ _ -> select_columns_by_name internal_columns [column_selectors] Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
-        Sort_Column.Index _ _ -> select_columns_by_index internal_columns [column_selectors] problem_builder index_extractor=(_.index)
-        Sort_Column.Column _ _ -> select_columns_by_column_reference internal_columns [column_selectors] problem_builder column_extractor=(_.column)
-        _ : Vector ->
-            unified_name_selectors = column_selectors.map selector-> case selector of
-                _ : Text -> Sort_Column.Name selector
-                Sort_Column.Name _ _ -> selector
-                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Name are allowed as a Vector.")
-            select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
-        Sort_Column_Selector.By_Name name_selectors matcher ->
-            unified_name_selectors = name_selectors.map selector-> case selector of
-                _ : Text -> Sort_Column.Name selector
-                Sort_Column.Name _ _ -> selector
-                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Name are allowed for Sort_Column_Selector.By_Name.")
-            select_columns_by_name internal_columns unified_name_selectors matcher problem_builder name_extractor=(_.name)
-        Sort_Column_Selector.By_Index index_selectors ->
-            unified_index_selectors = index_selectors.map selector-> case selector of
-                _ : Integer -> Sort_Column.Index selector
-                Sort_Column.Index _ _ -> selector
-                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Integer and Sort_Column.Index are allowed for Sort_Column_Selector.By_Index.")
-            select_columns_by_index internal_columns unified_index_selectors problem_builder index_extractor=(_.index)
-        Sort_Column_Selector.By_Column column_selectors ->
-            unified_column_selectors = column_selectors.map selector-> case selector of
-                Sort_Column.Column _ _ -> selector
-                ## We cannot match by type here, as there is no common `Column`
-                   type - the type is different for In-Memory and Database
-                   tables, and we do not have interfaces yet.
-                column_reference -> Sort_Column.Column column_reference
-            select_columns_by_column_reference internal_columns unified_column_selectors problem_builder column_extractor=(_.column)
+    resolve_selector selector = case selector of
+        name : Text -> resolve_selector (Sort_Column.Name name)
+        ix : Integer -> resolve_selector (Sort_Column.Index ix)
+        Sort_Column.Name name direction ->
+            resolve_selector (Sort_Column.Select_By_Name name direction Case_Sensitivity.Sensitive use_regex=False)
+        Sort_Column.Index ix _ ->
+            actual_index = if ix < 0 then internal_columns.length+ix else ix
+            case (actual_index >= 0) && (actual_index < internal_columns.length) of
+                True -> [Column_Transform_Element.Value (internal_columns.at actual_index) selector]
+                False ->
+                    problem_builder.report_oob_indices [ix]
+                    []
+        Sort_Column.Select_By_Name name _ case_sensitivity use_regex ->
+            matcher = case use_regex of
+                True -> Regex_Matcher.Value case_sensitivity=case_sensitivity
+                False -> case case_sensitivity of
+                    Case_Sensitivity.Default -> Text_Matcher.Case_Sensitive
+                    Case_Sensitivity.Sensitive -> Text_Matcher.Case_Sensitive
+                    Case_Sensitivity.Insensitive locale ->
+                        Text_Matcher.Case_Insensitive locale=locale
+            matches = internal_columns.filter c->
+                matcher.match_single_criterion c.name name
+            if matches.is_empty then
+                problem_builder.report_missing_input_columns [name]
+            matches.map c->
+                Column_Transform_Element.Value c selector
+    selectors_vec = case column_selectors of
+        _ : Vector -> column_selectors
+        _ -> [column_selectors]
+    selected_elements = selectors_vec.flat_map resolve_selector
     if selected_elements.is_empty then
         problem_builder.report_other_warning No_Input_Columns_Selected
     selected_elements
-
-## PRIVATE
-   A helper function which can be used by methods that transform a subset of
-   columns based on some selection criteria while keeping the unselected columns
-   unaffected and not changing the ordering of the columns.
-
-   It returns `internal_columns` transformed in the following way: each entry
-   becomes a `Column_Transform_Element` which contains the original internal
-   column and the chosen associated selector (which may contain some additional
-   metadata needed to perform the transformation) or `Nothing` if the column was
-   not selected for transformation.
-
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - name_selectors: A vector of selectors which contain a column name and
-     optionally some metadata.
-   - matcher: Specifies the strategy of matching names.
-   - problem_builder: Encapsulates the aggregation of encountered problems.
-   - name_extractor: A function which extracts the column name from the selector.
-transform_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> Vector
-transform_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor =
-    match_matrix = Matching.make_match_matrix matcher objects=internal_columns criteria=name_selectors object_name_mapper=(_.name) criterion_mapper=name_extractor
-    problem_builder.report_missing_input_columns match_matrix.unmatched_criteria
-    internal_columns.map_with_index i-> column->
-        matching_selectors = match_matrix.criteria_matching_object i
-        associated_selector = if matching_selectors.is_empty then Nothing else
-            if matching_selectors.length > 1 then
-                problem_builder.report_column_matched_by_multiple_selectors column.name matching_selectors
-            matching_selectors.first
-        Column_Transform_Element.Value column associated_selector
-
-## PRIVATE
-   A helper function which can be used by methods that transform a subset of
-   columns based on some selection criteria while keeping the unselected columns
-   unaffected and not changing the ordering of the columns.
-
-   It returns `internal_columns` transformed in the following way: each entry
-   becomes a `Column_Transform_Element` which contains the original internal
-   column and the chosen associated selector (which may contain some additional
-   metadata needed to perform the transformation) or `Nothing` if the column was
-   not selected for transformation.
-
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - index_selectors: A vector of selectors which contain a column index and
-     optionally some metadata.
-   - problem_builder: Encapsulates the aggregation of encountered problems.
-transform_columns_by_index : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
-transform_columns_by_index internal_columns index_selectors problem_builder index_extractor =
-    good_indices = validate_indices internal_columns.length index_selectors problem_builder index_extractor
-    selectors_map = Map.from_vector good_indices
-    internal_columns.map_with_index i-> column->
-        associated_selector = selectors_map.get i Nothing
-        Column_Transform_Element.Value column associated_selector
-
-## PRIVATE
-   A helper function which can be used by methods that transform a subset of
-   columns based on some selection criteria while keeping the unselected columns
-   unaffected and not changing the ordering of the columns.
-
-   It returns `internal_columns` transformed in the following way: each entry
-   becomes a `Column_Transform_Element` which contains the original internal
-   column and the chosen associated selector (which may contain some additional
-   metadata needed to perform the transformation) or `Nothing` if the column was
-   not selected for transformation.
-
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - column_selectors: A vector of column selectors which contain a column whose
-     name should be used as a reference to select the corresponding column in
-     the given table. The selectors may also optionally contain some metadata.
-   - problem_builder: Encapsulates the aggregation of encountered problems.
-transform_columns_by_column_reference : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
-transform_columns_by_column_reference internal_columns column_selectors problem_builder column_extractor =
-    name_extractor = selector->
-        column = column_extractor selector
-        column.name
-    transform_columns_by_name internal_columns column_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor
 
 ## PRIVATE
    A helper function which can be used by methods that select a subset of
@@ -547,8 +514,9 @@ transform_columns_by_column_reference internal_columns column_selectors problem_
    matched them. A single selector may match multiple columns - in such case
    these columns are all placed in the place belonging to that selector and they
    keep their relative order from the table. If a column is matched by multiple
-   selectors a warning is raised and it only appears once in the result - in the
-   place associated with the first selector that matched it.
+   selectors, it only appears once in the result - in the place associated with
+   the first selector that matched it. Currently, the function does not warn
+   about such duplicated matches.
 
    Arguments:
    - internal_columns: A list of all columns in a table.
@@ -557,24 +525,26 @@ transform_columns_by_column_reference internal_columns column_selectors problem_
    - matcher: Specifies the strategy of matching names.
    - problem_builder: Encapsulates the aggregation of encountered problems.
    - name_extractor: A function which extracts the column name from the selector.
-select_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> Vector
+select_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> Boolean -> Vector
 select_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor =
-    match_matrix = Matching.make_match_matrix matcher objects=internal_columns criteria=name_selectors object_name_mapper=(_.name) criterion_mapper=name_extractor
-    problem_builder.report_missing_input_columns match_matrix.unmatched_criteria
-    results = Vector.new_builder
-    internal_columns.each_with_index i-> column->
-        matching_selector_indices = match_matrix.criteria_indices_matching_object i
-        if matching_selector_indices.not_empty then
-            if matching_selector_indices.length > 1 then
-                matching_selectors = matching_selector_indices.map name_selectors.at
-                problem_builder.report_column_matched_by_multiple_selectors column.name matching_selectors
-            associated_selector_index = matching_selector_indices.first
-            associated_selector = name_selectors.at associated_selector_index
-            element = Column_Transform_Element.Value column associated_selector
-            results.append (Pair.new element [associated_selector_index, i])
-    # We sort the results by the associated selector index, breaking ties by the column index.
-    sorted = results.to_vector.sort on=(_.second) by=Vector_Lexicographic_Order.compare
-    sorted.map .first
+    case Matching.make_match_matrix matcher objects=internal_columns criteria=name_selectors object_name_mapper=(_.name) criterion_mapper=name_extractor of
+        ## We do the pattern match to ensure that any dataflow errors in
+           `match_matrix` are correctly propagated. Without it, due to the
+           imperative Vector Builder and `each` method, the dataflow errors
+           would get swallowed.
+        match_matrix ->
+            problem_builder.report_missing_input_columns match_matrix.unmatched_criteria
+            results = Vector.new_builder
+            internal_columns.each_with_index i-> column->
+                matching_selector_indices = match_matrix.criteria_indices_matching_object i
+                if matching_selector_indices.not_empty then
+                    associated_selector_index = matching_selector_indices.first
+                    associated_selector = name_selectors.at associated_selector_index
+                    element = Column_Transform_Element.Value column associated_selector
+                    results.append (Pair.new element [associated_selector_index, i])
+            # We sort the results by the associated selector index, breaking ties by the column index.
+            sorted = results.to_vector.sort on=(_.second) by=Vector_Lexicographic_Order.compare
+            sorted.map .first
 
 ## PRIVATE
    A helper function which can be used by methods that select a subset of

@@ -845,7 +845,8 @@ type Vector a
          elements, returning an Ordering to compare them.
 
        By default, elements are sorted in ascending order, using the comparator
-       `compare_to`. A custom comparator may be passed to the sort function.
+       acquired from each element. A custom compare function may be passed to
+       the sort method.
 
        This is a stable sort, meaning that items that compare the same will not
        have their order changed by the sorting process.
@@ -877,7 +878,7 @@ type Vector a
 
              [Pair 1 2, Pair -1 8].sort Sort_Direction.Descending (_.first)
     sort : Sort_Direction -> (Any -> Any) -> (Any -> Any -> Ordering) -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (_.compare_to _)) =
+    sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (Ordering.compare _ _)) =
         comp_ascending l r  = by (on l) (on r)
         comp_descending l r = by (on r) (on l)
         compare = if order == Sort_Direction.Ascending then comp_ascending else

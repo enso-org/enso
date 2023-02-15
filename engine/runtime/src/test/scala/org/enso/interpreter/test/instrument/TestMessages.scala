@@ -39,14 +39,12 @@ object TestMessages {
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
     * @param expressionType a type of the expression
-    * @param fromCache whether or not the value for this expression came
     * @return the expression update response
     */
   def update(
     contextId: UUID,
     expressionId: UUID,
-    expressionType: String,
-    fromCache: Boolean = false
+    expressionType: String
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
@@ -57,8 +55,42 @@ object TestMessages {
             Some(expressionType),
             None,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
-            fromCache,
+            false,
             Api.ExpressionUpdate.Payload.Value()
+          )
+        )
+      )
+    )
+
+  /** Create an update response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionId an identifier of the expression
+    * @param expressionType a type of the expression
+    * @param fromCache whether or not the value for this expression came
+    * @param methodPointer method pointer
+    * @param payload the update payload
+    * @return the expression update response
+    */
+  def update(
+    contextId: UUID,
+    expressionId: UUID,
+    expressionType: String,
+    fromCache: Boolean                       = false,
+    methodPointer: Option[Api.MethodPointer] = None,
+    payload: Api.ExpressionUpdate.Payload    = Api.ExpressionUpdate.Payload.Value()
+  ): Api.Response =
+    Api.Response(
+      Api.ExpressionUpdates(
+        contextId,
+        Set(
+          Api.ExpressionUpdate(
+            expressionId,
+            Some(expressionType),
+            methodPointer,
+            Vector(Api.ProfilingInfo.ExecutionTime(0)),
+            fromCache,
+            payload
           )
         )
       )
@@ -225,7 +257,23 @@ object TestMessages {
     expressionId: UUID,
     payload: Api.ExpressionUpdate.Payload
   ): Api.Response =
-    panicBuilder(contextId, expressionId, None, payload)
+    panicBuilder(contextId, expressionId, None, payload, false)
+
+  /** Create a panic update response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionId an identifier of the expression
+    * @param payload the error payload
+    * @param builtin a flag indicating what is the type of Panic (a builtin Panic type or stdlib Panic)
+    * @return the expression update response
+    */
+  def panic(
+    contextId: UUID,
+    expressionId: UUID,
+    payload: Api.ExpressionUpdate.Payload,
+    builtin: Boolean
+  ): Api.Response =
+    panicBuilder(contextId, expressionId, None, payload, builtin)
 
   /** Create a panic update response.
     *
@@ -233,15 +281,17 @@ object TestMessages {
     * @param expressionId an identifier of the expression
     * @param methodPointer a pointer to the method definition
     * @param payload the error payload
+    * @param builtin a flag indicating what is the type of Panic (a builtin Panic type or stdlib Panic)
     * @return the expression update response
     */
   def panic(
     contextId: UUID,
     expressionId: UUID,
     methodPointer: Api.MethodPointer,
-    payload: Api.ExpressionUpdate.Payload
+    payload: Api.ExpressionUpdate.Payload,
+    builtin: Boolean
   ): Api.Response =
-    panicBuilder(contextId, expressionId, Some(methodPointer), payload)
+    panicBuilder(contextId, expressionId, Some(methodPointer), payload, builtin)
 
   /** Create a panic update response.
     *
@@ -249,13 +299,15 @@ object TestMessages {
     * @param expressionId an identifier of the expression
     * @param methodPointer a pointer to the method definition
     * @param payload the error payload
+    * @param builtin a flag indicating what is the type of Panic (a builtin Panic type or stdlib Panic)
     * @return the expression update response
     */
   private def panicBuilder(
     contextId: UUID,
     expressionId: UUID,
     methodPointer: Option[Api.MethodPointer],
-    payload: Api.ExpressionUpdate.Payload
+    payload: Api.ExpressionUpdate.Payload,
+    builtin: Boolean
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
@@ -263,7 +315,9 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            Some(ConstantsGen.PANIC),
+            Some(
+              if (builtin) ConstantsGen.PANIC_BUILTIN else ConstantsGen.PANIC
+            ),
             methodPointer,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,

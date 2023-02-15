@@ -11,7 +11,12 @@ loadStyleFromString(scrollbarStyle)
 // ===========================
 
 class TableVisualization extends Visualization {
-    static inputType = 'Any'
+    // IMPORTANT: When updating this, also update the test in
+    // test/Visualization_Tests/src/Default_Visualizations_Spec.enso:15 as this verifies that the
+    // type names do not go out of sync. Should be removed once
+    // https://github.com/enso-org/enso/issues/5195 is implemented.
+    static inputType =
+        'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Any '
     static label = 'Table'
 
     constructor(data) {
@@ -178,15 +183,18 @@ class TableVisualization extends Visualization {
                 let to_render = content
                 if (content instanceof Object) {
                     const type = content.type
-                    if (type === 'Date') {
-                        to_render = new Date(content.year, content.month, content.day)
+                    if (type === 'BigInt') {
+                        to_render = BigInt(content.value)
+                    } else if (type === 'Date') {
+                        to_render = new Date(content.year, content.month - 1, content.day)
                             .toISOString()
                             .substring(0, 10)
+                        to_render = '<span style="white-space: nowrap;">' + to_render + '</span>'
                     } else if (type === 'Time_Of_Day') {
                         const js_date = new Date(
                             0,
                             0,
-                            0,
+                            1,
                             content.hour,
                             content.minute,
                             content.second,
@@ -195,10 +203,11 @@ class TableVisualization extends Visualization {
                         to_render =
                             js_date.toTimeString().substring(0, 8) +
                             (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
+                        to_render = '<span style="white-space: nowrap;">' + to_render + '</span>'
                     } else if (type === 'Date_Time') {
                         const js_date = new Date(
                             content.year,
-                            content.month,
+                            content.month - 1,
                             content.day,
                             content.hour,
                             content.minute,
@@ -208,6 +217,7 @@ class TableVisualization extends Visualization {
                         to_render =
                             js_date.toISOString().substring(0, 19).replace('T', ' ') +
                             (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
+                        to_render = '<span style="white-space: nowrap;">' + to_render + '</span>'
                     }
                 }
                 result += '<td class="plaintext">' + to_render + '</td>'

@@ -16,7 +16,7 @@ public class UnquotedDelimiter extends ColumnAggregatedProblems {
   @Override
   public boolean merge(ColumnAggregatedProblems another) {
     if (another instanceof UnquotedDelimiter
-        && this.getColumnName().equals(another.getColumnName())
+        && this.getLocationName().equals(another.getLocationName())
         && this.message.equals(((UnquotedDelimiter) another).message)) {
       this.rows.addAll(another.rows);
       return true;

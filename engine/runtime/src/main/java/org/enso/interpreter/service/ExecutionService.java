@@ -5,6 +5,8 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -156,7 +158,7 @@ public class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
-    Optional<EventBinding<ExecutionEventListener>> listener =
+    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service ->
                 service.bind(
@@ -176,7 +178,7 @@ public class ExecutionService {
       interopLibrary.execute(call);
     } finally {
       context.getThreadManager().leave(p);
-      listener.ifPresent(EventBinding::dispose);
+      eventNodeFactory.ifPresent(EventBinding::dispose);
     }
   }
 
@@ -185,7 +187,7 @@ public class ExecutionService {
    * defined in.
    *
    * @param moduleName the module where the method is defined.
-   * @param consName the name of the constructor the method is defined on.
+   * @param typeName the name of the type the method is defined on.
    * @param methodName the method name.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
@@ -246,6 +248,21 @@ public class ExecutionService {
   }
 
   /**
+   * Converts the provided object to a readable representation.
+   *
+   * @param receiver the object to convert.
+   * @return the textual representation of the object.
+   */
+  public String toDisplayString(Object receiver) {
+    try {
+      return interopLibrary.asString(interopLibrary.toDisplayString(receiver));
+    } catch (UnsupportedMessageException ignored) {
+      CompilerDirectives.shouldNotReachHere("Message support already checked.");
+    }
+    return null;
+  }
+
+  /**
    * Calls a function with the given argument.
    *
    * @param fn the function object
@@ -287,7 +304,7 @@ public class ExecutionService {
     Consumer<Exception> onExceptionalCallback =
         (value) -> context.getLogger().finest("_ON_ERROR " + value);
 
-    Optional<EventBinding<ExecutionEventListener>> listener =
+    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service ->
                 service.bind(
@@ -307,7 +324,7 @@ public class ExecutionService {
       return interopLibrary.execute(function, arguments);
     } finally {
       context.getThreadManager().leave(p);
-      listener.ifPresent(EventBinding::dispose);
+      eventNodeFactory.ifPresent(EventBinding::dispose);
     }
   }
 

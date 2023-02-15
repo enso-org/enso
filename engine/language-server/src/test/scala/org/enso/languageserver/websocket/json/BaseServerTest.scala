@@ -91,7 +91,7 @@ class BaseServerTest
     Config(
       testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
-      VcsManagerConfig(timeout  = 5.seconds),
+      VcsManagerConfig(),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig(testContentRoot.file),
@@ -171,7 +171,8 @@ class BaseServerTest
       VcsManager.props(
         config.vcsManager,
         Git.withEmptyUserConfig(
-          Some(config.vcsManager.dataDirectory)
+          Some(config.vcsManager.dataDirectory),
+          config.vcsManager.asyncInit
         ),
         contentRootManagerWrapper,
         zioExec
@@ -207,7 +208,6 @@ class BaseServerTest
     val contextRegistry =
       system.actorOf(
         ContextRegistry.props(
-          suggestionsRepo,
           config,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnectorProbe.ref,

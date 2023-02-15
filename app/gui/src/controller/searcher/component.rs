@@ -9,6 +9,7 @@ use crate::model::suggestion_database;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
+use engine_protocol::language_server::DocSection;
 
 
 // ==============
@@ -162,6 +163,18 @@ impl Component {
             None => MatchInfo::DoesNotMatch,
         };
     }
+
+    /// Check whether the component contains the "PRIVATE" tag.
+    pub fn is_private(&self) -> bool {
+        match &self.data {
+            Data::FromDatabase { entry, .. } => entry.documentation.iter().any(|doc| match doc {
+                DocSection::Tag { name, .. } =>
+                    name == ast::constants::PRIVATE_DOC_SECTION_TAG_NAME,
+                _ => false,
+            }),
+            _ => false,
+        }
+    }
 }
 
 impl From<Rc<hardcoded::Snippet>> for Component {
@@ -179,9 +192,9 @@ impl Display for Component {
                 let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
                 if let Some(self_type) = self_type_not_here {
                     let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
-                    write!(f, "{} {}", self_name, entry_name)
+                    write!(f, "{self_name} {entry_name}")
                 } else {
-                    write!(f, "{}", entry_name)
+                    write!(f, "{entry_name}")
                 }
             }
             Data::Virtual { snippet } => write!(f, "{}", snippet.name),

@@ -51,7 +51,7 @@ public class ObjectBuilder extends TypedBuilder {
 
   @Override
   public void append(Object o) {
-    if (currentSize + 1 > data.length) {
+    if (currentSize >= data.length) {
       grow();
     }
     data[currentSize++] = o;
@@ -98,12 +98,27 @@ public class ObjectBuilder extends TypedBuilder {
     this.currentSize = currentSize;
   }
 
+  /**
+   * Grows the underlying array.
+   * <p>
+   * The method grows the array by 50% by default to amortize the re-allocation time over appends.
+   * It tries to keep the invariant that after calling `grow` the array has at least one free slot.
+   */
   private void grow() {
+    int desiredCapacity = 3;
     if (data.length > 1) {
-      grow(data.length * 3 / 2);
-    } else {
-      grow(3);
+      desiredCapacity = (data.length * 3 / 2);
     }
+
+    // It is possible for the `currentSize` to grow arbitrarily larger than
+    // the capacity, because when nulls are being added the array is not
+    // resized, only the counter is incremented. Thus, we need to ensure
+    // that we have allocated enough space for at least one element.
+    if (currentSize >= desiredCapacity) {
+      desiredCapacity = currentSize + 1;
+    }
+
+    grow(desiredCapacity);
   }
 
   private void grow(int desiredCapacity) {

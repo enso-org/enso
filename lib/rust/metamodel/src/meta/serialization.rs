@@ -92,9 +92,9 @@ pub fn testcases(graph: &TypeGraph, root: TypeId) -> TestCases {
 impl TestCases {
     /// Produce a JSON representation of test case data.
     pub fn to_json(&self) -> String {
-        let accept: Vec<_> = self.accept.iter().map(|case| format!("{:?}", case)).collect();
+        let accept: Vec<_> = self.accept.iter().map(|case| format!("{case:?}")).collect();
         let accept = accept.join(", \n\t");
-        let reject: Vec<_> = self.reject.iter().map(|case| format!("{:?}", case)).collect();
+        let reject: Vec<_> = self.reject.iter().map(|case| format!("{case:?}")).collect();
         let reject = reject.join(", \n\t");
         let mut out = String::new();
         writeln!(out, "{{").unwrap();
@@ -124,16 +124,16 @@ fn fmt_program(program: &[Op], debuginfo: &BTreeMap<usize, String>) -> String {
         if *op == Op::SwitchPop {
             indent -= 1
         }
-        write!(out, "{:>4}: ", i).unwrap();
+        write!(out, "{i:>4}: ").unwrap();
         for _ in 0..indent {
             write!(out, "  ").unwrap();
         }
-        write!(out, "{:?}", op).unwrap();
+        write!(out, "{op:?}").unwrap();
         if let Some(debuginfo) = debuginfo.get(&i) {
-            write!(out, " -- {}", debuginfo).unwrap();
+            write!(out, " -- {debuginfo}").unwrap();
         }
         if let Some(continuation) = continuations.get(&i) {
-            write!(out, " [{}]", continuation).unwrap();
+            write!(out, " [{continuation}]").unwrap();
         }
         if *op == Op::Case(Case::Accept) {
             write!(out, " # accept{accept}").unwrap();
@@ -624,7 +624,7 @@ impl<'p> Interpreter<'p> {
                     }
                     return pc;
                 }
-                Op::Case(Case::Reject) => panic!("Rejected base case at {}.", pc),
+                Op::Case(Case::Reject) => panic!("Rejected base case at {pc}."),
             }
             pc += 1;
         }

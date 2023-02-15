@@ -15,10 +15,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ast::crumbs::PatternMatchCrumb::*;
-use ast::crumbs::*;
 use ensogl::prelude::*;
-use span_tree::traits::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -37,8 +34,7 @@ use ide_view::graph_editor::Type;
 use ide_view::project;
 use ide_view::root;
 use ide_view::status_bar;
-use parser_scala::Parser;
-use uuid::Uuid;
+use parser::Parser;
 
 
 
@@ -155,9 +151,17 @@ fn init(app: &Application) {
 
     let foo_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((foo_node, Expression::new_plain("foo")));
+    let kind = Immutable(graph_editor::component::node::error::Kind::Dataflow);
+    let message = Rc::new(Some("Dataflow Error".to_owned()));
+    let error = graph_editor::component::node::Error { kind, message, propagated };
+    graph_editor.frp.set_node_error_status.emit((foo_node, Some(error)));
 
     let baz_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((baz_node, Expression::new_plain("baz")));
+    let kind = Immutable(graph_editor::component::node::error::Kind::Warning);
+    let message = Rc::new(Some("Warning".to_owned()));
+    let error = graph_editor::component::node::Error { kind, message, propagated };
+    graph_editor.frp.set_node_error_status.emit((baz_node, Some(error)));
     let (_, baz_position) = graph_editor.node_position_set.value();
     let styles = StyleWatch::new(&scene.style_sheet);
     let min_spacing = styles.get_number(theme::graph_editor::minimal_x_spacing_for_new_nodes);
@@ -314,8 +318,8 @@ fn init(app: &Application) {
 
 pub fn expression_mock_string(label: &str) -> Expression {
     let pattern = Some(label.to_string());
-    let code = format!("\"{}\"", label);
-    let parser = Parser::new_or_panic();
+    let code = format!("\"{label}\"");
+    let parser = Parser::new();
     let parameters = vec![];
     let ast = parser.parse_line_ast(&code).unwrap();
     let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
@@ -330,7 +334,7 @@ pub fn expression_mock_string(label: &str) -> Expression {
 pub fn expression_mock() -> Expression {
     let pattern = Some("var1".to_string());
     let code = "[1,2,3]".to_string();
-    let parser = Parser::new_or_panic();
+    let parser = Parser::new();
     let this_param = span_tree::ArgumentInfo {
         name: Some("self".to_owned()),
         tp: Some("Text".to_owned()),
@@ -347,52 +351,11 @@ pub fn expression_mock() -> Expression {
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
-// TODO[ao] This expression mocks results in panic. If you want to use it, please fix it first.
-pub fn expression_mock2() -> Expression {
-    let pattern = Some("var1".to_string());
-    let pattern_cr = vec![Seq { right: false }, Or, Or, Build];
-    let val = ast::crumbs::SegmentMatchCrumb::Body { val: pattern_cr };
-    let parens_cr = ast::crumbs::MatchCrumb::Segs { val, index: 0 };
-    let code = "make_maps size (distribution normal)".to_string();
-    let output_span_tree = span_tree::SpanTree::default();
-    let input_span_tree = span_tree::builder::TreeBuilder::new(36)
-        .add_child(0, 14, span_tree::node::Kind::Chained, PrefixCrumb::Func)
-        .add_child(0, 9, span_tree::node::Kind::Operation, PrefixCrumb::Func)
-        .set_ast_id(Uuid::new_v4())
-        .done()
-        .add_empty_child(10, span_tree::node::InsertionPointType::BeforeTarget)
-        .add_child(10, 4, span_tree::node::Kind::this().removable(), PrefixCrumb::Arg)
-        .set_ast_id(Uuid::new_v4())
-        .done()
-        .add_empty_child(14, span_tree::node::InsertionPointType::Append)
-        .set_ast_id(Uuid::new_v4())
-        .done()
-        .add_child(15, 21, span_tree::node::Kind::argument().removable(), PrefixCrumb::Arg)
-        .set_ast_id(Uuid::new_v4())
-        .add_child(1, 19, span_tree::node::Kind::argument(), parens_cr)
-        .set_ast_id(Uuid::new_v4())
-        .add_child(0, 12, span_tree::node::Kind::Operation, PrefixCrumb::Func)
-        .set_ast_id(Uuid::new_v4())
-        .done()
-        .add_empty_child(13, span_tree::node::InsertionPointType::BeforeTarget)
-        .add_child(13, 6, span_tree::node::Kind::this(), PrefixCrumb::Arg)
-        .set_ast_id(Uuid::new_v4())
-        .done()
-        .add_empty_child(19, span_tree::node::InsertionPointType::Append)
-        .done()
-        .done()
-        .add_empty_child(36, span_tree::node::InsertionPointType::Append)
-        .build();
-    let whole_expression_id = default();
-    let code = code.into();
-    Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
-}
-
 pub fn expression_mock3() -> Expression {
     let pattern = Some("Vector x y z".to_string());
     // let code       = "image.blur ((foo   bar) baz)".to_string();
     let code = "Vector x y z".to_string();
-    let parser = Parser::new_or_panic();
+    let parser = Parser::new();
     let this_param = span_tree::ArgumentInfo {
         name: Some("self".to_owned()),
         tp: Some("Image".to_owned()),
@@ -432,20 +395,21 @@ pub fn expression_mock3() -> Expression {
 pub fn expression_mock_trim() -> Expression {
     let pattern = Some("trim_node".to_string());
     let code = "\"  hello  \".trim".to_string();
-    let parser = Parser::new_or_panic();
+    let parser = Parser::new();
     let this_param = span_tree::ArgumentInfo {
         name: Some("self".to_owned()),
         tp: Some("Text".to_owned()),
         ..default()
     };
     let param0 = span_tree::ArgumentInfo {
-        name:       Some("where".to_owned()),
-        tp:         Some("Location".to_owned()),
+        name: Some("where".to_owned()),
+        tp: Some("Location".to_owned()),
         tag_values: vec![
             "Location.Start".to_owned(),
             "Location.End".to_owned(),
             "Location.Both".to_owned(),
         ],
+        ..default()
     };
     let param1 = span_tree::ArgumentInfo {
         name: Some("what".to_owned()),

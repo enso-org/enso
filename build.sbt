@@ -21,7 +21,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion         = "2.13.8"
-val graalVersion          = "22.3.0"
+val graalVersion          = "22.3.1"
 val javaVersion           = "11"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -498,6 +498,7 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
   .in(file("lib/scala/logger"))
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= scalaCompiler
   )
@@ -509,6 +510,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .in(file("lib/scala/flexer"))
   .dependsOn(logger)
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     resolvers ++= Resolver.sonatypeOssRepos("releases"),
     libraryDependencies ++= scalaCompiler ++ Seq(
@@ -642,6 +644,7 @@ lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(`version-output`)
   .configs(Benchmark)
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "commons-cli" % "commons-cli" % commonsCliVersion
     ),
@@ -664,6 +667,7 @@ lazy val `text-buffer` = project
   .in(file("lib/scala/text-buffer"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "org.typelevel"   %% "cats-core"      % catsVersion,
       "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
@@ -685,7 +689,7 @@ lazy val rustParserTargetDirectory =
 val generateRustParserLib =
   TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
 `syntax-rust-definition` / generateRustParserLib := {
-  import sys.process._
+  val log = state.value.log
   val libGlob =
     (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
 
@@ -696,8 +700,7 @@ val generateRustParserLib =
     (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
   ) {
     val os = System.getProperty("os.name")
-    val baseCommand = Seq(
-      "cargo",
+    val baseArguments = Seq(
       "build",
       "-p",
       "enso-parser-jni",
@@ -706,11 +709,11 @@ val generateRustParserLib =
       "--out-dir",
       (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
     )
-    val releaseMode = baseCommand ++
+    val adjustedArguments = baseArguments ++
       (if (BuildInfo.isReleaseMode)
          Seq("--release")
        else Seq())
-    releaseMode !
+    Cargo.run(adjustedArguments, log)
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
@@ -725,7 +728,8 @@ val generateParserJavaSources = TaskKey[Seq[File]](
 `syntax-rust-definition` / generateParserJavaSources := {
   generateRustParser(
     (`syntax-rust-definition` / Compile / sourceManaged).value,
-    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges
+    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges,
+    state.value.log
   )
 }
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
@@ -733,26 +737,25 @@ val generateParserJavaSources = TaskKey[Seq[File]](
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
   (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
 
-def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
+def generateRustParser(base: File, changes: sbt.nio.FileChanges, log: ManagedLogger): Seq[File] = {
   import scala.jdk.CollectionConverters._
   import java.nio.file.Paths
 
-  import sys.process._
   val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
   val fullPkg    = Paths.get(base.toString, syntaxPkgs).toFile
   if (!fullPkg.exists()) {
     fullPkg.mkdirs()
   }
   if (changes.hasChanges) {
-    Seq(
-      "cargo",
+    val args = Seq(
       "run",
       "-p",
       "enso-parser-generate-java",
       "--bin",
       "enso-parser-generate-java",
       fullPkg.toString
-    ) !
+    )
+    Cargo.run(args, log)
   }
   FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
 }
@@ -771,6 +774,7 @@ lazy val graph = (project in file("lib/scala/graph/"))
   .dependsOn(logger.jvm)
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     resolvers ++= (
       Resolver.sonatypeOssRepos("releases") ++
@@ -806,6 +810,7 @@ lazy val `akka-native` = project
   .in(file("lib/scala/akka-native"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       akkaActor
@@ -818,6 +823,7 @@ lazy val `profiling-utils` = project
   .in(file("lib/scala/profiling-utils"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
@@ -840,6 +846,7 @@ lazy val `logging-utils` = project
   .in(file("lib/scala/logging-utils"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
@@ -875,6 +882,7 @@ lazy val `logging-service` = project
 lazy val `logging-truffle-connector` = project
   .in(file("lib/scala/logging-truffle-connector"))
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"           % "slf4j-api"   % slf4jVersion,
@@ -888,6 +896,7 @@ lazy val cli = project
   .in(file("lib/scala/cli"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
@@ -916,6 +925,7 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
     version := "0.1"
   )
   .settings(
+    frgaalJavaCompilerSetting,
     Compile / sourceGenerators += Def.task {
       val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
       BuildInfo
@@ -936,6 +946,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Compile / mainClass) := Some("org.enso.projectmanager.boot.ProjectManager")
   )
   .settings(
+    frgaalJavaCompilerSetting,
     (Compile / run / fork) := true,
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
@@ -1031,6 +1042,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
 lazy val `json-rpc-server` = project
   .in(file("lib/scala/json-rpc-server"))
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ akkaTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
@@ -1058,6 +1070,7 @@ lazy val `json-rpc-server-test` = project
 lazy val testkit = project
   .in(file("lib/scala/testkit"))
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-lang3" % commonsLangVersion,
       "commons-io"         % "commons-io"    % commonsIoVersion,
@@ -1069,6 +1082,7 @@ lazy val searcher = project
   .in(file("lib/scala/searcher"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= jmh ++ Seq(
       "com.typesafe.slick" %% "slick"           % slickVersion,
       "org.xerial"          % "sqlite-jdbc"     % sqliteVersion,
@@ -1163,6 +1177,7 @@ lazy val `polyglot-api` = project
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
@@ -1634,6 +1649,7 @@ lazy val `runtime-with-polyglot` =
 lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
+    frgaalJavaCompilerSetting,
     javaOptions ++= {
       // Note [Classpath Separation]
       val runtimeClasspath =
@@ -1792,6 +1808,7 @@ lazy val `distribution-manager` = project
   .in(file("lib/scala/distribution-manager"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
@@ -1809,6 +1826,7 @@ lazy val editions = project
   .in(file("lib/scala/editions"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
@@ -1837,6 +1855,7 @@ lazy val editions = project
 
 lazy val downloader = (project in file("lib/scala/downloader"))
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
@@ -1855,6 +1874,7 @@ lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
@@ -1868,6 +1888,9 @@ lazy val `edition-updater` = project
 
 lazy val `edition-uploader` = project
   .in(file("lib/scala/edition-uploader"))
+  .settings(
+    frgaalJavaCompilerSetting
+  )
   .dependsOn(editions)
   .dependsOn(`version-output`)
 
@@ -1875,6 +1898,7 @@ lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
@@ -1892,6 +1916,7 @@ lazy val `library-manager-test` = project
   .in(file("lib/scala/library-manager-test"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
@@ -1906,6 +1931,7 @@ lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       akkaActor,
@@ -1921,6 +1947,7 @@ lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
@@ -1943,6 +1970,7 @@ lazy val `runtime-version-manager-test` = project
   .in(file("lib/scala/runtime-version-manager-test"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion,
@@ -1964,6 +1992,7 @@ lazy val `runtime-version-manager-test` = project
 lazy val `locking-test-helper` = project
   .in(file("lib/scala/locking-test-helper"))
   .settings(
+    frgaalJavaCompilerSetting,
     assembly / test := {},
     assembly / assemblyOutputPath := file("locking-test-helper.jar")
   )

@@ -578,14 +578,14 @@ ops! { NodeOps for Node
 
     impl {
         fn append_or_warn(&self, node: &Self) {
-            let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
+            let warn_msg: &str = &format!("Failed to append child {node:?} to {self:?}");
             if self.append_child(node).is_err() {
                 warn!("{warn_msg}")
             };
         }
 
         fn prepend_or_warn(&self, node: &Self) {
-            let warn_msg: &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
+            let warn_msg: &str = &format!("Failed to prepend child \"{node:?}\" to \"{self:?}\"");
             let first_c = self.first_child();
             if self.insert_before(node, first_c.as_ref()).is_err() {
                 warn!("{warn_msg}")
@@ -594,7 +594,7 @@ ops! { NodeOps for Node
 
         fn insert_before_or_warn(&self, node: &Self, ref_node: &Self) {
             let warn_msg: &str =
-                &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
+                &format!("Failed to insert {node:?} before {ref_node:?} in {self:?}");
             if self.insert_before(node, Some(ref_node)).is_err() {
                 warn!("{warn_msg}")
             }
@@ -602,7 +602,7 @@ ops! { NodeOps for Node
 
         fn remove_from_parent_or_warn(&self) {
             if let Some(parent) = self.parent_node() {
-                let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
+                let warn_msg: &str = &format!("Failed to remove {self:?} from parent");
                 if parent.remove_child(self).is_err() {
                     warn!("{warn_msg}")
                 }
@@ -610,7 +610,7 @@ ops! { NodeOps for Node
         }
 
         fn remove_child_or_warn(&self, node: &Self) {
-            let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
+            let warn_msg: &str = &format!("Failed to remove child {node:?} from {self:?}");
             if self.remove_child(node).is_err() {
                 warn!("{warn_msg}")
             }
@@ -633,8 +633,8 @@ ops! { ElementOps for Element
         fn set_attribute_or_warn<T: AsRef<str>, U: AsRef<str>>(&self, name: T, value: U) {
             let name = name.as_ref();
             let value = value.as_ref();
-            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-            let warn_msg: &str = &format!("Failed to set attribute {}", values);
+            let values = format!("\"{name}\" = \"{value}\" on \"{self:?}\"");
+            let warn_msg: &str = &format!("Failed to set attribute {values}");
             if self.set_attribute(name, value).is_err() {
                 warn!("{warn_msg}")
             }
@@ -657,8 +657,8 @@ ops! { HtmlElementOps for HtmlElement
         fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
             let name = name.as_ref();
             let value = value.as_ref();
-            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-            let warn_msg: &str = &format!("Failed to set style {}", values);
+            let values = format!("\"{name}\" = \"{value}\" on \"{self:?}\"");
+            let warn_msg: &str = &format!("Failed to set style {values}");
             if self.style().set_property(name, value).is_err() {
                 warn!("{warn_msg}");
             }

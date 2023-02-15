@@ -119,7 +119,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -139,7 +139,7 @@ class RuntimeInstrumentTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -166,7 +166,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -186,7 +186,7 @@ class RuntimeInstrumentTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, mainBody, ConstantsGen.TEXT),
+      TestMessages.update(contextId, mainBody, ConstantsGen.TEXT_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -219,7 +219,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -281,7 +281,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -306,6 +306,64 @@ class RuntimeInstrumentTest
       TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, yExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, zExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "instrument expressions returning polyglot values" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata    = new Metadata
+    val mainBody    = metadata.addItem(72, 39)
+    val xExpr       = metadata.addItem(81, 13)
+    val mainResExpr = metadata.addItem(99, 12)
+
+    val code =
+      """import Standard.Base.IO
+        |polyglot java import java.time.LocalDate
+        |
+        |main =
+        |    x = LocalDate.now
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xExpr, ConstantsGen.DATE),
       TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
@@ -343,7 +401,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -402,7 +460,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -424,9 +482,9 @@ class RuntimeInstrumentTest
       5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION_BUILTIN),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -459,7 +517,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -479,9 +537,9 @@ class RuntimeInstrumentTest
     )
     context.receiveN(6) should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION),
-      TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION_BUILTIN),
+      TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -517,7 +575,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -543,11 +601,11 @@ class RuntimeInstrumentTest
         .update(
           contextId,
           xExpr,
-          ConstantsGen.INTEGER,
+          ConstantsGen.INTEGER_BUILTIN,
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "f")
         ),
-      TestMessages.update(contextId, mainRes, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainRes, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, mainExpr, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }
@@ -584,7 +642,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -646,7 +704,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -705,7 +763,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -767,7 +825,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -827,7 +885,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -885,7 +943,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -956,7 +1014,7 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -978,9 +1036,9 @@ class RuntimeInstrumentTest
       5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, arg1, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, arg2, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, arg3, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, arg1, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, arg2, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, arg3, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
   }

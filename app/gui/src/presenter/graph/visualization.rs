@@ -3,10 +3,11 @@
 
 use crate::prelude::*;
 
+use crate::controller::visualization::manager;
+use crate::controller::visualization::manager::Manager;
 use crate::executor::global::spawn_stream_handler;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::presenter::graph;
-use crate::presenter::graph::visualization::manager::Manager;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
@@ -14,13 +15,6 @@ use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
-
-
-// ==============
-// === Export ===
-// ==============
-
-pub mod manager;
 
 
 
@@ -187,8 +181,8 @@ impl Visualization {
 
         frp::extend! { network
             eval view.visualization_shown (((node, metadata)) model.visualization_shown(*node, metadata.clone()));
-            eval view.visualization_hidden ((node) model.node_removed(*node));
-            eval view.node_removed ((node) model.visualization_hidden(*node));
+            eval view.visualization_hidden ((node) model.visualization_hidden(*node));
+            eval view.node_removed ((node) model.node_removed(*node));
             eval view.visualization_preprocessor_changed (((node, preprocessor)) model.visualization_preprocessor_changed(*node, preprocessor.clone_ref()));
             eval view.set_node_error_status (((node, error)) model.error_on_node_changed(*node, error));
 

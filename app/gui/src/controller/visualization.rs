@@ -14,6 +14,13 @@ use ide_view::graph_editor::component::visualization::java_script::Sources;
 use std::rc::Rc;
 
 
+// ==============
+// === Export ===
+// ==============
+
+pub mod manager;
+
+
 
 // =============
 // === Error ===

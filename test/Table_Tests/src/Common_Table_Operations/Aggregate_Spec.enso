@@ -1,9 +1,11 @@
 from Standard.Base import all hiding First, Last
 
-from Standard.Table import Table, Sort_Column, Sort_Column_Selector, Column_Selector
-from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
+from Standard.Table import Table, Sort_Column, Column_Selector
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter
+from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
+import Standard.Table.Data.Expression.Expression_Error
+from Standard.Table.Errors import all
+
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -129,7 +131,7 @@ spec setup =
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
+            grouped = table.aggregate [First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
@@ -139,7 +141,7 @@ spec setup =
             materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = table.aggregate [First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), First "TextWithNothing" (order_by = [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 3
@@ -258,7 +260,7 @@ spec setup =
             materialized.columns.at 2 . at 0 . should_equal Nothing
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = empty_table.aggregate [First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
+            grouped = empty_table.aggregate [First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
@@ -362,7 +364,7 @@ spec setup =
             materialized.columns.at 3 . name . should_equal "25%-ile Value"
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = empty_table.aggregate [Group_By 0, First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
+            grouped = empty_table.aggregate [Group_By 0, First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 3
@@ -516,7 +518,7 @@ spec setup =
             materialized.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
+            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 3
@@ -529,7 +531,7 @@ spec setup =
             materialized.columns.at 2 . at idx . should_equal -89.78 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 3
@@ -713,7 +715,7 @@ spec setup =
             materialized.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"]), Group_By "Index"]
+            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"]), Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 4
@@ -727,7 +729,7 @@ spec setup =
             materialized.columns.at 2 . at idx . should_equal -89.78 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending]), Group_By "Index"]
+            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending]), Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 4
@@ -815,7 +817,7 @@ spec setup =
             table = table_builder [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
             result = table.aggregate [Group_By "A", (Concatenate "B" prefix="[[" suffix="]]" separator="; ")]
             result.row_count . should_equal 2
-            materialized = materialize result . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"])
+            materialized = materialize result . order_by ([Sort_Column.Name "A"])
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "A"
             materialized.columns.at 0 . to_vector . should_equal ["bar", "foo"]
@@ -895,14 +897,14 @@ spec setup =
 
             r1 = t5.aggregate [Group_By "G", Count_Distinct "A" (ignore_nothing=True)]
             r1.row_count . should_equal 2
-            m1 = materialize r1 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
+            m1 = materialize r1 . order_by ([Sort_Column.Name "G"])
             m1.column_count . should_equal 2
             m1.columns.first.to_vector . should_equal ["bar", "foo"]
             m1.columns.second.to_vector . should_equal [0, 1]
 
             r2 = t5.aggregate [Group_By "G", Count_Distinct "A" (ignore_nothing=False)]
             r2.row_count . should_equal 2
-            m2 = materialize r2 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
+            m2 = materialize r2 . order_by ([Sort_Column.Name "G"])
             m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["bar", "foo"]
             m2.columns.second.to_vector . should_equal [1, 2]
@@ -944,7 +946,7 @@ spec setup =
 
             r2 = table.aggregate [Group_By "G", Average "X"]
             r2.row_count.should_equal 2
-            m2 = materialize r2 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
+            m2 = materialize r2 . order_by ([Sort_Column.Name "G"])
             m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["a", "b"]
             m2.columns.second.to_vector . should_equal [0.5, 1]
@@ -1116,7 +1118,7 @@ spec setup =
     Test.group prefix+"Table.aggregate First and Last" <|
         Test.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
             t1 = table_builder [["G", ["a", "a"]], ["X", [1, 2]]]
-            order = Sort_Column_Selector.By_Name [Sort_Column.Name "G"]
+            order = [Sort_Column.Name "G"]
             r1 = t1.aggregate [First "X" (order_by=order), Last "X" (order_by=order)]
             r1.row_count.should_equal 1
             m1 = materialize r1
@@ -1130,7 +1132,7 @@ spec setup =
             table = table_builder [["A", [1, 1, 2, 1]], ["B", [3, 2, 2, 3]], ["C", [11, 12, 13, 14]]]
             grouped = table.aggregate [Group_By "B", Group_By "A"]
             grouped.row_count . should_equal 3
-            materialized = materialize grouped . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A", Sort_Column.Name "B"])
+            materialized = materialize grouped . order_by ([Sort_Column.Name "A", Sort_Column.Name "B"])
             materialized.column_count . should_equal 2
             materialized.columns.at 1 . name . should_equal "A"
             materialized.columns.at 1 . to_vector . should_equal [1, 1, 2]
@@ -1158,17 +1160,17 @@ spec setup =
                 table = table_builder [dates, times, datetimes, ints]
 
                 g1 = table.aggregate [Group_By "Date", Sum "Int"]
-                m1 = materialize g1 . order_by (Sort_Column_Selector.By_Name ["Date"])
+                m1 = materialize g1 . order_by (["Date"])
                 m1.at "Date" . to_vector . should_equal [Date.new 1997, Date.new 2000 2 2, Date.new 2022 12 31]
                 m1.at "Sum Int" . to_vector . should_equal [17, 10, 4]
 
                 g2 = table.aggregate [Group_By "Time", Sum "Int"]
-                m2 = materialize g2 . order_by (Sort_Column_Selector.By_Name ["Time"])
+                m2 = materialize g2 . order_by (["Time"])
                 m2.at "Time" . to_vector . should_equal [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500 100 900, Time_Of_Day.new 1 2 3, Time_Of_Day.new 11 25 40]
                 m2.at "Sum Int" . to_vector . should_equal [9, 2, 4, 16]
 
                 g3 = table.aggregate [Group_By "DateTime", Sum "Int"]
-                m3 = materialize g3 . order_by (Sort_Column_Selector.By_Name ["DateTime"])
+                m3 = materialize g3 . order_by (["DateTime"])
                 m3.at "DateTime" . to_vector . should_equal [Date_Time.new 1998, Date_Time.new 1999, Date_Time.new 2022 8 29 17 28 5]
                 m3.at "Sum Int" . to_vector . should_equal [24, 5, 2]
 
@@ -1185,34 +1187,96 @@ spec setup =
                 problems = [Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column."]
                 Problems.test_problem_handling action problems tester
 
+    Test.group prefix+"Table.aggregate+Expressions" <|
+        ## TODO we probably should check all kinds of aggregate columns
+           to verify that  all of them correctly support expressions.
+        Test.specify "should allow expressions in aggregates" <|
+            table = table_builder [["Index", [1, 1, 2, 2]], ["Value", [1, 2, 3, 4]]]
+            t1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[Value]*[Value]"]
+            t1.column_count . should_equal 3
+            r1 =  t1 |> materialize |> _.order_by "Index"
+            r1.at "Index" . to_vector . should_equal [1, 2]
+            r1.at "Sum Value" . to_vector . should_equal [3, 7]
+            # Not using by name, as naming is not yet consistent between backends.
+            # r1.at "Sum [Value]*[Value]" . to_vector . should_equal [5, 25]
+            r1.at -1 . to_vector . should_equal [5, 25]
+
+        Test.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
+            action1 = table.aggregate [Group_By "Index", Sum "Value", Sum "[MISSING]*[MISSING]"] on_problems=_
+            tester1 = expect_column_names ["Index", "Sum Value"]
+            problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
+            Problems.test_problem_handling action1 problems1 tester1
+
+            t2 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Ignore
+            expect_column_names ["Index", "Sum Value"] t2
+            err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Report_Error
+            err3.should_fail_with Invalid_Aggregate_Column
+            err3.catch.name . should_equal "[[["
+            err3.catch.expression_error . should_be_a Expression_Error.Syntax_Error
+
+            t4 = table.aggregate [Sum "[MISSING]*[MISSING]"]
+            t4 . should_fail_with Invalid_Aggregate_Column
+            err4 = t4.catch
+            err4.name.should_equal "[MISSING]*[MISSING]"
+            err4.expression_error.should_equal (No_Such_Column.Error "MISSING")
+
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling) <|
         table =
             col1 = ["Index", [1, 2, 3]]
             col2 = ["Value", [1, 2, 3]]
             table_builder [col1, col2]
 
-        Test.specify "should raise a warning when there are no output columns" <|
-            [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
-                t = table.aggregate [] on_problems=pb
-                t.should_fail_with No_Output_Columns
+        Test.specify "should fail if there are no output columns, and promote any warnings to errors" <|
+            [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+": " <|
+                t1 = table.aggregate [] on_problems=pb
+                t1.should_fail_with No_Output_Columns
 
-        Test.specify "should raise a warning when can't find a column by name" <|
-            action = table.aggregate [Group_By "Missing", Group_By "Index"] on_problems=_
-            problems = [Missing_Input_Columns.Error ["Missing"]]
-            tester = expect_column_names ["Index"]
-            Problems.test_problem_handling action problems tester
+            t2 = table.aggregate [Sum "MISSING"]
+            t2 . should_fail_with Invalid_Aggregate_Column
+            t2.catch.name.should_equal "MISSING"
 
-        Test.specify "should raise a warning when an invalid column index" <|
-            action = table.aggregate [Group_By -3, Group_By "Index"] on_problems=_
-            problems = [Column_Indexes_Out_Of_Range.Error [-3]]
-            tester = expect_column_names ["Index"]
-            Problems.test_problem_handling action problems tester
+            t3 = table.aggregate [Sum 42]
+            t3 . should_fail_with Column_Indexes_Out_Of_Range
+            t3.catch.indexes.should_equal [42]
 
-        Test.specify "should raise warnings when grouped by an invalid column index" <|
-            action = table.aggregate [Group_By -3, Count] on_problems=_
-            problems = [Column_Indexes_Out_Of_Range.Error [-3]]
-            tester = expect_column_names ["Count"]
-            Problems.test_problem_handling action problems tester
+        Test.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in a Group_By" <|
+            err1 = table.aggregate [Group_By "Missing", Group_By "Index", Group_By "Other_Missing"] on_problems=Problem_Behavior.Ignore
+            err1.should_fail_with Invalid_Aggregate_Column
+            err1.catch.name . should_equal "Missing"
+
+            t1 = table.aggregate [Group_By "Index", Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Report_Warning
+            t1.column_names . should_equal ["Index", "Sum Value"]
+            warnings = Problems.get_attached_warnings t1
+            warnings.not_empty . should_be_true
+            warnings.first.should_be_a Invalid_Aggregate_Column
+            warnings.first.name.should_equal "Missing"
+
+            ## Even if there are missing columns both for group-by and
+               aggregations, the groupby errors are reported separately.
+            err2 = table.aggregate [Group_By "Index", Group_By "Unknown", Sum "Value", Sum "Missing", Group_By "Other Missing"] on_problems=Problem_Behavior.Report_Error
+            err2.should_fail_with Invalid_Aggregate_Column
+            err2.catch.name.should_equal "Unknown"
+
+            err3 = table.aggregate [Group_By "Index", Sum "Value", Sum "Missing"] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err3.should_fail_with Invalid_Aggregate_Column
+            err3.catch.name.should_equal "Missing"
+
+            err4 = table.aggregate [Group_By 100, Group_By "Index", Group_By -42] on_problems=Problem_Behavior.Ignore
+            err4.should_fail_with Column_Indexes_Out_Of_Range
+            err4.catch.indexes.should_equal [100, -42]
+
+            action2 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=_
+            problems2 = [Column_Indexes_Out_Of_Range.Error [42]]
+            tester2 = expect_column_names ["Index", "Sum Value"]
+            Problems.test_problem_handling action2 problems2 tester2
+
+            # As above, missing errors from group-by take precedence over aggregates.
+            err5 = table.aggregate [Group_By "Index", Group_By 55, Sum "Value", Sum 144, Group_By -33] on_problems=Problem_Behavior.Report_Error
+            err5.should_fail_with Column_Indexes_Out_Of_Range
+            err5.catch.indexes.should_equal [55, -33]
+
+            err6 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
+            err6.catch . should_equal (Column_Indexes_Out_Of_Range.Error [42])
 
         Test.specify "should raise a warning when an invalid output name" <|
             action = table.aggregate [Group_By "Index" ""] on_problems=_
@@ -1230,6 +1294,12 @@ spec setup =
             action = table.aggregate [Group_By "Value", Group_By "Index" "Value"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["Value"]]
             tester = expect_column_names ["Value_1", "Value"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should raise a warning when duplicate column names" <|
+            action = table.aggregate [Sum "Value" new_name="AGG1", Count new_name="AGG1"] on_problems=_
+            problems = [Duplicate_Output_Column_Names.Error ["AGG1"]]
+            tester = expect_column_names ["AGG1", "AGG1_1"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should allow partial matches on Count_Distinct" <|
@@ -1255,51 +1325,51 @@ spec setup =
         Test.specify "should warn if grouping on a floating point" <|
             action = table.aggregate [Group_By 1] on_problems=_
             # All rows are marked as floating point, because the integers get coerced to double when stored in DoubleStorage
-            problems = [Floating_Point_Grouping.Error "Value"]
+            problems = [Floating_Point_Equality.Error "Value"]
             tester = expect_column_names ["Value"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if totaling on a non number" <|
-            action = table.aggregate [Sum "Text"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Sum Text" [0] "Cannot convert to a number."]
-            tester = expect_column_names ["Sum Text"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Sum "Text"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Sum Text" [0] "Cannot convert to a number.")
 
         Test.specify "should warn if averaging on a non number" <|
-            action = table.aggregate [Average "Text"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Average Text" [0] "Cannot convert to a number."]
-            tester = expect_column_names ["Average Text"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Average "Text"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Average Text" [0] "Cannot convert to a number.")
 
         Test.specify "should warn if calculating standard deviation on a non number" <|
-            action = table.aggregate [Standard_Deviation "Text"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Standard Deviation Text" [0] "Cannot convert to a number."]
-            tester = expect_column_names ["Standard Deviation Text"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Standard_Deviation "Text"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Standard Deviation Text" [0] "Cannot convert to a number.")
 
         Test.specify "should warn if median on a non number" <|
-            action = table.aggregate [Median "Text"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Median Text" [0] "Cannot convert to a number."]
-            tester = expect_column_names ["Median Text"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Median "Text"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Median Text" [0] "Cannot convert to a number.")
 
         Test.specify "should warn if trying shortest on a non text" <|
-            action = table.aggregate [Shortest "Index"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Shortest Index" [0] "Not a text value."]
-            tester = expect_column_names ["Shortest Index"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Shortest "Index"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Shortest Index" [0] "Not a text value.")
 
         Test.specify "should warn if trying count empties on a non text" <|
-            action = table.aggregate [Count_Empty "Index"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Count Empty Index" [0] "Not a text value."]
-            tester = expect_column_names ["Count Empty Index"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Count_Empty "Index"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Count Empty Index" [0] "Not a text value.")
 
         Test.specify "should warn if trying concatenate on a non text" <|
-            action = table.aggregate [Concatenate "Index"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Concatenate Index" [0] "Not a text value."]
-            tester = expect_column_names ["Concatenate Index"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Concatenate "Index"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Concatenate Index" [0] "Not a text value.")
 
         Test.specify "should warn if trying concatenate unquoted delimiters" <|
             column = Concatenate "Text" separator=","
@@ -1308,11 +1378,19 @@ spec setup =
             tester = expect_column_names ["Concatenate Text"]
             Problems.test_problem_handling action problems tester
 
+        Test.specify "should not fail if trying concatenate unquoted delimiters with no separator" <|
+            column = Concatenate "Text" separator=""
+            t = table_builder [["Text", ["A", "BC", "def"]]]
+            result = t.aggregate [column] on_problems=Report_Error
+            Problems.assume_no_problems result
+            result.column_names . should_equal ["Concatenate Text"]
+            result.at "Concatenate Text" . to_vector . should_equal ["ABCdef"]
+
         Test.specify "should warn if can't compare value for Min or Max" <|
-            action = table.aggregate [Maximum "Mixed"] on_problems=_
-            problems = [Invalid_Aggregation.Error "Maximum Mixed" [1] "Cannot compare values."]
-            tester = expect_column_names ["Maximum Mixed"]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                err = table.aggregate [Maximum "Mixed"] on_problems=pb
+                err.should_fail_with Invalid_Aggregation
+                err.catch . should_equal (Invalid_Aggregation.Error "Maximum Mixed" [1] "Cannot compare values.")
 
     Test.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) <|
         table =
@@ -1323,18 +1401,17 @@ spec setup =
 
         Test.specify "should merge Invalid Aggregation warnings" <|
             new_table = table.aggregate [Group_By "Key", Concatenate "Value"]
-            problems = Problems.get_attached_warnings new_table
-            problems.length . should_equal 1
-            problems.at 0 . is_a Invalid_Aggregation.Error . should_be_true
-            problems.at 0 . column . should_equal "Concatenate Value"
-            problems.at 0 . rows . length . should_equal 15
+            err = new_table.catch
+            err . should_be_a Invalid_Aggregation.Error
+            err.column . should_equal "Concatenate Value"
+            err.rows . length . should_equal 15
 
         Test.specify "should merge Floating Point Grouping warnings" <|
             new_table = table.aggregate [Group_By "Float", Count]
             problems = Problems.get_attached_warnings new_table
             problems.length . should_equal 1
-            problems.at 0 . is_a Floating_Point_Grouping.Error . should_be_true
-            problems.at 0 . column . should_equal "Float"
+            problems.at 0 . is_a Floating_Point_Equality.Error . should_be_true
+            problems.at 0 . location . should_equal "Float"
 
     if is_database then
         Test.group prefix+"Table.aggregate should report unsupported operations but not block other aggregations in warning mode" <|
@@ -1356,7 +1433,7 @@ spec setup =
             if test_selection.first_last.not then
                 Test.specify "with First and Last with ordering" <|
                     table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
-                    order = Sort_Column_Selector.By_Name [Sort_Column.Name "A"]
+                    order = [Sort_Column.Name "A"]
                     expect_sum_and_unsupported_errors 2 <|
                         table.aggregate [Sum "X", First "X" (order_by=order), Last "X" (order_by=order)]
 

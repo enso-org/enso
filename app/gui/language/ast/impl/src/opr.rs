@@ -26,7 +26,7 @@ use crate::Shape;
 // =================
 
 /// Symbols that can appear in operator name, as per
-/// https://dev.enso.org/docs/enso/syntax/naming.html#operator-naming
+/// https://enso.org/docs/developer/enso/syntax/naming.html#operator-naming
 pub const SYMBOLS: [char; 25] = [
     '!', '$', '%', '&', '*', '+', '-', '/', '<', '>', '?', '^', '~', '|', ':', '\\', ',', '.', '(',
     ')', '[', ']', '{', '}', '=',
@@ -107,7 +107,7 @@ pub fn is_assignment(ast: &Ast) -> bool {
 pub fn assignment() -> known::Opr {
     // TODO? We could cache and reuse, if we care.
     let name = predefined::ASSIGNMENT.into();
-    let opr = Opr { name };
+    let opr = Opr { name, right_assoc: false };
     known::Opr::new(opr, None)
 }
 
@@ -150,7 +150,10 @@ pub fn make_operator(opr: &Ast) -> Option<Operator> {
 
 /// Describes associativity of the given operator AST.
 pub fn assoc(ast: &known::Opr) -> Assoc {
-    Assoc::of(&ast.name)
+    match ast.right_assoc {
+        true => Assoc::Right,
+        false => Assoc::Left,
+    }
 }
 
 
@@ -260,18 +263,18 @@ impl GeneralizedInfix {
     }
 
     /// The self operand, target of the application.
-    pub fn target_operand(&self) -> Operand {
+    pub fn target_operand(&self) -> &Operand {
         match self.assoc() {
-            Assoc::Left => self.left.clone(),
-            Assoc::Right => self.right.clone(),
+            Assoc::Left => &self.left,
+            Assoc::Right => &self.right,
         }
     }
 
     /// Operand other than self.
-    pub fn argument_operand(&self) -> Operand {
+    pub fn argument_operand(&self) -> &Operand {
         match self.assoc() {
-            Assoc::Left => self.right.clone(),
-            Assoc::Right => self.left.clone(),
+            Assoc::Left => &self.right,
+            Assoc::Right => &self.left,
         }
     }
 
@@ -283,11 +286,11 @@ impl GeneralizedInfix {
     }
 
     fn flatten_with_offset(&self, offset: usize) -> Chain {
-        let target = self.target_operand();
+        let target = self.target_operand().clone();
         let rest = ChainElement {
             offset,
             operator: self.opr.clone(),
-            operand: self.argument_operand(),
+            operand: self.argument_operand().clone(),
             infix_id: self.id,
         };
 
@@ -327,7 +330,7 @@ pub struct Chain {
     /// Subsequent operands applied to the `target`.
     pub args:     Vec<ChainElement>,
     /// Operator AST. Generally all operators in the chain should be the same (except for id).
-    /// It is not specified which exactly operator's in the chain this AST belongs to.
+    /// It is not specified exactly which operators in the chain this AST belongs to.
     pub operator: known::Opr,
 }
 

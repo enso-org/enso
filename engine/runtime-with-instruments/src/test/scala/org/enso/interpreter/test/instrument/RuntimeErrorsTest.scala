@@ -135,7 +135,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -176,7 +176,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       TestMessages.panic(
         contextId,
@@ -184,7 +185,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       TestMessages.panic(
         contextId,
@@ -192,7 +194,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       context.executionComplete(contextId)
     )
@@ -221,7 +224,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -263,7 +266,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
-        )
+        ),
+        builtin = true
       ),
       context.executionComplete(contextId)
     )
@@ -302,7 +306,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -371,7 +375,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -456,7 +460,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -532,7 +536,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -686,7 +690,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -781,7 +785,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -872,7 +876,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -977,7 +981,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1098,7 +1102,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1226,7 +1230,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1255,7 +1259,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "9 (Integer)",
           Seq(xId)
-        )
+        ),
+        builtin = false
       ),
       TestMessages.panic(
         contextId,
@@ -1340,7 +1345,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1441,7 +1446,7 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1482,7 +1487,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       TestMessages.panic(
         contextId,
@@ -1490,7 +1496,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       context.executionComplete(contextId)
     )

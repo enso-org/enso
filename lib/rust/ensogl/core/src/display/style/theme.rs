@@ -61,7 +61,7 @@ impl Theme {
         E: Into<Value>, {
         let path = path.into();
         let value = value.into();
-        self.tree.borrow_mut().set(&path.rev_segments, Some(value));
+        self.tree.borrow_mut().set(path.rev_segments, Some(value));
         self.on_mut.run_all();
     }
 
@@ -304,7 +304,7 @@ impl Manager {
         if self.enabled_dirty.check_all() {
             self.current_dirty.take();
             let names = self.enabled_dirty.take().vec;
-            self.data.borrow_mut().set_enabled(&names);
+            self.data.borrow_mut().set_enabled(names);
         } else if self.current_dirty.take().check() {
             self.data.borrow_mut().refresh()
         }

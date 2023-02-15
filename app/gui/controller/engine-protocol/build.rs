@@ -30,9 +30,8 @@ const ENABLE_ENV_VAR_NAME: &str = "ENSO_IDE_ENABLE_FLATC";
 
 /// An URL pointing to engine interface files.
 pub fn interface_description_url() -> reqwest::Url {
-    let url =
-        format!("https://packages.luna-lang.org/fbs-schema/nightly/{}/fbs-schema.zip", COMMIT);
-    let err = format!("{} is an invalid URL.", url);
+    let url = format!("https://packages.luna-lang.org/fbs-schema/nightly/{COMMIT}/fbs-schema.zip");
+    let err = format!("{url} is an invalid URL.");
     reqwest::Url::parse(&url).expect(&err)
 }
 
@@ -68,10 +67,10 @@ impl ApiProvider {
     pub fn unzip(&self, artifacts: bytes::Bytes) {
         let zip_path = self.out_dir.join(ZIP_NAME);
         let display_path = zip_path.display();
-        let open_error = format!("Failed to open {}", display_path);
-        let write_error = format!("Failed to write {}", display_path);
-        let flush_error = format!("Failed to flush {}", display_path);
-        let unzip_error = format!("Failed to unzip {}", display_path);
+        let open_error = format!("Failed to open {display_path}");
+        let write_error = format!("Failed to write {display_path}");
+        let flush_error = format!("Failed to flush {display_path}");
+        let unzip_error = format!("Failed to unzip {display_path}");
 
         let mut file = File::create(&zip_path).expect(&open_error);
         file.write_all(&artifacts).expect(&write_error);
@@ -136,12 +135,12 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         provider.run().await;
     } else {
         println!(
-            "cargo:info=Will not try updating flatc-generated files. Define `{}` environment \
-        variable to enable regeneration of the Engine API flatc bindings.",
-            ENABLE_ENV_VAR_NAME
+            "cargo:info=Will not try updating flatc-generated files. Define \
+            `{ENABLE_ENV_VAR_NAME}` environment variable to enable regeneration of the Engine API \
+            flatc bindings.",
         );
     }
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-env-changed={}", ENABLE_ENV_VAR_NAME);
+    println!("cargo:rerun-if-env-changed={ENABLE_ENV_VAR_NAME}");
     Ok(())
 }

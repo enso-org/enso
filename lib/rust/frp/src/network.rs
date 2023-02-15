@@ -94,9 +94,14 @@ impl Network {
         WeakNetwork { data: Rc::downgrade(&self.data) }
     }
 
+    /// Get the number of strong references to this network.
+    pub fn strong_count(&self) -> usize {
+        Rc::strong_count(&self.data)
+    }
+
     /// ID getter of this network.
     pub fn id(&self) -> NetworkId {
-        self.downgrade().id()
+        NetworkId(Rc::as_ptr(&self.data) as *const () as usize)
     }
 
     /// Store arbitrary item in this network. Used as a convenient storage of data associated with

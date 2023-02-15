@@ -6,6 +6,7 @@ import javax.swing.Action;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import org.enso.tools.enso4igv.EnsoSbtClassPathProvider.EnsoSources;
+import org.enso.tools.enso4igv.EnsoSbtClassPathProvider.OtherEnsoSources;
 import org.netbeans.api.project.Project;
 import org.netbeans.api.project.ProjectUtils;
 import org.netbeans.api.project.SourceGroup;
@@ -94,12 +95,7 @@ final class EnsoLogicalView implements LogicalViewProvider  {
         @Override
         protected boolean createKeys(List<SourceGroup> toPopulate) {
             var arr = Arrays.asList(ProjectUtils.getSources(prj).getSourceGroups(null));
-            var enso = NbCollections.checkedListByCopy(arr, EnsoSources.class, true);
-            for (var e : enso) {
-                toPopulate.add(e);
-            }
-            for (var e : enso) {
-            }
+            toPopulate.addAll(arr);
             return true;
         }
 
@@ -111,9 +107,6 @@ final class EnsoLogicalView implements LogicalViewProvider  {
         @Override
         public void stateChanged(ChangeEvent e) {
             refresh(false);
-        }
-
-        record Entry(String prefix, FileObject root) {
         }
     }
 }

@@ -56,13 +56,13 @@ fn main() {
     println!("self_duration total_duration count profiler");
     for Func { label, timings } in funcs.iter().rev() {
         let FuncTimings { total_duration, self_duration, count } = timings;
-        println!("{:>6.1} {:>6.1} {} {}", self_duration, total_duration, count, label);
+        println!("{self_duration:>6.1} {total_duration:>6.1} {count} {label}");
     }
     let mut total_duration = 0.0;
     for Func { timings, .. } in funcs.iter() {
         total_duration += timings.self_duration;
     }
-    println!("0.0 {:>6.1} 1 (total_self_duration)", total_duration);
+    println!("0.0 {total_duration:>6.1} 1 (total_self_duration)");
 }
 
 

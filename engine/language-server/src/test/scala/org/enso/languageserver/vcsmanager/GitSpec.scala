@@ -1,5 +1,7 @@
 package org.enso.languageserver.vcsmanager
 
+import java.nio.file.{Files, Path}
+import java.nio.charset.StandardCharsets
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.effect.Effects
 import org.scalatest.matchers.should.Matchers
@@ -8,18 +10,33 @@ import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.RevCommit
+import org.enso.testkit.FlakySpec
 
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
-import java.nio.file.{Files, Path}
-import java.nio.charset.StandardCharsets
 
-class GitSpec extends AnyWordSpecLike with Matchers with Effects {
+class GitSpec
+    extends AnyWordSpecLike
+    with Matchers
+    with Effects
+    with FlakySpec {
+
+  override def opTimeout = 5.seconds
 
   "VCS initialization" should {
-    "create a new repository" in new TestCtx {
+    "create a new repository" taggedAs Flaky in new TestCtx {
       val targetRepo = repoPath.resolve(VcsApi.DefaultRepoDir)
       targetRepo.toFile shouldNot exist
-      val result = vcs.init(repoPath).unsafeRunSync()
+      var result: Either[VcsFailure, Unit] =
+        Left(GenericVcsFailure("test failure"))
+      val now = System.currentTimeMillis()
+      try {
+        result = vcs.init(repoPath).unsafeRunSync()
+      } finally {
+        val end = System.currentTimeMillis()
+        // High-enough to avoid spurious errors, low-enough to detect problems
+        (end - now) should be < 1000L
+      }
       result.isRight shouldBe true
       targetRepo.toFile should exist
     }
@@ -47,7 +64,8 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
     "create a vcs meta directory at a custom location" in new TestCtx {
       val dataDirectory = Path.of(".enso")
       override lazy val vcs = Git.withEmptyUserConfig(
-        Some(dataDirectory)
+        Some(dataDirectory),
+        asyncInit = true
       )
 
       repoPath.resolve(dataDirectory).toFile.mkdir()
@@ -362,7 +380,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
         .build()
     }
 
-    lazy val vcs = Git.withEmptyUserConfig(None)
+    lazy val vcs = Git.withEmptyUserConfig(None, asyncInit = true)
 
     def listCommits(repoDir: Path): List[RevCommit] = {
       listCommits(testRepo(repoDir))

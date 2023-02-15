@@ -3,6 +3,8 @@ import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -686,18 +688,5 @@ type Date_Time
     format : Text -> Text
     format self pattern = @Builtin_Method "Date_Time.format"
 
-    ## Compares `self` to `that` to produce an ordering.
 
-       Arguments:
-       - that: The other `Date_Time` to compare against.
-
-       > Example
-         Compare two times for their ordering.
-
-         (Date_Time.new 2000).compare_to (Date_Time.new 2001)
-    compare_to : Date_Time -> Ordering
-    compare_to self that = case that of
-        _ : Date_Time ->
-            sign = Time_Utils.compare_to_zoneddatetime self that
-            Ordering.from_sign sign
-        _ -> Error.throw (Type_Error.Error Date_Time that "that")
+Comparable.from (_:Date_Time) = Default_Ordered_Comparator
