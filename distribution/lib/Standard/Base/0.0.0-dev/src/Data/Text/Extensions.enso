@@ -231,12 +231,11 @@ Text.characters self =
              "aabbbbccccaabcaaaa".match regex == "abc"
 Text.match : Text -> Matching_Mode -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
 Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value = case matcher of
-    Text_Matcher.Case_Sensitive ->
-        case self.locate term mode Case_Sensitivity.Sensitive of
-            Nothing -> Nothing
-            span -> span.text
-    Text_Matcher.Case_Insensitive locale ->
-        case self.locate term mode (Case_Sensitivity.Insensitive locale) of
+    _ : Text_Matcher ->
+        case_sensitivity = case matcher of
+            Text_Matcher.Case_Sensitive -> Case_Sensitivity.Sensitive
+            Text_Matcher.Case_Insensitive locale -> Case_Sensitivity.Insensitive
+        case self.locate term mode case_sensitivity of
             Nothing -> Nothing
             span -> span.text
     _ : Regex_Matcher -> case mode of
@@ -269,10 +268,11 @@ Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value = case
              "aabcbbccaacaa".match regex == ["abc", "aac"]
 Text.match_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
 Text.match_all self term=".*" matcher=Regex_Matcher.Value = case matcher of
-    Text_Matcher.Case_Sensitive ->
-        self.locate_all term Case_Sensitivity.Sensitive . map .text
-    Text_Matcher.Case_Insensitive locale ->
-        self.locate_all term (Case_Sensitivity.Insensitive locale) . map .text
+    _ : Text_Matcher ->
+        case_sensitivity = case matcher of
+            Text_Matcher.Case_Sensitive -> Case_Sensitivity.Sensitive
+            Text_Matcher.Case_Insensitive locale -> Case_Sensitivity.Insensitive
+        self.locate_all term case_sensitivity . map .text
     _ : Regex_Matcher ->
         case matcher.compile term . match self Regex_Mode.All of
             Nothing -> []
