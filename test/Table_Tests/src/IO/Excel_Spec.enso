@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Match_Columns, Column_Name_Mapping, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited
+from Standard.Table import Table, Match_Columns, Column_Name_Mapping, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Excel_Workbook
 
 from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
 
@@ -13,10 +13,14 @@ import Standard.Examples
 
 import project.Util
 
-spec_fmt header file read_method =
+spec_fmt header file read_method sheet_count=5 =
     Test.group header <|
+        Test.specify "should read a workbook in" <|
+            wb = read_method file
+            wb.sheet_count . should_equal sheet_count
+
         Test.specify "should read the specified sheet by index and use correct headers" <|
-            t = read_method file
+            t = read_method file (Excel (Worksheet 1))
             t.columns.map .name . should_equal ['Name', 'Quantity', 'Price']
             t.at 'Name' . to_vector . should_equal ['blouse', 't-shirt', 'trousers', 'shoes', 'skirt', 'dress']
             t.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
@@ -458,6 +462,9 @@ spec =
     xls_sheet = enso_project.data / "TestSheetOld.xls"
     xls_path = xls_sheet.path
 
+    sheet_names = ["Sheet1", "Another", "NoHeaders", "Random"]
+    range_names = ["myData"]
+
     col_a = ["Test", "Here", "Is", "Data"]
     col_b = [1, 2, 3, 4]
     col_c = [Date.new 2022 06 12, Date.new 2022 10 20, Date.new 2022 07 30, Date.new 2022 10 15]
@@ -477,32 +484,55 @@ spec =
         if count > 3 then check_column (table.at "D") col_d
         if count > 4 then check_column (table.at "E") col_e
 
-    Test.group "Read XLSX / XLS Files" <|
-        Test.specify "should let you read the first sheet with Auto_Detect" <|
-            check_table <| xlsx_sheet.read
-            check_table <| Data.read xlsx_sheet
-            check_table <| Data.read xlsx_path
-            check_table <| xls_sheet.read
-            check_table <| Data.read xls_sheet
-            check_table <| Data.read xls_path
+    check_workbook workbook sheets=sheet_names.length ranges=range_names.length =
+        workbook.is_a Excel_Workbook . should_be_true
+        workbook.sheet_count . should_equal sheets
+        workbook.named_ranges_count . should_equal ranges
 
-        Test.specify "should let you read the first sheet with Excel" <|
-            check_table <| xlsx_sheet.read Excel
-            check_table <| Data.read xlsx_sheet Excel
-            check_table <| Data.read xlsx_path Excel
-            check_table <| xls_sheet.read Excel
-            check_table <| Data.read xls_sheet Excel
-            check_table <| Data.read xls_path Excel
+    Test.group "Read XLSX / XLS Files" <|
+        Test.specify "should let you read the workbook with Auto_Detect" <|
+            check_workbook <| xlsx_sheet.read
+            check_workbook <| Data.read xlsx_sheet
+            check_workbook <| Data.read xlsx_path
+
+            check_workbook <| xls_sheet.read
+            check_workbook <| Data.read xls_sheet
+            check_workbook <| Data.read xls_path
+
+        Test.specify "should let you read the workbook with Excel" <|
+            check_workbook <| xlsx_sheet.read Excel
+            check_workbook <| Data.read xlsx_sheet Excel
+            check_workbook <| Data.read xlsx_path Excel
+
+            check_workbook <| xls_sheet.read Excel
+            check_workbook <| Data.read xls_sheet Excel
+            check_workbook <| Data.read xls_path Excel
+
+        Test.specify "workbook should look like a database connection" <|
+            workbook = xlsx_sheet.read
+
+            workbook.database . should_equal xlsx_sheet.normalize.path
+            workbook.schema . should_equal Nothing
+
+            workbook.table_types . should_equal ['Worksheet', 'Named Range']
+
+            workbook.tables.row_count . should_equal (sheet_names.length + range_names.length)
+            workbook.tables types=["Worksheet"] . row_count . should_equal sheet_names.length
+            workbook.tables types=["Named Range"] . row_count . should_equal range_names.length
+            workbook.tables types=["XXX"] . row_count . should_equal 0
+
+            workbook.tables "%not%" . row_count . should_equal 1
+            workbook.tables "%not%" . at 'Name' . to_vector . should_equal ["Another"]
 
         Test.specify "should let you read the sheet names" <|
-            sheet_names = ["Sheet1", "Another", "NoHeaders", "Random"]
             xlsx_sheet.read (Excel Sheet_Names) . should_equal sheet_names
             xls_sheet.read (Excel Sheet_Names) . should_equal sheet_names
+            xlsx_sheet.read . sheet_names . should_equal sheet_names
 
         Test.specify "should let you read the range names" <|
-            range_names = ["myData"]
             xlsx_sheet.read (Excel Range_Names) . should_equal range_names
             xls_sheet.read (Excel Range_Names) . should_equal range_names
+            xlsx_sheet.read . named_ranges . should_equal range_names
 
         Test.specify "should let you read by sheet index" <|
             table = xlsx_sheet.read (Excel (Worksheet 1))
@@ -520,6 +550,9 @@ spec =
             table_2.row_count . should_equal col_a.length
             check_table table_2
 
+            table_3 = xlsx_sheet.read . read "Sheet1"
+            check_table table_3
+
         Test.specify "should let you read XLS by sheet index" <|
             table = xls_sheet.read (Excel (Worksheet 1))
             check_table table
@@ -532,6 +565,9 @@ spec =
             table = xls_sheet.read (Excel (Worksheet "Sheet1"))
             check_table table
 
+            table_2 = xls_sheet.read . read "Sheet1"
+            check_table table_2
+
         Test.specify "should let you read by range" <|
             table = xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C"))
             check_table table 3
@@ -543,10 +579,17 @@ spec =
             check_table <| xlsx_sheet.read (Excel (Cell_Range "Sheet1!10:13"))
             check_table count=3 <| xlsx_sheet.read (Excel (Cell_Range "Sheet1!A10:C13"))
 
+            check_table <| xlsx_sheet.read . read "Sheet1!10:13"
+            check_table count=3 <| xlsx_sheet.read . read "Sheet1!A10:C13"
+
         Test.specify "should let you read by range name" <|
             table = xlsx_sheet.read (Excel (Cell_Range "myData"))
             table.row_count . should_equal col_a.length
             check_table table 3
+
+            table_2 = xlsx_sheet.read . read "myData"
+            table_2.row_count . should_equal col_a.length
+            check_table table_2 3
 
         Test.specify "should let you restrict number of rows read and skip rows" <|
             table = xlsx_sheet.read (Excel (Worksheet "Sheet1"))

@@ -61,7 +61,7 @@ type Excel_Format
     read self file on_problems =
         format = should_treat_as_xls_format self.xls_format file
         case self.section of
-            Excel_Section.Workbook -> Excel_Workbook.Value file format self.headers
+            Excel_Section.Workbook -> Excel_Workbook.new file format self.headers
             _ -> Excel_Reader.read_file file self.section self.headers on_problems format
 
     ## Implements the `Table.write` for this `File_Format`.

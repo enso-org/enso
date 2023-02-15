@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 
@@ -7,11 +8,31 @@ from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
 
 import project.Data.Table.Table
+import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Reader
-import project.Excel.Excel_Section.Excel_Section
+
+polyglot java import org.enso.table.read.ExcelReader
+polyglot java import org.apache.poi.ss.usermodel.Workbook
 
 type Excel_Workbook
-    Value file:File|Text xls_format:Boolean headers:(Boolean|Infer)=Infer
+    ## Load a File as an Excel_Workbook.
+
+       Arguments:
+       - file: The file to load.
+       - xls_format: Whether to use the old XLS format (default is XLSX).
+       - headers: Whether to use the first row as headers (default is to infer).
+    new : File | Text -> Boolean -> Boolean | Infer -> Excel_Workbook
+    new file xls_format=False headers=Infer =
+        file_obj = File.new file . normalize
+        File_Error.handle_java_exceptions file_obj <|
+            file_obj.with_input_stream [File_Access.Read] stream->
+                stream.with_java_stream java_stream->
+                    workbook = ExcelReader.readWorkbook java_stream xls_format
+                    Excel_Workbook.Value workbook file_obj xls_format headers
+
+    ## PRIVATE
+       Creates an Excel_Workbook connection.
+    Value workbook:Workbook file:File xls_format:Boolean headers:(Boolean|Infer)
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
@@ -19,7 +40,7 @@ type Excel_Workbook
 
     ## Returns the name of the current database (or catalog).
     database : Text
-    database self = self.file.normalize.path
+    database self = self.file.path
 
     ## Returns a new Connection with the specified database set as default.
 
@@ -30,8 +51,8 @@ type Excel_Workbook
     set_database self database =
         if database == self.database then self else
             file = File.new database
-            if file.exists then Excel_Workbook.Value file self.xls_format else
-                Error.throw (Illegal_Argument.Error "The specified file does not exist.")
+            if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format self.headers else
+                Error.throw (Illegal_Argument.Error "The specified file ('"+file.path+"') does not exist.")
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector (Text | Nothing)
@@ -51,6 +72,22 @@ type Excel_Workbook
         if schema == self.schema then self else
             Error.throw (Illegal_Argument.Error "Changing schema is not supported.")
 
+    ## Gets the number of sheets
+    sheet_count : Integer
+    sheet_count self = self.workbook.getNumberOfSheets
+
+    ## Gets the names of all the sheets
+    sheet_names : Vector Text
+    sheet_names self = Vector.from_polyglot_array (ExcelReader.readSheetNames self.workbook)
+
+    ## Gets the number of named ranges
+    named_ranges_count : Integer
+    named_ranges_count self = self.workbook.getNumberOfNames
+
+    ## Gets the names of all the named ranges
+    named_ranges : Vector Text
+    named_ranges self = Vector.from_polyglot_array (ExcelReader.readRangeNames self.workbook)
+
     ## Gets a list of the table types
     table_types : Vector Text
     table_types self = ['Worksheet', 'Named Range']
@@ -67,15 +104,9 @@ type Excel_Workbook
     tables : Text -> Text -> Text -> Vector -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         _ = [all_fields]
-        rows = if (schema != Nothing) then [] else
-            file = File.new database
-
-            sheets_raw = Excel_Reader.read_file file Excel_Section.Sheet_Names self.headers Report_Warning self.xls_format
-            sheets = if types=Nothing || types.contains "Worksheet" then sheets_raw.map s-> [s, 'Worksheet', database, Nothing] else []
-
-            range_names_raw = Excel_Reader.read_file file Excel_Section.Range_Names self.headers Report_Warning self.xls_format
-            ranges = if types=Nothing || types.contains "Named Range" then range_names_raw.map r-> [r, 'Named Range', database, Nothing] else []
-
+        rows = if schema != Nothing then [] else
+            sheets = if types==Nothing || types.contains "Worksheet" then self.sheet_names.map s-> [s, 'Worksheet', database, Nothing] else []
+            ranges = if types==Nothing || types.contains "Named Range" then self.named_ranges.map r-> [r, 'Named Range', database, Nothing] else []
             sheets + ranges
 
         filtered = if name_like == Nothing then rows else
@@ -103,4 +134,7 @@ type Excel_Workbook
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
     read : Text -> Integer | Nothing -> Table
     read self query limit=Nothing =
-        Excel_Reader.read_file self.file (Excel_Section.Cell_Range query 0 limit) self.headers Report_Warning self.xls_format
+        java_headers = Excel_Reader.make_java_headers self.headers
+        Excel_Reader.prepare_reader_table Report_Warning <| case query of
+            _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit
+            _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit
