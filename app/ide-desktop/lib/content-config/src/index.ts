@@ -133,10 +133,10 @@ export const options = config.options.merge(
                             'Controls whether the minimum engine version check should be performed.',
                         primary: false,
                     }),
-                    // preferredVersion: new config.Option({
-                    //     default: Version.ide,
-                    //     description: `The preferred engine version.`,
-                    // }),
+                    preferredVersion: new config.Option({
+                        default: String(Version.ide),
+                        description: `The preferred engine version.`,
+                    }),
                 },
             }),
 
