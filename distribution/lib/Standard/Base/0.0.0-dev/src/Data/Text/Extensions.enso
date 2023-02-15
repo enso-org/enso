@@ -230,10 +230,24 @@ Text.characters self =
              regex = "a[ab]c"
              "aabbbbccccaabcaaaa".match regex == "abc"
 Text.match : Text -> Matching_Mode -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
-Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value =
-    case self.locate term mode matcher of
-        Nothing -> Nothing
-        span -> span.text
+Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value = case matcher of
+    Text_Matcher.Case_Sensitive ->
+        case self.locate term mode Case_Sensitivity.Sensitive of
+            Nothing -> Nothing
+            span -> span.text
+    Text_Matcher.Case_Insensitive locale ->
+        case self.locate term mode (Case_Sensitivity.Insensitive locale) of
+            Nothing -> Nothing
+            span -> span.text
+    _ : Regex_Matcher -> case mode of
+        Matching_Mode.First ->
+            case matcher.compile term . match self Matching_Mode.First of
+                Nothing -> Nothing
+                match -> match.span 0 . to_grapheme_span . text
+        Matching_Mode.Last ->
+            case matcher.compile term . match self Regex_Mode.All of
+                Nothing -> Nothing
+                matches -> matches.last.span 0 . to_grapheme_span . text
 
 ## ALIAS find_all
 
@@ -254,8 +268,15 @@ Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value =
              regex = "a[ab]c"
              "aabcbbccaacaa".match regex == ["abc", "aac"]
 Text.match_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
-Text.match_all self term=".*" matcher=Regex_Matcher.Value =
-    self.locate_all term matcher . map .text
+Text.match_all self term=".*" matcher=Regex_Matcher.Value = case matcher of
+    Text_Matcher.Case_Sensitive ->
+        self.locate_all term Case_Sensitivity.Sensitive . map .text
+    Text_Matcher.Case_Insensitive locale ->
+        self.locate_all term (Case_Sensitivity.Insensitive locale) . map .text
+    _ : Regex_Matcher ->
+        case matcher.compile term . match self Regex_Mode.All of
+            Nothing -> []
+            matches -> matches.map m-> m.span 0 . to_grapheme_span . text
 
 ## ALIAS Check Matches
 
@@ -1184,7 +1205,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
                guaranteed to be the same.
             end = start + term.length
             Span.Value (start.up_to end) self
-    Case_Sensitivity.Inensitive locale -> case term.is_empty of
+    Case_Sensitivity.Insensitive locale -> case term.is_empty of
         True -> case mode of
             Matching_Mode.First -> Span.Value (0.up_to 0) self
             Matching_Mode.Last ->
