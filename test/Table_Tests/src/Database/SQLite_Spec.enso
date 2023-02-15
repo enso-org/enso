@@ -4,6 +4,7 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Table import Table
 
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
+import Standard.Database.Connection.SQLite_Format.SQLite_Format
 from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import Test, Test_Suite
@@ -145,5 +146,26 @@ spec =
     file.delete
 
     sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
+
+    Test.group "SQLite_Format should allow connecting to SQLite files" <|
+        file.delete_if_exists
+
+        connection = Database.connect (SQLite file)
+        connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+        connection.close
+
+        Test.specify "should recognise a db file" <|
+            Auto_Detect.get_format (enso_project.data / "data.db") . should_be_a SQLite_Format
+
+        Test.specify "should recognise a sqlite file" <|
+            Auto_Detect.get_format (enso_project.data / "data.sqlite") . should_be_a SQLite_Format
+
+        Test.specify "should connect to a db file" <|
+            connection = Data.read file
+            tables = connection.tables
+            tables.row_count . should_not_equal 0
+            connection.close
+
+        file.delete_if_exists
 
 main = Test_Suite.run_main spec
