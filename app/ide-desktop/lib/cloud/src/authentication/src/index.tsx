@@ -16,7 +16,7 @@
 import * as React from 'react'
 import * as ReactDOM from 'react-dom/client'
 
-import App from './components/app'
+import App, { AppProps } from './components/app'
 import "./styles/index.css"
 
 
@@ -32,7 +32,7 @@ import "./styles/index.css"
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
  * for redirecting the user to/from the login page).
  */
-export function run (logger: Console) {
+export const run = (logger: Console, props: AppProps) => {
     logger.log("Starting authentication/dashboard UI.")
 
     // The `id` attribute of the root element that the app will be rendered into.
@@ -44,7 +44,7 @@ export function run (logger: Console) {
     // we can disable the `no-non-null-assertion` on this line.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const root: HTMLElement = document.getElementById(rootElementId)!
-    ReactDOM.createRoot(root).render(<App />);
+    ReactDOM.createRoot(root).render(<App {...props} />);
 }
 
 export default { run }

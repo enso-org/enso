@@ -18,16 +18,16 @@ import { useInput } from '../hooks'
 // ===============================
 
 const forgotPasswordContainer: React.FC<any> = () => {
-    const auth = useAuth();
+    const { forgotPassword }= useAuth();
     const navigate = useNavigate();
 
     const { value: email, bind: bindEmail } = useInput("")
 
-    const forgotPassword = async (event: FormEvent<HTMLFormElement>) => {
+    const handleForgotPassword = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         try {
-            await auth.forgotPassword(email);
+            await forgotPassword(email);
             navigate("/reset-password")
         } catch (error: any) {
             // FIXME [NP]: remove this lint?
@@ -40,10 +40,10 @@ const forgotPasswordContainer: React.FC<any> = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
         <div className="flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full max-w-md">
           <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
-            Login To Your Account
+            Forgot Your Password?
           </div>
           <div className="mt-10">
-            <form onSubmit={forgotPassword}>
+            <form onSubmit={handleForgotPassword}>
               <div className="flex flex-col mb-6">
                 <label
                   htmlFor="email"

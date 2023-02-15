@@ -5,7 +5,7 @@ import { FormEvent } from 'react'
 import { Link } from 'react-router-dom';
 import toast from "react-hot-toast";
 
-import { useAuth } from '../authentication';
+import { useAuth, withoutUser } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
 
@@ -26,21 +26,13 @@ const registrationContainer: React.FC<any> = () => {
         event.preventDefault();
 
         // The password & confirm password fields must match.
-        //
-        // TailwindCSS will ensure these two fields match, so there's no need to alert the user.
+        // FIXME [NP]: test this?
         if (password !== confirmPassword) {
-            toast.error("Passwords do not match.")
-            return
+          toast.error("Passwords do not match.")
+          return
         }
 
-        try {
-            await auth.signUp(email, password);
-            toast.success("We have sent you an email with further instructions!")
-        } catch (error: any) {
-            // FIXME [NP]: remove this lint?
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-            toast.error(error.message)
-        }
+        await auth.signUp(email, password)
     };
 
     return (
@@ -200,4 +192,4 @@ const registrationContainer: React.FC<any> = () => {
     );
 }
 
-export default withRouter(registrationContainer)
+export default withRouter(withoutUser(registrationContainer))

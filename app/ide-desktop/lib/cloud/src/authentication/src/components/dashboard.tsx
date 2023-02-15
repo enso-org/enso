@@ -4,12 +4,10 @@
  */
 
 import * as React from 'react'
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../authentication';
-import { toast } from 'react-hot-toast'
+import { FC } from 'react'
+import { FullUserSession, useAuth, withUser } from '../authentication'
 
 import withRouter from '../navigation'
-import { LOGIN_PATH } from './app';
 
 
 
@@ -17,27 +15,15 @@ import { LOGIN_PATH } from './app';
 // === dashboardContainer ===
 // ==========================
 
-const dashboardContainer: React.FC<any> = () => {
-    const { session } = useAuth();
-    const navigate = useNavigate();
-    const location = useLocation();
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    //logger.log("ERROR: session", session)
-    toast.success(`session ${JSON.stringify(session)}`)
-    if (!session) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        //logger.log("navigate")
-        //navigate(LOGIN_PATH)
-        location.pathname = LOGIN_PATH
-        toast.success("navigate login")
-    }
+const dashboardContainer: FC<any> = ({ session }: { session: FullUserSession }) => {
+    const { signOut } = useAuth()
 
     return (
         <div>
-            <h1>Hello Enso Cloud</h1>
+            <h1>Welcome to Enso Cloud {session.email}</h1>
+            <a onClick={signOut}>Sign Out</a>
         </div>
     )
 }
 
-export default withRouter(dashboardContainer)
+export default withRouter(withUser(dashboardContainer))

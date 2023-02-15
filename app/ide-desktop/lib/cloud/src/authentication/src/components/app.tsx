@@ -43,6 +43,13 @@ export const SET_USERNAME_PATH = "/set-username";
 // === App ===
 // ===========
 
+/// Global configuration for the `App` component.
+export interface AppProps {
+  /// If this is the desktop IDE, this must be set to `true`. If this is the web IDE, this must be
+  /// set to `false`.
+  runningOnDesktop: boolean;  
+}
+
 /**
  * Functional component called by the parent module, returning the root React component for this package.
  * 
@@ -50,17 +57,16 @@ export const SET_USERNAME_PATH = "/set-username";
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const App = () => {
-  // Note that the `BrowserRouter` must be the parent of the `AuthProvider`, because the
-  // `AuthProvider` will redirect the user between the login/register pages and the dashboard.
-  const electron = true;
+const App = ({ runningOnDesktop }: AppProps) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unnecessary-condition
-  const Router = electron ? MemoryRouter : BrowserRouter;
+  const Router = runningOnDesktop ? MemoryRouter : BrowserRouter;
+  // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
+  // will redirect the user between the login/register pages and the dashboard.
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} />
       <Router>
-        <AuthProvider>
+        <AuthProvider runningOnDesktop={runningOnDesktop} >
           <AppRouter />
         </AuthProvider>
       </Router>
@@ -96,7 +102,7 @@ const AppRouter: React.FC<any> = () => {
         <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
         {/* FIXME [NP]: why do we need this extra one for electron to work? */}
         <Route path={DASHBOARD_PATH} element={<DashboardContainer />} />
-        <Route index element={<LoginContainer />} />
+        <Route index element={<DashboardContainer />} />
       </React.Fragment>
     </Routes>
   )

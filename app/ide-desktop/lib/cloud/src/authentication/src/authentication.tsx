@@ -1,10 +1,17 @@
-import { Auth, CognitoHostedUIIdentityProvider } from '@aws-amplify/auth'
+/**
+ * @file Module for authenticating users with AWS Cognito.
+ * 
+ * Provides an `AuthProvider` component that wraps the entire application, and a `useAuth` hook that
+ * can be used from any React component to access the currently logged-in user's session data. The
+ * hook also provides methods for registering a user, logging in, logging out, etc.
+ */
+import { Auth, CognitoHostedUIIdentityProvider, SignUpParams } from '@aws-amplify/auth'
 import { ComponentType, createContext, FC, ReactNode, useContext, useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { getUsersMe, Organization } from './api';
-import { LOGIN_PATH, REGISTRATION_PATH, SET_USERNAME_PATH } from './components/app';
-import SetUsernameContainer from "./components/setUsername";
+import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, SET_USERNAME_PATH } from './components/app';
 import { toast } from "react-hot-toast"
+import { AuthError } from '@aws-amplify/auth/lib-esm/Errors';
 
 
 
@@ -12,8 +19,18 @@ import { toast } from "react-hot-toast"
 // === Types ===
 // =============
 
+
+// === AuthOptions ===
+
 /// The type of the object consumed by the `Auth.configure` method.
 type AuthOptions = ReturnType<typeof Auth['configure']>
+
+
+// === UserSession ===
+
+type UserSession =
+  | FullUserSession
+  | PartialUserSession;
 
 /// The type of the object containing the currently signed-in user's session data.
 export interface FullUserSession {
@@ -42,9 +59,44 @@ export interface PartialUserSession {
   email: string;
 }
 
-type UserSession =
-  | FullUserSession
-  | PartialUserSession;
+
+// === AmplifyError ===
+
+/// List of known error codes returned by the AWS Amplify library.
+type AmplifyErrorCode =
+  | "UserNotFoundException"
+  | "UserNotConfirmedException"
+  | "NotAuthorizedException"
+  | "InvalidPasswordException"
+  | "UsernameExistsException"
+  | "NetworkError";
+
+/// The type of the object returned by the AWS Amplify library when an error occurs.
+interface AmplifyError {
+  code: AmplifyErrorCode,
+  name: string,
+  message: string,
+}
+
+/// Function for determining if an error is an `AmplifyError`.
+///
+/// This function is used to know if we can safely cast an error to an `AmplifyError`.
+const isAmplifyError = (error: unknown): error is AmplifyError => {
+  if (error && typeof error === "object") {
+    return "code" in error && "message" in error && "name" in error;
+  }
+  return false;
+}
+
+/// Function for determining if an error is an `AuthError`.
+///
+/// This function is used to know if we can safely cast an error to an `AuthError`.
+const isAuthError = (error: unknown): error is AuthError => {
+  if (error && typeof error === "object") {
+    return "name" in error && "log" in error;
+  }
+  return false;
+}
 
 
 
@@ -81,22 +133,22 @@ const githubProvider = "Github";
 //    responseType: "code",
 //  },
 //}
-const browserAmplifyConfigNpekin: AuthOptions = {
-  region: "eu-west-1",
-  // FIXME [NP]
-  //identityPoolId: "",
-  userPoolId: "eu-west-1_sP5bQ4mJs",
-  userPoolWebClientId: "27gd0b05qlnkj1lcsnd0b4fb89",
-  oauth: {
-    options: {}, // FIXME [NP]
-    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
-    domain: "npekin-enso-domain.auth.eu-west-1.amazoncognito.com/",
-    scope: ['email', 'openid'], // FIXME [NP]
-    redirectSignIn: "http://localhost:8081",
-    redirectSignOut: "http://localhost:8081",
-    responseType: "code",
-  },
-}
+//const browserAmplifyConfigNpekin: AuthOptions = {
+//  region: "eu-west-1",
+//  // FIXME [NP]
+//  //identityPoolId: "",
+//  userPoolId: "eu-west-1_sP5bQ4mJs",
+//  userPoolWebClientId: "27gd0b05qlnkj1lcsnd0b4fb89",
+//  oauth: {
+//    options: {}, // FIXME [NP]
+//    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
+//    domain: "npekin-enso-domain.auth.eu-west-1.amazoncognito.com/",
+//    scope: ['email', 'openid'], // FIXME [NP]
+//    redirectSignIn: "http://localhost:8081",
+//    redirectSignOut: "http://localhost:8081",
+//    responseType: "code",
+//  },
+//}
 const browserAmplifyConfigPbuchu: AuthOptions = {
   region: "eu-west-1",
   // FIXME [NP]
@@ -113,22 +165,22 @@ const browserAmplifyConfigPbuchu: AuthOptions = {
     responseType: "code",
   },
 }
-const browserAmplifyConfigProd: AuthOptions = {
-  region: "eu-west-1",
-  // FIXME [NP]
-  //identityPoolId: "",
-  userPoolId: "eu-west-1_9Kycu2SbD",
-  userPoolWebClientId: "4j9bfs8e7415erf82l129v0qhe",
-  oauth: {
-    options: {}, // FIXME [NP]
-    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
-    domain: "production-enso-domain.auth.eu-west-1.amazoncognito.com/",
-    scope: ['email', 'openid'], // FIXME [NP]
-    redirectSignIn: "https://cloud.enso.org",
-    redirectSignOut: "https://cloud.enso.org",
-    responseType: "code",
-  },
-}
+//const browserAmplifyConfigProd: AuthOptions = {
+//  region: "eu-west-1",
+//  // FIXME [NP]
+//  //identityPoolId: "",
+//  userPoolId: "eu-west-1_9Kycu2SbD",
+//  userPoolWebClientId: "4j9bfs8e7415erf82l129v0qhe",
+//  oauth: {
+//    options: {}, // FIXME [NP]
+//    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
+//    domain: "production-enso-domain.auth.eu-west-1.amazoncognito.com/",
+//    scope: ['email', 'openid'], // FIXME [NP]
+//    redirectSignIn: "https://cloud.enso.org",
+//    redirectSignOut: "https://cloud.enso.org",
+//    responseType: "code",
+//  },
+//}
 const amplifyConfig = browserAmplifyConfigPbuchu;
 
 
@@ -184,6 +236,8 @@ interface AuthContextType {
     /// This method will reset the user's password to the given value. The user must have already
     /// started the password recovery process by clicking the link in the email they received.
     resetPassword: (email: string, code: string, password: string) => Promise<void>;
+    /// Method for signing out the currently authenticated user.
+    signOut: () => Promise<void>;
     /// Session containing the currently authenticated user's authentication information.
     ///
     /// If the user has not signed in, the session will be `undefined`.
@@ -203,20 +257,24 @@ const AuthContext = createContext<AuthContextType>(
 // ====================
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element => {
+export const AuthProvider = ({ runningOnDesktop, children }: { runningOnDesktop: boolean, children: ReactNode }): JSX.Element => {
   const navigate = useNavigate();
   const [initialized, setInitialized] = useState(false);
   const [session, setSession] = useState<UserSession | undefined>(undefined);
+  // State that, when incremented, forces a refresh of the user session. This is useful when a user
+  // has just logged in (so their cached credentials are out of date).
+  const [refresh, setRefresh] = useState(0);
 
-  // Ensure the AWS Amplify library is loaded & configured prior to providing the `AuthContext` to
-  // the rest of the app. The AWS Amplify library must be configured before anything else happens
-  // because until that is done, we cannot check session status, authenticate users, etc.
-  useEffect(() => {
-    // FIXME [NP]: remove this log
-    console.log("EFFECT: initialized");
+  // FIXME [NP]: remove
+  //// Ensure the AWS Amplify library is loaded & configured prior to providing the `AuthContext` to
+  //// the rest of the app. The AWS Amplify library must be configured before anything else happens
+  //// because until that is done, we cannot check session status, authenticate users, etc.
+  //useEffect(() => {
+  //  // FIXME [NP]: remove this log
+  //  console.log("EFFECT: initialized");
 
-    setInitialized(true);
-  }, [])
+  //  setInitialized(true);
+  //}, [])
 
   // Fetch the JWT access token from the session via the AWS Amplify library.
   //
@@ -225,7 +283,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   // `undefined`.  If the token has expired, automatically refreshes the token and returns the new
   // token.
   useEffect(() => {
-      if (!initialized) { return; }
       // FIXME [NP]: remove this log
       console.log("EFFECT: fetchSession 0");
 
@@ -237,14 +294,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
         //
         // This returns the user's email address (either from their Google or GitHub account, or
         // from the email address they used to sign up with a password) and the JWT access token.
-        const amplifySession = await Auth.currentSession();
-        // @ts-ignore
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        const email: string = amplifySession.idToken.payload.email;
+        let amplifySession;
+        try {
+          amplifySession = await Auth.currentSession();
+        } catch (error) {
+          // If the user is not signed in, `Auth.currentSession` will throw an error. We don't want
+          // to log this error, so we'll just ignore it and keep the session blank.
+          if (error === "No current user") {
+            setInitialized(true)
+            return;
+          }
+          throw error
+        }
+        console.log("EFFECT: fetchSession 2");
+        const payload = amplifySession.getIdToken().payload;
+        console.log("EFFECT: fetchSession 3");
+        // We know that the payload will have an `email` field, but TypeScript doesn't know that, so
+        // we have to tell it to ignore the type error.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const email: string = payload.email;
+        //const email: string = amplifySession.getIdToken().payload.email;
         const accessToken = amplifySession.getAccessToken().getJwtToken();
+        console.log("EFFECT: fetchSession 4");
 
         // Request the user's organization information from the Cloud backend.
         const organization = await getUsersMe(accessToken);
+        console.log("EFFECT: fetchSession 5");
 
         let session: UserSession;
 
@@ -266,6 +341,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
         // FIXME [NP]: remove this
         console.log("EFFECT: fetchSession: session", session)
         setSession(session)
+        setInitialized(true)
       };
 
       // `Auth.currentSession()` throws an error if the user is not signed in. If the user isn't
@@ -277,47 +353,96 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
           // FIXME [NP]: remove eslint disable
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
           toast.error(error.message);
+          console.log(error)
         });
-  }, [initialized])
+  }, [refresh])
 
   const signUp = async (username: string, password: string) => {
-    const params = {
-      username,
-      password,
-      attributes: {
-        email: username,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "custom:fromDesktop": "true"
+      const params: SignUpParams = {
+        username,
+        password,
+        attributes: {
+          email: username,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "custom:fromDesktop": runningOnDesktop ? "true" : "false"
+        }
       }
-    }
-    console.log(params)
-    await Auth.signUp(params)
+
+      const loading = toast.loading("Please wait...");
+      try {
+        await Auth.signUp(params)
+      } catch (error: any) {
+          if (isAmplifyError(error)) {
+            if (error.code === "InvalidPasswordException") {
+              toast.error(error.message)
+              return
+            } else if (error.code === "UsernameExistsException") {
+              toast.error(error.message)
+              return
+            }
+          }
+          throw error
+      } finally {
+        toast.dismiss(loading)
+      }
+
+      toast.success("We have sent you an email with further instructions!")
   };
+
   const signInWithGoogle = async () => {
     await Auth.federatedSignIn({ provider: CognitoHostedUIIdentityProvider.Google })
   };
+
   const signInWithGitHub = async () => {
     await Auth.federatedSignIn({ customProvider: githubProvider });
   };
-  const signInWithPassword = async (email: string, password: string) => {
+
+  const signInWithPassword = async (
+    email: string,
+    password: string,
+  ) => {
+    const loading = toast.loading("Please wait...");
     try {
       await Auth.signIn(email, password);
     } catch (error) {
-      // FIXME [NP]: make this a typed check rather than stringly
-      // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (error.code === "UserNotFoundException") {
-        toast.error("User not found. Please sign up first.")
-        navigate(REGISTRATION_PATH);
+      if (isAmplifyError(error)) {
+        if (error.code === "UserNotFoundException") {
+          navigate(REGISTRATION_PATH);
+          toast.error("User not found. Please register first.")
+          return
+        } else if (error.code === "UserNotConfirmedException") {
+          toast.error("User not confirmed. Please check your email for a confirmation link.")
+          return
+        } else if (error.code === "NotAuthorizedException") {
+          toast.error("Incorrect username or password.")
+          return
+        }
       }
+
+      throw error
+    } finally {
+      toast.dismiss(loading);
     }
+
+    // Now that we've logged in, we need to refresh the session so that the user's organization
+    // information is available.
+    setRefresh(refresh + 1);
+
+    toast.success("Successfully logged in!")    
+    navigate(DASHBOARD_PATH)
   };
+
   const forgotPassword = async (email: string) => {
     await Auth.forgotPassword(email);
   }
+
   const resetPassword = async (email: string, code: string, password: string) => {
     await Auth.forgotPasswordSubmit(email, code, password)
   };
+
+  const signOut = async () => {
+    await Auth.signOut();
+  }
 
   const value = {
     signUp,
@@ -326,6 +451,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     signInWithPassword,
     forgotPassword,
     resetPassword,
+    signOut,
     session,
   };
 
@@ -361,6 +487,72 @@ export const useAuth = () => useContext(AuthContext);
 
 
 
+// ===================
+// === withoutUser ===
+// ===================
+
+/**
+ * A React higher-order component (HOC) used to that can be used to wrap a component that requires
+ * that the user is not currently logged in. For example, the login page or the registration page.
+ * 
+ * What this means is that a component wrapped with this HOC will:
+ * 1. redirect the user to the "dashboard" page if they are currently logged in;
+ * 2. otherwise render the component as normal.
+ */
+export const withoutUser = <T extends object>(
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Component: ComponentType<T>,
+): FC<T> => (props) => {
+  const { session } = useAuth();
+
+  // If the user is logged in, redirect them to the dashboard page.
+  if (session) {
+    return <Navigate to={DASHBOARD_PATH} />;
+  }
+
+  // If the user is not logged in, render the component as normal.
+  return <Component {...props} />;
+}
+
+
+
+// =======================
+// === withPartialUser ===
+// =======================
+
+/**
+ * A React higher-order component (HOC) used to that can be used to wrap a component that requires
+ * a user that has registered, but not yet set a username, and is currently logged in.
+ * 
+ * What this means is that a component wrapped with this HOC will:
+ * 1. redirect the user to the "login" page if they are not logged in;
+ * 2. redirect the user to the "dashboard" page if they are logged in, and have set a username;
+ * 3. otherwise render the component as normal, passing the session information to the component.
+ */
+export const withPartialUser = <T extends object>(
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Component: ComponentType<T>,
+): FC<T> => (props) => {
+  const { session } = useAuth();
+
+  // If the user is not logged in, redirect them to the login page.
+  if (!session) {
+    return <Navigate to={LOGIN_PATH} />;
+  }
+
+  // If the user has set a username, redirect them to the "dashboard" page.
+  if (session.state == "full") {
+    return <Navigate to={DASHBOARD_PATH} state={session} />;
+  }
+
+  // If the user is logged in, but has not set a username, render the component as normal.
+  //
+  // The session is passed in to the component, because it is available to us here, and it is
+  // convenient to have it available to the component, without the component having to call
+  // `useAuth` and check for authentication itself.
+  return <Component session={session} {...props} />;
+}
+
 // ================
 // === withUser ===
 // ================
@@ -372,7 +564,7 @@ export const useAuth = () => useContext(AuthContext);
  * What this means is that a component wrapped with this HOC will:
  * 1. redirect the user to the "login" page if they are not logged in;
  * 2. redirect the user to the "set username" page if they are logged in, but have not set a username;
- * 2. otherwise render the component as normal, passing the session information to the component.
+ * 3. otherwise render the component as normal, passing the session information to the component.
  */
 export const withUser = <T extends object>(
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -387,7 +579,7 @@ export const withUser = <T extends object>(
 
   // If the user has not set a username, redirect them to the "set username" page.
   if (session.state == "partial") {
-    return <Navigate to={SET_USERNAME_PATH} state={ session }  />;
+    return <Navigate to={SET_USERNAME_PATH} state={session} />;
   }
 
   // If the user is logged in, render the component as normal.

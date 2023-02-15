@@ -7,10 +7,11 @@ import { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import toast from "react-hot-toast";
 
-import { PartialUserSession, useAuth } from '../authentication';
+import { PartialUserSession, useAuth, withPartialUser } from '../authentication';
 import withRouter from '../navigation'
 import { useInput } from '../hooks'
 import { setUsername, SetUsernameBody } from '../api'
+import { DASHBOARD_PATH } from './app';
 
 
 
@@ -30,7 +31,6 @@ const setUsernameContainer: React.FC<any> = (
     const { session } = useAuth();
     const navigate = useNavigate();
 
-    console.log("session: ", session)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
     const accessToken = session?.accessToken!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
@@ -43,7 +43,7 @@ const setUsernameContainer: React.FC<any> = (
 
         const body: SetUsernameBody = { userName: username, userEmail: email };
         await setUsername(accessToken, body);
-        navigate("/");
+        navigate(DASHBOARD_PATH);
     };
 
     return (
@@ -108,7 +108,7 @@ const setUsernameContainer: React.FC<any> = (
     );
 }
 
-export default withRouter(setUsernameContainer)
+export default withRouter(withPartialUser(setUsernameContainer))
 
 
 
