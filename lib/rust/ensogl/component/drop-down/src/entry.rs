@@ -135,6 +135,7 @@ impl ensogl_grid_view::Entry for Entry {
     type Model = EntryModel;
     type Params = EntryParams;
 
+    #[profile(Debug)]
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let data = Rc::new(EntryData::new(app, text_layer));
         let frp = EntryFrp::<Self>::new();
@@ -184,7 +185,7 @@ impl ensogl_grid_view::Entry for Entry {
             data.label_thin.set_view_width <+ view_width;
             data.label_bold.set_view_width <+ view_width;
 
-            content <- input.set_model.map(|m| m.text.clone_ref());;
+            content <- input.set_model.map(|m| m.text.clone_ref());
             data.label_thin.set_content <+ content;
             data.label_bold.set_content <+ content;
 

@@ -43,6 +43,8 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
 use enso_data_structures::hash_map_tree::HashMapTree;
 use enso_notification as notification;
+use enso_profiler as profiler;
+use enso_profiler::prelude::*;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
@@ -412,6 +414,7 @@ impl SuggestionDatabase {
     }
 
     /// Apply the update event to the database.
+    #[profile(Detail)]
     pub fn apply_update_event(&self, event: SuggestionDatabaseUpdatesEvent) {
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
