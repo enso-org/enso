@@ -79,6 +79,8 @@ ensogl::define_endpoints! {
         toggle_style(),
         /// Saves a snapshot of the current state of the project to the VCS.
         save_project_snapshot(),
+        /// Restores the state of the project to the last snapshot saved to the VCS.
+        restore_project_snapshot(),
         /// Undo the last user's action.
         undo(),
         /// Redo the last undone action.
@@ -753,6 +755,7 @@ impl application::View for View {
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),
             (Press, "", "cmd alt shift t", "toggle_style"),
             (Press, "", "cmd s", "save_project_snapshot"),
+            (Press, "", "cmd r", "restore_project_snapshot"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
             (Press, "", "cmd shift z", "redo"),
