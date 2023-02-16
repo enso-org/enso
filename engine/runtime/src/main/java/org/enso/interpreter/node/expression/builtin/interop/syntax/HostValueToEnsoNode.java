@@ -2,10 +2,14 @@ package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
 
 /**
  * Converts a value returned by a polyglot call back to a value that can be further used within Enso
@@ -61,8 +65,19 @@ public abstract class HostValueToEnsoNode extends Node {
   }
 
   @Specialization(guards = {"o != null", "nulls.isNull(o)"})
-  Object doNull(Object o, @CachedLibrary(limit = "3") InteropLibrary nulls) {
-    return EnsoContext.get(this).getBuiltins().nothing();
+  Object doNull(Object o, @CachedLibrary(limit = "3") InteropLibrary nulls, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    var nothing = EnsoContext.get(this).getBuiltins().nothing();
+
+    if (warnings.hasWarnings(o)) {
+      try {
+        Warning[] attachedWarnings = warnings.getWarnings(o, null);
+        return new WithWarnings(nothing, attachedWarnings);
+      } catch (UnsupportedMessageException e) {
+        return nothing;
+      }
+    }
+
+    return nothing;
   }
 
   @Fallback
