@@ -50,6 +50,8 @@ spec setup =
         Test.specify "should allow mixed names and indexes" <|
             expect_column_names ["foo", "bar", "foo_2"] <| table.select_columns [-3, "bar", 0]
             expect_column_names ["foo_2", "bar", "foo"] <| table.select_columns [-3, "bar", 0] reorder=True
+            expect_column_names ["foo", "bar", "foo_1", "foo_2", "abcd123"] <| table.select_columns [-1, "bar", By_Name "foo.*" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names ["foo", "foo_1", "foo_2", "bar", "abcd123"] <| table.select_columns [By_Name "foo.*" Case_Sensitivity.Sensitive use_regex=True, "bar", "foo", -1] reorder=True
 
         if test_selection.supports_case_sensitive_columns then
             Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
