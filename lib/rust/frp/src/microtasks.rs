@@ -100,7 +100,10 @@ struct SchedulerData {
 impl SchedulerData {
     fn schedule_task(&self) {
         if !self.is_scheduled.replace(true) {
-            self.resolved_promise.then(&self.closure);
+            // Result left unused on purpose. We only care about `closure` being run in the next
+            // microtask, which is a guaranteed side effect of providing it to [`Promise::then`]
+            // method on already resolved promise.
+            let _ = self.resolved_promise.then(&self.closure);
         }
     }
     fn schedule_task_past_limit(&self) {

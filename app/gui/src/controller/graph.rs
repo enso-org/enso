@@ -1015,7 +1015,7 @@ impl span_tree::generate::Context for Handle {
         // If the name is different than intended method than apparently it is not intended anymore
         // and should be ignored.
         let matching = if let Some(name) = name { name == db_entry.name } else { true };
-        matching.then(|| db_entry.invocation_info())
+        matching.then(|| db_entry.invocation_info(&self.parser))
     }
 }
 

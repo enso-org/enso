@@ -42,7 +42,7 @@ ensogl::define_endpoints_2! {
 
 /// Widget metadata that comes from an asynchronous visualization. Defines which widget should be
 /// used and a set of options that it should allow to choose from.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub struct Metadata {
     pub kind:            Kind,
@@ -54,7 +54,7 @@ pub struct Metadata {
 }
 
 /// Widget display mode. Determines when the widget should be expanded.
-#[derive(serde::Deserialize, Debug, Clone, Copy, Default)]
+#[derive(serde::Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Display {
     /// The widget should always be in its expanded mode.
     #[default]
@@ -79,6 +79,15 @@ pub struct Entry {
     pub label: ImString,
 }
 
+impl From<&span_tree::TagValue> for Entry {
+    fn from(tag_value: &span_tree::TagValue) -> Self {
+        let value: ImString = (&tag_value.expression).into();
+        let label: ImString =
+            tag_value.label.as_ref().map_or_else(|| value.clone(), |label| label.into());
+        Entry { value, label }
+    }
+}
+
 impl Entry {
     /// Create an entry with the same value and label.
     pub fn from_value(value: ImString) -> Self {
@@ -99,11 +108,11 @@ impl DropdownValue for Entry {
 
 /// The data of node port that this widget is attached to. Available immediately after widget
 /// creation. Can be updated later when the node data changes.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 #[allow(missing_docs)]
 pub struct NodeData {
-    pub argument_info: span_tree::ArgumentInfo,
-    pub port_size:     Vector2,
+    pub tag_values: Vec<span_tree::TagValue>,
+    pub port_size:  Vector2,
 }
 
 
@@ -159,7 +168,9 @@ impl View {
         let input = &frp.input;
 
         frp::extend! { network
-            widget_data <- all(&input.set_metadata, &input.set_node_data);
+            metadata_change <- input.set_metadata.on_change();
+            node_data_change <- input.set_node_data.on_change();
+            widget_data <- all(&metadata_change, &node_data_change).next_tick();
 
             set_current_value <- input.set_current_value.sampler();
             set_visible <- input.set_visible.sampler();
@@ -202,7 +213,7 @@ impl Model {
     fn set_widget_data(&self, frp: &SampledFrp, meta: &Option<Metadata>, node_data: &NodeData) {
         trace!("Setting widget data: {:?} {:?}", meta, node_data);
 
-        let has_tag_values = !node_data.argument_info.tag_values.is_empty();
+        let has_tag_values = !node_data.tag_values.is_empty();
         let kind_fallback = has_tag_values.then_some(Kind::SingleChoice);
 
         let desired_kind = meta.as_ref().map(|m| m.kind).or(kind_fallback);
@@ -278,25 +289,12 @@ impl KindModel {
             KindModel::SingleChoice(inner) => {
                 let dynamic_entries = meta.as_ref().map(|meta| meta.dynamic_entries.clone());
                 let entries = dynamic_entries
-                    .unwrap_or_else(|| self.map_tag_values(&node_data.argument_info.tag_values));
+                    .unwrap_or_else(|| node_data.tag_values.iter().map(Into::into).collect());
 
                 inner.set_port_size(node_data.port_size);
                 inner.set_entries(entries);
             }
         }
-    }
-
-    fn map_tag_values(&self, tag_values: &[String]) -> Vec<Entry> {
-        tag_values
-            .iter()
-            .map(|tag_value| {
-                let value: ImString = tag_value.into();
-                Entry {
-                    label: value.clone(), // TODO: shorten - nocheckin
-                    value,
-                }
-            })
-            .collect()
     }
 
     fn kind(&self) -> Kind {

@@ -539,8 +539,19 @@ impl Entry {
     }
 
     /// Generate information about invoking this entity for span tree context.
-    pub fn invocation_info(&self) -> span_tree::generate::context::CalledMethodInfo {
-        self.into()
+    pub fn invocation_info(
+        &self,
+        parser: &parser::Parser,
+    ) -> span_tree::generate::context::CalledMethodInfo {
+        let parameters = self.arguments.iter().map(|arg| to_span_tree_param(arg, parser)).collect();
+        let is_static = self.is_static;
+        let is_constructor = matches!(self.kind, Kind::Constructor);
+        span_tree::generate::context::CalledMethodInfo {
+            is_static,
+            is_constructor,
+            parameters,
+            ..default()
+        }
     }
 
     /// Get the full qualified name of the entry.
@@ -812,20 +823,6 @@ impl TryFrom<Entry> for language_server::MethodPointer {
     }
 }
 
-impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
-    fn from(entry: &Entry) -> span_tree::generate::context::CalledMethodInfo {
-        let parameters = entry.arguments.iter().map(to_span_tree_param).collect();
-        let is_static = entry.is_static;
-        let is_constructor = matches!(entry.kind, Kind::Constructor);
-        span_tree::generate::context::CalledMethodInfo {
-            is_static,
-            is_constructor,
-            parameters,
-            ..default()
-        }
-    }
-}
-
 
 
 // ===============
@@ -837,13 +834,16 @@ impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
 
 /// Converts the information about function parameter from suggestion database into the form used
 /// by the span tree nodes.
-pub fn to_span_tree_param(param_info: &Argument) -> span_tree::ArgumentInfo {
+pub fn to_span_tree_param(
+    param_info: &Argument,
+    parser: &parser::Parser,
+) -> span_tree::ArgumentInfo {
     span_tree::ArgumentInfo {
         // TODO [mwu] Check if database actually do must always have both of these filled.
         name:       Some(param_info.name.clone()),
         tp:         Some(param_info.repr_type.clone()),
         call_id:    None,
-        tag_values: param_info.tag_values.clone(),
+        tag_values: span_tree::TagValue::from_expressions(&param_info.tag_values, parser),
     }
 }
 

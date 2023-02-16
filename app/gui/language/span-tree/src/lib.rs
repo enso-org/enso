@@ -67,6 +67,93 @@ use crate::generate::Context;
 
 
 
+// ================
+// === TagValue ===
+// ================
+
+/// Argument tag values with resolved labels. Represents statically defined choices of values for a
+/// function argument.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub struct TagValue {
+    pub expression: String,
+    /// Shortened label for the value. `None` when shortening wasn't possible. In that case, the
+    /// `expression` should be used as a label.
+    pub label:      Option<String>,
+}
+
+impl TagValue {
+    /// Generate tag value list from an exhaustive list of enso expressions, shortening labels as
+    /// appropriate.
+    pub fn from_expressions<S: AsRef<str>>(
+        expressions: &[S],
+        parser: &parser::Parser,
+    ) -> Vec<Self> {
+        let parsed = expressions.iter().map(|expression| {
+            let expression = expression.as_ref();
+            let line = parser.parse_line_ast(expression);
+            line.map_err(|e| {
+                error!("Failed to parse tag value '{expression}': {e:?}");
+            })
+            .ok()
+        });
+
+        let access_chains = parsed
+            .map(|ast| {
+                ast.as_ref()
+                    .filter(|ast| ast::opr::is_access(ast))
+                    .map(|ast| ast::opr::as_access_chain(ast).unwrap())
+            })
+            .collect_vec();
+
+        let mut only_access_chains_iter = access_chains.iter().flatten();
+
+        // Gather a list of expression reprs from first access chain. Includes each infix element
+        // that can be considered for removal.
+        let operand_reprs: Option<Vec<String>> = only_access_chains_iter.next().map(|chain| {
+            let mut operand_reprs = chain
+                .enumerate_operands()
+                .map(|operand| operand.map_or_default(|op| op.arg.repr()))
+                .collect_vec();
+            // Pop last chain element, as we never want to strip it from the label.
+            let last = operand_reprs.pop();
+
+            // If the last chain element is a "Value" literal, we want to preserve one extra chain
+            // element before it.
+            if last.map_or(false, |last| last == "Value") {
+                operand_reprs.pop();
+            }
+            operand_reprs
+        });
+
+        // Find the number of operands that are common for all access chains.
+        let common_operands_count: usize = operand_reprs.map_or(0, |common_reprs| {
+            only_access_chains_iter.fold(common_reprs.len(), |common_so_far, chain| {
+                let operand_reprs =
+                    chain.enumerate_operands().map(|op| op.map_or_default(|op| op.arg.repr()));
+                operand_reprs
+                    .zip(&common_reprs[0..common_so_far])
+                    .take_while(|(repr, common_repr)| repr == *common_repr)
+                    .count()
+            })
+        });
+
+        let expressions_with_chains = expressions.iter().zip(access_chains.into_iter());
+        expressions_with_chains
+            .map(|(expression, chain)| {
+                let expression = expression.as_ref().to_string();
+                let label = chain.filter(|_| common_operands_count > 0).map(|mut chain| {
+                    chain.erase_leading_operands(common_operands_count);
+                    chain.into_ast().repr()
+                });
+                TagValue { expression, label }
+            })
+            .collect_vec()
+    }
+}
+
+
+
 // =====================
 // === ArgumentInfo ===
 // =====================
@@ -80,7 +167,7 @@ pub struct ArgumentInfo {
     /// The AST ID of the call expression that this argument is passed to.
     /// See [`ApplicationBase`] for more details.
     pub call_id:    Option<ast::Id>,
-    pub tag_values: Vec<String>,
+    pub tag_values: Vec<TagValue>,
 }
 
 impl ArgumentInfo {
@@ -89,7 +176,7 @@ impl ArgumentInfo {
         name: Option<String>,
         tp: Option<String>,
         call_id: Option<ast::Id>,
-        tag_values: Vec<String>,
+        tag_values: Vec<TagValue>,
     ) -> Self {
         Self { name, tp, call_id, tag_values }
     }

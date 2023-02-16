@@ -303,6 +303,12 @@ impl Handle {
         self.graph.borrow().suggestion_db.clone()
     }
 
+    /// Get parser from currently active graph.
+    pub fn parser(&self) -> parser::Parser {
+        self.graph.borrow().parser.clone()
+    }
+
+
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
     pub fn module_qualified_name(&self, project: &dyn model::project::API) -> QualifiedName {
@@ -344,7 +350,7 @@ impl Context for Handle {
             let suggestion_db = self.project.suggestion_db();
             let maybe_entry = suggestion_db
                 .lookup_by_method_pointer(method_call)
-                .map(|e| e.invocation_info().with_called_on_type(false));
+                .map(|e| e.invocation_info(&self.parser()).with_called_on_type(false));
 
             // When the entry was not resolved but the `defined_on_type` has a `.type` suffix,
             // try resolving it again with the suffix stripped. This indicates that a method was
@@ -354,7 +360,7 @@ impl Context for Handle {
                 let defined_on_type = method_call.defined_on_type.strip_suffix(".type")?.to_owned();
                 let method_call = MethodPointer { defined_on_type, ..method_call.clone() };
                 let entry = suggestion_db.lookup_by_method_pointer(&method_call)?;
-                Some(entry.invocation_info().with_called_on_type(true))
+                Some(entry.invocation_info(&self.parser()).with_called_on_type(true))
             })
         };
         let fallback = || self.graph.borrow().call_info(id, name);
