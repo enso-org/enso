@@ -183,11 +183,11 @@ trait API {
     #[MethodInput=GetComponentGroups, rpc_name="executionContext/getComponentGroups"]
     fn get_component_groups(&self, context_id: ContextId) -> response::GetComponentGroups;
 
-    /// Initialize VCS at the specified root.
+    /// Initialize the VCS at the specified root.
     #[MethodInput=VcsInitInput, rpc_name="vcs/init"]
     fn init_vcs(&self, root: Path) -> ();
 
-    /// Save project to VCS at the specified root.
+    /// Save the project to the VCS at the specified root.
     #[MethodInput=VcsWriteInput, rpc_name="vcs/save"]
     fn save_vcs(&self, root: Path, name: Option<String>) -> response::SaveVcs;
 
@@ -195,9 +195,15 @@ trait API {
     #[MethodInput=VcsListInput, rpc_name="vcs/list"]
     fn list_vcs(&self, root: Path, limit: Option<usize>) -> response::ListVcs;
 
-    /// Returns the current status of the changes made to the project.
+    /// Returns the current status of the VCS, containing changes made to the project since the last
+    /// VCS snapshot.
     #[MethodInput=VcsStatusInput, rpc_name="vcs/status"]
     fn vcs_status(&self, root: Path) -> response::VcsStatus;
+
+    /// Restore the project from the VCS at the specified root. The project is restored to the last
+    /// VCS snapshot if no `commit_id` is provided.
+    #[MethodInput=VcsRestoreInput, rpc_name="vcs/restore"]
+    fn restore_vcs(&self, root: Path, commit_id: Option<String>) -> response::RestoreVcs;
 }}
 
 
