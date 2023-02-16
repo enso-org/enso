@@ -1,9 +1,9 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.ibm.icu.text.Normalizer;
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
@@ -15,13 +15,12 @@ import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import com.oracle.truffle.api.profiles.LoopConditionProfile;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.Map;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -584,16 +583,17 @@ public abstract class EqualsNode extends Node {
     return nodes;
   }
 
-  @Specialization
+  @Specialization(guards = {
+      "fieldsLenCached == structsLib.getFields(self).length"
+  })
+  @ExplodeLoop
   boolean equalsAtoms(
       Atom self,
       Atom other,
-      @Cached LoopConditionProfile loopProfile,
-      @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsNode[] fieldEqualsNodes,
-      @Cached ConditionProfile enoughEqualNodesForFieldsProfile,
+      @CachedLibrary(limit = "5") StructsLibrary structsLib,
+      @Cached(value = "structsLib.getFields(self).length", allowUncached = true) int fieldsLenCached,
+      @Cached(value = "createEqualsNodes(fieldsLenCached)", allowUncached = true) EqualsNode[] fieldEqualsNodes,
       @Cached ConditionProfile constructorsNotEqualProfile,
-      @CachedLibrary(limit = "3") StructsLibrary selfStructs,
-      @CachedLibrary(limit = "3") StructsLibrary otherStructs,
       @Cached HasCustomComparatorNode hasCustomComparatorNode,
       @Cached InvokeAnyEqualsNode invokeAnyEqualsNode
   ) {
@@ -602,38 +602,39 @@ public abstract class EqualsNode extends Node {
     )) {
       return false;
     }
-    var selfFields = selfStructs.getFields(self);
-    var otherFields = otherStructs.getFields(other);
-    assert selfFields.length == otherFields.length;
+    var selfFields = structsLib.getFields(self);
+    var otherFields = structsLib.getFields(other);
+    assert selfFields.length == otherFields.length : "Constructors are same, atoms should have the same number of fields";
 
-    int fieldsSize = selfFields.length;
-    if (enoughEqualNodesForFieldsProfile.profile(fieldsSize <= equalsNodeCountForFields)) {
-      loopProfile.profileCounted(fieldsSize);
-      for (int i = 0; loopProfile.inject(i < fieldsSize); i++) {
-        boolean fieldsAreEqual;
-        // We don't check whether `other` has the same type of comparator, that is checked in
-        // `Any.==` that we invoke here anyway.
-        if (selfFields[i] instanceof Atom selfAtomField
-            && otherFields[i] instanceof Atom otherAtomField
-            && hasCustomComparatorNode.execute(selfAtomField)) {
-          // If selfFields[i] has a custom comparator, we delegate to `Any.==` that deals with
-          // custom comparators. EqualsNode cannot deal with custom comparators.
-          fieldsAreEqual = invokeAnyEqualsNode.execute(selfAtomField, otherAtomField);
-        } else {
-          fieldsAreEqual = fieldEqualsNodes[i].execute(selfFields[i], otherFields[i]);
-        }
-        if (!fieldsAreEqual) {
-          return false;
-        }
+    CompilerAsserts.partialEvaluationConstant(fieldsLenCached);
+    for (int i = 0; i < fieldsLenCached; i++) {
+      boolean fieldsAreEqual;
+      // We don't check whether `other` has the same type of comparator, that is checked in
+      // `Any.==` that we invoke here anyway.
+      if (selfFields[i] instanceof Atom selfAtomField
+          && otherFields[i] instanceof Atom otherAtomField
+          && hasCustomComparatorNode.execute(selfAtomField)) {
+        // If selfFields[i] has a custom comparator, we delegate to `Any.==` that deals with
+        // custom comparators. EqualsNode cannot deal with custom comparators.
+        fieldsAreEqual = invokeAnyEqualsNode.execute(selfAtomField, otherAtomField);
+      } else {
+        fieldsAreEqual = fieldEqualsNodes[i].execute(
+            selfFields[i],
+            otherFields[i]
+        );
       }
-    } else {
-      return equalsAtomsFieldsUncached(selfFields, otherFields);
+      if (!fieldsAreEqual) {
+        return false;
+      }
     }
     return true;
   }
 
   @TruffleBoundary
-  private static boolean equalsAtomsFieldsUncached(Object[] selfFields, Object[] otherFields) {
+  @Specialization(replaces = "equalsAtoms")
+  boolean equalsAtomsUncached(Atom self, Atom other) {
+    Object[] selfFields = StructsLibrary.getUncached().getFields(self);
+    Object[] otherFields = StructsLibrary.getUncached().getFields(other);
     assert selfFields.length == otherFields.length;
     for (int i = 0; i < selfFields.length; i++) {
       boolean areFieldsSame;
@@ -683,7 +684,19 @@ public abstract class EqualsNode extends Node {
     return equalsNode.execute(selfFuncStrRepr, otherFuncStrRepr);
   }
 
-  @Fallback
+  // TODO: Add more specs
+  @Specialization(guards = {
+      "!isHostObject(left)",
+      "!isHostFunction(left)",
+      "!isHostObject(right)",
+      "!isHostFunction(right)",
+      "!isAtom(left)",
+      "!isAtom(right)",
+      "!typesLib.hasType(left)",
+      "!typesLib.hasType(right)",
+      "!interop.isString(left)",
+      "!interop.isString(right)",
+  })
   @TruffleBoundary
   boolean equalsGeneric(Object left, Object right,
       @CachedLibrary(limit = "5") InteropLibrary interop,
