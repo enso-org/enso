@@ -1194,6 +1194,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
          "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
 Text.locate : Text -> Matching_Mode -> Case_Sensitivity -> Span | Nothing
 Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Default -> self.locate term mode Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive ->
         codepoint_span = case mode of
             Matching_Mode.First -> Text_Utils.span_of self term
@@ -1287,6 +1288,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
          match_2 . map .length == [2, 5]
 Text.locate_all : Text -> Case_Sensitivity -> Vector Span
 Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case case_sensitivity of
+    Case_Sensitivity.Default -> self.locate term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
         grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
