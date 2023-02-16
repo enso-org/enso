@@ -533,6 +533,8 @@ spec =
             workbook.table_types . should_equal ['Worksheet', 'Named Range']
 
             workbook.tables.row_count . should_equal (sheet_names.length + range_names.length)
+            workbook.tables.at "Name" . to_vector . should_contain_the_same_elements_as (sheet_names + range_names)
+
             workbook.tables types=["Worksheet"] . row_count . should_equal sheet_names.length
             workbook.tables types=["Named Range"] . row_count . should_equal range_names.length
             workbook.tables types=["XXX"] . row_count . should_equal 0
