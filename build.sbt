@@ -2214,6 +2214,13 @@ buildEngineDistribution := {
   log.info(s"Engine package created at $root")
 }
 
+lazy val runEngineDistribution = inputKey[Unit]("Run the engine distribution with arguments")
+runEngineDistribution := {
+  buildEngineDistribution.value
+  val args: Seq[String] = spaceDelimited("<arg>").parsed
+  DistributionPackage.runEnginePackage(engineDistributionRoot.value, args, streams.value.log)
+}
+
 val stdBitsProjects =
   List("Base", "Database", "Google_Api", "Image", "Table", "All")
 val allStdBits: Parser[String] =
