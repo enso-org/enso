@@ -1,8 +1,7 @@
 from Standard.Base import all hiding First, Last
 
-from Standard.Table import Table, Sort_Column, Column_Selector
+from Standard.Table import Table, Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
 import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import all
 
@@ -77,7 +76,7 @@ spec setup =
             materialized.columns.at 2 . at 0 . should_equal 2
 
         Test.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
-            grouped = table.aggregate [Count_Distinct (By_Name ["Index", "Flag"])]
+            grouped = table.aggregate [Count_Distinct ["Index", "Flag"]]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 1
@@ -452,7 +451,7 @@ spec setup =
             materialized.columns.at 3 . at idx . should_equal 2
 
         Test.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
-            grouped = table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"])]
+            grouped = table.aggregate [Group_By "Index", Count_Distinct ["Index", "Flag"]]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 2
@@ -645,7 +644,7 @@ spec setup =
             materialized.columns.at 3 . at idx . should_equal 1
 
         Test.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
-            grouped = table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"]), Group_By "Flag"]
+            grouped = table.aggregate [Group_By "Index", Count_Distinct ["Index", "Flag"], Group_By "Flag"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 3
@@ -912,14 +911,14 @@ spec setup =
         Test.specify "should correctly count all-null keys in multi-column mode" (pending = resolve_pending test_selection.multi_distinct) <|
             table = table_builder [["A", ["foo", "foo", Nothing, Nothing, Nothing]], ["B", ["baz", Nothing, Nothing, Nothing, "baz"]], ["C", [1, 2, 3, Nothing, 5]]]
 
-            r2 = table.aggregate [Count_Distinct (By_Name ["A", "B"]) (ignore_nothing=False)]
+            r2 = table.aggregate [Count_Distinct ["A", "B"] (ignore_nothing=False)]
             r2.row_count.should_equal 1
             m2 = materialize r2
             m2.column_count.should_equal 1
             m2.columns.first.name . should_equal "Count Distinct A B"
             m2.columns.first.to_vector . should_equal [4]
 
-            r1 = table.aggregate [Count_Distinct (By_Name ["A", "B"]) (ignore_nothing=True)]
+            r1 = table.aggregate [Count_Distinct ["A", "B"] (ignore_nothing=True)]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count.should_equal 1
@@ -1303,13 +1302,13 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should allow partial matches on Count_Distinct" <|
-            action = table.aggregate [Count_Distinct (By_Name ["Missing", "Value"])] on_problems=_
+            action = table.aggregate [Count_Distinct ["Missing", "Value"]] on_problems=_
             problems = [Missing_Input_Columns.Error ["Missing"]]
             tester = expect_column_names ["Count Distinct Value"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should ignore Count_Distinct if no columns matched" <|
-            action = table.aggregate [Count_Distinct (Column_Selector.By_Index [-100]), Count] on_problems=_
+            action = table.aggregate [Count_Distinct [-100], Count] on_problems=_
             problems = [Column_Indexes_Out_Of_Range.Error [-100]]
             tester = expect_column_names ["Count"]
             Problems.test_problem_handling action problems tester
@@ -1465,4 +1464,4 @@ spec setup =
                 Test.specify "with Count_Distinct on multiple fields" <|
                     table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
                     expect_sum_and_unsupported_errors 1 <|
-                        table.aggregate [Sum "X", Count_Distinct (By_Name ["X", "Y"])]
+                        table.aggregate [Sum "X", Count_Distinct ["X", "Y"]]
