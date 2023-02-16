@@ -42,9 +42,7 @@ write_file table format file on_existing_file match_columns on_problems =
             append_to_file table format file match_columns on_problems
         _ ->
             on_existing_file.write file stream->
-                r = write_to_stream table format stream on_problems related_file=file
-                IO.println <| "write file: " + Warning.get_all r . map .value . to_text
-                r
+                write_to_stream table format stream on_problems related_file=file
 
 ## PRIVATE
    Handles appending to an existing file, ensuring that the columns are matched
