@@ -181,7 +181,7 @@ impl Component {
                     fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric)
                 })
             });
-            subsequences.reduce(|lhs, rhs| max_by(lhs, rhs, |lhs, rhs| lhs.compare_scores(&rhs)))
+            subsequences.reduce(|lhs, rhs| max_by(lhs, rhs, |lhs, rhs| lhs.compare_scores(rhs)))
         });
         let alias_subsequence = alias_subsequence.flatten();
 
