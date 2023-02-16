@@ -248,7 +248,7 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all a . map .value . should_contain_the_same_elements_as ["a"]
         Warning.get_all b . map .value . should_contain_the_same_elements_as ["b"]
 
-    Test.specify "should be preserved around polyglot calls expecting a Value" <|
+    Test.specify "should be preserved around polyglot calls" <|
         x = Warning.attach "x" 1
 
         java_id = Java_Function.identity
@@ -274,7 +274,7 @@ spec = Test.group "Dataflow Warnings" <|
         #h x = Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
         #i x = Warning.attach "i("+x.to_text+")" Nothing
 
-    Test.specify "should be preserved around polyglot calls expecting a Value" <|
+    Test.specify "should be better preserved around polyglot calls expecting a Value" <|
         x = Warning.attach "x" 1
 
         f x = Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
