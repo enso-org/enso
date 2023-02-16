@@ -135,3 +135,10 @@ Locale.to_js_object self =
     b.append ["country", self.country]
     b.append ["variant", self.variant]
     JS_Object.from_pairs b.to_vector
+
+## Converts the given value to a JSON serializable object.
+   For Map, this serialized as a Vector of Key-Value pairs.
+Map.to_js_object : JS_Object
+Map.to_js_object self =
+    map_vector = self.to_vector
+    map_vector.map p-> [p.first.to_js_object, p.second.to_js_object]
