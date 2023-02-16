@@ -1172,35 +1172,36 @@ spec =
             abc.locate "" case_sensitivity=case_insensitive . should_equal (Span.Value (0.up_to 0) abc)
             abc.locate "" case_sensitivity=case_insensitive mode=Matching_Mode.Last . should_equal (Span.Value (3.up_to 3) abc)
             abc.locate_all "" case_sensitivity=case_insensitive . should_equal [Span.Value (0.up_to 0) abc, Span.Value (1.up_to 1) abc, Span.Value (2.up_to 2) abc, Span.Value (3.up_to 3) abc]
-        ##
-            Test.specify "should allow regexes in locate" <|
-                hello = "Hello World!"
-                regex = Regex_Matcher.Value
-                regex_insensitive = Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive
-                hello.locate ".o" Matching_Mode.First matcher=regex . should_equal (Span.Value (3.up_to 5) hello)
-                hello.locate ".o" Matching_Mode.Last matcher=regex . should_equal (Span.Value (6.up_to 8) hello)
-                hello.locate_all ".o" matcher=regex . map .start . should_equal [3, 6]
 
-                "foobar".locate "BAR" Matching_Mode.First matcher=regex_insensitive . should_equal (Span.Value (3.up_to 6) "foobar")
+        Test.specify "should allow regexes in match" <|
+            hello = "Hello World!"
+            regex = Regex_Matcher.Value
+            regex_insensitive = Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive
+            hello.match ".o" Matching_Mode.First matcher=regex . should_equal "lo"
+            hello.match ".o" Matching_Mode.Last matcher=regex . should_equal "Wo"
+            hello.match_all ".o" matcher=regex . should_equal ["lo", "Wo"]
 
-                ## Regex matching does not do case folding
-                "Strasse".locate "ß" Matching_Mode.First matcher=regex_insensitive . should_equal Nothing
+            "foobar".match "BAR" Matching_Mode.First matcher=regex_insensitive . should_equal "bar"
 
-                ## But it should handle the Unicode normalization
-                accents = 'a\u{301}e\u{301}o\u{301}'
-                accents.locate accent_1 Matching_Mode.First matcher=regex . should_equal (Span.Value (1.up_to 2) accents)
-            Test.specify "should correctly handle regex edge cases in locate" pending="Figure out how to make Regex correctly handle empty patterns." <|
-                regex = Regex_Matcher.Value
-                "".locate "foo" matcher=regex . should_equal Nothing
-                "".locate "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
-                "".locate_all "foo" matcher=regex . should_equal []
-                "".locate "" matcher=regex . should_equal (Span.Value (0.up_to 0) "")
-                "".locate_all "" matcher=regex . should_equal [Span.Value (0.up_to 0) ""]
-                "".locate "" matcher=regex mode=Matching_Mode.Last . should_equal (Span.Value (0.up_to 0) "")
-                abc = 'A\u{301}ßC'
-                abc.locate "" matcher=regex . should_equal (Span.Value (0.up_to 0) abc)
-                abc.locate_all "" matcher=regex . should_equal [Span.Value (0.up_to 0) abc, Span.Value (0.up_to 0) abc, Span.Value (1.up_to 1) abc, Span.Value (2.up_to 2) abc, Span.Value (3.up_to 3) abc]
-                abc.locate "" matcher=regex mode=Matching_Mode.Last . should_equal (Span.Value (3.up_to 3) abc)
+            ## Regex matching does not do case folding
+            "Strasse".match "ß" Matching_Mode.First matcher=regex_insensitive . should_equal Nothing
+
+            ## But it should handle the Unicode normalization
+            accents = 'a\u{301}e\u{301}o\u{301}'
+            accents.match accent_1 Matching_Mode.First matcher=regex . should_equal 'e\u{301}'
+
+        Test.specify "should correctly handle regex edge cases in locate" pending="Figure out how to make Regex correctly handle empty patterns." <|
+            regex = Regex_Matcher.Value
+            "".match "foo" matcher=regex . should_equal Nothing
+            "".match "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
+            "".match_all "foo" matcher=regex . should_equal []
+            "".match "" matcher=regex . should_equal ""
+            "".match_all "" matcher=regex . should_equal [""]
+            "".match "" matcher=regex mode=Matching_Mode.Last . should_equal ""
+            abc = 'A\u{301}ßC'
+            abc.match "" matcher=regex . should_equal abc
+            abc.match_all "" matcher=regex . should_equal ["", "", "", "", ""]
+            abc.match "" matcher=regex mode=Matching_Mode.Last . should_equal ""
 
         Test.specify "should handle overlapping matches as shown in the examples" <|
             "aaa".locate "aa" mode=Matching_Mode.Last case_sensitivity=Case_Sensitivity.Sensitive . should_equal (Span.Value (1.up_to 3) "aaa")

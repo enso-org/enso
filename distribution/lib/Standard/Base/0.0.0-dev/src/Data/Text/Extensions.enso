@@ -234,7 +234,7 @@ Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value = case
     _ : Text_Matcher ->
         case_sensitivity = case matcher of
             Text_Matcher.Case_Sensitive -> Case_Sensitivity.Sensitive
-            Text_Matcher.Case_Insensitive locale -> Case_Sensitivity.Insensitive
+            Text_Matcher.Case_Insensitive _ -> Case_Sensitivity.Insensitive
         case self.locate term mode case_sensitivity of
             Nothing -> Nothing
             span -> span.text
@@ -271,7 +271,7 @@ Text.match_all self term=".*" matcher=Regex_Matcher.Value = case matcher of
     _ : Text_Matcher ->
         case_sensitivity = case matcher of
             Text_Matcher.Case_Sensitive -> Case_Sensitivity.Sensitive
-            Text_Matcher.Case_Insensitive locale -> Case_Sensitivity.Insensitive
+            Text_Matcher.Case_Insensitive _ -> Case_Sensitivity.Insensitive
         self.locate_all term case_sensitivity . map .text
     _ : Regex_Matcher ->
         case matcher.compile term . match self Regex_Mode.All of
