@@ -89,6 +89,7 @@
 - [Internal components (private API) are not displayed in the component
   browser.][4085]
 - [The correct default visualisation for tables is shown on new nodes.][4120]
+- [Added restoring of last project snapshot on shortcut.][4050]
 - [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
   contain suggestions which are based on evaluated data.
 
@@ -470,6 +471,7 @@
 [4085]: https://github.com/enso-org/enso/pull/4085
 [4097]: https://github.com/enso-org/enso/pull/4097
 [4120]: https://github.com/enso-org/enso/pull/4120
+[4050]: https://github.com/enso-org/enso/pull/4050
 [4072]: https://github.com/enso-org/enso/pull/4072
 [5646]: https://github.com/enso-org/enso/pull/5646
 
