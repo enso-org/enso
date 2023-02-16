@@ -1,7 +1,10 @@
 package org.enso.table.write;
 
 import org.enso.table.data.table.Table;
+import org.enso.table.data.table.problems.UnquotedCharactersInOutput;
 import org.enso.table.formatting.DataFormatter;
+import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.Problem;
 import org.enso.table.read.DelimitedReader;
 
 import java.io.IOException;
@@ -10,6 +13,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DelimitedWriter {
   private final String newline;
@@ -30,6 +35,7 @@ public class DelimitedWriter {
   private final String emptyValue;
   private final WriteQuoteBehavior writeQuoteBehavior;
   private final boolean writeHeaders;
+  private final AggregatedProblems warnings = new AggregatedProblems(1);
 
   public DelimitedWriter(
       Writer output,
@@ -125,7 +131,8 @@ public class DelimitedWriter {
       boolean quoteAllHeaders = writeQuoteBehavior == WriteQuoteBehavior.ALWAYS;
       for (int col = 0; col < numberOfColumns; ++col) {
         boolean isLast = col == numberOfColumns - 1;
-        writeCell(table.getColumns()[col].getName(), isLast, quoteAllHeaders);
+        String columnName = table.getColumns()[col].getName();
+        writeCell(columnName, isLast, quoteAllHeaders, columnName, -1);
       }
     }
 
@@ -133,15 +140,20 @@ public class DelimitedWriter {
     for (int row = 0; row < numberOfRows; ++row) {
       for (int col = 0; col < numberOfColumns; ++col) {
         boolean isLast = col == numberOfColumns - 1;
+        String columnName = table.getColumns()[col].getName();
         Object cellValue = table.getColumns()[col].getStorage().getItemBoxed(row);
         String formatted = columnFormatters[col].format(cellValue);
         boolean wantsQuoting =
             writeQuoteBehavior == WriteQuoteBehavior.ALWAYS && wantsQuotesInAlwaysMode(cellValue);
-        writeCell(formatted, isLast, wantsQuoting);
+        writeCell(formatted, isLast, wantsQuoting, columnName, row);
       }
     }
 
     output.flush();
+  }
+
+  public AggregatedProblems getReportedWarnings() {
+    return warnings;
   }
 
   private boolean wantsQuotesInAlwaysMode(Object value) {
@@ -162,9 +174,9 @@ public class DelimitedWriter {
     return writeQuoteBehavior != WriteQuoteBehavior.NEVER;
   }
 
-  private void writeCell(String value, boolean isLastInRow, boolean wantsQuoting)
+  private void writeCell(String value, boolean isLastInRow, boolean wantsQuoting, String columnName, int row)
       throws IOException {
-    String processed = value == null ? "" : quote(value, wantsQuoting);
+    String processed = value == null ? "" : quote(value, wantsQuoting, columnName, row);
     output.write(processed);
     if (isLastInRow) {
       output.write(newline);
@@ -179,7 +191,7 @@ public class DelimitedWriter {
    * <p>The {@code wantsQuoting} parameter allows to request quoting even if it wouldn't normally be
    * necessary. This is used to implement the `always_quote` mode for text and custom objects.
    */
-  private String quote(String value, boolean wantsQuoting) {
+  private String quote(String value, boolean wantsQuoting, String columnName, int row) {
     if (value.isEmpty()) {
       return emptyValue;
     }
@@ -212,7 +224,7 @@ public class DelimitedWriter {
 
     if (!quotingEnabled()) {
       if (containsCharactersThatNeedQuoting) {
-        // TODO warn
+        warnings.add(new UnquotedCharactersInOutput(columnName, row));
       }
 
       return value;

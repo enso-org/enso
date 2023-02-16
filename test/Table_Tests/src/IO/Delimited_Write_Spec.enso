@@ -146,8 +146,11 @@ spec =
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
             file = (enso_project.data / "transient" / "quote_disabled.csv")
             file.delete_if_exists
-            # TODO warn here?
-            table.write file format on_problems=Report_Error . should_succeed
+            r = table.write file format on_problems=Report_Error
+            r.should_equal file
+            warnings = Problems.get_attached_warnings r
+            warnings.should_contain_the_same_elements_as [Unquoted_Characters_In_Output.Warning "Hello, Column?" [-1, 0, 1, 2, 3]]
+            warnings.first.to_display_text . should_equal "The Hello, Column? at rows [the header, 0, 1, 2, 3] contains characters that need quoting, but quoting is disabled. The generated file may be corrupted."
             expected_text = normalize_lines <| """
                 The Column "Name",Hello, Column?
                 foo,1,0
