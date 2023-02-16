@@ -13,8 +13,21 @@ type Row
     length self = self.table.columns.length
 
     ## Gets the value of the specified column.
+
+       Arguments:
+       - column: The name or index of the column being looked up.
     at : (Integer | Text) -> Any
     at self column = self.table.at column . at self.index
+
+    ## Gets the value of the specified column.
+
+       Arguments:
+       - column: The name or index of the column being looked up.
+       - if_missing: The value to use if the column isn't present.
+    get : (Integer | Text) -> Any -> Any
+    get self column ~if_missing=Nothing =
+        table_column = self.table.get column
+        if table_column.is_nothing then if_missing else table_column.at self.index
 
     ## Gets the row as a Vector.
     to_vector : Vector

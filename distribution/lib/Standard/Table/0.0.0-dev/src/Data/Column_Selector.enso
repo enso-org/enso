@@ -3,20 +3,12 @@ from Standard.Base import all
 ## Specifies a selection of columns from the table on which an operation is
    going to be performed.
 type Column_Selector
-
     ## Selects columns based on their names.
 
-       The `matcher` can be used to specify if the names should be matched
-       exactly or should be treated as regular expressions. It also allows to
-       specify if the matching should be case-sensitive.
-    By_Name (names : Vector Text) (matcher : Matcher = Text_Matcher.Case_Sensitive)
-
-    ## Selects columns by their index.
-
-       The index of the first column in the table is 0. If the provided index is
-       negative, it counts from the end of the table (e.g. -1 refers to the last
-       column in the table).
-    By_Index (indexes : Vector Integer)
+       It can do regex-based and case insensitive matching if requested.
+       It is possible for it to match multiple columns, in which case all the
+       matched ones will be included in the same relative order as in the table.
+    By_Name name:Text case_sensitivity:Case_Sensitivity=Case_Sensitivity.Insensitive use_regex:Boolean=False
 
     ## ALIAS dropna
        ALIAS drop_missing_columns

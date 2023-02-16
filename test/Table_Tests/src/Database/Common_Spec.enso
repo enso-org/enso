@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Sort_Column, Column_Selector
+from Standard.Table import Table, Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns
 
