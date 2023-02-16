@@ -1,3 +1,95 @@
+//! Shape Systems with instance cached on global texture
+//!
+//! These systems are a valid [shape systems](super) which cannot be parameterized, but have
+//! a single instance cached on a special texture (available in Glsl as `pass_cached_shapes`). The
+//! texture keeps the color (except alpha) and the signed distance. The cached instance may be later
+//! used inside other shape systems by using [`AnyCachedShape`].
+//!
+//! # Limitations
+//!
+//! The shapes rendered from the texture may not always gives the best quality results, see
+//! _Limitations_ section of [`AnyCachedShape`] docs.
+//!
+//! # Usages
+//!
+//! The main idea behind cached shapes is speeding up rendering applications with many shape
+//! systems. Because each shape system is drawn with a different draw call, having e.g. a grid of
+//! icons can increase number od those, greatly worsening the application performance. But instead
+//! all the icons can be rendered to texture, and the icon grid can use only one shape system
+//! parameterized by the exact icon id.
+//!
+//! # Cached Shapes Texture
+//!
+//! As a part of the [`World`](crate::display::world::World) initialization, the exact size of the
+//! texture and shape positions is computed. The packing algorithm is defined in
+//! [`arrange_on_texture`] module. Then, the shapes are rendered to texture in
+//! [`CacheShapesPass`](crate::display::render::passes::CacheShapesPass) as soon as they are ready
+//! (their shader is compiled).
+//!
+//! # Using Cached Shapes
+//!
+//! The shapes may be read from the texture by creating [`AnyCachedShape`]. This structure can be
+//! also a parameter for shape systems defined with [`shape!`] macro. See [the docs](AnyCachedShape)
+//! for details.
+//!
+//! # Example
+//!
+//! ```rust
+//! use ensogl_core::display::shape::*;
+//!
+//!
+//! // === Defining Cached Shapes ===
+//!
+//! mod cached {
+//!     use super::*;
+//!     ensogl_core::cached_shape! { 32 x 32;
+//!                         // Some definition
+//! #       (_style: Style) { Circle(16.px()).into() }
+//!                     }
+//! }
+//!
+//! mod another_cached {
+//!     use super::*;
+//!     ensogl_core::cached_shape! { 32 x 32;
+//!                         // Some definition
+//! #       (_style: Style) { Circle(16.px()).into() }
+//!                     }
+//! }
+//!
+//!
+//! // === Using Cached Shapes ===
+//!
+//! mod shape {
+//!     use super::*;
+//!
+//!     ensogl_core::shape! {
+//!         (_style: Style) {
+//!             let bg = Rect((100.px(), 100.px())).fill(color::Rgba::white());
+//!             // Our shape may be very complex, lets read it from the texture.
+//!             let with_bg = &bg + &AnyCachedShape::<cached::Shape>();
+//!             with_bg.into()
+//!         }
+//!     }
+//! }
+//!
+//! /// A parametrized shape, allowing us to draw many cached shapes in a single draw call.
+//! mod parameterized_shape {
+//!     use super::*;
+//!     ensogl_core::shape! {
+//!         (_style: Style, icon: cached::AnyCachedShape) {
+//!             let bg = Rect((100.px(), 100.px())).fill(color::Rgba::white());
+//!             let with_bg = &bg + &icon;
+//!             with_bg.into()
+//!         }
+//!     }
+//! }
+//!
+//! let shape = shape::View::new();
+//! shape.icon.set(cached::Shape::any_cached_shape_parameter());
+//! // We can change the icon if we want:
+//! shape.icon.set(another_cached::Shape::any_cached_shape_parameter());
+//! ```
+
 use crate::prelude::*;
 
 use crate::data::bounding_box::BoundingBox;
@@ -24,7 +116,7 @@ pub mod arrange_on_texture;
 // =================
 
 /// A parameter of [`arrange_shapes_on_texture`] algorithm: the initial assumed size for the texture
-/// with cached shapes. If it turn out to be too small, we extend this size and try again.
+/// with cached shapes. If it turn out to be too small, we extend its size and try again.
 const INITIAL_TEXTURE_SIZE: i32 = 512;
 
 
@@ -39,6 +131,10 @@ thread_local! {
     static TEXTURE_SIZE: Cell<Vector2<i32>> = default();
 }
 
+/// Read the texture size.
+///
+/// The texture size is initialized as a part of the [`World`](crate::display::world::World)
+/// initialization. See [`arrange_shapes_on_texture`] for texture initialization details.
 pub fn texture_size() -> Vector2<i32> {
     TEXTURE_SIZE.get()
 }
@@ -46,6 +142,14 @@ pub fn texture_size() -> Vector2<i32> {
 
 // === initialize_cached_shape_positions_in_texture ===
 
+/// Initialize texture size and cached shape positions.
+///
+/// Is done as part of the [`World`](crate::display::world::World) initialization. As a result,
+/// every shape's [`get_position_in_texture`](CachedShape::get_position_in_texture) and
+/// [`location_in_texture`](CachedShape::location_in_texture), as well as [`texture_size`] will
+/// return a proper result.
+///
+/// See [`arrange_shapes_on_texture`] for packing algorithm details.
 pub fn initialize_cached_shape_positions_in_texture() {
     CACHED_SHAPES_DEFINITIONS.with_borrow(|shape_defs| {
         let with_sizes = shape_defs.iter().map(|def| ShapeWithSize { shape: def, size: def.size });
@@ -63,12 +167,25 @@ pub fn initialize_cached_shape_positions_in_texture() {
 // === CachedShape ===
 // ===================
 
+/// A cached shape system definition. You do not need to implement it manually, use the
+/// [`cached_shape!`] macro instead.
 pub trait CachedShape: shape::system::Shape {
+    /// The width of the cached shape in texture.
     const WIDTH: i32;
+    /// The height of the cached shape in texture.
     const HEIGHT: i32;
+
+    /// Set the position of the shape in the texture.
+    ///
+    /// Setting the proper position is done as a part of
+    /// [texture initialization](initialize_cached_shape_positions_in_texture).
     fn set_position_in_texture(position: Vector2);
+
+    /// Read the position of the shape in the texture.
     fn get_position_in_texture() -> Vector2;
 
+    /// Create view which will have position and all other properties set, so it will be ready to
+    /// being render to cached shapes texture.
     fn create_view_for_texture() -> ShapeView<Self>
     where Self::ShapeData: Default {
         let shape = ShapeView::<Self>::new();
@@ -77,6 +194,7 @@ pub trait CachedShape: shape::system::Shape {
         shape
     }
 
+    /// Return the bounding box of the shape in the texture.
     fn location_in_texture() -> BoundingBox {
         let position = Self::get_position_in_texture();
         let left = position.x - Self::WIDTH as f32 / 2.0;
@@ -84,6 +202,12 @@ pub trait CachedShape: shape::system::Shape {
         let bottom = position.y - Self::HEIGHT as f32 / 2.0;
         let top = position.y + Self::HEIGHT as f32 / 2.0;
         BoundingBox::from_corners(Vector2(left, bottom), Vector2(right, top))
+    }
+
+    /// Return the parameter for [`AnyCachedShape`] pointing to this specific shape.
+    fn any_cached_shape_parameter() -> Vector4 {
+        let bbox = Self::location_in_texture();
+        Vector4(bbox.left(), bbox.bottom(), bbox.right(), bbox.top())
     }
 }
 
@@ -93,20 +217,47 @@ pub trait CachedShape: shape::system::Shape {
 // === AnyCachedShape ===
 // ======================
 
+/// The mutable part of [`AnyCachedShape`].
 pub mod mutable {
     use super::*;
 
+    /// The [`AnyCachedShape`] definition.
     #[derive(Debug)]
     pub struct AnyCachedShape {
+        /// A bounding box locating the cached shape on the texture. `xy` is a left-bottom corner,
+        /// and `zw` is a top-right corner.
         pub tex_location: Var<Vector4>,
     }
 }
 
+/// One of the cached shapes represented as SDF shape.
+///
+/// This structure has the same API as other SDF shapes like [`Rect`](shape::primitive::def::Rect)
+/// or [`Circle`](shape::primitive::def::Circle). Internally it reads from `pass_cached_shapes`
+/// texture the SDF and proper color.
+///
+/// # Limitations
+///
+/// As the SDF and colors are aliased in the texture, the displayed AnyShape may be not as good
+/// as rendering the shape directly. To have the ideal results, the shape cannot be scaled, zoomed
+/// in or out, and it should be aligned with pixels. Otherwise the edges of the shape and different
+/// color joints will be blurred.
+///
+/// # As Shape Parameter
+///
+/// [`AnyCachedShape`] may be a valid parameter for a different shape defined with [`shape!`] macro.
+/// You can then set the concrete shape using [`CachedShape::any_cached_shape_parameter`] as in the
+/// following example:
+///
+///
+/// The parameter is passed to glsl as a single `vec4` describing the location of the cached shape
+/// in the texture.
 pub type AnyCachedShape = ShapeRef<mutable::AnyCachedShape>;
 
+/// Create [`AnyCachedShape`] instance displaying given shape
 #[allow(non_snake_case)]
-pub fn Instance(tex_location: Var<Vector4>) -> AnyCachedShape {
-    ShapeRef::new(mutable::AnyCachedShape { tex_location })
+pub fn AnyCachedShape<T: CachedShape>() -> AnyCachedShape {
+    ShapeRef::new(mutable::AnyCachedShape { tex_location: T::any_cached_shape_parameter().into() })
 }
 
 impl AsOwned for AnyCachedShape {
@@ -142,8 +293,7 @@ impl Parameter for AnyCachedShape {
     type Variable = AnyCachedShape;
 
     fn create_var(name: &str) -> Self::Variable {
-        let location: Var<Vector4> = name.into();
-        Instance(location)
+        ShapeRef::new(mutable::AnyCachedShape { tex_location: name.into() })
     }
 }
 
@@ -156,10 +306,10 @@ impl Parameter for AnyCachedShape {
 
 /// Defines a new cached shape system.
 ///
-/// The outcome is the same as for [`shape!`] macro, but the shape will be near application start
-/// to the special "cached shapes" texture. The texture is available in GLSL as "pass_cached_shapes"
-/// uniform. In the future there will be also a possibility of parametrization of normal shapes by
-/// cached shapes (see [#184212663](https://www.pivotaltracker.com/story/show/184212663)).
+/// The outcome is the same as for [`shape!`] macro, but quickly after application start the shape
+/// will be rendered to the special "cached shapes" texture. The cached shapes may be then used
+/// efficiently with [`AnyCachedShape`] structure. See [the module documentation](self) for the
+/// usage overview and examples.
 ///
 /// Because shape, once cached, is not redrawn, we don't allow for any parameterization except
 /// styles.
@@ -207,11 +357,6 @@ macro_rules! cached_shape {
                 }
             }
 
-            pub fn as_param() -> Vector4 {
-                let bbox = <Shape as CachedShape>::location_in_texture();
-                Vector4(bbox.left(), bbox.bottom(), bbox.right(), bbox.top())
-            }
-
             //TODO[ao] fix before_main perhaps?
 
             #[before_main]
@@ -230,7 +375,6 @@ macro_rules! cached_shape {
                 });
             }
         }
-        pub use cached_shape_system_definition::as_param;
     };
 }
 

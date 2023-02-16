@@ -181,11 +181,11 @@ pub fn main() {
         world.default_scene.layers.main.add(shape);
     }
     shapes[0].set_xy((-60.0, 0.0));
-    shapes[0].shape.set(icon1::as_param());
+    shapes[0].shape.set(icon1::Shape::any_cached_shape_parameter());
     shapes[1].set_xy((60.0, 0.0));
-    shapes[1].shape.set(icon2::as_param());
+    shapes[1].shape.set(icon2::Shape::any_cached_shape_parameter());
     shapes[2].set_xy((180.0, 0.0));
-    shapes[2].shape.set(data_input::as_param());
+    shapes[2].shape.set(data_input::Shape::any_cached_shape_parameter());
 
     let icon1 = icon1::View::new();
     icon1.set_size(Vector2(100.0, 100.0));
