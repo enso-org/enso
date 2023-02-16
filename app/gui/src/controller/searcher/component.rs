@@ -298,6 +298,7 @@ impl List {
     /// Update matching info in all components according to the new filtering pattern.
     pub fn update_filtering(&self, pattern: impl AsRef<str>) {
         let pattern = pattern.as_ref();
+        warn!("update filtering: {pattern}");
         for component in &*self.all_components {
             component.update_matching_info(pattern)
         }

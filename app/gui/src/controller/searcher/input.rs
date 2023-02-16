@@ -6,7 +6,7 @@ use crate::controller::searcher::action;
 
 use ast::HasTokens;
 use enso_text as text;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -252,7 +252,7 @@ pub struct InsertedSuggestion {
     /// The replaced range in the old input.
     pub replaced:      text::Range<text::Byte>,
     /// The range of the inserted code in the new input. It does not contain any additional spaces
-    /// (in contrary to [`inserted_text`] field.  
+    /// (in contrary to [`inserted_text`] field.
     pub inserted_code: text::Range<text::Byte>,
     /// The range of the entire inserted text in the new input. It contains code and all additional
     /// spaces.
@@ -273,15 +273,24 @@ impl Input {
     pub fn after_inserting_suggestion(
         &self,
         suggestion: &action::Suggestion,
+        has_this: bool,
     ) -> InsertedSuggestion {
         let replaced = self.replaced_range();
-        let generate_this = replaced.start == text::Byte(0);
+        let generate_this = self.context().is_none() && !has_this;
         let code_to_insert = suggestion.code_to_insert(generate_this);
         debug!("Code to insert: \"{code_to_insert}\"");
         let end_of_inserted_code = replaced.start + text::Bytes(code_to_insert.len());
         let end_of_inserted_text = end_of_inserted_code + text::Bytes(1);
         let mut new_input = self.ast.to_string();
         let raw_range = replaced.start.value..replaced.end.value;
+        let range_start = raw_range.start;
+        let range_end = raw_range.end;
+        if !new_input.is_char_boundary(range_start) {
+            error!("Not a char boundary: index {range_start} at '{new_input}'.");
+        }
+        if !new_input.is_char_boundary(range_end) {
+            error!("Not a char boundary: index {range_end} at '{new_input}'.");
+        }
         new_input.replace_range(raw_range, &code_to_insert);
         new_input.insert(end_of_inserted_code.value, ' ');
         InsertedSuggestion {
@@ -304,7 +313,6 @@ mod tests {
 
     #[test]
     fn parsing_input() {
-        init_tracing(DEBUG);
         #[derive(Debug, Default)]
         struct Case {
             input: String,
@@ -332,7 +340,7 @@ mod tests {
             }
 
             fn run(self, parser: &Parser) {
-                DEBUG!("Running case {self.input} cursor position {self.cursor_position}");
+                debug!("Running case {} cursor position {}", self.input, self.cursor_position);
                 let input = Input::parse(parser, self.input, self.cursor_position);
                 let pattern = input.pattern().to_owned();
                 assert_eq!(input.cursor_position, self.cursor_position);
@@ -373,7 +381,7 @@ mod tests {
             Case::new("(2 + Standard.Base.)*b", 19, Some(5..19), none_range, ""),
         ];
 
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         for case in cases {
             case.run(&parser);
         }

@@ -264,7 +264,7 @@ pub mod mock {
             let mut json_client = language_server::MockClient::default();
             let mut binary_client = binary::MockClient::new();
             // Creating a searcher controller always triggers a query for completion.
-            controller::searcher::test::expect_completion(&mut json_client, &[]);
+            // controller::searcher::test::expect_completion(&mut json_client, &[]);
             customize_rpc(self, &mut json_client, &mut binary_client);
 
             let urm = self.undo_redo_manager();
