@@ -108,9 +108,11 @@ class Main {
             } else {
                 if (
 
-                    options.options.authentication.value &&
-                    options.groups.startup.options.entry.value !=
-                        options.groups.startup.options.entry.default
+                    options.options.authentication.value
+                    // FIXME [PB]: No such option in config entry, ask Wojciech?
+                    //options.options.authentication.value &&
+                    //options.groups.startup.options.entry.value !=
+                    //    options.groups.startup.options.entry.default
                 ) {
                     //const hideAuth = () => {
                     //    const auth = document.getElementById('authentication')
