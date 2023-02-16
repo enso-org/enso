@@ -5,7 +5,7 @@ import project.Data.Image.Image
 
 supported = [".bmp", ".dib", ".jpeg", ".jpg", ".jpe", ".jp2", ".png", ".webp", ".pbm", ".pgm", ".ppm", ".pxm", ".pnm", ".pfm", ".sr", ".ras", ".tiff", ".tif", ".exr", ".hdr", ".pic"]
 
-## Read the file to a `SQLite_Connection` from a db or sqlite file
+## Read the file to a `Image` from a supported file format.
 type Image_File_Format
     ## File_Format to read Image files
     For_File
@@ -19,7 +19,7 @@ type Image_File_Format
     ## If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Image_File_Format | Nothing
     for_web _ _ =
-        ## Currently not loading Excel files automatically as these need to be loaded as a connection.
+        ## Currently not loading Image files automatically. This should be supported later.
         Nothing
 
     ## Implements the `File.read` for this `File_Format`
