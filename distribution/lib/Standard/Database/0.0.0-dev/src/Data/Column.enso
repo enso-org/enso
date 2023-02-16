@@ -858,7 +858,7 @@ type Column
              example_contains = Examples.text_column_1.parse Date
 
        > Example
-         Parse dates in a column in the format `dd/MM/yyyy`
+         Parse dates in a column in the format `dd/MM/yyyy`.
 
              import Standard.Examples
 
