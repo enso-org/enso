@@ -250,9 +250,6 @@ export interface Api {
 const api = (authConfig: AuthConfig): Api => {
     const { logger, runningOnDesktop } = authConfig;
 
-    // FIXME [NP]: Remove
-    logger.log("authentication::api::initialize")
-
     // Amplify expects `Auth.configure` to be called before any other `Auth` methods are called. By
     // wrapping all the `Auth` methods we care about and returning an API object, we ensure that
     // `Auth.configure` is called before any other `Auth` methods are called.
@@ -374,7 +371,6 @@ interface AmplifyConfig {
  */
 const amplifyConfig = (authConfig: AuthConfig): AmplifyConfig => {
     const { logger, runningOnDesktop } = authConfig;
-    logger.log("authentication::amplifyConfig::init")
 
     // FIXME [NP]: Don't rely on pre-defined dev environments.
     const config = runningOnDesktop ? AMPLIFY_CONFIG_ELECTRON_PBUCHU : AMPLIFY_CONFIG_BROWSER_PBUCHU;
@@ -422,7 +418,6 @@ const amplifyConfig = (authConfig: AuthConfig): AmplifyConfig => {
  */
 const registerAuthenticatedRedirectCallback = (config: AuthConfig) => {
     const { logger, runningOnDesktop } = config;
-    logger.log("authentication::registerAuthenticatedRedirectCallback")
 
     if (!runningOnDesktop) { return }
 

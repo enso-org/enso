@@ -38,10 +38,14 @@ export const useInput = (initialValue: string) => {
 // FIXME [NP]: docs: https://stackoverflow.com/questions/61751728/asynchronous-calls-with-react-usememo
 // https://devtrium.com/posts/async-functions-useeffect
 // FIXME [NP]: use useLogger here
-export const useAsyncEffect = (logger: Logger, fetch: <T>() => Promise<T>, deps?: DependencyList) => {
-    const [value, setValue] = useState(undefined);
+// eslint-disable-next-line jsdoc/require-jsdoc
+export function useAsyncEffect<T>(initialValue: T, logger: Logger, fetch: () => Promise<T>, deps?: DependencyList): [T] {
+    const [value, setValue] = useState<T>(initialValue);
 
     useEffect(() => {
+        // FIXME [NP]: remove this
+        logger.log("useAsyncEffect", initialValue, fetch, deps)
+
         let active = true;
 
         // Declare the async data fetching function.
@@ -50,8 +54,6 @@ export const useAsyncEffect = (logger: Logger, fetch: <T>() => Promise<T>, deps?
 
             // Set state with the result if `active` is true.
             if (!active) return;
-            // FIXME [NP]: make this type safe
-            // @ts-expect-error
             setValue(result);
         }
 
@@ -63,7 +65,5 @@ export const useAsyncEffect = (logger: Logger, fetch: <T>() => Promise<T>, deps?
         return () => { active = false }
     }, deps)
 
-    return {
-        value,
-    };
+    return [value]
 }

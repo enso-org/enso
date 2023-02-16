@@ -13,6 +13,7 @@ import { getUsersMe, Organization, SetUsernameBody } from './api';
 import * as api from './api';
 import authApi, { isAmplifyError, isAuthError, AuthConfig, Api } from './authentication/api';
 import { DASHBOARD_PATH, Logger, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
+import { useAsyncEffect } from './hooks';
 
 
 
@@ -141,7 +142,6 @@ export interface AuthProviderProps {
 export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   const { logger, auth, children } = props
   const onAuthenticated = useCallback(props.onAuthenticated, [])
-  logger.log("AuthProvider::render")
   const navigate = useNavigate();
   const [initialized, setInitialized] = useState(false);
   const [session, setSession] = useState<UserSession | undefined>(undefined);
@@ -149,13 +149,16 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // has just logged in (so their cached credentials are out of date).
   const [refresh, setRefresh] = useState(0);
   // FIXME [NP]: find a better way to store this state
-  const [, setAccessToken] = useState(undefined);
+  //const [, setAccessToken] = useState(undefined);
 
   useEffect(() => {
-    logger.log(`register listener`);
-    const listener = (event: string, data?: any) => {
-      logger.log(`hub::${event}`);
-      if (event === "cognitoHostedUI") {
+    logger.log(`authProvider::hub::register::refresh ${refresh}`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const listener = (event: string, _data?: any) => {
+      logger.log(`hub::${event}::refresh ${refresh}`);
+      if (event === "signIn") {
+          setRefresh((refresh) => refresh + 1);
+      } else if (event === "cognitoHostedUI") {
           // The user has just signed in via a federated identity provider (e.g., Google or GitHub).
           // We want to redirect the user to the "sign in" page, which will then redirect the user
           // to the "home" page.
@@ -165,7 +168,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   
           // FIXME [NP]: remove lints.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument
-          setAccessToken(data!.signInUserSession.accessToken.jwtToken)
+          //setAccessToken(data!.signInUserSession.accessToken.jwtToken)
       } else if (event === "customOAuthState") {
           // FIXME [NP]: make this variable.
           // FIXME [NP]: document this https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
@@ -173,14 +176,24 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
           //const url = `http://localhost:8080${data.payload.data}`;
           const url = `http://localhost:8080/`
           window.history.replaceState({}, "", url)
+          setRefresh((refresh) => refresh + 1)
           //navigate(DASHBOARD_PATH)
-          window.history.go();
+          //window.history.go();
+      } else if (event === "signOut") {
+          //setRefresh((refresh) => refresh + 1)
+          setSession(undefined)
       }
     };
     
     const cancel = auth.listen(listener);
     return cancel
-  }, [setAccessToken, auth, logger]);
+  }, [auth, logger]);
+
+  const [authSession] = useAsyncEffect(null, logger, async () => {
+    logger.log(`AuthProvider::useAsyncEffect::refresh ${refresh}`)
+    // FIXME [NP]: rename this
+    return await auth.userSession();
+  }, [refresh])
 
   // FIXME [NP]: remove
   //// Ensure the AWS Amplify library is loaded & configured prior to providing the `AuthContext` to
@@ -200,17 +213,12 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // `undefined`.  If the token has expired, automatically refreshes the token and returns the new
   // token.
   useEffect(() => {
-      // FIXME [NP]: remove this log
-      console.log("EFFECT: fetchSession 0");
-
       const fetchSession = async () => {
         // FIXME [NP]: remove this log
-        console.log("EFFECT: fetchSession");
+        console.log(`AuthProvider::useEffect::fetchSession::${JSON.stringify(authSession)}::${refresh}`);
 
-        // FIXME [NP]: rename this
-        const authSession = await auth.userSession();
         if (!authSession) {
-          setInitialized(true)
+          setInitialized(true);
           setSession(undefined);
           return;
         }
@@ -257,46 +265,54 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
           toast.error(error.message);
           console.log(error)
         });
-  }, [refresh])
+  }, [authSession, refresh])
 
   const withLoadingToast = (action: (...args: any) => Promise<void>) => async (...args: any) => {
     const loadingToast = toast.loading("Please wait...")
     try {
-      await action(args)
+      // FIXME [NP]: make this type-safe
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      await action(...args)
     } finally {
       toast.dismiss(loadingToast)
     }
   }
 
   const signUp = async (username: string, password: string) => {
-    const result = await auth.signUp(username, password)
-    if (isAmplifyError(result)) {
-      if (result.code === "UsernameExistsException") {
-        toast.error(result.message)
-        return;
-      } else if (result.code === "InvalidPasswordException") {
-        toast.error(result.message)
-        return;
+    try {
+      await auth.signUp(username, password)
+    } catch (error) {
+      if (isAmplifyError(error)) {
+        if (error.code === "UsernameExistsException") {
+          toast.error(error.message)
+          return;
+        } else if (error.code === "InvalidPasswordException") {
+          toast.error(error.message)
+          return;
+        }
       }
 
-      throw result;
+      throw error;
     }
 
     toast.success(SIGN_UP_SUCCESS)
   };
 
   const confirmSignUp = async (email: string, code: string) => {
-    const result = await auth.confirmSignUp(email, code);
-    if (isAmplifyError(result)) {
-      if (result.code === "NotAuthorizedException") {
-        if (result.message === "User cannot be confirmed. Current status is CONFIRMED") {
-          toast.success(CONFIRM_SIGN_UP_SUCCESS)
-          navigate(LOGIN_PATH)
-          return;
+    try {
+      await auth.confirmSignUp(email, code);
+    } catch (error) {
+      if (isAmplifyError(error)) {
+        if (error.code === "NotAuthorizedException") {
+          if (error.message === "User cannot be confirmed. Current status is CONFIRMED") {
+            toast.success(CONFIRM_SIGN_UP_SUCCESS)
+            navigate(LOGIN_PATH)
+            return;
+          }
         }
       }
 
-      throw result;
+      throw error;
     }
 
     navigate(LOGIN_PATH)
@@ -314,40 +330,47 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     email: string,
     password: string,
   ) => {
-    const result = await auth.signInWithPassword(email, password);
-    if (isAmplifyError(result)) {
-      if (result.code === "UserNotFoundException") {
-        navigate(REGISTRATION_PATH);
-        toast.error("User not found. Please register first.")
-        return
-      } else if (result.code === "UserNotConfirmedException") {
-        toast.error("User not confirmed. Please check your email for a confirmation link.");
-        return
-      } else if (result.code === "NotAuthorizedException") {
-        toast.error("Incorrect username or password.");
-        return
+    try {
+      logger.log(email)
+      await auth.signInWithPassword(email, password);
+    } catch (error) {
+      if (isAmplifyError(error)) {
+        if (error.code === "UserNotFoundException") {
+          navigate(REGISTRATION_PATH);
+          toast.error("User not found. Please register first.")
+          return
+        } else if (error.code === "UserNotConfirmedException") {
+          toast.error("User not confirmed. Please check your email for a confirmation link.");
+          return
+        } else if (error.code === "NotAuthorizedException") {
+          toast.error("Incorrect username or password.");
+          return
+        }
       }
 
-      throw result
+      throw error
     }
 
     // Now that we've logged in, we need to refresh the session so that the user's organization
     // information is available.
-    setRefresh(refresh + 1);
+    //setRefresh(refresh + 1);
 
     navigate(DASHBOARD_PATH)
     toast.success(SIGN_IN_WITH_PASSWORD_SUCCESS)
   };
 
   const forgotPassword = async (email: string) => {
-    const result = await auth.forgotPassword(email);
-    if (isAmplifyError(result)) {
-      if (result.code === "UserNotFoundException") {
-        toast.error("User not found. Please register first.");
-        return
+    try {
+      await auth.forgotPassword(email);
+    } catch (error) {
+      if (isAmplifyError(error)) {
+        if (error.code === "UserNotFoundException") {
+          toast.error("User not found. Please register first.");
+          return
+        }
       }
 
-      throw result 
+      throw error
     }
 
     navigate(RESET_PASSWORD_PATH)
@@ -378,10 +401,10 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   const signOut = async () => {
     await auth.signOut();
 
-    // Now that we've logged in, we need to refresh the session so that the user's token is cleared.
-    setRefresh(refresh + 1);
+    // Now that we've signed out, we need to refresh the session so that the user's token is cleared.
+    //setRefresh(refresh + 1);
 
-    navigate(LOGIN_PATH)
+    //navigate(LOGIN_PATH)
     toast.success(SIGN_OUT_SUCCESS)
   }
 
@@ -398,6 +421,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     session,
   };
 
+  logger.log(`authProvider::render::initialized ${initialized}::refresh ${refresh}::session ${JSON.stringify(session)}`)
   return (
         //{/* If the user is not logged in, redirect them to the login page. */}
         //{initialized && !session && <Navigate to={LOGIN_PATH} />}

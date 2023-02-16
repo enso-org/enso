@@ -110,7 +110,7 @@ const config: esbuild.BuildOptions = {
         BUILD_INFO: JSON.stringify(BUILD_INFO),
     },
     sourcemap: true,
-    minify: true,
+    minify: false,
     metafile: true,
     format: 'esm',
     publicPath: '/assets',
