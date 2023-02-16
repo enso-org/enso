@@ -1,0 +1,140 @@
+from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Filter_Condition import sql_like_to_regex
+
+from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Choice import Option
+import Standard.Base.Metadata.Display
+
+import project.Data.Table.Table
+import project.Excel.Excel_Range.Excel_Range
+import project.Excel.Excel_Reader
+
+polyglot java import org.enso.table.read.ExcelReader
+polyglot java import org.apache.poi.ss.usermodel.Workbook
+
+type Excel_Workbook
+    ## Load a File as a connection to an Excel workbook.
+
+       Arguments:
+       - file: The file to load.
+       - xls_format: Whether to use the old XLS format (default is XLSX).
+       - headers: Whether to use the first row as headers (default is to infer).
+    new : File | Text -> Boolean -> Boolean | Infer -> Excel_Workbook
+    new file xls_format=False headers=Infer =
+        file_obj = File.new file . normalize
+        File_Error.handle_java_exceptions file_obj <|
+            file_obj.with_input_stream [File_Access.Read] stream->
+                stream.with_java_stream java_stream->
+                    workbook = ExcelReader.readWorkbook java_stream xls_format
+                    Excel_Workbook.Value workbook file_obj xls_format headers
+
+    ## PRIVATE
+       Creates an Excel_Workbook connection.
+    Value workbook:Workbook file:File xls_format:Boolean headers:(Boolean|Infer)
+
+    ## Returns the list of databases (or catalogs) for the connection.
+    databases : Nothing
+    databases self = Nothing
+
+    ## Returns the name of the current database (or catalog).
+    database : Text
+    database self = self.file.path
+
+    ## Returns a new Connection with the specified database set as default.
+
+       Arguments:
+        - database: The name of the database to connect to.
+    @database (Single_Choice display=Display.Always values=[Option 'Nothing'])
+    set_database : Text -> Excel_Workbook ! Illegal_Argument
+    set_database self database =
+        if database == self.database then self else
+            file = File.new database
+            if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format self.headers else
+                Error.throw (Illegal_Argument.Error "The specified file ('"+file.path+"') does not exist.")
+
+    ## Returns the list of schemas for the connection within the current database (or catalog).
+    schemas : Vector (Text | Nothing)
+    schemas self = [Nothing]
+
+    ## Returns the name of the current schema.
+    schema : Text | Nothing
+    schema self = Nothing
+
+    ## Returns a new Connection with the specified schema set as default.
+
+       Arguments:
+        - schema: The name of the schema to connect to.
+    @schema (Single_Choice display=Display.Always values=[Option 'Nothing'])
+    set_schema : Text | Nothing -> Excel_Workbook ! Illegal_Argument
+    set_schema self schema =
+        if schema == self.schema then self else
+            Error.throw (Illegal_Argument.Error "Changing schema is not supported.")
+
+    ## Gets the number of sheets.
+    sheet_count : Integer
+    sheet_count self = self.workbook.getNumberOfSheets
+
+    ## Gets the names of all the sheets.
+    sheet_names : Vector Text
+    sheet_names self = Vector.from_polyglot_array (ExcelReader.readSheetNames self.workbook)
+
+    ## Gets the number of named ranges.
+    named_ranges_count : Integer
+    named_ranges_count self = self.workbook.getNumberOfNames
+
+    ## Gets the names of all the named ranges.
+    named_ranges : Vector Text
+    named_ranges self = Vector.from_polyglot_array (ExcelReader.readRangeNames self.workbook)
+
+    ## Gets a list of the table types.
+    table_types : Vector Text
+    table_types self = ['Worksheet', 'Named Range']
+
+    ## Returns a materialised Table of all the matching views and tables.
+
+       Arguments:
+       - name_like: The table name pattern to search for. Support SQL wildcards (`%`, `_`).
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to current schema).
+       - types: The table types to search for. The list of values can be obtained using the `table_types` method.
+       - all_fields: Return all the fields in the metadata table.
+    @types (self-> Single_Choice values=(self.table_types.map t-> Option t t.pretty))
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Table
+    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
+        _ = [all_fields]
+        rows = if schema != Nothing then [] else
+            sheets = if types==Nothing || types.contains "Worksheet" then self.sheet_names.map s-> [s, 'Worksheet', database, Nothing] else []
+            ranges = if types==Nothing || types.contains "Named Range" then self.named_ranges.map r-> [r, 'Named Range', database, Nothing] else []
+            sheets + ranges
+
+        filtered = if name_like == Nothing then rows else
+            regex = sql_like_to_regex name_like
+            rows.filter r-> regex.matches r.first
+
+        Table.from_rows ['Name', 'Type', 'Database', 'Schema'] filtered
+
+    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
+
+       Arguments:
+       - query: sheet name, range name or address to read from the workbook.
+       - alias: optionally specify a friendly alias for the query (unused).
+    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
+    query : Text -> Text -> Table
+    query self query alias="" =
+        _ = [alias]
+        self.read query
+
+    ## Execute the query and load the results into memory as a Table.
+
+       Arguments:
+       - query: sheet name, range name or address to read from the workbook.
+       - limit: the maximum number of rows to return.
+    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
+    read : Text -> Integer | Nothing -> Table
+    read self query limit=Nothing =
+        java_headers = Excel_Reader.make_java_headers self.headers
+        Excel_Reader.prepare_reader_table Report_Warning <| case query of
+            _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit
+            _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit
