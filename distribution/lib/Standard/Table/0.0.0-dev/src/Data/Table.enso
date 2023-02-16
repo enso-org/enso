@@ -776,6 +776,8 @@ type Table
            raised as an error, unless `error_on_missing_columns` is set to
            `False`, in which case the problem is reported according to the
            `on_problems` setting.
+         - If a column selected for parsing is not a text column, an
+           `Invalid_Value_Type` dataflow error is raised.
          - If some values in a column did not match the expected datatype
            format, an `Invalid_Format` problem is reported according to the
            `on_problems` setting. The problematic cells are replaced with
@@ -807,7 +809,7 @@ type Table
 
                table.parse_values format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
     parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Table
-    parse_values columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Nothing error_on_missing_columns=True on_problems=Report_Warning =
+    parse_values columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         columns = self.columns
         problem_builder = Vector.new_builder
 
