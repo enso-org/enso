@@ -5,6 +5,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.Warning;
@@ -25,7 +26,6 @@ public abstract class HostValueToEnsoNode extends Node {
   public static HostValueToEnsoNode getUncached() {
     return HostValueToEnsoNodeGen.getUncached();
   }
-
   /**
    * Converts an arbitrary value to a value usable within Enso code.
    *
@@ -65,10 +65,14 @@ public abstract class HostValueToEnsoNode extends Node {
   }
 
   @Specialization(guards = {"o != null", "nulls.isNull(o)"})
-  Object doNull(Object o, @CachedLibrary(limit = "3") InteropLibrary nulls, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  Object doNull(
+      Object o,
+      @CachedLibrary(limit = "3") InteropLibrary nulls,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached ConditionProfile nullWarningProfile) {
     var nothing = EnsoContext.get(this).getBuiltins().nothing();
 
-    if (warnings.hasWarnings(o)) {
+    if (nullWarningProfile.profile(warnings.hasWarnings(o))) {
       try {
         Warning[] attachedWarnings = warnings.getWarnings(o, null);
         return new WithWarnings(nothing, attachedWarnings);
