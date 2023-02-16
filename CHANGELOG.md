@@ -92,6 +92,9 @@
 - [Added restoring of last project snapshot on shortcut.][4050]
 - [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
   contain suggestions which are based on evaluated data.
+- [Improved component browser entry filtering and sorting][5645]. The component
+  browser will now provide suggestions matching either the component's label or
+  the corresponding code.
 
 #### EnsoGL (rendering engine)
 
@@ -473,6 +476,7 @@
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4050]: https://github.com/enso-org/enso/pull/4050
 [4072]: https://github.com/enso-org/enso/pull/4072
+[5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
 
 #### Enso Compiler
