@@ -5,15 +5,15 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc.
  */
-import { Auth, CognitoHostedUIIdentityProvider, SignUpParams } from '@aws-amplify/auth'
+import { Auth } from '@aws-amplify/auth'
 import { ComponentType, createContext, FC, ReactElement, ReactNode, useContext, useEffect, useState } from 'react';
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
+import { toast } from "react-hot-toast"
+
 import { getUsersMe, Organization, SetUsernameBody } from './api';
 import * as api from './api';
-import authApi from './authentication/api';
+import authApi, { isAmplifyError, isAuthError } from './authentication/api';
 import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
-import { toast } from "react-hot-toast"
-import { AuthError } from '@aws-amplify/auth/lib-esm/Errors';
 
 
 
@@ -62,55 +62,17 @@ export interface PartialUserSession {
 }
 
 
-// === AmplifyError ===
-
-/// List of known error codes returned by the AWS Amplify library.
-type AmplifyErrorCode =
-  | "UserNotFoundException"
-  | "UserNotConfirmedException"
-  | "NotAuthorizedException"
-  | "InvalidPasswordException"
-  | "UsernameExistsException"
-  | "NetworkError";
-
-/// The type of the object returned by the AWS Amplify library when an error occurs.
-interface AmplifyError {
-  code: AmplifyErrorCode,
-  name: string,
-  message: string,
-}
-
-/// Function for determining if an error is an `AmplifyError`.
-///
-/// This function is used to know if we can safely cast an error to an `AmplifyError`.
-const isAmplifyError = (error: unknown): error is AmplifyError => {
-  if (error && typeof error === "object") {
-    return "code" in error && "message" in error && "name" in error;
-  }
-  return false;
-}
-
-/// Function for determining if an error is an `AuthError`.
-///
-/// This function is used to know if we can safely cast an error to an `AuthError`.
-const isAuthError = (error: unknown): error is AuthError => {
-  if (error && typeof error === "object") {
-    return "name" in error && "log" in error;
-  }
-  return false;
-}
-
-
-
 // =================
 // === Constants ===
 // =================
 
-/// The string used to identify the GitHub federated identity provider in AWS Amplify.
-///
-/// This provider alone requires a string because it is not a standard provider, and thus has no
-/// constant defined in the AWS Amplify library.
-const githubProvider = "Github";
+const SIGN_UP_SUCCESS = "We have sent you an email with further instructions!"
+const CONFIRM_SIGN_UP_SUCCESS = "Your account has been confirmed! Please log in."
+const SET_USERNAME_SUCCESS = "Your username has been set!"
+const SIGN_IN_WITH_PASSWORD_SUCCESS = "Successfully logged in!"
+const FORGOT_PASSWORD_SUCCESS = "We have sent you an email with further instructions!"
+const RESET_PASSWORD_SUCCESS = "Successfully reset password!"
+const SIGN_OUT_SUCCESS = "Successfully logged out!"
 
 /// The configuration for the AWS Amplify library.
 ///
@@ -277,7 +239,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // State that, when incremented, forces a refresh of the user session. This is useful when a user
   // has just logged in (so their cached credentials are out of date).
   const [refresh, setRefresh] = useState(0);
-  const [auth] = useState(authApi());
+  const [auth] = useState(authApi({ runningOnDesktop }));
 
   // FIXME [NP]: remove
   //// Ensure the AWS Amplify library is loaded & configured prior to providing the `AuthContext` to
@@ -356,136 +318,104 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
         });
   }, [refresh])
 
+  const withLoadingToast = (action: (...args: any) => Promise<void>) => async (...args: any) => {
+    const loadingToast = toast.loading("Please wait...")
+    try {
+      await action(args)
+    } finally {
+      toast.dismiss(loadingToast)
+    }
+  }
+
   const signUp = async (username: string, password: string) => {
-      const params: SignUpParams = {
-        username,
-        password,
-        attributes: {
-          email: username,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "custom:fromDesktop": runningOnDesktop ? "true" : "false"
-        }
+    const result = await auth.signUp(username, password)
+    if (isAmplifyError(result)) {
+      if (result.code === "UsernameExistsException") {
+        toast.error(result.message)
+        return;
+      } else if (result.code === "InvalidPasswordException") {
+        toast.error(result.message)
+        return;
       }
 
-      const loading = toast.loading("Please wait...");
-      try {
-        await Auth.signUp(params)
-      } catch (error: any) {
-          if (isAmplifyError(error)) {
-            if (error.code === "InvalidPasswordException") {
-              toast.error(error.message)
-              return
-            } else if (error.code === "UsernameExistsException") {
-              toast.error(error.message)
-              return
-            }
-          }
-          throw error
-      } finally {
-        toast.dismiss(loading)
-      }
+      throw result;
+    }
 
-      toast.success("We have sent you an email with further instructions!")
+    toast.success(SIGN_UP_SUCCESS)
   };
 
   const confirmSignUp = async (email: string, code: string) => {
-    const loading = toast.loading("Please wait...");
-    try {
-      // FIXME [NP]: ensure we handle the error appropriately.
-      await Auth.confirmSignUp(email, code)
-    } catch (error) {
-      if (isAmplifyError(error)) {
-        if (error.code === "NotAuthorizedException") {
-          if (error.message === "User cannot be confirmed. Current status is CONFIRMED") {
-            toast.success("Your account has already been confirmed! Please log in.")
-            navigate(LOGIN_PATH)
-            return
-          }
+    const result = await auth.confirmSignUp(email, code);
+    if (isAmplifyError(result)) {
+      if (result.code === "NotAuthorizedException") {
+        if (result.message === "User cannot be confirmed. Current status is CONFIRMED") {
+          toast.success(CONFIRM_SIGN_UP_SUCCESS)
+          navigate(LOGIN_PATH)
+          return;
         }
       }
-    }finally {
-      toast.dismiss(loading)
+
+      throw result;
     }
 
-    toast.success("Your account has been confirmed! Please log in.")
     navigate(LOGIN_PATH)
-  }
+    toast.success(CONFIRM_SIGN_UP_SUCCESS)
+  } 
 
   const setUsername = async (accessToken: string, username: string, email: string) => {
       const body: SetUsernameBody = { userName: username, userEmail: email };
       await api.setUsername(accessToken, body);
-      toast.success("Your username has been set!")
       navigate(DASHBOARD_PATH);
-  };
-
-  const signInWithGoogle = async () => {
-    await Auth.federatedSignIn({ provider: CognitoHostedUIIdentityProvider.Google })
-  };
-
-  const signInWithGitHub = async () => {
-    await Auth.federatedSignIn({ customProvider: githubProvider });
+      toast.success(SET_USERNAME_SUCCESS);
   };
 
   const signInWithPassword = async (
     email: string,
     password: string,
   ) => {
-    const loading = toast.loading("Please wait...");
-    try {
-      await Auth.signIn(email, password);
-    } catch (error) {
-      if (isAmplifyError(error)) {
-        if (error.code === "UserNotFoundException") {
-          navigate(REGISTRATION_PATH);
-          toast.error("User not found. Please register first.")
-          return
-        } else if (error.code === "UserNotConfirmedException") {
-          toast.error("User not confirmed. Please check your email for a confirmation link.")
-          return
-        } else if (error.code === "NotAuthorizedException") {
-          toast.error("Incorrect username or password.")
-          return
-        }
+    const result = await auth.signInWithPassword(email, password);
+    if (isAmplifyError(result)) {
+      if (result.code === "UserNotFoundException") {
+        navigate(REGISTRATION_PATH);
+        toast.error("User not found. Please register first.")
+        return
+      } else if (result.code === "UserNotConfirmedException") {
+        toast.error("User not confirmed. Please check your email for a confirmation link.");
+        return
+      } else if (result.code === "NotAuthorizedException") {
+        toast.error("Incorrect username or password.");
+        return
       }
 
-      throw error
-    } finally {
-      toast.dismiss(loading);
+      throw result
     }
 
     // Now that we've logged in, we need to refresh the session so that the user's organization
     // information is available.
     setRefresh(refresh + 1);
 
-    toast.success("Successfully logged in!")    
     navigate(DASHBOARD_PATH)
+    toast.success(SIGN_IN_WITH_PASSWORD_SUCCESS)
   };
 
   const forgotPassword = async (email: string) => {
-    const loading = toast.loading("Please wait...");
-    try {
-      await Auth.forgotPassword(email);
-    } catch (error) {
-      if (isAmplifyError(error)) {
-        if (error.code === "UserNotFoundException") {
-          toast.error("User not found. Please register first.")
-          return
-        }
+    const result = await auth.forgotPassword(email);
+    if (isAmplifyError(result)) {
+      if (result.code === "UserNotFoundException") {
+        toast.error("User not found. Please register first.");
+        return
       }
 
-      throw error
-    } finally {
-      toast.dismiss(loading);
+      throw result 
     }
 
-    toast.success("We have sent you an email with further instructions!")
     navigate(RESET_PASSWORD_PATH)
+    toast.success(FORGOT_PASSWORD_SUCCESS)
   }
 
   const resetPassword = async (email: string, code: string, password: string) => {
-    const loading = toast.loading("Please wait...");
     try {
-      await Auth.forgotPasswordSubmit(email, code, password)
+      await auth.forgotPasswordSubmit(email, code, password)
     } catch (error) {
       if (isAuthError(error)) {
         toast.error(error.log)
@@ -498,33 +428,31 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
       }
 
       throw error
-    } finally {
-      toast.dismiss(loading);
     }
 
-    toast.success("Successfully reset password!")    
     navigate(LOGIN_PATH)
+    toast.success(RESET_PASSWORD_SUCCESS)
   };
 
   const signOut = async () => {
-    await Auth.signOut();
+    await auth.signOut();
 
     // Now that we've logged in, we need to refresh the session so that the user's token is cleared.
     setRefresh(refresh + 1);
 
-    toast.success("Successfully logged out!")
     navigate(LOGIN_PATH)
+    toast.success(SIGN_OUT_SUCCESS)
   }
 
   const value = {
-    signUp,
-    confirmSignUp,
+    signUp: withLoadingToast(signUp),
+    confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
-    signInWithGoogle,
-    signInWithGitHub,
-    signInWithPassword,
-    forgotPassword,
-    resetPassword,
+    signInWithGoogle: auth.signInWithGoogle,
+    signInWithGitHub: auth.signInWithGithub,
+    signInWithPassword: withLoadingToast(signInWithPassword),
+    forgotPassword: withLoadingToast(forgotPassword),
+    resetPassword: withLoadingToast(resetPassword),
     signOut,
     session,
   };
