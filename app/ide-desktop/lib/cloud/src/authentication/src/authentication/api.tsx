@@ -1,5 +1,6 @@
 import { Auth, CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
 import { CognitoUserSession } from "amazon-cognito-identity-js";
+import { Logger } from "../components/app";
 
 
 
@@ -14,6 +15,110 @@ import { CognitoUserSession } from "amazon-cognito-identity-js";
  * constant defined in the AWS Amplify library.
  */
 const GITHUB_PROVIDER = "Github";
+
+
+
+// =============================
+// === Amplify Configuration ===
+// =============================
+
+// FIXME [NP]: document all these types
+type AwsRegion = "eu-west-1";
+type OAuthScope = "email" | "openid";
+type OAuthResponseType = "code";
+export type OAuthUrlOpener = (url: string, redirectUrl: string) => void;
+
+/**
+ * The configuration for the AWS Amplify library.
+ *
+ * This details user pools, federated identity providers, etc. that are used to authenticate users.
+ * The values in this object are not secret, and can be swapped out for testing values to avoid
+ * creating authenticated users in the production environment.
+ */
+// FIXME [NP]: document all these values 
+//   See: https://github.com/enso-org/enso/compare/develop...wip/db/cognito-auth-183351503#diff-319a7d209df303b404c07be91bfa179b12aaafcae1c67384dfe3cbffde80e010
+interface AmplifyConfig {
+    region: AwsRegion,
+    userPoolId: string,
+    userPoolWebClientId: string,
+    oauth: {
+        options: {
+            urlOpener?: OAuthUrlOpener,
+        },
+        domain: string,
+        scope: OAuthScope[],
+        redirectSignIn: string,
+        redirectSignOut: string,
+        responseType: OAuthResponseType,
+    },
+}
+
+// FIXME [NP]: move this to a config file
+//const electronAmplifyConfigTesting: AuthOptions = {
+//  region: "us-east-1",
+//  // FIXME [NP]
+//  //identityPoolId: "",
+//  userPoolId: "us-east-1_VcFZzGyhv",
+//  userPoolWebClientId: "7vic1uoogbq4aq2rve897j0ep0",
+//  oauth: {
+//    options: {}, // FIXME [NP]
+//    domain: "test-enso-pool.auth.us-east-1.amazoncognito.com/",
+//    scope: ['email', 'openid'], // FIXME [NP]
+//    redirectSignIn: "enso://localhost",
+//    redirectSignOut: "enso://localhost",
+//    responseType: "code",
+//  },
+//}
+//const browserAmplifyConfigNpekin: AuthOptions = {
+//  region: "eu-west-1",
+//  // FIXME [NP]
+//  //identityPoolId: "",
+//  userPoolId: "eu-west-1_sP5bQ4mJs",
+//  userPoolWebClientId: "27gd0b05qlnkj1lcsnd0b4fb89",
+//  oauth: {
+//    options: {}, // FIXME [NP]
+//    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
+//    domain: "npekin-enso-domain.auth.eu-west-1.amazoncognito.com/",
+//    scope: ['email', 'openid'], // FIXME [NP]
+//    redirectSignIn: "http://localhost:8081",
+//    redirectSignOut: "http://localhost:8081",
+//    responseType: "code",
+//  },
+//}
+const AMPLIFY_CONFIG_BROWSER_PBUCHU: AmplifyConfig = {
+    region: "eu-west-1",
+    // FIXME [NP]
+    //identityPoolId: "",
+    userPoolId: "eu-west-1_jSF1RbgPK",
+    userPoolWebClientId: "1bnib0jfon3aqc5g3lkia2infr",
+    oauth: {
+      options: {}, // FIXME [NP]
+      //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
+      domain: "pb-enso-domain.auth.eu-west-1.amazoncognito.com",
+      scope: ['email', 'openid'], // FIXME [NP]
+      redirectSignIn: "http://localhost:8081",
+      redirectSignOut: "http://localhost:8081",
+      responseType: "code",
+    },
+  }
+//const browserAmplifyConfigProd: AuthOptions = {
+//  region: "eu-west-1",
+//  // FIXME [NP]
+//  //identityPoolId: "",
+//  userPoolId: "eu-west-1_9Kycu2SbD",
+//  userPoolWebClientId: "4j9bfs8e7415erf82l129v0qhe",
+//  oauth: {
+//    options: {}, // FIXME [NP]
+//    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
+//    domain: "production-enso-domain.auth.eu-west-1.amazoncognito.com/",
+//    scope: ['email', 'openid'], // FIXME [NP]
+//    redirectSignIn: "https://cloud.enso.org",
+//    redirectSignOut: "https://cloud.enso.org",
+//    responseType: "code",
+//  },
+//}
+
+const AMPLIFY_CONFIG = AMPLIFY_CONFIG_BROWSER_PBUCHU;
 
 
 
@@ -169,16 +274,72 @@ const parseUserSession = (session: CognitoUserSession): UserSession => {
 // ===========
 
 
-// === Config ===
+// === AuthConfig ===
 
-interface Config {
-    /// Whether the application is running on a desktop (i.e., versus in the Cloud).
-    runningOnDesktop: boolean;
+/**
+ * Configuration for the authentication service.
+ */
+export type AuthConfig = DesktopConfig | BrowserConfig;
+
+/**
+ * Configuration for the authentication service, for when the application is running on the desktop.
+ */
+interface DesktopConfig {
+    /**
+     * Whether the application is running on a desktop (i.e., versus in the Cloud).
+     */
+    runningOnDesktop: true;
+    /**
+     * URL opener for opening a URL in the user's system browser, for OAuth flows.
+     */
+    urlOpener: OAuthUrlOpener,
+}
+
+/**
+ * Configuration for the authentication service, for when the application is running in the Cloud.
+ */
+interface BrowserConfig {
+    /**
+     * Whether the application is running on a desktop (i.e., versus in the Cloud).
+     */
+    runningOnDesktop: false;
+}
+
+/**
+ * Creates a configuration for the authentication service.
+ */
+export const config = (logger: Logger, runningOnDesktop: boolean) => {
+    logger.log("Creating authentication service configuration.") 
+    if (runningOnDesktop) {
+        // # Running on Desktop
+        //
+        // Ensure that you have the `loginApi` context bridge exposed in the main process. See the
+        // `exposeLoginApi` function for more details.
+        const urlOpener = (url: string) => {
+            // FIXME [NP]: remove this log
+            logger.log("Opening URL in system browser.", url) 
+            // # Safety
+            //
+            // We're using `window.loginApi` here, which is a context bridge to the main process.
+            // We're assuming that the main process has exposed the `loginApi` context bridge, and
+            // that it contains the `open` function.
+            // @ts-expect-error
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            window.loginApi.open(url)
+        }
+
+        return { runningOnDesktop, urlOpener }
+    } else {
+        return { runningOnDesktop }
+    }
 }
 
 
 // === API ===
 
+/**
+ * API for the authentication service.
+ */
 interface Api {
     /**
      * Returns the current user's session, or `null` if the user is not logged in.
@@ -191,6 +352,8 @@ interface Api {
     userSession: () => Promise<UserSession | null>;
     /**
      * Sign up with the given parameters (i.e., username and password).
+     * 
+     * Does not rely on external identity providers (e.g., Google or GitHub).
      *
      * @returns A promise that resolves if the sign up was successful.
      * @throws An error if sign up fails.
@@ -207,14 +370,24 @@ interface Api {
     confirmSignUp: (email: string, code: string) => Promise<void>;
     /**
      * Signs in via the Google federated identity provider.
+     * 
+     * This function will open the Google authentication page in the user's browser. The user will
+     * be asked to log in to their Google account, and then to grant access to the application.
+     * After the user has granted access, the browser will be redirected to the application.
      */
     signInWithGoogle: () => Promise<void>;
     /**
      * Signs in via the GitHub federated identity provider.
+     * 
+     * This function will open the GitHub authentication page in the user's browser. The user will
+     * be asked to log in to their GitHub account, and then to grant access to the application.
+     * After the user has granted access, the browser will be redirected to the application.
      */
     signInWithGithub: () => Promise<void>;
     /**
      * Signs in with the given username and password.
+     * 
+     * Does not rely on external identity providers (e.g., Google or GitHub).
      * 
      * @param username - Username of the user to sign in.
      * @param password - Password of the user to sign in.
@@ -224,6 +397,10 @@ interface Api {
     signInWithPassword: (username: string, password: string) => Promise<void>;
     /**
      * Sends a password reset email to the given email address.
+     * 
+     * The user will be able to reset their password by following the link in the email, which takes
+     * them to the "reset password" page of the application. The verification code will be filled in
+     * automatically.
      *
      * @param email - Email address to send the password reset email to.
      * @returns A promise that resolves if the email was sent successfully.
@@ -232,6 +409,10 @@ interface Api {
     forgotPassword: (email: string) => Promise<void>;
     /**
      * Submits a new password for the given email address.
+     * 
+     * The user will have received a verification code in an email, which they will have entered on
+     * the "reset password" page of the application. This function will submit the new password
+     * along with the verification code, changing the user's password.
      *
      * @param email - Email address to reset the password for.
      * @param code - Verification code that was sent to the user's email address.
@@ -249,8 +430,36 @@ interface Api {
     signOut: () => Promise<void>;
 }
 
-const api = (config: Config): Api => {
+/**
+ * Creates an instance of the authentication API.
+ * 
+ * # Warning
+ * 
+ * This function should only be called once, and the returned API should be used throughout the
+ * application. This is because it performs global configuration of the Amplify library.
+ * 
+ * @param config - Configuration for the API.
+ * @returns An instance of the authentication API.
+ */
+const api = (config: AuthConfig): Api => {
     const { runningOnDesktop } = config;
+
+    // If we're running on the desktop, we want to override the default URL opener for OAuth flows.
+    // This is because the default URL opener opens the URL in the desktop app itself, but we want
+    // the user to be sent to their system browser instead. The user should be sent to their system
+    // browser because:
+    //
+    // - users trust their system browser with their credentials more than they trust our app;
+    // - our app can keep itself on the relevant page until the user is sent back to it (i.e., we
+    //   avoid unnecessary reloads/refreshes caused by redirects.
+    if (runningOnDesktop) {
+        AMPLIFY_CONFIG.oauth.options.urlOpener = config.urlOpener;
+    }
+
+    // Amplify expects `Auth.configure` to be called before any other `Auth` methods are called. By
+    // wrapping all the `Auth` methods we care about and returning an API object, we ensure that
+    // `Auth.configure` is called before any other `Auth` methods are called.
+    Auth.configure(AMPLIFY_CONFIG)
 
     const userSession = () => getAmplifyCurrentSession()
         .then((session) => session ? parseUserSession(session) : null);

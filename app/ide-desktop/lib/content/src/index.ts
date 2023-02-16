@@ -121,6 +121,7 @@ class Main {
                     //    root?.style = 'display: block'
                     //}
                     const props: AppProps = {
+                        logger,
                         // This package is an Electron desktop app (i.e., not in the Cloud), so
                         // we're running on the desktop.
                         runningOnDesktop: true,
@@ -129,7 +130,7 @@ class Main {
                             appInstance.run()
                         }
                     }
-                    authentication.run(logger, props)
+                    authentication.run(props)
                 } else {
                     appInstance.run()
                 }

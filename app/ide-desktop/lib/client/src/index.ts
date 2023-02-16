@@ -19,6 +19,7 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
+import opener from 'opener'
 const logger = content.logger
 
 // ===========
@@ -204,6 +205,8 @@ class App {
             })
         }
         electron.ipcMain.on(ipc.channel.quit, () => electron.app.quit())
+        // FIXME [NP]: Move this to the authentication package.
+        electron.ipcMain.on(ipc.channel.loginApiOpen, (event, url) => opener(url))
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration

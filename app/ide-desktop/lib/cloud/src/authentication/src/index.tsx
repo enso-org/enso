@@ -26,15 +26,6 @@ import "./styles/index.css"
 // === run ===
 // ===========
 
-// Interface used to log logs, errors, etc.
-//
-// In the browser, this is the `Console` interface. In Electron, this is the `Logger` interface
-// provided by the EnsoGL packager.
-interface Logger {
-    /// Logs a message to the console.
-    log: (message?: any, ...optionalParams: any[]) => void,
-}
-
 /**
  * Entrypoint for the authentication/dashboard app.
  * 
@@ -42,7 +33,8 @@ interface Logger {
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
  * for redirecting the user to/from the login page).
  */
-export const run = (logger: Logger, props: AppProps) => {
+export const run = (props: AppProps) => {
+    const { logger } = props
     logger.log("Starting authentication/dashboard UI.")
 
     // The `id` attribute of the root element that the app will be rendered into.
@@ -58,4 +50,5 @@ export const run = (logger: Logger, props: AppProps) => {
 }
 
 export type AppProps = app.AppProps
+
 export default { run }

@@ -5,14 +5,13 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc.
  */
-import { Auth } from '@aws-amplify/auth'
 import { ComponentType, createContext, FC, ReactElement, ReactNode, useContext, useEffect, useState } from 'react';
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from "react-hot-toast"
 
 import { getUsersMe, Organization, SetUsernameBody } from './api';
 import * as api from './api';
-import authApi, { isAmplifyError, isAuthError } from './authentication/api';
+import authApi, { isAmplifyError, isAuthError, AuthConfig } from './authentication/api';
 import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
 
 
@@ -20,12 +19,6 @@ import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET
 // =============
 // === Types ===
 // =============
-
-
-// === AuthOptions ===
-
-/// The type of the object consumed by the `Auth.configure` method.
-type AuthOptions = ReturnType<typeof Auth['configure']>
 
 
 // === UserSession ===
@@ -73,94 +66,6 @@ const SIGN_IN_WITH_PASSWORD_SUCCESS = "Successfully logged in!"
 const FORGOT_PASSWORD_SUCCESS = "We have sent you an email with further instructions!"
 const RESET_PASSWORD_SUCCESS = "Successfully reset password!"
 const SIGN_OUT_SUCCESS = "Successfully logged out!"
-
-/// The configuration for the AWS Amplify library.
-///
-/// This details user pools, federated identity providers, etc. that are used to authenticate users.
-/// The values in this object are not secret, and can be swapped out for testing values to avoid
-/// creating authenticated users in the production environment.
-// FIXME [NP]: document all these values 
-//   See: https://github.com/enso-org/enso/compare/develop...wip/db/cognito-auth-183351503#diff-319a7d209df303b404c07be91bfa179b12aaafcae1c67384dfe3cbffde80e010
-// FIXME [NP]: move this to a config file
-//const electronAmplifyConfigTesting: AuthOptions = {
-//  region: "us-east-1",
-//  // FIXME [NP]
-//  //identityPoolId: "",
-//  userPoolId: "us-east-1_VcFZzGyhv",
-//  userPoolWebClientId: "7vic1uoogbq4aq2rve897j0ep0",
-//  oauth: {
-//    options: {}, // FIXME [NP]
-//    domain: "test-enso-pool.auth.us-east-1.amazoncognito.com/",
-//    scope: ['email', 'openid'], // FIXME [NP]
-//    redirectSignIn: "enso://localhost",
-//    redirectSignOut: "enso://localhost",
-//    responseType: "code",
-//  },
-//}
-//const browserAmplifyConfigNpekin: AuthOptions = {
-//  region: "eu-west-1",
-//  // FIXME [NP]
-//  //identityPoolId: "",
-//  userPoolId: "eu-west-1_sP5bQ4mJs",
-//  userPoolWebClientId: "27gd0b05qlnkj1lcsnd0b4fb89",
-//  oauth: {
-//    options: {}, // FIXME [NP]
-//    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
-//    domain: "npekin-enso-domain.auth.eu-west-1.amazoncognito.com/",
-//    scope: ['email', 'openid'], // FIXME [NP]
-//    redirectSignIn: "http://localhost:8081",
-//    redirectSignOut: "http://localhost:8081",
-//    responseType: "code",
-//  },
-//}
-const browserAmplifyConfigPbuchu: AuthOptions = {
-  region: "eu-west-1",
-  // FIXME [NP]
-  //identityPoolId: "",
-  userPoolId: "eu-west-1_jSF1RbgPK",
-  userPoolWebClientId: "1bnib0jfon3aqc5g3lkia2infr",
-  oauth: {
-    options: {}, // FIXME [NP]
-    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
-    domain: "pb-enso-domain.auth.eu-west-1.amazoncognito.com",
-    scope: ['email', 'openid'], // FIXME [NP]
-    redirectSignIn: "http://localhost:8081",
-    redirectSignOut: "http://localhost:8081",
-    responseType: "code",
-  },
-}
-//const browserAmplifyConfigProd: AuthOptions = {
-//  region: "eu-west-1",
-//  // FIXME [NP]
-//  //identityPoolId: "",
-//  userPoolId: "eu-west-1_9Kycu2SbD",
-//  userPoolWebClientId: "4j9bfs8e7415erf82l129v0qhe",
-//  oauth: {
-//    options: {}, // FIXME [NP]
-//    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
-//    domain: "production-enso-domain.auth.eu-west-1.amazoncognito.com/",
-//    scope: ['email', 'openid'], // FIXME [NP]
-//    redirectSignIn: "https://cloud.enso.org",
-//    redirectSignOut: "https://cloud.enso.org",
-//    responseType: "code",
-//  },
-//}
-const amplifyConfig = browserAmplifyConfigPbuchu;
-
-
-
-// =================
-// === Configure ===
-// =================
-
-/// Ensure the AWS Amplify library is loaded & configured prior to providing the `AuthContext` to
-/// the rest of the app. The AWS Amplify library must be configured before anything else happens
-/// because until that is done, we cannot check session status, authenticate users, etc.
-///
-/// This is top-level code, and will be executed when this module is imported. It must occur at the
-/// top level because Amplify uses `require` to load its modules, and `require` cannot be called
-/// from within React components.
-Auth.configure(amplifyConfig);
 
 
 
@@ -225,21 +130,21 @@ const AuthContext = createContext<AuthContextType>(
 // ====================
 
 interface AuthProviderProps {
-    runningOnDesktop: boolean;
+    authConfig: AuthConfig,
     onAuthenticated: () => void;
     children: ReactNode;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
-  const { runningOnDesktop, onAuthenticated, children } = props
+  const { authConfig, onAuthenticated, children } = props
   const navigate = useNavigate();
   const [initialized, setInitialized] = useState(false);
   const [session, setSession] = useState<UserSession | undefined>(undefined);
   // State that, when incremented, forces a refresh of the user session. This is useful when a user
   // has just logged in (so their cached credentials are out of date).
   const [refresh, setRefresh] = useState(0);
-  const [auth] = useState(authApi({ runningOnDesktop }));
+  const [auth] = useState(authApi(authConfig));
 
   // FIXME [NP]: remove
   //// Ensure the AWS Amplify library is loaded & configured prior to providing the `AuthContext` to

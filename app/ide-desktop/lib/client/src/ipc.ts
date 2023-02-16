@@ -12,4 +12,5 @@ export const channel = {
     profilesLoaded: 'profiles-loaded',
     saveProfile: 'save-profile',
     quit: 'quit-ide',
+    loginApiOpen: 'login-api-open'
 }

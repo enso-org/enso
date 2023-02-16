@@ -13,6 +13,7 @@ import ConfirmRegistrationContainer from "./confirmRegistration";
 import SetUsernameContainer from "./setUsername";
 import { Toaster } from 'react-hot-toast';
 import { FC, Fragment } from 'react';
+import { config, OAuthUrlOpener } from '../authentication/api';
 
 
 
@@ -42,11 +43,31 @@ export const SET_USERNAME_PATH = "/set-username";
 // === App ===
 // ===========
 
+/**
+ * Interface used to log logs, errors, etc.
+ *
+ * In the browser, this is the `Console` interface. In Electron, this is the `Logger` interface
+ * provided by the EnsoGL packager.
+ */
+export interface Logger {
+    /** Logs a message to the console. */
+    log: (message?: any, ...optionalParams: any[]) => void,
+}
+
 /// Global configuration for the `App` component.
 export interface AppProps {
-  /// If this is the desktop IDE, this must be set to `true`. If this is the web IDE, this must be
-  /// set to `false`.
+  /**
+   * Logger to use for logging.
+   */
+  logger: Logger;
+  /**
+   * Whether the application is running on a desktop (i.e., versus in the Cloud).
+   */
   runningOnDesktop: boolean;
+  /**
+   * URL opener to use for OAuth flows.
+   */
+  urlOpener?: OAuthUrlOpener;
   /// Callback to execute once the user has authenticated successfully.
   onAuthenticated: () => void;
 }
@@ -59,16 +80,19 @@ export interface AppProps {
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const App = (props: AppProps) => {
-  const { runningOnDesktop, onAuthenticated } = props;
+  const { logger, runningOnDesktop, onAuthenticated } = props;
+
+  const authConfig = config(logger, runningOnDesktop);
   // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unnecessary-condition
   const Router = runningOnDesktop ? MemoryRouter : BrowserRouter;
+
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} />
       <Router>
-        <AuthProvider runningOnDesktop={runningOnDesktop} onAuthenticated={onAuthenticated} >
+        <AuthProvider authConfig={authConfig} onAuthenticated={onAuthenticated} >
           <AppRouter />
         </AuthProvider>
       </Router>

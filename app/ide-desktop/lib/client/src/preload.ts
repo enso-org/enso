@@ -50,3 +50,9 @@ contextBridge.exposeInMainWorld('enso_console', {
     // Print an error message with `console.error`.
     error: (data: any) => ipcRenderer.send('error', data),
 })
+
+// Access to the login API for the purpose of opening OAuth flows in the system browser.
+// FIXME [NP]: move this to the `authentication` package.
+contextBridge.exposeInMainWorld('loginApi', {
+    open: (url: string) => ipcRenderer.send(ipc.channel.loginApiOpen, url),
+});
