@@ -232,6 +232,18 @@ type Table
             _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if java_column.is_nothing then if_missing else Column.Value java_column
 
+    ## Gets the first column.
+    first_column : Column ! Index_Out_Of_Bounds
+    first_column self = self.at 0
+
+    ## Gets the second column
+    second_column : Column ! Index_Out_Of_Bounds
+    second_column self = self.at 1
+
+    ## Gets the last column
+    last_column : Column ! Index_Out_Of_Bounds
+    last_column self = self.at -1
+
     ## Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.java_table.getColumns.length
@@ -241,7 +253,8 @@ type Table
        dropped from the output.
 
        Arguments:
-       - columns: Column selection criteria or vector of column names.
+       - columns: Column selection criteria - a single instance or Vector of
+         names, indexes or `Column_Selector`.
        - reorder: By default, or if set to `False`, columns in the output will
          be in the same order as in the input table. If `True`, the order in the
          output table will match the order in the columns list. If a column is
@@ -270,7 +283,7 @@ type Table
        > Example
          Select columns by name.
 
-             table.select_columns (Column_Selector.By_Name ["bar", "foo"])
+             table.select_columns ["bar", "foo"]
 
        > Example
          Select columns using names passed as a Vector.
@@ -280,17 +293,17 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
+             table.select_columns (Column_Selector.By_Name "foo.+" Case_Sensitivity.Insensitive use_regex=True)
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
 
-             table.select_columns (Column_Selector.By_Index [-1, 0, 1]) reorder=True
+             table.select_columns [-1, 0, 1] reorder=True
 
        Icon: select_column
-    select_columns : Vector Text | Column_Selector -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
-    select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.select_columns selector=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+    select_columns :  Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    select_columns self columns=[0] (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
+        new_columns = self.columns_helper.select_columns selectors=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
@@ -299,7 +312,8 @@ type Table
        input.
 
        Arguments:
-       - columns: Column selection criteria or vector of column names to remove.
+       - columns: Column selection criteria - a single instance or Vector of
+         names, indexes or `Column_Selector`, which are to be removed.
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `False`.
@@ -323,7 +337,7 @@ type Table
        > Example
          Remove columns with given names.
 
-             table.remove_columns (Column_Selector.By_Name ["bar", "foo"])
+             table.remove_columns ["bar", "foo"]
 
        > Example
          Remove columns using names passed as a Vector.
@@ -333,24 +347,25 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
+             table.remove_columns (Column_Selector.By_Name "foo.+" Case_Sensitivity.Insensitive use_regex=True)
 
        > Example
          Remove the first two columns and the last column.
 
-             table.remove_columns (Column_Selector.By_Index [-1, 0, 1])
+             table.remove_columns [-1, 0, 1]
 
-    remove_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
-    remove_columns self (columns = Column_Selector.By_Index [0]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.remove_columns selector=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+    remove_columns :  Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    remove_columns self (columns=[0]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
+        new_columns = self.columns_helper.remove_columns selectors=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
 
        Arguments:
-       - columns: Column selection criteria or vector of column names which
-         should be reordered and specifying their order.
+       - columns: Column selection criteria - a single instance or Vector of
+         names, indexes or `Column_Selector`, which should be reordered and
+         specifying their order.
        - position: Specifies how to place the selected columns in relation to
          the remaining columns which were not matched by `columns` (if any).
        - error_on_missing_columns: Specifies if a missing input column should
@@ -373,31 +388,31 @@ type Table
        > Example
          Move a column with a specified name to back.
 
-             table.reorder_columns (Column_Selector.By_Name ["foo"]) position=After_Other_Columns
+             table.reorder_columns ["foo"] position=Position.After_Other_Columns
 
        > Example
          Move columns using names passed as a Vector.
 
-             table.reorder_columns ["bar", "foo"] position=After_Other_Columns
+             table.reorder_columns ["bar", "foo"] position=Position.After_Other_Columns
 
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
+             table.reorder_columns (Column_Selector.By_Name "foo.+" Case_Sensitivity.Insensitive use_regex=True)
 
        > Example
          Swap the first two columns.
 
-             table.reorder_columns (Column_Selector.By_Index [1, 0]) position=Before_Other_Columns
+             table.reorder_columns [1, 0] position=Position.Before_Other_Columns
 
        > Example
          Move the first column to back.
 
-             table.reorder_columns (Column_Selector.By_Index [0]) position=After_Other_Columns
+             table.reorder_columns [0] position=Position.After_Other_Columns
 
-    reorder_columns : Vector Text | Column_Selector -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range
-    reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.reorder_columns selector=columns position=position error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+    reorder_columns : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    reorder_columns self (columns = [0]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
+        new_columns = self.columns_helper.reorder_columns selectors=columns position=position error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -702,9 +717,9 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Equality` is reported according to the `on_problems`
            setting.
-    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
-    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
-        key_columns = self.columns_helper.select_columns selector=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
+    distinct : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
+    distinct self (columns = self.column_names) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
+        key_columns = self.columns_helper.select_columns selectors=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
@@ -820,21 +835,17 @@ type Table
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
 
-             table.replace_text (Column_Selector.By_Name ["foo", "bar"]) "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Value
+             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Value
 
        > Example
          Replace texts in quotes with parentheses in column at index 1.
 
              table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Value
-    replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode.First | Matching_Mode.Last | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
-    replace_text self columns=(Column_Selector.By_Index [0]) term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
+    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Matching_Mode.First | Matching_Mode.Last | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
+    replace_text self columns=[0] term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
 
-        selector = case columns of
-            _ : Column_Selector -> columns
-            name : Text -> Column_Selector.By_Name [name]
-            index : Integer -> Column_Selector.By_Index [index]
-        selection = self.columns_helper.select_columns_helper selector reorder=False problem_builder
+        selection = self.columns_helper.select_columns_helper columns reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
 
         map_preserve_name column f = column.map f . rename column.name
@@ -1253,7 +1264,7 @@ type Table
          table. This applies only if the order of the rows was specified (for
          example, by sorting the table; in-memory tables will keep the memory
          layout order while for database tables the order may be unspecified).
-    cross_join : Table -> Integer | Nothing -> Table
+    cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
     cross_join self right right_row_limit=100 right_prefix="Right_" on_problems=Report_Warning =
         if check_table "right" right then
             limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
@@ -1511,8 +1522,8 @@ type Table
          - If any column names in the new table are clashing, a
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
-    transpose : Text | Vector Text | Column_Selector -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range | Duplicate_Output_Column_Names
-    transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
+    transpose : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range | Duplicate_Output_Column_Names
+    transpose self (id_fields = []) (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         columns_helper = self.columns_helper
         unique = Unique_Name_Strategy.new
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
@@ -1566,15 +1577,16 @@ type Table
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
-    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> (Text | Integer) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
 
         ## validate the name and group_by columns
         name_column_selector = case name_column of
-            ix : Integer -> Column_Selector.By_Index [ix]
-            name : Text -> Column_Selector.By_Name [name]
+            ix : Integer -> [ix]
+            name : Text -> [name]
+            _ -> Error.throw (Illegal_Argument.Error "name_column must be a column index or name.")
         matched_name = columns_helper.select_columns_helper name_column_selector True problem_builder
         grouping = columns_helper.select_columns_helper group_by True problem_builder
 

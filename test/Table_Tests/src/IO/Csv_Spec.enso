@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Column, Delimited, Column_Selector
+from Standard.Table import Table, Column, Delimited
 import Standard.Table.Main as Table_Module
 
 from Standard.Test import Test, Test_Suite
@@ -37,7 +37,7 @@ spec =
             c_6 = ["Column_6", ['1', '2', '3', '4', '5', '6.25', '7', 'osiem']]
 
             expected = Table.new [c_1, c_3, c_4, c_5, c_6]
-            varied_column.select_columns (Column_Selector.By_Index [0, 2, 3, 4, 5]) . should_equal expected
+            varied_column.select_columns [0, 2, 3, 4, 5] . should_equal expected
 
         Test.specify "should handle duplicated columns" <|
             csv = """

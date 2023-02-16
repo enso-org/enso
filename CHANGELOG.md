@@ -305,6 +305,7 @@
   simpler API.][4078]
 - [Updated `Table.set` to new API. New `Column.parse` function and added case
   sensitivity to `Filter_Condition` and column functions.][4097]
+- [Updated column selector APIs and new `Excel_Workbook` type.][5646]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -470,6 +471,7 @@
 [4097]: https://github.com/enso-org/enso/pull/4097
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4072]: https://github.com/enso-org/enso/pull/4072
+[5646]: https://github.com/enso-org/enso/pull/5646
 
 #### Enso Compiler
 
