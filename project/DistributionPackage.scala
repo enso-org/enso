@@ -182,6 +182,29 @@ object DistributionPackage {
     )
   }
 
+  def runEnginePackage(
+    distributionRoot: File,
+    args: Seq[String],
+    log: Logger
+  ): Boolean = {
+    import scala.collection.JavaConverters._
+
+    val enso = distributionRoot / "bin" / "enso"
+    log.info(s"Executing $enso ${args.mkString(" ")}")
+    val pb = new java.lang.ProcessBuilder()
+    val all = new java.util.ArrayList[String]()
+    all.add(enso.getAbsolutePath())
+    all.addAll(args.asJava)
+    pb.command(all)
+    pb.inheritIO()
+    val p = pb.start()
+    val exitCode = p.waitFor()
+    if (exitCode != 0) {
+      log.warn(enso + " finished with exit code " + exitCode)
+    }
+    exitCode == 0
+  }
+
   def fixLibraryManifest(
     packageRoot: File,
     targetVersion: String,
