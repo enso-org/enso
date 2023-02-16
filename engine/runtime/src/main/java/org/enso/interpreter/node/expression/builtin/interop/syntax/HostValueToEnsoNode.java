@@ -6,6 +6,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import org.enso.interpreter.node.expression.foreign.CoerceNothing;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.Warning;
@@ -71,17 +72,7 @@ public abstract class HostValueToEnsoNode extends Node {
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached ConditionProfile nullWarningProfile) {
     var nothing = EnsoContext.get(this).getBuiltins().nothing();
-
-    if (nullWarningProfile.profile(warnings.hasWarnings(o))) {
-      try {
-        Warning[] attachedWarnings = warnings.getWarnings(o, null);
-        return new WithWarnings(nothing, attachedWarnings);
-      } catch (UnsupportedMessageException e) {
-        return nothing;
-      }
-    }
-
-    return nothing;
+    return CoerceNothing.coerceNothing(o, nothing, warnings, nullWarningProfile);
   }
 
   @Fallback
