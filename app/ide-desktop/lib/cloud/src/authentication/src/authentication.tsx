@@ -10,6 +10,7 @@ import { ComponentType, createContext, FC, ReactElement, ReactNode, useContext, 
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { getUsersMe, Organization, SetUsernameBody } from './api';
 import * as api from './api';
+import authApi from './authentication/api';
 import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
 import { toast } from "react-hot-toast"
 import { AuthError } from '@aws-amplify/auth/lib-esm/Errors';
@@ -276,6 +277,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // State that, when incremented, forces a refresh of the user session. This is useful when a user
   // has just logged in (so their cached credentials are out of date).
   const [refresh, setRefresh] = useState(0);
+  const [auth] = useState(authApi());
 
   // FIXME [NP]: remove
   //// Ensure the AWS Amplify library is loaded & configured prior to providing the `AuthContext` to
@@ -302,33 +304,14 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
         // FIXME [NP]: remove this log
         console.log("EFFECT: fetchSession");
 
-        // Fetch the current session from the AWS Amplify library.
-        //
-        // This returns the user's email address (either from their Google or GitHub account, or
-        // from the email address they used to sign up with a password) and the JWT access token.
-        let amplifySession;
-        try {
-          amplifySession = await Auth.currentSession();
-        } catch (error) {
-          // If the user is not signed in, `Auth.currentSession` will throw an error. We don't want
-          // to log this error, so we'll just ignore it and keep the session blank.
-          if (error === "No current user") {
-            setInitialized(true)
-            setSession(undefined);
-            return;
-          }
-          throw error
+        // FIXME [NP]: rename this
+        const authSession = await auth.userSession();
+        if (!authSession) {
+          setInitialized(true)
+          setSession(undefined);
+          return;
         }
-        console.log("EFFECT: fetchSession 2");
-        const payload = amplifySession.getIdToken().payload;
-        console.log("EFFECT: fetchSession 3");
-        // We know that the payload will have an `email` field, but TypeScript doesn't know that, so
-        // we have to tell it to ignore the type error.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const email: string = payload.email;
-        //const email: string = amplifySession.getIdToken().payload.email;
-        const accessToken = amplifySession.getAccessToken().getJwtToken();
-        console.log("EFFECT: fetchSession 4");
+        const { accessToken, email } = authSession;
 
         // Request the user's organization information from the Cloud backend.
         const organization = await getUsersMe(accessToken);
