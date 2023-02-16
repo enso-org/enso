@@ -2,6 +2,12 @@
 module.exports = {
     content: ['src/**/*.rs'],
     theme: {
+        fontSize: {
+            base: '11.5px',
+            lg: '13px',
+            xl: '15px',
+            '2xl': '17px',
+        },
         extend: {
             colors: {
                 typeName: '#9640da',

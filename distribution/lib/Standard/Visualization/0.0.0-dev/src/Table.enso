@@ -1,0 +1,219 @@
+from Standard.Base import all
+
+from Standard.Base.Data.Text.Extensions import slice_text
+from Standard.Visualization.Text import get_chunk_from_line
+import Standard.Base.Error.Common.Not_Found
+from Standard.Table import Table
+
+
+## PRIVATE
+
+   Update about the table layout to be sent to the GUI. Updates can be incremental and only contain
+   information about some rows or columns. Even updating information is fine and will be handled
+   by the UI.
+type Table_Specification_Update
+
+    Value (row_heights : Vector Number ) (column_widths : Vector Number) (column_names : Vector Text) (row_names : Vector Text)
+
+
+## PRIVATE
+
+   Message to be sent to the IDE. Contains information about the table content and the table layout.
+   The table content is encoded as chunks of text, together with their respective coordinate in the
+   table. Coordinates have a first component that indicates row/column and a second component that
+   indicates the chunk index and line.
+type Table_Update
+
+    Value chunks table_specification_update
+
+    ## PRIVATE
+
+       Generate JSON that can be consumed by the visualization.
+    to_json : Text
+    to_json self =
+        chunks = ["chunks", self.chunks]
+        table_specification_update = ["table_specification_update", self.table_specification_update]
+        Json.from_pairs [chunks, table_specification_update]
+
+
+## Return a sub-window of a table. The window is defined by a cell row/col and line/chunk
+   coordinate as origin and the extent of the window in text chunks and lines. The size of
+   a chunk (the characters in it) is defined by `chunk_width`. The output is formatted as a message
+   that can be sent to the IDE's lazy text visualisation.
+get_lazy_visualisation_data : Vector Integer ->  Vector Integer -> Vector Integer -> Text
+get_lazy_visualisation_data table table_cell_position text_window_position text_window_size chunk_size =
+    update = compute_table_update table table_cell_position text_window_position text_window_size chunk_size
+    update.to_json
+
+## PRIVATE
+
+   Compute the table visualisation update. The table update contains information about the table
+   layout and the table content.
+compute_table_update table table_cell_position text_window_position text_window_size chunk_size =
+    text_window_width = text_window_size.get 0
+    text_window_height = text_window_size.get 1
+
+    chunks_to_get = text_window_width
+    lines_to_get = text_window_height
+
+    start_column = table_cell_position.get 0
+    last_column = find_end_column table start_column text_window_width chunk_size
+    column_ix_iter = start_column.up_to last_column+2
+
+    start_row = table_cell_position.get 1
+    end_row = find_end_row table start_row text_window_height
+    row_ix_range = start_row.up_to end_row+1
+
+    start_chunk = text_window_position.get 0
+    start_line = text_window_position.get 1
+
+    row_line_iter = compute_vertical_indices table start_row end_row start_line lines_to_get
+
+    process_row row_ix line_ix =
+        chunks = get_chunks_for_row table row_ix line_ix start_chunk column_ix_iter chunk_size chunks_to_get
+        process_chunk chunk =
+            column_chunk_ix = chunk.get 0
+            column_ix = column_chunk_ix.get 0
+            chunk_ix = column_chunk_ix.get 1
+            chunk_content = chunk.get 1
+            [[[column_ix, row_ix], [chunk_ix, line_ix]] , chunk_content]
+        chunks.map process_chunk
+
+    chunks = row_line_iter.map (index -> process_row (index.get 0) (index.get 1)) . flatten
+
+    row_heights = row_ix_range.map (index -> [index, get_row_height table index])
+    column_widths = column_ix_iter.map (column_ix -> [column_ix, get_column_width ((table.get column_ix))])
+    column_names = column_ix_iter.map (column_ix -> [column_ix, (table.get column_ix).name])
+
+    layout = Table_Specification_Update.Value row_heights column_widths column_names []
+    Table_Update.Value chunks layout
+
+## Returns a vector that contains a pairs of row index and vector of corresponding lines indices.
+compute_vertical_indices table start_row end_row start_line lines_to_get =
+    ## agg is a Vector of `[processed_lines, initial_offset, result_indices]`
+    process_line agg row_ix =
+        already_processed_lines = agg.get 0
+        lines_left_to_process = lines_to_get - already_processed_lines
+        initial_offset = agg.get 1
+        result_indices = agg.get 2
+        lines_in_row = (get_row_height table row_ix) - initial_offset
+        lines_to_process = Math.min lines_in_row lines_left_to_process
+        start_line = initial_offset
+        end_line = start_line + lines_to_process
+        line_indices = start_line.up_to end_line . to_vector
+        cell_indices = line_indices.map (line_ix -> [row_ix, line_ix])
+        new_result_indices = if line_indices == [] then result_indices else
+            result_indices + [cell_indices]
+        now_processed_lines = already_processed_lines + lines_to_process
+        ## After the first cell, which can start at any line, all cells start at line 0, so the
+        ## initial offset is always 0.
+        [now_processed_lines, 0, new_result_indices]
+
+    agg = [0, start_line, []]
+    row_ix_iter = start_row.up_to end_row+1
+    result_agg = row_ix_iter.to_vector.fold agg process_line
+    result_agg.get 2 . flatten
+
+## Compute the text chunks for the row/line defined by the given indices limited to the given
+   column indices. The number of chunks to get is defined by `chunks_to_get`.
+get_chunks_for_row table row_ix line_ix initial_chunk_offset column_range chunk_size chunks_to_get =
+    process_cell agg column_ix =
+        processed_chunks_previously = agg.get 0
+        chunk_offset = agg.get 1
+        column = table.get column_ix
+        chunks_in_this_column = (((get_column_width column) / chunk_size).ceil) - chunk_offset
+        chunks_left = chunks_to_get - processed_chunks_previously
+        chunks_to_process = Math.min chunks_in_this_column chunks_left
+        cell_text = column.at row_ix . to_text
+        text_line = cell_text.lines.get line_ix
+        get_chunk_by_index = get_chunk_from_line text_line chunk_size
+        new_chunks = (chunk_offset.up_to (chunk_offset+chunks_to_process)).map get_chunk_by_index
+        processed_chunks = processed_chunks_previously + chunks_in_this_column
+        processed_chunks_with_ix = (enumerate new_chunks).map (chunk_with_ix -> [[column_ix, chunk_offset + chunk_with_ix.get 0 ], chunk_with_ix.get 1])
+        Pair.new processed_chunks_with_ix [processed_chunks, 0]
+
+    column_indices = column_range.to_vector
+    if column_indices == [] then [] else
+        (fold_map [0, initial_chunk_offset] process_cell column_indices).flatten
+
+## Return the max value in the given vector.
+max : Vector Integer -> Integer
+max vector =
+    vector.fold 0 (l -> r -> Math.max l r)
+
+## Return the longest line in the given text.
+get_longest_line : Text -> Integer
+get_longest_line text =
+    max (text.lines.map (line -> line.length))
+
+## Return the length of the longest line in the given column.
+get_column_width column =
+    max (column.to_vector.map (x -> get_longest_line x.to_text))
+
+## Return the height of the row defined by the given index.
+get_row_height table row_ix =
+    columns = table.columns
+    row = columns.map (column -> column.at row_ix)
+    max (row.map (x -> x.to_text.lines.length))
+
+## Return the index of the first item in the given vector that brings the cummulative sum of items
+   above the target value. If no such item exists, return `Nothing`.
+find_first_over_cum_sum : Vector Integer -> Integer -> Integer | Nothing
+find_first_over_cum_sum items target  =
+    running_values = map_to_cumulative_sum items
+    found = (enumerate running_values).find (x -> (x.get 1) > target)
+    case found.catch Not_Found of
+        Not_Found -> Nothing
+        value -> value.get 0
+
+## Return the index of the column that is at the end of the given text width, when starting from the
+   given start column index.
+find_end_column table start_column_ix chunks chunk_size =
+    table_columns_count = table.columns.length
+    column_to_check = start_column_ix.up_to table_columns_count
+    column_widths = column_to_check.map (ix -> get_column_width ((table.get ix)))
+    column_width_in_chunks = column_widths.map (width -> (width / chunk_size).ceil)
+    found_ix = find_first_over_cum_sum column_width_in_chunks chunks
+    case found_ix.catch Nothing of
+        Nothing -> table_columns_count - 1
+        value -> value + start_column_ix
+
+## Return the index of the row that is at the end of the given text height, when starting from the
+   given start row index.
+find_end_row table start_row_ix max_height =
+    table_row_count = (table.columns.get 0).length
+    rows_to_check = start_row_ix.up_to table_row_count
+    row_heights = rows_to_check.map (ix ->  get_row_height table ix)
+    found_ix = find_first_over_cum_sum row_heights max_height
+    case found_ix.catch Nothing of
+        Nothing -> table_row_count - 1
+        value -> value + start_row_ix
+
+## Helper for fold_map that takes a function, an accumulator value and the current item and returns
+   a tuple of the new accumulator value and the result of the function.
+fold_map_inner f acc item =
+    previous_mappings = acc.first
+    overall_acc_value = acc.second
+    current_result = f overall_acc_value item
+    current_mapping = current_result.first
+    new_acc_value = current_result.second
+    new_mappings = previous_mappings + [current_mapping]
+    Pair.new new_mappings new_acc_value
+
+## Map a function over a vectors, but also pass on a accumulator value from one step to the next.
+    The function must return a tuple of the result of the function and the new accumulator value.
+fold_map acc f iterable =
+    result = iterable.fold (Pair.new [] acc) (fold_map_inner f)
+    result.first
+
+## Return a vector of the cumulative sum of the given vector.
+map_to_cumulative_sum iterable =
+    map_running_sums previous_sum current =
+        running_sum = previous_sum + current
+        [running_sum, running_sum]
+    fold_map 0 map_running_sums iterable
+
+## Return the given vector where each item is mapped to itself and its index in the vector.
+enumerate : Vector Any -> Vector Any
+enumerate vector =
+    (0.up_to vector.length).to_vector.zip vector

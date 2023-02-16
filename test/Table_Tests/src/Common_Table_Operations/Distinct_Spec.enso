@@ -71,7 +71,7 @@ spec setup =
                 v = table.at "X" . to_vector
                 v.length . should_equal 3
                 v.fold 0 (+) . should_equal 6.0
-            problems1 = [Floating_Point_Grouping.Error "X"]
+            problems1 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action1 problems1 tester1
 
         Test.specify "should handle nulls correctly" <|

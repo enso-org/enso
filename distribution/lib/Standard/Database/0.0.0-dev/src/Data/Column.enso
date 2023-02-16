@@ -7,7 +7,10 @@ import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Column_Type_Selection.Auto
 import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Internal.Java_Problems
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
+from Standard.Table.Errors import Floating_Point_Equality
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -20,6 +23,8 @@ import project.Internal.IR.Query.Query
 from project.Data.Table import Table, freshen_columns
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
+
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
 type Column
 
@@ -102,14 +107,12 @@ type Column
        implemented.
     value_type : Value_Type
     value_type self =
+        ## TODO This is a temporary implementation that should be revised once
+           types are implemented properly.
         if self.sql_type.is_definitely_boolean then Value_Type.Boolean else
             if self.sql_type.is_definitely_text then Value_Type.Char else
-                ## TODO we could return integers here too but then we should
-                   check how many bits there are - and this is out of scope for
-                   this prototype especially as the method for checking the type
-                   is likely to change so this code would likely be thrown away.
-                   So we just fall back to unsupported (abusing it slightly).
-                Value_Type.Unsupported_Data_Type self.sql_type.name
+                if self.sql_type.is_definitely_double then Value_Type.Float else
+                    Value_Type.Unsupported_Data_Type self.sql_type.name
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this column.
@@ -176,29 +179,6 @@ type Column
 
     ## UNSTABLE
 
-       Efficiently joins two tables based on either the index or a key column.
-
-       Arguments:
-       - other: the table being the right operand of this join operation.
-       - on: the column(s) or expression(s) of `self` that should be used as
-         the join key. If this argument is not provided, the index of `self`
-         will be used.
-       - drop_unmatched: whether the rows of `self` without corresponding
-         matches in `other` should be dropped from the result.
-       - left_suffix: a suffix that should be added to the columns of `self`
-         when there's a name conflict with a column of `other`.
-       - right_suffix: a suffix that should be added to the columns of `other`
-         when there's a name conflict with a column of `self`.
-
-       The resulting table contains rows of `self` extended with rows of
-       `other` with matching indexes. If the index in `other` is not unique,
-       the corresponding rows of `self` will be duplicated in the result.
-    join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
-    join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
-        self.to_table.join other on drop_unmatched left_suffix right_suffix
-
-    ## UNSTABLE
-
        Returns the length of this column.
     length : Integer
     length self = self.to_table.row_count
@@ -217,18 +197,38 @@ type Column
     count self =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
-    ## UNSTABLE
-
-       Element-wise equality comparison.
+    ## Element-wise equality comparison.
 
        Arguments:
-       - other: The other column to compare pairwise with.
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
-       `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `self` and `other`.
+       `other`.
+
+       ! Warnings
+
+         - If this operation results in comparing floating-point values for
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
+
+       > Example
+         Compare two columns for pairwise equality.
+
+             import Standard.Examples
+
+             example_eq = Examples.integer_column == Examples.decimal_column
+
+       > Example
+         Compare a column with a number.
+
+             import Standard.Examples
+
+             example_eq = Examples.integer_column == 1
     == : Column | Any -> Column
-    == self other = self.make_binary_op "=" other new_type=SQL_Type.boolean
+    == self other =
+        make_equality_check_with_floating_point_handling self other "=="
 
     ## Element-wise case-insensitive text equality comparison.
 
@@ -244,18 +244,38 @@ type Column
         Helpers.assume_default_locale locale <|
             self.make_binary_op "equals_ignore_case" other new_type=SQL_Type.boolean
 
-    ## UNSTABLE
-
-       Element-wise non-equality comparison.
+    ## Element-wise non-equality comparison.
 
        Arguments:
-       - other: The other column to compare pairwise with.
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
-       `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `self` and `other`.
+       `other`.
+
+       ! Warnings
+
+         - If this operation results in comparing floating-point values for
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
+
+       > Example
+         Compare two columns for pairwise inequality.
+
+             import Standard.Examples
+
+             example_neq = Examples.integer_column != Examples.decimal_column
+
+       > Example
+         Compare a column with a number.
+
+             import Standard.Examples
+
+             example_neq = Examples.integer_column != 1
     != : Column | Any -> Column
-    != self other = self.make_binary_op "!=" other new_type=SQL_Type.boolean
+    != self other =
+        make_equality_check_with_floating_point_handling self other "!="
 
     ## UNSTABLE
 
@@ -369,18 +389,39 @@ type Column
     * : Column | Any -> Column
     * self other = self.make_binary_op "*" other
 
-    ## UNSTABLE
+    ## ALIAS Divide Columns
 
        Element-wise division.
 
        Arguments:
-       - other: The other column to divide `self` column by.
+       - other: The value to divide `self` by. If `other` is a column, the
+         division is performed pairwise between corresponding elements of `self`
+         and `other`.
 
        Returns a column containing the result of dividing each element of `self`
-       by `other`.  If `other` is a column, the operation is performed pairwise
-       between corresponding elements of `self` and `other`.
+       by `other`.
+
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
+
+       > Example
+         Divide the elements of one column by the elements of another.
+
+             import Standard.Examples
+
+             example_div = Examples.decimal_column / Examples.integer_column
+
+       > Example
+         Multiply each value in a column by a single value.
+
+             import Standard.Examples
+
+             example_div = Examples.integer_column / 10
     / : Column | Any -> Column
-    / self other = self.make_binary_op "/" other new_type=SQL_Type.double
+    / self other =
+        self.make_binary_op "/" other new_type=SQL_Type.double
 
     ## Element-wise modulus.
 
@@ -391,6 +432,11 @@ type Column
 
        Returns a column with results of modulus this column's elements against
        `other`.
+
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
 
        > Example
          Modulus of two columns against each other.
@@ -406,7 +452,8 @@ type Column
 
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
-    % self other = self.make_binary_op "%" other
+    % self other =
+        self.make_binary_op "%" other
 
     ## ALIAS Power
 
@@ -860,3 +907,23 @@ make_text_case_op left op other case_sensitivity =
         Case_Sensitivity.Insensitive locale -> Helpers.assume_default_locale locale <|
             ci_other = if other.is_a Column then other.make_unary_op "FOLD_CASE" else other.to_case Case.Lower
             left.make_unary_op "FOLD_CASE" . make_binary_op op ci_other new_type=SQL_Type.boolean
+
+## PRIVATE
+make_equality_check_with_floating_point_handling column other op =
+    other_name = case other of
+        other_column : Column -> "["+other_column.name+"]"
+        _ -> other.to_text
+    location = "["+column.name+"] "+op+" "+other_name
+    problem_builder = MapOperationProblemBuilder.new location
+    if column.value_type.is_floating_point then
+        problem_builder.reportFloatingPointEquality -1
+    case other of
+        other_column : Column ->
+            if other_column.value_type.is_floating_point then
+                problem_builder.reportFloatingPointEquality -1
+        _ : Decimal ->
+            problem_builder.reportFloatingPointEquality -1
+        _ -> Nothing
+    result = column.make_binary_op op other new_type=SQL_Type.boolean
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems

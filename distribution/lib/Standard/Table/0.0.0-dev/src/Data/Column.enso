@@ -12,12 +12,14 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Storage.Storage
 import project.Data.Table.Table
 import project.Data.Value_Type.Value_Type
+import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
-from project.Errors import No_Index_Set_Error
+from project.Errors import No_Index_Set_Error, Floating_Point_Equality
 
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -119,6 +121,12 @@ type Column
        Returns a column with results of comparing this column's elements against
        `other`.
 
+       ! Warnings
+
+         - If this operation results in comparing floating-point values for
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
+
        > Example
          Compare two columns for pairwise equality.
 
@@ -134,7 +142,16 @@ type Column
              example_eq = Examples.integer_column == 1
     == : Column | Any -> Column
     == self other =
-        run_vectorized_binary_op self "==" (==) other
+        other_name = case other of
+            other_column : Column -> "["+other_column.name+"]"
+            _ -> other.to_text
+        location = "["+self.name+"] == "+other_name
+        fallback problem_builder a b = case b of
+            _ : Decimal ->
+                problem_builder.reportFloatingPointEquality -1
+                a == b
+            _ -> a == b
+        run_vectorized_binary_op_with_problem_handling self '==' fallback other location
 
     ## Element-wise case-insensitive text equality comparison.
 
@@ -164,6 +181,12 @@ type Column
        Returns a column with results of comparing this column's elements against
        `other`.
 
+       ! Warnings
+
+         - If this operation results in comparing floating-point values for
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
+
        > Example
          Compare two columns for pairwise inequality.
 
@@ -178,7 +201,8 @@ type Column
 
              example_neq = Examples.integer_column != 1
     != : Column | Any -> Column
-    != self other = (self == other).not
+    != self other =
+        (self == other).not
 
     ## Element-wise order comparison.
 
@@ -398,6 +422,11 @@ type Column
        Returns a column containing the result of dividing each element of `self`
        by `other`.
 
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
+
        > Example
          Divide the elements of one column by the elements of another.
 
@@ -412,7 +441,17 @@ type Column
 
              example_div = Examples.integer_column / 10
     / : Column | Any -> Column
-    / self other = run_vectorized_binary_op self '/' (/) other
+    / self other =
+        other_name = case other of
+            other_column : Column -> "["+other_column.name+"]"
+            _ -> other.to_text
+        location = "["+self.name+"] / "+other_name
+        fallback problem_builder a b =
+            if b != 0 then a / b else
+                # TODO indices for fallback
+                problem_builder.reportDivisionByZero Nothing
+                Nothing
+        run_vectorized_binary_op_with_problem_handling self '/' fallback other location
 
     ## Element-wise modulus.
 
@@ -423,6 +462,11 @@ type Column
 
        Returns a column with results of modulus this column's elements against
        `other`.
+
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
 
        > Example
          Modulus of two columns against each other.
@@ -438,7 +482,16 @@ type Column
 
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
-    % self other = run_vectorized_binary_op self '%' (%) other
+    % self other =
+        other_name = case other of
+            other_column : Column -> "["+other_column.name+"]"
+            _ -> other.to_text
+        location = "["+self.name+"] % "+other_name
+        fallback problem_builder a b =
+            if b != 0 then a % b else
+                # TODO indices for fallback
+                problem_builder.reportDivisionByZero Nothing
+        run_vectorized_binary_op_with_problem_handling self '%' fallback other location
 
     ## ALIAS Power Columns
 
@@ -947,7 +1000,7 @@ type Column
     map : (Any -> Any) -> Column
     map self function on_missing=Nothing =
         storage = self.java_column.getStorage
-        new_st = storage.map Nothing function on_missing
+        new_st = storage.map Nothing function on_missing Nothing
         col = Java_Column.new "Result" new_st
         Column.Value col
 
@@ -977,7 +1030,7 @@ type Column
     zip self that function skip_missing=True =
         s1 = self.java_column.getStorage
         s2 = that.java_column.getStorage
-        rs = s1.zip Nothing function s2 skip_missing
+        rs = s1.zip Nothing function s2 skip_missing Nothing
         Column.Value (Java_Column.new "Result" rs)
 
     ## ALIAS Rename Column
@@ -1119,35 +1172,6 @@ type Column
         storage_proxy = Array_Proxy.new storage.size i-> storage.getItem i
         storage_json = Vector.from_polyglot_array storage_proxy
         JS_Object.from_pairs [["name", name], ["data", storage_json]]
-
-    ## Efficiently joins two tables based on either the index or the specified
-       key column.
-
-       Arguments:
-       - other: the table being the right operand of this join operation.
-       - on: the column of `self` that should be used as the join key. If this
-         argument is not provided, the index of `self` will be used.
-       - drop_unmatched: whether the rows of `self` without corresponding
-         matches in `other` should be dropped from the result.
-       - left_suffix: a suffix that should be added to the columns of `self`
-         when there's a name conflict with a column of `other`.
-       - right_suffix: a suffix that should be added to the columns of `other`
-         when there's a name conflict with a column of `self`.
-
-       The resulting table contains rows of `self` extended with rows of
-       `other` with matching indexes. If the index values in `other` are not
-       unique, the corresponding rows of `self` will be duplicated in the
-       result.
-
-       > Example
-         Join two columns on their indices.
-
-             import Standard.Examples
-
-             example_join = Examples.integer_column.join Examples.bool_column_1
-    join : Table | Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
-    join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
-        self.to_table.join other on drop_unmatched left_suffix right_suffix
 
     ## Converts this column into a single-column table.
 
@@ -1321,15 +1345,20 @@ type Column
    - new_name: The name of the column created as the result of this operation.
 run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Boolean -> Text -> Column
 run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_name=(name + "_" + column.name) =
-    case operands of
+    problem_builder = MapOperationProblemBuilder.new column.name
+    result = case operands of
         _ : Vector ->
             folded = operands.fold column.java_column.getStorage current-> operand->
                 case operand of
-                    _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
-                    _ -> current.bimap name fallback_fn operand skip_nulls
+                    _ : Column ->
+                        current.zip name fallback_fn operand.java_column.getStorage skip_nulls problem_builder
+                    _ ->
+                        current.bimap name fallback_fn operand skip_nulls problem_builder
             Column.Value (Java_Column.new new_name folded)
         _ : Array -> run_vectorized_many_op column name fallback_fn (Vector.from_polyglot_array operands) skip_nulls new_name
         _ -> run_vectorized_many_op column name fallback_fn [operands] skip_nulls new_name
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
 ## PRIVATE
 
@@ -1346,16 +1375,53 @@ run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_nam
      handling logic.
    - new_name: The name of the column created as the result of this operation.
 run_vectorized_binary_op : Column -> Text -> (Any -> Any -> Any) -> Any -> Boolean -> Text -> Column
-run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" = case operand of
-    Column.Value col2 ->
-        s1 = column.java_column.getStorage
-        s2 = col2.getStorage
-        rs = s1.zip name fallback_fn s2 skip_nulls
-        Column.Value (Java_Column.new new_name rs)
-    _ ->
-        s1 = column.java_column.getStorage
-        rs = s1.bimap name fallback_fn operand skip_nulls
-        Column.Value (Java_Column.new new_name rs)
+run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" =
+    problem_builder = MapOperationProblemBuilder.new column.name
+    result = case operand of
+        Column.Value col2 ->
+            s1 = column.java_column.getStorage
+            s2 = col2.getStorage
+            rs = s1.zip name fallback_fn s2 skip_nulls problem_builder
+            Column.Value (Java_Column.new new_name rs)
+        _ ->
+            s1 = column.java_column.getStorage
+            rs = s1.bimap name fallback_fn operand skip_nulls problem_builder
+            Column.Value (Java_Column.new new_name rs)
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+
+## PRIVATE
+
+   Executes a vectorized binary operation over the provided column.
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - name: The name of the vectorized operation.
+   - fallback_fn: A function used if the vectorized operation isn't available.
+     It takes a `MapOperationProblemBuilder` as its first argument.
+   - operand: The operand to apply to the function after `column`.
+   - location: The location to use in the reported problem details.
+   - on_problems: Specifies how the problems should be handled.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
+   - new_name: The name of the column created as the result of this operation.
+run_vectorized_binary_op_with_problem_handling column name fallback_fn operand location skip_nulls=True new_name="Result" =
+    problem_builder = MapOperationProblemBuilder.new location
+    applied_fn = fallback_fn problem_builder
+    result = case operand of
+        Column.Value col2 ->
+            s1 = column.java_column.getStorage
+            s2 = col2.getStorage
+            rs = s1.zip name applied_fn s2 skip_nulls problem_builder
+            Column.Value (Java_Column.new new_name rs)
+        _ ->
+            s1 = column.java_column.getStorage
+            rs = s1.bimap name applied_fn operand skip_nulls problem_builder
+            Column.Value (Java_Column.new new_name rs)
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
 ## PRIVATE
 
@@ -1370,9 +1436,12 @@ run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_nam
      is not possible due to a bug: https://github.com/oracle/graal/issues/4741
 run_vectorized_unary_op : Column -> Text -> (Any -> Any) -> Any -> Column
 run_vectorized_unary_op column name fallback_fn on_missing=Nothing =
+    problem_builder = MapOperationProblemBuilder.new column.name
     s = column.java_column.getStorage
-    rs = s.map name fallback_fn on_missing
-    Column.Value (Java_Column.new "Result" rs)
+    rs = s.map name fallback_fn on_missing problem_builder
+    result = Column.Value (Java_Column.new "Result" rs)
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
 ## PRIVATE
 
