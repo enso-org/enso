@@ -229,6 +229,23 @@ Text.characters self =
          example_match =
              regex = "a[ab]c"
              "aabbbbccccaabcaaaa".match regex == "abc"
+
+   ! Last Match in Regex Mode
+     Regex always performs the search from the front and matching the last
+     occurrence means selecting the last of the matches while still generating
+     matches from the beginning. This will lead to slightly different behavior
+     for overlapping occurrences of a pattern in Regex mode than in exact text
+     matching mode where the matches are searched for from the back.
+
+   > Example
+     Comparing Matching in Last Mode in Regex and Text mode
+
+         "aaa".match "aa" mode=Matching_Mode.Last matcher=Text_Matcher == "aaa"
+         "aaa".match "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == "aaa"
+
+         "aaa aaa".match "aa" mode=Matching_Mode.Last matcher=Text_Matcher == "aaa aaa"
+         "aaa aaa".match "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == "aaa aaa"
+
 Text.match : Text -> Matching_Mode -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
 Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value = case matcher of
     _ : Text_Matcher ->
@@ -1110,11 +1127,8 @@ Text.trim self where=Location.Both what=_.is_whitespace =
    - mode: Specifies if the first or last occurrence of the term should be
      returned if there are multiple occurrences within the input. The first
      occurrence is returned by default.
-   - matcher: Specifies how the term is matched against the input:
-     - If a `Text_Matcher`, the text is compared using case-sensitively rules
-       specified in the matcher.
-     - If a `Regex_Matcher`, the `term` is used as a regular expression and
-       matched using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -1131,15 +1145,13 @@ Text.trim self where=Location.Both what=_.is_whitespace =
    ! Match Length
      The  function returns not only the index of the match but a `Span` instance
      which contains both the start and end indices, allowing to determine the
-     length of the match. This is useful not only with regex matches (where a
-     regular expression can have matches of various lengths) but also for case
-     insensitive matching. In case-insensitive mode, a single character can
-     match multiple characters, for example `ß` will match `ss` and `SS`, and
-     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case-insensitive
-     mode, the length of the match can be shorter or longer than the term that
-     was being matched, so it is extremely important to not rely on the length
-     of the matched term when analysing the matches as they may have different
-     lengths.
+     length of the match. This is useful for case insensitive matching. In
+     case-insensitive mode, a single character can match multiple characters,
+     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
+     `ffi` or `f` etc. Thus in case-insensitive mode, the length of the match
+     can be shorter or longer than the term that was being matched, so it is
+     extremely important to not rely on the length of the matched term when
+     analysing the matches as they may have different lengths.
 
    > Example
      Match length differences in case-insensitive matching.
@@ -1167,31 +1179,16 @@ Text.trim self where=Location.Both what=_.is_whitespace =
          ligatures = "ﬃﬄ"
          ligatures.length == 2
          term_1 = "IFF"
-         match_1 = ligatures . locate term_1 matcher=(Text_Matcher Case_Insensitive)
+         match_1 = ligatures . locate term_1 case_sensitivity=Case_Sensitive.Insensitive
          term_1.length == 3
          match_1.length == 2
          term_2 = "ffiffl"
-         match_2 = ligatures . locate term_2 matcher=(Text_Matcher Case_Insensitive)
+         match_2 = ligatures . locate term_2 case_sensitivity=Case_Sensitive.Insensitive
          term_2.length == 6
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
          match_1 == match_2
 
-   ! Last Match in Regex Mode
-     Regex always performs the search from the front and matching the last
-     occurrence means selecting the last of the matches while still generating
-     matches from the beginning. This will lead to slightly different behavior
-     for overlapping occurrences of a pattern in Regex mode than in exact text
-     matching mode where the matches are searched for from the back.
-
-   > Example
-     Comparing Matching in Last Mode in Regex and Text mode
-
-         "aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 1 3) "aaa"
-         "aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 0 2) "aaa"
-
-         "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
-         "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
 Text.locate : Text -> Matching_Mode -> Case_Sensitivity -> Span | Nothing
 Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term mode Case_Sensitivity.Sensitive
@@ -1227,11 +1224,8 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
 
    Arguments:
    - term: The term to find.
-   - matcher: Specifies how the term is matched against the input:
-     - If a `Text_Matcher`, the text is compared using case-sensitively rules
-       specified in the matcher.
-     - If a `Regex_Matcher`, the `term` is used as a regular expression and
-       matched using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -1247,22 +1241,20 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
    ! Match Length
      The  function returns not only the index of the match but a `Span` instance
      which contains both the start and end indices, allowing to determine the
-     length of the match. This is useful not only with regex matches (where a
-     regular expression can have matches of various lengths) but also for case
-     insensitive matching. In case-insensitive mode, a single character can
-     match multiple characters, for example `ß` will match `ss` and `SS`, and
-     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case-insensitive
-     mode, the length of the match can be shorter or longer than the term that
-     was being matched, so it is extremely important to not rely on the length
-     of the matched term when analysing the matches as they may have different
-     lengths.
+     length of the match. This is useful for case insensitive matching. In
+     case-insensitive mode, a single character can match multiple characters,
+     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
+     `ffi` or `f` etc. Thus in case-insensitive mode, the length of the match
+     can be shorter or longer than the term that was being matched, so it is
+     extremely important to not rely on the length of the matched term when
+     analysing the matches as they may have different lengths.
 
    > Example
      Match length differences in case-insensitive matching.
 
          term = "strasse"
          text = "MONUMENTENSTRASSE ist eine große Straße."
-         match = text . locate_all term matcher=(Text_Matcher Case_Insensitive)
+         match = text . locate_all term case_sensitivity=Case_Sensitive.Insensitive
          term.length == 7
          match . map .length == [7, 6]
 
@@ -1282,9 +1274,9 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
 
          ligatures = "ﬃﬄFFIFF"
          ligatures.length == 7
-         match_1 = ligatures . locate_all "IFF" matcher=(Text_Matcher Case_Insensitive)
+         match_1 = ligatures . locate_all "IFF" case_sensitivity=Case_Sensitive.Insensitive
          match_1 . map .length == [2, 3]
-         match_2 = ligatures . locate_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
+         match_2 = ligatures . locate_all "ffiff" case_sensitivity=Case_Sensitive.Insensitive
          match_2 . map .length == [2, 5]
 Text.locate_all : Text -> Case_Sensitivity -> Vector Span
 Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case case_sensitivity of
