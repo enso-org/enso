@@ -1,7 +1,7 @@
 /** @file Main App module responsible for rendering virtual router. */
 
 import * as React from 'react'
-import { Routes, Route, BrowserRouter, MemoryRouter } from 'react-router-dom'
+import { Routes, Route, BrowserRouter, MemoryRouter, useNavigate, useLocation } from 'react-router-dom'
 
 import { AuthProvider, GuestLayout, ProtectedLayout } from '../authentication';
 import DashboardContainer from "./dashboard";
@@ -12,8 +12,9 @@ import RegistrationContainer from "./registration";
 import ConfirmRegistrationContainer from "./confirmRegistration";
 import SetUsernameContainer from "./setUsername";
 import { Toaster } from 'react-hot-toast';
-import { FC, Fragment } from 'react';
-import { config, OAuthUrlOpener } from '../authentication/api';
+import { FC, Fragment, useMemo } from 'react';
+import authApi, { AuthConfig, OAuthUrlOpener } from '../authentication/api';
+import withRouter from '../navigation';
 
 
 
@@ -64,13 +65,11 @@ export interface AppProps {
    * Whether the application is running on a desktop (i.e., versus in the Cloud).
    */
   runningOnDesktop: boolean;
-  /**
-   * URL opener to use for OAuth flows.
-   */
-  urlOpener?: OAuthUrlOpener;
-  /// Callback to execute once the user has authenticated successfully.
   onAuthenticated: () => void;
 }
+
+/// Global configuration for the entire application.
+export type Config = AppProps & AuthConfig;
 
 /**
  * Functional component called by the parent module, returning the root React component for this package.
@@ -80,9 +79,7 @@ export interface AppProps {
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const App = (props: AppProps) => {
-  const { logger, runningOnDesktop, onAuthenticated } = props;
-
-  const authConfig = config(logger, runningOnDesktop);
+  const { runningOnDesktop } = props;
   // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unnecessary-condition
   const Router = runningOnDesktop ? MemoryRouter : BrowserRouter;
 
@@ -92,14 +89,11 @@ const App = (props: AppProps) => {
     <>
       <Toaster position="top-center" reverseOrder={false} />
       <Router>
-        <AuthProvider authConfig={authConfig} onAuthenticated={onAuthenticated} >
-          <AppRouter />
-        </AuthProvider>
+        <AppRouterWithHistory {...props} />
       </Router>
     </>
   );
 }
-
 
 
 // =================
@@ -110,30 +104,38 @@ const App = (props: AppProps) => {
 // FIXME [NP]: React components are expected to use PascalCase, but our linter is not configured to
 //   allow that. Do we want to allow that, even if it would disable the lint for non-React code?
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const AppRouter: FC = () => {
+const AppRouter: FC<AppProps> = (props) => {
+  const { logger, onAuthenticated } = props;
+  const auth = useMemo(() => authApi(props), []);
+
   return (
-    <Routes>
-      <Fragment>
-        {/* Login & registration pages are visible to unauthenticated users. */}
-        <Route element={<GuestLayout />}>
-          <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
-          <Route path={LOGIN_PATH} element={<LoginContainer />} /> 
-        </Route>
-        {/* Protected pages are visible to authenticated users. */}
-        <Route element={<ProtectedLayout />}>
-          {/* FIXME [NP]: why do we need this extra one for electron to work? */}
-          <Route index element={<DashboardContainer />} />
-          <Route path={DASHBOARD_PATH} element={<DashboardContainer />} /> 
-          <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
-        </Route>
-        {/* Other pages are visible to unauthenticated and authenticated users. */}
-        <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
-        <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
-        <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
-      </Fragment>
-    </Routes>
+    <AuthProvider auth={auth} logger={logger} onAuthenticated={onAuthenticated} >
+      <Routes>
+        <Fragment>
+          {/* Login & registration pages are visible to unauthenticated users. */}
+          <Route element={<GuestLayout />}>
+            <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
+            <Route path={LOGIN_PATH} element={<LoginContainer />} /> 
+          </Route>
+          {/* Protected pages are visible to authenticated users. */}
+          <Route element={<ProtectedLayout />}>
+            {/* FIXME [NP]: why do we need this extra one for electron to work? */}
+            <Route index element={<DashboardContainer />} />
+            <Route path={DASHBOARD_PATH} element={<DashboardContainer />} /> 
+            <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
+          </Route>
+          {/* Other pages are visible to unauthenticated and authenticated users. */}
+          <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
+          <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
+          <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
+        </Fragment>
+      </Routes>
+    </AuthProvider>
   )
 }
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const AppRouterWithHistory = withRouter(AppRouter);
 
 export default App;
 

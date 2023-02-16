@@ -5,14 +5,14 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc.
  */
-import { ComponentType, createContext, FC, ReactElement, ReactNode, useContext, useEffect, useState } from 'react';
+import { ComponentType, createContext, FC, ReactElement, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from "react-hot-toast"
 
 import { getUsersMe, Organization, SetUsernameBody } from './api';
 import * as api from './api';
-import authApi, { isAmplifyError, isAuthError, AuthConfig } from './authentication/api';
-import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
+import authApi, { isAmplifyError, isAuthError, AuthConfig, Api } from './authentication/api';
+import { DASHBOARD_PATH, Logger, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
 
 
 
@@ -129,22 +129,58 @@ const AuthContext = createContext<AuthContextType>(
 // === AuthProvider ===
 // ====================
 
-interface AuthProviderProps {
-    authConfig: AuthConfig,
+export interface AuthProviderProps {
+    logger: Logger,
+    auth: Api,
+    /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void;
     children: ReactNode;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
-  const { authConfig, onAuthenticated, children } = props
+  const { logger, auth, children } = props
+  const onAuthenticated = useCallback(props.onAuthenticated, [])
+  logger.log("AuthProvider::render")
   const navigate = useNavigate();
   const [initialized, setInitialized] = useState(false);
   const [session, setSession] = useState<UserSession | undefined>(undefined);
   // State that, when incremented, forces a refresh of the user session. This is useful when a user
   // has just logged in (so their cached credentials are out of date).
   const [refresh, setRefresh] = useState(0);
-  const [auth] = useState(authApi(authConfig));
+  // FIXME [NP]: find a better way to store this state
+  const [, setAccessToken] = useState(undefined);
+
+  useEffect(() => {
+    logger.log(`register listener`);
+    const listener = (event: string, data?: any) => {
+      logger.log(`hub::${event}`);
+      if (event === "cognitoHostedUI") {
+          // The user has just signed in via a federated identity provider (e.g., Google or GitHub).
+          // We want to redirect the user to the "sign in" page, which will then redirect the user
+          // to the "home" page.
+          //window.location.href = LOGIN_PATH;
+          //navigate(LOGIN_PATH, { replace: true })
+          //navigate("http://localhost:8080/", { replace: true })
+  
+          // FIXME [NP]: remove lints.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument
+          setAccessToken(data!.signInUserSession.accessToken.jwtToken)
+      } else if (event === "customOAuthState") {
+          // FIXME [NP]: make this variable.
+          // FIXME [NP]: document this https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
+          // FIXME [NP]: make this Electron-specific
+          //const url = `http://localhost:8080${data.payload.data}`;
+          const url = `http://localhost:8080/`
+          window.history.replaceState({}, "", url)
+          //navigate(DASHBOARD_PATH)
+          window.history.go();
+      }
+    };
+    
+    const cancel = auth.listen(listener);
+    return cancel
+  }, [setAccessToken, auth, logger]);
 
   // FIXME [NP]: remove
   //// Ensure the AWS Amplify library is loaded & configured prior to providing the `AuthContext` to

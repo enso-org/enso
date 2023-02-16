@@ -22,6 +22,9 @@ import build from '../../build.json' assert { type: 'json' }
 import yargs from 'yargs'
 import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
 
+/** The name of the product. */
+const PRODUCT_NAME = 'enso'
+
 const args = await yargs(process.argv.slice(2))
     .env('ENSO_BUILD')
     .option({
@@ -70,6 +73,13 @@ const config: Configuration = {
     },
     copyright: 'Copyright © 2022 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
+    // Define a new protocol to enable redirects back to the IDE from external sources. This allows
+    // us to send the user to the browser to authenticate, and then redirect back to the IDE. This
+    // also allows us to intercept users clicking on signup verification links in their emails, also
+    // redirecting them back to the IDE.
+    protocols: [
+        { name: `${PRODUCT_NAME} url`, schemes: [`${PRODUCT_NAME}` ], role: 'Editor' },
+    ],
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         //target: (args.target as MacOsTargetName) ?? 'dmg',

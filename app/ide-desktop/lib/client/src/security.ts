@@ -8,10 +8,10 @@ import Electron from 'electron'
 // =================
 
 /** The list of hosts that the app can access. They are required for user authentication to work. */
-const trustedHosts = ['accounts.google.com', 'accounts.youtube.com', 'github.com']
+const trustedHosts = ['accounts.google.com', 'accounts.youtube.com', 'github.com', 'localhost', 'localhost:8080', 'localhost:8081']
 
 /** The list of URLs a new WebView can be pointed to. */
-const webViewUrlWhitelist: string[] = []
+const webViewUrlWhitelist: string[] = ['localhost', 'localhost:8080', 'localhost:8081', 'http://localhost', 'http://localhost:8080', 'http://localhost:8081', 'https://localhost/', 'https://localhost:8080/', 'https://localhost:8081/']
 
 // =============
 // === Utils ===
@@ -80,6 +80,7 @@ function limitWebViewCreation() {
 function preventNavigation() {
     Electron.app.on('web-contents-created', (event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
+            console.log(`Navigation to '${navigationUrl}'.`)
             const parsedUrl = new URL(navigationUrl)
             if (parsedUrl.origin !== origin && !trustedHosts.includes(parsedUrl.host)) {
                 event.preventDefault()

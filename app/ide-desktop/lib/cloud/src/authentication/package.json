@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@aws-amplify/auth": "^5.1.8",
+    "@aws-amplify/core": "^5.0.14",
     "@fortawesome/free-brands-svg-icons": "^6.3.0",
     "@fortawesome/react-fontawesome": "^0.2.0",
     "react-hot-toast": "^2.4.0",
