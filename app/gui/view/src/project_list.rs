@@ -221,6 +221,7 @@ impl ProjectList {
         app.display.default_scene.layers.panel.add(&display_object);
         caption.set_content("Open Project");
         caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
+        app.display.default_scene.layers.panel_text.add(&grid);
 
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
