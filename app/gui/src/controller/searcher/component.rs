@@ -10,6 +10,7 @@ use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::DocSection;
+use std::cmp::max_by;
 
 
 // ==============
@@ -171,15 +172,18 @@ impl Component {
             fuzzly::find_best_subsequence(code, pattern.as_ref(), metric)
         });
 
-        // Match the input pattern to an entry's alias, if available.
-        // TODO: use map to apply only if Some
-        let alias_subsequence = self.alias().map(|alias| {
-            let alias_matches = fuzzly::matches(alias, pattern.as_ref());
-            alias_matches.and_option_from(|| {
-                let metric = fuzzly::metric::default();
-                fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric)
-            })
-        }).flatten();
+        // Match the input pattern to an entry's aliases, if available, and select the best match.
+        let alias_subsequence = self.aliases().map(|aliases| {
+            let subsequences = aliases.filter_map(|alias| {
+                let alias_matches = fuzzly::matches(alias, pattern.as_ref());
+                alias_matches.and_option_from(|| {
+                    let metric = fuzzly::metric::default();
+                    fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric)
+                })
+            });
+            subsequences.reduce(|lhs, rhs| max_by(lhs, rhs, |lhs, rhs| lhs.compare_scores(&rhs)))
+        });
+        let alias_subsequence = alias_subsequence.flatten();
 
         // Pick best match between alias and code.
         let alias_or_code_subsequence = match (alias_subsequence, code_subsequence) {
@@ -220,20 +224,17 @@ impl Component {
         }
     }
 
-    /// Return the component's alias if the component contains the "ALIAS" tag.
-    pub fn alias(&self) -> Option<&str> {
-        let alias_tag = match &self.data {
-            Data::FromDatabase { entry, .. } => entry.documentation.iter().find(|doc| match doc {
-                DocSection::Tag { name, .. } =>
-                    name == ast::constants::ALIAS_DOC_SECTION_TAG_NAME,
-                _ => false,
-            }),
+    /// Return an iterator over the component's aliases from the "ALIAS" tags.
+    pub fn aliases(&self) -> Option<impl Iterator<Item = &str>> {
+        match &self.data {
+            Data::FromDatabase { entry, .. } =>
+                Some(entry.documentation.iter().filter_map(|doc| match doc {
+                    DocSection::Tag { name, body }
+                        if name == ast::constants::ALIAS_DOC_SECTION_TAG_NAME =>
+                        Some(body.as_str()),
+                    _ => None,
+                })),
             _ => None,
-        };
-        if let Some(DocSection::Tag { body, .. }) = alias_tag {
-            Some(body)
-        } else {
-            None
         }
     }
 }
