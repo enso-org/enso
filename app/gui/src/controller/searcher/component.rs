@@ -171,8 +171,28 @@ impl Component {
             fuzzly::find_best_subsequence(code, pattern.as_ref(), metric)
         });
 
+        // Match the input pattern to an entry's alias, if available.
+        // TODO: use map to apply only if Some
+        let alias_subsequence = self.alias().map(|alias| {
+            let alias_matches = fuzzly::matches(alias, pattern.as_ref());
+            alias_matches.and_option_from(|| {
+                let metric = fuzzly::metric::default();
+                fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric)
+            })
+        }).flatten();
+
+        // Pick best match between alias and code.
+        let alias_or_code_subsequence = match (alias_subsequence, code_subsequence) {
+            (Some(alias), Some(code)) => {
+                let score = alias.score.max(code.score);
+                Some(fuzzly::Subsequence { score, indices: Vec::new() })
+            }
+            (None, code) => code,
+            (alias, None) => alias,
+        };
+
         // Pick the best match score of the two, use only the character indices matching the label.
-        let subsequence = match (label_subsequence, code_subsequence) {
+        let subsequence = match (label_subsequence, alias_or_code_subsequence) {
             (Some(label), Some(code)) => {
                 let score = label.score.max(code.score);
                 Some(fuzzly::Subsequence { score, ..label })
@@ -197,6 +217,23 @@ impl Component {
                 _ => false,
             }),
             _ => false,
+        }
+    }
+
+    /// Return the component's alias if the component contains the "ALIAS" tag.
+    pub fn alias(&self) -> Option<&str> {
+        let alias_tag = match &self.data {
+            Data::FromDatabase { entry, .. } => entry.documentation.iter().find(|doc| match doc {
+                DocSection::Tag { name, .. } =>
+                    name == ast::constants::ALIAS_DOC_SECTION_TAG_NAME,
+                _ => false,
+            }),
+            _ => None,
+        };
+        if let Some(DocSection::Tag { body, .. }) = alias_tag {
+            Some(body)
+        } else {
+            None
         }
     }
 }
