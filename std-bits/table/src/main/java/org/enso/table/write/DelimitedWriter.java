@@ -171,7 +171,8 @@ public class DelimitedWriter {
     return writeQuoteBehavior != WriteQuoteBehavior.NEVER;
   }
 
-  private void writeCell(String value, boolean isLastInRow, boolean wantsQuoting, String columnName, int row)
+  private void writeCell(
+      String value, boolean isLastInRow, boolean wantsQuoting, String columnName, int row)
       throws IOException {
     String processed = value == null ? "" : quote(value, wantsQuoting, columnName, row);
     output.write(processed);

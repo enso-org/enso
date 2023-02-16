@@ -7,7 +7,11 @@ public class UnquotedCharactersInOutput extends ColumnAggregatedProblems {
 
   @Override
   public String getMessage() {
-    return "The " + getLocationName() + " at rows " + makeTruncatedRowsString() + " contains characters that need quoting, but quoting is disabled. The generated file may be corrupted.";
+    return "The "
+        + getLocationName()
+        + " at rows "
+        + makeTruncatedRowsString()
+        + " contains characters that need quoting, but quoting is disabled. The generated file may be corrupted.";
   }
 
   @Override

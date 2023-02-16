@@ -34,10 +34,8 @@ public abstract class ColumnAggregatedProblems implements Problem {
 
   protected String makeTruncatedRowsString() {
     int limit = 9;
-    String inner = rows.stream()
-        .limit(limit)
-        .map(Object::toString)
-        .collect(Collectors.joining(", "));
+    String inner =
+        rows.stream().limit(limit).map(Object::toString).collect(Collectors.joining(", "));
     if (rows.size() > limit) {
       inner += ", ...";
     }
