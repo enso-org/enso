@@ -110,16 +110,20 @@ type Any
         # host or polyglot values, so we just compare them with the default comparator.
         eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Unordered_Comparator
         eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Unordered_Comparator
-        if Meta.is_same_object eq_self Incomparable then False else
-            similar_type = Meta.is_same_object eq_self eq_that
-            if similar_type.not then False else
-                case eq_self.is_ordered of
+        case Meta.is_same_object eq_self Incomparable of
+            True -> False
+            False ->
+                similar_type = Meta.is_same_object eq_self eq_that
+                case similar_type of
+                    False -> False
                     True ->
-                        # Comparable.equals_builtin is a hack how to directly access EqualsNode from the
-                        # engine, so that we don't end up in an infinite recursion here (which would happen
-                        # if we would compare with `eq_self == eq_that`).
-                        Comparable.equals_builtin (eq_self.compare self that) Ordering.Equal
-                    False -> eq_self.equals self that
+                        case eq_self.is_ordered of
+                            True ->
+                                # Comparable.equals_builtin is a hack how to directly access EqualsNode from the
+                                # engine, so that we don't end up in an infinite recursion here (which would happen
+                                # if we would compare with `eq_self == eq_that`).
+                                Comparable.equals_builtin (eq_self.compare self that) Ordering.Equal
+                            False -> eq_self.equals self that
 
     ## ALIAS Inequality
 
