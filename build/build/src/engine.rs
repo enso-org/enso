@@ -46,6 +46,13 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
         ("Orders", vec!["data/store_data.xlsx", "src/Main.enso"]),
         ("Restaurants", vec!["data/la_districts.csv", "data/restaurants.csv", "src/Main.enso"]),
         ("Stargazers", vec!["src/Main.enso"]),
+        ("Colorado_COVID", vec![
+            "data/CDPHE_COVID19_County_Status_Metrics.csv",
+            "data/ColoradoGeoData.db",
+            "src/Main.enso",
+        ]),
+        ("KMeans", vec!["src/Main.enso"]),
+        ("NASDAQReturns", vec!["src/Main.enso"]),
     ];
 
     let mut futures = Vec::<BoxFuture<'static, Result>>::new();

@@ -61,7 +61,7 @@ it with special `--dump-graphs` option:
 enso$ sbt runEngineDistribution --dump-graphs --run yourprogram.enso
 ```
 
-When executed on [GraalVM 22.3.0](http://graalvm.org) these options instruct the
+When executed on [GraalVM 22.3.1](http://graalvm.org) these options instruct the
 _Graal/Truffle compiler_ to dump files into `graal_dumps/_sometimestamp_`
 directory. Generating these files takes a while - make sure `yourprogram.enso`
 runs long enough for the system to warmup, compile the code and run at _full
