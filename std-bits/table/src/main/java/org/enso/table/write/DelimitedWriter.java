@@ -4,7 +4,6 @@ import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.UnquotedCharactersInOutput;
 import org.enso.table.formatting.DataFormatter;
 import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.Problem;
 import org.enso.table.read.DelimitedReader;
 
 import java.io.IOException;
@@ -13,8 +12,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 public class DelimitedWriter {
   private final String newline;
@@ -35,7 +32,7 @@ public class DelimitedWriter {
   private final String emptyValue;
   private final WriteQuoteBehavior writeQuoteBehavior;
   private final boolean writeHeaders;
-  private final AggregatedProblems warnings = new AggregatedProblems(1);
+  private final AggregatedProblems warnings = new AggregatedProblems();
 
   public DelimitedWriter(
       Writer output,
