@@ -15,7 +15,7 @@ polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.apache.poi.ss.usermodel.Workbook
 
 type Excel_Workbook
-    ## Load a File as an Excel_Workbook.
+    ## Load a File as a connection to an Excel workbook.
 
        Arguments:
        - file: The file to load.
@@ -72,23 +72,23 @@ type Excel_Workbook
         if schema == self.schema then self else
             Error.throw (Illegal_Argument.Error "Changing schema is not supported.")
 
-    ## Gets the number of sheets
+    ## Gets the number of sheets.
     sheet_count : Integer
     sheet_count self = self.workbook.getNumberOfSheets
 
-    ## Gets the names of all the sheets
+    ## Gets the names of all the sheets.
     sheet_names : Vector Text
     sheet_names self = Vector.from_polyglot_array (ExcelReader.readSheetNames self.workbook)
 
-    ## Gets the number of named ranges
+    ## Gets the number of named ranges.
     named_ranges_count : Integer
     named_ranges_count self = self.workbook.getNumberOfNames
 
-    ## Gets the names of all the named ranges
+    ## Gets the names of all the named ranges.
     named_ranges : Vector Text
     named_ranges self = Vector.from_polyglot_array (ExcelReader.readRangeNames self.workbook)
 
-    ## Gets a list of the table types
+    ## Gets a list of the table types.
     table_types : Vector Text
     table_types self = ['Worksheet', 'Named Range']
 

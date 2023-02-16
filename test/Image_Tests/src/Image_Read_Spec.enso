@@ -10,7 +10,8 @@ import Standard.Test.Extensions
 polyglot java import java.lang.System as Java_System
 
 fetch addr file =
-    Process.run "curl" [addr, "--silent", "--output", file.path]
+    if file.exists then Exit_Code.Success else
+        Process.run "curl" [addr, "--silent", "--output", file.path]
 
 spec =
     rgba_addr = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"

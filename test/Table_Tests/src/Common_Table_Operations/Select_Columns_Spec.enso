@@ -127,8 +127,8 @@ spec setup =
             err.catch.criteria . should_equal ["hmm"]
 
             err_2 = table.select_columns [99, "foo", "hmm"] on_problems=Problem_Behavior.Ignore
-            err.should_fail_with Missing_Input_Columns
-            err.catch.criteria . should_equal ["hmm"]
+            err_2.should_fail_with Missing_Input_Columns
+            err_2.catch.criteria . should_equal ["hmm"]
 
         Test.specify "should correctly handle problems: no columns in the output" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->

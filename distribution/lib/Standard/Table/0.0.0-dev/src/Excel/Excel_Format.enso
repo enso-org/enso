@@ -65,6 +65,23 @@ type Excel_Format
             _ -> Excel_Reader.read_file file self.section self.headers on_problems format
 
     ## Implements the `Table.write` for this `File_Format`.
+
+       Depending on the `section` will control where to write.
+       - If `Excel_Section.Workbook` (the default), the `table` will be written
+         to a new sheet in the workbook named `Sheet<n>` where n is the first
+         integer >1 that is not already used as a sheet name. If too many sheets
+         are present an `Illegal_Argument` error will be thrown.
+       - If `Excel_Section.Worksheet`, the `table` will be written to the
+         specified sheet (either adding or replacing).
+       - If `Excel_Section.Cell_Range`, the `table` will be written to the
+         specified range.
+
+        Arguments:
+        - file: The file to write to.
+        - table: The table to write.
+        - on_existing_file: What to do if the file already exists.
+        - match_columns: How to match columns between the table and the file.
+        - on_problems: What to do if there are problems reading the file.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
     write_table self file table on_existing_file match_columns on_problems =
         format = should_treat_as_xls_format self.xls_format file
@@ -75,8 +92,9 @@ type Excel_Format
             Excel_Section.Workbook ->
                 sheet_name = if file.exists.not then "Sheet1" else
                     names = Excel_Reader.read_file file Excel_Section.Sheet_Names False on_problems format
-                    name_map = Map.from_vector (names.map n-> [n, 1])
-                    idx = 1.up_to 256 . find n-> (name_map.contains_key ("Sheet" + n.to_text) . not)
-                    "Sheet" + idx.to_text
+                    if names.length == 255 then Error.throw (Illegal_Argument.Error "Too many sheets in workbook.") else
+                        name_map = Map.from_vector (names.map n-> [n, 1])
+                        idx = 1.up_to 256 . find n-> (name_map.contains_key ("Sheet" + n.to_text) . not)
+                        "Sheet" + idx.to_text
                 Excel_Writer.write_file file table on_existing_file (Excel_Section.Worksheet sheet_name) True match_columns on_problems format
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format
