@@ -11,10 +11,9 @@
      Get the item name and price columns from the shop inventory.
 
          import Standard.Examples
-         from Standard.Table.Data.Column_Selector import By_Name
 
          example_select =
-             Examples.inventory_table.select_columns (By_Name ["item_name", "price"])
+             Examples.inventory_table.select_columns ["item_name", "price"]
 
    > Example
      Remove any rows that contain missing values from the table.
