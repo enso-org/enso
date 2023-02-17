@@ -190,7 +190,6 @@ pub fn json_to_struct(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
 /// Parse the input token stream as file paths.
 fn files_paths(input: proc_macro::TokenStream) -> Vec<PathBuf> {
-    let mut paths: Vec<String> = vec![];
     let span = proc_macro::Span::call_site();
     let call_site_file_desc = span.source_file();
     let call_site_file = PathBuf::from(call_site_file_desc.path().to_str().unwrap());
@@ -201,7 +200,6 @@ fn files_paths(input: proc_macro::TokenStream) -> Vec<PathBuf> {
             proc_macro::TokenTree::Literal(lit) => {
                 let lit = lit.to_string();
                 let lit = lit.trim_matches('"');
-                paths.push(lit.to_string());
                 Some(lit.to_string())
             }
             proc_macro::TokenTree::Punct(_) => None,
