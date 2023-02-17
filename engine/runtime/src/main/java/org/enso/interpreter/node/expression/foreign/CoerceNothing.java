@@ -21,7 +21,8 @@ public abstract class CoerceNothing extends Node {
   }
 
   /**
-   * Converts a null polyglot representation into an equivalent Nothing representation in Enso context.
+   * Converts a null polyglot representation into an equivalent Nothing representation in Enso
+   * context.
    *
    * @param value the polyglot value to perform coercion on
    * @return {@code value} coerced to an Enso primitive where applicable
