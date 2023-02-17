@@ -310,6 +310,8 @@
 - [Updated `Table.set` to new API. New `Column.parse` function and added case
   sensitivity to `Filter_Condition` and column functions.][4097]
 - [Updated column selector APIs and new `Excel_Workbook` type.][5646]
+- [Moved regex functionality out of `Text.locate` and `Text.locate_all` into
+  `Text.match` and `Text.match_all`.][5679]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
