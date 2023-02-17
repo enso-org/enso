@@ -228,7 +228,6 @@ mod tests {
     use super::*;
     use crate::display::shape::system::cached::INITIAL_TEXTURE_SIZE;
     use crate::display::shape::*;
-    use crate::display::world::World;
 
     type MockShape = usize;
 

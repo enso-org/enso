@@ -59,17 +59,17 @@
 //! mod cached {
 //!     use super::*;
 //!     ensogl_core::cached_shape! { 32 x 32;
-//!                                         // Some definition
+//!                                             // Some definition
 //! #       (_style: Style) { Circle(16.px()).into() }
-//!                                     }
+//!                                         }
 //! }
 //!
 //! mod another_cached {
 //!     use super::*;
 //!     ensogl_core::cached_shape! { 32 x 32;
-//!                                         // Some definition
+//!                                             // Some definition
 //! #       (_style: Style) { Circle(16.px()).into() }
-//!                                     }
+//!                                         }
 //! }
 //!
 //!
@@ -136,6 +136,8 @@ pub mod arrange_on_texture;
 // === Constants ===
 // =================
 
+/// The maximum absolute value of signed distance stored in the Texture. See
+/// [full cached shapes documentation](self) for information why we need it.
 pub const CACHED_TEXTURE_MAX_DISTANCE: f32 = 8.0;
 
 /// A parameter of [`arrange_shapes_on_texture`] algorithm: the initial assumed size for the texture
