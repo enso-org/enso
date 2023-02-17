@@ -87,10 +87,12 @@ export class Option<T> {
         }
     }
 
+    /** Names of all parent groups and name of this option intercalated with dots. */
     qualifiedName(): string {
         return this.path.concat([this.name]).join('.')
     }
 
+    /** Just like `qualifiedName`, but also contains names of 'groups' and 'options' fields. */
     structuralName(): string {
         const lastSegment = 'options.' + this.name
         if (this.path.length === 0) {

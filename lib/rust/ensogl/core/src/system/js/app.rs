@@ -22,7 +22,6 @@ pub mod js_bindings {
     extern "C" {
         pub type App;
         pub type Config;
-        pub type Params;
         pub type Param;
 
         /// Register in JS a closure to get non-precompiled shaders from Rust.
@@ -46,7 +45,6 @@ pub mod js_bindings {
 
     mock_data! { App => JsValue }
     mock_data! { Config => JsValue }
-    mock_data! { Params => JsValue }
     mock_data! { Param => JsValue }
 
     impl App {
@@ -75,27 +73,6 @@ impl Config {
             Reflect::get(self, &"optionsRecursive".into()).unwrap().unchecked_into::<Function>();
         let js_arr = opts_fn.call0(self).unwrap().unchecked_into::<Array>();
         js_arr.to_vec().into_iter().map(|t| t.unchecked_into::<Param>()).collect()
-    }
-    // pub fn params(&self) -> Params {
-    //     Reflect::get(self, &"params".into()).unwrap().unchecked_into()
-    // }
-}
-
-impl Params {
-    pub fn get(&self, name: &str) -> Result<Param, JsValue> {
-        Reflect::get(self, &name.into()).map(|t| t.unchecked_into())
-    }
-
-    pub fn to_vec(&self) -> Vec<Param> {
-        let obj = (*self).clone().unchecked_into::<Object>();
-        let keys = Object::keys_vec(&obj);
-        keys.iter().map(|key| self.get(key).unwrap()).collect()
-    }
-
-    pub fn to_hash_map(&self) -> HashMap<String, Param> {
-        let obj = (*self).clone().unchecked_into::<Object>();
-        let keys = Object::keys_vec(&obj);
-        keys.iter().map(|key| (key.clone(), self.get(key).unwrap())).collect()
     }
 }
 

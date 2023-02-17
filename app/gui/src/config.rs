@@ -75,10 +75,9 @@ impl BackendService {
                 (json_endpoint, binary_endpoint) => {
                     let json_endpoint = json_endpoint.to_owned();
                     let binary_endpoint = binary_endpoint.to_owned();
-                    let default_namespace = || constants::DEFAULT_PROJECT_NAMESPACE.to_owned();
+                    let def_namespace = || constants::DEFAULT_PROJECT_NAMESPACE.to_owned();
                     let namespace = args.groups.engine.options.namespace.value.clone();
-                    let namespace =
-                        if namespace.is_empty() { default_namespace() } else { namespace };
+                    let namespace = if namespace.is_empty() { def_namespace() } else { namespace };
                     let missing_project_name = || MissingOption("startup.project".to_owned());
                     let project_name = args.groups.startup.options.project.value.as_str();
                     let project_name = if project_name.is_empty() {
@@ -122,10 +121,10 @@ impl Startup {
     pub fn from_web_arguments() -> FallibleResult<Startup> {
         let backend = BackendService::from_web_arguments(&ARGS)?;
         let project_name = ARGS.groups.startup.options.project.value.as_str();
+        let no_project_name = project_name.is_empty();
         let initial_view =
-            if project_name.is_empty() { InitialView::WelcomeScreen } else { InitialView::Project };
-        let project_name =
-            if project_name.is_empty() { None } else { Some(project_name.to_owned().into()) };
+            if no_project_name { InitialView::WelcomeScreen } else { InitialView::Project };
+        let project_name = (!no_project_name).as_some_from(|| project_name.to_owned().into());
         let dom_parent_id = None;
         Ok(Startup { backend, project_name, initial_view, dom_parent_id })
     }

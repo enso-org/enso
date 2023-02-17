@@ -184,8 +184,8 @@ pub fn json_to_struct(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let paths = files_paths(input);
     let json = read_and_merge_jsons(paths);
     let code = generate(&json);
-    // FIXME: comment it out before merging
-    std::fs::write("/tmp/out.txt", code.clone()).unwrap();
+    // Uncomment for debug purposes:
+    // std::fs::write("/tmp/out.txt", code.clone()).unwrap();
     proc_macro::TokenStream::from_str(&code).unwrap()
 }
 
