@@ -1214,6 +1214,9 @@ spec =
             "abacadae".match_all "a.*" . should_equal ["abacadae"]
             "abacadae".match_all "a.+?" . should_equal ["ab", "ac", "ad", "ae"]
 
+            "aAa".match "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Insensitive . should_equal "Aa"
+            "aAa".match "aa" mode=Matching_Mode.Last matcher=(Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_equal "aA"
+
             "abacadae".match "a[bc]" mode=Matching_Mode.Last . should_equal "ac"
             "abacadae".match "a." mode=Matching_Mode.Last . should_equal "ae"
             "abacadae".match "a.*" mode=Matching_Mode.Last . should_equal "abacadae"
