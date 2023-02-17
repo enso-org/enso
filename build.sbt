@@ -302,7 +302,8 @@ lazy val enso = (project in file("."))
     `std-google-api`,
     `std-image`,
     `std-table`,
-    `simple-httpbin`
+    `simple-httpbin`,
+    `enso-test-java-helpers`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -737,7 +738,11 @@ val generateParserJavaSources = TaskKey[Seq[File]](
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
   (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
 
-def generateRustParser(base: File, changes: sbt.nio.FileChanges, log: ManagedLogger): Seq[File] = {
+def generateRustParser(
+  base: File,
+  changes: sbt.nio.FileChanges,
+  log: ManagedLogger
+): Seq[File] = {
   import scala.jdk.CollectionConverters._
   import java.nio.file.Paths
 
@@ -1120,18 +1125,19 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
 // === Sub-Projects ===========================================================
 // ============================================================================
 
-val truffleRunOptionsNoAssert = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
-  Seq(
-    "-Dpolyglot.engine.IterativePartialEscape=true",
-    "-Dpolyglot.engine.BackgroundCompilation=false",
-    "-Dbench.compileOnly=true"
-  )
-} else {
-  Seq(
-    "-Dpolyglot.engine.IterativePartialEscape=true",
-    "-Dpolyglot.engine.BackgroundCompilation=false"
-  )
-}
+val truffleRunOptionsNoAssert =
+  if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
+    Seq(
+      "-Dpolyglot.engine.IterativePartialEscape=true",
+      "-Dpolyglot.engine.BackgroundCompilation=false",
+      "-Dbench.compileOnly=true"
+    )
+  } else {
+    Seq(
+      "-Dpolyglot.engine.IterativePartialEscape=true",
+      "-Dpolyglot.engine.BackgroundCompilation=false"
+    )
+  }
 val truffleRunOptions = "-ea" +: truffleRunOptionsNoAssert
 
 val truffleRunOptionsNoAssertSettings = Seq(
@@ -1192,7 +1198,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
       "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided",
-      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
+      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -1323,12 +1329,11 @@ lazy val `runtime-language-epb` =
       instrumentationSettings
     )
 
-/**
- * Runs gu (GraalVM updater) command with given `args`.
- * For example `runGu(Seq("install", "js"))`.
- * @param logger Logger for the `gu` command.
- * @param args Arguments for the `gu` command.
- */
+/** Runs gu (GraalVM updater) command with given `args`.
+  * For example `runGu(Seq("install", "js"))`.
+  * @param logger Logger for the `gu` command.
+  * @param args Arguments for the `gu` command.
+  */
 def runGu(logger: ManagedLogger, args: Seq[String]): String = {
   val javaHome = new File(
     System.getProperty("java.home")
@@ -1343,7 +1348,7 @@ def runGu(logger: ManagedLogger, args: Seq[String]): String = {
     logger,
     os,
     javaHome,
-    args:_*
+    args: _*
   )
 }
 
@@ -1352,8 +1357,7 @@ def installedGuComponents(logger: ManagedLogger): Seq[String] = {
     logger,
     Seq("list")
   )
-  val components = componentList
-    .linesIterator
+  val components = componentList.linesIterator
     .drop(2)
     .map { line =>
       line
@@ -1380,7 +1384,8 @@ ThisBuild / installGraalJs := {
   }
 }
 
-lazy val installNativeImage = taskKey[Unit]("Install native-image GraalVM component")
+lazy val installNativeImage =
+  taskKey[Unit]("Install native-image GraalVM component")
 ThisBuild / installNativeImage := {
   val logger = streams.value.log
   if (!installedGuComponents(logger).contains("native-image")) {
@@ -1474,6 +1479,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-base` / Compile / packageBin)
+      .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
       .dependsOn(`std-google-api` / Compile / packageBin)
@@ -1611,7 +1617,9 @@ lazy val `runtime-with-polyglot` =
         val runtimeClasspath =
           (LocalProject("runtime") / Compile / fullClasspath).value
         val runtimeInstrumentsClasspath =
-          (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value
+          (LocalProject(
+            "runtime-with-instruments"
+          ) / Compile / fullClasspath).value
         val appendClasspath =
           (runtimeClasspath ++ runtimeInstrumentsClasspath)
             .map(_.data)
@@ -1625,8 +1633,8 @@ lazy val `runtime-with-polyglot` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
-        "org.graalvm.sdk" % "graal-sdk" % graalVersion % "provided",
-        "org.scalatest" %% "scalatest" % scalatestVersion % Test
+        "org.graalvm.sdk" % "graal-sdk" % graalVersion     % "provided",
+        "org.scalatest"  %% "scalatest" % scalatestVersion % Test
       )
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
@@ -1693,7 +1701,6 @@ lazy val `engine-runner` = project
     assembly := assembly
       .dependsOn(`runtime-with-instruments` / assembly)
       .value,
-
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "runner",
@@ -1720,7 +1727,6 @@ lazy val `engine-runner` = project
       .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
-
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
         rebuildNativeImage,
@@ -2033,6 +2039,18 @@ lazy val `std-base` = project
     }.value
   )
 
+lazy val `enso-test-java-helpers` = project
+  .in(file("test/Tests/polyglot-sources/enso-test-java-helpers"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      file("test/Tests/polyglot/java/helpers.jar"),
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+    )
+  )
+
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .enablePlugins(Antlr4Plugin)
@@ -2267,8 +2285,11 @@ pkgStdLibInternal := Def.inputTask {
       (`std-image` / Compile / packageBin).value
     case "Table" =>
       (`std-table` / Compile / packageBin).value
+    case "TestHelpers" =>
+      (`enso-test-java-helpers` / Compile / packageBin).value
     case "All" =>
       (`std-base` / Compile / packageBin).value
+      (`enso-test-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value
