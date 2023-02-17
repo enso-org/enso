@@ -8,7 +8,6 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-config = { path = "../../../../../app/gui/config" }
 ensogl-core = { path = "../../core" }
 wasm-bindgen = { workspace = true }
 ensogl-hardcoded-theme = { path = "../../../ensogl/app/theme/hardcoded" }

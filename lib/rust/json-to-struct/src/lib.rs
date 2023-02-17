@@ -81,6 +81,11 @@ impl Error {
         let path = path.into();
         Self { path, ..self }
     }
+
+    /// Convert the error to a human-readable form.
+    pub fn display(&self) -> String {
+        format!(\"{}: {}\", self.path, self.reason)
+    }
 }
 
 /// Try setting a boolean value. If the value is not a boolean, returns an error.

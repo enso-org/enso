@@ -2690,7 +2690,6 @@ dependencies = [
 name = "ensogl-example-auto-layout"
 version = "0.1.0"
 dependencies = [
- "enso-config",
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "wasm-bindgen",

@@ -244,7 +244,7 @@ export const config = content.options.merge(
 
             profile: new content.Group({
                 options: {
-                    loadWorkflowProfile: new content.Option({
+                    loadProfile: new content.Option({
                         passToWebApplication: false,
                         default: [] as string[],
                         description:
@@ -252,7 +252,7 @@ export const config = content.options.merge(
                             `the 'profiling-run-graph' entry point.`,
                         primary: false,
                     }),
-                    saveWorkflowProfile: new content.Option({
+                    saveProfile: new content.Option({
                         passToWebApplication: false,
                         default: '',
                         description:

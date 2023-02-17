@@ -32,7 +32,7 @@ impl From<serde_json::error::Error> for Error {
 
 impl From<JsValue> for Error {
     fn from(jsvalue: JsValue) -> Self {
-        Error::ScalaException(format!("{:?}", jsvalue))
+        Error::ScalaException(format!("{jsvalue:?}"))
     }
 }
 
