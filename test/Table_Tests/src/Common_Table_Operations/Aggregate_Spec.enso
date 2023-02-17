@@ -1333,6 +1333,7 @@ spec setup =
                 err = table.aggregate [Sum "Text"] on_problems=pb
                 err.should_fail_with Invalid_Aggregation
                 err.catch . should_equal (Invalid_Aggregation.Error "Sum Text" [0] "Cannot convert to a number.")
+                err.catch.to_display_text . should_equal "The Sum Text could not be calculated at [0]: Cannot convert to a number."
 
         Test.specify "should warn if averaging on a non number" <|
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|

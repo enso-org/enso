@@ -120,6 +120,11 @@ pub enum Notification {
     #[serde(rename = "text/autoSave")]
     TextAutoSave(TextAutoSave),
 
+    /// This is a notification sent from the server to the clients to inform them of any changes
+    /// made to files that they have open.
+    #[serde(rename = "text/didChange")]
+    TextDidChange(FileEditList),
+
     /// Sent from the server to the client to inform about new information for certain expressions
     /// becoming available. This notification is superseded by executionContext/expressionUpdates.
     #[serde(rename = "executionContext/expressionValuesComputed")]
@@ -681,6 +686,15 @@ pub struct FileEdit {
     pub old_version: Sha3_224,
     pub new_version: Sha3_224,
 }
+
+/// A list of file edits.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct FileEditList {
+    pub edits: Vec<FileEdit>,
+}
+
 
 
 // ========================
