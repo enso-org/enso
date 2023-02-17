@@ -37,7 +37,7 @@ import project.Any.Any
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
-import project.Data.Text.Matching_Mode
+import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Invalid_Option
 import project.Data.Text.Regex.Invalid_Bounds_Error
 import project.Data.Text.Regex.Mode_Error
@@ -264,7 +264,7 @@ type Pattern
                  pattern = engine.compile ".*" []
                  input = "abcdefghij"
                  pattern.match input mode=Regex_Mode.Full
-    match : Text -> (Regex_Mode | Matching_Mode.First | Matching_Mode.Last) -> Match | Vector Match | Nothing
+    match : Text -> (Regex_Mode | Matching_Mode) -> Match | Vector Match | Nothing
     match self input mode=Regex_Mode.All =
         do_match_mode mode start end = case mode of
             Matching_Mode.First ->
@@ -414,7 +414,7 @@ type Pattern
                  pattern = engine.compile ".*" []
                  input = "abcdefghij"
                  pattern.find input mode=Regex_Mode.Full
-    find : Text -> (Regex_Mode | Matching_Mode.First | Matching_Mode.Last) -> Text | Vector Text | Nothing
+    find : Text -> (Regex_Mode | Matching_Mode) -> Text | Vector Text | Nothing
     find self input mode=Regex_Mode.All =
         matches = self.match input mode
         case matches of
@@ -465,7 +465,7 @@ type Pattern
                  pattern = engine.compile "a" []
                  input = "bacadaeaf"
                  pattern.match input
-    split : Text -> Matching_Mode.First | Matching_Mode.Last | Regex_Mode | Integer -> Vector Text
+    split : Text -> Matching_Mode | Regex_Mode | Integer -> Vector Text
     split self input mode=Regex_Mode.All =
         # Java uses this to mean the max length of the resulting array, so we
         # add 1.
@@ -535,7 +535,7 @@ type Pattern
                  pattern = engine.compile "aa []
                  input = "aabbaabbbbbaab"
                  pattern.replace input "REPLACED"
-    replace : Text -> Text -> Regex_Mode | Matching_Mode.First | Matching_Mode.Last | Integer -> Text
+    replace : Text -> Text -> Regex_Mode | Matching_Mode | Integer -> Text
     replace self input replacement mode=Regex_Mode.All =
         do_replace_mode mode start end = case mode of
             Matching_Mode.First ->
