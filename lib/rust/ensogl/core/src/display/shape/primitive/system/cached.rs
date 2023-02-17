@@ -59,17 +59,17 @@
 //! mod cached {
 //!     use super::*;
 //!     ensogl_core::cached_shape! { 32 x 32;
-//!                                             // Some definition
+//!                                                     // Some definition
 //! #       (_style: Style) { Circle(16.px()).into() }
-//!                                         }
+//!                                                 }
 //! }
 //!
 //! mod another_cached {
 //!     use super::*;
 //!     ensogl_core::cached_shape! { 32 x 32;
-//!                                             // Some definition
+//!                                                     // Some definition
 //! #       (_style: Style) { Circle(16.px()).into() }
-//!                                         }
+//!                                                 }
 //! }
 //!
 //!
@@ -177,7 +177,10 @@ pub fn texture_size() -> Vector2<i32> {
 /// See [`arrange_shapes_on_texture`] for packing algorithm details.
 pub fn initialize_cached_shape_positions_in_texture() {
     CACHED_SHAPES_DEFINITIONS.with_borrow(|shape_defs| {
-        let with_sizes = shape_defs.iter().map(|def| ShapeWithSize { shape: def, size: def.size });
+        let with_sizes = shape_defs.iter().map(|shape| {
+            let size = shape.size;
+            ShapeWithSize { shape, size }
+        });
         let arranged = arrange_shapes_on_texture(with_sizes, INITIAL_TEXTURE_SIZE);
         TEXTURE_SIZE.set(arranged.texture_size);
         for ShapeWithPosition { shape, position } in arranged.shape_positions {
@@ -195,10 +198,14 @@ pub fn initialize_cached_shape_positions_in_texture() {
 /// A cached shape system definition. You do not need to implement it manually, use the
 /// [`cached_shape!`] macro instead.
 pub trait CachedShape: shape::system::Shape {
-    /// The width of the cached shape in texture.
-    const WIDTH: i32;
+    /// The declared width of the cached shape.
+    const WIDTH: f32;
     /// The height of the cached shape in texture.
-    const HEIGHT: i32;
+    const HEIGHT: f32;
+    /// The width of the space taken by the cached shape on the texture.
+    const TEX_WIDTH: f32 = Self::WIDTH + CACHED_TEXTURE_MAX_DISTANCE * 2.0;
+    /// The height of the space taken by the cached shape on the texture.
+    const TEX_HEIGHT: f32 = Self::HEIGHT + CACHED_TEXTURE_MAX_DISTANCE * 2.0;
 
     /// Set the position of the shape in the texture.
     ///
@@ -214,7 +221,7 @@ pub trait CachedShape: shape::system::Shape {
     fn create_view_for_texture() -> ShapeView<Self>
     where Self::ShapeData: Default {
         let shape = ShapeView::<Self>::new();
-        shape.set_size(Vector2(Self::WIDTH as f32, Self::HEIGHT as f32));
+        shape.set_size(Vector2(Self::TEX_WIDTH, Self::TEX_HEIGHT));
         shape.set_xy(Self::get_position_in_texture());
         shape
     }
@@ -222,10 +229,10 @@ pub trait CachedShape: shape::system::Shape {
     /// Return the bounding box of the shape in the texture.
     fn location_in_texture() -> BoundingBox {
         let position = Self::get_position_in_texture();
-        let left = position.x - Self::WIDTH as f32 / 2.0;
-        let right = position.x + Self::WIDTH as f32 / 2.0;
-        let bottom = position.y - Self::HEIGHT as f32 / 2.0;
-        let top = position.y + Self::HEIGHT as f32 / 2.0;
+        let left = position.x - Self::TEX_WIDTH / 2.0;
+        let right = position.x + Self::TEX_WIDTH / 2.0;
+        let bottom = position.y - Self::TEX_HEIGHT / 2.0;
+        let top = position.y + Self::TEX_HEIGHT / 2.0;
         BoundingBox::from_corners(Vector2(left, bottom), Vector2(right, top))
     }
 
@@ -362,18 +369,18 @@ macro_rules! cached_shape {
 
         pub mod cached_shape_system_definition {
             use $crate::prelude::*;
-            use wasm_bindgen::prelude::*;
-            use super::shape_system_definition::*;
             use super::shape_system_definition::Shape;
             use $crate::display::shape::primitive::system::cached::CachedShape;
+            use $crate::display::shape::primitive::system::cached::CACHED_TEXTURE_MAX_DISTANCE;
 
             thread_local! {
                 static POSITION_IN_TEXTURE: Cell<Vector2> = default();
             }
 
             impl CachedShape for Shape {
-                const WIDTH: i32 = $width;
-                const HEIGHT: i32 = $height;
+                const WIDTH: f32 = $width as f32;
+                const HEIGHT: f32 = $height as f32;
+
                 fn set_position_in_texture(position: Vector2) {
                     POSITION_IN_TEXTURE.with(|pos| pos.set(position))
                 }
@@ -381,8 +388,6 @@ macro_rules! cached_shape {
                     POSITION_IN_TEXTURE.with(|pos| pos.get())
                 }
             }
-
-            //TODO[ao] fix before_main perhaps?
 
             #[before_main]
             pub fn register_cached_shape_entry_point() {
@@ -395,7 +400,7 @@ macro_rules! cached_shape {
                     shapes.push($crate::display::world::CachedShapeDefinition {
                         for_texture_constructor: Box::new(|| Box::new(Shape::create_view_for_texture())),
                         position_on_texture_setter: Box::new(Shape::set_position_in_texture),
-                        size: Vector2(Shape::WIDTH, Shape::HEIGHT),
+                        size: Vector2(Shape::TEX_WIDTH, Shape::TEX_HEIGHT),
                     });
                 });
             }
@@ -412,7 +417,6 @@ macro_rules! cached_shape {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::display;
     use crate::display::object::layout;
     use crate::display::world::World;
 

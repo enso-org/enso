@@ -2609,6 +2609,7 @@ dependencies = [
  "nalgebra",
  "num-traits",
  "num_enum",
+ "ordered-float",
  "rustc-hash",
  "semver 1.0.16",
  "serde",

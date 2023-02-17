@@ -7,6 +7,7 @@ use crate::prelude::*;
 use crate::data::bounding_box::BoundingBox;
 
 use itertools::iproduct;
+use ordered_float::OrderedFloat;
 
 
 
@@ -31,7 +32,7 @@ const TEXTURE_SIZE_MULTIPLIER: i32 = 2;
 #[derive(Copy, Clone, Debug, Default)]
 pub struct ShapeWithSize<Shape> {
     pub shape: Shape,
-    pub size:  Vector2<i32>,
+    pub size:  Vector2,
 }
 
 
@@ -134,8 +135,11 @@ pub fn arrange_shapes_on_texture<Shape>(
 where
     Shape: Clone,
 {
-    let sorted_shapes =
-        shapes.into_iter().sorted_by_key(|shape| shape.size.x * shape.size.y).rev().collect_vec();
+    let sorted_shapes = shapes
+        .into_iter()
+        .sorted_by_key(|shape| OrderedFloat(shape.size.x * shape.size.y))
+        .rev()
+        .collect_vec();
     let mut tex_size = initial_texture_size;
     loop {
         if let Some(arranged) = try_to_fit_shapes_on_texture(&sorted_shapes, tex_size) {
@@ -192,25 +196,24 @@ where
 ///
 /// A step of the [`arrange_shapes_on_texture`] algorithm. See its docs for details.
 fn find_free_place(
-    shape_size: Vector2<i32>,
+    shape_size: Vector2,
     tex_size: i32,
     placed_so_far: &[BoundingBox],
 ) -> Option<BoundingBox> {
+    let tex_size = tex_size as f32;
     // There is no need of iterating over all columns and rows, as the new shape is always "glued"
     // to right/top boundary of another shape, or left/bottom boundary of the texture.
-    let right_bounds = placed_so_far.iter().map(|bbox| bbox.right().ceil() as i32);
+    let right_bounds = placed_so_far.iter().map(|bbox| bbox.right().ceil());
     let allowed_right_bounds = right_bounds.filter(|col| col + shape_size.x <= tex_size);
-    let top_bounds = placed_so_far.iter().map(|bbox| bbox.top().ceil() as i32);
+    let top_bounds = placed_so_far.iter().map(|bbox| bbox.top().ceil());
     let allowed_top_bounds = top_bounds.filter(|row| row + shape_size.y <= tex_size);
-    let candidate_rows = iter::once(0).chain(allowed_top_bounds).sorted();
-    let candidate_cols = iter::once(0).chain(allowed_right_bounds).sorted();
+    let candidate_rows =
+        iter::once(0.0).chain(allowed_top_bounds).sorted_by_key(|&x| OrderedFloat(x));
+    let candidate_cols =
+        iter::once(0.0).chain(allowed_right_bounds).sorted_by_key(|&x| OrderedFloat(x));
     let candidate_positions = iproduct!(candidate_rows, candidate_cols);
-    let mut candidate_bboxes = candidate_positions.map(|(y, x)| {
-        BoundingBox::from_position_and_size(
-            Vector2(x as f32, y as f32),
-            shape_size.map(|i| i as f32),
-        )
-    });
+    let mut candidate_bboxes = candidate_positions
+        .map(|(y, x)| BoundingBox::from_position_and_size(Vector2(x, y), shape_size));
     candidate_bboxes.find(|bbox| {
         let is_collision = placed_so_far.iter().any(|placed| placed.interior_intersects(bbox));
         !is_collision
@@ -227,7 +230,6 @@ fn find_free_place(
 mod tests {
     use super::*;
     use crate::display::shape::system::cached::INITIAL_TEXTURE_SIZE;
-    use crate::display::shape::*;
 
     type MockShape = usize;
 

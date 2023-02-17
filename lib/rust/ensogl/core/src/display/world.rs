@@ -91,8 +91,8 @@ pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct CachedShapeDefinition {
-    /// The size of the shape in the texture.
-    pub size: Vector2<i32>,
+    /// The size of the texture's space occupied by the shape.
+    pub size: Vector2,
     /// A pointer to function setting the global information about position in the cached shapes
     /// texture, usually a concrete implementation of
     /// [`set_position_in_texture`](crate::display::shape::system::cached::CachedShape::set_position_in_texture)

@@ -421,7 +421,7 @@ Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
         color_and_distance = rgba(0.0, 0.0, 0.0, 0.0);
     }
 
-    float distance = (-color_and_distance.raw.a + 0.5) * CACHED_SHAPE_MAX_DISTANCE;
+    float distance = (-color_and_distance.raw.a + 0.5) * 2.0 * CACHED_SHAPE_MAX_DISTANCE;
     BoundSdf sdf = bound_sdf(distance, shape_bbox);
     Color shape_color = color(color_and_distance.raw.rgb, 1.0);
     return shape(id, sdf, shape_color);

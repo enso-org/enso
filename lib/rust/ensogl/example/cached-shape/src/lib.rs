@@ -133,7 +133,7 @@ mod background {
     ensogl_core::shape! {
         below = [texture, icon1, icon2];
         (style: Style,) {
-            Rect((346.0.px(), 344.0.px())).fill(color::Rgba::black()).into()
+            Rect((296.0.px(), 326.0.px())).fill(color::Rgba::black()).into()
         }
     }
 }
@@ -163,13 +163,13 @@ pub fn main() {
     let navigator = Navigator::new(scene, &camera);
 
     let background = background::View::new();
-    background.set_size(Vector2(346.0, 344.0));
+    background.set_size(Vector2(296.0, 326.0));
     background.set_xy(Vector2(0.0, -1000.0));
     world.default_scene.add_child(&background);
     world.default_scene.layers.main.add(&background);
 
     let texture_preview = texture::View::new();
-    texture_preview.set_size(Vector2(346.0, 344.0));
+    texture_preview.set_size(Vector2(296.0, 326.0));
     texture_preview.set_xy(Vector2(0.0, -1000.0));
     world.default_scene.add_child(&texture_preview);
     world.default_scene.layers.main.add(&texture_preview);
