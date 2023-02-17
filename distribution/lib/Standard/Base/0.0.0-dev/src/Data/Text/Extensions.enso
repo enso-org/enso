@@ -443,7 +443,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
          "aaa aaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "ca ca"
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca aaa"
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
-Text.replace : Text -> Text -> Matching_Mode.First | Matching_Mode.Last | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Text
+Text.replace : Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Text
 Text.replace self term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive = if term.is_empty then self else
     case matcher of
         _ : Text_Matcher ->
