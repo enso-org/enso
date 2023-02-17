@@ -7,8 +7,12 @@
 //!
 //! # Limitations
 //!
-//! The shapes rendered from the texture may not always gives the best quality results, see
-//! _Limitations_ section of [`AnyCachedShape`] docs.
+//! * The cached shapes does not support alpha channels fully: during rendering to the texture the
+//!   alpha value is dropped. See _Cached Shapes Texture_ section for details.
+//! * The signed distance kept in the texture is capped at [`CACHED_TEXTURE_MAX_DISTANCE`]. This may
+//!   give aliasing effects when zoomed out more than this distance.
+//! * The shapes rendered from the texture may not always gives the best quality results, see
+//!   _Limitations_ section of [`AnyCachedShape`] docs.
 //!
 //! # Usages
 //!
@@ -25,6 +29,18 @@
 //! [`arrange_on_texture`] module. Then, the shapes are rendered to texture in
 //! [`CacheShapesPass`](crate::display::render::passes::CacheShapesPass) as soon as they are ready
 //! (their shader is compiled).
+//!
+//! The texture is rendered in
+//! [`CachdShapesTexture` display
+//! mode](crate::display::shape::primitive::glsl::codes::DisplayModes), where the RGB channels keeps
+//! color of given pixel (as one would expect), and the alpha channel contains the information about
+//! signed distance the shape boundary, linearly transformed so:
+//! * 0.5 value means distance 0.0 distance,
+//! * 0.0 is [`CACHED_TEXTURE_MAX_DISTANCE`],
+//! * 1.0 is `-CACHED_TEXTURE_MAX_DISTANCE`.
+//! As the alpha channel is capped at `0.0..=1.0` range, this will limit the stored signed distance
+//! to `-CACHED_TEXTURE_MAX_DISTANCE..=CACHED_TEXTURE_MAX_DISTANCE`, which is one of the limitations
+//! of cached shapes quality (see _Limitations_ section).
 //!
 //! # Using Cached Shapes
 //!
@@ -43,17 +59,17 @@
 //! mod cached {
 //!     use super::*;
 //!     ensogl_core::cached_shape! { 32 x 32;
-//!                         // Some definition
+//!                                         // Some definition
 //! #       (_style: Style) { Circle(16.px()).into() }
-//!                     }
+//!                                     }
 //! }
 //!
 //! mod another_cached {
 //!     use super::*;
 //!     ensogl_core::cached_shape! { 32 x 32;
-//!                         // Some definition
+//!                                         // Some definition
 //! #       (_style: Style) { Circle(16.px()).into() }
-//!                     }
+//!                                     }
 //! }
 //!
 //!
@@ -107,6 +123,11 @@ use crate::display::world::CACHED_SHAPES_DEFINITIONS;
 use crate::display::IntoGlsl;
 use crate::gui::component::ShapeView;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod arrange_on_texture;
 
 
@@ -114,6 +135,8 @@ pub mod arrange_on_texture;
 // =================
 // === Constants ===
 // =================
+
+pub const CACHED_TEXTURE_MAX_DISTANCE: f32 = 8.0;
 
 /// A parameter of [`arrange_shapes_on_texture`] algorithm: the initial assumed size for the texture
 /// with cached shapes. If it turn out to be too small, we extend its size and try again.

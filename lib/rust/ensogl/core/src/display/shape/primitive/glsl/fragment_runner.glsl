@@ -45,8 +45,7 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
 
 } else if (input_display_mode == DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
     output_color = rgba(shape.color).raw;
-    output_color.a = -shape.sdf.distance / 16.0 + 0.5;
-//    output_color.a = 1.0;
+    output_color.a = -shape.sdf.distance / CACHED_SHAPE_MAX_DISTANCE + 0.5;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SHAPE_AA_SPAN) {
     output_color = srgba(shape.color).raw;

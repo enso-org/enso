@@ -292,6 +292,11 @@ struct Shape {
     /// and check for this condition, or it will produce infinite/invalid values for the `xyz`
     /// components. If we blend such a color with another one, then we will get artifacts, as
     /// multiplying an infinite/invalid value by 0 is an undefined behavior.
+    ///
+    /// If the Display Mode is DISPLAY_MODE_CACHED_SHAPES_TEXTURE, the color does not fade outside
+    /// the shape. Otherwise the resulting cached shapes would have darker borders if not aligned
+    /// to texture pixels. This effects is caused by the way how texture interpolates a space
+    /// between pixels.
     PremultipliedColor color;
     /// The opacity of the shape. It is the result of rendering of the [`sdf`].
     float alpha;
@@ -316,10 +321,6 @@ Shape shape (Id id, BoundSdf bound_sdf, Rgba rgba) {
 Shape shape (Id id, BoundSdf bound_sdf) {
     return shape(id, bound_sdf, rgba(1.0, 0.0, 0.0, 1.0));
 }
-
-//Shape shape (Id id, BoundSdf bound_sdf, Lcha lcha) {
-//    return shape(id, bound_sdf, Color(lcha));
-//}
 
 /// A debug [`Shape`] constructor. Should not be used to create shapes that are rendered to the
 /// screen as it's ID is always 0. It can be used to create temporary shapes. For example, it can
@@ -362,6 +363,14 @@ Shape inverse (Shape s1) {
 
 Shape unify (Shape s1, Shape s2) {
     if (input_display_mode == DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        // In DISPLAY_MODE_CACHED_SHAPES_TEXTURE As the color is not faded outside the shapes, we need to fade the
+        // foregroud color at some points before blending, otherwise it would "cover" the background color.
+        // There are two conditions we want to met:
+        // * We always want to fade it if outside foreground shape, but inside the background shape (and the fg shape
+        //   boundary over bg shape shall be anti-aliased, basing on sdf information).
+        // * We want to keep the color consistent near border of the both shapes.
+        // We can fade the foreground shape always when the sdf distance is greated than the background shape - this way
+        // we met both conditions above.
         if (s2.sdf.distance > s1.sdf.distance) {
             s2.color.repr.raw *= s2.alpha;
         }
@@ -395,13 +404,16 @@ Shape with_infinite_bounds (Shape s) {
     return shape(s.id, sdf, s.color);
 }
 
+/// Read the shape from the Cached Shapes Texture.
+///
+/// The `tex_bbox` is expressed in texture pixels, where origin is at the texture center.
 Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
     BoundingBox texture_bbox = bounding_box(tex_bbox.x, tex_bbox.z, tex_bbox.y, tex_bbox.w);
     BoundingBox shape_bbox = bounding_box(position, (tex_bbox.z - tex_bbox.x) / 2.0, (tex_bbox.w - tex_bbox.y) / 2.0);
     
     vec2 texture_bbox_center = (tex_bbox.xy + tex_bbox.zw) / 2.0;
     vec2 texture_position = texture_bbox_center + position;
-    vec2 texture_uv = ((texture_position) / (vec2(textureSize(input_pass_cached_shapes, 0)))) + vec2(0.5, 0.5);
+    vec2 texture_uv = (texture_position / vec2(textureSize(input_pass_cached_shapes, 0))) + vec2(0.5, 0.5);
     Rgba color_and_distance;
     if (contains(texture_bbox, texture_position)) {
         color_and_distance = rgba(texture(input_pass_cached_shapes, texture_uv));
@@ -409,7 +421,7 @@ Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
         color_and_distance = rgba(0.0, 0.0, 0.0, 0.0);
     }
 
-    float distance = (-color_and_distance.raw.a + 0.5) * 16.0;
+    float distance = (-color_and_distance.raw.a + 0.5) * CACHED_SHAPE_MAX_DISTANCE;
     BoundSdf sdf = bound_sdf(distance, shape_bbox);
     Color shape_color = color(color_and_distance.raw.rgb, 1.0);
     return shape(id, sdf, shape_color);

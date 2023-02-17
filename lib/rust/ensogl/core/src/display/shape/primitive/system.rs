@@ -77,9 +77,15 @@ use crate::system::gpu::data::InstanceIndex;
 
 use super::def;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod cached;
 
 pub use cached::CachedShape;
+
 
 
 // =====================
@@ -390,7 +396,7 @@ impl ShapeSystemModel {
 
     fn default_geometry_material() -> Material {
         let mut material = SpriteSystem::default_geometry_material();
-        material.set_before_main(shader::builder::glsl_prelude_and_codes());
+        material.set_before_main(shader::builder::glsl_prelude_and_constants());
         // The GLSL vertex shader implementing automatic shape padding for anti-aliasing. See the
         // docs of [`aa_side_padding`] to learn more about the concept of shape padding.
         //
