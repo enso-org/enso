@@ -1,0 +1,30 @@
+from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+
+import project.Connection.Database
+import project.Connection.SQLite_Options.SQLite_Options
+
+## Read the file to a `SQLite_Connection` from a `.db` or `.sqlite` file
+type SQLite_Format
+    ## Read SQLite files
+    For_File
+
+    ## If the File_Format supports reading from the file, return a configured instance.
+    for_file : File -> SQLite_Format | Nothing
+    for_file file =
+        case file.extension of
+            ".db" -> SQLite_Format.For_File
+            ".sqlite" -> SQLite_Format.For_File
+            _ -> Nothing
+
+    ## If the File_Format supports reading from the web response, return a configured instance.
+    for_web : Text -> URI -> SQLite_Format | Nothing
+    for_web _ _ =
+        ## Currently not loading SQLite files automatically.
+        Nothing
+
+    ## Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems =
+        _ = [on_problems]
+        Database.connect (SQLite_Options.SQLite file)

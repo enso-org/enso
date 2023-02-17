@@ -13,6 +13,7 @@ import project.SQL_Spec
 import project.Table_Spec
 import project.Visualization_Spec
 import project.Widgets_Spec
+import project.Lazy_Table_Spec
 
 main = Test_Suite.run_main <|
     Default_Visualizations_Spec.spec
@@ -20,6 +21,7 @@ main = Test_Suite.run_main <|
     Helpers_Spec.spec
     Histogram_Spec.spec
     Id_Spec.spec
+    Lazy_Table_Spec.spec
     Lazy_Text_Spec.spec
     Scatter_Plot_Spec.spec
     SQL_Spec.spec
