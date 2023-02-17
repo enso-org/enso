@@ -233,9 +233,11 @@ Text.characters self =
    ! Last Match in Regex Mode
      Regex always performs the search from the front and matching the last
      occurrence means selecting the last of the matches while still generating
-     matches from the beginning. This will lead to slightly different behavior
-     for overlapping occurrences of a pattern in Regex mode than in exact text
-     matching mode where the matches are searched for from the back.
+     matches from the beginning. Regex does not return overlapping matches - it
+     will return a match at some position and then continue the search after that
+     match. This will lead to slightly different behavior for overlapping
+     occurrences of a pattern in Regex mode than in exact text matching mode
+     where the matches are searched for from the back.
 
    > Example
      Comparing Matching in Last Mode in Regex and Text mode
@@ -424,9 +426,11 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    ! Last Match in Regex Mode
      Regex always performs the search from the front and matching the last
      occurrence means selecting the last of the matches while still generating
-     matches from the beginning. This will lead to slightly different behavior
-     for overlapping occurrences of a pattern in Regex mode than in exact text
-     matching mode where the matches are searched for from the back.
+     matches from the beginning. Regex does not return overlapping matches - it
+     will return a match at some position and then continue the search after that
+     match. This will lead to slightly different behavior for overlapping
+     occurrences of a pattern in Regex mode than in exact text matching mode
+     where the matches are searched for from the back.
 
    > Example
      Comparing Matching in Last Mode in Regex and Text mode
