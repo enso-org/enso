@@ -372,6 +372,19 @@ spec =
             Data.read (enso_project.data / "comments.csv") (Delimited ',' . with_comments . with_headers) . should_equal table_hash
             Data.read (enso_project.data / "comments.csv") (Delimited ',' . with_comments ';' . with_headers) . should_equal table_semicolon
 
+        Test.specify "should manage to parse a file containing null characters" pending="Parsing NULL character in CSV currently does not handle some edge cases. It may need to be revised. See issue https://github.com/enso-org/enso/issues/5655" <|
+            f = enso_project.data / "transient" / "slash_zero.csv"
+            f.delete_if_exists
+            txt = 'a,b\n\0,\0\nx\0y,zw\na#b,c\0d'
+            txt.write f
+
+            table = Data.read f
+            table.print
+            expected_table = Table.new [['a', ['\0', 'x\0y', 'a#b']], ['b', ['\0', 'zw', 'c\0d']]]
+            table.should_equal expected_table
+
+            f.delete_if_exists
+
         Test.specify "should allow to build the Delimited configuration using builders" <|
             Delimited "," . clone . should_equal (Delimited ",")
             Delimited "," encoding=Encoding.ascii skip_rows=123 row_limit=100 headers=False value_formatter=Nothing . clone . should_equal (Delimited "," headers=False value_formatter=Nothing skip_rows=123 row_limit=100 encoding=Encoding.ascii)

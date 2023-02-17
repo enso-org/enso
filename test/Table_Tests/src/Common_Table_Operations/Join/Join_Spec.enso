@@ -589,7 +589,7 @@ spec setup =
             tc = table_builder [["id_a", [0, 1]], ["id_b", [0, 2]]]
 
             res = (tc.join ta on=(Join_Condition.Equals "id_a" "id")) . join tb on=(Join_Condition.Equals "id_b" "id") right_prefix="b_"
-            sel = res.select_columns (Column_Selector.By_Name ["name", "b_name"])
+            sel = res.select_columns ["name", "b_name"]
             r = materialize sel . order_by "name" . rows . map .to_vector
             r.length . should_equal 2
             r.at 0 . should_equal ["Foo", "Y"]

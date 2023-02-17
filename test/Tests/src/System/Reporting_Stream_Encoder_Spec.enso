@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Encoding_Error.Encoding_Error
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.nio.CharBuffer
@@ -85,5 +86,47 @@ spec =
                 stream.with_stream_encoder encoding Problem_Behavior.Report_Error _->Nothing
             result.should_succeed
             f.read_text encoding . should_equal ""
+
+        Test.specify "should forward any dataflow errors raised in the inner action" <|
+            f = enso_project.data / "transient" / "error.txt"
+            encoding = Encoding.ascii
+            f.delete_if_exists
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Ignore rse->
+                    rse.write "BAR"
+                    Error.throw (Illegal_State.Error "FOO")
+            result.should_fail_with Illegal_State
+            result.catch.message.should_equal "FOO"
+            f.delete_if_exists
+
+        Test.specify "should forward any warnings attached to the result of the inner action (1)" <|
+            f = enso_project.data / "transient" / "warning.txt"
+            encoding = Encoding.ascii
+            f.delete_if_exists
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Ignore rse->
+                    rse.write "BAZ"
+                    result = Warning.attach "warn:1" <| Warning.attach "warn:2" <| 42
+                    rse.write "23"
+                    result
+            result . should_equal 42
+            Problems.get_attached_warnings result . should_contain_the_same_elements_as ["warn:1", "warn:2"]
+            f.read_text encoding . should_equal "BAZ23"
+            f.delete_if_exists
+
+        Test.specify "should forward any warnings attached to the result of the inner action (2)" <|
+            f = enso_project.data / "transient" / "warning.txt"
+            encoding = Encoding.ascii
+            f.delete_if_exists
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Ignore rse->
+                    rse.write "BAZ"
+                    result = Warning.attach "warn:1" <| Warning.attach "warn:2" <| Nothing
+                    rse.write "23"
+                    result
+            result . should_equal Nothing
+            Problems.get_attached_warnings result . should_contain_the_same_elements_as ["warn:1", "warn:2"]
+            f.read_text encoding . should_equal "BAZ23"
+            f.delete_if_exists
 
 main = Test_Suite.run_main spec
