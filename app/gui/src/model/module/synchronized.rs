@@ -18,6 +18,7 @@ use double_representation::definition::DefinitionInfo;
 use double_representation::graph::Id;
 use double_representation::import;
 use engine_protocol::language_server;
+use engine_protocol::language_server::FileEdit;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
 use enso_text::text;
@@ -190,6 +191,57 @@ impl Module {
         // We don't expect any other call, because we don't execute `runner()`.
         let language_server = language_server::Connection::new_mock_rc(client);
         Rc::new(Module { model, language_server })
+    }
+
+    /// Reload text file from the language server.
+    pub async fn reload_text_file_from_ls(&self, parser: &Parser) -> FallibleResult {
+        let file_path = self.path();
+        self.language_server.client.close_text_file(file_path).await?;
+        let opened = self.language_server.client.open_text_file(file_path).await?;
+        self.set_module_content_from_ls(opened.content.into(), parser).await
+    }
+
+    /// Apply text changes received from the language server.
+    pub async fn apply_text_change_from_ls(
+        &self,
+        edits: Vec<TextEdit>,
+        parser: &Parser,
+    ) -> FallibleResult {
+        let mut content: text::Rope = self.serialized_content()?.content.into();
+        for TextEdit { range, text } in edits {
+            let start = content.location_of_utf16_code_unit_location_snapped(range.start.into());
+            let end = content.location_of_utf16_code_unit_location_snapped(range.end.into());
+            let start = <Byte as enso_text::FromInContextSnapped<&text::Rope, Location<Byte>>>::from_in_context_snapped(&content, start);
+            let end = <Byte as enso_text::FromInContextSnapped<&text::Rope, Location<Byte>>>::from_in_context_snapped(&content, end);
+            let range = Range { start, end };
+            let change = TextChange { range, text };
+            content.apply_change(change);
+        }
+        self.set_module_content_from_ls(content, parser).await
+    }
+
+    /// Update the module with content received from the language server. This function takes the
+    /// file content as reloaded from the language server, or reconstructed from a `text/didChange`
+    /// notification. It parses the new file content and updates the module with the parsed content.
+    /// The module content changes during parsing, and the language server is notified of this
+    /// change. Lastly, a notification of `NotificationKind::Reloaded` is emitted to synchronize the
+    /// notification handler.
+    async fn set_module_content_from_ls(
+        &self,
+        content: text::Rope,
+        parser: &Parser,
+    ) -> FallibleResult {
+        let transaction = self.undo_redo_repository().transaction("Setting module's content");
+        transaction.fill_content(self.id(), self.content().borrow().clone());
+        let parsed_source = parser.parse_with_metadata(content.to_string());
+        let source = parsed_source.serialize()?;
+        self.content().replace(parsed_source);
+        let summary = ContentSummary::new(&content);
+        let change = TextEdit::from_prefix_postfix_differences(&content, &source.content);
+        self.notify_language_server(&summary, &source, vec![change]).await?;
+        let notification = Notification::new(source, NotificationKind::Reloaded);
+        self.notify(notification);
+        Ok(())
     }
 }
 
@@ -382,6 +434,7 @@ impl Module {
                     let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
                     profiler::await_!(notify_ls, _profiler)
                 }
+                NotificationKind::Reloaded => Ok(ParsedContentSummary::from_source(&new_file)),
             },
         }
     }
@@ -478,7 +531,7 @@ impl Module {
         edits: Vec<TextEdit>,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
         let summary = ParsedContentSummary::from_source(new_file);
-        let edit = language_server::types::FileEdit {
+        let edit = FileEdit {
             edits,
             path: self.path().file_path().clone(),
             old_version: ls_content.digest.clone(),
@@ -662,6 +715,17 @@ pub mod test {
             let end_of_file = code_so_far.utf16_code_unit_location_of_location(end_of_file_bytes);
             TextRange { start: Position { line: 0, character: 0 }, end: end_of_file.into() }
         }
+
+        /// Update the language server file content with a `TextEdit`.
+        fn update_ls_content(&self, edit: &TextEdit) {
+            let old_content = self.current_ls_content.get();
+            let new_content = apply_edit(old_content, edit);
+            let new_version =
+                Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
+            debug!("Updated content:\n===\n{new_content}\n===");
+            self.current_ls_content.set(new_content);
+            self.current_ls_version.set(new_version);
+        }
     }
 
     fn apply_edit(code: impl Into<text::Rope>, edit: &TextEdit) -> text::Rope {
@@ -731,6 +795,69 @@ pub mod test {
             let change = TextChange { range: (20..24).into(), text: "Test 2".to_string() };
             module.apply_code_change(change, &Parser::new(), default()).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
+        };
+
+        Runner::run(test);
+    }
+
+    #[wasm_bindgen_test]
+    fn handling_language_server_file_changes() {
+        // The test starts with code as below, followed by a full invalidation replacing the whole
+        // AST to print "Test". Then the file is changed on the language server side, simulating
+        // what would happen if a snapshot is restored from the VCS. The applied `TextEdit` is then
+        // used to update the local module content independently and synchronize it with the
+        // language server.
+        let initial_code = "main =\n    println \"Hello World!\"";
+        let mut data = crate::test::mock::Unified::new();
+        data.set_code(initial_code);
+        let test = |_runner: &mut Runner| {
+            let module_path = data.module_path.clone();
+            let edit_handler = Rc::new(LsClientSetup::new(module_path, initial_code));
+            let mut fixture = data.fixture_customize(|data, client, _| {
+                data.expect_opening_module(client);
+                data.expect_closing_module(client);
+                // Opening module and metadata generation.
+                edit_handler.expect_full_invalidation(client);
+                // Explicit AST update.
+                edit_handler.expect_some_edit(client, |edit| {
+                    assert!(edit.edits.last().map_or(false, |edit| edit.text.contains("Test")));
+                    Ok(())
+                });
+                // Expect an edit that changes metadata due to parsing of the reloaded module
+                // content.
+                edit_handler.expect_some_edit(client, |edits| {
+                    let edit_code = &edits.edits[0];
+                    // The metadata changed is on line 5.
+                    assert_eq!(edit_code.range.start.line, 5);
+                    assert_eq!(edit_code.range.end.line, 5);
+                    Ok(())
+                });
+            });
+
+            let parser = data.parser.clone();
+            let module = fixture.synchronized_module();
+
+            let new_content = "main =\n    println \"Test\"".to_string();
+            let new_ast = parser.parse_module(new_content, default()).unwrap();
+            module.update_ast(new_ast).unwrap();
+            fixture.run_until_stalled();
+            // Replace `Test` with `Test 2` on the language server side and provide a `FileEditList`
+            // containing the file changes.
+            let edit = TextEdit {
+                text:  "Test 2".into(),
+                range: TextRange {
+                    start: Position { line: 1, character: 13 },
+                    end:   Position { line: 1, character: 17 },
+                },
+            };
+            edit_handler.update_ls_content(&edit);
+            fixture.run_until_stalled();
+            module
+                .apply_text_change_from_ls(vec![edit], &parser)
+                .boxed_local()
+                .expect_ready()
+                .unwrap();
+            fixture.run_until_stalled();
         };
 
         Runner::run(test);

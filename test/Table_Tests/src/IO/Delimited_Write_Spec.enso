@@ -24,11 +24,11 @@ join_lines lines trailing_newline=True =
 spec =
     line_ending_pairs = [[Line_Ending_Style.Unix, '\n'], [Line_Ending_Style.Windows, '\r\n'], [Line_Ending_Style.Mac_Legacy, '\r']]
     Test.group "Delimited File Writing" <|
-        Test.specify "should correctly write a simple table" <|
+        Test.specify "should correctly write a simple table and return the written file object on success" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type.Value 10]]]
             file = (enso_project.data / "transient" / "written.csv")
             file.delete_if_exists
-            table.write file on_problems=Report_Error . should_succeed
+            table.write file on_problems=Report_Error . should_succeed . should_equal file
             expected_text = normalize_lines <| """
                 A,B,C,D
                 1,1.0,x,a
@@ -50,9 +50,9 @@ spec =
                 text.should_equal (lines.join separator suffix=separator)
                 file.delete
 
-        Test.specify 'should quote values that contain the delimiter or quotes, in the [,""] variant' <|
+        Test.specify 'should quote values that contain the delimiter, newline or quotes, in the [,""] variant' <|
             data_formatter = Data_Formatter.Value decimal_point=","
-            table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
+            table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three', 'a\nb']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5, 0.0]]]
             file = (enso_project.data / "transient" / "quotes1.csv")
             file.delete_if_exists
             table.write file (Delimited "," value_formatter=data_formatter) on_problems=Report_Error . should_succeed
@@ -62,13 +62,15 @@ spec =
                 'bar',"1000000,5"
                 """baz""","2,2"
                 "one, two, three","-1,5"
+                "a
+                b","0,0"
             text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
-        Test.specify 'should quote values that contain the delimiter or quotes, in the [;\\\"] variant' <|
+        Test.specify 'should quote values that contain the delimiter, newline or quotes, in the [;\\\"] variant' <|
             data_formatter = Data_Formatter.Value thousand_separator="'"
-            table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b"]], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing]]]
+            table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b", 'n\nm']], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing, 33]]]
             file = (enso_project.data / "transient" / "quotes2.csv")
             file.delete_if_exists
             table.write file (Delimited ";" value_formatter=data_formatter . with_quotes quote='"' quote_escape='\\') on_problems=Report_Error . should_succeed
@@ -79,13 +81,15 @@ spec =
                 one, two, three;0.0
                 "a;b; c ";-1.2
                 "a\\b";
+                "n
+                m";33.0
             text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
-        Test.specify "should quote values that contain the delimiter or quotes, in the [\t''] variant" <|
+        Test.specify "should quote values that contain the delimiter, newline or quotes, in the [\t''] variant" <|
             data_formatter = Data_Formatter.Value thousand_separator="'"
-            table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb']], ["B\C", [1000000.5, 1000.0, Nothing, -1.2]]]
+            table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb', 'x\ny', 'w\vz']], ["B\C", [1000000.5, 1000.0, Nothing, -1.2, 2.0, 42.0]]]
             file = (enso_project.data / "transient" / "quotes3.csv")
             file.delete_if_exists
             table.write file (Delimited '\t' value_formatter=data_formatter . with_quotes quote='\'' quote_escape='\'') on_problems=Report_Error . should_succeed
@@ -95,6 +99,9 @@ spec =
                 'The ''thing''.'\t'1''000.0'
                 one, "two", three\t
                 'a\tb'\t-1.2
+                'x
+                y'\t2.0
+                w\vz\t42.0
             text = Data.read_text file
             text.should_equal expected_text
             file.delete
@@ -139,7 +146,17 @@ spec =
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
             file = (enso_project.data / "transient" / "quote_disabled.csv")
             file.delete_if_exists
-            table.write file format on_problems=Report_Error . should_succeed
+            r = table.write file format on_problems=Report_Error
+            r.should_equal file
+            warnings = Problems.get_attached_warnings r
+            ## Only the 3rd row of the first column warns. Since quoting is
+               disabled we cannot check what could be the quote character to be
+               escaped.
+            ew1 = Unquoted_Characters_In_Output.Warning 'The Column "Name"' [3]
+            ew2 = Unquoted_Characters_In_Output.Warning "Hello, Column?" [-1, 0, 1, 2, 3]
+            warnings.should_contain_the_same_elements_as [ew1, ew2]
+            w1 = warnings.find w-> w.column == 'Hello, Column?'
+            w1.to_display_text . should_equal "The Hello, Column? at rows [the header, 0, 1, 2, 3] contains characters that need quoting, but quoting is disabled. The generated file may be corrupted."
             expected_text = normalize_lines <| """
                 The Column "Name",Hello, Column?
                 foo,1,0
@@ -189,7 +206,7 @@ spec =
                 1,?
             text = Data.read_text file encoding=Encoding.ascii
             text.should_equal expected_text
-            result . should_equal Nothing
+            result . should_equal file
             positions = [7, 8, 15]
             msg = "Encoding issues at codepoints " +
                 positions.map .to_text . join separator=", " suffix="."
@@ -208,7 +225,7 @@ spec =
                 y,w
             text_1 = Data.read_text file_1
             text_1.should_equal expected_text
-            result_1 . should_equal Nothing
+            result_1 . should_equal file_1
 
             table_2 = Table.new [["A", [1, 2]], ["B", ["z", "w"]]]
             file_2 = (enso_project.data / "transient" / "non-text_but_no_formatter.csv")

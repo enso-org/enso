@@ -93,7 +93,13 @@ pub mod prelude {
 // =================
 
 const SNAP_DISTANCE_THRESHOLD: f32 = 10.0;
+/// Time between key down and key up event to consider it a press and hold action as opposed to a
+/// simple key press.
 const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS: f32 = 300.0;
+/// Number of frames we expect to pass during the `VIZ_PREVIEW_MODE_TOGGLE_TIME_MS` interval.
+/// Assumes 60fps. We use this value to check against dropped frames during the interval.
+const VIZ_PREVIEW_MODE_TOGGLE_FRAMES: i32 =
+    (VIZ_PREVIEW_MODE_TOGGLE_TIME_MS / 1000.0 * 60.0) as i32;
 const MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH: f32 = 52.0;
 const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
 /// Horizontal and vertical offset between traffic lights and window border
@@ -3446,10 +3452,29 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     viz_was_pressed      <- viz_pressed.previous();
     viz_press            <- viz_press_ev.gate_not(&viz_was_pressed);
     viz_release          <- viz_release_ev.gate(&viz_was_pressed);
-    viz_press_time       <- viz_press   . map(|_| web::window.performance_or_panic().now() as f32);
+    viz_press_time       <- viz_press   . map(|_| {
+            let time = web::window.performance_or_panic().now() as f32;
+            let frame_counter = Rc::new(web::FrameCounter::start_counting());
+            (time, Some(frame_counter))
+        });
     viz_release_time     <- viz_release . map(|_| web::window.performance_or_panic().now() as f32);
-    viz_press_time_diff  <- viz_release_time.map2(&viz_press_time,|t1,t0| t1-t0);
-    viz_preview_mode     <- viz_press_time_diff.map(|t| *t > VIZ_PREVIEW_MODE_TOGGLE_TIME_MS);
+    viz_preview_mode  <- viz_release_time.map2(&viz_press_time,|t1,(t0,counter)| {
+        let diff = t1-t0;
+        // We check the time between key down and key up. If the time is less than the threshold
+        // then it was a key press and we do not want to enter preview mode. If it is longer then
+        // it was a key hold and we want to enter preview mode.
+        let long_enough = diff > VIZ_PREVIEW_MODE_TOGGLE_TIME_MS;
+        // We also check the number of passed frames, since the time measure can be misleading, if
+        // there were dropped frames. The visualisation might have just appeared while more than
+        // the threshold time has passed.
+        let enough_frames = if let Some(counter) = counter {
+            let frames = counter.frames_since_start();
+            frames > VIZ_PREVIEW_MODE_TOGGLE_FRAMES
+        } else {
+            false
+        };
+        long_enough && enough_frames
+    });
     viz_preview_mode_end <- viz_release.gate(&viz_preview_mode).gate_not(&out.is_fs_visualization_displayed);
     viz_tgt_nodes        <- viz_press.gate_not(&out.is_fs_visualization_displayed).map(f_!(model.nodes.all_selected()));
     viz_tgt_nodes_off    <- viz_tgt_nodes.map(f!([model](node_ids) {

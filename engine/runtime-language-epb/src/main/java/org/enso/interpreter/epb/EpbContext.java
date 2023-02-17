@@ -1,8 +1,12 @@
 package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 
 /**
@@ -32,20 +36,65 @@ public class EpbContext {
   }
 
   /**
-   * Initializes the context. No-op in the inner context. Spawns the inner context if called from
-   * the outer context.
+   * Initializes the context.No-op in the inner context. Spawns the inner context if called from the
+   * outer context. Shielded against double initialization.
+   *
+   * @param preInitializeLanguages comma separated list of languages to immediately initialize
    */
-  public void initialize() {
+  public void initialize(String preInitializeLanguages) {
     if (!isInner) {
-      innerContext =
-          new GuardedTruffleContext(
-              env.newInnerContextBuilder()
-                  .initializeCreatorContext(true)
-                  .inheritAllAccess(true)
-                  .config(INNER_OPTION, "yes")
-                  .build(),
-              true);
+      if (innerContext == null) {
+        innerContext =
+            new GuardedTruffleContext(
+                env.newInnerContextBuilder()
+                    .initializeCreatorContext(true)
+                    .inheritAllAccess(true)
+                    .config(INNER_OPTION, "yes")
+                    .build(),
+                true);
+      }
+      initializeLanguages(env, innerContext, preInitializeLanguages);
     }
+  }
+
+  private static void initializeLanguages(
+      TruffleLanguage.Env environment, GuardedTruffleContext innerContext, String langs) {
+    if (langs == null || langs.isEmpty()) {
+      return;
+    }
+    var log = environment.getLogger(EpbContext.class);
+    log.log(Level.FINE, "Initializing languages {0}", langs);
+    var cdl = new CountDownLatch(1);
+    var run =
+        (Consumer<TruffleContext>)
+            (context) -> {
+              var lock = innerContext.enter(null);
+              log.log(Level.FINEST, "Entering initialization thread");
+              cdl.countDown();
+              try {
+                for (var l : langs.split(",")) {
+                  log.log(Level.FINEST, "Initializing language {0}", l);
+                  long then = System.currentTimeMillis();
+                  var res = context.initializeInternal(null, l);
+                  long took = System.currentTimeMillis() - then;
+                  log.log(
+                      Level.FINE,
+                      "Done initializing language {0} with {1} in {2} ms",
+                      new Object[] {l, res, took});
+                }
+              } finally {
+                innerContext.leave(null, lock);
+              }
+            };
+    var init = innerContext.createThread(environment, run);
+    log.log(Level.FINEST, "Starting initialization thread");
+    init.start();
+    try {
+      cdl.await();
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+    }
+    log.log(Level.FINEST, "Initializing on background");
   }
 
   /**
