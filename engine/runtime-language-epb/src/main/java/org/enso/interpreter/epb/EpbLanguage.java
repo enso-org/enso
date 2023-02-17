@@ -1,8 +1,8 @@
 package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import java.util.function.Consumer;
 import org.enso.interpreter.epb.node.ContextRewrapNode;
 import org.enso.interpreter.epb.node.ForeignEvalNode;
 
@@ -34,19 +34,23 @@ import org.enso.interpreter.epb.node.ForeignEvalNode;
     characterMimeTypes = {EpbLanguage.MIME},
     internal = true,
     defaultMimeType = EpbLanguage.MIME,
-    contextPolicy = TruffleLanguage.ContextPolicy.SHARED)
+    contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
+    services = Consumer.class)
 public class EpbLanguage extends TruffleLanguage<EpbContext> {
   public static final String ID = "epb";
   public static final String MIME = "application/epb";
 
   @Override
   protected EpbContext createContext(Env env) {
-    return new EpbContext(env);
+    var ctx = new EpbContext(env);
+    Consumer<String> init = ctx::initialize;
+    env.registerService(init);
+    return ctx;
   }
 
   @Override
   protected void initializeContext(EpbContext context) {
-    context.initialize();
+    context.initialize(null);
   }
 
   @Override
