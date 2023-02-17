@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Column, Delimited
 import Standard.Table.Main as Table_Module
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 from project.Util import all
@@ -109,5 +109,32 @@ spec =
             out.read_text.should_equal exp
             out.delete_if_exists
 
+    Test.group "Integration" <|
+        Test.specify "should be able to round-trip a table with all kinds of weird characters to CSV and back" <|
+            names = ['Śłąęźż");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,', '\'', 'a\n\nb', 'a\tc', Nothing, Nothing, Nothing, '42', '💁👌🎍😍', '', 'null?\0?', 'FFFD', '\uFFFD', '\r\n', 'a\r\nb\n\rc\rd\ne', 'what about these # ?? // /* hmm */ is it included?', 'and the rare \v vertical tab?']
+            d = Date_Time.new 2015 10 29 23 55 49
+            t = Table.new [['name', names], ['header\nspanning\nmultiple\nlines', names.map_with_index ix-> _-> ix*10], ['dates', names.map_with_index ix-> _-> d + Duration.new hours=3*ix]]
+            out = enso_project.data / 'transient' / 'integrate.csv'
+            out.delete_if_exists
+
+            Problems.assume_no_problems <|
+                t.write out
+            t2 = out.read
+            t2.should_equal t
+
+            t3 = out.read (Delimited ',' . with_comments)
+            t3.should_equal t
+
+            out.delete_if_exists
+
+            out2 = enso_project.data / 'transient' / 'integrate.tsv'
+            out2.delete_if_exists
+
+            t.write out2 . should_equal out2
+
+            t4 = out2.read
+            t4.should_equal t
+
+            out2.delete_if_exists
 
 main = Test_Suite.run_main spec

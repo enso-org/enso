@@ -44,7 +44,7 @@ type Existing_File_Behavior
 
        The `action` may not be run at all in case the `Error` behavior is
        selected.
-    write : File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
+    write : File -> (Output_Stream -> Any) -> Any ! File_Error
     write self file action =
         case self of
             Existing_File_Behavior.Overwrite -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] action

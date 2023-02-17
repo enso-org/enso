@@ -74,9 +74,9 @@ spec_write suffix test_sheet_name =
         clothes = enso_project.data/'clothes.csv' . read
         sub_clothes = clothes.select_columns [0, 1]
 
-        Test.specify 'should write a table to non-existent file as a new sheet with headers' <|
+        Test.specify 'should write a table to non-existent file as a new sheet with headers; and return the file object on success' <|
             out.delete_if_exists
-            table.write out on_problems=Report_Error . should_succeed
+            table.write out on_problems=Report_Error . should_succeed . should_equal out
             written = out.read
             written.sheet_count . should_equal 1
             written.sheet_names . should_equal ['Sheet1']
