@@ -152,12 +152,36 @@ impl Component {
     ///
     /// It should be called each time the filtering pattern changes.
     pub fn update_matching_info(&self, pattern: impl Str) {
+        // Match the input pattern to the component label.
         let label = self.label();
-        let matches = fuzzly::matches(&label, pattern.as_ref());
-        let subsequence = matches.and_option_from(|| {
+        let label_matches = fuzzly::matches(&label, pattern.as_ref());
+        let label_subsequence = label_matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
-            fuzzly::find_best_subsequence(label, pattern, metric)
+            fuzzly::find_best_subsequence(label, pattern.as_ref(), metric)
         });
+
+        // Match the input pattern to the code to be inserted.
+        let code = match &self.data {
+            Data::FromDatabase { entry, .. } => entry.code_to_insert(true).to_string(),
+            Data::Virtual { snippet } => snippet.code.to_string(),
+        };
+        let code_matches = fuzzly::matches(&code, pattern.as_ref());
+        let code_subsequence = code_matches.and_option_from(|| {
+            let metric = fuzzly::metric::default();
+            fuzzly::find_best_subsequence(code, pattern.as_ref(), metric)
+        });
+
+        // Pick the best match score of the two, use only the character indices matching the label.
+        let subsequence = match (label_subsequence, code_subsequence) {
+            (Some(label), Some(code)) => {
+                let score = label.score.max(code.score);
+                Some(fuzzly::Subsequence { score, ..label })
+            }
+            (None, Some(code)) => Some(fuzzly::Subsequence { indices: Vec::new(), ..code }),
+            (Some(label), None) => Some(label),
+            (None, None) => None,
+        };
+
         *self.match_info.borrow_mut() = match subsequence {
             Some(subsequence) => MatchInfo::Matches { subsequence },
             None => MatchInfo::DoesNotMatch,
@@ -192,7 +216,7 @@ impl Display for Component {
                 let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
                 if let Some(self_type) = self_type_not_here {
                     let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
-                    write!(f, "{self_name} {entry_name}")
+                    write!(f, "{entry_name} ({self_name})")
                 } else {
                     write!(f, "{entry_name}")
                 }
@@ -433,7 +457,7 @@ pub(crate) mod tests {
             .map(|c| c.match_info.borrow().clone())
             .collect_vec();
         debug!("{match_infos:?}");
-        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 4]);
+        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
