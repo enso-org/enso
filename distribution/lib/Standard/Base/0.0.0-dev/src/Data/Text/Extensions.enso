@@ -240,11 +240,8 @@ Text.characters self =
    > Example
      Comparing Matching in Last Mode in Regex and Text mode
 
-         "aaa".match "aa" mode=Matching_Mode.Last matcher=Text_Matcher == "aaa"
-         "aaa".match "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == "aaa"
-
-         "aaa aaa".match "aa" mode=Matching_Mode.Last matcher=Text_Matcher == "aaa aaa"
-         "aaa aaa".match "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == "aaa aaa"
+         "aAa".match "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Insensitive == "Aa"
+         "aAa".match "aa" mode=Matching_Mode.Last matcher=(Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) == "aA"
 
 Text.match : Text -> Matching_Mode -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
 Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value = case matcher of
