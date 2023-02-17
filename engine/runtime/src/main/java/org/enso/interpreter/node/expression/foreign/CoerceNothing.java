@@ -1,28 +1,27 @@
 package org.enso.interpreter.node.expression.foreign;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
-import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 
+@GenerateUncached
 public abstract class CoerceNothing extends Node {
   public static CoerceNothing build() {
     return CoerceNothingNodeGen.create();
   }
 
-  private final ConditionProfile nullWarningProfile = ConditionProfile.createCountingProfile();
-
   /**
-   * Converts an null polyglot representation into an equivalent Nothing representation in Enso
-   * context.
+   * Converts a null polyglot representation into an equivalent Nothing representation in Enso context.
    *
    * @param value the polyglot value to perform coercion on
    * @return {@code value} coerced to an Enso primitive where applicable
@@ -33,26 +32,19 @@ public abstract class CoerceNothing extends Node {
   public Object doNothing(
       Object value,
       @CachedLibrary(limit = "1") InteropLibrary interop,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
+      @Cached("createCountingProfile()") ConditionProfile nullWarningProfile) {
     var nothing = EnsoContext.get(this).getBuiltins().nothing();
-    return coerceNothing(value, nothing, warnings, nullWarningProfile);
-  }
-
-  public static Object coerceNothing(
-      Object nullInput,
-      Type nullOutput,
-      WarningsLibrary warningsLibrary,
-      ConditionProfile nullWarningProfile) {
-    if (nullWarningProfile.profile(warningsLibrary.hasWarnings(nullInput))) {
+    if (nullWarningProfile.profile(warningsLibrary.hasWarnings(value))) {
       try {
-        Warning[] attachedWarnings = warningsLibrary.getWarnings(nullInput, null);
-        return new WithWarnings(nullOutput, attachedWarnings);
+        Warning[] attachedWarnings = warningsLibrary.getWarnings(value, null);
+        return new WithWarnings(nothing, attachedWarnings);
       } catch (UnsupportedMessageException e) {
-        return nullOutput;
+        return nothing;
       }
     }
 
-    return nullOutput;
+    return nothing;
   }
 
   @Fallback
