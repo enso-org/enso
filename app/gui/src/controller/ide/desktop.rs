@@ -120,12 +120,7 @@ impl ManagingProjectAPI for Handle {
             let name = make_project_name(&template);
             let name = choose_unique_project_name(&existing_names, &name);
             let name = ProjectName::new_unchecked(name);
-            let version = &enso_config::ARGS
-                .groups
-                .engine
-                .options
-                .preferred_version
-                .value;
+            let version = &enso_config::ARGS.groups.engine.options.preferred_version.value;
             let version = (!version.is_empty()).as_some(version.clone());
             let action = MissingComponentAction::Install;
 

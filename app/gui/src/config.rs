@@ -124,11 +124,8 @@ impl Startup {
         let project_name = ARGS.groups.startup.options.project.value.as_str();
         let initial_view =
             if project_name.is_empty() { InitialView::WelcomeScreen } else { InitialView::Project };
-        let project_name =if project_name.is_empty() {
-            None
-        } else {
-            Some(project_name.to_owned().into())
-        };
+        let project_name =
+            if project_name.is_empty() { None } else { Some(project_name.to_owned().into()) };
         let dom_parent_id = None;
         Ok(Startup { backend, project_name, initial_view, dom_parent_id })
     }
