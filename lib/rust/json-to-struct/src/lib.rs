@@ -61,7 +61,7 @@ fn merge_internal(a: &mut Value, b: &Value, path: &mut Vec<String>, overrides: &
 // ===================
 
 /// The boilerplate code which will be added to every generated code by the macro.
-const BOILERPLATE: &str = "
+pub const BOILERPLATE: &str = "
 /// Error containing the path to the field and the reason of the error.
 #[derive(Debug, Clone)]
 pub struct Error {
@@ -156,11 +156,10 @@ trait Setter {
 ///   }
 /// }
 /// ```
-/// The macro call `json_to_struct("test.json")` will generate the following Rust code:
+/// The macro call `json_to_struct("test.json")` will include the [`BOILERPLATE`] code, and will
+/// generate the following code:
 ///
 /// ```text
-/// <BOILERPLATE> // See the `BOILERPLATE` constant to learn more.
-///
 /// #[derive(Clone, Debug)]
 /// pub struct Args {
 ///     pub test: RootTest,
@@ -217,7 +216,6 @@ fn read_and_merge_jsons(paths: Vec<PathBuf>) -> Value {
     let values: Vec<_> = paths
         .iter()
         .map(|path| {
-            let path = path.to_str().unwrap();
             let file = std::fs::File::open(path).unwrap();
             let value: Value = serde_json::from_reader(file).unwrap();
             value

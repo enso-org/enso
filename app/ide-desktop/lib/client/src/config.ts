@@ -147,7 +147,7 @@ export const config = content.options.merge(
                         passToWebApplication: false,
                         default: true,
                         description:
-                            'Force using discrete GPU when there are multiple GPUs available',
+                            'Force using discrete GPU when there are multiple GPUs available.',
                     }),
 
                     angleBackend: new content.Option({
@@ -258,7 +258,7 @@ export const config = content.options.merge(
                         description:
                             `Record a performance profile and save it to a file. To view the ` +
                             `results, use the 'profiling-run-graph' entry point, such as ` +
-                            `'enso -startup.entry-point=profiling-run-graph -profile.load-workflow-profile=profile.json'.`,
+                            `'enso -startup.entry=profiling-run-graph -profile.load-profile=profile.json'.`,
                         primary: false,
                     }),
                     workflow: new content.Option({
@@ -269,7 +269,7 @@ export const config = content.options.merge(
                             `automated actions, such as adding nodes or opening visualizations. ` +
                             `To view the list of available workflows, use ` +
                             `'-profile.workflow=help'. This option must be used with ` +
-                            `'-startup.entry-point=profile'.`,
+                            `'-startup.entry=profile'.`,
                         primary: false,
                     }),
                 },

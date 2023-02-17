@@ -45,14 +45,17 @@ json_to_struct!(
 pub fn read_args() -> Args {
     debug_span!("Reading application arguments from JS.").in_scope(|| {
         let mut args = Args::default();
-        let js_app = ensogl::system::js::app::app_or_panic();
-        for param in js_app.config().params() {
-            if let Some(value) = param.value() {
-                let path = format!("{}.value", param.structural_name());
-                if let Some(err) = args.set(&path, value) {
-                    error!("{}", err.display())
+        if let Ok(js_app) = ensogl::system::js::app::app() {
+            for param in js_app.config().params() {
+                if let Some(value) = param.value() {
+                    let path = format!("{}.value", param.structural_name());
+                    if let Some(err) = args.set(&path, value) {
+                        error!("{}", err.display())
+                    }
                 }
             }
+        } else {
+            error!("Could not connect to JS application. Using default configuration.")
         }
         args
     })
