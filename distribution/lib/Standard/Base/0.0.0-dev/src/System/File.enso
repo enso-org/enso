@@ -745,20 +745,9 @@ type Output_Stream
            the `?` character.
         replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
         java_charset = encoding.to_java_charset
-        ## This is a workaround due to the fact that this `action` will be
-           called as a callback from a Java method and we have a bug where a
-           `Nothing` returned from such a method will loose its attached
-           warnings. To avoid that, we return a Text value instead. It is then
-           replaced with a `Nothing` on the other side of the call, but making
-           sure that any warnings are inherited.
-           The related bug is tracked at https://github.com/enso-org/enso/issues/5672
-        wrapped_action encoder =
-            result = action encoder
-            Pair.new result Nothing
-        results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array wrapped_action
+        results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array action
         problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
-        unwrapped_result = results.result . first
-        on_problems.attach_problems_after unwrapped_result problems
+        on_problems.attach_problems_after results.result problems
 
 ## An input stream, allowing for interactive reading of contents from an open
    file.
