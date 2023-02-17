@@ -238,7 +238,8 @@ impl Model {
 
     #[profile(Debug)]
     fn set_label(&self, content: impl Into<String>) {
-        let str = if ARGS.node_labels { content.into() } else { default() };
+        let str =
+            if ARGS.groups.style.options.node_labels.value { content.into() } else { default() };
         self.label.set_content(str);
     }
 

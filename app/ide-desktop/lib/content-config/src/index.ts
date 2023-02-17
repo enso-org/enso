@@ -70,6 +70,17 @@ export const options = config.options.merge(
                 },
             }),
 
+            window: new config.Group({
+                description: `The visual and tactile configurations of the application window.`,
+                options: {
+                    frame: new config.Option({
+                        default: true,
+                        defaultDescription: 'false on MacOS, true otherwise',
+                        description: `Draw window frame.`,
+                    }),
+                },
+            }),
+
             startup: new config.Group({
                 options: {
                     project: new config.Option({
@@ -158,6 +169,16 @@ export const options = config.options.merge(
                         default: true,
                         description:
                             'Controls whether the new component browser should be enabled.',
+                    }),
+                    skipAndFreeze: new config.Option({
+                        default: false,
+                        description: 'Enable possibility to skip and freeze nodes.',
+                        primary: false,
+                    }),
+                    theme: new config.Option({
+                        default: 'light',
+                        description: 'Color theme.',
+                        primary: false,
                     }),
                 },
             }),

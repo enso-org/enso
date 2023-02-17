@@ -224,7 +224,7 @@ class App {
         if (window != null) {
             const urlCfg: { [key: string]: string } = {}
             for (const option of this.args.optionsRecursive()) {
-                if (option.setByUser && option.passToWebApplication) {
+                if (option.value != option.default && option.passToWebApplication) {
                     urlCfg[option.qualifiedName()] = String(option.value)
                 }
             }

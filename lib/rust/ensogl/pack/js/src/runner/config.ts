@@ -91,6 +91,15 @@ export class Option<T> {
         return this.path.concat([this.name]).join('.')
     }
 
+    structuralName(): string {
+        const lastSegment = 'options.' + this.name
+        if (this.path.length === 0) {
+            return lastSegment
+        } else {
+            return 'groups.' + this.path.join('.groups.') + '.' + lastSegment
+        }
+    }
+
     load(input: string) {
         if (typeof this.value === 'boolean') {
             const newVal = parseBoolean(input)

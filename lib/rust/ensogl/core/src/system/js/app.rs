@@ -70,9 +70,15 @@ impl App {
 }
 
 impl Config {
-    pub fn params(&self) -> Params {
-        Reflect::get(self, &"params".into()).unwrap().unchecked_into()
+    pub fn params(&self) -> Vec<Param> {
+        let opts_fn =
+            Reflect::get(self, &"optionsRecursive".into()).unwrap().unchecked_into::<Function>();
+        let js_arr = opts_fn.call0(self).unwrap().unchecked_into::<Array>();
+        js_arr.to_vec().into_iter().map(|t| t.unchecked_into::<Param>()).collect()
     }
+    // pub fn params(&self) -> Params {
+    //     Reflect::get(self, &"params".into()).unwrap().unchecked_into()
+    // }
 }
 
 impl Params {
@@ -94,6 +100,23 @@ impl Params {
 }
 
 impl Param {
+    pub fn name(&self) -> String {
+        let val = Reflect::get(self, &"name".into()).unwrap();
+        val.print_to_string()
+    }
+
+    pub fn qualified_name(&self) -> String {
+        let js_field = Reflect::get(self, &"qualifiedName".into()).unwrap();
+        let js_fn = js_field.unchecked_into::<Function>();
+        js_fn.call0(self).unwrap().print_to_string()
+    }
+
+    pub fn structural_name(&self) -> String {
+        let js_field = Reflect::get(self, &"structuralName".into()).unwrap();
+        let js_fn = js_field.unchecked_into::<Function>();
+        js_fn.call0(self).unwrap().print_to_string()
+    }
+
     pub fn value(&self) -> Option<String> {
         let val = Reflect::get(self, &"value".into()).unwrap();
         if val.is_null() || val.is_undefined() {

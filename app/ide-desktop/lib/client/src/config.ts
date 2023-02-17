@@ -95,18 +95,11 @@ export const config = content.options.merge(
         },
         groups: {
             window: new content.Group({
-                description: `The visual and tactile configurations of the application window.`,
                 options: {
                     size: new content.Option({
                         passToWebApplication: false,
                         default: WindowSize.default().pretty(),
                         description: `Set the initial window size.`,
-                    }),
-                    frame: new content.Option({
-                        passToWebApplication: false,
-                        default: process.platform !== 'darwin',
-                        defaultDescription: 'false on MacOS, true otherwise',
-                        description: `Draw window frame.`,
                     }),
                     vibrancy: new content.Option({
                         passToWebApplication: false,
@@ -589,7 +582,9 @@ export const config = content.options.merge(
         },
     })
 )
-config.groups.startup.options.platform.default = process.platform
+config.groups.window.options.frame.value = process.platform !== 'darwin'
 config.groups.startup.options.platform.value = process.platform
+// @ts-expect-error
+config.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
 
 export type Args = typeof config

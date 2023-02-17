@@ -16,7 +16,6 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 
 
-
 // ==============
 // === Shapes ===
 // ==============
@@ -45,6 +44,10 @@ mod rectangle {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
+    let args: &enso_config::Args = &*enso_config::ARGS;
+    warn!("ARGS: {:#?}", args);
+    let args2 = enso_config::read_args2();
+    warn!("ARGS2: {:#?}", args2);
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
@@ -86,5 +89,4 @@ pub fn main() {
     mem::forget(root);
     mem::forget(rect1);
     mem::forget(rect2);
-    warn!("Hello World!");
 }
