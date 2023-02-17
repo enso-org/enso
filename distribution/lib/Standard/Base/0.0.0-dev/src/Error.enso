@@ -134,3 +134,24 @@ type Error
              1.is_error
     is_error : Boolean
     is_error self = True
+
+    ## UNSTABLE
+       Returns the provided `other` value, unless `self` is an error.
+
+       Arguments:
+       - other: The value to return if `self` is not an error.
+
+       The primary application of this function is to introduce a dataflow
+       dependency between two otherwise unrelated operations. Very useful if one
+       of the operations is performing a side-effect.
+
+       Aside from ensuring that any dataflow errors are propagated, the result
+       will also inherit any warnings attached to any of the two inputs.
+
+       > Example
+         Writing to a file and returning the file object if all went well, or an
+         error if it failed.
+
+             file.write "foo" . if_not_error file
+    if_not_error : Any -> Any
+    if_not_error self ~_ = self
