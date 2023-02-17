@@ -105,7 +105,7 @@ type Invalid_Aggregation
 
     to_display_text : Text
     to_display_text self =
-        "The "+self.column+" could not be calculated at "+self.row.to_text+" : "+self.message
+        "The "+self.column+" could not be calculated at "+self.rows.short_display_text+": "+self.message
 
 ## Indicates that some operation relies on equality on floating-point values,
    which is not recommended.
@@ -122,7 +122,7 @@ type Unquoted_Delimiter
 
     to_display_text : Text
     to_display_text self =
-        "The "+self.column+" at row "+self.row.to_text+" contains the delimiter and there is no specified quote character."
+        "The "+self.column+" at rows "+self.rows.short_display_text+" contains the delimiter and there is no specified quote character."
 
 ## Warning when additional warnings occurred.
 type Additional_Warnings
@@ -160,6 +160,21 @@ type Mismatched_Quote
 ## Indicates an unexpected parser error.
 type Parser_Error
     Error cause
+
+## Indicates that quoting was disabled for a `Delimited` file, but some cells
+   contained characters that do need quoting which may cause the output file to
+   be corrupted.
+type Unquoted_Characters_In_Output
+    Warning (column : Text) (rows : [Integer])
+
+    to_display_text : Text
+    to_display_text self =
+        altered_rows = self.rows.map ix->
+            if ix == -1 then "the header" else ix
+        "The "+self.column+" at rows "+altered_rows.short_display_text+" contains characters that need quoting, but quoting is disabled. The generated file may be corrupted."
+
+    to_text : Text
+    to_text self = "Unquoted_Characters_In_Output.Warning "+self.column.pretty+" "+self.rows.to_text
 
 ## Indicates that a specified location was not valid.
 type Invalid_Location
