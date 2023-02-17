@@ -4,8 +4,9 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.node.expression.foreign.CoerceNothing;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 /**
  * Converts a value returned by a polyglot call back to a value that can be further used within Enso
@@ -21,7 +22,6 @@ public abstract class HostValueToEnsoNode extends Node {
   public static HostValueToEnsoNode getUncached() {
     return HostValueToEnsoNodeGen.getUncached();
   }
-
   /**
    * Converts an arbitrary value to a value usable within Enso code.
    *
@@ -61,8 +61,12 @@ public abstract class HostValueToEnsoNode extends Node {
   }
 
   @Specialization(guards = {"o != null", "nulls.isNull(o)"})
-  Object doNull(Object o, @CachedLibrary(limit = "3") InteropLibrary nulls) {
-    return EnsoContext.get(this).getBuiltins().nothing();
+  Object doNull(
+      Object o,
+      @CachedLibrary(limit = "3") InteropLibrary nulls,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached CoerceNothing coerceNothing) {
+    return coerceNothing.execute(o);
   }
 
   @Fallback

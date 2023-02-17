@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.File_Error.File_Error
 
 from Standard.Image import Image, Read_Flag, Write_Flag
+import Standard.Image.Image_File_Format.Image_File_Format
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -9,21 +10,17 @@ import Standard.Test.Extensions
 polyglot java import java.lang.System as Java_System
 
 fetch addr file =
-    Process.run "curl" [addr, "--silent", "--output", file.path]
+    if file.exists then Exit_Code.Success else
+        Process.run "curl" [addr, "--silent", "--output", file.path]
 
 spec =
-    is_ci = Java_System.getenv "CI" == "true"
     rgba_addr = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
     rgba_file = enso_project.root / "rgba.png"
-    pending = case is_ci of
-        True ->
-            case fetch rgba_addr rgba_file of
-                Exit_Code.Failure _ ->
-                    "The Image.Read spec was not able to fetch the file from " + rgba_addr
-                Exit_Code.Success ->
-                    Nothing
-        False ->
-            "The Image.Read spec only run when the `CI` environment variable is set to true"
+    pending = case fetch rgba_addr rgba_file of
+        Exit_Code.Failure _ ->
+            "The Image.Read spec was not able to fetch the file from " + rgba_addr
+        Exit_Code.Success ->
+            Nothing
 
     Test.group "Image.read" pending=pending <|
         Test.specify "should return error when read failed" <|
@@ -60,5 +57,17 @@ spec =
             out_file = enso_project.root / "out.jpeg"
             flags = [Write_Flag.JPEG_Quality 75, Write_Flag.JPEG_Optimize, Write_Flag.JPEG_Progressive]
             Image.read rgba_file . write out_file flags . should_equal Nothing
+
+    Test.group "Image File_Format" <|
+        Test.specify "should recognise image files" <|
+            Auto_Detect.get_format (enso_project.data / "data.jpg") . should_be_a Image_File_Format
+            Auto_Detect.get_format (enso_project.data / "data.png") . should_be_a Image_File_Format
+            Auto_Detect.get_format (enso_project.data / "data.bmp") . should_be_a Image_File_Format
+
+        Test.specify "should allow reading an Image" <|
+            img = Data.read rgba_file
+            img.rows.should_equal 160
+            img.columns.should_equal 320
+            img.channels.should_equal 3
 
 main = Test_Suite.run_main spec
