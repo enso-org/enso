@@ -61,7 +61,7 @@ fn merge_internal(a: &mut Value, b: &Value, path: &mut Vec<String>, overrides: &
 // ===================
 
 /// The boilerplate code which will be added to every generated code by the macro.
-pub const BOILERPLATE: &str = "
+const BOILERPLATE: &str = "
 /// Error containing the path to the field and the reason of the error.
 #[derive(Debug, Clone)]
 pub struct Error {
