@@ -2,10 +2,12 @@ package org.enso.interpreter.epb.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
+import com.oracle.truffle.api.TruffleLanguage;
 
 import com.oracle.truffle.api.nodes.Node;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 /** Wraps a {@link TruffleContext} by providing an optional GIL functionality. */
 public class GuardedTruffleContext {
@@ -25,6 +27,16 @@ public class GuardedTruffleContext {
     } else {
       this.lock = null;
     }
+  }
+
+  /**
+   * Spawns new thread with associated {@code context}
+   *
+   * @param env environment to spawn the thread in
+   * @param run code to execute in given TruffleContext
+   */
+  public Thread createThread(TruffleLanguage.Env env, Consumer<TruffleContext> run) {
+    return env.createThread(() -> run.accept(context), context);
   }
 
   /**
