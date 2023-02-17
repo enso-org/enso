@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 polyglot java import java.lang.Long
+polyglot java import java.util.function.Function as Java_Function
+polyglot java import org.enso.base_test_helpers.CallbackHelper
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -245,5 +247,55 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all r . map .value . should_contain_the_same_elements_as ["b", "a"]
         Warning.get_all a . map .value . should_contain_the_same_elements_as ["a"]
         Warning.get_all b . map .value . should_contain_the_same_elements_as ["b"]
+
+    Test.specify "should be preserved around polyglot calls" <|
+        x = Warning.attach "x" 1
+
+        java_id = Java_Function.identity
+        f x = Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
+        ## We compose our Enso functions with Java identity, forcing our methods
+           to be lifted into the Java polyglot world and being used as callbacks
+           from within Java.
+        javaized_f = Java_Function.identity.andThen f
+
+        r1 = java_id.apply x
+        r1.should_equal 1
+        Warning.get_all r1 . map .value . should_contain_the_same_elements_as ["x"]
+
+        r2 = javaized_f.apply x
+        r2.should_equal (Pair.new "A" 11)
+        Warning.get_all r2 . map .value . should_contain_the_same_elements_as ["f(1)", "x"]
+
+        ## The following will not work, as if the polyglot method expects an
+           `Object` it will get converted to a Java 'primitive' losing the
+           attached warnings. The only way to preserve warnings in that case is
+           to explicitly expect a `Value` return type, as in the test below.
+        #g x = Warning.attach "g("+x.to_text+")" x+10
+        #h x = Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
+        #i x = Warning.attach "i("+x.to_text+")" Nothing
+
+    Test.specify "should be better preserved around polyglot calls expecting a Value" <|
+        x = Warning.attach "x" 1
+
+        f x = Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
+        g x = Warning.attach "g("+x.to_text+")" x+10
+        h x = Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
+        i x = Warning.attach "i("+x.to_text+")" Nothing
+
+        r1 = CallbackHelper.runCallbackInt f x
+        r1.should_equal (Pair.new "A" 11)
+        Warning.get_all r1 . map .value . should_contain_the_same_elements_as ["f(1)", "x"]
+
+        r2 = CallbackHelper.runCallbackInt g x
+        r2.should_equal 11
+        Warning.get_all r2 . map .value . should_contain_the_same_elements_as ["g(1)", "x"]
+
+        r3 = CallbackHelper.runCallbackInt h x
+        r3.should_equal "{x=1}"
+        Warning.get_all r3 . map .value . should_contain_the_same_elements_as ["h(1)", "x"]
+
+        r4 = CallbackHelper.runCallbackInt i x
+        r4.should_equal Nothing
+        Warning.get_all r4 . map .value . should_contain_the_same_elements_as ["i(1)", "x"]
 
 main = Test_Suite.run_main spec
