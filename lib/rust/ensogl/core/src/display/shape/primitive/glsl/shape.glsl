@@ -51,7 +51,7 @@ Color unpremultiply(PremultipliedColor c) {
 
 /// Implements glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
 /// in the [`Color`]'s color space. See docs of [`Color`] to learn more.
-PremultipliedColor  blend(PremultipliedColor bg, PremultipliedColor fg) {
+PremultipliedColor blend(PremultipliedColor bg, PremultipliedColor fg) {
     vec4 raw = fg.repr.raw + (1.0 - fg.repr.raw.a) * bg.repr.raw;
     return PremultipliedColor(rgba(raw));
 }
@@ -363,14 +363,16 @@ Shape inverse (Shape s1) {
 
 Shape unify (Shape s1, Shape s2) {
     if (input_display_mode == DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
-        // In DISPLAY_MODE_CACHED_SHAPES_TEXTURE As the color is not faded outside the shapes, we need to fade the
-        // foregroud color at some points before blending, otherwise it would "cover" the background color.
+        // In DISPLAY_MODE_CACHED_SHAPES_TEXTURE As the color is not faded outside the shapes, we
+        // need to fade the foregroud color at some points before blending, otherwise it would
+        // "cover" the background color.
         // There are two conditions we want to met:
-        // * We always want to fade it if outside foreground shape, but inside the background shape (and the fg shape
-        //   boundary over bg shape shall be anti-aliased, basing on sdf information).
+        // * We always want to fade it if outside foreground shape, but inside the background shape
+        //   (and the fg shape boundary over bg shape shall be anti-aliased, basing on sdf
+        //   information).
         // * We want to keep the color consistent near border of the both shapes.
-        // We can fade the foreground shape always when the sdf distance is greated than the background shape - this way
-        // we met both conditions above.
+        // We can fade the foreground shape always when the sdf distance is greated than the
+        // background shape - this way we met both conditions above.
         if (s2.sdf.distance > s1.sdf.distance) {
             s2.color.repr.raw *= s2.alpha;
         }
