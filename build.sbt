@@ -862,6 +862,7 @@ lazy val `logging-service` = project
   .in(file("lib/scala/logging-service"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
