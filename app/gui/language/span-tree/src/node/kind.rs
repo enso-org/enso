@@ -31,8 +31,6 @@ pub enum Kind {
     /// between AST tokens. For example, given expression `foo   bar`, the span assigned to the
     /// `InsertionPoint` between `foo` and `bar` should be set to 3.
     InsertionPoint(InsertionPoint),
-    /// A parenthesized expression.
-    Group,
 }
 
 
@@ -199,7 +197,6 @@ impl Kind {
             Self::Argument(_) => "Argument",
             Self::Token => "Token",
             Self::InsertionPoint(_) => "InsertionPoint",
-            Self::Group => "Group",
         }
     }
 }

@@ -372,7 +372,6 @@ impl Model {
         let code = &expression.viz_code;
 
         expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
-            let is_parensed = node.is_parensed();
             let skip_opr = if SKIP_OPERATIONS {
                 node.is_operation() && !is_header
             } else {
@@ -562,7 +561,8 @@ impl Model {
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
             let new_shift = if !not_a_port { 0 } else { builder.shift + local_char_offset };
-            builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
+            let parenthesized = node.parenthesized();
+            builder.nested(new_parent, new_parent_frp, parenthesized, new_shift)
         });
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
         *self.widgets_map.borrow_mut() = widgets_map;

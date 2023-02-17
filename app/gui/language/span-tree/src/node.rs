@@ -35,11 +35,12 @@ pub trait Payload = Default + Clone;
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Node<T> {
-    pub kind:     Kind,
-    pub size:     ByteDiff,
-    pub children: Vec<Child<T>>,
-    pub ast_id:   Option<ast::Id>,
-    pub payload:  T,
+    pub kind:          Kind,
+    pub size:          ByteDiff,
+    pub children:      Vec<Child<T>>,
+    pub ast_id:        Option<ast::Id>,
+    pub parenthesized: bool,
+    pub payload:       T,
 }
 
 impl<T> Deref for Node<T> {
@@ -67,11 +68,12 @@ impl<T: Payload> Node<T> {
     /// Payload mapping utility.
     pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Node<S> {
         let kind = self.kind;
+        let parenthesized = self.parenthesized;
         let size = self.size;
         let children = self.children.into_iter().map(|t| t.map(f)).collect_vec();
         let ast_id = self.ast_id;
         let payload = f(self.payload);
-        Node { kind, size, children, ast_id, payload }
+        Node { kind, parenthesized, size, children, ast_id, payload }
     }
 }
 
@@ -79,8 +81,8 @@ impl<T: Payload> Node<T> {
 
 #[allow(missing_docs)]
 impl<T: Payload> Node<T> {
-    pub fn is_parensed(&self) -> bool {
-        self.kind == Kind::Group
+    pub fn parenthesized(&self) -> bool {
+        self.parenthesized
     }
     pub fn is_root(&self) -> bool {
         self.kind.is_root()

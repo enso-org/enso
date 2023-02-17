@@ -262,13 +262,11 @@ fn generate_node_for_ast<T: Payload>(
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
-                let children = default();
                 let name = ast::identifier::name(ast);
-                let payload = default();
                 if let Some(info) = ast.id.and_then(|id| context.call_info(id, name)) {
                     let node = {
                         let kind = node::Kind::Operation;
-                        Node { kind, size, children, ast_id, payload }
+                        Node { kind, size, ast_id, ..default() }
                     };
                     // Note that in this place it is impossible that Ast is in form of
                     // `this.method` -- it is covered by the former if arm. As such, we don't
@@ -278,7 +276,7 @@ fn generate_node_for_ast<T: Payload>(
                     let params = info.parameters.into_iter();
                     Ok(generate_expected_arguments(node, kind, provided_prefix_arg_count, params))
                 } else {
-                    Ok(Node { kind, size, children, ast_id, payload })
+                    Ok(Node { kind, size, ast_id, ..default() })
                 }
             }
         }
@@ -418,11 +416,12 @@ fn generate_node_for_opr_chain<T: Payload>(
 
         Ok((
             Node {
-                kind:     if is_last { kind.clone() } else { node::Kind::chained().into() },
-                size:     gen.current_offset,
-                children: gen.children,
-                ast_id:   elem.infix_id,
-                payload:  default(),
+                kind:          if is_last { kind.clone() } else { node::Kind::chained().into() },
+                parenthesized: false,
+                size:          gen.current_offset,
+                children:      gen.children,
+                ast_id:        elem.infix_id,
+                payload:       default(),
             },
             elem.offset,
         ))
@@ -496,11 +495,12 @@ fn generate_node_for_prefix_chain<T: Payload>(
             gen.generate_empty_node(InsertionPointType::Append);
         }
         Ok(Node {
-            kind:     if is_last { kind.clone() } else { node::Kind::chained().into() },
-            size:     gen.current_offset,
-            children: gen.children,
-            ast_id:   arg.prefix_id,
-            payload:  default(),
+            kind:          if is_last { kind.clone() } else { node::Kind::chained().into() },
+            parenthesized: false,
+            size:          gen.current_offset,
+            children:      gen.children,
+            ast_id:        arg.prefix_id,
+            payload:       default(),
         })
     })?;
 
@@ -527,11 +527,12 @@ fn generate_expected_argument<T: Payload>(
     let arg_node = gen.generate_empty_node(InsertionPointType::ExpectedArgument(index));
     arg_node.node.set_argument_info(argument_info);
     Node {
-        kind:     if is_last { kind } else { node::Kind::chained().into() },
-        size:     gen.current_offset,
-        children: gen.children,
-        ast_id:   None,
-        payload:  default(),
+        kind:          if is_last { kind } else { node::Kind::chained().into() },
+        parenthesized: false,
+        size:          gen.current_offset,
+        children:      gen.children,
+        ast_id:        None,
+        payload:       default(),
     }
 }
 
@@ -556,14 +557,11 @@ fn generate_expected_arguments<T: Payload>(
 
 fn tree_generate_node<T: Payload>(
     tree: &ast::Tree<Ast>,
-    kind: impl Into<node::Kind>,
+    kind: node::Kind,
     context: &impl Context,
     ast_id: Option<Id>,
 ) -> FallibleResult<Node<T>> {
-    let kind = match &tree.type_info {
-        ast::TreeType::Group => node::Kind::Group,
-        _ => kind.into(),
-    };
+    let parenthesized = matches!(tree.type_info, ast::TreeType::Group);
     let mut children = vec![];
     let size;
     if let Some(leaf_info) = &tree.leaf_info {
@@ -582,13 +580,7 @@ fn tree_generate_node<T: Payload>(
                     offset += size;
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
-                    let kind = node::Kind::Argument(node::Argument {
-                        removable:  false,
-                        name:       None,
-                        tp:         None,
-                        call_id:    None,
-                        tag_values: vec![],
-                    });
+                    let kind = node::Kind::argument();
                     let node = node.generate_node(kind, context)?;
                     let child_size = node.size;
                     let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
@@ -600,7 +592,7 @@ fn tree_generate_node<T: Payload>(
         size = offset;
     }
     let payload = default();
-    Ok(Node { kind, size, children, ast_id, payload })
+    Ok(Node { kind, parenthesized, size, children, ast_id, payload })
 }
 
 
