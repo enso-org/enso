@@ -86,6 +86,9 @@ pub struct EntryData {
     display_object: display::object::Instance,
     label_thin:     text::Text,
     label_bold:     text::Text,
+    selected:       Cell<bool>,
+    /// A text change to the currently-hidden label that has not yet been applied.
+    deferred_label: RefCell<Option<ImString>>,
 }
 
 impl EntryData {
@@ -101,16 +104,28 @@ impl EntryData {
             label_thin.add_to_scene_layer(layer);
             label_bold.add_to_scene_layer(layer);
         }
-        Self { display_object, label_thin, label_bold }
+        let selected = default();
+        let deferred_label = default();
+        Self { display_object, label_thin, label_bold, selected, deferred_label }
     }
 
     fn update_selected(&self, selected: bool) {
-        if selected {
-            self.display_object.remove_child(&self.label_thin);
-            self.display_object.add_child(&self.label_bold);
-        } else {
-            self.display_object.remove_child(&self.label_bold);
-            self.display_object.add_child(&self.label_thin);
+        let was_selected = self.selected.replace(selected);
+        if selected != was_selected {
+            let new = self.selected_label();
+            if let Some(label) = self.deferred_label.take() {
+                new.set_content(label);
+            }
+            self.display_object.remove_all_children();
+            self.display_object.add_child(new);
+        }
+    }
+
+    /// Render the currently-enabled text control.
+    fn selected_label(&self) -> &text::Text {
+        match self.selected.get() {
+            true => &self.label_bold,
+            false => &self.label_thin,
         }
     }
 
@@ -118,6 +133,11 @@ impl EntryData {
         let label_pos = Vector2(text_offset - contour.size.x / 2.0, text_size.value / 2.0);
         self.label_thin.set_xy(label_pos);
         self.label_bold.set_xy(label_pos);
+    }
+
+    fn set_content(&self, text: &ImString) {
+        self.selected_label().set_content(text.clone_ref());
+        self.deferred_label.set(text.clone_ref());
     }
 }
 
@@ -135,6 +155,7 @@ impl ensogl_grid_view::Entry for Entry {
     type Model = EntryModel;
     type Params = EntryParams;
 
+    #[profile(Debug)]
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let data = Rc::new(EntryData::new(app, text_layer));
         let frp = EntryFrp::<Self>::new();
@@ -160,8 +181,6 @@ impl ensogl_grid_view::Entry for Entry {
             );
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
-            selected <- input.set_model.map(|m| *m.selected);
-            eval selected ((&s) data.update_selected(s));
 
             text_size <- text_size.ref_into_some();
             data.label_thin.set_property_default <+ text_size;
@@ -171,7 +190,10 @@ impl ensogl_grid_view::Entry for Entry {
             data.label_thin.set_font <+ font;
             data.label_bold.set_font <+ font;
 
-            desired_entry_width <- data.label_bold.width.map2(&text_offset, |w, offset| w + offset);
+            bold_width <- data.label_bold.width.map2(&text_offset, |w, offset| w + offset);
+            thin_width <- data.label_thin.width.map2(&text_offset, |w, offset| w + offset);
+            widths <- all(bold_width, thin_width);
+            desired_entry_width <- widths.map(|&(b, t)| b.max(t)).on_change();
             limited_entry_width <- desired_entry_width.map2(&input.set_params, |width, params| {
                 // Using min/max to avoid a panic in clamp when min_width > max_width. In those
                 // cases, the max value is returned instead.
@@ -184,9 +206,10 @@ impl ensogl_grid_view::Entry for Entry {
             data.label_thin.set_view_width <+ view_width;
             data.label_bold.set_view_width <+ view_width;
 
-            content <- input.set_model.map(|m| m.text.clone_ref());;
-            data.label_thin.set_content <+ content;
-            data.label_bold.set_content <+ content;
+            eval input.set_model ((m) {
+                data.update_selected(*m.selected);
+                data.set_content(&m.text);
+            });
 
             out.contour <+ contour;
             out.highlight_contour <+ contour;

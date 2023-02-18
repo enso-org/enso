@@ -2132,6 +2132,7 @@ impl GraphEditorModel {
         }
     }
 
+    #[profile(Debug)]
     fn set_node_expression_usage_type(
         &self,
         node_id: impl Into<NodeId>,
