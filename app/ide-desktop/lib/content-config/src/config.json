@@ -81,13 +81,15 @@
           "primary": false
         },
         "skipMinVersionCheck": {
-          "value": "EVAL(Version.isDev())",
+          "value": false,
+          "valueEval": "scope.Version.isDev()",
           "defaultDescription": "true in local builds, false otherwise.",
           "description": "Determines whether the minimum engine version check should be performed.",
           "primary": false
         },
         "preferredVersion": {
-          "value": "EVAL(Version.ide)",
+          "value": "",
+          "valueEval": "String(scope.Version.ide)",
           "description": "The preferred engine version.",
           "primary": false
         }

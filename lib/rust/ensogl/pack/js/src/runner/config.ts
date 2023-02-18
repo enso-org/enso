@@ -1,6 +1,7 @@
 /** @file Configuration options for the application. */
 
 import { logger } from 'runner/log'
+import * as jsonCfg from './config.json'
 
 export const DEFAULT_ENTRY_POINT = 'ide'
 
@@ -38,7 +39,22 @@ export type OptionValue = string | boolean | number | string[]
 /** A valid configuration option type. */
 export type OptionType = 'string' | 'boolean' | 'number' | 'array'
 
+/** Non-generic version of `Option`. */
 export type AnyOption = Option<OptionValue>
+
+/** Plain object version of `Option`. Used mainly when loading options from a JSON file. */
+export interface OptionObject<T> {
+    value: T
+    valueEval?: string
+    description: string
+    defaultDescription?: string
+    hidden?: boolean
+    primary?: boolean
+    passToWebApplication?: boolean
+}
+
+/** Non-generic version of `OptionObject`. */
+export type AnyOptionObject = OptionObject<OptionValue>
 
 /** Configuration option. */
 export class Option<T> {
@@ -61,16 +77,9 @@ export class Option<T> {
     /** Controls whether this option should be visible by default in the help message. Non-primary
      * options will be displayed on-demand only. */
     primary = true
-    constructor(cfg: {
-        default: T
-        description: string
-        defaultDescription?: string
-        hidden?: boolean
-        primary?: boolean
-        passToWebApplication?: boolean
-    }) {
-        this.default = cfg.default
-        this.value = cfg.default
+    constructor(cfg: OptionObject<T>) {
+        this.default = cfg.value
+        this.value = cfg.value
         this.description = cfg.description
         this.defaultDescription = cfg.defaultDescription ?? null
         this.hidden = cfg.hidden ?? false
@@ -133,9 +142,9 @@ export class Option<T> {
     }
 }
 
-// ===============
-// === Options ===
-// ===============
+// =============
+// === Group ===
+// =============
 
 export interface StringConfig {
     [key: string]: string | StringConfig
@@ -146,6 +155,13 @@ type OptionsRecord = Record<string, AnyOption>
 
 /** Record containing option groups. */
 type GroupsRecord = Record<string, AnyGroup>
+
+/** Plain object representation of `Group`. Used mainly to load groups from JSON files. */
+export interface GroupObject {
+    description?: string
+    options?: Record<string, AnyOptionObject>
+    groups?: Record<string, GroupObject>
+}
 
 /** Options group. The same as `Group` but with elided generic parameters. */
 export interface AnyGroup {
@@ -339,100 +355,61 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
 // === Options ===
 // ===============
 
+/** Type-level conversion of `OptionObject` to `Option`. */
+type ToOption<T extends AnyOptionObject> = Option<T['value']>
+
+/** Type-level conversion of `GroupObject` to `Group`. */
+type ToGroup<T extends GroupObject> = Group<
+    { [K in keyof T['options']]: ToOption<NonNullable<T['options']>[K]> },
+    { [K in keyof T['groups']]: ToGroup<NonNullable<T['groups']>[K]> }
+>
+
+/** Convert the plain group object to a `Group` object instance. */
+export function objectToGroup<T extends GroupObject>(
+    obj: T,
+    scope: Record<string, any> = {}
+): ToGroup<T> {
+    const options: Record<string, AnyOption> = {}
+    const groups: Record<string, AnyGroup> = {}
+    if (obj.options) {
+        for (const [name, option] of Object.entries(obj.options)) {
+            options[name] = objectToOption(option, scope)
+        }
+    }
+    if (obj.groups) {
+        for (const [name, group] of Object.entries(obj.groups)) {
+            groups[name] = objectToGroup(group, scope)
+        }
+    }
+    const description = obj.description
+    return new Group({ description, options, groups }) as ToGroup<T>
+}
+
+/** Convert the plain option object to an `Option` object instance. */
+export function objectToOption<T extends AnyOptionObject>(
+    obj: T,
+    scope: Record<string, any>
+): ToOption<T> {
+    const code = obj.valueEval
+    if (code != null) {
+        /* eslint @typescript-eslint/no-implied-eval: "off" */
+        const value: unknown = new Function('scope', 'return ' + code)(scope)
+        const expectedType = typeof obj.value
+        if (typeof value === typeof obj.value) {
+            obj.value = value as OptionValue
+        } else {
+            logger.error(`The value of eval option '${code}' did not resolve to '${expectedType}'.`)
+        }
+    }
+    return new Option(obj)
+}
+
 /** The configuration of the EnsoGL application. The options can be overriden by the user. The
  * implementation automatically casts the values to the correct types. For example, if an option
  * override for type boolean was provided as `'true'`, it will be parsed automatically. Moreover,
  * it is possible to extend the provided option list with custom options. See the `extend` method
  * to learn more. */
-export const options = new Group({
-    options: {
-        debug: new Option({
-            default: false,
-            description:
-                'Controls whether the application should be run in the debug mode. In this mode ' +
-                'all logs are printed to the console. Otherwise, the logs are hidden unless ' +
-                'explicitly shown by calling `showLogs`. Moreover, EnsoGL extensions are loaded  ' +
-                'in the debug mode which may cause additional logs to be printed.',
-        }),
-    },
-    groups: {
-        loader: new Group({
-            description:
-                'Options of the application loader. The Loader downloads application assets, ' +
-                'compiles the WASM code, and runs the chosen application entry points.',
-            options: {
-                spinner: new Option({
-                    default: true,
-                    description:
-                        'Controls whether the visual loader should be visible on the screen when ' +
-                        'downloading and compiling WASM sources.',
-                    primary: false,
-                }),
-                wasmUrl: new Option({
-                    default: 'pkg.wasm',
-                    description: 'The URL of the WASM pkg file generated by ensogl-pack.',
-                    primary: false,
-                }),
-                jsUrl: new Option({
-                    default: 'pkg.js',
-                    description: 'The URL of the JS pkg file generated by ensogl-pack.',
-                    primary: false,
-                }),
-                shadersUrl: new Option({
-                    default: 'shaders',
-                    description: 'The URL of pre-compiled the shaders directory.',
-                    primary: false,
-                }),
-                downloadToInitRatio: new Option({
-                    default: 1.0,
-                    description:
-                        'The (time needed for WASM download) / (total time including WASM ' +
-                        'download and WASM app initialization). In case of small WASM apps, this ' +
-                        'can be set to 1.0. In case of bigger WASM apps, it is desired to show ' +
-                        'the progress bar growing up to e.g. 70% and leaving the last 30% for ' +
-                        'WASM app init.',
-                    primary: false,
-                }),
-            },
-        }),
+export const options = objectToGroup(jsonCfg)
 
-        startup: new Group({
-            description:
-                'Options controlling the behavior of the application at startup. For example, ' +
-                'they allow choosing the application entry point to be run.',
-            options: {
-                entry: new Option({
-                    default: DEFAULT_ENTRY_POINT,
-                    description:
-                        'The application entry point. Most of the entry points are debug ' +
-                        'utilities allowing testing the look and feel of graphical interface ' +
-                        'components. Use `_` to list available entry points.',
-                }),
-                maxBeforeMainTimeMs: new Option({
-                    default: 300,
-                    description:
-                        'The maximum time in milliseconds before main entry points are allowed ' +
-                        'to run. After this time, an error will be printed, but the execution ' +
-                        'will continue.',
-                    primary: false,
-                }),
-            },
-        }),
-
-        debug: new Group({
-            description: 'Options allowing checking for diagnosing application errors.',
-            options: {
-                enableSpector: new Option({
-                    default: false,
-                    description:
-                        'Enables SpectorJS. This is a temporary flag to test Spector. It will be ' +
-                        'removed after all Spector integration issues are resolved. See: ' +
-                        'https://github.com/BabylonJS/Spector.js/issues/252.',
-                    primary: false,
-                }),
-            },
-        }),
-    },
-})
-
+/** Type of configuration options. */
 export type Options = typeof options & AnyGroup
