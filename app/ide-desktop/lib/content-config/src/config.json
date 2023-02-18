@@ -141,9 +141,9 @@
     "profile": {
       "description": "Options for diagnosing application performance problems.",
       "options": {
-        "testWorkflow": {
+        "workflow": {
           "value": "",
-          "description": "Selects the area of the application to be profiled when using the ./run profile command.",
+          "description": "Specify a workflow for profiling. A workflow is a script of automated actions, such as adding nodes or opening visualizations. To view the list of available workflows, use '-profile.workflow=help'. This option must be used with '-startup.entry=profile'.",
           "primary": false
         },
         "emitUserTimingMeasurements": {

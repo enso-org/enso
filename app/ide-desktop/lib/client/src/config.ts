@@ -261,17 +261,6 @@ export const config = content.options.merge(
                             `'enso -startup.entry=profiling-run-graph -profile.load-profile=profile.json'.`,
                         primary: false,
                     }),
-                    workflow: new content.Option({
-                        passToWebApplication: false,
-                        value: '',
-                        description:
-                            `Specify a workflow for profiling. A workflow is a script of ` +
-                            `automated actions, such as adding nodes or opening visualizations. ` +
-                            `To view the list of available workflows, use ` +
-                            `'-profile.workflow=help'. This option must be used with ` +
-                            `'-startup.entry=profile'.`,
-                        primary: false,
-                    }),
                 },
             }),
 
@@ -539,6 +528,8 @@ export const config = content.options.merge(
                             `be tested against the whole pathname and not only the module. ` +
                             `This switch only works when '-chrome.enable-logging' is also passed.`,
                     }),
+                    // Please note that this option uses the snake-case naming convention because
+                    // Chrome defines it so.
                     force_high_performance_gpu: new content.Option({
                         passToWebApplication: false,
                         primary: false,
@@ -546,6 +537,8 @@ export const config = content.options.merge(
                         description:
                             'Force using discrete GPU when there are multiple GPUs available.',
                     }),
+                    // Please note that this option uses the snake-case naming convention because
+                    // Chrome defines it so.
                     force_low_power_gpu: new content.Option({
                         passToWebApplication: false,
                         primary: false,

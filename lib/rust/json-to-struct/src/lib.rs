@@ -262,21 +262,23 @@ fn generate_rec(val: &Value, path: &mut Vec<String>, decls: &mut Vec<String>) {
     match val {
         Value::Object(obj) => {
             let name = path.iter().map(|t| t.capitalize_first_letter()).join("");
+            let qname = path.join(".");
             let mut decl = String::new();
             let mut imp_default = String::new();
             let mut imp_set = String::new();
 
             ln!(&mut decl, 0, "#[derive(Clone, Debug)]");
             ln!(&mut decl, 0, "pub struct {name} {{");
+            ln!(&mut decl, 1, "pub __name__: &'static str,");
 
             ln!(&mut imp_default, 0, "#[allow(clippy::derivable_impls)]");
             ln!(&mut imp_default, 0, "impl Default for {name} {{");
             ln!(&mut imp_default, 1, "fn default() -> Self {{");
             ln!(&mut imp_default, 2, "Self {{");
+            ln!(&mut imp_default, 3, "__name__: \"{qname}\",");
 
             ln!(&mut imp_set, 0, "impl Setter for {name} {{");
             ln!(&mut imp_set, 1, "fn set(&mut self, name: &str, v: String) -> Option<Error> {{");
-            let qname = path.join(".");
 
             for (k, v) in obj {
                 let key = k.camel_case_to_snake_case();

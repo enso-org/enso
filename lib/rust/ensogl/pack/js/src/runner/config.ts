@@ -136,8 +136,8 @@ export class Option<T> {
 
     printValueUpdateError(input: string) {
         logger.error(
-            `The provided value for '${this.qualifiedName()}' is invalid. Expected ${this.type}, \
-            got '${input}'. Using the default value '${String(this.default)}' instead.`
+            `The provided value for '${this.qualifiedName()}' is invalid. Expected ${this.type}, ` +
+                `got '${input}'. Using the default value '${String(this.default)}' instead.`
         )
     }
 }
