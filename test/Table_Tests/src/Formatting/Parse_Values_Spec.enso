@@ -59,7 +59,7 @@ spec =
             Problems.assume_no_problems t7
 
             t8 = t2.parse_values format=opts type=Decimal
-            t8.at "floats" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t8.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.0, -10.0, 1.0]
             Problems.assume_no_problems t8
 
         Test.specify "should correctly parse booleans" <|
@@ -112,44 +112,45 @@ spec =
             times = ["2001-01-01", "2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
             t = Table.new [ints, floats, bools, ["times", times]]
 
-            t.parse_values type=Boolean
-            t.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True, Nothing]
-            t.at "ints" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            Problems.expect_warning (Invalid_Format.Error "ints" Boolean ["0", "1", "1.0", "foobar", "", "--1", "+-1", "10", "-+1"])
+            t0 = t.parse_values type=Boolean
+            t0.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True, Nothing]
+            t0.at "ints" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "bools" Boolean ["fAlSE", "foobar", "", "0", "1", "truefalse"]) t0
+            Problems.expect_warning (Invalid_Format.Error "ints" Boolean ["0", "1", "1.0", "foobar", "", "--1", "+-1", "10", "-+1"]) t0
 
-            a1 = t.parse_values columns=["ints"] type=Integer
+            a1 = t.parse_values columns=["ints"] type=Integer on_problems=_
             t1 t =
                 t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
             p1 = [Invalid_Format.Error "ints" Integer ["1.0", "foobar", "", "--1", "+-1", "-+1"]]
             Problems.test_problem_handling a1 p1 t1
 
-            a2 = t.parse_values columns=["floats"] type=Decimal
+            a2 = t.parse_values columns=["floats"] type=Decimal on_problems=_
             t2 t =
                 t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, Nothing, Nothing, 100, Nothing]
             p2 = [Invalid_Format.Error "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]]
             Problems.test_problem_handling a2 p2 t2
 
-            a3 = t.parse_values columns=["bools"] type=Boolean
+            a3 = t.parse_values columns=["bools"] type=Boolean on_problems=_
             t3 t =
                 t.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True, Nothing]
             p3 = [Invalid_Format.Error "bools" Boolean ["fAlSE", "foobar", "", "0", "1", "truefalse"]]
             Problems.test_problem_handling a3 p3 t3
 
-            a4 = t.parse_values columns=["times"] type=Date
+            a4 = t.parse_values columns=["times"] type=Date on_problems=_
             t4 t =
                 t.at "times" . to_vector . should_equal [Date.new 2001 1 1, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
             p4 = [Invalid_Format.Error "times" Date ["2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]]
             Problems.test_problem_handling a4 p4 t4
 
-            a5 = t.parse_values columns=["times"] type=Date_Time
+            a5 = t.parse_values columns=["times"] type=Date_Time on_problems=_
             t5 t =
-                t.at "times" . to_vector . should_equal [Nothing, Date_Time.new 2001 1 1 12 34 56, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                t.at "times" . to_vector . should_equal [Nothing, Date_Time.new 2001 1 1 12 34 56, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
             p5 = [Invalid_Format.Error "times" Date_Time ["2001-01-01", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]]
             Problems.test_problem_handling a5 p5 t5
 
-            a6 = t.parse_values columns=["times"] type=Time_Of_Day
+            a6 = t.parse_values columns=["times"] type=Time_Of_Day on_problems=_
             t6 t =
-                t.at "times" . to_vector . should_equal [Nothing, Nothing, Time_Of_Day.new 10 0 10 0, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                t.at "times" . to_vector . should_equal [Nothing, Nothing, Time_Of_Day.new 10 0 10 0, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
             p6 = [Invalid_Format.Error "times" Time_Of_Day ["2001-01-01", "2001-01-01 12:34:56", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]]
             Problems.test_problem_handling a6 p6 t6
 
@@ -262,7 +263,7 @@ spec =
 
             t5 = whitespace_table.parse_values columns="datetimes" type=Date_Time
             t5.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 1 1 11 59, Nothing, Nothing, Nothing]
-            Problems.expect_only_warning (Invalid_Format.Error "datetimes" Date_Time ["2022 - 07 - 17  1:2:3"]) t5
+            Problems.expect_only_warning (Invalid_Format.Error "datetimes" Date_Time ["2022 - 07 - 17  1:2:3", "2022-01-01     11:59:00"]) t5
 
             t6 = whitespace_table.parse_values columns="times" type=Time_Of_Day
             t6.at "times" . to_vector . should_equal [Time_Of_Day.new 11 0 0, Time_Of_Day.new, Nothing, Nothing]
@@ -284,15 +285,15 @@ spec =
 
             t4 = whitespace_table.parse_values format=opts columns="dates" type=Date
             t4.at "dates" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
-            Problems.expect_only_warning (Invalid_Format.Error "dates" Date [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17"]) t4
+            Problems.expect_only_warning (Invalid_Format.Error "dates" Date [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""]) t4
 
             t5 = whitespace_table.parse_values format=opts columns="datetimes" type=Date_Time
             t5.at "datetimes" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
-            Problems.expect_only_warning (Invalid_Format.Error "datetimes" Date_Time [" 2022-01-01 11:59:00   ", Nothing, "2022 - 07 - 17  1:2:3 "]) t5
+            Problems.expect_only_warning (Invalid_Format.Error "datetimes" Date_Time [" 2022-01-01 11:59:00   ", "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"]) t5
 
             t6 = whitespace_table.parse_values format=opts columns="times" type=Time_Of_Day
             t6.at "times" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
-            Problems.expect_only_warning (Invalid_Format.Error "times" Time_Of_Day ["11:00:00 ", "  00:00:00"]) t6
+            Problems.expect_only_warning (Invalid_Format.Error "times" Time_Of_Day ["11:00:00 ", "  00:00:00",  "00 : 00 : 00"]) t6
 
         Test.specify "should fallback to text if whitespace is present and trimming is turned off" <|
             c1 = ["1", "  +2", "-123", Nothing]
