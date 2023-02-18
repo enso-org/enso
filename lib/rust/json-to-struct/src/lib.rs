@@ -4,6 +4,7 @@
 #![feature(exact_size_is_empty)]
 #![feature(proc_macro_span)]
 #![feature(proc_macro_def_site)]
+#![feature(track_path)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -181,6 +182,7 @@ trait Setter {
 #[proc_macro]
 pub fn json_to_struct(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let paths = files_paths(input);
+    mark_paths_as_tracked(&paths);
     let json = read_and_merge_jsons(paths);
     let code = generate(&json);
     // Uncomment for debug purposes:
@@ -207,6 +209,15 @@ fn files_paths(input: proc_macro::TokenStream) -> Vec<PathBuf> {
         })
         .collect();
     rel_paths.into_iter().map(|t| call_site_dir.join(t)).collect()
+}
+
+/// Mark the JSON files as tracked, so this macro is re-evaluated when they cahnge.
+fn mark_paths_as_tracked(paths: &[PathBuf]) {
+    for path in paths {
+        let resolved_path = path.canonicalize().unwrap();
+        let path_str = resolved_path.to_str().unwrap();
+        proc_macro::tracked_path::path(path_str)
+    }
 }
 
 /// Read the JSON files and merge them into a single JSON value.
