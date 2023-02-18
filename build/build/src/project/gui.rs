@@ -37,6 +37,11 @@ impl Artifact {
         // TODO: sanity check
         Self(crate::paths::generated::RepoRootDistGui::new_root(gui_path.as_ref()))
     }
+
+    pub fn symlink_ensogl_dist(&self, linked_dist: &Path) -> Result {
+        ide_ci::fs::remove_symlink_dir_if_exists(linked_dist)?;
+        ide_ci::fs::symlink_auto(&self.assets, linked_dist)
+    }
 }
 
 #[derive(Clone, Derivative, derive_more::Deref)]

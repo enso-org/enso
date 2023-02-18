@@ -4,7 +4,7 @@
 
 // @ts-ignore
 import globalConfig from '../../../../gui/config.yaml'
-import * as app from '../../../../../target/ensogl-pack/dist/index'
+import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
 import * as semver from 'semver'
 import { Version, options } from 'enso-content-config'
 

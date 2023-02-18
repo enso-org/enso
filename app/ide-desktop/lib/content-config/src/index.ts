@@ -1,7 +1,7 @@
 /** @file Configuration options of the application content (the web part). */
 
 import * as semver from 'semver'
-import { log, config, App } from '../../../../../target/ensogl-pack/dist/index'
+import { log, config, App } from '../../../../../target/ensogl-pack/linked-dist/index'
 import buildCfg from '../../../build.json'
 
 const Option = config.Option
