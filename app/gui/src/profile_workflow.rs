@@ -17,7 +17,7 @@ pub async fn main() {
     // Run selected workflow.
     let need_workflow = "`profile` entry point requires --workflow argument. \
     Try --workflow=help to see a list of options.";
-    let selected = &enso_config::ARGS.groups.profile.options.test_workflow.value;
+    let selected = &enso_config::ARGS.groups.profile.options.workflow.value;
     if selected.is_empty() {
         panic!("{need_workflow}");
     }
