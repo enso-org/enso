@@ -15,10 +15,10 @@ use crate::source::WatchTargetJob;
 use crate::source::WithDestination;
 use crate::BoxFuture;
 
+use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use derivative::Derivative;
 use futures_util::future::try_join;
 use ide_ci::ok_ready_boxed;
-
 
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Deref)]
@@ -38,7 +38,7 @@ impl Artifact {
         Self(crate::paths::generated::RepoRootDistGui::new_root(gui_path.as_ref()))
     }
 
-    pub fn symlink_ensogl_dist(&self, linked_dist: &Path) -> Result {
+    pub fn symlink_ensogl_dist(&self, linked_dist: &RepoRootTargetEnsoglPackLinkedDist) -> Result {
         ide_ci::fs::remove_symlink_dir_if_exists(linked_dist)?;
         ide_ci::fs::symlink_auto(&self.assets, linked_dist)
     }

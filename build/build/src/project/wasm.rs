@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::paths::generated::RepoRootDistWasm;
+use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
@@ -433,6 +434,11 @@ impl Artifact {
             pkg_opt_wasm,
         } = &self.0;
         vec![shaders.as_path(), pkg_js.as_path(), pkg_opt_wasm.as_path()]
+    }
+
+    pub fn symlink_ensogl_dist(&self, linked_dist: &RepoRootTargetEnsoglPackLinkedDist) -> Result {
+        ide_ci::fs::remove_symlink_dir_if_exists(linked_dist)?;
+        ide_ci::fs::symlink_auto(self, linked_dist)
     }
 }
 

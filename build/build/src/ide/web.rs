@@ -6,6 +6,7 @@ use crate::project::gui::BuildInfo;
 use crate::project::wasm;
 use crate::project::ProcessWrapper;
 
+use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
@@ -160,6 +161,7 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
             google_font::download_google_font(&ide.cache, &ide.octocrab, "mplus1", &asset_dir);
         let (wasm, _, _, _) =
             try_join4(wasm, installation, assets_download, fonts_download).await?;
+        wasm.symlink_ensogl_dist(&ide.linked_dist)?;
         ide.write_build_info(build_info)?;
         Ok(ContentEnvironment { asset_dir, wasm, output_path })
     }
@@ -204,6 +206,7 @@ pub struct IdeDesktop {
     #[derivative(Debug = "ignore")]
     pub octocrab:    Octocrab,
     pub cache:       ide_ci::cache::Cache,
+    pub linked_dist: RepoRootTargetEnsoglPackLinkedDist,
 }
 
 impl IdeDesktop {
@@ -217,6 +220,7 @@ impl IdeDesktop {
             package_dir: repo_root.app.ide_desktop.clone(),
             octocrab,
             cache,
+            linked_dist: repo_root.target.ensogl_pack.linked_dist.clone(),
         }
     }
 
