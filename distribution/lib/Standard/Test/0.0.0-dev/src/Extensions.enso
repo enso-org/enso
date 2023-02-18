@@ -64,7 +64,17 @@ Any.should_equal self that frames_to_skip=0 = case self == that of
     True -> Test_Result.Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
-        msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
+        additional_comment = case self of
+            _ : Vector -> case that of
+                _ : Vector ->
+                    case self.length == that.length of
+                        True ->
+                            diff = self.zip that . index_of p->
+                                p.first != p.second
+                            "; first difference at index " + diff.to_text + " "
+                        False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
+                _ -> ""
+        msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + loc + ")."
         Test.fail msg
 
 ## Asserts that `self` value is equal to the expected type value.

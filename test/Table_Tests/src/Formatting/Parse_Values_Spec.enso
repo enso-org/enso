@@ -4,6 +4,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 from Standard.Table import Table, Data_Formatter, Column, Column_Selector
 from Standard.Table.Data.Column_Type_Selection import Auto
 from Standard.Table.Errors import all
+import Standard.Table.Data.Value_Type.Value_Type
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -51,14 +52,15 @@ spec =
             t1_parsed_zeros = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
             t6 = t1.parse_values format=opts type=Integer
             t6.at "ints" . to_vector . should_equal t1_parsed_zeros
-            Warning.get_all t6 . should_equal []
+            Problems.assume_no_problems t6
 
-            t7 = t1.parse_values format=opts type=Integer
+            t7 = t1.parse_values format=opts type=Decimal
             t7.at "ints" . to_vector . should_equal t1_parsed_zeros
-            Warning.get_all t7 . should_equal []
-            t8 = t2.parse_values format=opts type=Integer
+            Problems.assume_no_problems t7
+
+            t8 = t2.parse_values format=opts type=Decimal
             t8.at "floats" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            Warning.get_all t8 . should_equal []
+            Problems.assume_no_problems t8
 
         Test.specify "should correctly parse booleans" <|
             t1 = Table.new [["bools", ["true", "false", "True", "TRUE", "FALSE", Nothing, "False"]]]
@@ -84,7 +86,8 @@ spec =
 
             t7 = Table.new [["dates", ["07/05/2022", "01/01/2001", "31/12/2010"]]]
             t8 = t7.parse_values type=Date format="dd/MM/yyyy"
-            t8.at "dates" . to_vector . should_equal [Date.new 2022 5 7, Date.new 2000 1 1, Date.new 2010 12 31]
+            t8.at "dates" . value_type . should_equal Value_Type.Date
+            t8.at "dates" . to_vector . should_equal [Date.new 2022 5 7, Date.new 2001 1 1, Date.new 2010 12 31]
 
         Test.specify "should parse date and time in various formats" <|
             opts = Data_Formatter.Value date_formats=["d.M.y", "d MMM y[ G]", "E, d MMM y"] datetime_formats=["yyyy-MM-dd'T'HH:mm:ss", "dd/MM/yyyy HH:mm"] time_formats=["H:mm:ss.n", "h:mma"]
