@@ -1707,6 +1707,7 @@ impl Model {
 
     /// Recompute the transformation matrix of the display object tree starting with this object and
     /// traversing all of its dirty children.
+    #[profile(Detail)]
     pub fn update(&self, scene: &Scene) {
         self.refresh_layout();
         let origin0 = Matrix4::identity();
