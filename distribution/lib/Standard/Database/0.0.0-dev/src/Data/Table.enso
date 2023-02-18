@@ -9,7 +9,6 @@ import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode
-import Standard.Table.Data.Column_Type_Selection.Column_Type_Selection
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition

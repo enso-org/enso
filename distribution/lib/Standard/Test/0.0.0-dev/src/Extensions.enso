@@ -277,7 +277,7 @@ Boolean.should_be_true self = case self of
     True -> Test_Result.Success
     False ->
         loc = Meta.get_source_location 2
-        Panic.throw (Test_Result.Failure "Expected False to be True (at "+loc+").")
+        Test.fail "Expected False to be True (at "+loc+")."
 
 ## Asserts that the given `Boolean` is `True`.
 
@@ -304,7 +304,7 @@ Boolean.should_be_false : Test_Result
 Boolean.should_be_false self = case self of
     True ->
         loc = Meta.get_source_location 2
-        Panic.throw (Test_Result.Failure "Expected True to be False (at "+loc+").")
+        Test.fail "Expected True to be False (at "+loc+")."
     False -> Test_Result.Success
 
 ## Asserts that the given `Boolean` is `False`
@@ -336,7 +336,7 @@ Any.should_be_a self typ = if self.is_a typ || self==typ then Test_Result.Succes
     expected_type = Meta.get_qualified_type_name typ
     actual_type = Meta.get_qualified_type_name self
     message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
-    Panic.throw <| Test_Result.Failure message
+    Test.fail message
 
 ## Asserts that a value is of a given type.
 

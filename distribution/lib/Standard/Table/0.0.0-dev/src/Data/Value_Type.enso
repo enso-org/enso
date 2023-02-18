@@ -98,10 +98,10 @@ type Value_Type
        UNSTABLE
        Checks if the provided value type is a textual type (with any settings)
        and runs the following action or reports a type error.
-    expect_text : Value_Type -> Any -> Any ! Invalid_Value_Type
-    expect_text value_type ~action = case value_type of
+    expect_text : Value_Type -> Any -> Text -> Any ! Invalid_Value_Type
+    expect_text value_type ~action related_column=Nothing = case value_type of
         Value_Type.Char _ _ -> action
-        _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Char value_type)
+        _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Char value_type related_column)
 
     ## ADVANCED
        UNSTABLE

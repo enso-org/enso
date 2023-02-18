@@ -976,7 +976,7 @@ type Column
     @type Widget_Helpers.parse_type_selector
     parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Column
     parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
-        Value_Type.expect_text self.value_type <| ensure_valid_value_type type <|
+        Value_Type.expect_text self.value_type related_column=self.name <| ensure_valid_value_type type <|
             formatter = case format of
                 _ : Text ->
                     Data_Formatter.Value.with_format type format

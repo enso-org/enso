@@ -43,7 +43,7 @@ from project.Data.Column_Type_Selection import Auto
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
-from project.Data.Column import get_item_string, normalize_string_for_display
+from project.Data.Column import get_item_string, normalize_string_for_display, ensure_valid_value_type
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 polyglot java import org.enso.table.data.column.builder.object.StorageTypeMismatch
@@ -778,6 +778,8 @@ type Table
            `on_problems` setting.
          - If a column selected for parsing is not a text column, an
            `Invalid_Value_Type` dataflow error is raised.
+         - If no columns have been selected for parsing,
+           a `No_Input_Columns_Selected` dataflow error is raised.
          - If some values in a column did not match the expected datatype
            format, an `Invalid_Format` problem is reported according to the
            `on_problems` setting. The problematic cells are replaced with
@@ -809,62 +811,33 @@ type Table
 
                table.parse_values format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
     parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Table
-    parse_values columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
-        columns = self.columns
-        problem_builder = Vector.new_builder
+    parse_values self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning = ensure_valid_value_type type <|
+        formatter = case format of
+            _ : Text ->
+                Data_Formatter.Value.with_format type format
+            _ -> format
 
-        find_datatype index column =
-            matching_input = column_types.filter selection->
-                selector = selection.column
-                case selector of
-                    _ : Text -> column.name == selector
-                    _ : Integer -> if selector >= 0 then index == selector else
-                        index == columns.length + selector
-            if matching_input.length == 0 then Nothing else
-                if matching_input.length == 1 then matching_input.first.datatype else
-                    first_type = matching_input.first.datatype
-                    ambiguous = matching_input.any s-> s.datatype != first_type
-                    problem_builder.append (Duplicate_Type_Selector.Error column.name ambiguous)
-                    if ambiguous then Nothing else first_type
+        parser = if type == Auto then formatter.make_auto_parser else
+            formatter.make_datatype_parser type
 
-        expected_types = case column_types of
-            Nothing -> columns.map _->Auto
-            _ ->
-                missing_columns = Vector.new_builder
-                invalid_indices = Vector.new_builder
-                column_types.each selection->
-                    selector = selection.column
-                    case selector of
-                        _ : Integer ->
-                            valid = Table_Helpers.is_index_valid columns.length selector
-                            if valid.not then
-                                invalid_indices.append selector
-                        _ : Text ->
-                            found = columns.any col-> col.name == selector
-                            if found.not then
-                                missing_columns.append selector
-                if missing_columns.is_empty.not then
-                    problem_builder.append (Missing_Input_Columns.Error missing_columns.to_vector)
-                if invalid_indices.is_empty.not then
-                    problem_builder.append (Column_Indexes_Out_Of_Range.Error invalid_indices.to_vector)
-                columns.map_with_index find_datatype
+        select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+        selected_columns = self.columns_helper.select_columns_helper columns reorder=True select_problem_builder
+        select_problem_builder.attach_problems_before on_problems <|
+            selected_column_names = if selected_columns.is_empty then Error.throw No_Input_Columns_Selected else
+                Map.from_vector <| selected_columns.map c-> [c.name, True]
 
-        new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
-            Nothing -> column
-            _ ->
-                parser = if expected_type == Auto then value_formatter.make_auto_parser else
-                    value_formatter.make_datatype_parser expected_type
-                storage = column.java_column.getStorage
-                new_storage_and_problems = parser.parseColumn column.name storage
-                new_storage = new_storage_and_problems.value
-                problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
-                problems.each problem_builder.append
-                Column.Value (Java_Column.new column.name new_storage)
+            parse_problem_builder = Problem_Builder.new
+            new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
+                Value_Type.expect_text column.value_type related_column=column.name <|
+                    storage = column.java_column.getStorage
+                    new_storage_and_problems = parser.parseColumn column.name storage
+                    new_storage = new_storage_and_problems.value
+                    problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem type)
+                    problems.each parse_problem_builder.report_other_warning
+                    Column.Value (Java_Column.new column.name new_storage)
 
-        ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
-           https://github.com/enso-org/enso/pull/3400
-        result = Table.new new_columns
-        on_problems.attach_problems_after result problem_builder.to_vector
+            result = Table.new new_columns
+            parse_problem_builder.attach_problems_after on_problems result
 
     ## Replaces the first, last, or all occurrences of `term` with
        `new_text` in each text row of selected columns.
