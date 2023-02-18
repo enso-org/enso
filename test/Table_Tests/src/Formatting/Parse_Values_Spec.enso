@@ -9,6 +9,8 @@ import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
+import project.Util
+
 spec =
     Test.group "Table.parse_values" <|
         Test.specify "should correctly parse integers" <|
@@ -370,10 +372,24 @@ spec =
             r1.catch.related_column . should_equal "A"
             r1.catch.expected.is_text.should_be_true
 
-        Test.specify "should error if no input columns selected" <|
+        Test.specify "should error if no input columns selected, unless error_on_missing_columns=False" <|
             t1 = Table.new [["A", ["1", "2", "3"]]]
             r1 = t1.parse_values columns=[]
             r1.should_fail_with No_Input_Columns_Selected
+
+            r2 = t1.parse_values columns=[] error_on_missing_columns=False
+            r2 . should_equal t1
+            Problems.expect_warning No_Input_Columns_Selected r2
+
+            r3 = t1.parse_values columns=[] error_on_missing_columns=False on_problems=Problem_Behavior.Ignore
+            r3 . should_equal t1
+            Problems.assume_no_problems r3
+
+            r4 = t1.parse_values columns=["nonexistent column :D", -42] error_on_missing_columns=False on_problems=Problem_Behavior.Report_Warning
+            r4 . should_equal t1
+            Problems.expect_warning No_Input_Columns_Selected r4
+            Problems.expect_warning (Missing_Input_Columns.Error ["nonexistent column :D"]) r4
+            Problems.expect_warning (Column_Indexes_Out_Of_Range.Error [-42]) r4
 
     Test.group "Column.parse" <|
         Test.specify "should correctly parse integers" <|

@@ -74,6 +74,7 @@ Any.should_equal self that frames_to_skip=0 = case self == that of
                             "; first difference at index " + diff.to_text + " "
                         False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
                 _ -> ""
+            _ -> ""
         msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + loc + ")."
         Test.fail msg
 

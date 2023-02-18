@@ -823,8 +823,14 @@ type Table
         select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selected_columns = self.columns_helper.select_columns_helper columns reorder=True select_problem_builder
         select_problem_builder.attach_problems_before on_problems <|
-            selected_column_names = if selected_columns.is_empty then Error.throw No_Input_Columns_Selected else
-                Map.from_vector <| selected_columns.map c-> [c.name, True]
+            selected_column_names = case selected_columns.is_empty of
+                True ->
+                    no_columns_problem_behavior = case error_on_missing_columns of
+                        True -> Problem_Behavior.Report_Error
+                        False -> on_problems
+                    no_columns_problem_behavior.attach_problem_before No_Input_Columns_Selected Map.empty
+                False ->
+                    Map.from_vector <| selected_columns.map c-> [c.name, True]
 
             parse_problem_builder = Problem_Builder.new
             new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
