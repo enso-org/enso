@@ -142,9 +142,9 @@ pub enum Command {
 /// Things that are common to `watch` and `build`.
 #[derive(Debug)]
 pub struct ContentEnvironment<Assets, Output> {
-    asset_dir:   Assets,
-    wasm:        wasm::Artifact,
-    output_path: Output,
+    pub asset_dir:   Assets,
+    pub wasm:        wasm::Artifact,
+    pub output_path: Output,
 }
 
 impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
@@ -258,12 +258,12 @@ impl IdeDesktop {
         dest = %output_path.as_ref().display(),
         build_info,
         err))]
-    pub async fn build_content(
+    pub async fn build_content<P: AsRef<Path>>(
         &self,
         wasm: impl Future<Output = Result<wasm::Artifact>>,
         build_info: &BuildInfo,
-        output_path: impl AsRef<Path>,
-    ) -> Result {
+        output_path: P,
+    ) -> Result<ContentEnvironment<TempDir, P>> {
         let env = ContentEnvironment::new(self, wasm, build_info, output_path).await?;
         //env.apply();
         self.npm()?
@@ -285,9 +285,7 @@ impl IdeDesktop {
             .run_ok()
             .await?;
 
-        debug!(assets=?env.asset_dir, "Still kept");
-        drop(env); // does this extend the lifetime?
-        Ok(())
+        Ok(env)
     }
 
 

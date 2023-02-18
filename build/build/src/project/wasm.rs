@@ -408,7 +408,7 @@ impl IsWatchable for Wasm {
 
 
 #[derive(Clone, Debug, Display, PartialEq, Eq)]
-pub struct Artifact(RepoRootDistWasm);
+pub struct Artifact(pub RepoRootDistWasm);
 
 impl Artifact {
     pub fn new(path: impl Into<PathBuf>) -> Self {
@@ -429,6 +429,7 @@ impl Artifact {
             shaders,
             index_js: _,
             index_d_ts: _,
+            index_js_map: _,
             pkg_js,
             pkg_wasm: _,
             pkg_opt_wasm,

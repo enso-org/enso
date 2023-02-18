@@ -52,12 +52,14 @@
         pkg-opt.wasm: # The optimized WASM artifact.
         index.js:
         style.css:
+      ensogl-app/:
 
     # Final WASM artifacts in `dist` directory.
     wasm/:
       shaders/: # Optimized shaders that contain main function code only.
       index.js: # The main JS bundle to load WASM and JS wasm-pack bundles.
       index.d.ts: # TypeScript types interface file.
+      index.js.map: # The sourcemap mapping to `index.js`.
       pkg.js: # The `pks.js` artifact of wasm-pack WITH bundled snippets.
       pkg.wasm: # The `pks_bg.wasm` artifact of wasm-pack.
       pkg-opt.wasm: # The optimized `pks_bg.wasm`.
