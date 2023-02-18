@@ -103,6 +103,7 @@ pub struct View {
 impl View {
     /// Create a new node widget. The widget is initialized to empty state, waiting for widget
     /// metadata to be provided using `set_node_data` and `set_metadata` FRP endpoints.
+    #[profile(Task)]
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(app));
@@ -160,6 +161,7 @@ impl Model {
         Self { app, display_object, kind_model: kind }
     }
 
+    #[profile(Task)]
     fn set_widget_data(&self, frp: &SampledFrp, meta: &Option<Metadata>, node_data: &NodeData) {
         trace!("Setting widget data: {:?} {:?}", meta, node_data);
 
@@ -426,6 +428,7 @@ impl LazyDropdown {
         }
     }
 
+    #[profile(Detail)]
     fn initialize_on_open(&mut self) {
         match self {
             LazyDropdown::Initialized(..) => {}
