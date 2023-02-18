@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Table, Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Errors import all
 
 from Standard.Database import all
 from Standard.Database.Errors import Unsupported_Database_Operation
@@ -10,6 +10,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
+import project.Util
 import project.Database.Helpers.Name_Generator
 
 spec prefix connection =
@@ -35,6 +36,47 @@ spec prefix connection =
             original = Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
             table = upload "Big" original
             table.read.row_count . should_equal n
+
+    Test.group prefix+"Table.query" <|
+        name = t1.name
+        Test.specify "should allow to access a Table by name" <|
+            t2 = connection.query (SQL_Query.Table_Name name)
+            t2.read . should_equal t1.read
+
+        Test.specify "should allow to access a Table by an SQL query" <|
+            t2 = connection.query (SQL_Query.Raw_SQL "SELECT a, b FROM " + name + " WHERE a >= 3")
+            m2 = t2.read
+            m2.column_names . should_equal ["a", "b"]
+            m2.at "a" . to_vector . should_equal [4]
+            m2.at "b" . to_vector . should_equal [5]
+            m2.at "c" . should_fail_with No_Such_Column
+
+        Test.specify "should allow a shorthand trying to deduce if the query is a table name or an SQL query" <|
+            t2 = connection.query name
+            t2.read . should_equal t1.read
+
+            t3 = connection.query "SELECT a, b FROM " + name + " WHERE a >= 3"
+            m3 = t3.read
+            m3.column_names . should_equal ["a", "b"]
+            m3.at "a" . to_vector . should_equal [4]
+
+            # The effective name may get a deduplication prefix/suffix so we need to use `t4.name` instead of the literal string. Still it will contain the 'weird characters' we wanted.
+            t4 = upload 'weird table name SELECT * FROM hehe WHERE "X" = \'Y\'; --' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]])
+            t5 = connection.query t4.name
+            m5 = t5.read
+            m5.column_names . should_equal ["X", "Y"]
+            m5.at "X" . to_vector . should_equal ["a", "B"]
+            m5.at "Y" . to_vector . should_equal [2, 5]
+
+        Test.specify "should report an error depending on input SQL_Query type" <|
+            t2 = connection.query (SQL_Query.Table_Name "NONEXISTENT-TABLE")
+            # TODO
+            t2.should_fail_with Nothing
+            t3 = connection.query (SQL_Query.Raw_SQL "MALFORMED-QUERY")
+            t3.should_fail_with Nothing
+
+        Test.specify "should make a best-effort attempt at returning a reasonable error for the short-hand" <|
+            Nothing
 
     Test.group prefix+"Masking Tables" <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|

@@ -106,11 +106,13 @@ type Connection
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
 
-    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
+    ## Set up a query returning a Table object, which can be used to work with
+       data within the database or load it into memory.
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
+         If supplied as `Text`, the name is checked against the `tables` list to
+         determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
     query : Text | SQL_Query -> Text -> Table
     query self query alias="" = handle_sql_errors <| case query of
