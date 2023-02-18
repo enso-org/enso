@@ -101,7 +101,7 @@ impl IsTarget for Gui {
                 &content_env.wasm.0.index_js_map.path,
             ];
             for file in ensogl_app_files {
-                ide_ci::fs::copy_to(&file, ensogl_app_dir)?;
+                ide_ci::fs::copy_to(file, ensogl_app_dir)?;
             }
             Ok(ret)
         }
