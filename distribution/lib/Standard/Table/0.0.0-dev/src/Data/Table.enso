@@ -841,7 +841,7 @@ type Table
          Replace texts in quotes with parentheses in column at index 1.
 
              table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Value
-    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Matching_Mode.First | Matching_Mode.Last | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
+    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
     replace_text self columns=[0] term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
 
