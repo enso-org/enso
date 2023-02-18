@@ -2492,6 +2492,7 @@ dependencies = [
  "enso-executor",
  "enso-notification",
  "enso-prelude",
+ "enso-profiler",
  "enso-text",
  "failure",
  "flo_stream",
@@ -2832,6 +2833,7 @@ dependencies = [
 name = "ensogl-example-render-profile-flamegraph"
 version = "0.1.0"
 dependencies = [
+ "enso-debug-api",
  "enso-frp",
  "enso-profiler-data",
  "enso-profiler-demo-data",
