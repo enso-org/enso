@@ -109,8 +109,10 @@ const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
 const MAX_ZOOM: f32 = 1.0;
 
 fn traffic_lights_gap_width() -> f32 {
-    let is_macos = ARGS.platform.map(|p| p.is_macos()) == Some(true);
-    if is_macos && !ARGS.frame {
+    let platform_str = ARGS.groups.startup.options.platform.value.as_str();
+    let platform = web::platform::Platform::try_from(platform_str);
+    let is_macos = platform.map(|p| p.is_macos()).ok() == Some(true);
+    if is_macos && !ARGS.groups.window.options.frame.value {
         MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
     } else {
         0.0
