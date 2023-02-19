@@ -18,7 +18,7 @@ export class PackageInfo {
     display() {
         const entries = Object.entries(this)
         if (entries.length > 0) {
-            logger.with('Package info.', () => {
+            logger.group('Package info.', () => {
                 for (const [key, value] of Object.entries(this)) {
                     if (value != null) {
                         logger.log(`${key}: ${value}`)

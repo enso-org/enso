@@ -35,6 +35,12 @@ pub trait StringOps {
     ) -> Option<(&'a str, &'a str, &'a str)>
     where
         P: pattern::Pattern<'a>;
+
+    /// Converts the camel case string to snake case. For example, converts `FooBar` to `foo_bar`.
+    fn camel_case_to_snake_case(&self) -> String;
+
+    /// Converts the first letter of the string to uppercase. For example, converts `foo` to `Foo`.
+    fn capitalize_first_letter(&self) -> String;
 }
 
 impl<T: AsRef<str>> StringOps for T {
@@ -66,6 +72,32 @@ impl<T: AsRef<str>> StringOps for T {
         let (prefix, rest) = text.split_once(start_marker)?;
         let (mid, suffix) = rest.split_once(end_marker)?;
         Some((prefix, mid, suffix))
+    }
+
+    fn camel_case_to_snake_case(&self) -> String {
+        let mut result = String::new();
+        let mut chars = self.as_ref().chars();
+        if let Some(first) = chars.next() {
+            result.push(first.to_ascii_lowercase());
+        }
+        for c in chars {
+            if c.is_uppercase() {
+                result.push('_');
+                result.push(c.to_ascii_lowercase());
+            } else {
+                result.push(c);
+            }
+        }
+        result
+    }
+
+    fn capitalize_first_letter(&self) -> String {
+        let mut chars = self.as_ref().chars();
+        if let Some(first) = chars.next() {
+            first.to_uppercase().to_string() + chars.as_str()
+        } else {
+            String::new()
+        }
     }
 }
 
@@ -464,6 +496,8 @@ pub fn common_postfix_length(source_a: &str, source_b: &str) -> usize {
     let mismatch = zipped.find_position(|(a, b)| *a != *b);
     mismatch.map(|(ix, _)| ix).unwrap_or(shortest)
 }
+
+
 
 // =============
 // === Tests ===
