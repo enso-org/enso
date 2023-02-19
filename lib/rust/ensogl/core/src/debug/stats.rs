@@ -15,13 +15,13 @@
 
 use enso_prelude::*;
 
+use crate::display::SymbolId;
 use enso_types::unit2::Duration;
 use enso_web::Performance;
 use enso_web::TimeProvider;
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use wasm_bindgen::JsCast;
-
 
 
 // =============
@@ -78,6 +78,10 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
     pub fn end_frame(&self) {
         self.rc.borrow_mut().end_frame();
     }
+
+    pub fn new_draw_call(&self, symbol_id: SymbolId) {
+        self.rc.borrow_mut().stats_data.new_draw_call(symbol_id);
+    }
 }
 
 
@@ -106,7 +110,8 @@ impl<T: TimeProvider> FramedStatsData<T> {
     /// including operations happening before calling this function.
     fn begin_frame(&mut self, time: Duration) -> Option<StatsData> {
         let time = time.unchecked_raw() as f64;
-        let mut previous_frame_stats = self.stats_data;
+        // FIXME: clone
+        let mut previous_frame_stats = self.stats_data.clone();
         self.reset_per_frame_statistics();
         let previous_frame_begin_time = self.frame_begin_time.replace(time);
         previous_frame_begin_time.map(|begin_time| {
@@ -132,7 +137,7 @@ impl<T: TimeProvider> FramedStatsData<T> {
     }
 
     fn reset_per_frame_statistics(&mut self) {
-        self.stats_data.draw_call_count = 0;
+        self.stats_data.draw_calls = default();
         self.stats_data.shader_compile_count = 0;
         self.stats_data.data_upload_count = 0;
         self.stats_data.data_upload_size = 0;
@@ -150,7 +155,7 @@ impl<T: TimeProvider> FramedStatsData<T> {
 macro_rules! emit_if_integer {
     (u32, $($block:tt)*) => ($($block)*);
     (usize, $($block:tt)*) => ($($block)*);
-    (f64, $($block:tt)*) => ();
+    ($other:ty, $($block:tt)*) => ();
 }
 
 /// Emits the StatsData struct, and extends StatsWithTimeProvider with accessors to StatsData
@@ -162,7 +167,7 @@ macro_rules! gen_stats {
         // === StatsData ===
 
         /// Raw data of all the gathered stats.
-        #[derive(Debug,Default,Clone,Copy,serde::Serialize,serde::Deserialize)]
+        #[derive(Debug, Default, Clone)]
         #[allow(missing_docs)]
         pub struct StatsData {
             $(pub $field : $field_type),*
@@ -174,7 +179,8 @@ macro_rules! gen_stats {
         impl<T: TimeProvider> StatsWithTimeProvider<T> { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
-                self.rc.borrow().stats_data.$field
+                // FIXME: clo
+                self.rc.borrow().stats_data.$field.clone()
             }
 
             /// Field setter.
@@ -211,7 +217,7 @@ gen_stats! {
     fps                  : f64,
     wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
-    draw_call_count      : usize,
+    draw_calls           : Vec<SymbolId>,
     buffer_count         : usize,
     data_upload_count    : usize,
     data_upload_size     : u32,
@@ -221,6 +227,12 @@ gen_stats! {
     mesh_count           : usize,
     shader_count         : usize,
     shader_compile_count : usize,
+}
+
+impl StatsData {
+    pub fn new_draw_call(&mut self, symbol_id: SymbolId) {
+        self.draw_calls.push(symbol_id);
+    }
 }
 
 /// Keeps the body if the `statistics` compilation flag was enabled.

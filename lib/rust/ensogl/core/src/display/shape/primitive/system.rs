@@ -71,6 +71,7 @@ use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
+use crate::display::world;
 use crate::system::gpu::data::buffer::item::Storable;
 use crate::system::gpu::data::InstanceIndex;
 
@@ -352,6 +353,7 @@ impl ShapeSystemModel {
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let do_not_use_shape_definition = default();
+        world::with_context(|ctx| ctx.add_symbol_label(sprite_system.symbol.id, definition_path));
         let definition_path = Immutable(definition_path);
         Self {
             sprite_system,

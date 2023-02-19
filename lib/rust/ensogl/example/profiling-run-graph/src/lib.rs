@@ -178,7 +178,7 @@ fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_gr
     profile
         .metadata()
         .filter_map(|metadata: &enso_profiler_data::Timestamped<Metadata>| match metadata.data {
-            Metadata::RenderStats(_) => None,
+            // Metadata::RenderStats(_) => None,
             Metadata::RpcEvent(_) if !SHOW_RPC_EVENT_MARKS => None,
             Metadata::BackendMessage(_) if !SHOW_BACKEND_MESSAGE_MARKS => None,
             _ => {
@@ -194,23 +194,24 @@ fn make_rendering_performance_blocks(
     profile: &Profile<Metadata>,
 ) -> Vec<profiler_flame_graph::Block<Performance>> {
     let mut blocks = Vec::default();
-    let render_stats = profile.metadata().filter_map(|metadata| match metadata.data {
-        Metadata::RenderStats(data) => Some(metadata.as_ref().map(|_| data)),
-        _ => None,
-    });
-    for (prev, current) in render_stats.tuple_windows() {
-        let start = prev.time.into_ms();
-        let end = current.time.into_ms();
-        let row = -1;
-        let label = format!("{:#?}", current.data);
-        let block_type = match current.data.fps {
-            fps if fps > 55.0 => Performance::Good,
-            fps if fps > 25.0 => Performance::Medium,
-            _ => Performance::Bad,
-        };
-        let block = profiler_flame_graph::Block { start, end, row, label, block_type };
-        blocks.push(block);
-    }
+    // FIXME
+    // let render_stats = profile.metadata().filter_map(|metadata| match metadata.data {
+    //     Metadata::RenderStats(data) => Some(metadata.as_ref().map(|_| data)),
+    //     _ => None,
+    // });
+    // for (prev, current) in render_stats.tuple_windows() {
+    //     let start = prev.time.into_ms();
+    //     let end = current.time.into_ms();
+    //     let row = -1;
+    //     let label = format!("{:#?}", current.data);
+    //     let block_type = match current.data.fps {
+    //         fps if fps > 55.0 => Performance::Good,
+    //         fps if fps > 25.0 => Performance::Medium,
+    //         _ => Performance::Bad,
+    //     };
+    //     let block = profiler_flame_graph::Block { start, end, row, label, block_type };
+    //     blocks.push(block);
+    // }
     blocks
 }
 

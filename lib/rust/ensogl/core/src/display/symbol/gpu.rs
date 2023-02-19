@@ -393,7 +393,7 @@ impl Symbol {
                     let count = self.surface.point_scope().size() as i32;
                     let instance_count = self.surface.instance_scope().size() as i32;
 
-                    self.stats.inc_draw_call_count();
+                    self.stats.new_draw_call(self.id);
                     if instance_count > 0 {
                         context.draw_arrays_instanced(*mode, first, count, instance_count);
                     } else {

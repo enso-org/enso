@@ -7,10 +7,18 @@ use crate::debug::stats::StatsData;
 use crate::system::web;
 use crate::system::web::JsValue;
 
+use crate::display::world;
 use num_traits::cast::AsPrimitive;
 use std::collections::VecDeque;
 use std::f64;
 
+
+// =================
+// === Constants ===
+// =================
+
+const PADDING_LEFT: f64 = 8.0;
+const PADDING_TOP: f64 = 8.0;
 
 
 // ==============
@@ -21,75 +29,77 @@ use std::f64;
 #[derive(Clone, Copy, Debug)]
 #[allow(missing_docs)]
 pub struct ConfigTemplate<Str, Num> {
-    pub background_color:      Str,
-    pub label_color_ok:        Str,
-    pub label_color_warn:      Str,
-    pub label_color_err:       Str,
-    pub plot_color_ok:         Str,
-    pub plot_color_warn:       Str,
-    pub plot_color_err:        Str,
-    pub plot_background_color: Str,
-    pub plot_bar_size:         Option<Num>,
-    pub plot_step_size:        Num,
-    pub margin:                Num,
-    pub outer_margin:          Num,
-    pub panel_height:          Num,
-    pub labels_width:          Num,
-    pub results_width:         Num,
-    pub plots_width:           Num,
-    pub font_size:             Num,
-    pub font_vertical_offset:  Num,
+    pub background_color:        Str,
+    pub label_color_ok:          Str,
+    pub label_color_warn:        Str,
+    pub label_color_err:         Str,
+    pub label_color_ok_selected: Str,
+    pub plot_color_ok:           Str,
+    pub plot_color_warn:         Str,
+    pub plot_color_err:          Str,
+    pub plot_background_color:   Str,
+    pub plot_bar_size:           Option<Num>,
+    pub plot_step_size:          Num,
+    pub margin:                  Num,
+    pub outer_margin:            Num,
+    pub panel_height:            Num,
+    pub labels_width:            Num,
+    pub results_width:           Num,
+    pub plots_width:             Num,
+    pub font_size:               Num,
+    pub font_vertical_offset:    Num,
 }
 
 /// Specialization of the `ConfigTemplate` for users of the library.
-pub type Config = ConfigTemplate<String, u32>;
+pub type Config = ConfigTemplate<String, f64>;
 
 /// Specialization of the `ConfigTemplate` for the usage in JS environment.
 pub type SamplerConfig = ConfigTemplate<JsValue, f64>;
 
-fn dark_theme() -> Config {
-    Config {
-        background_color:      "#222222".into(),
-        label_color_ok:        "#8e939a".into(),
-        label_color_warn:      "#ffba18".into(),
-        label_color_err:       "#eb3941".into(),
-        plot_color_ok:         "#8e939a".into(),
-        plot_color_warn:       "#ffba18".into(),
-        plot_color_err:        "#eb3941".into(),
-        plot_background_color: "#333333".into(),
-        plot_bar_size:         None,
-        plot_step_size:        1,
-        margin:                4,
-        outer_margin:          6,
-        panel_height:          15,
-        labels_width:          130,
-        results_width:         30,
-        plots_width:           100,
-        font_size:             9,
-        font_vertical_offset:  4,
-    }
-}
+// fn dark_theme() -> Config {
+//     Config {
+//         background_color:      "#222222".into(),
+//         label_color_ok:        "#8e939a".into(),
+//         label_color_warn:      "#ffba18".into(),
+//         label_color_err:       "#eb3941".into(),
+//         plot_color_ok:         "#8e939a".into(),
+//         plot_color_warn:       "#ffba18".into(),
+//         plot_color_err:        "#eb3941".into(),
+//         plot_background_color: "#333333".into(),
+//         plot_bar_size:         None,
+//         plot_step_size:        1.0,
+//         margin:                6.0,
+//         outer_margin:          4.0,
+//         panel_height:          15.0,
+//         labels_width:          130.0,
+//         results_width:         30.0,
+//         plots_width:           100.0,
+//         font_size:             9.0,
+//         font_vertical_offset:  4.0,
+//     }
+// }
 
 fn light_theme() -> Config {
     Config {
-        background_color:      "#f1f1f0".into(),
-        label_color_ok:        "#202124".into(),
-        label_color_warn:      "#f58025".into(),
-        label_color_err:       "#eb3941".into(),
-        plot_color_ok:         "#202124".into(),
-        plot_color_warn:       "#f58025".into(),
-        plot_color_err:        "#eb3941".into(),
-        plot_background_color: "#f1f1f0".into(),
-        plot_bar_size:         Some(2),
-        plot_step_size:        1,
-        margin:                6,
-        outer_margin:          4,
-        panel_height:          15,
-        labels_width:          130,
-        results_width:         30,
-        plots_width:           100,
-        font_size:             9,
-        font_vertical_offset:  4,
+        background_color:        "#f1f1f0".into(),
+        label_color_ok:          "#202124".into(),
+        label_color_warn:        "#f58025".into(),
+        label_color_err:         "#eb3941".into(),
+        label_color_ok_selected: "#008cff".into(),
+        plot_color_ok:           "#202124".into(),
+        plot_color_warn:         "#f58025".into(),
+        plot_color_err:          "#eb3941".into(),
+        plot_background_color:   "#f1f1f0".into(),
+        plot_bar_size:           Some(2.0),
+        plot_step_size:          1.0,
+        margin:                  6.0,
+        outer_margin:            4.0,
+        panel_height:            15.0,
+        labels_width:            130.0,
+        results_width:           30.0,
+        plots_width:             100.0,
+        font_size:               9.0,
+        font_vertical_offset:    4.0,
     }
 }
 
@@ -105,24 +115,25 @@ impl Config {
     pub fn to_js_config(&self) -> SamplerConfig {
         let ratio = web::window.device_pixel_ratio();
         SamplerConfig {
-            background_color:      (&self.background_color).into(),
-            label_color_ok:        (&self.label_color_ok).into(),
-            label_color_warn:      (&self.label_color_warn).into(),
-            label_color_err:       (&self.label_color_err).into(),
-            plot_color_ok:         (&self.plot_color_ok).into(),
-            plot_color_warn:       (&self.plot_color_warn).into(),
-            plot_color_err:        (&self.plot_color_err).into(),
-            plot_background_color: (&self.plot_background_color).into(),
-            plot_bar_size:         self.plot_bar_size.map(|t| t as f64 * ratio),
-            plot_step_size:        self.plot_step_size as f64 * ratio,
-            outer_margin:          self.outer_margin as f64 * ratio,
-            margin:                self.margin as f64 * ratio,
-            panel_height:          self.panel_height as f64 * ratio,
-            labels_width:          self.labels_width as f64 * ratio,
-            results_width:         self.results_width as f64 * ratio,
-            plots_width:           self.plots_width as f64 * ratio,
-            font_size:             self.font_size as f64 * ratio,
-            font_vertical_offset:  self.font_vertical_offset as f64 * ratio,
+            background_color:        (&self.background_color).into(),
+            label_color_ok:          (&self.label_color_ok).into(),
+            label_color_warn:        (&self.label_color_warn).into(),
+            label_color_err:         (&self.label_color_err).into(),
+            label_color_ok_selected: (&self.label_color_ok_selected).into(),
+            plot_color_ok:           (&self.plot_color_ok).into(),
+            plot_color_warn:         (&self.plot_color_warn).into(),
+            plot_color_err:          (&self.plot_color_err).into(),
+            plot_background_color:   (&self.plot_background_color).into(),
+            plot_bar_size:           self.plot_bar_size.map(|t| t * ratio),
+            plot_step_size:          self.plot_step_size * ratio,
+            outer_margin:            self.outer_margin * ratio,
+            margin:                  self.margin * ratio,
+            panel_height:            self.panel_height * ratio,
+            labels_width:            self.labels_width * ratio,
+            results_width:           self.results_width * ratio,
+            plots_width:             self.plots_width * ratio,
+            font_size:               self.font_size * ratio,
+            font_vertical_offset:    self.font_vertical_offset * ratio,
         }
     }
 }
@@ -167,11 +178,11 @@ impl DomData {
         root.set_class_name("performance-monitor");
         root.set_style_or_warn("position", "absolute");
         root.set_style_or_warn("z-index", "100");
-        root.set_style_or_warn("left", "8px");
-        root.set_style_or_warn("top", "8px");
-        root.set_style_or_warn("overflow", "hidden");
-        root.set_style_or_warn("border-radius", "6px");
-        root.set_style_or_warn("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
+        root.set_style_or_warn("left", format!("{PADDING_LEFT}px"));
+        root.set_style_or_warn("top", format!("{PADDING_TOP}px"));
+        // root.set_style_or_warn("overflow", "hidden");
+        // root.set_style_or_warn("border-radius", "6px");
+        // root.set_style_or_warn("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
         web::document.body_or_panic().prepend_with_node_1(&root).unwrap();
 
         let canvas = web::document.create_canvas_or_panic();
@@ -196,10 +207,19 @@ impl Drop for DomData {
 // === Monitor ===
 // ===============
 
+crate::define_endpoints_2! {
+    Input {
+    }
+    Output {
+    }
+}
+
 /// Visual panel showing performance-related statistics.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Monitor {
-    renderer: Rc<RefCell<Renderer>>,
+    renderer:    Rc<RefCell<Renderer>>,
+    frp:         Frp,
+    initialized: Rc<Cell<bool>>,
 }
 
 impl Default for Monitor {
@@ -218,7 +238,9 @@ impl Default for Monitor {
         renderer.add::<ShaderCompileCount>();
         renderer.add::<SpriteSystemCount>();
         renderer.add::<SpriteCount>();
-        Self { renderer: Rc::new(RefCell::new(renderer)) }
+        let frp = Frp::new();
+        let initialized = default();
+        Self { renderer: Rc::new(RefCell::new(renderer)), frp, initialized }
     }
 }
 
@@ -236,6 +258,15 @@ impl Monitor {
 
     /// Toggle the visibility of the monitor.
     pub fn toggle(&self) {
+        if !self.initialized.get() {
+            self.initialized.set(true);
+            let renderer = &self.renderer;
+            let scene = world::scene();
+            let network = &self.frp.network;
+            enso_frp::extend! { network
+                eval scene.mouse.frp.position_top_left ((p) renderer.borrow_mut().on_mouse_move(*p));
+            }
+        }
         self.renderer.borrow_mut().toggle();
     }
 }
@@ -249,13 +280,14 @@ impl Monitor {
 /// Code responsible for drawing [`Monitor`]'s data.
 #[derive(Debug)]
 struct Renderer {
-    user_config: Config,
-    config:      SamplerConfig,
-    width:       f64,
-    height:      f64,
-    dom:         Option<Dom>,
-    panels:      Vec<Panel>,
-    first_draw:  bool,
+    user_config:    Config,
+    config:         SamplerConfig,
+    width:          f64,
+    height:         f64,
+    dom:            Option<Dom>,
+    panels:         Vec<Panel>,
+    selected_panel: Option<usize>,
+    first_draw:     bool,
 }
 
 impl Renderer {
@@ -266,8 +298,10 @@ impl Renderer {
         let height = default();
         let first_draw = true;
         let config = user_config.to_js_config();
-        let dom = None;
-        let mut out = Self { user_config, config, width, height, dom, panels, first_draw };
+        let dom = default();
+        let selected_panel = default();
+        let mut out =
+            Self { user_config, config, width, height, dom, panels, selected_panel, first_draw };
         out.update_config();
         out
     }
@@ -305,6 +339,17 @@ impl Renderer {
         } else {
             self.show();
         }
+    }
+
+    fn on_mouse_move(&mut self, position: Vector2) {
+        let panel_index = ((position.y as f64
+            - PADDING_TOP
+            - self.user_config.outer_margin
+            - self.user_config.margin / 2.0)
+            / (self.user_config.margin + self.user_config.panel_height))
+            .floor() as usize;
+        let panel_index = panel_index.max(0).min(self.panels.len() - 1);
+        self.selected_panel = Some(panel_index);
     }
 
     fn sample_and_draw(&mut self, stats: &StatsData) {
@@ -386,23 +431,24 @@ impl Renderer {
     }
 
     fn draw_plots(&mut self, dom: &Dom) {
-        self.with_all_panels(dom, |panel| panel.draw(dom));
+        self.with_all_panels(dom, |selected, panel| panel.draw(selected, dom));
     }
 
     fn first_draw(&self, dom: &Dom) {
         dom.context.set_fill_style(&self.config.background_color);
         dom.context.fill_rect(0.0, 0.0, self.width, self.height);
-        self.with_all_panels(dom, |panel| panel.first_draw(dom));
+        self.with_all_panels(dom, |_, panel| panel.first_draw(dom));
     }
 
-    fn with_all_panels<F: Fn(&Panel)>(&self, dom: &Dom, f: F) {
+    fn with_all_panels<F: Fn(bool, &Panel)>(&self, dom: &Dom, f: F) {
         let mut total_off = self.config.outer_margin;
         dom.context.translate(0.0, total_off).unwrap();
-        for panel in &self.panels {
+        for (panel_index, panel) in self.panels.iter().enumerate() {
             let off = self.config.margin;
             dom.context.translate(0.0, off).unwrap();
             total_off += off;
-            f(panel);
+            let selected = self.selected_panel == Some(panel_index);
+            f(selected, panel);
             let off = self.config.panel_height;
             dom.context.translate(0.0, off).unwrap();
             total_off += off;
@@ -432,8 +478,8 @@ impl Panel {
     }
 
     /// Display results of last measurements.
-    pub fn draw(&self, dom: &Dom) {
-        self.rc.borrow_mut().draw(dom)
+    pub fn draw(&self, selected: bool, dom: &Dom) {
+        self.rc.borrow_mut().draw(selected, dom)
     }
 
     /// Fetch the measured value from stats, using the panel's sampler, then post-process the value
@@ -661,14 +707,14 @@ impl PanelData {
 
 impl PanelData {
     /// Draws the panel to the screen.
-    pub fn draw(&mut self, dom: &Dom) {
-        self.init_draw(dom);
+    pub fn draw(&mut self, selected: bool, dom: &Dom) {
+        self.init_draw(dom, selected);
         self.draw_plots(dom);
         self.finish_draw(dom);
     }
 
     fn first_draw(&mut self, dom: &Dom) {
-        self.init_draw(dom);
+        self.init_draw(dom, false);
         dom.context.set_fill_style(&self.config.plot_background_color);
         dom.context.fill_rect(0.0, 0.0, self.config.plots_width, self.config.panel_height);
         self.finish_draw(dom);
@@ -684,18 +730,23 @@ impl PanelData {
         self.draw_offset = 0.0;
     }
 
-    fn init_draw(&mut self, dom: &Dom) {
+    fn init_draw(&mut self, dom: &Dom, selected: bool) {
         self.move_pen_to_next_element(dom, self.config.margin);
-        self.draw_labels(dom);
+        self.draw_labels(dom, selected);
         self.draw_results(dom);
     }
 
-    fn draw_labels(&mut self, dom: &Dom) {
+    fn draw_labels(&mut self, dom: &Dom, selected: bool) {
         let fonts = "Helvetica,Arial,sans-serif";
         let y_pos = self.config.panel_height - self.config.font_vertical_offset;
         dom.context.set_font(&format!("bold {}px {}", self.config.font_size, fonts));
         dom.context.set_text_align("right");
-        dom.context.set_fill_style(&self.config.label_color_ok);
+        let color = if selected {
+            &self.config.label_color_ok_selected
+        } else {
+            &self.config.label_color_ok
+        };
+        dom.context.set_fill_style(color);
         dom.context.fill_text(&self.label, self.config.labels_width, y_pos).unwrap();
         self.move_pen_to_next_element(dom, self.config.labels_width + self.config.margin);
     }
@@ -743,12 +794,12 @@ impl PanelData {
 /// Utility to generate Samplers for stats parameters. See the usages below this declaration to
 /// discover more.
 macro_rules! stats_sampler {
-    ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
+    ( $label:tt, $name:ident, $stats_expr:expr, $warn_threshold:expr, $err_threshold:expr
     , $precision:expr, $value_divisor:expr) => {
         stats_sampler!(
             $label,
             $name,
-            $stats_field,
+            $stats_expr,
             $warn_threshold,
             $err_threshold,
             $precision,
@@ -757,7 +808,7 @@ macro_rules! stats_sampler {
         );
     };
 
-    ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
+    ( $label:tt, $name:ident, $stats_expr:expr, $warn_threshold:expr, $err_threshold:expr
     , $precision:expr, $value_divisor:expr, $max_value:expr) => {
         /// Sampler implementation.
         #[derive(Copy, Clone, Debug, Default)]
@@ -768,7 +819,7 @@ macro_rules! stats_sampler {
                 $label
             }
             fn value(&self, stats: &StatsData) -> f64 {
-                let raw_value: f64 = stats.$stats_field.as_();
+                let raw_value: f64 = $stats_expr(stats).as_();
                 raw_value / $value_divisor
             }
             fn min_size(&self) -> Option<f64> {
@@ -790,22 +841,86 @@ macro_rules! stats_sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
-stats_sampler!("Frames per second", Fps, fps, 55.0, 25.0, 2, 1.0, Some(60.0));
-stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
-stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
-stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB);
-stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0);
-stats_sampler!("Buffer count", BufferCount, buffer_count, 100.0, 500.0, 0, 1.0);
-stats_sampler!("Data upload count", DataUploadCount, data_upload_count, 100.0, 500.0, 0, 1.0);
-stats_sampler!("Data upload size (Mb)", DataUploadSize, data_upload_size, 1.0, 10.0, 2, MB);
-stats_sampler!("Sprite system count", SpriteSystemCount, sprite_system_count, 100.0, 500.0, 0, 1.0);
-stats_sampler!("Symbol count", SymbolCount, symbol_count, 100.0, 500.0, 0, 1.0);
-stats_sampler!("Sprite count", SpriteCount, sprite_count, 100_000.0, 500_000.0, 0, 1.0);
-stats_sampler!("Shader count", ShaderCount, shader_count, 100.0, 500.0, 0, 1.0);
+stats_sampler!("Frames per second", Fps, (|s: &StatsData| s.fps), 55.0, 25.0, 2, 1.0, Some(60.0));
+stats_sampler!(
+    "Frame time (ms)",
+    FrameTime,
+    (|s: &StatsData| s.frame_time),
+    1000.0 / 55.0,
+    1000.0 / 25.0,
+    2,
+    1.0
+);
+stats_sampler!(
+    "WASM memory usage (Mb)",
+    WasmMemory,
+    (|s: &StatsData| s.wasm_memory_usage),
+    50.0,
+    100.0,
+    2,
+    MB
+);
+stats_sampler!(
+    "GPU memory usage (Mb)",
+    GpuMemoryUsage,
+    (|s: &StatsData| s.gpu_memory_usage),
+    100.0,
+    500.0,
+    2,
+    MB
+);
+stats_sampler!(
+    "Draw call count",
+    DrawCallCount,
+    (|s: &StatsData| s.draw_calls.len()),
+    100.0,
+    500.0,
+    0,
+    1.0
+);
+stats_sampler!("Buffer count", BufferCount, (|s: &StatsData| s.buffer_count), 100.0, 500.0, 0, 1.0);
+stats_sampler!(
+    "Data upload count",
+    DataUploadCount,
+    (|s: &StatsData| s.data_upload_count),
+    100.0,
+    500.0,
+    0,
+    1.0
+);
+stats_sampler!(
+    "Data upload size (Mb)",
+    DataUploadSize,
+    (|s: &StatsData| s.data_upload_size),
+    1.0,
+    10.0,
+    2,
+    MB
+);
+stats_sampler!(
+    "Sprite system count",
+    SpriteSystemCount,
+    (|s: &StatsData| s.sprite_system_count),
+    100.0,
+    500.0,
+    0,
+    1.0
+);
+stats_sampler!("Symbol count", SymbolCount, (|s: &StatsData| s.symbol_count), 100.0, 500.0, 0, 1.0);
+stats_sampler!(
+    "Sprite count",
+    SpriteCount,
+    (|s: &StatsData| s.sprite_count),
+    100_000.0,
+    500_000.0,
+    0,
+    1.0
+);
+stats_sampler!("Shader count", ShaderCount, (|s: &StatsData| s.shader_count), 100.0, 500.0, 0, 1.0);
 stats_sampler!(
     "Shader compile count",
     ShaderCompileCount,
-    shader_compile_count,
+    (|s: &StatsData| s.shader_compile_count),
     10.0,
     100.0,
     0,

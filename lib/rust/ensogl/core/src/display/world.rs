@@ -219,7 +219,8 @@ impl Uniforms {
 // === Metadata Profiler ===
 // =========================
 
-profiler::metadata_logger!("RenderStats", log_render_stats(StatsData));
+// FIXME
+// profiler::metadata_logger!("RenderStats", log_render_stats(StatsData));
 
 
 
@@ -405,7 +406,7 @@ impl WorldData {
     /// Create and initialize new world instance.
     pub fn new(frp: &api::private::Output) -> Self {
         let frp = frp.clone_ref();
-        let stats = Stats::new(web::window.performance_or_panic());
+        let stats = with_context(|context| context.stats.clone_ref());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());
@@ -417,7 +418,8 @@ impl WorldData {
         let garbage_collector = default();
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
-            log_render_stats(*stats)
+            // FIXME
+            // log_render_stats(*stats)
         }));
         let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));

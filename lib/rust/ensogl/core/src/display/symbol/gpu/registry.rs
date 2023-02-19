@@ -96,6 +96,7 @@ pub struct SymbolRegistry {
     pub style_sheet:    style::Sheet,
     pub theme_manager:  theme::Manager,
     pub layers:         scene::HardcodedLayers,
+    pub symbol_labels:  Rc<RefCell<HashMap<SymbolId, &'static str>>>,
 }
 
 impl SymbolRegistry {
@@ -115,6 +116,7 @@ impl SymbolRegistry {
         let style_sheet = style::Sheet::new();
         let theme_manager = theme::Manager::from(&style_sheet);
         let layers = scene::HardcodedLayers::new();
+        let symbol_labels = default();
         Self {
             run_mode,
             symbols,
@@ -129,6 +131,7 @@ impl SymbolRegistry {
             style_sheet,
             theme_manager,
             layers,
+            symbol_labels,
         }
     }
 
@@ -145,6 +148,10 @@ impl SymbolRegistry {
         symbol.set_context(self.context.borrow().as_ref());
         self.symbols.borrow_mut().insert(id, symbol.clone_ref());
         symbol
+    }
+
+    pub fn add_symbol_label(&self, symbol_id: SymbolId, label: &'static str) {
+        self.symbol_labels.borrow_mut().insert(symbol_id, label);
     }
 
     /// Set the GPU context. In most cases, this happens during app initialization or during context
