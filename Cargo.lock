@@ -2038,6 +2038,7 @@ name = "enso-config"
 version = "0.1.0"
 dependencies = [
  "config-reader",
+ "enso-json-to-struct",
  "enso-prelude",
  "ensogl",
  "semver 1.0.16",
@@ -2197,6 +2198,16 @@ dependencies = [
  "ensogl",
  "wasm-bindgen",
  "wasm-bindgen-test",
+]
+
+[[package]]
+name = "enso-json-to-struct"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "proc-macro2",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

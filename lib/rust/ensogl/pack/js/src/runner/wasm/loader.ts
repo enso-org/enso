@@ -4,7 +4,7 @@ import * as animation from 'runner/animation'
 import * as html_utils from 'runner/dom/dom'
 import * as math from 'runner/math'
 import * as svg from 'runner/dom/svg'
-import { Config } from 'runner/config'
+import { Options } from 'runner/config'
 import { Logo } from 'runner/dom/logo'
 import { logger } from 'runner/log'
 
@@ -34,7 +34,7 @@ class ProgressIndicator {
     targetValue = 0
     minProgressSize = 0.1
 
-    constructor(cfg: Config) {
+    constructor(cfg: Options) {
         this.ringInnerRadius = 48
         this.ringWidth = 12
 
@@ -87,7 +87,7 @@ class ProgressIndicator {
         this.set(0)
         this.setIndicatorOpacity(0)
 
-        if (cfg.params.useLoader.value) {
+        if (cfg.groups.loader.options.spinner.value) {
             this.initialized = Promise.all([
                 this.animateShow(),
                 this.animateShowLogo(),
@@ -128,8 +128,8 @@ class ProgressIndicator {
                     <circle fill="white" r="${outerRadius}"/>
                     <circle fill="black" r="${this.ringInnerRadius}"/>
                 </mask>
-                    
-                
+
+
             </defs>
             <g>
                 <g transform="translate(${size / 2},${size / 2})" id="loaderIndicator" opacity="1">
@@ -316,14 +316,14 @@ export class Loader {
     capProgressAt: number
     done: Promise<void>
     doneResolve: null | ((value: void | PromiseLike<void>) => void) = null
-    constructor(cfg: Config) {
+    constructor(cfg: Options) {
         this.indicator = new ProgressIndicator(cfg)
         this.totalBytes = 0
         this.receivedBytes = 0
         this.downloadSpeed = 0
         this.lastReceiveTime = performance.now()
         this.initialized = this.indicator.initialized
-        this.capProgressAt = cfg.params.loaderDownloadToInitRatio.value
+        this.capProgressAt = cfg.groups.loader.options.downloadToInitRatio.value
 
         this.done = new Promise(resolve => {
             this.doneResolve = resolve

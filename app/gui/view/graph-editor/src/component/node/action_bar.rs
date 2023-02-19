@@ -95,7 +95,7 @@ impl Icons {
         let visibility = ToggleButton::new();
         let skip = ToggleButton::new();
         display_object.add_child(&visibility);
-        if ARGS.enable_skip_and_freeze {
+        if ARGS.groups.feature_preview.options.skip_and_freeze.value {
             display_object.add_child(&freeze);
             display_object.add_child(&skip);
         }
@@ -198,12 +198,12 @@ impl Model {
         self.icons.set_x(-size.x / 2.0);
 
         self.place_button_in_slot(&self.icons.visibility, 0);
-        if ARGS.enable_skip_and_freeze {
+        if ARGS.groups.feature_preview.options.skip_and_freeze.value {
             self.place_button_in_slot(&self.icons.skip, 1);
             self.place_button_in_slot(&self.icons.freeze, 2);
         }
 
-        let buttons_count = if ARGS.enable_skip_and_freeze {
+        let buttons_count = if ARGS.groups.feature_preview.options.skip_and_freeze.value {
             // Toggle visualization, skip and freeze buttons.
             3
         } else {

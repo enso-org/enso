@@ -15,7 +15,6 @@ use crate::system::web;
 // === Export ===
 // ==============
 
-pub mod args;
 pub mod command;
 pub mod frp;
 pub mod shortcut;
