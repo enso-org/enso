@@ -1,7 +1,6 @@
 /** @file Logging utilities. */
 
 export * from './log/logger'
-export * from './log/task'
 export * from './log/router'
 
 /** Panics with the provided message.
