@@ -2,7 +2,10 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
+import org.enso
 import org.enso.compiler.core.IR
+import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 
@@ -20,6 +23,7 @@ import java.util.logging.Level
 import scala.collection.mutable
 
 class SerializationManager(compiler: Compiler) {
+  import SerializationManager._
 
   /** The debug logging level. */
   private val debugLogLevel = Level.FINE
@@ -86,7 +90,7 @@ class SerializationManager(compiler: Compiler) {
     * @return Future referencing the serialization task. On completion Future will return
     *         `true` if `module` has been successfully serialized, `false` otherwise
     */
-  def serialize(
+  def serializeModule(
     module: Module,
     useGlobalCacheLocations: Boolean
   ): Future[Boolean] = {
@@ -100,7 +104,7 @@ class SerializationManager(compiler: Compiler) {
     )
     duplicatedIr.preorder.foreach(_.passData.prepareForSerialization(compiler))
 
-    val task = doSerialize(
+    val task = doSerializeModule(
       module.getCache,
       duplicatedIr,
       module.getCompilationStage,
@@ -129,6 +133,109 @@ class SerializationManager(compiler: Compiler) {
     }
   }
 
+  def serializeLibraryBindings(
+    library: LibraryName,
+    useGlobalCacheLocations: Boolean
+  ): Future[Boolean] = {
+    logger.log(
+      Level.INFO,
+      s"Requesting serialization for library [$library}] bindings."
+    )
+
+    val task: Callable[Boolean] =
+      doSerializeLibrary(library, useGlobalCacheLocations)
+    if (compiler.context.getEnvironment.isCreateThreadAllowed) {
+      isWaitingForSerialization.synchronized {
+        val future = pool.submit(task)
+        isWaitingForSerialization.put(library.toQualifiedName, future)
+        future
+      }
+    } else {
+      try {
+        CompletableFuture.completedFuture(task.call())
+      } catch {
+        case e: Throwable =>
+          logger.log(
+            debugLogLevel,
+            s"Serialization task failed in module [${library}].",
+            e
+          )
+          CompletableFuture.completedFuture(false)
+      }
+    }
+  }
+
+  def doSerializeLibrary(
+    libraryName: LibraryName,
+    useGlobalCacheLocations: Boolean
+  ): Callable[Boolean] = () => {
+    logger.log(
+      debugLogLevel,
+      s"Running serialization for bindings [$libraryName]."
+    )
+    startSerializing(libraryName.toQualifiedName)
+    val cache = ImportExportCache.Cache(
+      compiler.packageRepository
+        .getModulesForLibrary(libraryName)
+        .map { module =>
+          val ir = module.getIr
+          val bindings = ir.unsafeGetMetadata(
+            BindingAnalysis,
+            "Non-parsed module used in ImportResolver"
+          )
+          val abstractBindings = bindings.prepareForSerialization(compiler)
+          (module.getName, abstractBindings)
+        }
+        .toMap
+    )
+    try {
+      new enso.compiler.ImportExportCache(libraryName)
+        .save(cache, compiler.context, useGlobalCacheLocations)
+        .isDefined
+    } catch {
+      case e: NotSerializableException =>
+        logger.log(
+          Level.SEVERE,
+          s"Could not serialize bindings [$libraryName].",
+          e
+        )
+        throw e
+      case e: Throwable =>
+        logger.log(
+          Level.SEVERE,
+          s"Serialization of bindings `$libraryName` failed: ${e.getMessage}`",
+          e
+        )
+        throw e
+    } finally {
+      finishSerializing(libraryName.toQualifiedName)
+    }
+  }
+
+  def deserializeLibraryBindings(
+    library: LibraryName
+  ): Option[ImportExportCache.Cache] = {
+    if (isWaitingForSerialization(library)) {
+      abort(library)
+      None
+    } else {
+      while (isSerializingLibrary(library)) {
+        Thread.sleep(100)
+      }
+      new ImportExportCache(library).load(compiler.context) match {
+        case result @ Some(_: ImportExportCache.Cache) =>
+          result
+        case _ =>
+          logger.log(
+            Level.FINEST,
+            s"Unable to load a cache for module [${library}]."
+          )
+          None
+      }
+
+    }
+  }
+
   /** Deserializes the requested module from the cache if possible.
     *
     * If the requested module is currently being serialized it will wait for
@@ -146,7 +253,7 @@ class SerializationManager(compiler: Compiler) {
       abort(module)
       None
     } else {
-      while (isSerializing(module)) {
+      while (isSerializingModule(module)) {
         Thread.sleep(100)
       }
 
@@ -193,8 +300,18 @@ class SerializationManager(compiler: Compiler) {
     * @return `true` if `module` is currently being serialized, `false`
     *         otherwise
     */
-  def isSerializing(module: Module): Boolean = {
+  def isSerializingModule(module: Module): Boolean = {
     isSerializing.contains(module.getName)
+  }
+
+  def isSerializingLibrary(library: LibraryName): Boolean = {
+    isSerializing.contains(library.toQualifiedName)
+  }
+
+  private def isWaitingForSerialization(name: QualifiedName): Boolean = {
+    isWaitingForSerialization.synchronized {
+      isWaitingForSerialization.contains(name)
+    }
   }
 
   /** Checks if the provided module is waiting for serialization.
@@ -203,8 +320,26 @@ class SerializationManager(compiler: Compiler) {
     * @return `true` if `module` is waiting for serialization, `false` otherwise
     */
   def isWaitingForSerialization(module: Module): Boolean = {
+    isWaitingForSerialization(module.getName)
+  }
+
+  /** Checks if the provided library's bindings are waiting for serialization.
+    *
+    * @param library the library to check
+    * @return `true` if `library` is waiting for serialization, `false` otherwise
+    */
+  def isWaitingForSerialization(library: LibraryName): Boolean = {
+    isWaitingForSerialization(library.toQualifiedName)
+  }
+
+  def abort(name: QualifiedName): Boolean = {
     isWaitingForSerialization.synchronized {
-      isWaitingForSerialization.contains(module.getName)
+      if (isWaitingForSerialization(name)) {
+        isWaitingForSerialization
+          .remove(name)
+          .map(_.cancel(false))
+          .getOrElse(false)
+      } else false
     }
   }
 
@@ -218,14 +353,20 @@ class SerializationManager(compiler: Compiler) {
     *         otherwise
     */
   def abort(module: Module): Boolean = {
-    isWaitingForSerialization.synchronized {
-      if (isWaitingForSerialization(module)) {
-        isWaitingForSerialization
-          .remove(module.getName)
-          .map(_.cancel(false))
-          .getOrElse(false)
-      } else false
-    }
+    abort(module.getName)
+  }
+
+  /** Requests that serialization of library's bindings be aborted.
+    *
+    * If the library is already in the process of serialization it will not be
+    * aborted.
+    *
+    * @param library the library for which to abort serialization
+    * @return `true` if serialization for `library` was aborted, `false`
+    *         otherwise
+    */
+  def abort(library: LibraryName): Boolean = {
+    abort(library.toQualifiedName)
   }
 
   /** Performs shutdown actions for the serialization manager.
@@ -291,7 +432,7 @@ class SerializationManager(compiler: Compiler) {
     * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
     * @return the task that serialies the provided `ir`
     */
-  private def doSerialize(
+  private def doSerializeModule(
     cache: ModuleCache,
     ir: IR.Module,
     stage: Module.CompilationStage,
@@ -381,4 +522,15 @@ object SerializationManager {
 
   /** The thread keep-alive time in seconds. */
   val threadKeepalive: Long = 3
+
+  implicit class LibraryOps(val libraryName: LibraryName) extends AnyVal {
+    def toQualifiedName: QualifiedName =
+      QualifiedName(List(libraryName.namespace), libraryName.name)
+  }
+
+  implicit class IterableOps[T](val l: Iterable[Option[T]]) extends AnyVal {
+    def toOption: Option[Iterable[T]] = {
+      Some(l.map(_.getOrElse(return None)))
+    }
+  }
 }

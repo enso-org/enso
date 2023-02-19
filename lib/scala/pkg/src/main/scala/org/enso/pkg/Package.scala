@@ -40,6 +40,9 @@ case class Package[F](
   val irCacheDirectory: F = internalDirectory
     .getChild(Package.cacheDirName)
     .getChild(Package.irCacheDirName)
+  val bindingsCacheDirectory: F = internalDirectory
+    .getChild(Package.cacheDirName)
+    .getChild(Package.bindingsCacheDirName)
 
   /** Sets the package name.
     *
@@ -77,6 +80,10 @@ case class Package[F](
     */
   def getIrCacheRootForPackage(ensoVersion: String): F = {
     irCacheDirectory.getChild(ensoVersion)
+  }
+
+  def getBindingsCacheRootForPackage(ensoVersion: String): F = {
+    bindingsCacheDirectory.getChild(ensoVersion)
   }
 
   /** Changes the package name.
@@ -481,4 +488,5 @@ object Package {
   val thumbFileName             = "thumb.png"
   val cacheDirName              = "cache"
   val irCacheDirName            = "ir"
+  val bindingsCacheDirName      = "bindings"
 }

@@ -10,6 +10,7 @@ import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
 import org.enso.interpreter.runtime.{EnsoContext, Module}
+import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.librarymanager.{
   DefaultLibraryProvider,
@@ -30,7 +31,7 @@ import org.enso.text.buffer.Rope
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
-import scala.util.Try
+import scala.util.{Failure, Try, Using}
 
 /** Manages loaded packages and modules. */
 trait PackageRepository {
@@ -113,6 +114,19 @@ trait PackageRepository {
 
   /** Checks if any library with a given namespace has been registered */
   def isNamespaceRegistered(namespace: String): Boolean
+
+  /** Returns a package directory corresponding to the requested library */
+  def getPackageForLibrary(lib: LibraryName): Option[Package[TruffleFile]]
+
+  /** Returns all loaded modules of the requested library */
+  def getModulesForLibrary(libraryName: LibraryName): List[Module]
+
+  /** Returns a deserialized bindings map for the whole library, if available */
+  def getLibraryBindings(
+    libraryName: LibraryName,
+    serializationManager: SerializationManager
+  ): Option[ImportExportCache.Cache]
+
 }
 
 object PackageRepository {
@@ -213,6 +227,11 @@ object PackageRepository {
       collection.mutable.LinkedHashMap(builtinsName -> ComponentGroups.empty)
     }
 
+    /** The mapping between the library and its cached bindings, if already laoded. */
+    private val loadedLibraryBindings
+      : collection.mutable.Map[LibraryName, ImportExportCache.Cache] =
+      collection.mutable.LinkedHashMap()
+
     private def getComponentModules: ListSet[Module] = {
       val modules = for {
         componentGroups <- loadedComponents.values
@@ -293,14 +312,13 @@ object PackageRepository {
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
 
-      val (regularModules, syntheticModulesMetadata) = pkg.listSources
-        .map(srcFile =>
+      val (regularModules, syntheticModulesMetadata) = pkg.listSources.map {
+        srcFile =>
           (
             new Module(srcFile.qualifiedName, pkg, srcFile.file),
             inferSyntheticModules(srcFile)
           )
-        )
-        .unzip
+      }.unzip
 
       regularModules.foreach(registerModule)
 
@@ -641,6 +659,49 @@ object PackageRepository {
 
     override def isNamespaceRegistered(namespace: String): Boolean =
       loadedPackages.keySet.exists(_.namespace == namespace)
+
+    override def getPackageForLibrary(
+      lib: LibraryName
+    ): Option[Package[TruffleFile]] =
+      loadedPackages.get(lib).flatten
+
+    override def getModulesForLibrary(libraryName: LibraryName): List[Module] =
+      getPackageForLibrary(libraryName)
+        .map(pkg => loadedModules.values.filter(_.getPackage == pkg).toList)
+        .getOrElse(Nil)
+
+    override def getLibraryBindings(
+      libraryName: LibraryName,
+      serializationManager: SerializationManager
+    ): Option[ImportExportCache.Cache] = {
+      ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
+        if (!loadedLibraryBindings.contains(libraryName)) {
+          loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
+          serializationManager.deserializeLibraryBindings(libraryName).foreach {
+            cache =>
+              loadedLibraryBindings.addOne((libraryName, cache))
+          }
+        }
+        loadedLibraryBindings.get(libraryName)
+      }
+    }
+
+    private def loadDependencies(pkg: Package[TruffleFile]): Unit = {
+      val manifestFile = fs.getChild(pkg.root, LibraryManifest.filename)
+      readManifest(manifestFile).flatMap(LibraryManifest.fromYaml(_)).foreach {
+        manifest =>
+          manifest.dependencies.foreach(ensurePackageIsLoaded)
+      }
+    }
+
+    private def readManifest(file: TruffleFile): Try[String] = {
+      import scala.jdk.CollectionConverters._
+      if (file.exists())
+        Using(file.newBufferedReader) { reader =>
+          reader.lines().iterator().asScala.mkString("\n")
+        }
+      else Failure(PackageManager.PackageNotFound())
+    }
   }
 
   /** Creates a [[PackageRepository]] for the run.

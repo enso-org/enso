@@ -6,7 +6,8 @@ import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Expression
-import org.enso.compiler.data.CompilerConfig
+
+import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
@@ -107,25 +108,11 @@ class Compiler(
       }
 
       if (irCachingEnabled && !builtins.getModule.wasLoadedFromCache()) {
-        serializationManager.serialize(
+        serializationManager.serializeModule(
           builtins.getModule,
           useGlobalCacheLocations = true // Builtins can't have a local cache.
         )
       }
-    }
-  }
-
-  /** Runs the import resolver on the given module.
-    *
-    * @param module the entry module for import resolution
-    * @return the list of modules imported by `module`
-    */
-  def runImportsResolution(module: Module): List[Module] = {
-    initialize()
-    try {
-      importResolver.mapImports(module)
-    } catch {
-      case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
     }
   }
 
@@ -187,6 +174,10 @@ class Compiler(
               generateCode = false,
               shouldCompileDependencies
             )
+            serializationManager.serializeLibraryBindings(
+              pkg.libraryName,
+              useGlobalCacheLocations = true
+            )
         }
     }
   }
@@ -229,7 +220,10 @@ class Compiler(
         go(pending, compiledModules ++ newCompiled)
       }
 
-    go(modules, List())
+    logger.info("start - run internal: " + modules.map(_.getName))
+    val res = go(modules, List())
+    logger.info("end - run internal")
+    res
   }
 
   private def runCompilerPipeline(
@@ -241,10 +235,11 @@ class Compiler(
     modules.foreach(m => parseModule(m))
 
     var requiredModules = modules.flatMap { module =>
-      val modules = runImportsAndExportsResolution(module)
+      val modules = runImportsAndExportsResolution(module, generateCode)
       if (
         module
-          .wasLoadedFromCache() && modules.exists(!_.wasLoadedFromCache())
+          .wasLoadedFromCache() && modules
+          .exists(m => !m.wasLoadedFromCache() && !m.isSynthetic)
       ) {
         logger.log(
           Compiler.defaultLogLevel,
@@ -252,7 +247,7 @@ class Compiler(
         )
         module.getCache.invalidate(context)
         parseModule(module)
-        runImportsAndExportsResolution(module)
+        runImportsAndExportsResolution(module, generateCode)
       } else {
         modules
       }
@@ -290,7 +285,8 @@ class Compiler(
         s"export resolution."
       )
 
-      requiredModules = modules.flatMap(runImportsAndExportsResolution)
+      requiredModules =
+        modules.flatMap(runImportsAndExportsResolution(_, generateCode))
     }
 
     requiredModules.foreach { module =>
@@ -368,7 +364,10 @@ class Compiler(
           val shouldStoreCache =
             irCachingEnabled && !module.wasLoadedFromCache()
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
-            serializationManager.serialize(module, useGlobalCacheLocations)
+            serializationManager.serializeModule(
+              module,
+              useGlobalCacheLocations
+            )
           }
         } else {
           logger.log(
@@ -389,10 +388,16 @@ class Compiler(
     } else false
   }
 
-  private def runImportsAndExportsResolution(module: Module): List[Module] = {
-    val importedModules =
+  private def runImportsAndExportsResolution(
+    module: Module,
+    bindingsCachingEnabled: Boolean
+  ): List[Module] = {
+    logger.info(
+      s"  Start import/export resolution for s${module.getName} [read-from-cache: ${bindingsCachingEnabled}"
+    )
+    val (importedModules, stubModules) =
       try {
-        importResolver.mapImports(module)
+        importResolver.mapImports(module, bindingsCachingEnabled)
       } catch {
         case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
       }
@@ -401,7 +406,15 @@ class Compiler(
       try { new ExportsResolution().run(importedModules) }
       catch { case e: ExportCycleException => reportCycle(e) }
 
-    requiredModules
+    val parsedStubModules = stubModules.map { module =>
+      ensureParsed(module)
+      module
+    }
+
+    logger.info(
+      s"  End Import/export resolution for ${module.getName} [cached modules: ${stubModules.length}"
+    )
+    requiredModules ++ parsedStubModules
   }
 
   /** Runs the initial passes of the compiler to gather the import statements,
@@ -449,6 +462,20 @@ class Compiler(
     }
 
     uncachedParseModule(module, isGenDocs)
+  }
+
+  /** Retrieve module bindings from cache, if available.
+    *
+    * @param module module which is conssidered
+    * @return module's bindings, if available in libraries' bindings cache
+    */
+  def importExportBindings(module: Module): Option[BindingsMap] = {
+    if (irCachingEnabled && !module.isInteractive) {
+      val libraryName = Option(module.getPackage).map(_.libraryName)
+      libraryName
+        .flatMap(packageRepository.getLibraryBindings(_, serializationManager))
+        .flatMap(_.entries.get(module.getName))
+    } else None
   }
 
   private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {

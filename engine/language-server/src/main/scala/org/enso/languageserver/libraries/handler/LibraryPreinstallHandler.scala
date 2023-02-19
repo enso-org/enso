@@ -223,7 +223,7 @@ class LibraryPreinstallHandler(
         publishedLibraryProvider = config.publishedLibraryCache,
         edition                  = edition,
         preferLocalLibraries     = preferLocalLibraries,
-        versionResolver          = LibraryResolver(config.localLibraryProvider),
+        libraryResolver          = LibraryResolver(config.localLibraryProvider),
         dependencyExtractor      = config.installerConfig.dependencyExtractor
       )
     } yield Tools(installer, dependencyResolver)
