@@ -1,4 +1,4 @@
-/** Table visualization. */
+ /** Table visualization. */
 
 // ============================
 // === Style Initialisation ===
@@ -223,18 +223,22 @@ class TableVisualization extends Visualization {
                 result += '<td class="plaintext">' + to_render + '</td>'
             }
             result += '<tr>'
-            parsedData.indices_header.forEach(addHeader)
+            if (parsedData.indices_header) {
+                parsedData.indices_header.forEach(addHeader)
+            }
             parsedData.header.forEach(addHeader)
             result += '</tr>'
             let rows = 0
             if (parsedData.data.length > 0) {
                 rows = parsedData.data[0].length
-            } else if (parsedData.indices.length > 0) {
+            } else if (parsedData.indices && parsedData.indices.length > 0) {
                 rows = parsedData.indices[0].length
             }
             for (let i = 0; i < rows; ++i) {
                 result += '<tr>'
-                parsedData.indices.forEach(ix => addHeader(ix[i]))
+                if (parsedData.indices) {
+                    parsedData.indices.forEach(ix => addHeader(ix[i]))
+                }
                 parsedData.data.forEach(col => addCell(col[i]))
                 result += '</tr>'
             }
