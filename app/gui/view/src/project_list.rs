@@ -82,10 +82,14 @@ struct Data {
 }
 
 impl Data {
-    fn new(app: &Application) -> Self {
+    fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let display_object = display::object::Instance::new();
         let text = text::Text::new(app);
         display_object.add_child(&text);
+
+        if let Some(text_layer) = text_layer {
+            text.add_to_scene_layer(text_layer);
+        }
         Self { display_object, text }
     }
 
@@ -114,9 +118,9 @@ impl grid_view::Entry for Entry {
     type Model = ImString;
     type Params = ();
 
-    fn new(app: &Application, _text_layer: Option<&Layer>) -> Self {
+    fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let frp = grid_view::entry::EntryFrp::<Self>::new();
-        let data = Data::new(app);
+        let data = Data::new(app, text_layer);
 
         let network = frp.network();
         let input = &frp.private().input;
@@ -222,7 +226,6 @@ impl ProjectList {
         app.display.default_scene.layers.panel.add(&display_object);
         caption.set_content("Open Project");
         caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
-        app.display.default_scene.layers.panel_text.add(&grid);
 
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
