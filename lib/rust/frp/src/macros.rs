@@ -112,10 +112,10 @@ macro_rules! _new_dynamic_network {
 #[macro_export]
 macro_rules! new_bridge_network {
     ([$($($path:ident).*),*] $label:ident $($ts:tt)*) => {
-        let _birdge_network_ = $crate::Network::new(stringify!($label));
-        $crate::extend! { _birdge_network_ $($ts)* }
-        let _birdge_network_ = $crate::BridgeNetwork::from(_birdge_network_);
-        $($($path).*.register_bridge_network(&_birdge_network_);)*
+        let _bridge_network_ = $crate::Network::new(stringify!($label));
+        $crate::extend! { _bridge_network_ $($ts)* }
+        let _bridge_network_ = $crate::BridgeNetwork::from(_bridge_network_);
+        $($($path).*.register_bridge_network(&_bridge_network_);)*
     };
 }
 

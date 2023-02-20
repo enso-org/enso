@@ -2,8 +2,6 @@ package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
-import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
-import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Arrays;

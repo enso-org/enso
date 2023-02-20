@@ -1,8 +1,9 @@
 /** Script that bundles JS client code. */
 
-import path from 'node:path'
+import path, { dirname } from 'node:path'
 import esbuild from 'esbuild'
 import { require_env, require_env_resolved_path } from '../../utils.js'
+import { fileURLToPath } from 'node:url'
 
 // ===================================================
 // === Constants provided through the environment. ===
@@ -17,6 +18,8 @@ const projectManagerInBundlePath = require_env('ENSO_BUILD_PROJECT_MANAGER_IN_BU
 /** Version of the Engine (backend) that is bundled along with this client build. */
 const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION')
 
+export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
+
 // ================
 // === Bundling ===
 // ================
@@ -24,7 +27,7 @@ const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION'
 const bundlerOptions: esbuild.BuildOptions = {
     bundle: true,
     outdir,
-    entryPoints: ['src/index.js', 'src/preload.cjs'],
+    entryPoints: ['src/index.ts', 'src/preload.ts'],
     outbase: 'src',
     format: 'cjs',
     outExtension: { '.js': '.cjs' },

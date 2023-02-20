@@ -21,6 +21,7 @@ import project.Delimited.Quote_Style.Quote_Style
 import project.Excel.Excel_Format.Excel_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
+import project.Excel.Excel_Workbook.Excel_Workbook
 
 export project.Data.Aggregate_Column.Aggregate_Column
 export project.Data.Column.Column
@@ -43,6 +44,7 @@ export project.Delimited.Quote_Style.Quote_Style
 export project.Excel.Excel_Format.Excel_Format
 export project.Excel.Excel_Range.Excel_Range
 export project.Excel.Excel_Section.Excel_Section
+export project.Excel.Excel_Workbook.Excel_Workbook
 
 from project.Delimited.Delimited_Format.Delimited_Format import Delimited
 from project.Excel.Excel_Format.Excel_Format import Excel

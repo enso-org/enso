@@ -46,6 +46,17 @@ type Widget
        - allow_custom: Allow the user to enter a value not in the list?
     Single_Choice values:(Vector Choice) label:(Nothing | Text)=Nothing display:Display=Display.When_Modified allow_custom:Boolean=True
 
+    ## Describes a list editor widget producing a Vector.
+       Items can be dragged around to change the order, or dragged out to be deleted from the Vector.
+
+       Fields:
+       - item_editor: The widget to use for editing the items.
+       - item_default: The default value for new items inserted when the user clicks the `+` button.
+       - label: The placeholder text value.
+         By default, the parameter name is used.
+       - display: The display mode for the parameter.
+    Vector_Editor item_editor:Widget item_default:Text label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
+
     ## Describes a multi value widget.
     Multiple_Choice values:(Vector Choice) label:(Nothing | Text)=Nothing display:Display=Display.When_Modified quote_values:Boolean=False
 
@@ -60,10 +71,6 @@ type Widget
 
     ## Describes a text widget.
     Text_Input label:(Nothing | Text)=Nothing display:Display=Display.When_Modified quote_values:Boolean=True suggestions:(Vector Text)=[]
-
-
-    ## Describes a list editor widget.
-    Vector_Editor item_editor:Widget values:((Vector Choice) | Nothing)=Nothing label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
 
     ## Describes a folder chooser.
     Folder_Browse label:(Nothing | Text)=Nothing display:Display=Display.When_Modified

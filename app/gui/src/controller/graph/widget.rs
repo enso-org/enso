@@ -383,10 +383,9 @@ impl QueryData {
 
     /// Generate visualization metadata for this query.
     fn visualization_metadata(&self) -> Metadata {
-        let relevant_arguments = self.arguments.split_first().map_or_default(|(_self, args)| args);
         let arguments: Vec<Code> = vec![
             Self::escape_visualization_argument(&self.method_name).into(),
-            Self::arg_sequence(relevant_arguments).into(),
+            Self::arg_sequence(&self.arguments).into(),
         ];
 
         let preprocessor = visualization::instance::PreprocessorConfiguration {

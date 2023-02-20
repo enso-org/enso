@@ -35,11 +35,12 @@ pub trait Payload = Default + Clone;
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Node<T> {
-    pub kind:     Kind,
-    pub size:     ByteDiff,
-    pub children: Vec<Child<T>>,
-    pub ast_id:   Option<ast::Id>,
-    pub payload:  T,
+    pub kind:          Kind,
+    pub size:          ByteDiff,
+    pub children:      Vec<Child<T>>,
+    pub ast_id:        Option<ast::Id>,
+    pub parenthesized: bool,
+    pub payload:       T,
 }
 
 impl<T> Deref for Node<T> {
@@ -67,11 +68,12 @@ impl<T: Payload> Node<T> {
     /// Payload mapping utility.
     pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Node<S> {
         let kind = self.kind;
+        let parenthesized = self.parenthesized;
         let size = self.size;
         let children = self.children.into_iter().map(|t| t.map(f)).collect_vec();
         let ast_id = self.ast_id;
         let payload = f(self.payload);
-        Node { kind, size, children, ast_id, payload }
+        Node { kind, parenthesized, size, children, ast_id, payload }
     }
 }
 
@@ -79,8 +81,8 @@ impl<T: Payload> Node<T> {
 
 #[allow(missing_docs)]
 impl<T: Payload> Node<T> {
-    pub fn is_parensed(&self) -> bool {
-        self.kind == Kind::Group
+    pub fn parenthesized(&self) -> bool {
+        self.parenthesized
     }
     pub fn is_root(&self) -> bool {
         self.kind.is_root()
@@ -745,10 +747,10 @@ mod test {
 
         let tree: SpanTree = TreeBuilder::new(7)
             .add_leaf(0, 1, node::Kind::this(), vec![LeftOperand])
-            .add_leaf(1, 1, node::Kind::operation(), vec![Operator])
+            .add_leaf(1, 1, node::Kind::Operation, vec![Operator])
             .add_child(2, 5, node::Kind::argument(), vec![RightOperand])
             .add_leaf(0, 2, node::Kind::this(), vec![LeftOperand])
-            .add_leaf(3, 1, node::Kind::operation(), vec![Operator])
+            .add_leaf(3, 1, node::Kind::Operation, vec![Operator])
             .add_leaf(4, 1, node::Kind::argument(), vec![RightOperand])
             .done()
             .build();
@@ -804,9 +806,9 @@ mod test {
         let tree: SpanTree = TreeBuilder::new(7)
             .add_leaf(0, 1, node::Kind::this(), vec![LeftOperand])
             .add_empty_child(1, InsertionPointType::AfterTarget)
-            .add_leaf(1, 1, node::Kind::operation(), vec![Operator])
+            .add_leaf(1, 1, node::Kind::Operation, vec![Operator])
             .add_child(2, 5, node::Kind::argument(), vec![RightOperand])
-            .add_leaf(0, 3, node::Kind::operation(), vec![Func])
+            .add_leaf(0, 3, node::Kind::Operation, vec![Func])
             .add_leaf(3, 1, node::Kind::this(), vec![Arg])
             .done()
             .build();
@@ -835,10 +837,10 @@ mod test {
         // An example with single call and expected arguments.
         // See also `generate::test::generating_span_tree_for_unfinished_call`
         let tree: SpanTree = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::Chained, ast::crumbs::Crumbs::default())
-            .add_child(0, 8, node::Kind::operation(), ast::crumbs::Crumbs::default())
+            .add_child(0, 8, node::Kind::chained(), ast::crumbs::Crumbs::default())
+            .add_child(0, 8, node::Kind::Operation, ast::crumbs::Crumbs::default())
             .add_leaf(0, 4, node::Kind::this(), LeftOperand)
-            .add_leaf(4, 1, node::Kind::operation(), Operator)
+            .add_leaf(4, 1, node::Kind::Operation, Operator)
             .add_leaf(5, 3, node::Kind::argument(), RightOperand)
             .done()
             .add_empty_child(8, InsertionPointType::ExpectedArgument(0))

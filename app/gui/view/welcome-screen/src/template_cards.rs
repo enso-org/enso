@@ -36,7 +36,7 @@ struct CardDefinition {
 
 const CARD_SPREADSHEETS: CardDefinition = CardDefinition {
     class:                crate::css_class::CARD_SPREADSHEETS,
-    background_image_url: Some("/assets/spreadsheets.png"),
+    background_image_url: Some("/spreadsheets.png"),
     header:               "Combine spreadsheets",
     content:              "Glue multiple spreadsheets together to analyse all your data at once.",
     template:             "orders",
