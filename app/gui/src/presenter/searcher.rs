@@ -355,9 +355,7 @@ impl Searcher {
                 bool(&action_list_loaded, &model.view.toggle_private_component_browser_entries_visibility);
             reloading_action_list <- reloading_action_list.on_change();
             reloading_action_list_done <- reloading_action_list.on_false();
-            searcher_input_on_visibility_toggle <-
-                model.view.searcher_input_changed.sample(&reloading_action_list_done);
-            eval searcher_input_on_visibility_toggle ((expr) model.input_changed(expr));
+            eval_ reloading_action_list_done (model.controller.update_filtering());
         }
 
         match model.view.searcher() {

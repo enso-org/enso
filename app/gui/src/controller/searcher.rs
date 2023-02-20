@@ -738,15 +738,21 @@ impl Searcher {
             debug!("Reloading list.");
             self.reload_list();
         } else {
-            let data = self.data.borrow();
-            data.components.update_filtering(&data.input.pattern);
-            if let Actions::Loaded { list } = &data.actions {
-                debug!("Update filtering.");
-                list.update_filtering(&data.input.pattern);
-                executor::global::spawn(self.notifier.publish(Notification::NewActionList));
-            }
+            self.update_filtering();
         }
         Ok(())
+    }
+
+    /// Update the component and action lists filtering based on the searcher's input pattern.
+    #[profile(Debug)]
+    pub fn update_filtering(&self) {
+        let data = self.data.borrow();
+        data.components.update_filtering(&data.input.pattern);
+        if let Actions::Loaded { list } = &data.actions {
+            debug!("Update filtering.");
+            list.update_filtering(&data.input.pattern);
+            executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+        }
     }
 
     fn this_var(&self) -> Option<&str> {
