@@ -125,7 +125,7 @@ trait PackageRepository {
   def getLibraryBindings(
     libraryName: LibraryName,
     serializationManager: SerializationManager
-  ): Option[ImportExportCache.Cache]
+  ): Option[ImportExportCache.CacheBindings]
 
 }
 
@@ -229,7 +229,7 @@ object PackageRepository {
 
     /** The mapping between the library and its cached bindings, if already laoded. */
     private val loadedLibraryBindings
-      : collection.mutable.Map[LibraryName, ImportExportCache.Cache] =
+      : collection.mutable.Map[LibraryName, ImportExportCache.CacheBindings] =
       collection.mutable.LinkedHashMap()
 
     private def getComponentModules: ListSet[Module] = {
@@ -673,7 +673,7 @@ object PackageRepository {
     override def getLibraryBindings(
       libraryName: LibraryName,
       serializationManager: SerializationManager
-    ): Option[ImportExportCache.Cache] = {
+    ): Option[ImportExportCache.CacheBindings] = {
       ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
         if (!loadedLibraryBindings.contains(libraryName)) {
           loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))

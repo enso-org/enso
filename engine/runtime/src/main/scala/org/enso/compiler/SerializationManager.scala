@@ -174,7 +174,7 @@ class SerializationManager(compiler: Compiler) {
       s"Running serialization for bindings [$libraryName]."
     )
     startSerializing(libraryName.toQualifiedName)
-    val cache = ImportExportCache.Cache(
+    val cache = ImportExportCache.CacheBindings(
       compiler.packageRepository
         .getModulesForLibrary(libraryName)
         .map { module =>
@@ -214,7 +214,7 @@ class SerializationManager(compiler: Compiler) {
 
   def deserializeLibraryBindings(
     library: LibraryName
-  ): Option[ImportExportCache.Cache] = {
+  ): Option[ImportExportCache.CacheBindings] = {
     if (isWaitingForSerialization(library)) {
       abort(library)
       None
@@ -223,7 +223,7 @@ class SerializationManager(compiler: Compiler) {
         Thread.sleep(100)
       }
       new ImportExportCache(library).load(compiler.context) match {
-        case result @ Some(_: ImportExportCache.Cache) =>
+        case result @ Some(_: ImportExportCache.CacheBindings) =>
           result
         case _ =>
           logger.log(
