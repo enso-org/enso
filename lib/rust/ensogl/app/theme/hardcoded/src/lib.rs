@@ -370,10 +370,11 @@ define_themes! { [light:0, dark:1]
         }
         project_list {
             width      = 202.0 , 202.0;
-            height     = 420.0, 420.0;
+            height     = 428.0, 428.0;
             background = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
             shadow_extent = 10.0, 10.0;
             corners_radius = 16.0, 16.0;
+            paddings = 4.0, 4.0;
             bar {
                 height = 45.0, 45.0;
                 border_size = 1.0, 1.0;
@@ -388,7 +389,7 @@ define_themes! { [light:0, dark:1]
                 height = 25.0, 25.0;
                 corners_radius = application::project_list::corners_radius, application::project_list::corners_radius;
                 selection_color = Rgba::transparent(), Rgba::transparent();
-                hover_color = Rgba(1.0, 1.0, 1.0, 0.1), Rgba(1.0, 1.0, 1.0, 0.1);
+                hover_color = Rgba(0.906,0.914,0.922,1.0), Rgba(0.906,0.914,0.922,1.0);
                 text {
                     padding_left = 10.0, 10.0;
                     padding_bottom = 7.0, 7.0;

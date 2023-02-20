@@ -33,6 +33,7 @@ pub struct Style {
     height:          f32,
     shadow_extent:   f32,
     corners_radius:  f32,
+    paddings:        f32,
     #[theme_path = "theme::entry::height"]
     entry_height:    f32,
     #[theme_path = "theme::bar::height"]
@@ -244,26 +245,30 @@ impl ProjectList {
             label_size <- style.update.map(|s| s.bar_label_size);
             corners_radius <- style.update.map(|s| s.corners_radius);
             entry_height <- style.update.map(|s| s.entry_height);
+            paddings <- style.update.map(|s| s.paddings);
             content_size <- all_with3(&width, &height, &init, |w,h,()| Vector2(*w,*h));
             size <- all_with3(&width, &height, &shadow_extent, |w, h, s|
                 Vector2(w + s * 2.0, h + s * 2.0)
             );
-            grid_size <- all_with(&content_size, &bar_height, |s, h| s - Vector2(0.0, *h));
+            grid_size <- all_with3(&content_size, &bar_height, &paddings,
+                |s, h, p| s - Vector2(0.0, *h) - Vector2(*p * 2.0, *p * 2.0)
+            );
+            grid_width <- grid_size.map(|s| s.x);
             caption_xy <- all_with3(&width,&height,&label_padding,
                 |w,h,p| Vector2(-*w / 2.0 + *p, *h / 2.0 - p)
             );
             eval caption_xy ((xy) caption.set_xy(*xy));
             eval label_color((color) caption.set_property_default(color));
             eval label_size((size)  caption.set_property_default(text::Size(*size)));
-            _eval <- all_with(&width, &entry_height,
+            _eval <- all_with(&grid_width, &entry_height,
                 f!((w, h) grid.set_entries_size(Vector2(*w, *h)))
             );
             eval size((size) background.set_size(*size););
             eval grid_size((size) grid.scroll_frp().resize(*size));
             eval corners_radius((r) grid.scroll_frp().set_corner_radius_bottom_left(*r));
             eval corners_radius((r) grid.scroll_frp().set_corner_radius_bottom_right(*r));
-            grid_x <- content_size.map(|size| -size.x / 2.0);
-            grid_y <- all_with(&content_size, &bar_height, |s, h| s.y / 2.0 - *h);
+            grid_x <- grid_width.map(|width| -width / 2.0);
+            grid_y <- all_with3(&content_size, &bar_height, &paddings, |s,h,p| s.y / 2.0 - *h - *p);
             _eval <- all_with(&grid_x, &grid_y, f!((x, y) grid.set_xy(Vector2(*x, *y))));
         }
         style.init.emit(());

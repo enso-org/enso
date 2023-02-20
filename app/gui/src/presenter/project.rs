@@ -312,8 +312,10 @@ impl Project {
                 let rows = model.available_projects.borrow().len();
                 (rows, cols)
             }));
-            entry_model <- project_list.grid.model_for_entry_needed.map(f!([model]((row, _)) {
-                model.available_projects.borrow().get(*row).map(|(name, _)| (*row, 0, name.clone_ref()))
+            entry_model <- project_list.grid.model_for_entry_needed.map(f!([model]((row, col)) {
+                let projects = model.available_projects.borrow();
+                let project = projects.get(*row);
+                project.map(|(name, _)| (*row, *col, name.clone_ref()))
             })).filter_map(|t| t.clone());
             project_list.grid.model_for_entry <+ entry_model;
 
