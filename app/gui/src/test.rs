@@ -432,8 +432,10 @@ pub fn assert_call_info(
     entry: &model::suggestion_database::Entry,
 ) {
     assert_eq!(info.parameters.len(), entry.arguments.len());
+    let parser = parser::Parser::new();
     for (encountered, expected) in info.parameters.iter().zip(entry.arguments.iter()) {
-        let expected_info = model::suggestion_database::entry::to_span_tree_param(expected);
+        let expected_info =
+            model::suggestion_database::entry::to_span_tree_param(expected, &parser);
         assert_eq!(encountered, &expected_info);
     }
 }

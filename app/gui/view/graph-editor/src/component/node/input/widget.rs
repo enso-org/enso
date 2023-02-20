@@ -544,7 +544,7 @@ impl LazyDropdown {
 }
 
 fn entry_for_current_value(
-    all_entries: &Vec<Entry>,
+    all_entries: &[Entry],
     current_value: &Option<ImString>,
 ) -> Option<Entry> {
     let current_value = current_value.clone()?;
@@ -553,10 +553,10 @@ fn entry_for_current_value(
         // Handle parentheses in current value. Entries with parenthesized expressions will match if
         // they start with the same expression as the current value. That way it is still matched
         // once extra arguments are added to the nested function call.
-        if current_value.starts_with("(") {
-            let current_value = current_value.trim_start_matches("(").trim_end_matches(")");
+        if current_value.starts_with('(') {
+            let current_value = current_value.trim_start_matches('(').trim_end_matches(')');
             all_entries.iter().find(|entry| {
-                let trimmed_value = entry.value.trim_start_matches("(").trim_end_matches(")");
+                let trimmed_value = entry.value.trim_start_matches('(').trim_end_matches(')');
                 current_value.starts_with(trimmed_value)
             })
         } else {

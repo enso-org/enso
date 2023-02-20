@@ -86,11 +86,12 @@ fn span_tree_args() {
         args.nth(n).and_then(|node| node.argument_info())
     };
 
+    let parser = executed_graph.parser();
     let expected_this_param =
-        model::suggestion_database::entry::to_span_tree_param(&entry.arguments[0])
+        model::suggestion_database::entry::to_span_tree_param(&entry.arguments[0], &parser)
             .with_call_id(Some(id));
     let expected_arg1_param =
-        model::suggestion_database::entry::to_span_tree_param(&entry.arguments[1])
+        model::suggestion_database::entry::to_span_tree_param(&entry.arguments[1], &parser)
             .with_call_id(Some(id));
 
     // === Method notation, without prefix application ===
