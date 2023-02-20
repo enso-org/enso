@@ -126,6 +126,10 @@ spec =
             contents_2 = File.new file . read_bytes
             contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
+        Test.specify "no parent of dot implies nothing" <|
+            no_parent = (File.new '.').parent
+            no_parent.is_nothing . should_be_true
+
     Test.group "read_text" <|
         Test.specify "should allow reading a UTF-8 file" <|
             contents = sample_file.read_text
