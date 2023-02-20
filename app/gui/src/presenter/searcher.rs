@@ -347,12 +347,12 @@ impl Searcher {
             action_list_changed <- source::<()>();
             select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
 
-            eval_ model.view.toggle_private_component_browser_entries_visibility (model.controller.reload_list());
+            eval_ model.view.toggle_component_browser_private_entries_visibility (model.controller.reload_list());
             action_list_loaded <-
                 action_list_changed.map(f_!([model] !model.controller.actions().is_loading()));
             action_list_loaded <- action_list_loaded.on_true();
             reloading_action_list <-
-                bool(&action_list_loaded, &model.view.toggle_private_component_browser_entries_visibility);
+                bool(&action_list_loaded, &model.view.toggle_component_browser_private_entries_visibility);
             reloading_action_list <- reloading_action_list.on_change();
             reloading_action_list_done <- reloading_action_list.on_false();
             eval_ reloading_action_list_done (model.controller.update_filtering());
@@ -378,8 +378,10 @@ impl Searcher {
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
                     selected_entry_changed <- entry_selected.on_change().constant(());
-                    grid.unhover_element <+
-                        any2(&selected_entry_changed, &model.view.toggle_private_component_browser_entries_visibility);
+                    grid.unhover_element <+ any2(
+                        &selected_entry_changed,
+                        &model.view.toggle_component_browser_private_entries_visibility,
+                    );
                     hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
                         match (h, s) {
                             (Some(h), Some(s)) => h != s,

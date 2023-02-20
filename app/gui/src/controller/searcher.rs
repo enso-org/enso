@@ -1306,7 +1306,7 @@ impl Searcher {
             &self.database,
             module_name.as_ref(),
             &*favorites,
-            self.ide.are_private_component_browser_entries_visible(),
+            self.ide.are_component_browser_private_entries_visible(),
         );
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
@@ -1795,7 +1795,7 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            ide.expect_are_private_component_browser_entries_visible().returning_st(|| false);
+            ide.expect_are_component_browser_private_entries_visible().returning_st(|| false);
             let node_metadata_guard = default();
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {

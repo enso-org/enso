@@ -44,7 +44,7 @@ pub struct Handle {
     status_notifications: StatusNotificationPublisher,
     parser: Parser,
     notifications: notification::Publisher<Notification>,
-    private_component_browser_entries_visibility_flag: Rc<Cell<bool>>,
+    component_browser_private_entries_visibility_flag: Rc<Cell<bool>>,
 }
 
 impl Handle {
@@ -72,14 +72,14 @@ impl Handle {
         let status_notifications = default();
         let parser = Parser::new();
         let notifications = default();
-        let private_component_browser_entries_visibility_flag = default();
+        let component_browser_private_entries_visibility_flag = default();
         Self {
             current_project,
             project_manager,
             status_notifications,
             parser,
             notifications,
-            private_component_browser_entries_visibility_flag,
+            component_browser_private_entries_visibility_flag,
         }
     }
 
@@ -116,13 +116,13 @@ impl API for Handle {
         Ok(self)
     }
 
-    fn are_private_component_browser_entries_visible(&self) -> bool {
-        self.private_component_browser_entries_visibility_flag.get()
+    fn are_component_browser_private_entries_visible(&self) -> bool {
+        self.component_browser_private_entries_visibility_flag.get()
     }
 
-    fn set_private_component_browser_entries_visibility(&self, visibility: bool) {
-        debug!("Setting private component browser entries visibility to {visibility}.");
-        self.private_component_browser_entries_visibility_flag.set(visibility);
+    fn set_component_browser_private_entries_visibility(&self, visibility: bool) {
+        debug!("Setting the visibility of private entries in the component browser to {visibility}.");
+        self.component_browser_private_entries_visibility_flag.set(visibility);
     }
 }
 

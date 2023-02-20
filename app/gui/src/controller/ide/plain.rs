@@ -40,7 +40,7 @@ pub struct Handle {
     pub status_notifications: StatusNotificationPublisher,
     pub parser: Parser,
     pub project: model::Project,
-    private_component_browser_entries_visibility_flag: Rc<Cell<bool>>,
+    component_browser_private_entries_visibility_flag: Rc<Cell<bool>>,
 }
 
 impl Handle {
@@ -48,12 +48,12 @@ impl Handle {
     pub fn new(project: model::Project) -> Self {
         let status_notifications = default();
         let parser = Parser::new();
-        let private_component_browser_entries_visibility_flag = default();
+        let component_browser_private_entries_visibility_flag = default();
         Self {
             status_notifications,
             parser,
             project,
-            private_component_browser_entries_visibility_flag,
+            component_browser_private_entries_visibility_flag,
         }
     }
 
@@ -81,12 +81,12 @@ impl Handle {
         .await?;
         let status_notifications = default();
         let parser = Parser::new();
-        let private_component_browser_entries_visibility_flag = default();
+        let component_browser_private_entries_visibility_flag = default();
         Ok(Self {
             status_notifications,
             parser,
             project,
-            private_component_browser_entries_visibility_flag,
+            component_browser_private_entries_visibility_flag,
         })
     }
 }
@@ -110,12 +110,12 @@ impl controller::ide::API for Handle {
         Err(ProjectOperationsNotSupported.into())
     }
 
-    fn are_private_component_browser_entries_visible(&self) -> bool {
-        self.private_component_browser_entries_visibility_flag.get()
+    fn are_component_browser_private_entries_visible(&self) -> bool {
+        self.component_browser_private_entries_visibility_flag.get()
     }
 
-    fn set_private_component_browser_entries_visibility(&self, visibility: bool) {
+    fn set_component_browser_private_entries_visibility(&self, visibility: bool) {
         debug!("Setting private component browser entries visibility to {visibility}.");
-        self.private_component_browser_entries_visibility_flag.set(visibility);
+        self.component_browser_private_entries_visibility_flag.set(visibility);
     }
 }
