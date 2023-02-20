@@ -1011,6 +1011,7 @@ impl Searcher {
     ) -> component::List {
         let favorites = self.graph.component_groups();
         let module_name = self.module_qualified_name();
+        error!("Module name: {module_name}");
         let mut builder = component_list_builder_with_favorites(
             &self.database,
             module_name.as_ref(),
