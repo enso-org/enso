@@ -9,7 +9,6 @@ import project.Error.No_Such_Key.No_Such_Key
 from project.Data.Boolean import Boolean, True, False
 from project import Error, Nothing, Any, Panic
 
-
 ## A key-value store. It is possible to use any type as keys and values and mix them in
    one Map. Keys are checked for equality based on their hash code and `==` operator, which
    is both an internal part of Enso. Enso is capable of computing a hash code, and checking
@@ -357,4 +356,3 @@ type Map key value
     ## PRIVATE
     get_builtin : Any -> Any -> Any
     get_builtin self key ~if_missing = @Builtin_Method "Map.get_builtin"
-
