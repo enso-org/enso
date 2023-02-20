@@ -228,6 +228,7 @@ impl Navigator {
             section_count <- set_namespace_section_count.map(
                 |&n: &usize| n + MIN_BOTTOM_BUTTONS_COUNT
             );
+            section_count <- section_count.on_change();
             bottom_buttons_shape <- section_count.map(|n| (*n, 1));
             bottom_buttons_params <- all2(&section_count, &style);
             bottom_buttons_viewport <- bottom_buttons_params.map(get_bottom_buttons_viewport);
