@@ -40,7 +40,7 @@ pub struct Handle {
     pub status_notifications: StatusNotificationPublisher,
     pub parser: Parser,
     pub project: model::Project,
-    private_cb_entries_visibility_flag: Rc<Cell<bool>>,
+    private_component_browser_entries_visibility_flag: Rc<Cell<bool>>,
 }
 
 impl Handle {
@@ -48,8 +48,13 @@ impl Handle {
     pub fn new(project: model::Project) -> Self {
         let status_notifications = default();
         let parser = Parser::new();
-        let private_cb_entries_visibility_flag = default();
-        Self { status_notifications, parser, project, private_cb_entries_visibility_flag }
+        let private_component_browser_entries_visibility_flag = default();
+        Self {
+            status_notifications,
+            parser,
+            project,
+            private_component_browser_entries_visibility_flag,
+        }
     }
 
     /// Create IDE Controller from Language Server endpoints, describing the opened project.
@@ -76,8 +81,13 @@ impl Handle {
         .await?;
         let status_notifications = default();
         let parser = Parser::new();
-        let private_cb_entries_visibility_flag = default();
-        Ok(Self { status_notifications, parser, project, private_cb_entries_visibility_flag })
+        let private_component_browser_entries_visibility_flag = default();
+        Ok(Self {
+            status_notifications,
+            parser,
+            project,
+            private_component_browser_entries_visibility_flag,
+        })
     }
 }
 
@@ -100,12 +110,12 @@ impl controller::ide::API for Handle {
         Err(ProjectOperationsNotSupported.into())
     }
 
-    fn private_cb_entries_visibility(&self) -> bool {
-        self.private_cb_entries_visibility_flag.get()
+    fn are_private_component_browser_entries_visibile(&self) -> bool {
+        self.private_component_browser_entries_visibility_flag.get()
     }
 
-    fn set_private_cb_entries_visibility(&self, visibility: bool) {
+    fn set_private_component_browser_entries_visibility(&self, visibility: bool) {
         debug!("Setting private component browser entries visibility to {visibility}.");
-        self.private_cb_entries_visibility_flag.set(visibility);
+        self.private_component_browser_entries_visibility_flag.set(visibility);
     }
 }

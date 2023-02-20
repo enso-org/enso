@@ -180,9 +180,9 @@ impl Model {
         })
     }
 
-    fn toggle_private_cb_entries_visibility(&self) {
-        let visibility = self.ide_controller.private_cb_entries_visibility();
-        self.ide_controller.set_private_cb_entries_visibility(!visibility);
+    fn toggle_private_component_browser_entries_visibility(&self) {
+        let visibility = self.ide_controller.are_private_component_browser_entries_visibile();
+        self.ide_controller.set_private_component_browser_entries_visibility(!visibility);
     }
 
     fn restore_project_snapshot(&self) {
@@ -287,8 +287,8 @@ impl Project {
             eval_ view.save_project_snapshot(model.save_project_snapshot());
             eval_ view.restore_project_snapshot(model.restore_project_snapshot());
 
-            eval_ view.toggle_private_cb_entries_visibility(
-                model.toggle_private_cb_entries_visibility()
+            eval_ view.toggle_private_component_browser_entries_visibility(
+                model.toggle_private_component_browser_entries_visibility()
             );
 
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());

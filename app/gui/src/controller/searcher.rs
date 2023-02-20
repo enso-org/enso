@@ -1296,10 +1296,11 @@ impl Searcher {
     ) -> component::List {
         let favorites = self.graph.component_groups();
         let module_name = self.module_qualified_name();
-        let private_entries_visibility = match self.ide.private_cb_entries_visibility() {
-            true => PrivateEntriesVisibility::Show,
-            false => PrivateEntriesVisibility::Hide,
-        };
+        let private_entries_visibility =
+            match self.ide.are_private_component_browser_entries_visibile() {
+                true => PrivateEntriesVisibility::Show,
+                false => PrivateEntriesVisibility::Hide,
+            };
         let mut builder = component_list_builder_with_favorites(
             &self.database,
             module_name.as_ref(),
@@ -1797,7 +1798,7 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            ide.expect_private_cb_entries_visibility().returning_st(|| false);
+            ide.expect_private_component_browser_entries_visibility().returning_st(|| false);
             let node_metadata_guard = default();
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
