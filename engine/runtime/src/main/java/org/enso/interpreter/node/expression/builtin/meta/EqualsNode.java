@@ -196,6 +196,7 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
+  @TruffleBoundary
   boolean equalsBigIntLong(EnsoBigInteger self, long other) {
     if (BigIntegerOps.fitsInLong(self.getValue())) {
       return self.getValue().compareTo(BigInteger.valueOf(other)) == 0;
@@ -215,6 +216,7 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
+  @TruffleBoundary
   boolean equalsLongBigInt(long self, EnsoBigInteger other) {
     if (BigIntegerOps.fitsInLong(other.getValue())) {
       return BigInteger.valueOf(self).compareTo(other.getValue()) == 0;
