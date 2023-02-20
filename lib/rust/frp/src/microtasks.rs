@@ -11,19 +11,30 @@ use enso_web::JsEventHandler;
 use enso_web::JsValue;
 use enso_web::Promise;
 
+
+
+/// =================
+/// === Constants ===
+/// =================
+
+/// Maximum number of times a new microtask can be scheduled from within previously scheduled
+/// microtask handler. A safety mechanism to prevent infinite loops. See [`next_tick`] for more
+/// information.
 const MAX_RESURSIVE_MICROTASKS: usize = 1000;
 
-thread_local! {
-    static SCHEDULER: Scheduler = Scheduler::new();
-}
+
+
+/// =================
+/// === next_tick ===
+/// =================
 
 /// Schedules a callback for evaluation during next microtask. This is useful for scheduling tasks
 /// that should be performed right after current JS event loop iteration, but before animation
 /// frame. All tasks scheduled with this function will be performed in the same order as they were
-/// scheduled. Further microtasks are scheduled in the same render loop as long as `next_microtask`
-/// is recursively called within the scheduled task, up to a safety limit of 1000. If the limit is
-/// reached, an error will be raised and the scheduled tasks will be scheduled after next animation
-/// frame.
+/// scheduled. Further microtasks are scheduled in the same render loop as long as `next_tick`
+/// is recursively called within the scheduled task, up to a safety limit defined by
+/// [`MAX_RESURSIVE_MICROTASKS`]. If the limit is reached, an error will be raised and further tasks
+/// will be scheduled after next animation frame.
 pub fn next_tick(f: impl FnOnce() + 'static) -> callback::Handle {
     SCHEDULER.with(|schedule| schedule.add(f))
 }
@@ -32,13 +43,28 @@ pub fn next_tick(f: impl FnOnce() + 'static) -> callback::Handle {
 /// that callback calls `next_tick` or `next_tick_late` again, those tasks will be scheduled after
 /// the tasks scheduled with this function, but before control is returned to the environment.
 ///
-/// TODO[PG]: Use this to separate render loop callbacks into multiple task stages.
-/// TODO - add task number
+/// TODO[PG]: Use this to delay rendering logic until the microtask queue is empty.
+/// TODO - add task number after review is done
 #[allow(dead_code)]
 pub fn next_tick_late(f: impl FnOnce() + 'static) -> callback::Handle {
     SCHEDULER.with(|schedule| schedule.add_late(f))
 }
 
+
+
+// =================
+// === Scheduler ===
+// =================
+
+thread_local! {
+    static SCHEDULER: Scheduler = Scheduler::new();
+}
+
+/// A microtask scheduler. It is used to schedule tasks that should be performed after current JS
+/// event handler is done, but before handling the next one. All tasks scheduled with
+/// [`Scheduler::add`], will be performed in the same order as they were scheduled. Tasks scheduled
+/// with [`Scheduler::add_late`] will be performed in their schedule order once the standard task
+/// queue is empty.
 struct Scheduler {
     data: Rc<SchedulerData>,
 }

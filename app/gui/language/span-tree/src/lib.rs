@@ -383,3 +383,74 @@ impl<T> SpanTree<T> {
         buffer
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use parser::Parser;
+
+    fn run_test_case(expression_and_expected_label: &[(&str, Option<&str>)]) {
+        let parser = Parser::new();
+        let expressions = expression_and_expected_label.iter().map(|(expr, _)| *expr).collect_vec();
+        let tag_values = TagValue::from_expressions(&expressions, &parser);
+        let expected_values = expression_and_expected_label
+            .iter()
+            .map(|(expression, label)| TagValue {
+                expression: expression.to_string(),
+                label:      label.map(ToString::to_string),
+            })
+            .collect_vec();
+
+        assert_eq!(tag_values, expected_values);
+    }
+
+    #[test]
+    fn tag_value_shortening_single_entry() {
+        run_test_case(&[("Location.Start", Some("Start"))]);
+    }
+
+    #[test]
+    fn tag_value_shortening_single_entry_with_value() {
+        run_test_case(&[("Foo.Bar.Value", Some("Bar.Value"))]);
+    }
+
+    #[test]
+    fn tag_value_shortening_common_prefix() {
+        run_test_case(&[
+            ("Location.Start", Some("Start")),
+            ("Location.End", Some("End")),
+            ("Location.Both", Some("Both")),
+        ]);
+    }
+
+    #[test]
+    fn tag_value_shortening_multiple_elements() {
+        run_test_case(&[
+            ("A.B.C.D", Some("C.D")),
+            ("A.B.C.E", Some("C.E")),
+            ("A.B.F.G.H", Some("F.G.H")),
+        ]);
+    }
+
+    #[test]
+    fn tag_value_shortening_no_prefix() {
+        run_test_case(&[("Foo.Bar", None), ("Foo.Baz", None), ("Baz.Qux", None)]);
+    }
+
+    #[test]
+    fn tag_value_non_infix() {
+        run_test_case(&[("Foo Bar", None), ("Foo Baz", None), ("Baz Qux", None)]);
+    }
+
+
+    #[test]
+    fn tag_value_some_infix() {
+        run_test_case(&[("Foo.Bar", Some("Bar")), ("Foo.Baz", Some("Baz")), ("Baz Qux", None)]);
+    }
+}

@@ -8,13 +8,13 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::microtasks::next_tick;
 use crate::network::*;
 use crate::node::*;
 use crate::prelude::*;
 use enso_generics::traits::*;
 
 use crate::data::watch;
+use crate::microtasks::next_tick;
 use crate::stream;
 use crate::stream::CallStack;
 use crate::stream::EventOutput;
