@@ -399,10 +399,8 @@ impl SuggestionDatabase {
         &self,
         method_pointer: &language_server::MethodPointer,
     ) -> Option<Rc<Entry>> {
-        self.method_pointer_to_id_map
-            .borrow()
-            .get(method_pointer)
-            .and_then(|id| self.entries.borrow().get(id).cloned())
+        let entry_id = self.method_pointer_to_id_map.borrow().get(method_pointer).copied();
+        entry_id.and_then(|id| self.entries.borrow().get(&id).cloned())
     }
 
     /// Get suggestion entry id by method pointer.
