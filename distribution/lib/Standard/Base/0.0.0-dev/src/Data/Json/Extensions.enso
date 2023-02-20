@@ -135,3 +135,12 @@ Locale.to_js_object self =
     b.append ["country", self.country]
     b.append ["variant", self.variant]
     JS_Object.from_pairs b.to_vector
+
+## Converts the given value to a JSON serializable object.
+   For Map, this is serialized as a Vector of Key-Value pairs.
+   
+   Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS Objects because there only strings are accepted as keys.
+Map.to_js_object : JS_Object
+Map.to_js_object self =
+    map_vector = self.to_vector
+    map_vector.map p-> [p.first.to_js_object, p.second.to_js_object]
