@@ -465,6 +465,13 @@ final class SuggestionsHandler(
       updates.foreach(sessionRouter ! _)
       context.become(initialized(name, graph, clients, state))
 
+    case libraryLoaded: Api.LibraryLoaded =>
+      logger.debug(
+        "Loaded Library [{}.{}]",
+        libraryLoaded.namespace,
+        libraryLoaded.name
+      )
+
     case SuggestionUpdatesCompleted =>
       if (state.suggestionUpdatesQueue.nonEmpty) {
         self ! SuggestionUpdatesBatch(state.suggestionUpdatesQueue.removeAll())

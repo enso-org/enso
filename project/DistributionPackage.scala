@@ -173,6 +173,7 @@ object DistributionPackage {
 
     indexStdLib(
       stdLibVersion = targetStdlibVersion,
+      ensoVersion   = ensoVersion,
       stdLibRoot    = distributionRoot / "lib",
       ensoExecutable =
         distributionRoot / "bin" / Platform.executableFileName("enso"),
@@ -182,6 +183,7 @@ object DistributionPackage {
 
   def indexStdLib(
     stdLibVersion: String,
+    ensoVersion: String,
     stdLibRoot: File,
     ensoExecutable: File,
     log: Logger
@@ -194,9 +196,13 @@ object DistributionPackage {
         ensoExecutable.toString,
         "--no-compile-dependencies",
         "--compile",
-        libName.toString
+        (libName / ensoVersion).toString
       )
       log.info(command.mkString(" "))
+      val exitCode = command.!
+      if (exitCode != 0) {
+        throw new RuntimeException(s"Cannot compile $libMajor.$libName.")
+      }
     }
   }
 
