@@ -106,6 +106,8 @@ pub enum Notification {
     NewProjectCreated,
     /// User opened an existing project.
     ProjectOpened,
+    /// User closed the project.
+    ProjectClosed,
 }
 
 
@@ -140,6 +142,9 @@ pub trait ManagingProjectAPI {
 
     /// Open the project with given UUID.
     fn open_project(&self, id: Uuid) -> BoxFuture<FallibleResult>;
+
+    /// Close the currently opened project. Does nothing if no project is open.
+    fn close_project(&self);
 
     /// Open project by name. It makes two calls to the Project Manager: one for listing projects
     /// and then for the project opening.
