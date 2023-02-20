@@ -738,21 +738,15 @@ impl Searcher {
             debug!("Reloading list.");
             self.reload_list();
         } else {
-            self.update_filtering();
+            let data = self.data.borrow();
+            data.components.update_filtering(&data.input.pattern);
+            if let Actions::Loaded { list } = &data.actions {
+                debug!("Update filtering.");
+                list.update_filtering(&data.input.pattern);
+                executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+            }
         }
         Ok(())
-    }
-
-    /// Update the component and action lists filtering based on the searcher's input pattern.
-    #[profile(Debug)]
-    pub fn update_filtering(&self) {
-        let data = self.data.borrow();
-        data.components.update_filtering(&data.input.pattern);
-        if let Actions::Loaded { list } = &data.actions {
-            debug!("Update filtering.");
-            list.update_filtering(&data.input.pattern);
-            executor::global::spawn(self.notifier.publish(Notification::NewActionList));
-        }
     }
 
     fn this_var(&self) -> Option<&str> {
@@ -1228,10 +1222,12 @@ impl Searcher {
                     info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(responses.iter());
                     let mut data = this.data.borrow_mut();
+                    list.update_filtering(&data.input.pattern);
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
                     data.components =
                         this.make_component_list(completions, &this_type, &return_types);
+                    data.components.update_filtering(&data.input.pattern);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
@@ -1240,6 +1236,7 @@ impl Searcher {
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =
                         this.make_component_list(this.database.keys(), &this_type, &return_types);
+                    data.components.update_filtering(&data.input.pattern);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
