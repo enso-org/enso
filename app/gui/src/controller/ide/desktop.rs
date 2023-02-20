@@ -121,7 +121,9 @@ impl API for Handle {
     }
 
     fn set_component_browser_private_entries_visibility(&self, visibility: bool) {
-        debug!("Setting the visibility of private entries in the component browser to {visibility}.");
+        debug!(
+            "Setting the visibility of private entries in the component browser to {visibility}."
+        );
         self.component_browser_private_entries_visibility_flag.set(visibility);
     }
 }
