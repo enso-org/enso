@@ -207,7 +207,7 @@ impl Component {
         };
 
         *self.match_info.borrow_mut() = match subsequence {
-            Some(subsequence) => MatchInfo::Matches { subsequence },
+            Some(subsequence) => MatchInfo::Matches { subsequence, kind: default() },
             None => MatchInfo::DoesNotMatch,
         };
     }

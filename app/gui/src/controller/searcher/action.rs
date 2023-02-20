@@ -156,17 +156,26 @@ pub struct Subcategory {
 // === List Entry ===
 // ==================
 
+/// What value of the entry was best matched to the searcher input.
+#[derive(Clone, Debug, Default)]
+pub enum MatchKind {
+    #[default]
+    Name,
+    Code,
+    Alias,
+}
+
 /// Information how the list entry matches the filtering pattern.
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub enum MatchInfo {
     DoesNotMatch,
-    Matches { subsequence: fuzzly::Subsequence },
+    Matches { subsequence: fuzzly::Subsequence, kind: MatchKind },
 }
 
 impl Default for MatchInfo {
     fn default() -> Self {
-        Self::Matches { subsequence: default() }
+        Self::Matches { subsequence: default(), kind: default() }
     }
 }
 
@@ -180,7 +189,8 @@ impl Ord for MatchInfo {
             (DoesNotMatch, DoesNotMatch) => Equal,
             (DoesNotMatch, Matches { .. }) => Less,
             (Matches { .. }, DoesNotMatch) => Greater,
-            (Matches { subsequence: lhs }, Matches { subsequence: rhs }) => lhs.compare_scores(rhs),
+            (Matches { subsequence: lhs, .. }, Matches { subsequence: rhs, .. }) =>
+                lhs.compare_scores(rhs),
         }
     }
 }
@@ -218,7 +228,7 @@ impl ListEntry {
             fuzzly::find_best_subsequence(self.action.to_string(), pattern, metric)
         });
         self.match_info = match subsequence {
-            Some(subsequence) => MatchInfo::Matches { subsequence },
+            Some(subsequence) => MatchInfo::Matches { subsequence, kind: default() },
             None => MatchInfo::DoesNotMatch,
         };
     }
@@ -455,7 +465,7 @@ impl<'a> CategoryBuilder<'a> {
         let built_list = &self.list_builder.built_list;
         let category = self.category_id;
         built_list.entries.borrow_mut().extend(iter.into_iter().map(|action| {
-            let match_info = MatchInfo::Matches { subsequence: default() };
+            let match_info = MatchInfo::Matches { subsequence: default(), kind: default() };
             ListEntry { category, match_info, action }
         }));
     }
@@ -509,7 +519,8 @@ impl ListWithSearchResultBuilder {
             .borrow()
             .iter()
             .map(|entry| {
-                let match_info = MatchInfo::Matches { subsequence: default() };
+                let match_info =
+                    MatchInfo::Matches { subsequence: default(), kind: default() };
                 let action = entry.action.clone_ref();
                 let category = self.search_result_category;
                 ListEntry { category, match_info, action }
