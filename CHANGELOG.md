@@ -317,6 +317,7 @@
 - [Updated column selector APIs and new `Excel_Workbook` type.][5646]
 - [Moved regex functionality out of `Text.locate` and `Text.locate_all` into
   `Text.match` and `Text.match_all`.][5679]
+- [`File.parent` may return `Nothing`.][5699]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -487,6 +488,7 @@
 [5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
 [5656]: https://github.com/enso-org/enso/pull/5656
+[5699]: https://github.com/enso-org/enso/pull/5699
 
 #### Enso Compiler
 
