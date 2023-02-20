@@ -95,6 +95,9 @@
 - [Improved component browser entry filtering and sorting][5645]. The component
   browser will now provide suggestions matching either the component's label or
   the corresponding code.
+- [Improved argument placeholder resolution in more complex expressions][5656].
+  It is now possible to drop node connections onto missing arguments of chained
+  and nested function calls.
 
 #### EnsoGL (rendering engine)
 
@@ -310,6 +313,8 @@
 - [Updated `Table.set` to new API. New `Column.parse` function and added case
   sensitivity to `Filter_Condition` and column functions.][4097]
 - [Updated column selector APIs and new `Excel_Workbook` type.][5646]
+- [Moved regex functionality out of `Text.locate` and `Text.locate_all` into
+  `Text.match` and `Text.match_all`.][5679]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -478,6 +483,7 @@
 [4072]: https://github.com/enso-org/enso/pull/4072
 [5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
+[5656]: https://github.com/enso-org/enso/pull/5656
 
 #### Enso Compiler
 

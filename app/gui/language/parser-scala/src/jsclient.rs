@@ -32,14 +32,12 @@ impl From<serde_json::error::Error> for Error {
 
 impl From<JsValue> for Error {
     fn from(jsvalue: JsValue) -> Self {
-        Error::ScalaException(format!("{:?}", jsvalue))
+        Error::ScalaException(format!("{jsvalue:?}"))
     }
 }
 
 #[wasm_bindgen(module = "/pkg/scala-parser.js")]
 extern "C" {
-    #[wasm_bindgen(catch)]
-    fn doc_parser_generate_html_source(content: String) -> std::result::Result<String, JsValue>;
     #[wasm_bindgen(catch)]
     fn doc_parser_generate_html_from_doc(content: String) -> std::result::Result<String, JsValue>;
 }
@@ -56,16 +54,8 @@ impl Client {
         Ok(Client {})
     }
 
-    /// Calls JS doc parser to generate HTML from documented Enso code.
-    pub fn generate_html_docs(&self, program: String) -> api::Result<String> {
-        let html_code = || {
-            let html_code = doc_parser_generate_html_source(program)?;
-            Result::Ok(html_code)
-        };
-        Ok(html_code()?)
-    }
-
     /// Calls JS doc parser to generate HTML from pure doc code without Enso's AST.
+    #[profile(Detail)]
     pub fn generate_html_doc_pure(&self, code: String) -> api::Result<String> {
         let html_code = || {
             let html_code = doc_parser_generate_html_from_doc(code)?;

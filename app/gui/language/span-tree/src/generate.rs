@@ -193,10 +193,10 @@ impl<'a> ApplicationBase<'a> {
         ApplicationBase { function_name, call_id, uses_method_notation: false }
     }
 
-    /// Get the list of method prefix arguments expected by this application. Does not include
-    /// `self` parameter when using method notation. Returns `None` when the call info is not
-    /// present in the context or AST doesn't contain enough information to query it.
-    fn known_prefix_arguments(&self, context: &impl Context) -> Option<VecDeque<ArgumentInfo>> {
+    /// Get the list of method arguments expected by this application. Does not include `self`
+    /// parameter when using method notation. Returns `None` when the call info is not present in
+    /// the context or AST doesn't contain enough information to query it.
+    fn known_arguments(&self, context: &impl Context) -> Option<VecDeque<ArgumentInfo>> {
         // If method notation is used, the function name is required to get relevant call info. Do
         // not attempt the call if method name is not available, as the returned data would be not
         // relevant.
@@ -205,15 +205,26 @@ impl<'a> ApplicationBase<'a> {
         }
 
         let invocation_info = context.call_info(self.call_id?, self.function_name.as_deref())?;
+        let self_in_access = !invocation_info.is_constructor
+            && (!invocation_info.called_on_type.unwrap_or(false) || invocation_info.is_static);
+
         let parameters = invocation_info.with_call_id(self.call_id).parameters;
         let mut deque: VecDeque<ArgumentInfo> = parameters.into();
+        let first_argument_name = deque.front().and_then(|arg| arg.name.as_ref());
+        let has_self_argument = first_argument_name.map_or(false, |name| name == node::This::NAME);
 
-        // When a method notation is used, the first received argument is the target. Remove it from
-        // the list of expected prefix arguments.
-        if self.uses_method_notation {
+        // When a method notation is used on non-static invocation, the first `self` argument is
+        // already present the access chain. Remove it from the list of expected prefix arguments.
+        if self.uses_method_notation && has_self_argument && self_in_access {
             deque.pop_front();
         }
         Some(deque)
+    }
+
+    /// Switch the method application to use different expression as call id, but keep the same
+    /// function name and notation.
+    fn set_call_id(&mut self, new_call_id: Option<Id>) {
+        self.call_id = new_call_id;
     }
 
     fn into_owned(self) -> ApplicationBase<'static> {
@@ -241,30 +252,7 @@ fn generate_node_for_ast<T: Payload>(
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
     if let Some(infix) = GeneralizedInfix::try_new(ast) {
-        // Code like `ast.func` or `a+b+c`.
-        let app_base = ApplicationBase::from_infix(&infix);
-        let chain = infix.flatten();
-
-        if app_base.uses_method_notation {
-            // For method call, this is behaving like a prefix with single member. All prefix params
-            // are missing arguments, since there is no prefix application.
-
-            let missing_args = app_base.known_prefix_arguments(context).unwrap_or_default();
-            let arity = missing_args.len();
-            let base_node_kind = if arity == 0 {
-                kind.clone()
-            } else {
-                node::Kind::operation().with_call_id(app_base.call_id).into()
-            };
-
-            let node = chain.generate_node(base_node_kind, context)?;
-            let provided_prefix_arg_count = 0;
-            let args_iter = missing_args.into_iter();
-            Ok(generate_expected_arguments(node, kind, provided_prefix_arg_count, args_iter))
-        } else {
-            // For non-access infix operators, missing arguments are not handled at this level.
-            chain.generate_node(kind, context)
-        }
+        infix.generate_node(kind, context)
     } else {
         match ast.shape() {
             ast::Shape::Prefix(_) =>
@@ -274,13 +262,11 @@ fn generate_node_for_ast<T: Payload>(
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
-                let children = default();
                 let name = ast::identifier::name(ast);
-                let payload = default();
                 if let Some(info) = ast.id.and_then(|id| context.call_info(id, name)) {
                     let node = {
-                        let kind = node::Kind::operation().with_call_id(ast.id).into();
-                        Node { kind, size, children, ast_id, payload }
+                        let kind = node::Kind::Operation;
+                        Node { kind, size, ast_id, ..default() }
                     };
                     // Note that in this place it is impossible that Ast is in form of
                     // `this.method` -- it is covered by the former if arm. As such, we don't
@@ -290,7 +276,7 @@ fn generate_node_for_ast<T: Payload>(
                     let params = info.parameters.into_iter();
                     Ok(generate_expected_arguments(node, kind, provided_prefix_arg_count, params))
                 } else {
-                    Ok(Node { kind, size, children, ast_id, payload })
+                    Ok(Node { kind, size, ast_id, ..default() })
                 }
             }
         }
@@ -300,31 +286,55 @@ fn generate_node_for_ast<T: Payload>(
 
 // === Operators (Sections and Infixes) ===
 
-impl<T: Payload> SpanTreeGenerator<T> for ast::opr::Chain {
+impl<T: Payload> SpanTreeGenerator<T> for GeneralizedInfix {
     fn generate_node(
         &self,
         kind: impl Into<node::Kind>,
         context: &impl Context,
     ) -> FallibleResult<Node<T>> {
-        generate_node_for_opr_chain(self, kind.into(), context)
+        // Code like `ast.func` or `a+b+c`.
+        let chain = self.flatten();
+        let kind = kind.into();
+        let mut app_base = ApplicationBase::from_infix(self);
+        if app_base.uses_method_notation {
+            // This is a standalone method access chain, missing method parameters needs to be
+            // handled here. It is guaranteed that no existing prefix arguments are present, as
+            // method calls inside prefix chains are handled by `generate_node_for_prefix_chain` and
+            // never reach this point.
+            let arguments = app_base.known_arguments(context);
+            let args_resolved = arguments.is_some();
+            let arguments = arguments.unwrap_or_default();
+            let arity = arguments.len();
+            let base_node_kind = if arity == 0 { kind.clone() } else { node::Kind::Operation };
+
+            // When arguments were not resolved, clear the call information. Otherwise it would be
+            // incorrectly assigned to the access chain target span.
+            if !args_resolved {
+                app_base.set_call_id(None);
+            }
+            let node = generate_node_for_opr_chain(chain, base_node_kind, app_base, context)?;
+            let provided_prefix_arg_count = 0;
+            let args_iter = arguments.into_iter();
+            Ok(generate_expected_arguments(node, kind, provided_prefix_arg_count, args_iter))
+        } else {
+            // For non-access infix operators, missing arguments are not handled at this level.
+            generate_node_for_opr_chain(chain, kind, app_base, context)
+        }
     }
 }
 
 fn generate_node_for_opr_chain<T: Payload>(
-    this: &ast::opr::Chain,
+    this: ast::opr::Chain,
     kind: node::Kind,
+    mut app_base: ApplicationBase,
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
-    let is_access = this.operator.name == ast::opr::predefined::ACCESS;
-    let this_call_id =
-        if is_access { kind.call_id() } else { this.args.first().and_then(|elem| elem.infix_id) };
-
     // Removing operands is possible only when chain has at least 3 of them
     // (target and two arguments).
     let removable = this.args.len() >= 2;
     let node_and_offset: FallibleResult<(Node<T>, usize)> = match &this.target {
         Some(target) => {
-            let kind = node::Kind::this().with_removable(removable).with_call_id(this_call_id);
+            let kind = node::Kind::this().with_removable(removable);
             let node = target.arg.generate_node(kind, context)?;
             Ok((node, target.offset))
         }
@@ -349,21 +359,55 @@ fn generate_node_for_opr_chain<T: Payload>(
         if has_target {
             gen.generate_empty_node(InsertionPointType::BeforeTarget);
         }
-        gen.add_node(left_crumbs, node);
+        let node = gen.add_node(left_crumbs, node);
+
+        if app_base.uses_method_notation && is_last {
+            // For method notation, the target of outermost chain element is considered the `self`
+            // argument of the method application.
+            let target_arg_info = ArgumentInfo::this(None, app_base.call_id);
+            node.set_argument_info(target_arg_info);
+        }
+
+        let infix_right_argument_info = if !app_base.uses_method_notation {
+            app_base.set_call_id(elem.infix_id);
+            app_base.known_arguments(context).and_then(|mut infix_args| {
+                // For resolved infix arguments, the arity should always be 2. First always
+                // corresponds to already generated node, and second is the argument that is about
+                // to be generated.
+                if infix_args.len() != 2 {
+                    error!("Infix operator should have arity 2, but got {:?}", infix_args.len());
+                }
+
+                let infix_left_argument_info = infix_args.pop_front();
+                let infix_right_argument_info = infix_args.pop_front();
+
+                if let Some(info) = infix_left_argument_info {
+                    node.set_argument_info(info);
+                }
+                infix_right_argument_info
+            })
+        } else {
+            None
+        };
+
         if has_target {
             gen.generate_empty_node(InsertionPointType::AfterTarget);
         }
         gen.spacing(off);
-        gen.generate_ast_node(opr_ast, node::Kind::operation(), context)?;
+        gen.generate_ast_node(opr_ast, node::Kind::Operation, context)?;
         if let Some(operand) = &elem.operand {
             let arg_crumbs = elem.crumb_to_operand(has_left);
             let arg_ast = Located::new(arg_crumbs, operand.arg.clone_ref());
             gen.spacing(operand.offset);
 
-            let arg_call_id = if is_access { None } else { elem.infix_id };
-            let arg = node::Kind::argument().with_removable(removable).with_call_id(arg_call_id);
-            gen.generate_ast_node(arg_ast, arg, context)?;
+            let argument_kind = node::Kind::argument().with_removable(removable);
+            let argument = gen.generate_ast_node(arg_ast, argument_kind, context)?;
+
+            if let Some(info) = infix_right_argument_info {
+                argument.node.set_argument_info(info);
+            }
         }
+
         gen.generate_empty_node(InsertionPointType::Append);
 
         if this.operator.right_assoc {
@@ -372,11 +416,12 @@ fn generate_node_for_opr_chain<T: Payload>(
 
         Ok((
             Node {
-                kind:     if is_last { kind.clone() } else { node::Kind::Chained },
-                size:     gen.current_offset,
-                children: gen.children,
-                ast_id:   elem.infix_id,
-                payload:  default(),
+                kind:          if is_last { kind.clone() } else { node::Kind::chained().into() },
+                parenthesized: false,
+                size:          gen.current_offset,
+                children:      gen.children,
+                ast_id:        elem.infix_id,
+                payload:       default(),
             },
             elem.offset,
         ))
@@ -403,7 +448,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
     let app_base = ApplicationBase::from_prefix_chain(this);
-    let known_params = app_base.known_prefix_arguments(context);
+    let known_params = app_base.known_arguments(context);
     let uses_method_notation = app_base.uses_method_notation;
     let known_args = known_params.is_some();
     let mut known_params = known_params.unwrap_or_default();
@@ -413,8 +458,17 @@ fn generate_node_for_prefix_chain<T: Payload>(
     use ast::crumbs::PrefixCrumb::*;
     // Removing arguments is possible if there at least two of them
     let removable = this.args.len() >= 2;
-    let node =
-        this.func.generate_node(node::Kind::operation().with_call_id(app_base.call_id), context);
+
+    // When using method notation, expand the infix access chain manually to maintain correct method
+    // application info and avoid generating expected arguments twice. We cannot use the
+    // `generate_node` implementation on `GeneralizedInfix`, because it always treats the
+    // access chain as a method call without any arguments applied.
+    let node = if let Some(infix) = GeneralizedInfix::try_new(&this.func) {
+        generate_node_for_opr_chain(infix.flatten(), node::Kind::Operation, app_base, context)
+    } else {
+        this.func.generate_node(node::Kind::Operation, context)
+    };
+
     let ret = this.args.iter().enumerate().fold(node, |node, (i, arg)| {
         let node = node?;
         let is_first = i == 0;
@@ -441,11 +495,12 @@ fn generate_node_for_prefix_chain<T: Payload>(
             gen.generate_empty_node(InsertionPointType::Append);
         }
         Ok(Node {
-            kind:     if is_last { kind.clone() } else { node::Kind::Chained },
-            size:     gen.current_offset,
-            children: gen.children,
-            ast_id:   arg.prefix_id,
-            payload:  default(),
+            kind:          if is_last { kind.clone() } else { node::Kind::chained().into() },
+            parenthesized: false,
+            size:          gen.current_offset,
+            children:      gen.children,
+            ast_id:        arg.prefix_id,
+            payload:       default(),
         })
     })?;
 
@@ -472,11 +527,12 @@ fn generate_expected_argument<T: Payload>(
     let arg_node = gen.generate_empty_node(InsertionPointType::ExpectedArgument(index));
     arg_node.node.set_argument_info(argument_info);
     Node {
-        kind:     if is_last { kind } else { node::Kind::Chained },
-        size:     gen.current_offset,
-        children: gen.children,
-        ast_id:   None,
-        payload:  default(),
+        kind:          if is_last { kind } else { node::Kind::chained().into() },
+        parenthesized: false,
+        size:          gen.current_offset,
+        children:      gen.children,
+        ast_id:        None,
+        payload:       default(),
     }
 }
 
@@ -501,14 +557,11 @@ fn generate_expected_arguments<T: Payload>(
 
 fn tree_generate_node<T: Payload>(
     tree: &ast::Tree<Ast>,
-    kind: impl Into<node::Kind>,
+    kind: node::Kind,
     context: &impl Context,
     ast_id: Option<Id>,
 ) -> FallibleResult<Node<T>> {
-    let kind = match &tree.type_info {
-        ast::TreeType::Group => node::Kind::Group,
-        _ => kind.into(),
-    };
+    let parenthesized = matches!(tree.type_info, ast::TreeType::Group);
     let mut children = vec![];
     let size;
     if let Some(leaf_info) = &tree.leaf_info {
@@ -527,13 +580,7 @@ fn tree_generate_node<T: Payload>(
                     offset += size;
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
-                    let kind = node::Kind::Argument(node::Argument {
-                        removable:  false,
-                        name:       None,
-                        tp:         None,
-                        call_id:    None,
-                        tag_values: vec![],
-                    });
+                    let kind = node::Kind::argument();
                     let node = node.generate_node(kind, context)?;
                     let child_size = node.size;
                     let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
@@ -545,7 +592,7 @@ fn tree_generate_node<T: Payload>(
         size = offset;
     }
     let payload = default();
-    Ok(Node { kind, size, children, ast_id, payload })
+    Ok(Node { kind, parenthesized, size, children, ast_id, payload })
 }
 
 
@@ -655,9 +702,9 @@ mod test {
             .add_empty_child(0, BeforeTarget)
             .add_leaf(0, 1, node::Kind::this(), InfixCrumb::LeftOperand)
             .add_empty_child(1, AfterTarget)
-            .add_leaf(2, 1, node::Kind::operation(), InfixCrumb::Operator)
+            .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_child(4, 7, node::Kind::argument(), InfixCrumb::RightOperand)
-            .add_leaf(0, 3, node::Kind::operation(), PrefixCrumb::Func)
+            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_empty_child(4, BeforeTarget)
             .add_leaf(4, 3, node::Kind::this(), PrefixCrumb::Arg)
             .add_empty_child(7, Append)
@@ -665,7 +712,7 @@ mod test {
             .add_empty_child(11, Append)
             .done()
             .add_empty_child(11, AfterTarget)
-            .add_leaf(12, 1, node::Kind::operation(), InfixCrumb::Operator)
+            .add_leaf(12, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_leaf(14, 1, node::Kind::argument(), InfixCrumb::RightOperand)
             .add_empty_child(15, Append)
             .build();
@@ -682,20 +729,20 @@ mod test {
         clear_parameter_infos(&mut tree.root);
 
         let expected = TreeBuilder::new(26)
-            .add_child(0, 22, node::Kind::Chained, InfixCrumb::LeftOperand)
-            .add_child(0, 5, node::Kind::Chained, InfixCrumb::LeftOperand)
+            .add_child(0, 22, node::Kind::chained(), InfixCrumb::LeftOperand)
+            .add_child(0, 5, node::Kind::chained(), InfixCrumb::LeftOperand)
             .add_empty_child(0, BeforeTarget)
             .add_leaf(0, 1, node::Kind::this().removable(), InfixCrumb::LeftOperand)
             .add_empty_child(1, AfterTarget)
-            .add_leaf(2, 1, node::Kind::operation(), InfixCrumb::Operator)
+            .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_leaf(4, 1, node::Kind::argument().removable(), InfixCrumb::RightOperand)
             .add_empty_child(5, Append)
             .done()
-            .add_leaf(6, 1, node::Kind::operation(), InfixCrumb::Operator)
+            .add_leaf(6, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_child(8, 14, node::Kind::argument().removable(), InfixCrumb::RightOperand)
-            .add_child(0, 11, node::Kind::Chained, PrefixCrumb::Func)
-            .add_child(0, 7, node::Kind::Chained, PrefixCrumb::Func)
-            .add_leaf(0, 3, node::Kind::operation(), PrefixCrumb::Func)
+            .add_child(0, 11, node::Kind::chained(), PrefixCrumb::Func)
+            .add_child(0, 7, node::Kind::chained(), PrefixCrumb::Func)
+            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_empty_child(4, BeforeTarget)
             .add_leaf(4, 3, node::Kind::this().removable(), PrefixCrumb::Arg)
             .add_empty_child(7, Append)
@@ -708,7 +755,7 @@ mod test {
             .done()
             .add_empty_child(22, Append)
             .done()
-            .add_leaf(23, 1, node::Kind::operation(), InfixCrumb::Operator)
+            .add_leaf(23, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_leaf(25, 1, node::Kind::argument().removable(), InfixCrumb::RightOperand)
             .add_empty_child(26, Append)
             .build();
@@ -727,11 +774,11 @@ mod test {
         let expected = TreeBuilder::new(7)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
-            .add_leaf(1, 2, node::Kind::operation(), InfixCrumb::Operator)
-            .add_child(3, 3, node::Kind::Chained, InfixCrumb::RightOperand)
+            .add_leaf(1, 2, node::Kind::Operation, InfixCrumb::Operator)
+            .add_child(3, 3, node::Kind::chained(), InfixCrumb::RightOperand)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
-            .add_leaf(1, 2, node::Kind::operation(), InfixCrumb::Operator)
+            .add_leaf(1, 2, node::Kind::Operation, InfixCrumb::Operator)
             .add_empty_child(3, AfterTarget)
             .add_leaf(3, 1, node::Kind::this().removable(), InfixCrumb::RightOperand)
             .add_empty_child(4, BeforeTarget)
@@ -750,11 +797,11 @@ mod test {
         clear_parameter_infos(&mut tree.root);
         let expected = TreeBuilder::new(5)
             .add_empty_child(0, Append)
-            .add_leaf(0, 2, node::Kind::operation(), SectionRightCrumb::Opr)
-            .add_child(2, 2, node::Kind::Chained, SectionRightCrumb::Arg)
+            .add_leaf(0, 2, node::Kind::Operation, SectionRightCrumb::Opr)
+            .add_child(2, 2, node::Kind::chained(), SectionRightCrumb::Arg)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), SectionLeftCrumb::Arg)
-            .add_leaf(1, 1, node::Kind::operation(), SectionLeftCrumb::Opr)
+            .add_leaf(1, 1, node::Kind::Operation, SectionLeftCrumb::Opr)
             .add_empty_child(2, BeforeTarget)
             .done()
             .build();
@@ -770,7 +817,7 @@ mod test {
         clear_parameter_infos(&mut tree.root);
 
         let expected = TreeBuilder::new(13)
-            .add_leaf(0, 3, node::Kind::operation(), PrefixCrumb::Func)
+            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_empty_child(4, BeforeTarget)
             .add_leaf(4, 9, node::Kind::this(), PrefixCrumb::Arg)
             .add_empty_child(13, Append)
@@ -807,7 +854,7 @@ mod test {
         let mut id_map = IdMap::default();
         let call_id = id_map.generate(0..3);
         let ast = parser.parse_line_ast_with_id_map("foo", id_map).unwrap();
-        let invocation_info = CalledMethodInfo { parameters: vec![this_param(None)] };
+        let invocation_info = CalledMethodInfo { parameters: vec![this_param(None)], ..default() };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
@@ -815,7 +862,7 @@ mod test {
             sth_else => panic!("There should be 2 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(3)
-            .add_leaf(0, 3, node::Kind::operation(), Crumbs::default())
+            .add_leaf(0, 3, node::Kind::Operation, Crumbs::default())
             .add_empty_child(3, ExpectedArgument(0))
             .build();
         clear_expression_ids(&mut tree.root);
@@ -828,7 +875,7 @@ mod test {
         let mut id_map = IdMap::default();
         let call_id = id_map.generate(0..8);
         let ast = parser.parse_line_ast_with_id_map("foo here", id_map).unwrap();
-        let invocation_info = CalledMethodInfo { parameters: vec![this_param(None)] };
+        let invocation_info = CalledMethodInfo { parameters: vec![this_param(None)], ..default() };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
@@ -836,7 +883,7 @@ mod test {
             sth_else => panic!("There should be 2 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(8)
-            .add_leaf(0, 3, node::Kind::operation(), PrefixCrumb::Func)
+            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_leaf(4, 4, node::Kind::this(), PrefixCrumb::Arg)
             .build();
         clear_expression_ids(&mut tree.root);
@@ -849,8 +896,10 @@ mod test {
         let mut id_map = IdMap::default();
         let call_id = Some(id_map.generate(0..8));
         let ast = parser.parse_line_ast_with_id_map("foo here", id_map).unwrap();
-        let invocation_info =
-            CalledMethodInfo { parameters: vec![this_param(None), param1(None), param2(None)] };
+        let invocation_info = CalledMethodInfo {
+            parameters: vec![this_param(None), param1(None), param2(None)],
+            ..default()
+        };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
@@ -862,9 +911,9 @@ mod test {
             sth_else => panic!("There should be 4 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::Chained, Crumbs::default())
-            .add_child(0, 8, node::Kind::Chained, Crumbs::default())
-            .add_leaf(0, 3, node::Kind::operation(), PrefixCrumb::Func)
+            .add_child(0, 8, node::Kind::chained(), Crumbs::default())
+            .add_child(0, 8, node::Kind::chained(), Crumbs::default())
+            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_leaf(4, 4, node::Kind::this(), PrefixCrumb::Arg)
             .done()
             .add_empty_child(8, ExpectedArgument(1))
@@ -880,8 +929,10 @@ mod test {
         let mut id_map = IdMap::default();
         let call_id = Some(id_map.generate(0..8));
         let ast = parser.parse_line_ast_with_id_map("here.foo", id_map).unwrap();
-        let invocation_info =
-            CalledMethodInfo { parameters: vec![this_param(None), param1(None), param2(None)] };
+        let invocation_info = CalledMethodInfo {
+            parameters: vec![this_param(None), param1(None), param2(None)],
+            ..default()
+        };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
@@ -892,12 +943,12 @@ mod test {
             sth_else => panic!("There should be 8 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::Chained, Crumbs::default())
-            .add_child(0, 8, node::Kind::operation(), Crumbs::default())
+            .add_child(0, 8, node::Kind::chained(), Crumbs::default())
+            .add_child(0, 8, node::Kind::Operation, Crumbs::default())
             .add_empty_child(0, BeforeTarget)
             .add_leaf(0, 4, node::Kind::this(), InfixCrumb::LeftOperand)
             .add_empty_child(4, AfterTarget)
-            .add_leaf(4, 1, node::Kind::operation(), InfixCrumb::Operator)
+            .add_leaf(4, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_leaf(5, 3, node::Kind::argument(), InfixCrumb::RightOperand)
             .add_empty_child(8, Append)
             .done()
