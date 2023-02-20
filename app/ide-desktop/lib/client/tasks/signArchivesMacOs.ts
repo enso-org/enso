@@ -1,18 +1,18 @@
-/**
- This script signs the content of all archives that we have for macOS. For this to work this needs
- to run on macOS with `codesign`, and a JDK installed. `codesign` is needed to sign the files,
- while the JDK is needed for correct packing and unpacking of java archives.
-
- We require this extra step as our dependencies contain files that require us to re-sign jar
- contents that cannot be opened as pure zip archives, but require a java toolchain to extract
- and re-assemble to preserve manifest information. This functionality is not provided by
- `electron-osx-sign` out of the box.
-
- This code is based on https://github.com/electron/electron-osx-sign/pull/231 but our use-case
- is unlikely to be supported by electron-osx-sign as it adds a java toolchain as additional
- dependency.
- This script should be removed once the engine is signed.
-**/
+/** @file
+ * This script signs the content of all archives that we have for macOS. For this to work this needs
+ * to run on macOS with `codesign`, and a JDK installed. `codesign` is needed to sign the files,
+ * while the JDK is needed for correct packing and unpacking of java archives.
+ *
+ * We require this extra step as our dependencies contain files that require us to re-sign jar
+ * contents that cannot be opened as pure zip archives, but require a java toolchain to extract
+ * and re-assemble to preserve manifest information. This functionality is not provided by
+ * `electron-osx-sign` out of the box.
+ *
+ * This code is based on https://github.com/electron/electron-osx-sign/pull/231 but our use-case
+ * is unlikely to be supported by electron-osx-sign as it adds a java toolchain as additional
+ * dependency.
+ * This script should be removed once the engine is signed.
+ */
 
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -141,9 +141,9 @@ class ArchiveToSign implements Signable {
     /** An absolute path to the archive. */
     path: string
 
-    /** A list of patterns for files to sign inside the archive.
-     *
-     *  Relative to the root of the archive.
+    /**
+     * A list of patterns for files to sign inside the archive.
+     * Relative to the root of the archive.
      */
     binaries: glob.Pattern[]
 
@@ -265,7 +265,7 @@ async function globAbs(pattern: glob.Pattern, options?: glob.Options): Promise<s
 
 /** Glob patterns relative to a given base directory. Base directory is allowed to be a pattern as
  * well.
- **/
+ */
 async function globAbsIn(
     base: glob.Pattern,
     pattern: glob.Pattern,
@@ -322,7 +322,7 @@ interface Input extends SigningContext {
 /** Entry point, meant to be used from an afterSign Electron Builder's hook. */
 export default async function (context: Input) {
     console.log('Environment: ', process.env)
-    const { appOutDir, productFilename, entitlements } = context
+    const { appOutDir, productFilename } = context
     const appDir = path.join(appOutDir, `${productFilename}.app`)
     const contentsDir = path.join(appDir, 'Contents')
     const resourcesDir = path.join(contentsDir, 'Resources')

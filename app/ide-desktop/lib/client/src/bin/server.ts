@@ -22,8 +22,8 @@ const responses = {
 
 /** Construct URL query with the given parameters. For each `key` - `value` pair,
  * `key=value` will be added to the query. */
-export function urlParamsFromObject(obj: { [key: string]: string }) {
-    let params = []
+export function urlParamsFromObject(obj: Record<string, string>) {
+    const params = []
     for (const [key, value] of Object.entries(obj)) {
         params.push(`${key}=${encodeURIComponent(value)}`)
     }
@@ -71,7 +71,7 @@ export class Server {
 
     /** Server constructor. */
     static async create(config: Config): Promise<Server> {
-        let local_config = Object.assign({}, config)
+        const local_config = Object.assign({}, config)
         local_config.port = await findPort(local_config.port)
         const server = new Server(local_config)
         await server.run()
@@ -101,13 +101,13 @@ export class Server {
     process(request: { url: string }, response: any) {
         const url = request.url.split('?')[0]
         const resource = url == '/' ? '/index.html' : request.url
-        let resource_file = `${this.config.dir}${resource}`
+        const resource_file = `${this.config.dir}${resource}`
         fs.readFile(resource_file, (err: any, data: any) => {
             if (err) {
                 logger.error(`Resource '${resource}' not found.`)
             } else {
-                let contentType = mime.contentType(path.extname(resource_file))
-                let contentLength = data.length
+                const contentType = mime.contentType(path.extname(resource_file))
+                const contentLength = data.length
                 response.setHeader('Content-Type', contentType)
                 response.setHeader('Content-Length', contentLength)
                 response.writeHead(responses.ok)

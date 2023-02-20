@@ -8,13 +8,12 @@ import * as naming from 'naming'
 import stringLength from 'string-length'
 import { hideBin } from 'yargs/helpers'
 import { logger } from 'enso-content-config'
-import Electron from 'electron'
 
 // ============
 // === Help ===
 // ============
 
-let usage =
+const usage =
     chalk.bold(`\nEnso ${buildCfg.version} command line interface.` + `Usage: enso [options]`) +
     `\n\nBoth single-dash and double-dash prefixes are accepted for all options. For ` +
     `instance, the help message can be displayed by entering either '--help' or '-help'. The ` +
@@ -39,7 +38,7 @@ class Section {
  * 3. Every option has a `[type`] annotation and there is no API to disable it.
  * 4. There is no option to print commands with single dash instead of double-dash.
  * 5. Help coloring is not supported, and they do not want to support it:
- *    https://github.com/yargs/yargs/issues/251
+ * https://github.com/yargs/yargs/issues/251
  */
 function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExtended: boolean }) {
     console.log(usage)
@@ -47,11 +46,11 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
     const indentSize = 0
     const optionPrefix = '-'
     const spacing = 2
-    const sections: { [key: string]: Section } = {}
+    const sections: Record<string, Section> = {}
     const topLevelSection = new Section()
     topLevelSection.description =
         'General application switches. For fine-grained control, see the available option groups.'
-    sections['topLevel'] = topLevelSection
+    sections.topLevel = topLevelSection
     for (const groupName of cfg.groupsOrdering) {
         sections[groupName] = new Section()
     }
@@ -106,12 +105,12 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
                 const spaces = ' '.repeat(leftWidth - stringLength(left))
                 left = left + spaces
 
-                let firstSentenceSplit = option.description.indexOf('. ')
-                let firstSentence =
+                const firstSentenceSplit = option.description.indexOf('. ')
+                const firstSentence =
                     firstSentenceSplit == -1
                         ? option.description
                         : option.description.slice(0, firstSentenceSplit + 1)
-                let otherSentences = option.description.slice(firstSentence.length)
+                const otherSentences = option.description.slice(firstSentence.length)
 
                 const def = option.defaultDescription ?? option.default
                 const defIsEmptyArray = Array.isArray(def) && def.length === 0
@@ -119,7 +118,7 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
                 if (def != null && def !== '' && !defIsEmptyArray) {
                     defaults = ` Defaults to ${chalk.green(def)}.`
                 }
-                let description = firstSentence + defaults + chalk.gray(otherSentences)
+                const description = firstSentence + defaults + chalk.gray(otherSentences)
                 const lines = wordWrap(description, rightWidth).map(
                     line => line + ' '.repeat(rightWidth - stringLength(line))
                 )
@@ -221,7 +220,7 @@ function argvAndChromeOptions(processArgs: string[]): {
         if (processArg != null) {
             const match = processArg.match(chromeOptionRegex)
             if (match != null) {
-                const optionName = match[1] as string
+                const optionName = match[1]!
                 const optionValue = match[3]
                 if (optionValue != null) {
                     chromeOptions.push(new ChromeOption(optionName, optionValue))
@@ -246,22 +245,28 @@ function argvAndChromeOptions(processArgs: string[]): {
 // === Option Parser ===
 // =====================
 
+/**
+ * parseArgs
+ * @throws if wrong windowSize provided
+ */
 export function parseArgs() {
     const args = config.config
     const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(hideBin(process.argv)))
 
-    const yargsOptions = args.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
-        const yargsParam = Object.assign({}, option)
-        // @ts-ignore
-        yargsParam.requiresArg = ['string', 'array'].includes(yargsParam.type)
-        // @ts-ignore
-        yargsParam.default = undefined
-        // @ts-ignore
+    const yargsOptions = args.optionsRecursive().reduce((opts: Record<string, any>, option) => {
+        const yargsParam = Object.assign(
+            {},
+            {
+                ...option,
+                requiresArg: ['string', 'array'].includes(option.type),
+                default: undefined,
+            }
+        )
         opts[naming.camelToKebabCase(option.qualifiedName())] = yargsParam
         return opts
     }, {})
 
-    let optParser = yargs()
+    const optParser = yargs()
         .version(false)
         .parserConfiguration({
             // Allow single-dash arguments, like `-help`.
@@ -281,11 +286,11 @@ export function parseArgs() {
     // === Parsing ===
 
     let parseError = null as null | Error
-    let parsedArgs = optParser.parse(argv, {}, (err: Error | undefined) => {
+    const parsedArgs = optParser.parse(argv, {}, (err: Error | undefined) => {
         if (err != null) {
             parseError = err
         }
-    }) as { [key: string]: any }
+    }) as Record<string, any>
     const unexpectedArgs = parsedArgs['--']
 
     for (const option of args.optionsRecursive()) {

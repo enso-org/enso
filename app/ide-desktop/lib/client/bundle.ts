@@ -1,4 +1,4 @@
-/** Script that bundles JS client code. */
+/** @file Script that bundles JS client code. */
 
 import path, { dirname } from 'node:path'
 import esbuild from 'esbuild'

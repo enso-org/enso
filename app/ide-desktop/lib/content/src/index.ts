@@ -2,7 +2,6 @@
  * the user with a visual representation of this process (welcome screen). It also implements a view
  * allowing to choose a debug rendering test from. */
 
-// @ts-ignore
 import globalConfig from '../../../../gui/config.yaml'
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
 import * as semver from 'semver'
@@ -39,7 +38,7 @@ async function fetchTimeout(url: string, timeoutSeconds: number): Promise<any> {
  * download the application config, or one of the compared versions does not match the semver
  * scheme, it returns `true`. */
 async function checkMinSupportedVersion(config: typeof options) {
-    if (config.groups.engine.options.skipMinVersionCheck.value === true) {
+    if (config.groups.engine.options.skipMinVersionCheck.value) {
         return true
     }
     try {
@@ -90,9 +89,9 @@ class Main {
             config,
             configOptions: options,
             packageInfo: {
-                // @ts-ignore
+                // @ts-expect-error
                 version: BUILD_INFO.default.version,
-                // @ts-ignore
+                // @ts-expect-error
                 engineVersion: BUILD_INFO.default.engineVersion,
             },
         })
@@ -115,7 +114,7 @@ class Main {
                 } else {
                     appInstance.run()
                 }
-                const email = options.groups.authentication.options.email.value
+                const email = options.groups.authentication.options.email.value as string | null
                 if (email != null) {
                     logger.log(`User identified as '${email}'.`)
                 }
@@ -128,5 +127,5 @@ class Main {
 
 const API = new Main()
 
-// @ts-ignore
+// @ts-expect-error
 window[globalConfig.windowAppScopeName] = API

@@ -1,5 +1,7 @@
-/// This file generates the product logo as SVG and then converts it to set of PNGs, MacOS ICNS, and
-/// Windows ICO formats.
+/** @file
+ * This file generates the product logo as SVG and then converts it to set of PNGs, MacOS ICNS, and
+ * Windows ICO formats.
+ */
 
 import { default as fss } from 'fs'
 import { promises as fs } from 'fs'
@@ -22,8 +24,8 @@ class Logo {
     }
 
     init() {
-        var scaleStop = 128
-        var scaleLog = Math.log2(scaleStop)
+        // var scaleStop = 128
+        // var scaleLog = Math.log2(scaleStop)
         this.borderWidth = 7
         this.topRadius = 32
         this.borderOffset = this.borderWidth - this.borderSpread
@@ -126,10 +128,16 @@ const fastGenerate =
     (...args) =>
         new cons(...args).generate()
 
+/**
+ * generateMinimalWhiteLogo
+ */
 function generateMinimalWhiteLogo() {
     return fastGenerate(AppLogo)
 }
 
+/**
+ * genIcons
+ */
 async function genIcons(outputDir) {
     let sizes = [16, 32, 64, 128, 256, 512, 1024]
     let win_sizes = [16, 32, 64, 128, 256]
@@ -202,6 +210,9 @@ async function genIcons(outputDir) {
     await handle.close()
 }
 
+/**
+ * entry function
+ */
 async function main() {
     const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
     if (!outputDir) {

@@ -46,14 +46,16 @@ class ProjectManager {
             missingComponentAction: action,
         }
         if (template !== undefined) {
-            // @ts-ignore
-            params['projectTemplate'] = template
+            // params.projectTemplate = template
+            Object.assign(params, {
+                projectTemplate: template,
+            })
         }
         const req = {
             jsonrpc: '2.0',
             id: 0,
             method: 'project/create',
-            params: params,
+            params,
         }
 
         const ws = new WebSocket(this.connectionUrl)

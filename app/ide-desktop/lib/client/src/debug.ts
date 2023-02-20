@@ -14,8 +14,11 @@ export const versionInfo = {
     chrome: process.versions.chrome,
 }
 
+/**
+ * getInfo
+ */
 async function getInfo() {
-    let procMemInfo = await process.getProcessMemoryInfo()
+    const procMemInfo = await process.getProcessMemoryInfo()
     return {
         version: versionInfo,
         time: {
@@ -40,8 +43,11 @@ async function getInfo() {
     }
 }
 
+/**
+ * printInfoAndExit
+ */
 export async function printInfoAndExit() {
-    let info = await getInfo()
+    const info = await getInfo()
     console.log(JSON.stringify(info, undefined, 4))
     process.exit()
 }

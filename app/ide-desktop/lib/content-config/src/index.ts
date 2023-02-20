@@ -1,7 +1,7 @@
 /** @file Configuration options of the application content (the web part). */
 
 import * as semver from 'semver'
-import { log, config, App } from '../../../../../target/ensogl-pack/linked-dist/index'
+import { log, config } from '../../../../../target/ensogl-pack/linked-dist/index'
 import buildCfg from '../../../build.json'
 
 const Option = config.Option
@@ -28,6 +28,9 @@ export class Version {
         const prereleaseDev = clientVersion.prerelease.toString().includes(Version.devPrerelease)
         return releaseDev || prereleaseDev
     }
+
+    /// avoid @typescript-eslint/no-extraneous-class error
+    hello() {}
 }
 
 // ===============

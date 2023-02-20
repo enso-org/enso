@@ -1,3 +1,4 @@
+/** @file computeHash */
 const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
@@ -13,6 +14,9 @@ const CHECKSUM_TYPE = 'sha256'
 // ================
 
 /// The `type` argument can be one of `md5`, `sha1`, or `sha256`.
+/**
+ * getChecksum
+ */
 function getChecksum(path, type) {
     return new Promise(function (resolve, reject) {
         const hash = crypto.createHash(type)
@@ -28,11 +32,17 @@ function getChecksum(path, type) {
 }
 
 // Based on https://stackoverflow.com/a/57371333
+/**
+ * changeExtension
+ */
 function changeExtension(file, extension) {
     const basename = path.basename(file, path.extname(file))
     return path.join(path.dirname(file), `${basename}.${extension}`)
 }
 
+/**
+ * writeFileChecksum
+ */
 async function writeFileChecksum(path, type) {
     let checksum = await getChecksum(path, type)
     let targetPath = changeExtension(path, type)

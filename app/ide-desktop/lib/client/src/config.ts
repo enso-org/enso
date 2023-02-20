@@ -3,7 +3,7 @@
 
 import chalk from 'chalk'
 import * as content from 'enso-content-config'
-import * as naming from 'naming'
+import * as naming from './naming'
 import * as paths from 'paths'
 
 // =================
@@ -577,7 +577,7 @@ export const config = content.options.merge(
 )
 config.groups.window.options.frame.value = process.platform !== 'darwin'
 config.groups.startup.options.platform.value = process.platform
-// @ts-expect-error
+
 config.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
 
 export type Args = typeof config

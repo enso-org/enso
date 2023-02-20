@@ -1,4 +1,4 @@
-/**
+/** @file
  * Configuration for the esbuild bundler and build/watch commands.
  *
  * The bundler processes each entry point into a single file, each with no external dependencies and
@@ -19,9 +19,8 @@ import plugin_yaml from 'esbuild-plugin-yaml'
 import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
 import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill'
 import aliasPlugin from 'esbuild-plugin-alias'
-// @ts-ignore
+// @ts-expect-error
 import timePlugin from 'esbuild-plugin-time'
-// @ts-ignore
 import * as copy_plugin from 'enso-copy-plugin'
 
 import { require_env } from '../../utils.js'
@@ -51,7 +50,7 @@ export const ensogl_app_path = require_env('ENSO_BUILD_GUI_ENSOGL_APP')
 
 /**
  * Get output of a git command.
- * @param command Command line following the `git` program.
+ * @param command - Command line following the `git` program.
  * @returns Output of the command.
  */
 function git(command: string): string {
@@ -76,7 +75,8 @@ const always_copied_files = [
 ]
 
 /**
- * Generator that yields all files that should be copied to the output directory.
+ * files_to_copy_provider
+ * @yields all files that should be copied to the output directory.
  */
 async function* files_to_copy_provider() {
     console.log('Preparing a new generator for files to copy.')
@@ -141,7 +141,7 @@ export async function watch(onRebuild?: () => void, inject?: esbuild.BuildOption
         ...config,
         inject: [...(config.inject ?? []), ...(inject ?? [])],
         watch: {
-            onRebuild(error, result) {
+            onRebuild(error) {
                 if (error) console.error('watch build failed:', error)
                 else onRebuild?.()
             },

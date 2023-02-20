@@ -1,13 +1,25 @@
+/** @file configuration eslint file */
+/* eslint-disable @typescript-eslint/naming-convention */
+
 // TODO: Some of the config options are commented out because eslint is not configured properly.
 // This will be fixed in the future.
 module.exports = {
+    env: {
+        browser: true,
+        node: true,
+        es6: true,
+    },
     extends: [
         'eslint:recommended',
         'plugin:@typescript-eslint/recommended',
         // 'plugin:@typescript-eslint/recommended-requiring-type-checking',
-        // 'plugin:@typescript-eslint/strict',
+        'plugin:@typescript-eslint/strict',
     ],
     parser: '@typescript-eslint/parser',
+    parserOptions: {
+        tsconfigRootDir: __dirname,
+        project: 'tsconfig.json',
+    },
     plugins: ['jsdoc', '@typescript-eslint'],
     root: true,
     rules: {
@@ -16,7 +28,19 @@ module.exports = {
         '@typescript-eslint/no-this-alias': 'off',
         '@typescript-eslint/ban-ts-comment': 'off',
         '@typescript-eslint/no-empty-function': 'off',
-        '@typescript-eslint/naming-convention': 'error',
+        '@typescript-eslint/no-non-null-assertion': 'off',
+        '@typescript-eslint/naming-convention': [
+            'error',
+            {
+                selector: 'objectLiteralProperty',
+                format: ['camelCase', 'snake_case', 'UPPER_CASE'],
+                filter: {
+                    // filter is kebab-case
+                    regex: '[a-z]+(-[a-z]*)*',
+                    match: false,
+                },
+            },
+        ],
         // '@typescript-eslint/no-unnecessary-condition': 'error',
         // '@typescript-eslint/restrict-template-expressions': [
         //     'error',
@@ -25,6 +49,7 @@ module.exports = {
         //         allowBoolean: true,
         //     },
         // ],
+        'jsdoc/require-param-type': 'off',
         'jsdoc/check-access': 'warn',
         'jsdoc/check-alignment': 'warn',
         'jsdoc/check-indentation': 'warn',
@@ -50,7 +75,6 @@ module.exports = {
         'jsdoc/require-jsdoc': 'warn',
         'jsdoc/require-param-description': 'warn',
         'jsdoc/require-param-name': 'warn',
-        'jsdoc/require-param-type': 'warn',
         'jsdoc/require-property': 'warn',
         'jsdoc/require-property-description': 'warn',
         'jsdoc/require-property-name': 'warn',
@@ -63,12 +87,5 @@ module.exports = {
         'jsdoc/tag-lines': 'warn',
         'jsdoc/valid-types': 'warn',
     },
-    overrides: [
-        {
-            files: ['*.ts', '*.tsx'],
-            parserOptions: {
-                project: ['./tsconfig.json'],
-            },
-        },
-    ],
+    overrides: [],
 }

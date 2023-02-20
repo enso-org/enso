@@ -17,6 +17,7 @@ const copyOptions = {
     dereference: true,
 }
 
+/** wrapped copy utility function */
 async function copy(from, to) {
     console.log(`Copying ${from} to ${to}`)
     await fs.promises.cp(from, to, copyOptions)
@@ -25,7 +26,7 @@ async function copy(from, to) {
 /**
  * Create a plugin instance.
  *
- * @param files_provider Invocable that yields an async-iterable object listing files to copy.
+ * @param files_provider - Invocable that yields an async-iterable object listing files to copy.
  */
 export function create(files_provider) {
     let name = 'enso-copy-plugin'
@@ -54,7 +55,7 @@ export function create(files_provider) {
                 namespace: name,
             }
         })
-        build.onLoad({ filter: /.*/, namespace: name }, async arg => {
+        build.onLoad({ filter: /.*/, namespace: name }, async () => {
             let watchFiles = []
             for await (const file of files) {
                 const to = path.join(build.initialOptions.outdir, path.basename(file))

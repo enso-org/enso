@@ -1,4 +1,5 @@
-import child_process, { SpawnOptions } from 'child_process'
+/** @file project manager */
+import child_process from 'child_process'
 import * as config from 'config'
 import fss from 'node:fs'
 import { logger } from 'enso-content-config'
@@ -9,10 +10,13 @@ const execFile = util.promisify(child_process.execFile)
 // === Project Manager ===
 // =======================
 
-/** Return the Project Manager path if it is valid. Otherwise, throw an error. */
+/**
+ * Return the Project Manager path if it is valid. Otherwise, throw an error.
+ * @throws
+ */
 export function pathOrPanic(args: config.Args): string {
-    let binPath = args.groups.engine.options.projectManagerPath.value
-    let binExists = fss.existsSync(binPath)
+    const binPath = args.groups.engine.options.projectManagerPath.value
+    const binExists = fss.existsSync(binPath)
     if (!binExists) {
         throw new Error(`Could not find the project manager binary at ${binPath}.`)
     }
@@ -21,7 +25,7 @@ export function pathOrPanic(args: config.Args): string {
 
 /** Executes the Project Manager with given arguments. */
 async function exec(args: config.Args, processArgs: string[]) {
-    let binPath = pathOrPanic(args)
+    const binPath = pathOrPanic(args)
     return await execFile(binPath, processArgs).catch(function (err) {
         throw err
     })
@@ -34,7 +38,7 @@ async function exec(args: config.Args, processArgs: string[]) {
  * finished. */
 export function spawn(args: config.Args, processArgs: string[]): child_process.ChildProcess {
     return logger.groupMeasured(
-        `Starting the backend process with the following options: ${processArgs}`,
+        `Starting the backend process with the following options: ${processArgs.join()}`,
         () => {
             const binPath = pathOrPanic(args)
             const stdin = 'pipe' as const
@@ -42,13 +46,16 @@ export function spawn(args: config.Args, processArgs: string[]): child_process.C
             const stderr = 'inherit' as const
             const stdio = [stdin, stdout, stderr]
             const process = child_process.spawn(binPath, processArgs, { stdio })
-            logger.log(`Backend has been spawned (pid = ${process.pid}).`)
-            process.on('exit', code => logger.log(`Backend exited with code ${code}.`))
+            logger.log(`Backend has been spawned (pid = ${process.pid!}).`)
+            process.on('exit', code => logger.log(`Backend exited with code ${code!}.`))
             return process
         }
     )
 }
 
+/**
+ * get project version
+ */
 export async function version(args: config.Args) {
     if (args.options.engine.value) {
         return await exec(args, ['--version']).then(t => t.stdout)

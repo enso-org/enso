@@ -1,18 +1,17 @@
-/**
+/** @file
  * This module defines a TS script that is responsible for invoking the Electron Builder process to
  * bundle the entire IDE distribution.
  *
  * There are two areas to this:
  * - Parsing CLI options as per our needs.
  * - The default configuration of the build process.
- *
  * @module
  */
 
 import path from 'node:path'
 import child_process from 'node:child_process'
 import fs from 'node:fs/promises'
-import { CliOptions, Configuration, LinuxTargetSpecificOptions, Platform } from 'electron-builder'
+import { CliOptions, Configuration, Platform } from 'electron-builder'
 import builder from 'electron-builder'
 import { notarize } from 'electron-notarize'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
@@ -72,7 +71,7 @@ const config: Configuration = {
     artifactName: 'enso-${os}-${version}.${ext}',
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: (args.target as MacOsTargetName) ?? 'dmg',
+        target: (args.target ?? 'dmg') as MacOsTargetName,
         icon: `${args.iconsDist}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
@@ -159,7 +158,7 @@ const config: Configuration = {
 
     afterSign: async context => {
         // Notarization for macOS.
-        if (args.platform === Platform.MAC && process.env['CSC_LINK']) {
+        if (args.platform === Platform.MAC && process.env.CSC_LINK) {
             const { packager, appOutDir } = context
             const appName = packager.appInfo.productFilename
 
@@ -168,7 +167,7 @@ const config: Configuration = {
             await signArchivesMacOs({
                 appOutDir: appOutDir,
                 productFilename: appName,
-                // @ts-ignore
+                // @ts-expect-error
                 entitlements: context.packager.config.mac.entitlements,
                 identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
             })
@@ -177,9 +176,9 @@ const config: Configuration = {
             notarize({
                 appBundleId: packager.platformSpecificBuildOptions.appId,
                 appPath: `${appOutDir}/${appName}.app`,
-                // @ts-ignore
+                // @ts-expect-error
                 appleId: process.env.APPLEID,
-                // @ts-ignore
+                // @ts-expect-error
                 appleIdPassword: process.env.APPLEIDPASS,
             })
         }

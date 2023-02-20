@@ -21,7 +21,6 @@ export const resources = path.join(app, '..')
 export const projectManager = path.join(
     resources,
     project_manager_bundle,
-    // @ts-ignore
     // Placeholder for a bundler-provided define.
     PROJECT_MANAGER_IN_BUNDLE_PATH
 )

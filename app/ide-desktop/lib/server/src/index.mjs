@@ -1,3 +1,4 @@
+/** @file implement gui-server feature */
 import path from 'node:path'
 import url from 'node:url'
 import portfinder from 'portfinder'
@@ -12,6 +13,9 @@ let dirname = path.dirname(url.fileURLToPath(import.meta.url))
 // Path of a file that needs to be injected into the bundle for live-reload to work.
 export const LIVE_RELOAD_LISTENER_PATH = path.join(dirname, 'live-reload.js')
 
+/**
+ * start the server
+ */
 export async function start({ root, assets, port }) {
     assets = assets ?? path.join(root, 'assets')
 

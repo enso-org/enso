@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('enso_lifecycle', {
 
 // Save and load profile data.
 let onProfiles: ((profiles: string[]) => void)[] = []
-let profilesLoaded: string[]
+let profilesLoaded: string[] | undefined
 ipcRenderer.on(ipc.channel.profilesLoaded, (event, profiles: string[]) => {
     for (const callback of onProfiles) {
         callback(profiles)

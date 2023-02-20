@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "lib": ["DOM"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -15,8 +16,14 @@
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "ES2019"
+    "target": "ES2019",
+    "baseUrl": ".",
+    "paths": {
+      "@ensogl-app": ["../../target/ensogl-pack/linked-dist/index"],
+      "@build-cfg": ["./build.json"]
+    }
   },
+  "include": [".eslintrc.cjs", "lib", "types"],
   "ts-node": {
     "esm": true
   }

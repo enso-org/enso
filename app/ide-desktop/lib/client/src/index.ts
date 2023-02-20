@@ -119,7 +119,7 @@ class App {
     async startContentServerIfEnabled() {
         await this.runIfEnabled(this.args.options.server, async () => {
             await logger.asyncGroupMeasured('Starting the content server.', async () => {
-                let serverCfg = new server.Config({
+                const serverCfg = new server.Config({
                     dir: paths.assets,
                     port: this.args.groups.server.options.port.value,
                 })
@@ -146,7 +146,7 @@ class App {
                     disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
                     spellcheck: false,
                 }
-                let windowPreferences: electron.BrowserWindowConstructorOptions = {
+                const windowPreferences: electron.BrowserWindowConstructorOptions = {
                     webPreferences,
                     width: windowSize.width,
                     height: windowSize.height,
@@ -222,7 +222,7 @@ class App {
     loadWindowContent() {
         const window = this.window
         if (window != null) {
-            const urlCfg: { [key: string]: string } = {}
+            const urlCfg: Record<string, string> = {}
             for (const option of this.args.optionsRecursive()) {
                 if (option.value != option.default && option.passToWebApplication) {
                     urlCfg[option.qualifiedName()] = String(option.value)
@@ -236,15 +236,15 @@ class App {
     }
 
     printVersionAndExit() {
-        let indent = ' '.repeat(4)
+        const indent = ' '.repeat(4)
         let maxNameLen = 0
-        for (let name in debug.versionInfo) {
+        for (const name in debug.versionInfo) {
             maxNameLen = Math.max(maxNameLen, name.length)
         }
         console.log('Frontend:')
-        for (let [name, value] of Object.entries(debug.versionInfo)) {
-            let label = naming.capitalizeFirstLetter(name)
-            let spacing = ' '.repeat(maxNameLen - name.length)
+        for (const [name, value] of Object.entries(debug.versionInfo)) {
+            const label = naming.capitalizeFirstLetter(name)
+            const spacing = ' '.repeat(maxNameLen - name.length)
             console.log(`${indent}${label}:${spacing} ${value}`)
         }
 
@@ -254,8 +254,8 @@ class App {
             if (!backend) {
                 console.log(`${indent}No backend available.`)
             } else {
-                let lines = backend.split(/\r?\n/).filter(line => line.length > 0)
-                for (let line of lines) {
+                const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
+                for (const line of lines) {
                     console.log(`${indent}${line}`)
                 }
             }
@@ -278,14 +278,14 @@ class App {
                         }
                     }
 
-                    let cmd_q = meta && !control && !alt && !shift && code === 'KeyQ'
-                    let ctrl_q = !meta && control && !alt && !shift && code === 'KeyQ'
-                    let alt_f4 = !meta && !control && alt && !shift && code === 'F4'
-                    let ctrl_w = !meta && control && !alt && !shift && code === 'KeyW'
-                    let quit_on_mac = process.platform === 'darwin' && (cmd_q || alt_f4)
-                    let quit_on_win = process.platform === 'win32' && (alt_f4 || ctrl_w)
-                    let quit_on_lin = process.platform === 'linux' && (alt_f4 || ctrl_q || ctrl_w)
-                    let quit = quit_on_mac || quit_on_win || quit_on_lin
+                    const cmd_q = meta && !control && !alt && !shift && code === 'KeyQ'
+                    const ctrl_q = !meta && control && !alt && !shift && code === 'KeyQ'
+                    const alt_f4 = !meta && !control && alt && !shift && code === 'F4'
+                    const ctrl_w = !meta && control && !alt && !shift && code === 'KeyW'
+                    const quit_on_mac = process.platform === 'darwin' && (cmd_q || alt_f4)
+                    const quit_on_win = process.platform === 'win32' && (alt_f4 || ctrl_w)
+                    const quit_on_lin = process.platform === 'linux' && (alt_f4 || ctrl_q || ctrl_w)
+                    const quit = quit_on_mac || quit_on_win || quit_on_lin
                     if (quit) {
                         electron.app.quit()
                     }
