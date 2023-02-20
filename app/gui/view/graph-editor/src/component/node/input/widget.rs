@@ -511,7 +511,9 @@ impl LazyDropdown {
                     set_entries <- any(...);
 
                     dropdown.set_all_entries <+ set_entries;
-                    entries_and_value <- all(&set_entries, set_current_value).next_tick();
+                    entries_and_value <- all(&set_entries, set_current_value);
+                    entries_and_value <- entries_and_value.next_tick();
+
                     selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
                     dropdown.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
 
@@ -547,8 +549,22 @@ fn entry_for_current_value(
 ) -> Option<Entry> {
     let current_value = current_value.clone()?;
     let found_entry = all_entries.iter().find(|entry| entry.value.as_ref() == current_value);
+    let with_partial_match = found_entry.or_else(|| {
+        // Handle parentheses in current value. Entries with parenthesized expressions will match if
+        // they start with the same expression as the current value. That way it is still matched
+        // once extra arguments are added to the nested function call.
+        if current_value.starts_with("(") {
+            let current_value = current_value.trim_start_matches("(").trim_end_matches(")");
+            all_entries.iter().find(|entry| {
+                let trimmed_value = entry.value.trim_start_matches("(").trim_end_matches(")");
+                current_value.starts_with(trimmed_value)
+            })
+        } else {
+            None
+        }
+    });
+
     let with_fallback =
-        found_entry.cloned().unwrap_or_else(|| Entry::from_value(current_value.clone()));
-    warn!("entry_for_current_value: {:?} -> {:?}", current_value, with_fallback);
+        with_partial_match.cloned().unwrap_or_else(|| Entry::from_value(current_value.clone()));
     Some(with_fallback)
 }
