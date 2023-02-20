@@ -3,6 +3,7 @@ package org.enso.base;
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.base.encoding.ReportingStreamEncoder;
 import org.enso.base.text.ResultWithWarnings;
+import org.graalvm.polyglot.Value;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -167,15 +168,13 @@ public class Encoding_Utils {
    * <p>It returns the result returned from the executed action and any encoding problems that
    * occurred when processing it.
    */
-  public static <R> WithProblems<R, String> with_stream_decoder(
-      InputStream stream, Charset charset, Function<ReportingStreamDecoder, R> action)
+  public static WithProblems<Value, String> with_stream_decoder(
+      InputStream stream, Charset charset, Function<ReportingStreamDecoder, Value> action)
       throws IOException {
-    R result;
+    Value result;
     ReportingStreamDecoder decoder = create_stream_decoder(stream, charset);
-    try {
+    try (decoder) {
       result = action.apply(decoder);
-    } finally {
-      decoder.close();
     }
     return new WithProblems<>(result, decoder.getReportedProblems());
   }
@@ -198,18 +197,16 @@ public class Encoding_Utils {
    * <p>It returns the result returned from the executed action and any encoding problems that
    * occurred when processing it.
    */
-  public static <R> WithProblems<R, String> with_stream_encoder(
+  public static WithProblems<Value, String> with_stream_encoder(
       OutputStream stream,
       Charset charset,
       byte[] replacementSequence,
-      Function<ReportingStreamEncoder, R> action)
+      Function<ReportingStreamEncoder, Value> action)
       throws IOException {
-    R result;
+    Value result;
     ReportingStreamEncoder encoder = create_stream_encoder(stream, charset, replacementSequence);
-    try {
+    try (encoder) {
       result = action.apply(encoder);
-    } finally {
-      encoder.close();
     }
     return new WithProblems<>(result, encoder.getReportedProblems());
   }

@@ -79,7 +79,7 @@ type Column
     display self show_rows=10 format_terminal=False =
         java_col = self.java_column
         index = java_col.getIndex
-        col_name = java_col.getName
+        col_name = java_col.getName . map normalize_string_for_display
         storage = java_col.getStorage
         num_rows = java_col.getSize
         display_rows = Math.min num_rows show_rows
@@ -1458,8 +1458,18 @@ get_item_string column ix =
        task is implemented:
        https://www.pivotaltracker.com/story/show/181499256
     case item of
-        _ : Text -> item
-        _ -> item.to_text
+        _ : Text -> normalize_string_for_display item
+        _ -> item.pretty
+
+## PRIVATE
+   Ensures that the string can be safely displayed in a terminal.
+
+   If the string contains special characters, it will be wrapped in quotes and
+   the characters escaped. Otherwise, the string is returned as-is.
+normalize_string_for_display string =
+    prettified = string.pretty
+    just_quoted = "'" + string + "'"
+    if prettified == just_quoted then string else prettified
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.

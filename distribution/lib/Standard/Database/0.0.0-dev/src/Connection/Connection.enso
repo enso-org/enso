@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Column_Selector, Column_Name_Mapping
+from Standard.Table import Column_Name_Mapping
 import Standard.Table.Data.Table.Table as Materialized_Table
 
 import project.Data.SQL_Query.SQL_Query
@@ -105,7 +105,7 @@ type Connection
 
             renamed = table.rename_columns (Column_Name_Mapping.By_Name name_map)
             if all_fields then renamed else
-                renamed.select_columns (Column_Selector.By_Name ["Database", "Schema", "Name", "Type", "Description"])
+                renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
 
     ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
 

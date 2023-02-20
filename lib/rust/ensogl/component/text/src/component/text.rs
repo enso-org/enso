@@ -1020,6 +1020,7 @@ impl TextModel {
     }
 
     /// Recompute the shape of the provided line index.
+    #[profile(Debug)]
     pub fn shape_line(&self, line: Line) -> ShapedLine {
         let line_range = self.line_range_snapped(line);
         let glyph_sets = self.shape_range(line_range.clone());
@@ -1116,6 +1117,7 @@ impl TextModel {
     /// and to the right of the insertion point. Unfortunately, the current Rustybuzz
     /// implementation does not support such use cases:
     /// https://github.com/RazrFalcon/rustybuzz/issues/54
+    #[profile(Debug)]
     fn update_lines_after_change(&self, changes: Option<&[buffer::Change]>) {
         debug_span!("update_lines_after_change").in_scope(|| {
             self.detach_glyphs_from_cursors();
@@ -1193,6 +1195,7 @@ impl TextModel {
     }
 
     /// Replace selections with new ones.
+    #[profile(Debug)]
     fn replace_selections(&self, do_edit: bool, buffer_selections: &buffer::selection::Group) {
         let mut new_selection_map = SelectionMap::default();
         for buffer_selection in buffer_selections {
@@ -1278,6 +1281,7 @@ impl TextModel {
     }
 
     /// Redraw the given line ranges.
+    #[profile(Debug)]
     fn redraw_sorted_line_ranges(
         &self,
         sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
@@ -1293,6 +1297,7 @@ impl TextModel {
     }
 
     /// Redraw the line. This will re-position all line glyphs.
+    #[profile(Debug)]
     fn redraw_line(&self, view_line: ViewLine) {
         let line = &mut self.lines.borrow_mut()[view_line];
         let default_divs = || NonEmptyVec::singleton(0.0);
@@ -1439,6 +1444,7 @@ impl TextModel {
     }
 
     /// Attach glyphs to cursors if cursors are in edit mode.
+    #[profile(Debug)]
     pub fn attach_glyphs_to_cursors(&self) {
         for line in ViewLine(0)..=self.buffer.last_view_line_index() {
             self.attach_glyphs_to_cursors_for_line(line)
@@ -1486,6 +1492,7 @@ impl TextModel {
     }
 
     /// Detach all glyphs from cursors and place them back in lines.
+    #[profile(Debug)]
     pub fn detach_glyphs_from_cursors(&self) {
         let selection_map = self.selection_map.borrow();
         for (&line, cursor_map) in &selection_map.location_map {
@@ -1754,6 +1761,7 @@ impl TextModel {
     }
 
     /// Position all lines in the provided line range. The range has to be sorted.
+    #[profile(Debug)]
     fn position_sorted_line_ranges(
         &self,
         sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
