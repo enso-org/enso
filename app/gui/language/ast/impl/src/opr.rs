@@ -294,9 +294,19 @@ impl GeneralizedInfix {
             infix_id: self.id,
         };
 
+        let rest_offset = rest.operand.as_ref().map_or_default(|op| op.offset);
+
         let target_subtree_infix = target.clone().and_then(|arg| {
             let offset = arg.offset;
-            GeneralizedInfix::try_new(&arg.arg).map(|arg| ArgWithOffset { arg, offset })
+            GeneralizedInfix::try_new(&arg.arg).map(|arg| ArgWithOffset { arg, offset }).filter(
+                |target_infix| {
+                    // For access operators, do not flatten them if there is a space before the dot.
+                    // For example, `Foo . Bar . Baz` should not be flattened to `Foo.Bar.Baz`, as
+                    // those should be treated as potential separate prefix expressions, allowing
+                    // operator placeholders to be inserted.
+                    rest_offset == 0 || target_infix.arg.name() != predefined::ACCESS
+                },
+            )
         });
         let mut target_subtree_flat = match target_subtree_infix {
             Some(target_infix) if target_infix.arg.name() == self.name() =>

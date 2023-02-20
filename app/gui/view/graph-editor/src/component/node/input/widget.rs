@@ -454,13 +454,17 @@ impl LazyDropdown {
                     current_value <- all(set_current_value, &init)._0();
                     dropdown.set_selected_entries <+ current_value.map(|s| s.iter().cloned().collect());
                     first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
-                    output_value <+ first_selected_entry.on_change();
 
                     is_open <- all(is_open, &init)._0();
                     dropdown.set_open <+ is_open.on_change();
+
+                    // initialize selection before emitting output. We do not want to emit the
+                    // selected value immediately after initialization, without actual user action.
+                    init.emit(());
+                    output_value <+ first_selected_entry.on_change();
+
                 }
 
-                init.emit(());
                 *self = LazyDropdown::Initialized(dropdown, network);
             }
         }
