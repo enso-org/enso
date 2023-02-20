@@ -82,12 +82,6 @@ impl DocParser {
         DocParser::new().unwrap_or_else(|e| panic!("Failed to create doc parser: {e:?}"))
     }
 
-    /// Parses program with documentation and generates HTML code.
-    /// If the program does not have any documentation will return empty string.
-    pub fn generate_html_docs(&self, program: String) -> api::Result<String> {
-        self.borrow_mut().generate_html_docs(program)
-    }
-
     /// Parses pure documentation code and generates HTML code.
     /// Will return empty string for empty entry.
     pub fn generate_html_doc_pure(&self, code: String) -> api::Result<String> {

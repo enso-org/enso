@@ -34,6 +34,7 @@
 //!       │  ╰─ ...
 //!       ├─ runtime-libs
 //!       │  ╰─ runtime-libs.js
+//!       ├─ linked-dist                 | Either symlink to dist or to the gui artifacts.
 //!       ╰─ dist                        | Final build artifacts of ensogl-pack.
 //!        * ├─ index.js                 | The main JS bundle to load WASM and JS wasm-pack bundles.
 //!          ├─ index.js.map             | The sourcemap mapping to sources in TypeScript.
@@ -220,6 +221,7 @@ pub mod paths {
             shaders_hash: PathBuf,
             runtime_libs: TargetEnsoglPackRuntimeLibs,
             dist:         TargetEnsoglPackDist,
+            linked_dist:  PathBuf,
         }
 
         TargetEnsoglPackShaders {
@@ -280,6 +282,7 @@ impl Paths {
         p.target.ensogl_pack.runtime_libs.runtime_libs =
             p.target.ensogl_pack.runtime_libs.join("runtime-libs.js");
         p.target.ensogl_pack.dist.root = p.target.ensogl_pack.join("dist");
+        p.target.ensogl_pack.linked_dist = p.target.ensogl_pack.join("linked-dist");
         p.target.ensogl_pack.dist.app = p.target.ensogl_pack.dist.join("index.js");
         p.target.ensogl_pack.dist.shader_extractor =
             p.target.ensogl_pack.dist.join("shader-extractor.js");
@@ -522,13 +525,13 @@ pub async fn build(
     outputs: WasmPackOutputs,
     provider: impl FnOnce(WasmPackOutputs) -> Result<WasmPackCommand>,
 ) -> Result {
-    // FIXME: [mwu] To be removed, when shader tools are properly handled as a goodie-thingy.
-    let _ = ide_ci::env::prepend_to_path(r"C:\varia\install\bin");
     let paths = Paths::new().await?;
     compile_this_crate_ts_sources(&paths).await?;
     run_wasm_pack(&paths, provider).await?;
     extract_shaders(&paths).await?;
     optimize_shaders(&paths).await?;
     let out_dir = Path::new(&outputs.out_dir);
-    ide_ci::fs::copy(&paths.target.ensogl_pack.dist, out_dir)
+    ide_ci::fs::copy(&paths.target.ensogl_pack.dist, out_dir)?;
+    ide_ci::fs::remove_symlink_dir_if_exists(&paths.target.ensogl_pack.linked_dist)?;
+    ide_ci::fs::symlink_auto(&paths.target.ensogl_pack.dist, &paths.target.ensogl_pack.linked_dist)
 }

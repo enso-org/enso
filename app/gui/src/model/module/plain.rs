@@ -124,6 +124,16 @@ impl Module {
     pub fn id(&self) -> model::module::Id {
         self.path.id()
     }
+
+    /// Get the module's content.
+    pub fn content(&self) -> &RefCell<Content> {
+        &self.content
+    }
+
+    /// Publish a notification about changes in the module's content.
+    pub fn notify(&self, notification: Notification) {
+        self.notifications.notify(notification);
+    }
 }
 
 impl model::module::API for Module {

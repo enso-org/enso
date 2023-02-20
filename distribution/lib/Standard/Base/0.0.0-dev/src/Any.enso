@@ -340,6 +340,27 @@ type Any
     is_error : Boolean
     is_error self = False
 
+    ## UNSTABLE
+       Returns the provided `other` value, unless `self` is an error.
+
+       Arguments:
+       - other: The value to return if `self` is not an error.
+
+       The primary application of this function is to introduce a dataflow
+       dependency between two otherwise unrelated operations. Very useful if one
+       of the operations is performing a side-effect.
+
+       Aside from ensuring that any dataflow errors are propagated, the result
+       will also inherit any warnings attached to any of the two inputs.
+
+       > Example
+         Writing to a file and returning the file object if all went well, or an
+         error if it failed.
+
+             file.write "foo" . if_not_error file
+    if_not_error : Any -> Any
+    if_not_error self ~other = other
+
     ## Applies the provided function to `self` unless `self` is `Nothing`, which is
        returned unchanged.
 
@@ -433,5 +454,3 @@ assert_ordered_comparators this that ~action =
     if (Meta.is_same_object comp_this comp_that).not then Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that") else
         if Meta.is_same_object comp_this Incomparable || comp_this.is_ordered.not then Error.throw Incomparable_Values else
             action
-
-

@@ -118,7 +118,8 @@ impl Handle {
     ) -> Option<Notification> {
         match notification.kind {
             model::module::NotificationKind::Invalidate
-            | model::module::NotificationKind::CodeChanged { .. } => Some(Notification::Invalidate),
+            | model::module::NotificationKind::CodeChanged { .. }
+            | model::module::NotificationKind::Reloaded => Some(Notification::Invalidate),
             model::module::NotificationKind::MetadataChanged => None,
         }
     }

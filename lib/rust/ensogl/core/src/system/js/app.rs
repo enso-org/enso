@@ -22,7 +22,6 @@ pub mod js_bindings {
     extern "C" {
         pub type App;
         pub type Config;
-        pub type Params;
         pub type Param;
 
         /// Register in JS a closure to get non-precompiled shaders from Rust.
@@ -46,7 +45,6 @@ pub mod js_bindings {
 
     mock_data! { App => JsValue }
     mock_data! { Config => JsValue }
-    mock_data! { Params => JsValue }
     mock_data! { Param => JsValue }
 
     impl App {
@@ -70,30 +68,32 @@ impl App {
 }
 
 impl Config {
-    pub fn params(&self) -> Params {
-        Reflect::get(self, &"params".into()).unwrap().unchecked_into()
-    }
-}
-
-impl Params {
-    pub fn get(&self, name: &str) -> Result<Param, JsValue> {
-        Reflect::get(self, &name.into()).map(|t| t.unchecked_into())
-    }
-
-    pub fn to_vec(&self) -> Vec<Param> {
-        let obj = (*self).clone().unchecked_into::<Object>();
-        let keys = Object::keys_vec(&obj);
-        keys.iter().map(|key| self.get(key).unwrap()).collect()
-    }
-
-    pub fn to_hash_map(&self) -> HashMap<String, Param> {
-        let obj = (*self).clone().unchecked_into::<Object>();
-        let keys = Object::keys_vec(&obj);
-        keys.iter().map(|key| (key.clone(), self.get(key).unwrap())).collect()
+    pub fn params(&self) -> Vec<Param> {
+        let opts_fn =
+            Reflect::get(self, &"optionsRecursive".into()).unwrap().unchecked_into::<Function>();
+        let js_arr = opts_fn.call0(self).unwrap().unchecked_into::<Array>();
+        js_arr.to_vec().into_iter().map(|t| t.unchecked_into::<Param>()).collect()
     }
 }
 
 impl Param {
+    pub fn name(&self) -> String {
+        let val = Reflect::get(self, &"name".into()).unwrap();
+        val.print_to_string()
+    }
+
+    pub fn qualified_name(&self) -> String {
+        let js_field = Reflect::get(self, &"qualifiedName".into()).unwrap();
+        let js_fn = js_field.unchecked_into::<Function>();
+        js_fn.call0(self).unwrap().print_to_string()
+    }
+
+    pub fn structural_name(&self) -> String {
+        let js_field = Reflect::get(self, &"structuralName".into()).unwrap();
+        let js_fn = js_field.unchecked_into::<Function>();
+        js_fn.call0(self).unwrap().print_to_string()
+    }
+
     pub fn value(&self) -> Option<String> {
         let val = Reflect::get(self, &"value".into()).unwrap();
         if val.is_null() || val.is_undefined() {

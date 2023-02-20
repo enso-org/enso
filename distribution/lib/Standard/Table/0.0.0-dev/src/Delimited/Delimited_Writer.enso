@@ -11,6 +11,7 @@ import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Delimited.Delimited_Reader
 import project.Delimited.Delimited_Reader.Detected_Headers
+import project.Internal.Java_Problems
 
 from project.Errors import Mismatched_Quote, Column_Count_Mismatch, Column_Name_Mismatch
 
@@ -93,8 +94,8 @@ append_to_file table format file match_columns on_problems =
 write_text : Table -> Delimited_Format -> Text
 write_text table format =
     java_writer = StringWriter.new
-    write_to_writer table format java_writer
-    java_writer.toString
+    write_to_writer table format java_writer . if_not_error <|
+        java_writer.toString
 
 ## PRIVATE
    Writes to an output stream according to the provided format.
@@ -132,7 +133,7 @@ write_to_stream table format stream on_problems related_file=Nothing separator_o
    - java_writer: A Java `Writer` to which characters will be written.
    - separator_override: An optional override for the line separator to use
      instead of the one from `format`.
-write_to_writer : Table -> Delimited_Format -> Writer -> Text | Nothing -> Boolean -> Any
+write_to_writer : Table -> Delimited_Format -> Writer -> Text | Nothing -> Boolean -> Nothing
 write_to_writer table format java_writer separator_override=Nothing needs_leading_newline=False =
     column_formatters = Panic.recover Illegal_Argument.Error <| case format.value_formatter of
         Nothing -> table.columns.map column-> case column.storage_type of
@@ -158,6 +159,8 @@ write_to_writer table format java_writer separator_override=Nothing needs_leadin
         java_writer.write newline
     writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter newline quote_characters.first quote_characters.second format.comment_character quote_behavior write_headers
     writer.write table.java_table
+    warnings = Java_Problems.parse_aggregated_problems writer.getReportedWarnings
+    Problem_Behavior.Report_Warning.attach_problems_after Nothing warnings
 
 ## PRIVATE
 should_write_headers headers = case headers of
