@@ -20,7 +20,6 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.instrument.HostObjectDebugWrapper;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -183,16 +182,12 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
-  Object readMember(
-      String member,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") StructsLibrary structs) {
+  Object readMember(String member) {
     FramePointer framePtr = allBindings.get(member);
     if (framePtr == null) {
       return null;
     } else {
-      Object value = getValue(frame, framePtr);
-      return HostObjectDebugWrapper.wrapHostValues(value, interop, structs);
+      return getValue(frame, framePtr);
     }
   }
 

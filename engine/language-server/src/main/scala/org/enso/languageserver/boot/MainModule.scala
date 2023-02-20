@@ -292,6 +292,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       RuntimeServerInfo.JOB_PARALLELISM_OPTION,
       Runtime.getRuntime.availableProcessors().toString
     )
+    .option(RuntimeOptions.PREINITIALIZE, "js")
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)

@@ -194,6 +194,18 @@ impl Model {
         })
     }
 
+    fn restore_project_snapshot(&self) {
+        let controller = self.controller.clone_ref();
+        let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.restore_project_snapshot().await {
+                error!("Error while restoring project snapshot: {err}");
+            } else {
+                breadcrumbs.set_project_changed(false);
+            }
+        })
+    }
+
     fn set_project_changed(&self, changed: bool) {
         self.view.graph().model.breadcrumbs.set_project_changed(changed);
     }
@@ -348,6 +360,7 @@ impl Project {
             view.values_updated <+ values_computed;
 
             eval_ view.save_project_snapshot(model.save_project_snapshot());
+            eval_ view.restore_project_snapshot(model.restore_project_snapshot());
 
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());
 
@@ -410,6 +423,7 @@ impl Project {
                 NotificationKind::Invalidate
                 | NotificationKind::CodeChanged { .. }
                 | NotificationKind::MetadataChanged => model.set_project_changed(true),
+                NotificationKind::Reloaded => model.set_project_changed(false),
             }
             futures::future::ready(())
         });

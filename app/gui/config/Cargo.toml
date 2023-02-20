@@ -7,6 +7,7 @@ edition = "2021"
 [dependencies]
 ensogl = { path = "../../../lib/rust/ensogl" }
 enso-prelude = { path = "../../../lib/rust/prelude" }
+enso-json-to-struct = { path = "../../../lib/rust/json-to-struct" }
 semver = "1.0.0"
 
 [build-dependencies]

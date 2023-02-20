@@ -179,6 +179,10 @@ class Parser {
           throw new ParserError("Could not deserialize metadata.", error)
         }.merge
         (input, idmap, metadata)
+      case arr: Array[_] =>
+        throw new ParserError(
+          s"Could not not deserialize metadata (found ${arr.length - 1} metadata sections)"
+        )
     }
   }
 

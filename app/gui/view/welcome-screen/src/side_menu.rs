@@ -66,7 +66,7 @@ impl Model {
     fn create_new_project_button(projects_list: &web::Element) -> ClickableElement {
         let element = web::document.create_element_or_panic("li");
         element.set_id(crate::css_id::NEW_PROJECT);
-        element.set_inner_html(r#"<img src="/assets/new-project.svg" />Create a new project"#);
+        element.set_inner_html(r#"<img src="/new-project.svg" />Create a new project"#);
         projects_list.append_or_warn(&element);
         ClickableElement::new(element)
     }
@@ -83,7 +83,7 @@ impl Model {
 
     fn create_project_list_entry(project_name: &str) -> ClickableElement {
         let element = web::document.create_element_or_panic("li");
-        element.set_inner_html(&format!(r#"<img src="assets/project.svg"/> {project_name}"#));
+        element.set_inner_html(&format!(r#"<img src="project.svg"/> {project_name}"#));
         ClickableElement::new(element)
     }
 }

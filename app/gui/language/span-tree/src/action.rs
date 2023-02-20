@@ -390,7 +390,7 @@ mod test {
         // Consider Span Tree for `foo bar` where `foo` is a method known to take 3 parameters.
         // We can try setting each of 3 arguments to `baz`.
         let tree = TreeBuilder::<()>::new(7)
-            .add_leaf(0, 3, node::Kind::operation(), PrefixCrumb::Func)
+            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_leaf(4, 7, node::Kind::this(), PrefixCrumb::Arg)
             .add_empty_child(7, ExpectedArgument(1))
             .add_empty_child(7, ExpectedArgument(2))
@@ -416,7 +416,7 @@ mod test {
         // parameters. We can try setting each of 2 arguments to `baz`.
         let tree: SpanTree = TreeBuilder::new(10)
             .add_leaf(0, 4, node::Kind::this(), InfixCrumb::LeftOperand)
-            .add_leaf(5, 6, node::Kind::operation(), InfixCrumb::Operator)
+            .add_leaf(5, 6, node::Kind::Operation, InfixCrumb::Operator)
             .add_leaf(7, 10, node::Kind::argument(), InfixCrumb::RightOperand)
             .add_empty_child(10, ExpectedArgument(0))
             .add_empty_child(10, ExpectedArgument(1))
