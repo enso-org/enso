@@ -192,6 +192,12 @@ pub trait API: Debug {
     // Automock macro does not work without explicit lifetimes here.
     #[allow(clippy::needless_lifetimes)]
     fn manage_projects<'a>(&'a self) -> FallibleResult<&'a dyn ManagingProjectAPI>;
+
+    /// Return whether private entries should be visible in the component browser.
+    fn are_component_browser_private_entries_visible(&self) -> bool;
+
+    /// Sets whether private entries should be visible in the component browser.
+    fn set_component_browser_private_entries_visibility(&self, visibility: bool);
 }
 
 /// A polymorphic handle of IDE controller.
