@@ -95,14 +95,13 @@ public class FindExceptionMessageTest extends TestBase {
     });
   }
 
-  static Object extractHostException(PolyglotException ex) {
-    Value v;
+  static Throwable extractHostException(PolyglotException ex) {
     if (ex.isHostException()) {
-      v = ctx.asValue(ex.asHostException());
+      return ex.asHostException();
     } else {
       assertTrue("Has to be guest object: " + ex, ex.isGuestException());
-      v = ex.getGuestObject();
+      var v = ex.getGuestObject();
+      return (Throwable) unwrapValue(ctx, v);
     }
-    return unwrapValue(ctx, v);
   }
 }
