@@ -1140,7 +1140,7 @@ impl Searcher {
     /// The current list will be set as "Loading" and Language Server will be requested for a new
     /// list - once it be retrieved, the new list will be set and notification will be emitted.
     #[profile(Debug)]
-    fn reload_list(&self) {
+    pub fn reload_list(&self) {
         let this_type = self.this_arg_type_for_next_completion();
         let return_types = match self.data.borrow().input.next_completion_id() {
             CompletedFragmentId::Function => vec![],
@@ -1222,10 +1222,12 @@ impl Searcher {
                     info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(responses.iter());
                     let mut data = this.data.borrow_mut();
+                    list.update_filtering(&data.input.pattern);
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
                     data.components =
                         this.make_component_list(completions, &this_type, &return_types);
+                    data.components.update_filtering(&data.input.pattern);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
@@ -1234,6 +1236,7 @@ impl Searcher {
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =
                         this.make_component_list(this.database.keys(), &this_type, &return_types);
+                    data.components.update_filtering(&data.input.pattern);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1300,6 +1303,7 @@ impl Searcher {
             &self.database,
             module_name.as_ref(),
             &*favorites,
+            self.ide.are_component_browser_private_entries_visible(),
         );
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
@@ -1446,8 +1450,13 @@ fn component_list_builder_with_favorites<'a>(
     suggestion_db: &model::SuggestionDatabase,
     local_scope_module: QualifiedNameRef,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
+    private_entries_visibile: bool,
 ) -> component::builder::List {
-    let mut builder = component::builder::List::new();
+    let mut builder = if private_entries_visibile {
+        component::builder::List::new_with_private_components()
+    } else {
+        component::builder::List::new()
+    };
     if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
         builder = builder.with_local_scope_module_id(id);
     }
@@ -1783,6 +1792,7 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
+            ide.expect_are_component_browser_private_entries_visible().returning_st(|| false);
             let node_metadata_guard = default();
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
