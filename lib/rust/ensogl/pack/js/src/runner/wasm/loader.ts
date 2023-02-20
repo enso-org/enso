@@ -17,7 +17,7 @@ const ghostColor = '#00000020'
 const topLayerIndex = '1000'
 
 /** Visual representation of the loader. */
-class ProgressIndicator {
+export class ProgressIndicator {
     dom: HTMLDivElement
     track: HTMLElement
     indicator: HTMLElement
