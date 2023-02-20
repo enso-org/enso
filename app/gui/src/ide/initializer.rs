@@ -73,7 +73,7 @@ impl Initializer {
             config::InitialView::Project => view.switch_view_to_project(),
         }
 
-        if enso_config::ARGS.emit_user_timing_measurements {
+        if enso_config::ARGS.groups.profile.options.emit_user_timing_measurements.value {
             ensogl_app.display.connect_profiler_to_user_timing();
         }
         let status_bar = view.status_bar().clone_ref();
@@ -185,7 +185,8 @@ impl WithProjectManager {
     pub async fn create_project(&self) -> FallibleResult<Uuid> {
         use project_manager::MissingComponentAction::Install;
         info!("Creating a new project named '{}'.", self.project_name);
-        let version = enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
+        let version = &enso_config::ARGS.groups.engine.options.preferred_version.value;
+        let version = (!version.is_empty()).as_some_from(|| version.clone());
         let name = &self.project_name;
         let response = self.project_manager.create_project(name, &None, &version, &Install);
         Ok(response.await?.project_id)
@@ -244,7 +245,7 @@ pub fn register_views(app: &Application) {
     type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
     app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
 
-    if enso_config::ARGS.is_in_cloud {
+    if enso_config::ARGS.groups.startup.options.platform.value == "web" {
         app.views.register::<ide_view::window_control_buttons::View>();
     }
 }

@@ -569,6 +569,7 @@ impl System {
 
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
     /// may be set.
+    #[profile(Debug)]
     pub fn new_glyph(&self) -> Glyph {
         let frp = Frp::new();
         #[allow(clippy::clone_on_copy)]

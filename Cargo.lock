@@ -2038,6 +2038,7 @@ name = "enso-config"
 version = "0.1.0"
 dependencies = [
  "config-reader",
+ "enso-json-to-struct",
  "enso-prelude",
  "ensogl",
  "semver 1.0.16",
@@ -2197,6 +2198,16 @@ dependencies = [
  "ensogl",
  "wasm-bindgen",
  "wasm-bindgen-test",
+]
+
+[[package]]
+name = "enso-json-to-struct"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "proc-macro2",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2492,6 +2503,7 @@ dependencies = [
  "enso-executor",
  "enso-notification",
  "enso-prelude",
+ "enso-profiler",
  "enso-text",
  "failure",
  "flo_stream",
@@ -2832,6 +2844,7 @@ dependencies = [
 name = "ensogl-example-render-profile-flamegraph"
 version = "0.1.0"
 dependencies = [
+ "enso-debug-api",
  "enso-frp",
  "enso-profiler-data",
  "enso-profiler-demo-data",
@@ -4153,6 +4166,7 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
+ "ensogl-derive-theme",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",

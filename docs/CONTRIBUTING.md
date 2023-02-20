@@ -581,17 +581,21 @@ and generate the Enso distribution:
 
 ```bash
 $ sbt buildEngineDistribution
-...
-Engine package created at built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev
+$ sbt runEngineDistribution --help
 ```
+
+Engine package created at
+built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev - use it or
+the `sbt runEngineDistribution` command to invoke Enso.
 
 ##### PowerShell
 
 ```powershell
 sbt.bat buildEngineDistribution
+sbt.bat runEngineDistribution --help
 ```
 
-Then one can execute the launcher:
+One can use the `runEngineDistribution` command or execute the launcher:
 
 ```bash
 $ built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso

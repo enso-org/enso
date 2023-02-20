@@ -165,11 +165,13 @@ spec =
         data_2 = [10, 15, 20, 30]
 
         transient = enso_project.data / "transient"
-        Test.specify "should allow to writing bytes to a new file" <|
+        Test.specify "should allow to writing bytes to a new file and return that file's descriptor on success" <|
             f = transient / "new_file.dat"
             f.delete_if_exists
             f.exists.should_be_false
-            data.write_bytes f
+            r = data.write_bytes f
+            r . should_equal f
+            Problems.assume_no_problems r
             f.exists.should_be_true
             f.read_bytes.should_equal data
             f.delete_if_exists
@@ -179,9 +181,9 @@ spec =
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
             f_bak.delete_if_exists
-            data.write_bytes f
+            Problems.assume_no_problems <| data.write_bytes f
             f.exists.should_be_true
-            data_2.write_bytes f
+            Problems.assume_no_problems <| data_2.write_bytes f
             f.read_bytes.should_equal data_2
             f_bak.exists.should_be_true
             f.delete_if_exists
@@ -192,9 +194,11 @@ spec =
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
             f_bak.delete_if_exists
-            data.write_bytes f
+            Problems.assume_no_problems <|
+                data.write_bytes f
             f.exists.should_be_true
-            data_2.write_bytes f on_existing_file=Existing_File_Behavior.Overwrite
+            Problems.assume_no_problems <|
+                data_2.write_bytes f on_existing_file=Existing_File_Behavior.Overwrite
             f.read_bytes.should_equal data_2
             f_bak.exists.should_be_false
             f.delete_if_exists
@@ -203,8 +207,10 @@ spec =
             f = transient / "new_file.dat"
             f.delete_if_exists
             f.exists.should_be_false
-            data.write_bytes f
-            data_2.write_bytes f on_existing_file=Existing_File_Behavior.Append . should_succeed
+            Problems.assume_no_problems <|
+                data.write_bytes f
+            Problems.assume_no_problems <|
+                data_2.write_bytes f on_existing_file=Existing_File_Behavior.Append
             f.read_bytes.should_equal (data + data_2)
             f.delete_if_exists
 
@@ -220,7 +226,7 @@ spec =
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
             f_bak.delete_if_exists
-            data.write_bytes f
+            Problems.assume_no_problems <| data.write_bytes f
             [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument.Error
             f.read_bytes.should_equal data
             f_bak.exists.should_be_false
@@ -230,11 +236,13 @@ spec =
             f.read_bytes.should_equal data
             f.delete_if_exists
 
-        Test.specify "should allow writing text to a new file" <|
+        Test.specify "should allow writing text to a new file and return this file's descriptor on success" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f
+            r = "line 1!".write f
+            Problems.assume_no_problems r
+            r.should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
             f.delete
@@ -253,10 +261,10 @@ spec =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal Nothing
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
-            "line 2!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal Nothing
+            "line 2!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal f
             f.read_text.should_equal "line 2!"
             f.delete
             f.exists.should_be_false
@@ -265,7 +273,7 @@ spec =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=Report_Error . should_succeed . should_equal Nothing
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
             "line 2!".write f on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Error.Already_Exists
@@ -277,7 +285,7 @@ spec =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_problems=Report_Error . should_succeed . should_equal Nothing
+            "line 1!".write f on_problems=Report_Error . should_succeed . should_equal f
             if f.exists.not then
                 Test.fail "The file should have been created."
             f.read_text.should_equal "line 1!"
@@ -295,7 +303,7 @@ spec =
                 "new content".write n on_existing_file=Existing_File_Behavior.Overwrite
             n3.delete_if_exists
 
-            "line 2!".write f on_problems=Report_Error . should_succeed . should_equal Nothing
+            "line 2!".write f on_problems=Report_Error . should_succeed . should_equal f
             f.read_text.should_equal "line 2!"
             bak.read_text.should_equal "line 1!"
             if n3.exists then

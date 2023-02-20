@@ -11,10 +11,19 @@ use ast::Id;
 
 
 /// Additional information available on nodes that are an invocation of a known methods.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct CalledMethodInfo {
+    /// Whether or not this call represents a static method.
+    pub is_static:      bool,
+    /// Whether or not this call represents a constructor.
+    pub is_constructor: bool,
+    /// Whether or not this method was called as a qualified function (e.g. `Text.trim`).
+    /// This also applies to all static methods, as those are always called that way. This
+    /// information is only available when it is resolved from computed value registry for specific
+    /// call expression. Otherwise it is `None`.
+    pub called_on_type: Option<bool>,
     /// Information about arguments taken by a called method.
-    pub parameters: Vec<ArgumentInfo>,
+    pub parameters:     Vec<ArgumentInfo>,
 }
 
 impl CalledMethodInfo {
@@ -23,6 +32,12 @@ impl CalledMethodInfo {
         self.parameters.iter_mut().for_each(|arg| {
             arg.call_id = call_id;
         });
+        self
+    }
+
+    /// Add information whether this method was called on .
+    pub fn with_called_on_type(mut self, called_on_type: bool) -> Self {
+        self.called_on_type = Some(called_on_type);
         self
     }
 }

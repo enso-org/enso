@@ -41,6 +41,12 @@ impl<T: MockDefault, E> MockDefault for Result<T, E> {
     }
 }
 
+impl<T> MockDefault for Vec<T> {
+    fn mock_default() -> Self {
+        vec![]
+    }
+}
+
 /// Macro which generates [`MockDefault`] impls which redirect the call to [`Default::default`].
 macro_rules! auto_impl_mock_default {
     ( $($tp:ident $(< $($arg:ident),* >)? ),* ) => {
@@ -466,6 +472,7 @@ mock_data! { Array => Object
     fn of3(a: &JsValue, b: &JsValue, c: &JsValue) -> Array;
     fn of4(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue) -> Array;
     fn of5(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue, e: &JsValue) -> Array;
+    fn to_vec(&self) -> Vec<JsValue>;
 }
 
 
@@ -547,6 +554,7 @@ mock_data! { Window => EventTarget
 
 // === Function ===
 mock_data! { Function
+    fn call0(&self, context: &JsValue) -> Result<JsValue, JsValue>;
     fn call1(&self, context: &JsValue, arg1: &JsValue) -> Result<JsValue, JsValue>;
     fn call2(&self, context: &JsValue, arg1: &JsValue, arg2: &JsValue) -> Result<JsValue, JsValue>;
     fn call3(&self, context: &JsValue, arg1: &JsValue, arg2: &JsValue, arg3: &JsValue)

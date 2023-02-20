@@ -76,6 +76,7 @@ impl<T> component::Model for Model<T> {
         "Dropdown"
     }
 
+    #[profile(Debug)]
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
 
@@ -97,6 +98,7 @@ impl<T> component::Model for Model<T> {
 
 impl<T: DropdownValue> Model<T> {
     /// Set the minimum and maximum allowed inner width of an entry.
+    #[profile(Debug)]
     pub fn set_outer_width_bounds(&self, min_outer_width: f32, max_outer_width: f32) {
         let corners_radius = CORNER_RADIUS - CLIP_PADDING;
         let max_width = max_outer_width - CLIP_PADDING * 2.0;
@@ -107,6 +109,7 @@ impl<T: DropdownValue> Model<T> {
     }
 
     /// Set the dimensions of all ui elements of the dropdown.
+    #[profile(Debug)]
     pub fn set_dimensions(
         &self,
         num_entries: usize,
@@ -136,6 +139,7 @@ impl<T: DropdownValue> Model<T> {
         self.grid.resize_grid(num_entries, 1);
     }
 
+    #[profile(Debug)]
     pub fn set_selection(&self, selected: &HashSet<T>, allow_multiselect: bool) {
         let mut entries = self.selected_entries.borrow_mut();
         entries.clear();
@@ -148,6 +152,7 @@ impl<T: DropdownValue> Model<T> {
 
     /// Convert provided list of indices onto sets of index ranges. One set of ranges is for indices
     /// that are already in cache, and the other set is for indices that need to be requested.
+    #[profile(Debug)]
     pub fn get_ready_and_request_ranges(
         &self,
         requested_indices: &[usize],
@@ -180,6 +185,7 @@ impl<T: DropdownValue> Model<T> {
     /// Accepts entry at given index, modifying selection. If entry is already selected, it will be
     /// unselected, unless it is the last selected entry and `allow_empty` is false. For
     /// single-select dropdowns, previously selected entry will be unselected.
+    #[profile(Debug)]
     pub fn accept_entry_at_index(&self, index: usize, allow_multiselect: bool, allow_empty: bool) {
         let cache = self.cache.borrow();
         let Some(entry) = cache.get(index) else { return };
@@ -201,6 +207,7 @@ impl<T: DropdownValue> Model<T> {
     ///
     /// Note: The iterator borrows cache and selection. Make sure to drop it before calling any
     /// methods that need to borrow them mutably.
+    #[profile(Debug)]
     pub fn entry_models_for_range(
         &self,
         range: Range<usize>,
@@ -216,6 +223,7 @@ impl<T: DropdownValue> Model<T> {
     }
 
     /// Update cache with new entries at given range. Returns range of indices that were updated.
+    #[profile(Debug)]
     pub fn insert_entries_in_range(
         &self,
         updated_range: Range<usize>,
@@ -236,6 +244,7 @@ impl<T: DropdownValue> Model<T> {
 
     /// Prune selection according to changed multiselect mode. Returns true if the selection was
     /// changed.
+    #[profile(Debug)]
     pub fn set_multiselect(&self, multiselect: bool) -> bool {
         let mut entries = self.selected_entries.borrow_mut();
         if !multiselect && entries.len() > 1 {

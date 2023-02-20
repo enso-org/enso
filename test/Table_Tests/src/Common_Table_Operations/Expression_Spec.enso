@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.Common.Arithmetic_Error
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
+from Standard.Table import Table, Column, Sort_Column, Aggregate_Column
 from Standard.Table.Errors import Floating_Point_Equality, Additional_Warnings
 import Standard.Table.Data.Expression.Expression_Error
 
