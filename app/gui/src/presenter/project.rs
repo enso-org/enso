@@ -181,7 +181,7 @@ impl Model {
     }
 
     fn toggle_private_component_browser_entries_visibility(&self) {
-        let visibility = self.ide_controller.are_private_component_browser_entries_visibile();
+        let visibility = self.ide_controller.are_private_component_browser_entries_visible();
         self.ide_controller.set_private_component_browser_entries_visibility(!visibility);
     }
 

@@ -189,7 +189,7 @@ pub trait API: Debug {
     fn manage_projects<'a>(&'a self) -> FallibleResult<&'a dyn ManagingProjectAPI>;
 
     /// Return whether private entries should be visible in the component browser.
-    fn are_private_component_browser_entries_visibile(&self) -> bool;
+    fn are_private_component_browser_entries_visible(&self) -> bool;
 
     /// Sets whether private entries should be visible in the component browser.
     fn set_private_component_browser_entries_visibility(&self, visibility: bool);

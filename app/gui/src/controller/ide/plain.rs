@@ -110,7 +110,7 @@ impl controller::ide::API for Handle {
         Err(ProjectOperationsNotSupported.into())
     }
 
-    fn are_private_component_browser_entries_visibile(&self) -> bool {
+    fn are_private_component_browser_entries_visible(&self) -> bool {
         self.private_component_browser_entries_visibility_flag.get()
     }
 

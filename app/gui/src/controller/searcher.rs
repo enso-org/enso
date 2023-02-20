@@ -1300,7 +1300,7 @@ impl Searcher {
             &self.database,
             module_name.as_ref(),
             &*favorites,
-            self.ide.are_private_component_browser_entries_visibile(),
+            self.ide.are_private_component_browser_entries_visible(),
         );
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
