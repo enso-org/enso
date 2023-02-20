@@ -656,7 +656,7 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
 
          "Hello".bytes (Encoding.ascii)
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
-Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Warning =
+Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
     result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
         on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
@@ -700,7 +700,7 @@ Text.utf_8 self on_problems=Problem_Behavior.Report_Warning =
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 Text.from_utf_8 : Vector Integer -> Problem_Behavior -> Text
-Text.from_utf_8 bytes on_problems=Problem_Behavior.Report_Warning =
+Text.from_utf_8 bytes on_problems=Problem_Behavior.Report_Error =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
 ## Returns a vector containing the UTF-16 characters that encode the input text.
@@ -1380,4 +1380,3 @@ slice_text text char_ranges =
     char_ranges.map char_range->
        sb.append text char_range.start char_range.end
     sb.toString
-
