@@ -376,9 +376,10 @@ trait Cache[T] {
             s"[${cacheRoot.toMaskedPath.applyMasking()}]."
           )
       }
-      doDeleteAt(metadataFile)
-      doDeleteAt(dataFile)
     }
+
+    doDeleteAt(metadataFile)
+    doDeleteAt(dataFile)
   }
 
   /** Invalidates all caches associated with this cache.
