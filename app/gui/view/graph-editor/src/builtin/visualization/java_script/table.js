@@ -1,4 +1,4 @@
- /** Table visualization. */
+/** Table visualization. */
 
 // ============================
 // === Style Initialisation ===
