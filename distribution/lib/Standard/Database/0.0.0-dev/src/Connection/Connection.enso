@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Column_Name_Mapping
 import Standard.Table.Data.Table.Table as Materialized_Table
 
 import project.Data.SQL_Query.SQL_Query
@@ -103,7 +102,7 @@ type Connection
             table = result_set_to_table <|
                 metadata.getTables database schema name_like types_array
 
-            renamed = table.rename_columns (Column_Name_Mapping.By_Name name_map)
+            renamed = table.rename_columns name_map
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
 

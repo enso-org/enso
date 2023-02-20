@@ -8,7 +8,7 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
-from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode
 import Standard.Table.Data.Column_Type_Selection.Column_Type_Selection
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
@@ -359,9 +359,19 @@ type Table
                other, a `Duplicate_Output_Column_Names`.
 
        > Example
-         Rename the first column to "FirstColumn"
+         Rename the "Alpha" column to "Beta"
 
-              table.rename_columns (Column_Name_Mapping.By_Position ["FirstColumn"])
+              table.rename_columns (Map.from_vector [["Alpha", "Beta"]])
+
+       > Example
+         Rename the last column to "LastColumn" passed as a Map
+
+              table.rename_columns (Map.from_vector [[-1, "LastColumn"]])
+
+       > Example
+         Rename the "Alpha" column to "Beta" and last column to "LastColumn"
+
+              table.rename_columns (Map.from_vector [["Alpha", "Beta"], [-1, "LastColumn"])
 
        > Example
          Rename the first column to "FirstColumn" passed as a Vector
@@ -376,18 +386,11 @@ type Table
        > Example
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
-              table.rename_columns (Column_Name_Mapping.By_Name (Map.from_vector [["name=(.*)", "key:$1"]]) Regex_Matcher.Value)
+              table.rename_columns Map.from_vector [[Column_Selector.By_Name "name=(.*)" Case_Sensitivity.Sensitive use_regex=True, "key:$1"]]
     rename_columns : Map | Vector Text | Column_Name_Mapping -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (error_on_missing_columns=True) (on_problems=Report_Warning) = case column_map of
-        _ : Vector ->
-            self.rename_columns (Column_Name_Mapping.By_Position column_map) error_on_missing_columns on_problems
-        _ : Map ->
-            self.rename_columns (Column_Name_Mapping.By_Name column_map) error_on_missing_columns on_problems
-        _ ->
-            case Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems of
-                new_names ->
-                    new_columns = self.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
-                    self.updated_columns new_columns
+    rename_columns self column_map=["Column"] (error_on_missing_columns=True) (on_problems=Report_Warning) =
+        new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        new_names.if_not_error (self.updated_columns self.internal_columns.map_with_index i->c->(c.rename (new_names.at i)))
 
     ## PRIVATE
 
