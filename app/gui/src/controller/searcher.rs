@@ -1795,7 +1795,7 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            ide.expect_private_component_browser_entries_visibility().returning_st(|| false);
+            ide.expect_are_private_component_browser_entries_visible().returning_st(|| false);
             let node_metadata_guard = default();
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
