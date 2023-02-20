@@ -83,7 +83,7 @@ use super::def;
 // =====================
 
 /// The ID of a user generated shape system.
-#[derive(Copy, Clone, Eq, Hash, Ord, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, CloneRef, Eq, Hash, Ord, PartialOrd, PartialEq, Debug)]
 pub struct ShapeSystemId {
     type_id: std::any::TypeId,
 }
@@ -94,12 +94,6 @@ impl ShapeSystemId {
     pub fn of<S: Shape>() -> Self {
         let type_id = std::any::TypeId::of::<S>();
         Self { type_id }
-    }
-}
-
-impl CloneRef for ShapeSystemId {
-    fn clone_ref(&self) -> Self {
-        *self
     }
 }
 

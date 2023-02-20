@@ -98,6 +98,14 @@ pub struct ShapeDefinition {
     pub cons:            ShapeCons,
 }
 
+impl ShapeDefinition {
+    /// Return `true` if it is possible that this shape is used by the main application.
+    fn is_main_application_shape(&self) -> bool {
+        // Shapes defined in `examples` directories are not used in the main application.
+        !self.definition_path.contains("/examples/")
+    }
+}
+
 /// The definition of shapes created with the `cached_shape!` macro.
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -210,16 +218,11 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
 #[profile(Task)]
 pub fn instantiate_shaders() {
     SHAPES_DEFINITIONS.with_borrow(|shapes| {
-        for shape in shapes {
-            let path = &shape.definition_path;
-            let preload = match path {
-                _ if path.starts_with("app/gui/view/debug_scene/") => false,
-                _ if path.starts_with("lib/rust/ensogl/example/") => false,
-                _ => true,
-            };
-            if preload {
-                let _shape = (shape.cons)();
-            }
+        for shape in shapes.iter().filter(|shape| shape.is_main_application_shape()) {
+            // Instantiate shape so that its shader program will be submitted to the shader
+            // compiler. The runtime compiles the shaders in background threads, and starting early
+            // ensures they will be ready when we want to render them.
+            let _shape = (shape.cons)();
         }
     });
 }

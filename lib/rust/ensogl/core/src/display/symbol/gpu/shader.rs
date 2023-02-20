@@ -207,7 +207,7 @@ impl {
         let geometry_inputs = self.geometry_material.inputs().iter();
         let surface_inputs = self.surface_material.inputs().iter();
         geometry_inputs.chain(surface_inputs)
-            .map(|(s, d)| (s.clone(), d.clone()))
+            .map(|(name, declaration)| (name.clone(), declaration.clone()))
             .collect_vec()
             .into_iter()
     }
