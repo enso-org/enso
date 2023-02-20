@@ -39,11 +39,11 @@ import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
 
-from project.Data.Column_Type_Selection import Auto
+from project.Data.Value_Type import Auto, ensure_valid_parse_target
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
-from project.Data.Column import get_item_string, normalize_string_for_display, ensure_valid_value_type
+from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 polyglot java import org.enso.table.data.column.builder.object.StorageTypeMismatch
@@ -748,48 +748,36 @@ type Table
        - columns: The columns to parse. If not specified, all text columns
          will be parsed.
        - type: The type to parse the columns to. Defaults to `Auto` meaning that
-         the type will be inferred from the data. If all values fit one of the
-         more specific types, that type is selected. Otherwise the result
-         remains unchanged (a Text column). The types are tried in the following
-         order: Integer, Decimal, Date_Time, Date, Time_Of_Day, Boolean.
+         the type will be inferred from the data.
        - format: The formatting settings to use when parsing the columns.
-         Defaults to `Nothing` meaning that the default formatting settings will
-         be used. These settings can be overridden by providing a custom
-         `Data_Formatter`. Alternatively, when type is `Date`, `Date_Time`,
-         `Time_Of_Day` or `Boolean`, a text format can be used to specify the
-         format for the chosen datatype. For dates, it is the usual date format
-         notation, and for booleans it should be two values that represent true
-         and false, separated by a `|`.
-       - error_on_missing_columns: Specifies if a missing input column should
-         result in an error regardless of the `on_problems` settings. Defaults
-         to `True`.
+         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
+         can be used. For `Boolean`, it should be two values that represent true
+         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+         passed to provide complete customisation of the formatting.
+       - error_on_missing_columns: if `True` (the default) raises an error if
+         any column is missing. Otherwise, reported as a problem.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
        ! Error Conditions
 
          - If a column in `columns` is not in the input table, a
-           `Missing_Input_Columns` is raised as an error, unless
-           `error_on_missing_columns` is set to `False`, in which case the
-           problem is reported according to the `on_problems` setting.
+           `Missing_Input_Columns` is raised as an error or problem
+           following the `error_on_missing_columns` rules.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
-           raised as an error, unless `error_on_missing_columns` is set to
-           `False`, in which case the problem is reported according to the
-           `on_problems` setting.
+           raised as an error or problem following the
+           `error_on_missing_columns` rules.
          - If a column selected for parsing is not a text column, an
-           `Invalid_Value_Type` dataflow error is raised.
+           `Invalid_Value_Type` error is raised.
          - If no columns have been selected for parsing,
-           a `No_Input_Columns_Selected` dataflow error is raised.
+           a `No_Input_Columns_Selected` error is raised.
          - If some values in a column did not match the expected datatype
-           format, an `Invalid_Format` problem is reported according to the
-           `on_problems` setting. The problematic cells are replaced with
-           `Nothing`. In case the type is `Auto` (the default), this problem
-           will not occur as any column containing invalid values will simply
-           remain a Text column.
+           format, an `Invalid_Format` problem is reported. The problematic
+           cells are replaced with `Nothing`.
          - If parsing a numeric column and the selected format does not allow
-           leading zeros (the default), a `Leading_Zeros` problem is reported
-           according to the `on_problems` setting. The cells containing numbers
-           starting with zeros are replaced with `Nothing`.
+           leading zeros (the default) and such cells are found, a
+           `Leading_Zeros` problem is reported. These cells are replaced with
+           `Nothing`.
 
          > Example
            Parse the first and last columns containing Yes/No values as booleans.
@@ -811,7 +799,7 @@ type Table
 
                table.parse_values format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
     parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Table
-    parse_values self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning = ensure_valid_value_type type <|
+    parse_values self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning = ensure_valid_parse_target type <|
         formatter = case format of
             _ : Text ->
                 Data_Formatter.Value.with_format type format

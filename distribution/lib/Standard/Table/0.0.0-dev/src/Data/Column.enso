@@ -7,7 +7,6 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
-import project.Data.Column_Type_Selection.Auto
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Storage.Storage
 import project.Data.Table.Table
@@ -17,6 +16,7 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
+from project.Data.Value_Type import Auto, ensure_valid_parse_target
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
@@ -923,35 +923,26 @@ type Column
 
        Arguments:
        - type: The type to parse the column to. Defaults to `Auto` meaning that
-         the type will be inferred from the data. If all values fit one of the
-         more specific types, that type is selected. Otherwise the result
-         remains unchanged (a Text column). The types are tried in the following
-         order: Integer, Decimal, Date_Time, Date, Time_Of_Day, Boolean.
+         the type will be inferred from the data.
        - format: The formatting settings to use when parsing the column.
-         Defaults to `Nothing` meaning that the default formatting settings will
-         be used. These settings can be overridden by providing a custom
-         `Data_Formatter`. Alternatively, when type is `Date`, `Date_Time`,
-         `Time_Of_Day` or `Boolean`, a text format can be used to specify the
-         format for the chosen datatype. For dates, it is the usual date format
-         notation, and for booleans it should be two values that represent true
-         and false, separated by a `|`.
+         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
+         can be used. For `Boolean`, it should be two values that represent true
+         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+         passed to provide complete customisation of the formatting.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
        ! Error Conditions
 
-         - If the column is not a text column, an `Invalid_Value_Type` dataflow
-           error is raised.
+         - If the column is not a text column, an `Invalid_Value_Type` error is
+           raised.
          - If some values in the column did not match the expected datatype
-           format, an `Invalid_Format` problem is reported according to the
-           `on_problems` setting. The problematic cells are replaced with
-           `Nothing`. In case the type is `Auto` (the default), this problem
-           will not occur as any column containing invalid values will simply
-           remain a Text column.
+           format, an `Invalid_Format` problem is reported. The problematic
+           cells are replaced with `Nothing`.
          - If parsing a numeric column and the selected format does not allow
-           leading zeros (the default), a `Leading_Zeros` problem is reported
-           according to the `on_problems` setting. The cells containing numbers
-           starting with zeros are replaced with `Nothing`.
+           leading zeros (the default) and such cells are found, a
+           `Leading_Zeros` problem is reported. These cells are replaced with
+           `Nothing`.
 
        > Example
          Parse dates in a column in the format `yyyy-MM-dd` (the default format).
@@ -976,7 +967,7 @@ type Column
     @type Widget_Helpers.parse_type_selector
     parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Column
     parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
-        Value_Type.expect_text self.value_type related_column=self.name <| ensure_valid_value_type type <|
+        Value_Type.expect_text self.value_type related_column=self.name <| ensure_valid_parse_target type <|
             formatter = case format of
                 _ : Text ->
                     Data_Formatter.Value.with_format type format
@@ -1545,9 +1536,3 @@ run_vectorized_binary_case_text_op left op other case_sensitivity fallback =
                passing the locale to it.
                See: https://www.pivotaltracker.com/n/projects/2539304/stories/184093260
             run_vectorized_binary_op left Nothing fallback other
-
-## PRIVATE
-   This will be replaced once we change parse to rely on `Value_Type` instead.
-ensure_valid_value_type type ~action =
-    expected_types = [Auto, Integer, Decimal, Date, Date_Time, Time_Of_Day, Boolean]
-    if expected_types.contains type . not then Error.throw (Illegal_Argument.Error "Unsupported target type "+type.to_text+".") else action
