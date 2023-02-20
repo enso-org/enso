@@ -95,6 +95,9 @@
 - [Improved component browser entry filtering and sorting][5645]. The component
   browser will now provide suggestions matching either the component's label or
   the corresponding code.
+- [Improved argument placeholder resolution in more complex expressions][5656].
+  It is now possible to drop node connections onto missing arguments of chained
+  and nested function calls.
 
 #### EnsoGL (rendering engine)
 
@@ -480,6 +483,7 @@
 [4072]: https://github.com/enso-org/enso/pull/4072
 [5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
+[5656]: https://github.com/enso-org/enso/pull/5656
 
 #### Enso Compiler
 

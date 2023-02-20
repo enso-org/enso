@@ -322,7 +322,8 @@ pub fn expression_mock_string(label: &str) -> Expression {
     let parser = Parser::new();
     let parameters = vec![];
     let ast = parser.parse_line_ast(&code).unwrap();
-    let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
+    let invocation_info =
+        span_tree::generate::context::CalledMethodInfo { parameters, ..default() };
     let ctx = span_tree::generate::MockContext::new_single(ast.id.unwrap(), invocation_info);
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
@@ -342,7 +343,8 @@ pub fn expression_mock() -> Expression {
     };
     let parameters = vec![this_param];
     let ast = parser.parse_line_ast(&code).unwrap();
-    let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
+    let invocation_info =
+        span_tree::generate::context::CalledMethodInfo { parameters, ..default() };
     let ctx = span_tree::generate::MockContext::new_single(ast.id.unwrap(), invocation_info);
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
@@ -383,7 +385,8 @@ pub fn expression_mock3() -> Expression {
     };
     let parameters = vec![this_param, param0, param1, param2, param3];
     let ast = parser.parse_line_ast(&code).unwrap();
-    let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
+    let invocation_info =
+        span_tree::generate::context::CalledMethodInfo { parameters, ..default() };
     let ctx = span_tree::generate::MockContext::new_single(ast.id.unwrap(), invocation_info);
     let output_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap(); //span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
@@ -418,7 +421,8 @@ pub fn expression_mock_trim() -> Expression {
     };
     let parameters = vec![this_param, param0, param1];
     let ast = parser.parse_line_ast(&code).unwrap();
-    let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
+    let invocation_info =
+        span_tree::generate::context::CalledMethodInfo { parameters, ..default() };
     let ctx = span_tree::generate::MockContext::new_single(ast.id.unwrap(), invocation_info);
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
