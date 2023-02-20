@@ -15,7 +15,7 @@ use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
-use crate::open_dialog::OpenDialog;
+use crate::project_list::ProjectList;
 use crate::searcher;
 
 use enso_config::ARGS;
@@ -69,12 +69,16 @@ impl SearcherParams {
 
 ensogl::define_endpoints! {
     Input {
-        /// Open the Open File or Project Dialog.
-        show_open_dialog(),
+        /// Open the Open Project Dialog.
+        show_project_list(),
+        /// Close the Open Project Dialog without further action
+        hide_project_list(),
         /// Close the searcher without taking any actions
         close_searcher(),
-        /// Close the Open File or Project Dialog without further action
-        close_open_dialog(),
+        /// Show the graph editor.
+        show_graph_editor(),
+        /// Hide the graph editor.
+        hide_graph_editor(),
         /// Simulates a style toggle press event.
         toggle_style(),
         /// Saves a snapshot of the current state of the project to the VCS.
@@ -110,7 +114,7 @@ ensogl::define_endpoints! {
         editing_aborted                (NodeId),
         editing_committed_old_searcher (NodeId, Option<searcher::entry::Id>),
         editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
-        open_dialog_shown              (bool),
+        project_list_shown             (bool),
         code_editor_shown              (bool),
         style                          (Theme),
         fullscreen_visualization_shown (bool),
@@ -248,7 +252,7 @@ struct Model {
     searcher:               SearcherVariant,
     code_editor:            code_editor::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    open_dialog:            Rc<OpenDialog>,
+    project_list:           Rc<ProjectList>,
     debug_mode_popup:       debug_mode_popup::View,
 }
 
@@ -269,7 +273,7 @@ impl Model {
             window_control_buttons
         });
         let window_control_buttons = Immutable(window_control_buttons);
-        let open_dialog = Rc::new(OpenDialog::new(app));
+        let project_list = Rc::new(ProjectList::new(app));
 
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
@@ -287,7 +291,7 @@ impl Model {
             searcher,
             code_editor,
             fullscreen_vis,
-            open_dialog,
+            project_list,
             debug_mode_popup,
         }
     }
@@ -377,12 +381,20 @@ impl Model {
         js::fullscreen();
     }
 
-    fn show_open_dialog(&self) {
-        self.display_object.add_child(&*self.open_dialog);
+    fn show_project_list(&self) {
+        self.display_object.add_child(&*self.project_list);
     }
 
-    fn hide_open_dialog(&self) {
-        self.display_object.remove_child(&*self.open_dialog);
+    fn hide_project_list(&self) {
+        self.display_object.remove_child(&*self.project_list);
+    }
+
+    fn show_graph_editor(&self) {
+        self.display_object.add_child(&*self.graph_editor);
+    }
+
+    fn hide_graph_editor(&self) {
+        self.display_object.remove_child(&*self.graph_editor);
     }
 }
 
@@ -458,8 +470,7 @@ impl View {
         let network = &frp.network;
         let searcher = &model.searcher.frp(network);
         let graph = &model.graph_editor.frp;
-        let project_list = &model.open_dialog.project_list;
-        let file_browser = &model.open_dialog.file_browser;
+        let project_list = &model.project_list;
         let searcher_anchor = DEPRECATED_Animation::<Vector2<f32>>::new(network);
 
         // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
@@ -483,6 +494,9 @@ impl View {
 
         frp::extend! { network
             eval shape ((shape) model.on_dom_shape_changed(shape));
+
+            eval_ frp.show_graph_editor(model.show_graph_editor());
+            eval_ frp.hide_graph_editor(model.hide_graph_editor());
 
             // === Searcher Position and Size ===
 
@@ -625,17 +639,15 @@ impl View {
             );
 
 
-            // === Opening Open File or Project Dialog ===
+            // === Project Dialog ===
 
-            eval_ frp.show_open_dialog  (model.show_open_dialog());
-            project_chosen   <- project_list.chosen_entry.constant(());
-            file_chosen      <- file_browser.entry_chosen.constant(());
+            eval_ frp.show_project_list  (model.show_project_list());
+            project_chosen   <- project_list.grid.entry_selected.constant(());
             mouse_down       <- scene.mouse.frp.down.constant(());
             clicked_on_bg    <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
-            should_be_closed <- any(frp.close_open_dialog,project_chosen,file_chosen,clicked_on_bg);
-            eval_ should_be_closed (model.hide_open_dialog());
-
-            frp.source.open_dialog_shown <+ bool(&should_be_closed,&frp.show_open_dialog);
+            should_be_closed <- any(frp.hide_project_list,project_chosen,clicked_on_bg);
+            eval_ should_be_closed (model.hide_project_list());
+            frp.source.project_list_shown <+ bool(&should_be_closed,&frp.show_project_list);
 
 
             // === Style toggle ===
@@ -675,13 +687,13 @@ impl View {
 
             let documentation = model.searcher.documentation();
             searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
-            disable_navigation <- searcher_active || frp.open_dialog_shown;
+            disable_navigation <- searcher_active || frp.project_list_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
             // === Disabling Dropping ===
 
             frp.source.drop_files_enabled <+ init.constant(true);
-            frp.source.drop_files_enabled <+ frp.open_dialog_shown.map(|v| !v);
+            frp.source.drop_files_enabled <+ frp.project_list_shown.map(|v| !v);
 
             // === Debug Mode ===
 
@@ -712,9 +724,9 @@ impl View {
         &self.model.code_editor
     }
 
-    /// Open File or Project Dialog
-    pub fn open_dialog(&self) -> &OpenDialog {
-        &self.model.open_dialog
+    /// Open Project Dialog
+    pub fn project_list(&self) -> &ProjectList {
+        &self.model.project_list
     }
 
     /// Debug Mode Popup
@@ -751,9 +763,9 @@ impl application::View for View {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
-            (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
+            (Press, "!is_searcher_opened", "cmd o", "show_project_list"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
-            (Press, "open_dialog_shown", "escape", "close_open_dialog"),
+            (Press, "project_list_shown", "escape", "hide_project_list"),
             (Press, "", "cmd alt shift t", "toggle_style"),
             (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd r", "restore_project_snapshot"),
