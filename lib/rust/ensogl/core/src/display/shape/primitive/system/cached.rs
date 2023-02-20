@@ -1,26 +1,27 @@
 //! Shape Systems with instance cached on global texture
 //!
 //! These systems are a valid [shape systems](super) which cannot be parameterized, but have
-//! a single instance cached on a special texture (available in Glsl as `pass_cached_shapes`). The
+//! a single instance cached on a special texture (available in GLSL as `pass_cached_shapes`). The
 //! texture keeps the color (except alpha) and the signed distance. The cached instance may be later
 //! used inside other shape systems by using [`AnyCachedShape`].
 //!
 //! # Limitations
 //!
-//! * The cached shapes does not support alpha channels fully: during rendering to the texture the
-//!   alpha value is dropped. See _Cached Shapes Texture_ section for details.
+//! * The cached shapes do not support alpha channels fully: it will be taken into consideration
+//!   when adding shapes in their definition, but the alpha value will be dropped during rendering
+//!   to the texture. See _Cached Shapes Texture_ section for details.
 //! * The signed distance kept in the texture is capped at [`CACHED_TEXTURE_MAX_DISTANCE`]. This may
 //!   give aliasing effects when zoomed out more than this distance.
-//! * The shapes rendered from the texture may not always gives the best quality results, see
+//! * The shapes rendered from the texture may not always give the best quality results, see
 //!   _Limitations_ section of [`AnyCachedShape`] docs.
 //!
 //! # Usages
 //!
 //! The main idea behind cached shapes is speeding up rendering applications with many shape
 //! systems. Because each shape system is drawn with a different draw call, having e.g. a grid of
-//! icons can increase number od those, greatly worsening the application performance. But instead
-//! all the icons can be rendered to texture, and the icon grid can use only one shape system
-//! parameterized by the exact icon id.
+//! icons can increase the number of those, greatly worsening the application performance. But
+//! instead all the icons can be rendered to texture, and the icon grid can use only one shape
+//! system parameterized by the exact icon ID.
 //!
 //! # Cached Shapes Texture
 //!
@@ -33,8 +34,8 @@
 //! The texture is rendered in
 //! [`CachdShapesTexture` display
 //! mode](crate::display::shape::primitive::glsl::codes::DisplayModes), where the RGB channels keeps
-//! color of given pixel (as one would expect), and the alpha channel contains the information about
-//! signed distance the shape boundary, linearly transformed so:
+//! the color of a given pixel (as one would expect), and the alpha channel contains the information
+//! about signed distance from the shape boundary, linearly transformed so:
 //! * 0.5 value means distance 0.0 distance,
 //! * 0.0 is [`CACHED_TEXTURE_MAX_DISTANCE`],
 //! * 1.0 is `-CACHED_TEXTURE_MAX_DISTANCE`.
@@ -44,8 +45,8 @@
 //!
 //! # Using Cached Shapes
 //!
-//! The shapes may be read from the texture by creating [`AnyCachedShape`]. This structure can be
-//! also a parameter for shape systems defined with [`shape!`] macro. See [the docs](AnyCachedShape)
+//! The shapes may be read from the texture by creating [`AnyCachedShape`]. This structure can also
+//! be a parameter for shape systems defined with [`shape!`] macro. See [the docs](AnyCachedShape)
 //! for details.
 //!
 //! # Example
@@ -59,17 +60,15 @@
 //! mod cached {
 //!     use super::*;
 //!     ensogl_core::cached_shape! { 32 x 32;
-//!                                                     // Some definition
-//! #       (_style: Style) { Circle(16.px()).into() }
-//!                                                 }
+//!        (_style: Style) { Circle(16.px()).into() }
+//!     }
 //! }
 //!
 //! mod another_cached {
 //!     use super::*;
 //!     ensogl_core::cached_shape! { 32 x 32;
-//!                                                     // Some definition
-//! #       (_style: Style) { Circle(16.px()).into() }
-//!                                                 }
+//!        (_style: Style) { Circle(16.px()).into() }
+//!     }
 //! }
 //!
 //!

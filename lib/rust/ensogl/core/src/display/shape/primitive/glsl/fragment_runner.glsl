@@ -45,6 +45,8 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
 
 } else if (input_display_mode == DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
     output_color = rgba(shape.color).raw;
+    // The signed distance is stored in the texture's alpha channel in a special way. See
+    // [`crate::display::shape::primitive::system::cached`] documentation for details.
     output_color.a = -shape.sdf.distance / CACHED_SHAPE_MAX_DISTANCE / 2.0 + 0.5;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SHAPE_AA_SPAN) {

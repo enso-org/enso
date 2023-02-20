@@ -285,18 +285,19 @@ struct Shape {
     Id id;
     /// The Signed Distance Field, describing the shape boundaries.
     BoundSdf sdf;
-    /// The color of the shape. Please note that we are storing the premultiplied version of the
-    /// color, as blending requires premultiplied values. We could store the non-premultiplied,
-    /// however, then we would need to unpremultiply the color after blending, which leads to
-    /// a serious issue. If the alpha is 0, then either unpremultiplication needs to be more costly
-    /// and check for this condition, or it will produce infinite/invalid values for the `xyz`
-    /// components. If we blend such a color with another one, then we will get artifacts, as
-    /// multiplying an infinite/invalid value by 0 is an undefined behavior.
+    /// The color of the shape.
     ///
-    /// If the Display Mode is DISPLAY_MODE_CACHED_SHAPES_TEXTURE, the color does not fade outside
-    /// the shape. Otherwise the resulting cached shapes would have darker borders if not aligned
-    /// to texture pixels. This effects is caused by the way how texture interpolates a space
-    /// between pixels.
+    /// We are storing the premultiplied version of the color, as blending requires premultiplied
+    /// values. We could store the non-premultiplied, however, then we would need to unpremultiply
+    /// the color after blending, which leads to a serious issue. If the alpha is 0, then either
+    /// unpremultiplication needs to be more costly and check for this condition, or it will produce
+    /// infinite/invalid values for the `xyz` components. If we blend such a color with another one,
+    /// then we will get artifacts, as multiplying an infinite/invalid value by 0 is an undefined
+    /// behavior.
+    ///
+    /// The [`alpha`] field is applied on thin field, except if we are in
+    /// `DISPLAY_MODE_CACHED_SHAPES_TEXTURE`. This display mode is an exception, because otherwise
+    /// cached shapes would have darker borders if not aligned to the texture pixels.
     PremultipliedColor color;
     /// The opacity of the shape. It is the result of rendering of the [`sdf`].
     float alpha;
@@ -304,6 +305,8 @@ struct Shape {
 
 Shape shape (Id id, BoundSdf bound_sdf, PremultipliedColor color) {
     float alpha = render(bound_sdf);
+    // See [`color`] field documentation for explanation why DISPLAY_MODE_CACHED_SHAPES_TEXTURE is
+    // an exception.
     if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
         color.repr.raw *= alpha;
     }
@@ -333,6 +336,8 @@ Shape debug_shape (BoundSdf bound_sdf) {
 Shape resample (Shape s, float multiplier) {
     Id id = s.id;
     BoundSdf sdf = resample(s.sdf, multiplier);
+    // The [`alpha`] field is not applied on [`color`] if we are in
+    // `DISPLAY_MODE_CACHED_SHAPES_TEXTURE`. See [`color`] docs for explanation.
     if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
         s.color.repr.raw.a /= s.alpha;
     }
@@ -342,6 +347,8 @@ Shape resample (Shape s, float multiplier) {
 Shape pixel_snap (Shape s) {
     Id id = s.id;
     BoundSdf sdf = pixel_snap(s.sdf);
+    // The [`alpha`] field is not applied on [`color`] if we are in
+    // `DISPLAY_MODE_CACHED_SHAPES_TEXTURE`. See [`color`] docs for explanation.
     if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
         s.color.repr.raw.a /= s.alpha;
     }
@@ -351,6 +358,8 @@ Shape pixel_snap (Shape s) {
 Shape grow (Shape s, float value) {
     Id id = s.id;
     BoundSdf sdf = grow(s.sdf,value);
+    // The [`alpha`] field is not applied on [`color`] if we are in
+    // `DISPLAY_MODE_CACHED_SHAPES_TEXTURE`. See [`color`] docs for explanation.
     if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
         s.color.repr.raw.a /= s.alpha;
     }
@@ -363,16 +372,17 @@ Shape inverse (Shape s1) {
 
 Shape unify (Shape s1, Shape s2) {
     if (input_display_mode == DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
-        // In DISPLAY_MODE_CACHED_SHAPES_TEXTURE As the color is not faded outside the shapes, we
-        // need to fade the foregroud color at some points before blending, otherwise it would
-        // "cover" the background color.
+        // In DISPLAY_MODE_CACHED_SHAPES_TEXTURE the color has not [`alpha`] field applied (See
+        // [`color`] documentation for explanation). That means, that even outside the
+        // foreground shape the [`color`] field will be in the full shape's intensity. However we
+        // need to make the foregroud color to give way for background colors, so it won't "cover"
+        // the background shape.
         // There are two conditions we want to met:
-        // * We always want to fade it if outside foreground shape, but inside the background shape
-        //   (and the fg shape boundary over bg shape shall be anti-aliased, basing on sdf
-        //   information).
+        // * If we are outside the foreground shape, but inside the background shape, the foreground
+        //   color should blend properly with background color, so it alpha must apply the sdf render
+        //   results ([`alpha`] field).
         // * We want to keep the color consistent near border of the both shapes.
-        // We can fade the foreground shape always when the sdf distance is greated than the
-        // background shape - this way we met both conditions above.
+        // The code below meets the both conditions.
         if (s2.sdf.distance > s1.sdf.distance) {
             s2.color.repr.raw *= s2.alpha;
         }
@@ -415,15 +425,18 @@ Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
     
     vec2 texture_bbox_center = (tex_bbox.xy + tex_bbox.zw) / 2.0;
     vec2 texture_position = texture_bbox_center + position;
-    vec2 texture_uv = (texture_position / vec2(textureSize(input_pass_cached_shapes, 0))) + vec2(0.5, 0.5);
+    vec2 texture_uv_origin = vec2(0.5, 0.5);
+    vec2 texture_uv = (texture_position / vec2(textureSize(input_pass_cached_shapes, 0))) + texture_uv_origin;
     Rgba color_and_distance;
     if (contains(texture_bbox, texture_position)) {
         color_and_distance = rgba(texture(input_pass_cached_shapes, texture_uv));
     } else {
         color_and_distance = rgba(0.0, 0.0, 0.0, 0.0);
     }
-
-    float distance = (-color_and_distance.raw.a + 0.5) * 2.0 * CACHED_SHAPE_MAX_DISTANCE;
+    // The signed distance is stored in the texture's alpha channel in a special way. See
+    // [`crate::display::shape::primitive::system::cached`] documentation for details.
+    float alpha_representing_0_sdf = 0.5;
+    float distance = -(color_and_distance.raw.a - alpha_representing_0_sfg) * 2.0 * CACHED_SHAPE_MAX_DISTANCE;
     BoundSdf sdf = bound_sdf(distance, shape_bbox);
     Color shape_color = color(color_and_distance.raw.rgb, 1.0);
     return shape(id, sdf, shape_color);
