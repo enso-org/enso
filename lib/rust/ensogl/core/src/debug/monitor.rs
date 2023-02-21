@@ -180,8 +180,9 @@ impl DomData {
         root.set_style_or_warn("z-index", "100");
         root.set_style_or_warn("left", format!("{PADDING_LEFT}px"));
         root.set_style_or_warn("top", format!("{PADDING_TOP}px"));
-        // root.set_style_or_warn("overflow", "hidden");
-        // root.set_style_or_warn("border-radius", "6px");
+        root.set_style_or_warn("overflow", "hidden");
+        root.set_style_or_warn("border-radius", "6px");
+        root.set_style_or_warn("border", "2px solid #000000c4");
         // root.set_style_or_warn("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
         web::document.body_or_panic().prepend_with_node_1(&root).unwrap();
 
@@ -392,10 +393,13 @@ impl Renderer {
             }
             height += self.config.margin;
             height += self.config.outer_margin;
-            let u_width = width as u32;
-            let u_height = height as u32;
             self.width = width;
             self.height = height;
+            let scaled_width = width / ratio;
+            dom.root.set_style_or_warn("width", format!("{scaled_width}px"));
+            let width = 1000.0;
+            let u_width = width as u32;
+            let u_height = height as u32;
             dom.canvas.set_width(u_width);
             dom.canvas.set_height(u_height);
             dom.canvas.set_style_or_warn("width", format!("{}px", width / ratio));
