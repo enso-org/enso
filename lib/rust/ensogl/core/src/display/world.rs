@@ -184,6 +184,7 @@ fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
         let fragment_field = web::Reflect::get(&value, &"fragment".into())?;
         let vertex: String = vertex_field.dyn_into::<web::JsString>()?.into();
         let fragment: String = fragment_field.dyn_into::<web::JsString>()?.into();
+        let vertex = strip_instance_declarations(&vertex);
         let precompiled_shader = PrecompiledShader(shader::Code { vertex, fragment });
         debug!("Registering precompiled shaders for '{key}'.");
         PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
@@ -191,6 +192,39 @@ fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
         });
     }
     Ok(())
+}
+
+/// Remove initial instance variable declarations.
+///
+/// When pre-compiling vertex shaders we don't have full information about inputs, and instead treat
+/// all inputs as instance variables. After the program has been optimized, we need to strip these
+/// imprecise declarations so they don't conflict with the real declarations we add when building
+/// the shader.
+fn strip_instance_declarations(input: &str) -> String {
+    let mut code = String::with_capacity(input.len());
+    let mut preamble_ended = false;
+    let input_prefix = display::symbol::gpu::shader::builder::INPUT_PREFIX;
+    let vertex_prefix = display::symbol::gpu::shader::builder::VERTEX_PREFIX;
+    for line in input.lines() {
+        // Skip lines as long as they match the `input_foo = vertex_foo` pattern.
+        if !preamble_ended {
+            let trimmed = line.trim_start();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let mut parts = trimmed.split(' ');
+            if let Some(part) = parts.next() && part.starts_with(input_prefix)
+                    && let Some(part) = parts.next() && part == "="
+                    && let Some(part) = parts.next() && part.starts_with(vertex_prefix)
+                    && let None = parts.next() {
+                continue;
+            }
+        }
+        preamble_ended = true;
+        code.push_str(line);
+        code.push('\n');
+    }
+    code
 }
 
 fn gather_shaders() -> HashMap<&'static str, shader::Code> {

@@ -457,6 +457,8 @@ impl ShapeSystemModel {
         {
             let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.fragment);
             self.material.borrow_mut().set_code(code);
+            let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.vertex);
+            self.geometry_material.borrow_mut().set_code(code);
         } else {
             if !display::world::with_context(|t| t.run_mode.get().is_shader_extraction()) {
                 let path = *self.definition_path;
