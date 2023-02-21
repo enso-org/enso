@@ -57,6 +57,8 @@ type Manual
      - Note that currently the regex-based operations may not handle the edge
        cases described above too well.
 spec =
+    check_span result span = result.span 0 . to_grapheme_span . should_equal span
+    check_span_all result spans = result . map (m-> (m.span 0).to_grapheme_span) . should_equal spans
     Test.group "Text" <|
         kshi = '\u0915\u094D\u0937\u093F'
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
@@ -64,8 +66,6 @@ spec =
         accent_2 = '\u0065\u{301}'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
         utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
-        check_span result span = result.span 0 . to_grapheme_span . should_equal span
-        check_span_all result spans = result . map (m-> (m.span 0).to_grapheme_span) . should_equal spans
         sentences = '''
             I have a very long block of text, here. It goes on and on, containing
             things like decimal points (1.0314e3) and other language scripts as well
@@ -1232,37 +1232,38 @@ spec =
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".match "^My Text: (.+)$"
-            match.should_equal "My Text: Goes Here"
+            match = "My Text: Goes Here".find "^My Text: (.+)$"
+            check_span match (Span.Value (0.up_to 18) "My Text: Goes Here")
 
         Test.specify "should be possible on unicode text" <|
             txt = "maza건반zaa"
-            txt.match "^a..z$" . should_equal Nothing
-            txt.match "^m..a..z.a$" . should_equal txt
-            txt.match "a..z" . should_equal "a건반z"
-
-        Test.specify "should be possible in ascii mode" <|
-            match = "İ".match "\w" matcher=(Regex_Matcher.Value match_ascii=True)
-            match.should_equal Nothing
+            txt.find "^a..z$" . should_equal Nothing
+            check_span (txt.find "^m..a..z.a$") (Span.value (0.up_to 9) txt)
+            check_span (txt.find "a..z") (Span.value (3.up_to 7) txt)
+        ##
+                Test.specify "should be possible in ascii mode" <|
+                    match = "İ".match "\w" matcher=(Regex_Matcher.Value match_ascii=True)
+                    match.should_equal Nothing
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".match "my" matcher=(Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive)
-            match.should_equal "MY"
+            match = "MY".find "my" case_sensitivity=Case_Sensitivity.Insensitive
+            check_span match (Span.Value (0.up_to 2) "MY")
 
-        Test.specify "should be possible in dot_matches_newline mode" <|
-            match = 'Foo\n'.match "(....)" matcher=(Regex_Matcher.Value dot_matches_newline=True)
-            match.should_equal 'Foo\n'
+        ##
+                Test.specify "should be possible in dot_matches_newline mode" <|
+                    match = 'Foo\n'.match "(....)" matcher=(Regex_Matcher.Value dot_matches_newline=True)
+                    match.should_equal 'Foo\n'
 
-        Test.specify "should be possible in multiline mode" <|
-            text = """
-                Foo
-                bar
-            match = text.match_all "^(...)$" matcher=(Regex_Matcher.Value multiline=True)
-            match.should_equal ["Foo", "bar"]
+                Test.specify "should be possible in multiline mode" <|
+                    text = """
+                        Foo
+                        bar
+                    match = text.match_all "^(...)$" matcher=(Regex_Matcher.Value multiline=True)
+                    match.should_equal ["Foo", "bar"]
 
-        Test.specify "should be possible in comments mode" <|
-            match = "abcde".match "(..) # Match two of any character" matcher=(Regex_Matcher.Value comments=True)
-            match.should_equal "ab"
+                Test.specify "should be possible in comments mode" <|
+                    match = "abcde".match "(..) # Match two of any character" matcher=(Regex_Matcher.Value comments=True)
+                    match.should_equal "ab"
 
     Test.group "Text.match" <|
         Test.specify "should default to regex" <|
