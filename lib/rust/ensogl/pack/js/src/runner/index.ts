@@ -201,6 +201,7 @@ export class App {
     wasmFunctions: string[] = []
     beforeMainEntryPoints = new Map<string, wasm.BeforeMainEntryPoint>()
     mainEntryPoints = new Map<string, wasm.EntryPoint>()
+    progressIndicator: wasm.ProgressIndicator | null = null
     initialized = false
 
     constructor(opts?: {
@@ -399,6 +400,25 @@ export class App {
                 `Entry points took ${time} milliseconds to run. This is too long. ` +
                     'Before main entry points should be used for fast initialization only.'
             )
+        }
+    }
+
+    /** Show a spinner. The displayed progress is constant. */
+    showProgressIndicator(progress: number) {
+        if (this.progressIndicator) {
+            this.hideProgressIndicator()
+        }
+        this.progressIndicator = new wasm.ProgressIndicator(this.config)
+        this.progressIndicator.set(progress)
+    }
+
+    /** Hide the progress indicator. */
+    hideProgressIndicator() {
+        if (this.progressIndicator) {
+            // Setting the progress to 100% is necessary to allow animation to finish.
+            this.progressIndicator.set(1)
+            this.progressIndicator.destroy()
+            this.progressIndicator = null
         }
     }
 

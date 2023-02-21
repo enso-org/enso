@@ -372,7 +372,6 @@ impl Model {
         let code = &expression.viz_code;
 
         expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
-            let is_parensed = node.is_parensed();
             let skip_opr = if SKIP_OPERATIONS {
                 node.is_operation() && !is_header
             } else {
@@ -562,7 +561,8 @@ impl Model {
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
             let new_shift = if !not_a_port { 0 } else { builder.shift + local_char_offset };
-            builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
+            let parenthesized = node.parenthesized();
+            builder.nested(new_parent, new_parent_frp, parenthesized, new_shift)
         });
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
         *self.widgets_map.borrow_mut() = widgets_map;
@@ -1166,9 +1166,10 @@ struct CallInfoMap {
 /// Information about the call expression, which are derived from the span tree.
 #[derive(Debug, Default)]
 struct CallInfo {
-    /// The AST ID associated with `This` span of the call expression.
+    /// The AST ID associated with `self` argument span of the call expression.
     target_id:     Option<ast::Id>,
-    /// The crumbs of last argument span associated with the call expression.
+    /// The crumbs of last argument span associated with the call expression. It can be any
+    /// argument, including `self`.
     last_argument: Option<Crumbs>,
 }
 
@@ -1178,11 +1179,10 @@ impl CallInfoMap {
         expression.root_ref().dfs(|node| {
             if let Some(call_id) = node.kind.call_id() {
                 let mut entry = call_info.entry(call_id).or_default();
-                if node.kind.is_this() {
+                if entry.target_id.is_none() {
                     entry.target_id = node.ast_id;
-                } else if node.kind.is_argument() {
-                    entry.last_argument = Some(node.crumbs.clone());
                 }
+                entry.last_argument = Some(node.crumbs.clone());
             }
         });
 
