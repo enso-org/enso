@@ -36,15 +36,25 @@ class ModuleCache(private val module: Module)
 
   override def stringRepr: String = module.getName.toString
 
-  override def computeDigest(context: EnsoContext): Option[String] = {
-    val source = module.getSource()
+  override def computeDigestFromSource(
+    context: EnsoContext
+  ): Option[String] = {
+    computeDigestOfModuleSources(module.getSource)
+  }
+
+  override def computeDigest(
+    entry: ModuleCache.CachedModule
+  ): Option[String] = {
+    computeDigestOfModuleSources(entry.source)
+  }
+
+  private def computeDigestOfModuleSources(source: Source): Option[String] = {
     if (source != null) {
       val sourceBytes = if (source.hasBytes) {
         source.getBytes.toByteArray
       } else {
         source.getCharacters.toString.getBytes(StandardCharsets.UTF_8)
       }
-
       Some(computeDigestFromBytes(sourceBytes))
     } else None
   }

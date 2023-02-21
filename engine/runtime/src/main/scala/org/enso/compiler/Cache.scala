@@ -19,6 +19,7 @@ import java.nio.file.{
   Path,
   StandardOpenOption
 }
+import java.security.MessageDigest
 import java.util.logging.Level
 import scala.util.{Failure, Success, Try, Using}
 
@@ -52,7 +53,7 @@ trait Cache[T] {
     getCacheRoots(context) match {
       case Some(roots) =>
         if (useGlobalCacheLocations) {
-          if (saveCacheTo(roots.globalCacheRoot, entry, context)) {
+          if (saveCacheTo(roots.globalCacheRoot, entry)) {
             return Some(roots.globalCacheRoot)
           }
         } else {
@@ -62,7 +63,7 @@ trait Cache[T] {
           )
         }
 
-        if (saveCacheTo(roots.localCacheRoot, entry, context)) {
+        if (saveCacheTo(roots.localCacheRoot, entry)) {
           return Some(roots.localCacheRoot)
         }
 
@@ -75,9 +76,11 @@ trait Cache[T] {
     }
   }
 
-  def computeDigest(context: EnsoContext): Option[String]
+  protected def computeDigest(entry: T): Option[String]
 
-  def getCacheRoots(context: EnsoContext): Option[Roots]
+  protected def computeDigestFromSource(context: EnsoContext): Option[String]
+
+  protected def getCacheRoots(context: EnsoContext): Option[Roots]
 
   protected def extractObjectToSerialize(entry: T): Object
 
@@ -90,8 +93,7 @@ trait Cache[T] {
     */
   private def saveCacheTo(
     cacheRoot: TruffleFile,
-    entry: T,
-    ensoContext: EnsoContext
+    entry: T
   )(implicit logger: TruffleLogger): Boolean = {
     if (ensureRoot(cacheRoot)) {
       val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
@@ -102,7 +104,7 @@ trait Cache[T] {
         }
 
       val blobDigest = computeDigestFromBytes(bytesToWrite)
-      val sourceDigest = computeDigest(ensoContext).getOrElse(
+      val sourceDigest = computeDigest(entry).getOrElse(
         throw new IllegalStateException("unable to compute digest")
       )
       val metadataBytes = metadata(sourceDigest, blobDigest, entry)
@@ -148,7 +150,7 @@ trait Cache[T] {
             case cache @ Some(_) =>
               logger.log(
                 logLevel,
-                s"Using cache for library " +
+                s"Using cache for " +
                 s"[${stringRepr}] at location " +
                 s"[${roots.globalCacheRoot.toMaskedPath.applyMasking()}]."
               )
@@ -161,7 +163,7 @@ trait Cache[T] {
             case cache @ Some(_) =>
               logger.log(
                 logLevel,
-                s"Using cache for library " +
+                s"Using cache for " +
                 s"[${stringRepr}] at location " +
                 s"[${roots.localCacheRoot.toMaskedPath.applyMasking()}]."
               )
@@ -196,7 +198,9 @@ trait Cache[T] {
     loadCacheMetadata(metadataPath) match {
       case Some(meta) =>
         val sourceDigestValid =
-          computeDigest(context).map(_ == meta.sourceHash).getOrElse(false)
+          computeDigestFromSource(context)
+            .map(_ == meta.sourceHash)
+            .getOrElse(false)
         val blobBytes       = dataPath.readAllBytes()
         val blobDigestValid = computeDigestFromBytes(blobBytes) == meta.blobHash
 
@@ -291,7 +295,7 @@ trait Cache[T] {
   /** Computes SHA-224 digest from the provided bytes.
     */
   protected def computeDigestFromBytes(bytes: Array[Byte]): String = {
-    Hex.toHexString(new SHA3.Digest224().digest(bytes))
+    Hex.toHexString(messageDigest().digest(bytes))
   }
 
   /** Raw (byte)  representation of the [[Metadata]].
@@ -335,6 +339,10 @@ trait Cache[T] {
   protected def dataSuffix: String
 
   protected def metadataSuffix: String
+
+  protected def messageDigest(): MessageDigest = {
+    new SHA3.Digest224()
+  }
 
   /** Deletes the cache for this data in the provided `cacheRoot`.
     *

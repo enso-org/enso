@@ -174,23 +174,29 @@ class SerializationManager(compiler: Compiler) {
       s"Running serialization for bindings [$libraryName]."
     )
     startSerializing(libraryName.toQualifiedName)
-    val cache = ImportExportCache.CacheBindings(
+    val bindingsCache = ImportExportCache.CacheBindings(
+      libraryName,
+      ImportExportCache.FileToBindings(
+        compiler.packageRepository
+          .getModulesForLibrary(libraryName)
+          .map { module =>
+            val ir = module.getIr
+            val bindings = ir.unsafeGetMetadata(
+              BindingAnalysis,
+              "Non-parsed module used in ImportResolver"
+            )
+            val abstractBindings = bindings.prepareForSerialization(compiler)
+            (module.getName, abstractBindings)
+          }
+          .toMap
+      ),
       compiler.packageRepository
-        .getModulesForLibrary(libraryName)
-        .map { module =>
-          val ir = module.getIr
-          val bindings = ir.unsafeGetMetadata(
-            BindingAnalysis,
-            "Non-parsed module used in ImportResolver"
-          )
-          val abstractBindings = bindings.prepareForSerialization(compiler)
-          (module.getName, abstractBindings)
-        }
-        .toMap
+        .getPackageForLibrary(libraryName)
+        .map(_.listSources)
     )
     try {
       new enso.compiler.ImportExportCache(libraryName)
-        .save(cache, compiler.context, useGlobalCacheLocations)
+        .save(bindingsCache, compiler.context, useGlobalCacheLocations)
         .isDefined
     } catch {
       case e: NotSerializableException =>

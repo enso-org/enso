@@ -1,22 +1,23 @@
 package org.enso.compiler
 
-import org.enso.pkg.QualifiedName
+import org.enso.pkg.{QualifiedName, SourceFile}
 import buildinfo.Info
+import com.oracle.truffle.api.TruffleFile
 import io.circe.generic.JsonCodec
 import io.circe.parser._
 import io.circe.syntax._
-import org.bouncycastle.jcajce.provider.digest.SHA3
 import org.bouncycastle.util.encoders.Hex
 import org.enso.compiler.Cache.Roots
-import org.enso.compiler.ImportExportCache.CacheBindings
 import org.enso.compiler.data.BindingsMap
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.EnsoContext
+
 import java.nio.charset.{Charset, StandardCharsets}
 import java.util.logging.Level
 import scala.util.{Failure, Success, Try}
 
-class ImportExportCache(library: LibraryName) extends Cache[CacheBindings] {
+class ImportExportCache(library: LibraryName)
+    extends Cache[ImportExportCache.CacheBindings] {
   import ImportExportCache._
 
   override type M = Metadata
@@ -24,14 +25,28 @@ class ImportExportCache(library: LibraryName) extends Cache[CacheBindings] {
   override val logLevel: Level    = Level.FINEST
   override def stringRepr: String = library.toString
 
-  override def computeDigest(context: EnsoContext): Option[String] = {
+  override def computeDigestFromSource(
+    context: EnsoContext
+  ): Option[String] = {
     context.getPackageRepository.getPackageForLibrary(library).map { pkg =>
-      val digest = new SHA3.Digest224()
-      pkg.listSources.sortBy(_.qualifiedName)(NameOrdering).foreach { source =>
-        digest.update(source.file.readAllBytes())
-      }
-      Hex.toHexString(digest.digest())
+      computeDigestOfLibrarySources(pkg.listSources)
     }
+  }
+
+  override def computeDigest(
+    entry: ImportExportCache.CacheBindings
+  ): Option[String] = {
+    entry.sources.map(computeDigestOfLibrarySources)
+  }
+
+  private def computeDigestOfLibrarySources(
+    pkgSources: List[SourceFile[TruffleFile]]
+  ): String = {
+    val digest = messageDigest()
+    pkgSources.sortBy(_.qualifiedName)(NameOrdering).foreach { source =>
+      digest.update(source.file.readAllBytes())
+    }
+    Hex.toHexString(digest.digest())
   }
 
   override def getCacheRoots(context: EnsoContext): Option[Cache.Roots] = {
@@ -58,7 +73,7 @@ class ImportExportCache(library: LibraryName) extends Cache[CacheBindings] {
   override protected def extractObjectToSerialize(
     entry: CacheBindings
   ): AnyRef = {
-    entry
+    entry.bindings
   }
 
   override protected def validateReadObject(
@@ -66,7 +81,8 @@ class ImportExportCache(library: LibraryName) extends Cache[CacheBindings] {
     meta: M
   ): Try[CacheBindings] =
     obj match {
-      case e: CacheBindings => Success(e)
+      case bindings: FileToBindings =>
+        Success(ImportExportCache.CacheBindings(library, bindings, None))
       case other =>
         Failure(
           new RuntimeException(
@@ -115,7 +131,15 @@ object ImportExportCache {
     blobHash: String
   ) extends Cache.Metadata
 
-  case class CacheBindings(entries: Map[QualifiedName, BindingsMap])
+  case class CacheBindings(
+    libraryName: LibraryName,
+    bindings: FileToBindings,
+    sources: Option[List[SourceFile[TruffleFile]]]
+  )
+
+  // Wrapper around map of bindings to avoid warnings about erasure
+  // when matching the deserialized object
+  case class FileToBindings(entries: Map[QualifiedName, BindingsMap])
 
   private object NameOrdering extends Ordering[QualifiedName] {
     override def compare(x: QualifiedName, y: QualifiedName): Int = {

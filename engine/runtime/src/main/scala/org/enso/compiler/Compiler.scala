@@ -474,7 +474,7 @@ class Compiler(
       val libraryName = Option(module.getPackage).map(_.libraryName)
       libraryName
         .flatMap(packageRepository.getLibraryBindings(_, serializationManager))
-        .flatMap(_.entries.get(module.getName))
+        .flatMap(_.bindings.entries.get(module.getName))
     } else None
   }
 

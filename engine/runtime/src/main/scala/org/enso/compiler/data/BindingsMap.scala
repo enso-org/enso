@@ -23,7 +23,7 @@ import scala.annotation.unused
   */
 
 @SerialVersionUID(
-  5568L // stable serialization of library bindings
+  5568L // stable serialization of bindings
 )
 case class BindingsMap(
   definedEntities: List[DefinedEntity],
