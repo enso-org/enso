@@ -118,7 +118,7 @@ impl Component {
     pub fn label(&self) -> String {
         match &*self.match_info.borrow() {
             MatchInfo::Matches { kind: MatchKind::Alias(alias), .. } => {
-                format!("{} ({})", alias, self.to_string())
+                format!("{alias} ({self})")
             }
             _ => self.to_string(),
         }
