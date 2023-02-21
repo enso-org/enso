@@ -490,7 +490,9 @@
 [5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
 [5656]: https://github.com/enso-org/enso/pull/5656
+[5679]: https://github.com/enso-org/enso/pull/5679
 [5699]: https://github.com/enso-org/enso/pull/5699
+[5721]: https://github.com/enso-org/enso/pull/5721
 
 #### Enso Compiler
 
