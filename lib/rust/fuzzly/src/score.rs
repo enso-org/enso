@@ -230,6 +230,7 @@ pub fn find_best_subsequence(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::metric;
 
     mod mock_metric {
         use super::*;
@@ -337,15 +338,26 @@ mod test {
     }
 
     #[test]
-    fn finding_best_scoring_item() {
+    fn correct_scoring_of_trailing_pattern() {
         let pattern = "list";
-        let text1 = "File list";
-        let text2 = "File list immediate children";
-        let metric = crate::metric::SubsequentLettersBonus::default();
+        let target_text = "File.list";
+        let target_text_2 = "File.list_immediate_children";
 
-        let score1 = find_best_subsequence(text1, pattern, metric).unwrap().score;
-        let score2 = find_best_subsequence(text2, pattern, metric).unwrap().score;
+        let score1 =
+            find_best_subsequence(target_text, pattern, metric::SubsequentLettersBonus::default())
+                .unwrap()
+                .score;
+        let score2 = find_best_subsequence(
+            target_text_2,
+            pattern,
+            metric::SubsequentLettersBonus::default(),
+        )
+        .unwrap()
+        .score;
 
-        assert!(score1 > score2, "Score of the first text should be higher than the second one");
+        assert!(
+            score1 > score2,
+            "Score of trailing pattern should be higher than score of non-trailing pattern."
+        );
     }
 }

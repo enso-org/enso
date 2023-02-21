@@ -383,10 +383,9 @@ impl QueryData {
 
     /// Generate visualization metadata for this query.
     fn visualization_metadata(&self) -> Metadata {
-        let relevant_arguments = self.arguments.split_first().map_or_default(|(_self, args)| args);
         let arguments: Vec<Code> = vec![
             Self::escape_visualization_argument(&self.method_name).into(),
-            Self::arg_sequence(relevant_arguments).into(),
+            Self::arg_sequence(&self.arguments).into(),
         ];
 
         let preprocessor = visualization::instance::PreprocessorConfiguration {
@@ -400,9 +399,7 @@ impl QueryData {
     /// Escape a string to be used as a visualization argument. Transforms the string into an enso
     /// expression with string literal.
     fn escape_visualization_argument(arg: &str) -> String {
-        let segment = ast::SegmentPlain { value: arg.into() };
-        let text = ast::TextLineRaw { text: vec![segment.into()] };
-        text.repr()
+        Ast::raw_text_literal(arg).repr()
     }
 
     /// Escape a list of strings to be used as a visualization argument. Transforms the strings into

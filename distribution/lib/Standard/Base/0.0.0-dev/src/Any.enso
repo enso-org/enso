@@ -110,16 +110,20 @@ type Any
         # host or polyglot values, so we just compare them with the default comparator.
         eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Unordered_Comparator
         eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Unordered_Comparator
-        if Meta.is_same_object eq_self Incomparable then False else
-            similar_type = Meta.is_same_object eq_self eq_that
-            if similar_type.not then False else
-                case eq_self.is_ordered of
+        case Meta.is_same_object eq_self Incomparable of
+            True -> False
+            False ->
+                similar_type = Meta.is_same_object eq_self eq_that
+                case similar_type of
+                    False -> False
                     True ->
-                        # Comparable.equals_builtin is a hack how to directly access EqualsNode from the
-                        # engine, so that we don't end up in an infinite recursion here (which would happen
-                        # if we would compare with `eq_self == eq_that`).
-                        Comparable.equals_builtin (eq_self.compare self that) Ordering.Equal
-                    False -> eq_self.equals self that
+                        case eq_self.is_ordered of
+                            True ->
+                                # Comparable.equals_builtin is a hack how to directly access EqualsNode from the
+                                # engine, so that we don't end up in an infinite recursion here (which would happen
+                                # if we would compare with `eq_self == eq_that`).
+                                Comparable.equals_builtin (eq_self.compare self that) Ordering.Equal
+                            False -> eq_self.equals self that
 
     ## ALIAS Inequality
 
@@ -340,6 +344,27 @@ type Any
     is_error : Boolean
     is_error self = False
 
+    ## UNSTABLE
+       Returns the provided `other` value, unless `self` is an error.
+
+       Arguments:
+       - other: The value to return if `self` is not an error.
+
+       The primary application of this function is to introduce a dataflow
+       dependency between two otherwise unrelated operations. Very useful if one
+       of the operations is performing a side-effect.
+
+       Aside from ensuring that any dataflow errors are propagated, the result
+       will also inherit any warnings attached to any of the two inputs.
+
+       > Example
+         Writing to a file and returning the file object if all went well, or an
+         error if it failed.
+
+             file.write "foo" . if_not_error file
+    if_not_error : Any -> Any
+    if_not_error self ~other = other
+
     ## Applies the provided function to `self` unless `self` is `Nothing`, which is
        returned unchanged.
 
@@ -433,5 +458,3 @@ assert_ordered_comparators this that ~action =
     if (Meta.is_same_object comp_this comp_that).not then Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that") else
         if Meta.is_same_object comp_this Incomparable || comp_this.is_ordered.not then Error.throw Incomparable_Values else
             action
-
-

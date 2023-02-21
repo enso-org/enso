@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-from Standard.Table import Column_Selector
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
@@ -51,7 +50,7 @@ spec setup =
 
         Test.specify "should allow fields selected by index" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose (Column_Selector.By_Index [0, -1])
+            t1 = t.transpose [0, -1]
             t1.column_names . should_equal ["Key", "Yet Another", "Name", "Value"]
             t1.row_count . should_equal 6
             t1.at "Key" . to_vector . should_equal ["x", "x", "y", "y", "z", "z"]
@@ -78,7 +77,7 @@ spec setup =
             err1.should_fail_with Missing_Input_Columns
             err1.catch.criteria . should_equal ["Missing", "Missing_2"]
 
-            err2 = t1.transpose (Column_Selector.By_Index [0, -1, 42, -100])
+            err2 = t1.transpose [0, -1, 42, -100]
             err2.should_fail_with Column_Indexes_Out_Of_Range
             err2.catch.indexes . should_equal [42, -100]
 
@@ -88,7 +87,7 @@ spec setup =
             problems1 = [Missing_Input_Columns.Error ["Missing", "Missing_2"]]
             Problems.test_problem_handling action1 problems1 tester1
 
-            action2 = t1.transpose (Column_Selector.By_Index [0, -1, 42, -100]) error_on_missing_columns=False on_problems=_
+            action2 = t1.transpose [0, -1, 42, -100] error_on_missing_columns=False on_problems=_
             tester2 table =
                 table.column_names . should_equal ["Key", "Another", "Name", "Value"]
             problems2 = [Column_Indexes_Out_Of_Range.Error [42, -100]]

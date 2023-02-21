@@ -32,6 +32,15 @@ use double_representation::name::QualifiedNameTemplate;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// The `local` namespace, within which modules local to the project are located.
+const LOCAL_NAMESPACE: &str = "local";
+
+
+
 // ====================
 // === ModuleGroups ===
 // ====================
@@ -150,12 +159,19 @@ pub struct List {
     /// IDs of [`Component`]s allowed in [`component::List::favorites`] if they are also present in
     /// [`grouping_and_order_of_favorites`].
     allowed_favorites:               HashSet<component::Id>,
+    keep_private_components:         bool,
 }
 
 impl List {
     /// Construct List builder without content.
     pub fn new() -> Self {
         default()
+    }
+
+    /// Construct List builder without content, do not remove private components when extending
+    /// list.
+    pub fn new_with_private_components() -> Self {
+        List { keep_private_components: true, ..default() }
     }
 
     /// Return [`List`] with a new [`local_scope`] with its [`Group::component_id`] field set to
@@ -182,6 +198,7 @@ impl List {
         let local_scope_id = self.local_scope.component_id;
         let id_and_looked_up_entry = |id| Some((id, db.lookup(id).ok()?));
         let ids_and_entries = entry_ids.into_iter().filter_map(id_and_looked_up_entry);
+        let keep_private_components = self.keep_private_components;
         for (id, entry) in ids_and_entries {
             self.allowed_favorites.insert(id);
             let component = Component::new_from_database_entry(id, entry.clone_ref());
@@ -189,19 +206,31 @@ impl List {
             if let Some(parent_module) = entry.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, parent_module.clone_ref())
                 {
-                    parent_group.content.entries.borrow_mut().push(component.clone_ref());
-                    component_inserted_somewhere = true;
                     let parent_id = parent_group.content.component_id;
                     let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
-                    let not_module = entry.kind != Kind::Module;
-                    if in_local_scope && not_module {
-                        self.local_scope.entries.borrow_mut().push(component.clone_ref());
+                    let namespace = &parent_group.qualified_name.project().namespace;
+                    let in_local_namespace = namespace == LOCAL_NAMESPACE;
+                    let keep_private_component =
+                        in_local_scope || in_local_namespace || keep_private_components;
+                    if !component.is_private() || keep_private_component {
+                        parent_group.content.entries.borrow_mut().push(component.clone_ref());
+                        component_inserted_somewhere = true;
+                        let not_module = entry.kind != Kind::Module;
+                        if in_local_scope && not_module {
+                            self.local_scope.entries.borrow_mut().push(component.clone_ref());
+                        }
                     }
                 }
                 if let Some(top_group) = self.lookup_module_group(db, top_module(&parent_module)) {
                     if let Some(flatten_group) = &mut top_group.flattened_content {
-                        flatten_group.entries.borrow_mut().push(component.clone_ref());
-                        component_inserted_somewhere = true;
+                        let project = flatten_group.project.as_ref();
+                        let in_local_namespace =
+                            project.map(|name| name.namespace == LOCAL_NAMESPACE).unwrap_or(false);
+                        let keep_private_component = in_local_namespace || keep_private_components;
+                        if !component.is_private() || keep_private_component {
+                            flatten_group.entries.borrow_mut().push(component.clone_ref());
+                            component_inserted_somewhere = true;
+                        }
                     }
                 }
             }
@@ -592,5 +621,42 @@ mod tests {
         let group_at_1 = &favorites[1];
         assert_eq!(group_at_1.name, "Group 1");
         check_names_and_order_of_group_entries(group_at_1, &[qn_of_db_entry_1.name()]);
+    }
+
+    /// Test building a component list with a private component. The private component will be
+    /// excluded from the list.
+    #[test]
+    fn building_component_list_with_private_component() {
+        use ast::constants::PRIVATE_DOC_SECTION_TAG_NAME as PRIVATE_TAG;
+        let private_doc_section = enso_suggestion_database::doc_section!(@ PRIVATE_TAG, "");
+        let suggestion_db = enso_suggestion_database::mock_suggestion_database! {
+            test.Test {
+                mod LocalModule {
+                    fn local_fun1() -> Standard.Base.Any;
+                    #[with_doc_section(private_doc_section.clone())]
+                    fn local_private_fun2() -> Standard.Base.Any;
+                }
+                mod TopModule {
+                    fn fun3() -> Standard.Base.Any;
+                    #[with_doc_section(private_doc_section.clone())]
+                    fn private_fun4() -> Standard.Base.Any;
+                }
+            }
+        };
+        let mut builder = List::new().with_local_scope_module_id(1);
+        // ID's for `test.Test`, `TopModule` and 3 function ID's in `suggestion_db`.
+        let entry_ids = 0..9;
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, entry_ids);
+        let list = builder.build();
+        let component_names: Vec<_> = list
+            .all_components
+            .iter()
+            .filter_map(|component| match &component.data {
+                component::Data::FromDatabase { entry, .. } => Some(&entry.name),
+                _ => None,
+            })
+            .collect();
+        let expected = vec!["LocalModule", "local_fun1", "local_private_fun2", "TopModule", "fun3"];
+        assert_eq!(component_names, expected);
     }
 }

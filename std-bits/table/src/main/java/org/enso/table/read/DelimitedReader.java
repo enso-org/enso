@@ -25,6 +25,19 @@ import java.util.stream.Collectors;
 /** A helper for reading delimited (CSV-like) files. */
 public class DelimitedReader {
 
+  /**
+   * Due to limitations of our CSV parser, we cannot truly disable the comment parsing, so if we want to ensure that a
+   * CSV file is parsed without comments enabled we need to set it to some obscure character.
+   * <p>
+   * The default is to set it to '\0' but that will cause this character (which is not that uncommon, and valid) to act
+   * as a start of a comment. However, other parts of the parser may not be dealing best with '\0' anyway, so for now we
+   * can keep it. If we want to improve the support for the NULL character, we can select something else here.
+   * <p>
+   * I considered to  choose `\u0F8EE` which comes from the Private Use Area of the Basic Multilingual Plane. Is has no
+   * meaning designated by the Unicode standard.
+   */
+  public static final char UNUSED_CHARACTER = '\0';
+
   private static final String COLUMN_NAME = "Column";
   private static final char noQuoteCharacter = '\0';
   private static final long invalidRowsLimit = 10;
@@ -172,7 +185,7 @@ public class DelimitedReader {
     }
 
     if (commentCharacter == null) {
-      format.setComment('\0');
+      format.setComment(UNUSED_CHARACTER);
     } else {
       if (commentCharacter.length() != 1) {
         throw new IllegalArgumentException("The comment character should be set to Nothing or consist of exactly one character (codepoint).");

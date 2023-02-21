@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Sort_Column, Column_Selector, Join_Condition
+from Standard.Table import Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column
 
@@ -45,7 +45,7 @@ spec =
     Test.group "[Codegen] Basic Select" <|
         Test.specify "should select columns from a table" <|
             t1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            t2 = t1.select_columns (Column_Selector.By_Name ["C", "B", "undefined"]) reorder=True error_on_missing_columns=False
+            t2 = t1.select_columns ["C", "B", "undefined"] reorder=True error_on_missing_columns=False
             t2.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B" FROM "T1" AS "T1"', []]
 
             foo = t1.at "A" . rename "FOO"

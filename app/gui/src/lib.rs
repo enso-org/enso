@@ -43,6 +43,7 @@
 #![feature(assert_matches)]
 #![feature(hash_drain_filter)]
 #![feature(unwrap_infallible)]
+#![feature(if_let_guard)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

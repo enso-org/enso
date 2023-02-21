@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
@@ -6,7 +7,7 @@ from Standard.Table import Set_Mode
 from Standard.Table.Errors import all
 import Standard.Table.Data.Expression.Expression_Error
 
-from Standard.Test import Test
+from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -47,6 +48,18 @@ spec setup =
             column_3 = table.at -1
             column_3.name . should_equal "abcd123"
             column_3.to_vector . should_equal [19, 20, 21]
+
+            column_4 = table.first_column
+            column_4.name . should_equal "foo"
+            column_4.to_vector . should_equal [1, 2, 3]
+
+            column_5 = table.second_column
+            column_5.name . should_equal "bar"
+            column_5.to_vector . should_equal [4, 5, 6]
+
+            column_6 = table.last_column
+            column_6.name . should_equal "abcd123"
+            column_6.to_vector . should_equal [19, 20, 21]
 
             table.at 100 . should_fail_with Index_Out_Of_Bounds.Error
 
@@ -124,6 +137,28 @@ spec setup =
             t1.set "[unknown] + 10" new_name="Z" . should_fail_with No_Such_Column
             t1.set "[[[[" . should_fail_with Expression_Error.Syntax_Error
 
+        Test.specify "should forward expression problems" <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+
+            r1 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
+            Problems.assume_no_problems r1
+            r1.at -1 . to_vector . should_equal [True, True, False]
+
+            r2 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
+            Problems.expect_warning Floating_Point_Equality r2
+            r2.at -1 . to_vector . should_equal [True, True, False]
+
+            err3 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
+            err3.should_fail_with Floating_Point_Equality
+
+            # These errors currently only work in in-memory.
+            if setup.is_database.not then
+                action2 = t1.set "3 / [X]" new_name="Z" on_problems=_
+                tester2 table =
+                    table.at "Z" . to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
+                problems2 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
+                Problems.test_problem_handling action2 problems2 tester2
+
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
             table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
@@ -144,12 +179,25 @@ spec setup =
             first_row.at "Y" . should_equal 5
             first_row.at "Z" . should_equal "A"
 
+            first_row.get "X" . should_equal 1
+            first_row.get "Y" . should_equal 5
+            first_row.get "Z" . should_equal "A"
+            first_row.get "T" . should_equal Nothing
+            first_row.get "T" "???" . should_equal "???"
+
             last_row = rows.at -1
             last_row . length . should_equal 3
             last_row.at 0 . should_equal 4
             last_row.at 1 . should_equal 8
             last_row.at 2 . should_equal "D"
             last_row.at -1 . should_equal "D"
+
+            last_row.get 0 . should_equal 4
+            last_row.get 1 . should_equal 8
+            last_row.get 2 . should_equal "D"
+            last_row.get -1 . should_equal "D"
+            last_row.get 3 . should_equal Nothing
+            last_row.get 3 "???" . should_equal "???"
 
             rows.map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"], [3, 7, "C"], [4, 8, "D"]]
 

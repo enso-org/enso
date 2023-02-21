@@ -840,6 +840,9 @@ fn export() {
 fn metadata_raw() {
     let code = [
         "x",
+        "",
+        "",
+        "",
         "#### METADATA ####",
         r#"[[{"index":{"value":7},"size":{"value":8}},"5bad897e-099b-4b00-9348-64092636746d"]]"#,
     ];
