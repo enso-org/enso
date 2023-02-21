@@ -194,6 +194,11 @@ impl Model {
         })
     }
 
+    fn toggle_component_browser_private_entries_visibility(&self) {
+        let visibility = self.ide_controller.are_component_browser_private_entries_visible();
+        self.ide_controller.set_component_browser_private_entries_visibility(!visibility);
+    }
+
     fn restore_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
@@ -361,6 +366,10 @@ impl Project {
 
             eval_ view.save_project_snapshot(model.save_project_snapshot());
             eval_ view.restore_project_snapshot(model.restore_project_snapshot());
+
+            eval_ view.toggle_component_browser_private_entries_visibility(
+                model.toggle_component_browser_private_entries_visibility()
+            );
 
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());
 

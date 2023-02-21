@@ -81,6 +81,8 @@ ensogl::define_endpoints! {
         hide_graph_editor(),
         /// Simulates a style toggle press event.
         toggle_style(),
+        /// Toggles the visibility of private components in the component browser.
+        toggle_component_browser_private_entries_visibility(),
         /// Saves a snapshot of the current state of the project to the VCS.
         save_project_snapshot(),
         /// Restores the state of the project to the last snapshot saved to the VCS.
@@ -767,6 +769,7 @@ impl application::View for View {
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "project_list_shown", "escape", "hide_project_list"),
             (Press, "", "cmd alt shift t", "toggle_style"),
+            (Press, "", "cmd alt p", "toggle_component_browser_private_entries_visibility"),
             (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd r", "restore_project_snapshot"),
             (Press, "", "cmd z", "undo"),

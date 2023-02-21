@@ -92,6 +92,8 @@
 - [Added restoring of last project snapshot on shortcut.][4050]
 - [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
   contain suggestions which are based on evaluated data.
+- [Added a shortcut to show internal components (private API) in the component
+  browser.][5582]
 - [Improved component browser entry filtering and sorting][5645]. The component
   browser will now provide suggestions matching either the component's label or
   the corresponding code.
@@ -315,6 +317,7 @@
 - [Updated column selector APIs and new `Excel_Workbook` type.][5646]
 - [Moved regex functionality out of `Text.locate` and `Text.locate_all` into
   `Text.match` and `Text.match_all`.][5679]
+- [`File.parent` may return `Nothing`.][5699]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -481,9 +484,11 @@
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4050]: https://github.com/enso-org/enso/pull/4050
 [4072]: https://github.com/enso-org/enso/pull/4072
+[5582]: https://github.com/enso-org/enso/pull/5582
 [5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
 [5656]: https://github.com/enso-org/enso/pull/5656
+[5699]: https://github.com/enso-org/enso/pull/5699
 
 #### Enso Compiler
 

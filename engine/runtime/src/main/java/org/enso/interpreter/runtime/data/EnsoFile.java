@@ -36,6 +36,9 @@ public final class EnsoFile implements TruffleObject {
   private final TruffleFile truffleFile;
 
   public EnsoFile(TruffleFile truffleFile) {
+    if (truffleFile == null) {
+      throw CompilerDirectives.shouldNotReachHere();
+    }
     this.truffleFile = truffleFile;
   }
 
@@ -118,8 +121,14 @@ public final class EnsoFile implements TruffleObject {
 
   @Builtin.Method(name = "parent")
   @CompilerDirectives.TruffleBoundary
-  public EnsoFile getParent() {
-    return new EnsoFile(this.truffleFile.getParent());
+  public Object getParent() {
+    var parentOrNull = this.truffleFile.getParent();
+    if (parentOrNull != null) {
+      return new EnsoFile(parentOrNull);
+    } else {
+      var ctx = EnsoContext.get(null);
+      return ctx.getBuiltins().nothing();
+    }
   }
 
   @Builtin.Method(name = "absolute")
