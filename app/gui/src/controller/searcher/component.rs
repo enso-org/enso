@@ -116,7 +116,12 @@ impl Component {
 
     /// The label which should be displayed in the Component Browser.
     pub fn label(&self) -> String {
-        self.to_string()
+        match &*self.match_info.borrow() {
+            MatchInfo::Matches { kind: MatchKind::Alias(alias), .. } => {
+                format!("{} ({})", alias, self.to_string())
+            },
+            _ => self.to_string()
+        }
     }
 
     /// The name of the component.
@@ -154,7 +159,7 @@ impl Component {
     /// It should be called each time the filtering pattern changes.
     pub fn update_matching_info(&self, pattern: impl Str) {
         // Match the input pattern to the component label.
-        let label = self.label();
+        let label = self.to_string();
         let label_matches = fuzzly::matches(&label, pattern.as_ref());
         let label_subsequence = label_matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
@@ -227,7 +232,7 @@ impl Component {
     }
 
     /// Return an optional iterator over the component's aliases from the "ALIAS" tags in the
-    /// entry's documentation. Returns None if the entry does not contain documentation.
+    /// entry's documentation. Returns `None` if the entry does not contain documentation.
     pub fn aliases(&self) -> Option<impl Iterator<Item = &str>> {
         match &self.data {
             Data::FromDatabase { entry, .. } =>
