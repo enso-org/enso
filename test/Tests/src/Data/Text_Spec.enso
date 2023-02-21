@@ -57,6 +57,37 @@ type Manual
      - Note that currently the regex-based operations may not handle the edge
        cases described above too well.
 spec =
+    Test.group "gmt" <|
+        check_span result span = result.span 0 . to_grapheme_span . should_equal span
+        check_span_all result spans = result . map (m-> (m.span 0).to_grapheme_span) . should_equal spans
+        accent_1 = '\u00E9'
+        Test.specify "should allow regexes in match2" <|
+            hello = "Hello World!"
+            regex = Regex_Matcher.Value
+            regex_insensitive = Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive
+            #match = hello.find ".o" case_sensitivity=Case_Sensitivity.Insensitive
+            #match.span 0 . to_grapheme_span . should_equal (Span.Value (3.up_to 5) "Hello World!")
+            #hello.find ".o" case_sensitivity=Case_Sensitivity.Insensitive . span 0 . to_grapheme_span . should_equal (Span.Value (3.up_to 5) "Hello World!")
+            check_span (hello.find ".o" case_sensitivity=Case_Sensitivity.Insensitive) (Span.Value (3.up_to 5) "Hello World!")
+            check_span_all (hello.find_all ".o") [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
+
+        Test.specify "should allow regexes in match" <|
+            hello = "Hello World!"
+            regex = Regex_Matcher.Value
+            regex_insensitive = Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive
+
+            check_span (hello.find ".o" case_sensitivity=Case_Sensitivity.Insensitive) (Span.Value (3.up_to 5) "Hello World!")
+            check_span_all (hello.find_all ".o") [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
+
+            check_span ("foobar".find "BAR" case_sensitivity=Case_Sensitivity.Insensitive) (Span.Value (3.up_to 6) "foobar")
+
+            ## Regex matching does not do case folding
+            "Strasse".find "ß" case_sensitivity=Case_Sensitivity.Insensitive . should_equal Nothing
+
+            ## But it should handle the Unicode normalization
+            accents = 'a\u{301}e\u{301}o\u{301}'
+            check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
+
     Test.group "Text" <|
         kshi = '\u0915\u094D\u0937\u093F'
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
@@ -785,6 +816,17 @@ spec =
             'a'.each builder2.append
             builder2.to_vector . should_equal ['a']
 
+        Test.specify "should check for contains for test but not regex" <|
+            "foobar".contains "foobar" matcher=Text_Matcher.Case_Sensitive . should_be_true
+            "foobar".contains "FOOBAR" matcher=Text_Matcher.Case_Sensitive . should_be_false
+            "foobar".contains "foo.*" matcher=Text_Matcher.Case_Sensitive . should_be_false
+            "foobar".contains "foo" matcher=Text_Matcher.Case_Sensitive . should_be_false
+
+            "foobar".contains "foobar" matcher=Text_Matcher.Case_Insensitive . should_be_true
+            "foobar".contains "FOOBAR" matcher=Text_Matcher.Case_Insensitive . should_be_true
+            "foobar".contains "foo.*" matcher=Text_Matcher.Case_Insensitive . should_be_false
+            "foobar".contains "foo" matcher=Text_Matcher.Case_Insensitive . should_be_false
+
         Test.specify "should check for contains using Unicode normalization" <|
             "Hello".contains "ell" . should_be_true
             "Hello".contains "eLl" . should_be_false
@@ -1177,6 +1219,10 @@ spec =
             hello = "Hello World!"
             regex = Regex_Matcher.Value
             regex_insensitive = Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive
+
+            #match = hello.find ".o" case_sensitivity=Case_Sensitivity.Insensitive
+            #match.span 0 . should_equal Span.Value (3.up_to 5) "lo"
+
             hello.match ".o" Matching_Mode.First matcher=regex . should_equal "lo"
             hello.match ".o" Matching_Mode.Last matcher=regex . should_equal "Wo"
             hello.match_all ".o" matcher=regex . should_equal ["lo", "Wo"]
@@ -1283,39 +1329,28 @@ spec =
             match = "abcde".match "(..) # Match two of any character" matcher=(Regex_Matcher.Value comments=True)
             match.should_equal "ab"
 
-    Test.group "Text.is_match" <|
+    Test.group "Text.match" <|
         Test.specify "should default to regex" <|
-            "My Text: Goes Here".is_match "^My Text: (.+)$" . should_be_true
-            "555-801-1923".is_match "^\d{3}-\d{3}-\d{4}$" . should_be_true
-            "Hello".is_match "^[a-z]+$" . should_be_false
-            "Hello".is_match "^[a-z]+$" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
+            "My Text: Goes Here".match "^My Text: (.+)$" . should_be_true
+            "555-801-1923".match "^\d{3}-\d{3}-\d{4}$" . should_be_true
+            "Hello".match "^[a-z]+$" . should_be_false
+            "Hello".match "^[a-z]+$" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
 
         Test.specify "should only match whole input" <|
-            "Hello".is_match "[a-z]" . should_be_false
-            "x".is_match "[a-z]" . should_be_true
-
-        Test.specify "should allow Text_Matcher too" <|
-            "foobar".is_match "foobar" matcher=Text_Matcher.Case_Sensitive . should_be_true
-            "foobar".is_match "FOOBAR" matcher=Text_Matcher.Case_Sensitive . should_be_false
-            "foobar".is_match "foo.*" matcher=Text_Matcher.Case_Sensitive . should_be_false
-            "foobar".is_match "foo" matcher=Text_Matcher.Case_Sensitive . should_be_false
-
-            "foobar".is_match "foobar" matcher=Text_Matcher.Case_Insensitive . should_be_true
-            "foobar".is_match "FOOBAR" matcher=Text_Matcher.Case_Insensitive . should_be_true
-            "foobar".is_match "foo.*" matcher=Text_Matcher.Case_Insensitive . should_be_false
-            "foobar".is_match "foo" matcher=Text_Matcher.Case_Insensitive . should_be_false
+            "Hello".match "[a-z]" . should_be_false
+            "x".match "[a-z]" . should_be_true
 
         Test.specify "should be possible on unicode text" <|
-            "Korean: 건반".is_match "^Korean: (.+)$" . should_be_true
+            "Korean: 건반".match "^Korean: (.+)$" . should_be_true
 
         Test.specify "should be possible in ascii mode" <|
-            "İ".is_match "\w" (Regex_Matcher.Value match_ascii=True) . should_be_false
+            "İ".match "\w" (Regex_Matcher.Value match_ascii=True) . should_be_false
 
         Test.specify "should be possible in case-insensitive mode" <|
-            "MY".is_match "my" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
+            "MY".match "my" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
 
         Test.specify "should be possible in dot_matches_newline mode" <|
-            'Foo\n'.is_match "(....)" (Regex_Matcher.Value  dot_matches_newline=True) . should_be_true
+            'Foo\n'.match "(....)" (Regex_Matcher.Value  dot_matches_newline=True) . should_be_true
 
         multiline_matches_message = """
             This test does not make sense once we require matches to match the
@@ -1326,10 +1361,10 @@ spec =
             text = """
                 Foo
                 bar
-            text.is_match "^(...)$" (Regex_Matcher.Value  multiline=True) . should_be_true
+            text.match "^(...)$" (Regex_Matcher.Value  multiline=True) . should_be_true
 
         Test.specify "should be possible in comments mode" <|
-            "abcde".is_match "(.....) # Match any five characters" (Regex_Matcher.Value  comments=True) . should_be_true
+            "abcde".match "(.....) # Match any five characters" (Regex_Matcher.Value  comments=True) . should_be_true
 
     Test.group "Regex finding" <|
         Test.specify "should be possible on text" <|

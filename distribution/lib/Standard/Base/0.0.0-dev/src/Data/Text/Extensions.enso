@@ -13,6 +13,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex
+import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Regex_Matcher.Regex_Matcher
 import project.Data.Text.Span.Span
@@ -32,6 +33,7 @@ import project.Meta
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
+#from project.Data.Text.Regex.Match import Match
 from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
@@ -245,24 +247,10 @@ Text.characters self =
          "aAa".match "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Insensitive == "Aa"
          "aAa".match "aa" mode=Matching_Mode.Last matcher=(Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) == "aA"
 
-Text.match : Text -> Matching_Mode -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
-Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value = case matcher of
-    _ : Text_Matcher ->
-        case_sensitivity = case matcher of
-            Text_Matcher.Case_Sensitive -> Case_Sensitivity.Sensitive
-            Text_Matcher.Case_Insensitive _ -> Case_Sensitivity.Insensitive
-        case self.locate term mode case_sensitivity of
-            Nothing -> Nothing
-            span -> span.text
-    _ : Regex_Matcher -> case mode of
-        Matching_Mode.First ->
-            case matcher.compile term . match self Matching_Mode.First of
-                Nothing -> Nothing
-                match -> match.span 0 . to_grapheme_span . text
-        Matching_Mode.Last ->
-            case matcher.compile term . match self Regex_Mode.All of
-                Nothing -> Nothing
-                matches -> matches.last.span 0 . to_grapheme_span . text
+Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Compile_Error
+Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+    matcher = Regex_Matcher.Value case_sensitivity
+    matcher.compile pattern . match self Matching_Mode.First
 
 ## ALIAS find_all
 
@@ -282,17 +270,10 @@ Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value = case
          example_match =
              regex = "a[ab]c"
              "aabcbbccaacaa".match regex == ["abc", "aac"]
-Text.match_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
-Text.match_all self term=".*" matcher=Regex_Matcher.Value = case matcher of
-    _ : Text_Matcher ->
-        case_sensitivity = case matcher of
-            Text_Matcher.Case_Sensitive -> Case_Sensitivity.Sensitive
-            Text_Matcher.Case_Insensitive _ -> Case_Sensitivity.Insensitive
-        self.locate_all term case_sensitivity . map .text
-    _ : Regex_Matcher ->
-        case matcher.compile term . match self Regex_Mode.All of
-            Nothing -> []
-            matches -> matches.map m-> m.span 0 . to_grapheme_span . text
+Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Compile_Error
+Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+    matcher = Regex_Matcher.Value case_sensitivity
+    matcher.compile pattern . match self Regex_Mode.All
 
 ## ALIAS Check Matches
 
@@ -312,13 +293,11 @@ Text.match_all self term=".*" matcher=Regex_Matcher.Value = case matcher of
          example_match =
              regex = ".+@.+"
              "contact@enso.org".is_match regex
-Text.is_match : Text -> (Text_Matcher | Regex_Matcher) -> Boolean ! Compile_Error
-Text.is_match self pattern=".*" matcher=Regex_Matcher.Value = case matcher of
-    Text_Matcher.Case_Sensitive -> self == pattern
-    Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale
-    _ : Regex_Matcher ->
-        compiled_pattern = matcher.compile pattern
-        compiled_pattern.matches self
+Text.match : Text -> Case_Sensitivity -> Boolean ! Compile_Error
+Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+    matcher = Regex_Matcher.Value case_sensitivity
+    compiled_pattern = matcher.compile pattern
+    compiled_pattern.matches self
 
 ## ALIAS Split Text
 
