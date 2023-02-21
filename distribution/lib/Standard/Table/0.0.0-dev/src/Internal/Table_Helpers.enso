@@ -1,6 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Text.Matching
-import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
@@ -300,13 +298,6 @@ sort_columns internal_columns order text_ordering =
     internal_columns.sort order=order on=mapper by=comparator
 
 ## PRIVATE
-   Converts the generic `No_Matches_Found` error to a more specific
-   `Missing_Input_Columns`. Any other errors are returned as-is.
-promote_no_matches_to_missing_columns error = case error of
-    Matching.No_Matches_Found.Error criteria -> Maybe.Some <| Missing_Input_Columns.Error criteria
-    _ -> Nothing
-
-## PRIVATE
    Selects element from the vector based on the given indices.
 
    The elements are returned in the same order as their provided indices.
@@ -333,12 +324,13 @@ is_index_valid length ix =
    A helper method to match columns by name
 match_columns : Text -> Case_Sensitivity -> Boolean -> Vector -> Vector
 match_columns name case_sensitivity use_regex columns =
-    matcher = if use_regex then Regex_Matcher.Value case_sensitivity=case_sensitivity else
-        case case_sensitivity of
-            Case_Sensitivity.Default -> Text_Matcher.Case_Sensitive
-            Case_Sensitivity.Sensitive -> Text_Matcher.Case_Sensitive
-            Case_Sensitivity.Insensitive locale -> Text_Matcher.Case_Insensitive locale=locale
-    columns.filter c-> matcher.match_single_criterion c.name name
+    matcher = case use_regex of
+        True -> (name-> pattern-> Regex.compile pattern case_insensitive=case_sensitivity.is_case_insensitive . matches name)
+        False -> case case_sensitivity of
+            Case_Sensitivity.Default -> (==)
+            Case_Sensitivity.Sensitive -> (==)
+            Case_Sensitivity.Insensitive locale -> (name-> criterion-> name.equals_ignore_case criterion locale)
+    columns.filter c-> matcher c.name name
 
 ## PRIVATE
    A helper type used by transform helpers.
