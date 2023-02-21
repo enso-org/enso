@@ -211,65 +211,39 @@ Text.characters self =
     self.each bldr.append
     bldr.to_vector
 
-## ALIAS find
-
-   Matches the text in `self` against the provided `term`, returning the first
-   or last match if present or `Nothing` if there are no matches.
+## Find the regular expression `pattern` in `self`, returning the first match
+   if present or `Nothing` if not found.
 
    Arguments:
-   - term: The pattern to match `self` against. We recommend using _raw text_
-     to write your patterns.
-   - mode: This argument specifies whether the first or last match should be
-     returned.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-     regular expression and matched using the associated options.
+   - pattern: The pattern to match `self` against.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    > Example
      Find the first substring matching the regex.
 
-         example_match =
-             regex = "a[ab]c"
-             "aabbbbccccaabcaaaa".match regex == "abc"
-
-   ! Last Match in Regex Mode
-     Regex always performs the search from the front and matching the last
-     occurrence means selecting the last of the matches while still generating
-     matches from the beginning. Regex does not return overlapping matches - it
-     will return a match at some position and then continue the search after that
-     match. This will lead to slightly different behavior for overlapping
-     occurrences of a pattern in Regex mode than in exact text matching mode
-     where the matches are searched for from the back.
-
-   > Example
-     Comparing Matching in Last Mode in Regex and Text mode
-
-         "aAa".match "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Insensitive == "Aa"
-         "aAa".match "aa" mode=Matching_Mode.Last matcher=(Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) == "aA"
-
+         example_find =
+             ## This matches `abc` @ character 11
+             "aabbbbccccaabcaaaa".find "a[ab]c"
 Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Compile_Error
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     matcher = Regex_Matcher.Value case_sensitivity
     matcher.compile pattern . match self Matching_Mode.First
 
-## ALIAS find_all
-
-   Matches all occurrences text in `self` against the provided `term`, returning
-   a vector of matches.
+## Finds all the matches of the regular expression `pattern` in `self`,
+   returning a Vector. If not found, will be an empty Vector.
 
    Arguments:
-   - term: The pattern to match `self` against. We recommend using _raw text_
-     to write your patterns.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-     regular expression and matched using the associated options.
+   - pattern: The pattern to match `self` against.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    > Example
-     Find all substrings matching the regex.
+     Find the substring matching the regex.
 
-         example_match =
-             regex = "a[ab]c"
-             "aabcbbccaacaa".match regex == ["abc", "aac"]
+         example_find_all =
+              ## This matches `aabbbbc` @ character 0 and `abc` @ character 11
+             "aabbbbccccaabcaaaa".find_all "a[ab]+c"
 Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Compile_Error
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     matcher = Regex_Matcher.Value case_sensitivity
@@ -282,19 +256,16 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    Checks if the whole text in `self` matches a provided `pattern`.
 
    Arguments:
-   - pattern: The pattern to match `self` against. We recommend using _raw text_
-     to write your patterns.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-     regular expression and matched using the associated options.
+   - pattern: The pattern to match `self` against.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    > Example
-     Checks if some text matches a basic email regex. NOTE: This regex is _not_
-     compliant with RFC 5322.
+     Checks if whole text matches a basic email regex.
 
          example_match =
              regex = ".+@.+"
-             "contact@enso.org".is_match regex
+             "contact@enso.org".match regex
 Text.match : Text -> Case_Sensitivity -> Boolean ! Compile_Error
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     matcher = Regex_Matcher.Value case_sensitivity
