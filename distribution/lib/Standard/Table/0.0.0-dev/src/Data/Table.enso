@@ -1144,6 +1144,30 @@ type Table
         proxy = Rows_View.Value table
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
+    ## Returns the first row of the table.
+
+       In the database backend, it first materializes the table to in-memory.
+    first_row : Row ! Index_Out_Of_Bounds
+    first_row self =
+        if self.row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+            Row.Value self 0
+
+    ## Returns the second row of the table.
+
+       In the database backend, it first materializes the table to in-memory.
+    second_row : Row ! Index_Out_Of_Bounds
+    second_row self =
+        if self.row_count < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.row_count) else
+            Row.Value self 1
+
+    ## Returns the last row of the table.
+
+       In the database backend, it first materializes the table to in-memory.
+    last_row : Row ! Index_Out_Of_Bounds
+    last_row self =
+        if self.row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+            Row.Value self (self.row_count-1)
+
     ## Joins two tables according to the specified join conditions.
 
        Arguments:

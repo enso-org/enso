@@ -19,6 +19,7 @@ polyglot java import java.util.Properties
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
+polyglot java import java.sql.ResultSet
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
 

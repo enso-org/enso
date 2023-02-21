@@ -140,10 +140,15 @@ type Connection
 
     ## PRIVATE
        Internal read function for a statement with optional types.
-    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
-    read_statement self statement expected_types=Nothing =
+
+       Arguments:
+       - statement: SQL_Statement to execute.
+       - expected_types: Optional vector of expected types for each column.
+       - last_row_only: If true, only the last row is returned.
+    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Boolean -> Materialized_Table
+    read_statement self statement expected_types=Nothing last_row_only=False =
         self.jdbc_connection.with_prepared_statement statement stmt->
-            result_set_to_table stmt.executeQuery expected_types
+            result_set_to_table stmt.executeQuery expected_types last_row_only
 
     ## ADVANCED
 
