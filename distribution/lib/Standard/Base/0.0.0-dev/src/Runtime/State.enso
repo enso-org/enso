@@ -47,7 +47,7 @@ get key = @Builtin_Method "State.get"
    - key: The key with which to associate the new state.
    - new_state: The new state to store.
 
-   Returns an uninitialized state error if the user tries to read from an
+   Returns an uninitialized state error if the user tries to put into an
    uninitialized slot.
 
    > Example
