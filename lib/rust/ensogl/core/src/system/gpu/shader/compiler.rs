@@ -251,6 +251,13 @@ impl Compiler {
         self.cell.borrow_mut().submit(input, profiler, None, None);
     }
 
+    /// Submit a no-op job to the queue. If the queue is otherwise empty, this will cause an
+    /// [`on_idle`] notification to occur next time jobs are processed.
+    pub fn submit_probe_job(&self) {
+        let input = shader::Sources { vertex: None, fragment: None };
+        self.submit_background_job(input);
+    }
+
     /// Returns `true` if the compiler has no jobs in progress or queued.
     fn idle(&self) -> bool {
         !self.cell.borrow().dirty
@@ -832,6 +839,10 @@ impl Controller {
 
     /// Add a callback to be run when the compiler goes from busy to idle. The callback will remain
     /// installed until the handle returned here is dropped.
+    ///
+    /// Note that if the queue is already idle when a callback is attached, the callback will not be
+    /// executed until work has been queued and completed.
+    #[must_use]
     pub fn on_idle(&self, f: impl FnMut() + 'static) -> callback::Handle {
         self.rc.borrow_mut().on_idle(f)
     }

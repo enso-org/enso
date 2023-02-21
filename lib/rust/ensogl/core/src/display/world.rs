@@ -100,7 +100,7 @@ pub struct ShapeDefinition {
 
 impl ShapeDefinition {
     /// Return `true` if it is possible that this shape is used by the main application.
-    fn is_main_application_shape(&self) -> bool {
+    pub fn is_main_application_shape(&self) -> bool {
         // Shapes defined in `examples` directories are not used in the main application.
         !self.definition_path.contains("/examples/")
     }
@@ -240,25 +240,6 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     });
     with_context(|t| t.run_mode.set(RunMode::Normal));
     map
-}
-
-
-
-// ===================================
-// === Eager shaders instantiation ===
-// ===================================
-
-/// Begin compilation of all shaders that will be needed for the default scene.
-#[profile(Task)]
-pub fn instantiate_shaders() {
-    SHAPES_DEFINITIONS.with_borrow(|shapes| {
-        for shape in shapes.iter().filter(|shape| shape.is_main_application_shape()) {
-            // Instantiate shape so that its shader program will be submitted to the shader
-            // compiler. The runtime compiles the shaders in background threads, and starting early
-            // ensures they will be ready when we want to render them.
-            let _shape = (shape.cons)();
-        }
-    });
 }
 
 
@@ -517,7 +498,6 @@ impl WorldData {
         self.init_environment();
         self.init_composer();
         self.init_debug_hotkeys();
-        instantiate_shaders();
         self
     }
 
