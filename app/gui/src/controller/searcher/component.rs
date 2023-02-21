@@ -10,7 +10,6 @@ use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::DocSection;
-use std::cmp::max_by;
 
 
 // ==============
@@ -173,17 +172,20 @@ impl Component {
         });
 
         // Match the input pattern to an entry's aliases, if available, and select the best match.
-        let alias_subsequence = self.aliases().map(|aliases| {
-            let subsequences = aliases.filter_map(|alias| {
-                let alias_matches = fuzzly::matches(alias, pattern.as_ref());
-                alias_matches.and_option_from(|| {
+        let alias_match = self.aliases().map(|aliases| {
+            let alias_match = aliases.filter_map(|alias| {
+                if fuzzly::matches(alias, pattern.as_ref()) {
                     let metric = fuzzly::metric::default();
-                    fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric)
-                })
+                    let subsequence = fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric);
+                    subsequence.map(|subsequence| (alias, subsequence))
+                } else {
+                    None
+                }
             });
-            subsequences.reduce(|lhs, rhs| max_by(lhs, rhs, |lhs, rhs| lhs.compare_scores(rhs)))
+            alias_match.max_by(|(_, lhs), (_, rhs)| lhs.compare_scores(rhs))
         });
-        let alias_subsequence = alias_subsequence.flatten();
+        let alias_match = alias_match.flatten();
+        let (alias_name, alias_subsequence) = alias_match.map(|(n, s)| (Some(n), Some(s))).unwrap_or((None, None));
 
         // Pick best match between alias and code.
         let alias_or_code_subsequence = match (alias_subsequence, code_subsequence) {
