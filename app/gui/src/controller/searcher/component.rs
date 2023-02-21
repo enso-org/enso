@@ -177,14 +177,14 @@ impl Component {
             fuzzly::find_best_subsequence(code, pattern.as_ref(), metric)
         });
 
-        // Pick the best match score between label and code matches. Use only the character indices
-        // of the label match. Use an empty array of indices if there is no label match.
+        // Pick the best match between label and code matches. Use only the character indices of the
+        // label match, or an empty array of indices if there is no label match.
         let label_or_code_match = match (label_subsequence, code_subsequence) {
             (Some(label), None) => Some((label, MatchKind::Label)),
             (Some(label), Some(code)) if label.score >= code.score =>
                 Some((label, MatchKind::Label)),
             (Some(label), Some(code)) =>
-                Some((fuzzly::Subsequence { indices: label.indices, ..code }, MatchKind::Label)),
+                Some((fuzzly::Subsequence { indices: label.indices, ..code }, MatchKind::Code)),
             (None, Some(code)) =>
                 Some((fuzzly::Subsequence { indices: Vec::new(), ..code }, MatchKind::Code)),
             (None, None) => None,
