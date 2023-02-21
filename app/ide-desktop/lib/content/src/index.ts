@@ -127,8 +127,8 @@ class Main {
                         runningOnDesktop: true,
                         onAuthenticated: () => {
                             // appInstance.config.email.value = user.email
-                            
-                            appInstance.run()
+
+//                             appInstance.run()
                         }
                     }
                     authentication.run(props)

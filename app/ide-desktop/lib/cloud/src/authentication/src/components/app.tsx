@@ -121,7 +121,7 @@ const AppRouter: FC<AppProps> = (props) => {
           <Route element={<ProtectedLayout />}>
             {/* FIXME [NP]: why do we need this extra one for electron to work? */}
             <Route index element={<DashboardContainer />} />
-            <Route path={DASHBOARD_PATH} element={<DashboardContainer />} /> 
+            <Route path={DASHBOARD_PATH} element={<DashboardContainer />} />
             <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
           </Route>
           {/* Other pages are visible to unauthenticated and authenticated users. */}

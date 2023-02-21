@@ -16,7 +16,7 @@ interface Request {
     accessToken: string;
     path: string;
     method: HttpMethod;
-    body?: Record<string, string>;
+    body?: Record<string, any>;
 }
 
 enum HttpMethod {
@@ -30,6 +30,42 @@ export type Organization = {
     id: string;
     userEmail: string;
     name: string;
+}
+
+export enum VersionType {
+    Backend = "Backend",
+    Ide = "Ide",
+}
+
+export type Version = {
+    versionType: VersionType;
+    ami: string | undefined;
+    created: string;
+    version_number: string;
+};
+
+export enum ProjectState {
+    Created = "Created",
+    New = "New",
+    OpenInProgress = "OpenInProgress",
+    Opened = "Opened",
+    Closed = "Closed",
+}
+
+export type ProjectStateType = {
+    type: ProjectState;
+}
+
+export type Project = {
+    organizationId: string;
+    projectId: string;
+    name: string;
+    state: ProjectStateType;
+    packageName: string;
+    address: string | null;
+    ami: string | null;
+    ideVersion: Version | null;
+    engineVersion: Version | null;
 }
 
 
@@ -113,4 +149,127 @@ export const getUsersMe = async (accessToken: string): Promise<Organization | nu
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json: Organization = JSON.parse(text);
     return json;
+}
+
+
+
+// ====================
+// === ListProjects ===
+// ====================
+
+/// Wrapper for our `listProjects` Cloud backend API endpoint.
+///
+/// Returns list of projects for the user associated with the given access token.
+export const listProjects = async (accessToken: string): Promise<Project[] | []> => {
+    const path = "projects";
+    const method = HttpMethod.get;
+    const request = {accessToken, path, method};
+    const response = await fetchApi(request);
+    // FIXME [NP]: handle 401 & 404 differently?
+    if (response.status === 401 || response.status === 404) {
+        return [];
+    }
+    // If the response is not 401, then we expect it to be 200 and contain the organization info.
+    const text = await response.text();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    return JSON.parse(text)["projects"];
+}
+
+
+
+// =====================
+// === CreateProject ===
+// =====================
+
+export type createProjectBody = {
+    projectName: string;
+    projectTemplateName: string | undefined;
+};
+
+/// Wrapper for our `createProject` Cloud backend API endpoint.
+///
+/// Creates a projects for the user associated with the given access token.
+export const createProject = async (accessToken: string, body: createProjectBody): Promise<Project> => {
+    const path = "projects";
+    const method = HttpMethod.post;
+    const request = {accessToken, path, method, body};
+    const response = await fetchApi(request);
+    // FIXME [NP]: handle 401 & 404 differently?
+    if (response.status === 401 || response.status === 404) {
+        throw new Error("Unable to create new project.")
+    }
+    // If the response is not 401, then we expect it to be 200 and contain the organization info.
+    const text = await response.text();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    return JSON.parse(text);
+}
+
+
+
+// ====================
+// === CloseProject ===
+// ====================
+
+/// Wrapper for our `closeProject` Cloud backend API endpoint.
+///
+/// Closes a projects for the user associated with the given access token.
+export const closeProject = async (accessToken: string, projectId: string): Promise<void> => {
+    const path = `projects/${projectId}/close`;
+    const method = HttpMethod.post;
+    const request = {accessToken, path, method};
+    const response = await fetchApi(request);
+    // FIXME [NP]: handle 401 & 404 differently?
+    if (response.status === 401 || response.status === 404) {
+        throw new Error("Unable to close project.")
+    }
+}
+
+
+
+// ==================
+// === getProject ===
+// ==================
+
+/// Wrapper for our `closeProject` Cloud backend API endpoint.
+///
+/// Returns a project details for the user associated with the given access token.
+export const getProject = async (accessToken: string, projectId: string): Promise<Project> => {
+    const path = `projects/${projectId}`;
+    const method = HttpMethod.get;
+    const request = {accessToken, path, method};
+    const response = await fetchApi(request);
+    // FIXME [NP]: handle 401 & 404 differently?
+    if (response.status === 401 || response.status === 404) {
+        throw new Error("Unable to get project details.")
+    }
+    // If the response is not 401, then we expect it to be 200 and contain the organization info.
+    const text = await response.text();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    return JSON.parse(text);
+}
+
+
+// ===================
+// === openProject ===
+// ===================
+
+export type openProjectBody = {
+    forceCreate: boolean;
+};
+
+/// Wrapper for our `closeProject` Cloud backend API endpoint.
+///
+/// Sets project to an open state.
+export const openProject = async (accessToken: string, projectId: string, body?: openProjectBody): Promise<void> => {
+    if (!body) {
+        body = {forceCreate: false};
+    }
+    const path = `projects/${projectId}/open`;
+    const method = HttpMethod.post;
+    const request = {accessToken, path, method};
+    const response = await fetchApi(request);
+    // FIXME [NP]: handle 401 & 404 differently?
+    if (response.status === 401 || response.status === 404) {
+        throw new Error("Unable to open new project.")
+    }
 }
