@@ -1370,7 +1370,6 @@ impl TextModel {
                             let glyph_render_offset =
                                 render_info.offset.scale(style.font_size.value);
                             glyph.set_color(style.color);
-                            glyph.skip_color_animation();
                             glyph.set_sdf_weight(style.sdf_weight.value);
                             glyph.set_font_size(formatting::Size(
                                 style.font_size.value * magic_scale,
