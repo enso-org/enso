@@ -82,9 +82,19 @@ use super::def;
 // === ShapeSystemId ===
 // =====================
 
-newtype_prim_no_default_no_display! {
-    /// The ID of a user generated shape system.
-    ShapeSystemId(std::any::TypeId);
+/// The ID of a user generated shape system.
+#[derive(Copy, Clone, CloneRef, Eq, Hash, Ord, PartialOrd, PartialEq, Debug)]
+pub struct ShapeSystemId {
+    type_id: std::any::TypeId,
+}
+
+impl ShapeSystemId {
+    /// Return an identifier unique to the given [`Shape`] type.
+    #[inline(always)]
+    pub fn of<S: Shape>() -> Self {
+        let type_id = std::any::TypeId::of::<S>();
+        Self { type_id }
+    }
 }
 
 
@@ -249,8 +259,8 @@ pub struct ShapeSystemStandardData<S: Shape> {
 
 impl<S: Shape> ShapeSystem<S> {
     /// The ID of this shape system.
-    pub const fn id() -> ShapeSystemId {
-        ShapeSystemId::new(std::any::TypeId::of::<S>())
+    pub fn id() -> ShapeSystemId {
+        ShapeSystemId::of::<S>()
     }
 
     /// Reference to the underlying sprite system.
@@ -445,8 +455,10 @@ impl ShapeSystemModel {
         if let Some(shader) = crate::display::world::PRECOMPILED_SHADERS
             .with_borrow(|map| map.get(*self.definition_path).cloned())
         {
-            let code = crate::display::shader::builder::CodeTemplate::new("", shader.fragment, "");
+            let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.fragment);
             self.material.borrow_mut().set_code(code);
+            let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.vertex);
+            self.geometry_material.borrow_mut().set_code(code);
         } else {
             if !display::world::with_context(|t| t.run_mode.get().is_shader_extraction()) {
                 let path = *self.definition_path;
@@ -632,7 +644,7 @@ macro_rules! _shape_old {
             // =============
 
             /// The type of the shape. It also contains the parameters of the shape. The parameters
-            /// are stored in this type in order to simplify bounds for utlities managing shape
+            /// are stored in this type in order to simplify bounds for utilities managing shape
             /// systems. For example, if we would like to handle any shape with given parameters,
             /// we will be processing [`ShapeSystem<S>`] and we can add bounds to [`S`] to reflect
             /// what parameters it should contain.
@@ -788,7 +800,7 @@ macro_rules! _shape {
             // =============
 
             /// The type of the shape. It also contains the parameters of the shape. The parameters
-            /// are stored in this type in order to simplify bounds for utlities managing shape
+            /// are stored in this type in order to simplify bounds for utilities managing shape
             /// systems. For example, if we would like to handle any shape with given parameters,
             /// we will be processing [`ShapeSystem<S>`] and we can add bounds to [`S`] to reflect
             /// what parameters it should contain.
@@ -874,7 +886,14 @@ macro_rules! _shape {
             #[before_main]
             pub fn register_shape() {
                 $crate::display::world::SHAPES_DEFINITIONS.with(|shapes| {
-                    shapes.borrow_mut().push(Box::new(|| Box::new(View::new())));
+                    let definition_path = Shape::definition_path();
+                    let cons = Box::new(|| {
+                        let view: Box<dyn $crate::gui::component::AnyShapeView> =
+                            Box::new(View::new());
+                        view
+                    });
+                    let def = $crate::display::world::ShapeDefinition { definition_path, cons };
+                    shapes.borrow_mut().push(def);
                 });
             }
 
