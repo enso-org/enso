@@ -239,9 +239,9 @@ impl Component {
                 Some(entry.documentation.iter().filter_map(|doc| match doc {
                     DocSection::Tag { name, body }
                         if name == ast::constants::ALIAS_DOC_SECTION_TAG_NAME =>
-                        Some(body.as_str()),
+                        Some(body.as_str().split(',').map(|s| s.trim() )),
                     _ => None,
-                })),
+                }).flatten()),
             _ => None,
         }
     }
