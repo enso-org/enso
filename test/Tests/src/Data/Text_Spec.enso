@@ -1238,39 +1238,19 @@ spec =
         Test.specify "should be possible on unicode text" <|
             txt = "maza건반zaa"
             txt.find "^a..z$" . should_equal Nothing
-            check_span (txt.find "^m..a..z.a$") (Span.value (0.up_to 9) txt)
-            check_span (txt.find "a..z") (Span.value (3.up_to 7) txt)
-        ##
-                Test.specify "should be possible in ascii mode" <|
-                    match = "İ".match "\w" matcher=(Regex_Matcher.Value match_ascii=True)
-                    match.should_equal Nothing
+            check_span (txt.find "^m..a..z.a$") (Span.Value (0.up_to 9) txt)
+            check_span (txt.find "a..z") (Span.Value (3.up_to 7) txt)
 
         Test.specify "should be possible in case-insensitive mode" <|
             match = "MY".find "my" case_sensitivity=Case_Sensitivity.Insensitive
             check_span match (Span.Value (0.up_to 2) "MY")
-
-        ##
-                Test.specify "should be possible in dot_matches_newline mode" <|
-                    match = 'Foo\n'.match "(....)" matcher=(Regex_Matcher.Value dot_matches_newline=True)
-                    match.should_equal 'Foo\n'
-
-                Test.specify "should be possible in multiline mode" <|
-                    text = """
-                        Foo
-                        bar
-                    match = text.match_all "^(...)$" matcher=(Regex_Matcher.Value multiline=True)
-                    match.should_equal ["Foo", "bar"]
-
-                Test.specify "should be possible in comments mode" <|
-                    match = "abcde".match "(..) # Match two of any character" matcher=(Regex_Matcher.Value comments=True)
-                    match.should_equal "ab"
 
     Test.group "Text.match" <|
         Test.specify "should default to regex" <|
             "My Text: Goes Here".match "^My Text: (.+)$" . should_be_true
             "555-801-1923".match "^\d{3}-\d{3}-\d{4}$" . should_be_true
             "Hello".match "^[a-z]+$" . should_be_false
-            "Hello".match "^[a-z]+$" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
+            "Hello".match "^[a-z]+$" case_sensitivity=Case_Sensitivity.Insensitive . should_be_true
 
         Test.specify "should only match whole input" <|
             "Hello".match "[a-z]" . should_be_false
@@ -1279,65 +1259,21 @@ spec =
         Test.specify "should be possible on unicode text" <|
             "Korean: 건반".match "^Korean: (.+)$" . should_be_true
 
-        Test.specify "should be possible in ascii mode" <|
-            "İ".match "\w" (Regex_Matcher.Value match_ascii=True) . should_be_false
-
         Test.specify "should be possible in case-insensitive mode" <|
-            "MY".match "my" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
-
-        Test.specify "should be possible in dot_matches_newline mode" <|
-            'Foo\n'.match "(....)" (Regex_Matcher.Value  dot_matches_newline=True) . should_be_true
-
-        multiline_matches_message = """
-            This test does not make sense once we require matches to match the
-            whole string. The `multiline` parameter may not make sense for the
-            `matches` function. This should be revisited when Text library is
-            being redesigned.
-        Test.specify "should be possible in multiline mode" pending=multiline_matches_message <|
-            text = """
-                Foo
-                bar
-            text.match "^(...)$" (Regex_Matcher.Value  multiline=True) . should_be_true
-
-        Test.specify "should be possible in comments mode" <|
-            "abcde".match "(.....) # Match any five characters" (Regex_Matcher.Value  comments=True) . should_be_true
+            "MY".match "my" case_sensitivity=Case_Sensitivity.Insensitive . should_be_true
 
     Test.group "Regex finding" <|
         Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Matching_Mode.First
-            match . should_be_a Text
-            match . should_equal "My Text: Goes Here"
+            match = "My Text: Goes Here".find "^My Text: (.+)$"
+            check_span match (Span.Value (0.up_to 18) "My Text: Goes Here")
 
         Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반".match "^Korean: (.+)$" mode=Matching_Mode.First
-            match . should_be_a Text
-            match . should_equal "Korean: 건반"
-
-        Test.specify "should be possible in ascii mode" <|
-            match = "İ".match "\w" matcher=(Regex_Matcher.Value match_ascii=True)
-            match . should_equal Nothing
+            match = "Korean: 건반".find "^Korean: (.+)$"
+            check_span match (Span.Value (0.up_to 10) "Korean: 건반")
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".match "my" matcher=(Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive)
-            match . should_be_a Text
-            match . should_equal "MY"
-
-        Test.specify "should be possible in dot_matches_newline mode" <|
-            match = 'Foo\n'.match "(....)" matcher=(Regex_Matcher.Value dot_matches_newline=True)
-            match . should_be_a Text
-            match . should_equal 'Foo\n'
-
-        Test.specify "should be possible in multiline mode" <|
-            text = """
-                Foo
-                bar
-            match = text.match_all "^(...)$" matcher=(Regex_Matcher.Value multiline=True)
-            match . should_equal ["Foo", "bar"]
-
-        Test.specify "should be possible in comments mode" <|
-            match = "abcde".match "(..) # Match two of any character" matcher=(Regex_Matcher.Value comments=True)
-            match . should_be_a Text
-            match . should_equal "ab"
+            match = "MY".find "my" case_sensitivity=Case_Sensitivity.Insensitive
+            check_span match (Span.Value (0.up_to 2) "MY")
 
     Test.group "Regex splitting" <|
         Test.specify "should be possible on text" <|
