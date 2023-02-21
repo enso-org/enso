@@ -318,6 +318,8 @@
 - [Moved regex functionality out of `Text.locate` and `Text.locate_all` into
   `Text.match` and `Text.match_all`.][5679]
 - [`File.parent` may return `Nothing`.][5699]
+- [Removed non-regex functionality from `is_match`, `match`, and `match_all`,
+  and renamed them to `match`, `find`, `find_all` (respectively).][5721]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
