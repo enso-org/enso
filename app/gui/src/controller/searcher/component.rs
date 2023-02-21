@@ -119,8 +119,8 @@ impl Component {
         match &*self.match_info.borrow() {
             MatchInfo::Matches { kind: MatchKind::Alias(alias), .. } => {
                 format!("{} ({})", alias, self.to_string())
-            },
-            _ => self.to_string()
+            }
+            _ => self.to_string(),
         }
     }
 
@@ -235,13 +235,15 @@ impl Component {
     /// entry's documentation. Returns `None` if the entry does not contain documentation.
     pub fn aliases(&self) -> Option<impl Iterator<Item = &str>> {
         match &self.data {
-            Data::FromDatabase { entry, .. } =>
-                Some(entry.documentation.iter().filter_map(|doc| match doc {
+            Data::FromDatabase { entry, .. } => {
+                let aliases = entry.documentation.iter().filter_map(|doc| match doc {
                     DocSection::Tag { name, body }
                         if name == ast::constants::ALIAS_DOC_SECTION_TAG_NAME =>
-                        Some(body.as_str().split(',').map(|s| s.trim() )),
+                        Some(body.as_str().split(',').map(|s| s.trim())),
                     _ => None,
-                }).flatten()),
+                });
+                Some(aliases.flatten())
+            }
             _ => None,
         }
     }
