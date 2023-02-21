@@ -219,21 +219,21 @@ rename_columns internal_columns mapping error_on_missing_columns on_problems =
        The list can be empty if the column remains unchanged.
        The list may also contain duplicate input columns.
     columns_with_new_names = case mapping of
-        _ : Vector ->
+        vec : Vector ->
             col_count = internal_columns.length
-            good_names if vec.length <= col_count then vec else
+            good_names = if vec.length <= col_count then vec else
                 problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (First col_count)))
                 vec.take (First col_count)
-            internal_columns.take good_names.length . zip new_names
+            internal_columns.take good_names.length . zip good_names
         _ : Map ->
             resolve_rename selector replacement = case selector of
                 name : Text -> resolve_rename (Column_Selector.By_Name name Case_Sensitivity.Sensitive False) replacement
-                ix : Integer -> if is_index_valid self.internal_columns.length ix then [Pair.new (self.internal_columns.at ix) replacement] else
+                ix : Integer -> if is_index_valid internal_columns.length ix then [Pair.new (internal_columns.at ix) replacement] else
                     problem_builder.report_oob_indices [ix]
                     []
                 Column_Selector.By_Name name case_sensitivity use_regex ->
-                    matches = match_columns name case_sensitivity use_regex self.internal_columns
-                    if matches.is_empty then problem_builder.report_missing_input_columns [name]
+                    matches = match_columns name case_sensitivity use_regex internal_columns
+                    if matches.is_empty then problem_builder.report_missing_input_columns [name] else
                         if use_regex.not then matches.map c-> Pair.new c replacement else
                             pattern = Regex.compile name case_insensitive=case_sensitivity.is_case_insensitive
                             matches.map c-> Pair.new c (pattern.replace c.name replacement)
@@ -246,7 +246,7 @@ rename_columns internal_columns mapping error_on_missing_columns on_problems =
     name_map = columns_with_new_names.fold Map.empty current-> pair->
         old_name = pair.first.name
         case current.contains_key old_name of
-            False -> current.put old_name pair.second
+            False -> current.insert old_name pair.second
             True -> if current.get old_name == pair.second then current else
                 new_names = columns_with_new_names.filter p-> p.first.name == old_name . map p-> p.second
                 Error.throw (Ambiguous_Column_Rename.Error old_name new_names)
@@ -259,7 +259,7 @@ rename_columns internal_columns mapping error_on_missing_columns on_problems =
     not_renamed = internal_columns.filter c-> resolved_name_map.contains_key c.name . not
     new_column_names = not_renamed.fold resolved_name_map current-> column->
         new_name = unique.make_unique column.name
-        current.put column.name new_name
+        current.insert column.name new_name
 
     ## Attach any problems
     problem_builder.report_unique_name_strategy unique
