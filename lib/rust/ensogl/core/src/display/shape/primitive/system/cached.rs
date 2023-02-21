@@ -370,7 +370,6 @@ macro_rules! cached_shape {
             use $crate::prelude::*;
             use super::shape_system_definition::Shape;
             use $crate::display::shape::primitive::system::cached::CachedShape;
-            use $crate::display::shape::primitive::system::cached::CACHED_TEXTURE_MAX_DISTANCE;
 
             thread_local! {
                 static POSITION_IN_TEXTURE: Cell<Vector2> = default();

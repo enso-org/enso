@@ -22,7 +22,7 @@ use crate::gui::component::AnyShapeView;
 /// Definition of pass rendering cached shapes to texture.
 ///
 /// On each run it checks what not-yet-rendered shapes has compiled shaders and render their color
-/// and sdf information to the texture, which is stored in `pass_cached_shapes` uniform. See also
+/// and SDF information to the texture, which is stored in `pass_cached_shapes` uniform. See also
 /// the [full documentation of cached shapes](display::shape::primitive::system::cached).
 ///
 /// # Implementation

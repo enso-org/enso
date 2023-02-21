@@ -234,7 +234,7 @@ mod tests {
     type MockShape = usize;
 
     fn shape_entries_from_sizes(
-        sizes: impl IntoIterator<Item = (i32, i32)>,
+        sizes: impl IntoIterator<Item = (f32, f32)>,
     ) -> Vec<ShapeWithSize<MockShape>> {
         sizes
             .into_iter()
@@ -249,30 +249,30 @@ mod tests {
 
     #[test]
     fn texture_size() {
-        fn run_case(shape_sizes: impl IntoIterator<Item = (i32, i32)>, expected_size: (i32, i32)) {
+        fn run_case(shape_sizes: impl IntoIterator<Item = (f32, f32)>, expected_size: (i32, i32)) {
             let shape_entries = shape_entries_from_sizes(shape_sizes);
             let result = arrange_shapes_on_texture(shape_entries.into_iter(), INITIAL_TEXTURE_SIZE);
             assert_eq!(result.texture_size, IntoVector2::into_vector(expected_size));
         }
 
-        run_case([(32, 32), (16, 16)], (48, 32));
-        run_case([(16, 2), (2, 20)], (18, 20));
-        run_case([(256, 2), (257, 2)], (257, 4));
-        run_case(iter::repeat((32, 32)).take(2), (64, 32));
-        run_case(iter::repeat((32, 32)).take(16), (512, 32));
-        run_case(iter::repeat((32, 32)).take(17), (512, 64));
-        run_case(iter::repeat((64, 64)).take(64), (512, 512));
+        run_case([(32.0, 32.0), (16.0, 16.0)], (48, 32));
+        run_case([(16.0, 2.0), (2.0, 20.0)], (18, 20));
+        run_case([(256.0, 2.0), (257.0, 2.0)], (257, 4));
+        run_case(iter::repeat((32.0, 32.0)).take(2), (64, 32));
+        run_case(iter::repeat((32.0, 32.0)).take(16), (512, 32));
+        run_case(iter::repeat((32.0, 32.0)).take(17), (512, 64));
+        run_case(iter::repeat((64.0, 64.0)).take(64), (512, 512));
         // Shapes does not fit initial texture size: the texture is extended.
-        run_case(iter::repeat((64, 64)).take(65), (1024, 320));
+        run_case(iter::repeat((64.0, 64.0)).take(65), (1024, 320));
         // This will extend the texture several times.
-        run_case(iter::repeat((512, 512)).take(17), (4096, 1536));
+        run_case(iter::repeat((512.0, 512.0)).take(17), (4096, 1536));
     }
 
     #[test]
     fn fitting_shapes_on_texture() {
         fn run_case<const N: usize>(
             tex_size: i32,
-            sizes: [(i32, i32); N],
+            sizes: [(f32, f32); N],
             expected_position: Option<[(f32, f32); N]>,
         ) {
             let shape_entries = shape_entries_from_sizes(sizes);
@@ -287,22 +287,22 @@ mod tests {
             assert_eq!(positions.as_deref(), expected_position.as_ref().map(|arr| arr.as_slice()));
         }
 
-        run_case(64, [(32, 32), (32, 32)], Some([(-16.0, 0.0), (16.0, 0.0)]));
-        run_case(63, [(32, 32), (32, 32)], None);
+        run_case(64, [(32.0, 32.0), (32.0, 32.0)], Some([(-16.0, 0.0), (16.0, 0.0)]));
+        run_case(63, [(32.0, 32.0), (32.0, 32.0)], None);
         run_case(
             64,
-            [(32, 32), (32, 32), (32, 32), (32, 32)],
+            [(32.0, 32.0), (32.0, 32.0), (32.0, 32.0), (32.0, 32.0)],
             Some([(-16.0, -16.0), (16.0, -16.0), (-16.0, 16.0), (16.0, 16.0)]),
         );
-        run_case(64, [(32, 32), (32, 32), (32, 32), (2, 33)], None);
+        run_case(64, [(32.0, 32.0), (32.0, 32.0), (32.0, 32.0), (2.0, 33.0)], None);
         run_case(
             64,
-            [(32, 32), (16, 16), (16, 16), (16, 16)],
+            [(32.0, 32.0), (16.0, 16.0), (16.0, 16.0), (16.0, 16.0)],
             Some([(-16.0, 0.0), (8.0, -8.0), (24.0, -8.0), (8.0, 8.0)]),
         );
         run_case(
             32,
-            [(16, 8), (2, 32), (16, 2), (12, 2)],
+            [(16.0, 8.0), (2.0, 32.0), (16.0, 2.0), (12.0, 2.0)],
             Some([(-7.0, -12.0), (2.0, 0.0), (-7.0, -7.0), (9.0, -15.0)]),
         );
     }

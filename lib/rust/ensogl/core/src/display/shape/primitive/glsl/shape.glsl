@@ -436,7 +436,7 @@ Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
     // The signed distance is stored in the texture's alpha channel in a special way. See
     // [`crate::display::shape::primitive::system::cached`] documentation for details.
     float alpha_representing_0_sdf = 0.5;
-    float distance = -(color_and_distance.raw.a - alpha_representing_0_sfg) * 2.0 * CACHED_SHAPE_MAX_DISTANCE;
+    float distance = -(color_and_distance.raw.a - alpha_representing_0_sdf) * 2.0 * CACHED_SHAPE_MAX_DISTANCE;
     BoundSdf sdf = bound_sdf(distance, shape_bbox);
     Color shape_color = color(color_and_distance.raw.rgb, 1.0);
     return shape(id, sdf, shape_color);
