@@ -158,29 +158,18 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
       logger.log(`hub::${event}::refresh ${refresh}`);
       if (event === "signIn") {
           setRefresh((refresh) => refresh + 1);
-      } else if (event === "cognitoHostedUI") {
-          // The user has just signed in via a federated identity provider (e.g., Google or GitHub).
-          // We want to redirect the user to the "sign in" page, which will then redirect the user
-          // to the "home" page.
-          //window.location.href = LOGIN_PATH;
-          //navigate(LOGIN_PATH, { replace: true })
-          //navigate("http://localhost:8080/", { replace: true })
-  
-          // FIXME [NP]: remove lints.
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument
-          //setAccessToken(data!.signInUserSession.accessToken.jwtToken)
-      } else if (event === "customOAuthState") {
+      } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
           // FIXME [NP]: make this variable.
           // FIXME [NP]: document this https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
           // FIXME [NP]: make this Electron-specific
-          //const url = `http://localhost:8080${data.payload.data}`;
+//           const url = `http://localhost:8080${_data.payload.data}`;
           const url = `http://localhost:8080/`
           window.history.replaceState({}, "", url)
           setRefresh((refresh) => refresh + 1)
           //navigate(DASHBOARD_PATH)
           //window.history.go();
       } else if (event === "signOut") {
-          //setRefresh((refresh) => refresh + 1)
+//           setRefresh((refresh) => refresh + 1)
           setSession(undefined)
       }
     };

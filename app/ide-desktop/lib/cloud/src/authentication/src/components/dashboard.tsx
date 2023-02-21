@@ -16,13 +16,17 @@ import withRouter from '../navigation'
 // ==========================
 
 const dashboardContainer: FC = () => {
-    const { signOut } = useAuth();
-    const { email } = useFullUserSession();
+    const { signOut, session } = useAuth();
+    const { email, accessToken, organization } = useFullUserSession();
 
     return (
         <div>
             <h1>Welcome to Enso Cloud {email}</h1>
             <a onClick={signOut}>Sign Out</a>
+            <p>{accessToken}</p>
+            <p>{email}</p>
+            <p>{organization.id}</p>
+            <p>{organization.name}</p>
         </div>
     )
 }
