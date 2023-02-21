@@ -233,10 +233,14 @@ rename_columns internal_columns mapping error_on_missing_columns on_problems =
                     []
                 Column_Selector.By_Name name case_sensitivity use_regex ->
                     matches = match_columns name case_sensitivity use_regex internal_columns
-                    if matches.is_empty then problem_builder.report_missing_input_columns [name] else
-                        if use_regex.not then matches.map c-> Pair.new c replacement else
-                            pattern = Regex.compile name case_insensitive=case_sensitivity.is_case_insensitive
-                            matches.map c-> Pair.new c (pattern.replace c.name replacement)
+                    case matches.is_empty of
+                        True ->
+                            problem_builder.report_missing_input_columns [name]
+                            []
+                        False ->
+                            if use_regex.not then matches.map c-> Pair.new c replacement else
+                                pattern = Regex.compile name case_insensitive=case_sensitivity.is_case_insensitive
+                                matches.map c-> Pair.new c (pattern.replace c.name replacement)
                 Column_Selector.Blank_Columns _ _ ->
                     Error.throw (Illegal_Argument.Error "Cannot use `Blank_Columns` to rename.")
             mapping.to_vector.fold [] current-> pair-> current + resolve_rename pair.first pair.second
@@ -248,7 +252,7 @@ rename_columns internal_columns mapping error_on_missing_columns on_problems =
         case current.contains_key old_name of
             False -> current.insert old_name pair.second
             True -> if current.get old_name == pair.second then current else
-                new_names = columns_with_new_names.filter p-> p.first.name == old_name . map p-> p.second
+                new_names = columns_with_new_names.filter p->p.first.name==old_name . map p-> p.second
                 Error.throw (Ambiguous_Column_Rename.Error old_name new_names)
 
     ## Renamed names take precedence, so we first deduplicate those.
