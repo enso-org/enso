@@ -1,12 +1,9 @@
-/** @file
- * This module defines a TS script that is responsible for invoking the Electron Builder process to
- * bundle the entire IDE distribution.
+/** @file This module defines a TS script that is responsible for invoking the Electron Builder process to bundle the
+ * entire IDE distribution.
  *
  * There are two areas to this:
  * - Parsing CLI options as per our needs.
- * - The default configuration of the build process.
- * @module
- */
+ * - The default configuration of the build process. */
 
 import path from 'node:path'
 import child_process from 'node:child_process'
@@ -61,17 +58,35 @@ const args = await yargs(process.argv.slice(2))
         },
     }).argv
 
+const possibleTargets: MacOsTargetName[] = [
+    'default',
+    'dmg',
+    'mas',
+    'mas-dev',
+    'pkg',
+    '7z',
+    'zip',
+    'tar.xz',
+    'tar.lz',
+    'tar.gz',
+    'tar.bz2',
+    'dir',
+]
+
+const year = new Date().getFullYear()
+const target: MacOsTargetName = possibleTargets.find(t => t === args.target) ?? 'dmg'
+
 const config: Configuration = {
     appId: 'org.enso',
     productName: 'Enso',
     extraMetadata: {
         version: build.version,
     },
-    copyright: 'Copyright © 2022 ${author}.',
+    copyright: `Copyright © ${year} \${author}.`,
     artifactName: 'enso-${os}-${version}.${ext}',
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: (args.target ?? 'dmg') as MacOsTargetName,
+        target,
         icon: `${args.iconsDist}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,

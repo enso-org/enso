@@ -1,4 +1,4 @@
-/** @file watch feature */
+/** @file File watch and compile service. */
 import bundler from './esbuild-config.js'
 import * as server from 'enso-gui-server'
 

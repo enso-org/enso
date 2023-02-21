@@ -1,4 +1,4 @@
-/** @file start service */
+/** @file Start the file watch service. */
 import bundler from './esbuild-config.js'
 import * as server from 'enso-gui-server'
 

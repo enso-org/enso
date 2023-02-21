@@ -1,18 +1,14 @@
-/** @file
- * This script signs the content of all archives that we have for macOS. For this to work this needs
- * to run on macOS with `codesign`, and a JDK installed. `codesign` is needed to sign the files,
- * while the JDK is needed for correct packing and unpacking of java archives.
+/** @file This script signs the content of all archives that we have for macOS. For this to work this needs to run on
+ * macOS with `codesign`, and a JDK installed. `codesign` is needed to sign the files, while the JDK is needed for
+ * correct packing and unpacking of java archives.
  *
- * We require this extra step as our dependencies contain files that require us to re-sign jar
- * contents that cannot be opened as pure zip archives, but require a java toolchain to extract
- * and re-assemble to preserve manifest information. This functionality is not provided by
- * `electron-osx-sign` out of the box.
+ * We require this extra step as our dependencies contain files that require us to re-sign jar contents that cannot be
+ * opened as pure zip archives, but require a java toolchain to extract and re-assemble to preserve manifest
+ * information. This functionality is not provided by `electron-osx-sign` out of the box.
  *
- * This code is based on https://github.com/electron/electron-osx-sign/pull/231 but our use-case
- * is unlikely to be supported by electron-osx-sign as it adds a java toolchain as additional
- * dependency.
- * This script should be removed once the engine is signed.
- */
+ * This code is based on https://github.com/electron/electron-osx-sign/pull/231 but our use-case is unlikely to be
+ * supported by electron-osx-sign as it adds a java toolchain as additional dependency.
+ * This script should be removed once the engine is signed. */
 
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -141,10 +137,8 @@ class ArchiveToSign implements Signable {
     /** An absolute path to the archive. */
     path: string
 
-    /**
-     * A list of patterns for files to sign inside the archive.
-     * Relative to the root of the archive.
-     */
+    /** A list of patterns for files to sign inside the archive.
+     * Relative to the root of the archive. */
     binaries: glob.Pattern[]
 
     /** Create a new instance. */
@@ -153,10 +147,8 @@ class ArchiveToSign implements Signable {
         this.binaries = binaries
     }
 
-    /**
-     * Sign content of an archive. This function extracts the archive, signs the required files,
-     * re-packages the archive and replaces the original.
-     */
+    /** Sign content of an archive. This function extracts the archive, signs the required files,
+     * re-packages the archive and replaces the original. */
     async sign(context: SigningContext) {
         console.log(`Signing archive ${this.path}`)
         const archiveName = path.basename(this.path)

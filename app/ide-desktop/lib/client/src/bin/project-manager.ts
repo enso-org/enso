@@ -1,4 +1,5 @@
-/** @file project manager */
+/** @file Project Manager bindings. */
+
 import child_process from 'child_process'
 import * as config from 'config'
 import fss from 'node:fs'
@@ -10,10 +11,8 @@ const execFile = util.promisify(child_process.execFile)
 // === Project Manager ===
 // =======================
 
-/**
- * Return the Project Manager path if it is valid. Otherwise, throw an error.
- * @throws
- */
+/** Return the Project Manager path if it is valid. Otherwise, throw an error.
+ * @throws */
 export function pathOrPanic(args: config.Args): string {
     const binPath = args.groups.engine.options.projectManagerPath.value
     const binExists = fss.existsSync(binPath)
@@ -38,7 +37,7 @@ async function exec(args: config.Args, processArgs: string[]) {
  * finished. */
 export function spawn(args: config.Args, processArgs: string[]): child_process.ChildProcess {
     return logger.groupMeasured(
-        `Starting the backend process with the following options: ${processArgs.join()}`,
+        `Starting the backend process with the following options: ${processArgs.join(', ')}.`,
         () => {
             const binPath = pathOrPanic(args)
             const stdin = 'pipe' as const
@@ -46,16 +45,14 @@ export function spawn(args: config.Args, processArgs: string[]): child_process.C
             const stderr = 'inherit' as const
             const stdio = [stdin, stdout, stderr]
             const process = child_process.spawn(binPath, processArgs, { stdio })
-            logger.log(`Backend has been spawned (pid = ${process.pid!}).`)
-            process.on('exit', code => logger.log(`Backend exited with code ${code!}.`))
+            logger.log(`Backend has been spawned (pid = ${String(process.pid)}).`)
+            process.on('exit', code => logger.log(`Backend exited with code ${String(code)}.`))
             return process
         }
     )
 }
 
-/**
- * get project version
- */
+/** Get the Project Manager version. */
 export async function version(args: config.Args) {
     if (args.options.engine.value) {
         return await exec(args, ['--version']).then(t => t.stdout)

@@ -14,9 +14,7 @@ export const versionInfo = {
     chrome: process.versions.chrome,
 }
 
-/**
- * getInfo
- */
+/** Get the current system information, useful for debugging. */
 async function getInfo() {
     const procMemInfo = await process.getProcessMemoryInfo()
     return {
@@ -43,9 +41,7 @@ async function getInfo() {
     }
 }
 
-/**
- * printInfoAndExit
- */
+/** Print the current system information and exit the application. */
 export async function printInfoAndExit() {
     const info = await getInfo()
     console.log(JSON.stringify(info, undefined, 4))

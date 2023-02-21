@@ -1,4 +1,5 @@
-/** @file computeHash */
+/** @file Definition of hash computing functions. */
+
 const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
@@ -13,10 +14,7 @@ const CHECKSUM_TYPE = 'sha256'
 // === Checksum ===
 // ================
 
-/// The `type` argument can be one of `md5`, `sha1`, or `sha256`.
-/**
- * getChecksum
- */
+/** The `type` argument can be one of `md5`, `sha1`, or `sha256`. */
 function getChecksum(path, type) {
     return new Promise(function (resolve, reject) {
         const hash = crypto.createHash(type)
@@ -31,18 +29,13 @@ function getChecksum(path, type) {
     })
 }
 
-// Based on https://stackoverflow.com/a/57371333
-/**
- * changeExtension
- */
+/** Based on https://stackoverflow.com/a/57371333 */
 function changeExtension(file, extension) {
     const basename = path.basename(file, path.extname(file))
     return path.join(path.dirname(file), `${basename}.${extension}`)
 }
 
-/**
- * writeFileChecksum
- */
+/** Write the file checksum to the provided path. */
 async function writeFileChecksum(path, type) {
     let checksum = await getChecksum(path, type)
     let targetPath = changeExtension(path, type)

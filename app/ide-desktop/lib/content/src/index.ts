@@ -20,11 +20,11 @@ const timeout = (time: number) => {
 }
 
 /** A version of `fetch` which timeouts after the provided time. */
-async function fetchTimeout<T = void>(url: string, timeoutSeconds: number): Promise<T> {
+async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknown> {
     return fetch(url, { signal: timeout(timeoutSeconds).signal }).then(response => {
         const statusCodeOK = 200
         if (response.status === statusCodeOK) {
-            return response.json() as Promise<T>
+            return response.json()
         } else {
             throw new Error(`Failed to fetch '${url}'. Response status: ${response.status}.`)
         }
@@ -42,13 +42,22 @@ async function checkMinSupportedVersion(config: typeof options) {
         return true
     }
     try {
-        const appConfig = await fetchTimeout<{ minimumSupportedVersion: string }>(
-            config.groups.engine.options.configUrl.value,
-            300
-        )
-        const minSupportedVersion = appConfig.minimumSupportedVersion
-        const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
-        return comparator.test(Version.ide)
+        const appConfig = await fetchTimeout(config.groups.engine.options.configUrl.value, 300)
+        if (
+            appConfig != null &&
+            typeof appConfig === 'object' &&
+            'minimumSupportedVersion' in appConfig
+        ) {
+            const minSupportedVersion = appConfig.minimumSupportedVersion
+            if (typeof minSupportedVersion === 'string') {
+                const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
+                return comparator.test(Version.ide)
+            } else {
+                logger.error('The minimum supported version is not a string.')
+            }
+        } else {
+            logger.error('The application config is not an object.')
+        }
     } catch (e) {
         console.error('Minimum version check failed.', e)
         return true

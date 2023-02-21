@@ -17,7 +17,7 @@ const copyOptions = {
     dereference: true,
 }
 
-/** wrapped copy utility function */
+/** File copy with logging. */
 async function copy(from, to) {
     console.log(`Copying ${from} to ${to}`)
     await fs.promises.cp(from, to, copyOptions)

@@ -41,12 +41,10 @@ function enableGlobalSandbox() {
     Electron.app.enableSandbox()
 }
 
-/**
- * By default, Electron will automatically approve all permission requests unless the developer has
+/** By default, Electron will automatically approve all permission requests unless the developer has
  * manually configured a custom handler. While a solid default, security-conscious developers might
  * want to assume the very opposite. Follow the link to learn more:
- * https://www.electronjs.org/docs/latest/tutorial/security#5-handle-session-permission-requests-from-remote-content
- */
+ * https://www.electronjs.org/docs/latest/tutorial/security#5-handle-session-permission-requests-from-remote-content */
 function rejectPermissionRequests() {
     void Electron.app.whenReady().then(() => {
         Electron.session.defaultSession.setPermissionRequestHandler((_webContents, permission) => {
@@ -55,14 +53,12 @@ function rejectPermissionRequests() {
     })
 }
 
-/**
- * A WebView created in a renderer process that does not have Node.js integration enabled will not
+/** A WebView created in a renderer process that does not have Node.js integration enabled will not
  * be able to enable integration itself. However, a WebView will always create an independent
  * renderer process with its own webPreferences. It is a good idea to control the creation of new
  * <webview> tags from the main process and to verify that their webPreferences do not disable
  * security features. Follow the link to learn more:
- * https://www.electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation
- */
+ * https://www.electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation */
 function limitWebViewCreation() {
     Electron.app.on('web-contents-created', (event, contents) => {
         contents.on('will-attach-webview', (event, webPreferences, params) => {
@@ -91,13 +87,11 @@ function preventNavigation() {
     })
 }
 
-/**
- * Much like navigation, the creation of new webContents is a common attack vector. Attackers
+/** Much like navigation, the creation of new webContents is a common attack vector. Attackers
  * attempt to convince your app to create new windows, frames, or other renderer processes with
  * more privileges than they had before or with pages opened that they couldn't open before.
  * Follow the link to learn more:
- * https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows
- */
+ * https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows */
 function disableNewWindowsCreation() {
     Electron.app.on('web-contents-created', (event, contents) => {
         contents.setWindowOpenHandler(({ url }) => {

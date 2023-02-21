@@ -108,7 +108,6 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
                         ? option.description
                         : option.description.slice(0, firstSentenceSplit + 1)
                 const otherSentences = option.description.slice(firstSentence.length)
-                // OptionValue
                 const def = option.defaultDescription ?? (option.default as string | null)
                 const defIsEmptyArray = Array.isArray(def) && def.length === 0
                 let defaults = ''
@@ -242,14 +241,10 @@ function argvAndChromeOptions(processArgs: string[]): {
 // === Option Parser ===
 // =====================
 
-/**
- * parseArgs
- * @throws if wrong windowSize provided
- */
+/** Parses command line arguments. */
 export function parseArgs() {
     const args = config.config
     const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(hideBin(process.argv)))
-
     const yargsOptions = args.optionsRecursive().reduce((opts: Record<string, any>, option) => {
         const yargsParam = Object.assign(
             {},
@@ -306,7 +301,7 @@ export function parseArgs() {
     const parsedWindowSize = config.WindowSize.parse(providedWindowSize)
 
     if (parsedWindowSize instanceof Error) {
-        throw new Error(`Wrong window size provided: '${providedWindowSize}'.`)
+        logger.error(`Wrong window size provided: '${providedWindowSize}'.`)
     } else {
         windowSize = parsedWindowSize
     }

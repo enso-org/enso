@@ -24,8 +24,6 @@ class Logo {
     }
 
     init() {
-        // var scaleStop = 128
-        // var scaleLog = Math.log2(scaleStop)
         this.borderWidth = 7
         this.topRadius = 32
         this.borderOffset = this.borderWidth - this.borderSpread
@@ -128,16 +126,12 @@ const fastGenerate =
     (...args) =>
         new cons(...args).generate()
 
-/**
- * generateMinimalWhiteLogo
- */
+/** Generate minimal white logo. */
 function generateMinimalWhiteLogo() {
     return fastGenerate(AppLogo)
 }
 
-/**
- * genIcons
- */
+/** Generate icons. */
 async function genIcons(outputDir) {
     let sizes = [16, 32, 64, 128, 256, 512, 1024]
     let win_sizes = [16, 32, 64, 128, 256]
@@ -210,9 +204,7 @@ async function genIcons(outputDir) {
     await handle.close()
 }
 
-/**
- * entry function
- */
+/** Main entry function. */
 async function main() {
     const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
     if (!outputDir) {

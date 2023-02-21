@@ -46,7 +46,7 @@ const rules = {
     'jsdoc/implements-on-classes': 'warn',
     'jsdoc/no-bad-blocks': 'warn',
     'jsdoc/no-defaults': 'warn',
-    'jsdoc/no-multi-asterisks': 'warn',
+    // 'jsdoc/no-multi-asterisks': 'warn',
     'jsdoc/no-types': 'warn',
     'jsdoc/no-undefined-types': 'warn',
     'jsdoc/require-asterisk-prefix': 'warn',

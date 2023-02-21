@@ -39,14 +39,13 @@ class ProjectManager {
         }).finally(() => ws.close())
     }
 
-    /** * Create an new project. */
+    /** * Create a new project. */
     createProject(name: string, template?: string, action = MISSING_COMPONENT_ACTION_INSTALL): any {
         const params = {
             name: name,
             missingComponentAction: action,
         }
         if (template !== undefined) {
-            // params.projectTemplate = template
             Object.assign(params, {
                 projectTemplate: template,
             })

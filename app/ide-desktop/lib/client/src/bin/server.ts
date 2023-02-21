@@ -99,16 +99,23 @@ export class Server {
     }
 
     process(request: http.IncomingMessage, response: http.ServerResponse) {
-        const url = request.url!.split('?')[0]
-        const resource = url == '/' ? '/index.html' : request.url!
+        const requestUrl = request.url
+        if (requestUrl == null) {
+            logger.error('Request URL is null.')
+            return
+        }
+        const url = requestUrl.split('?')[0]
+        const resource = url == '/' ? '/index.html' : requestUrl
         const resource_file = `${this.config.dir}${resource}`
         fs.readFile(resource_file, (err, data) => {
             if (err) {
                 logger.error(`Resource '${resource}' not found.`)
             } else {
-                const contentType = mime.contentType(path.extname(resource_file)) as string
+                const contentType = mime.contentType(path.extname(resource_file))
                 const contentLength = data.length
-                response.setHeader('Content-Type', contentType)
+                if (contentType !== false) {
+                    response.setHeader('Content-Type', contentType)
+                }
                 response.setHeader('Content-Length', contentLength)
                 response.writeHead(responses.ok)
                 response.end(data)

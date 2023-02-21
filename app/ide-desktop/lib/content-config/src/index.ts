@@ -12,8 +12,9 @@ export type Option<T> = config.Option<T>
 
 // ===============
 // === Version ===
-// ===============s
+// ===============
 
+/* eslint-disable @typescript-eslint/no-extraneous-class */
 export class Version {
     /// Development version.
     static dev = new semver.SemVer('0.0.0')
@@ -28,9 +29,6 @@ export class Version {
         const prereleaseDev = clientVersion.prerelease.toString().includes(Version.devPrerelease)
         return releaseDev || prereleaseDev
     }
-
-    /// avoid @typescript-eslint/no-extraneous-class error
-    hello() {}
 }
 
 // ===============

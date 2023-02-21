@@ -15,7 +15,7 @@ declare module 'create-servers' {
     export default function (
         option: CreateServersOptions,
         errorHandler: (err: { http: string } | null) => void
-    ): void
+    ): any
 }
 
 declare const BUNDLED_ENGINE_VERSION: string
