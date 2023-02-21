@@ -38,10 +38,15 @@ object WSLogMessage {
   implicit val encoder: Encoder[WSLogMessage] = { message =>
     val base = JsonObject(
       JsonFields.Level     -> message.level.asJson,
-      JsonFields.Timestamp -> message.timestamp.toEpochMilli.asJson,
-      JsonFields.Group     -> message.group.asJson,
-      JsonFields.Message   -> message.message.asJson
+      JsonFields.Timestamp -> message.timestamp.toEpochMilli.asJson
     )
+
+    if (message.group != null) {
+      base.+:((JsonFields.Group -> message.group.asJson))
+    }
+    if (message.message != null) {
+      base.+:((JsonFields.Message -> message.message.asJson))
+    }
 
     val result = message.exception match {
       case Some(exception) =>
