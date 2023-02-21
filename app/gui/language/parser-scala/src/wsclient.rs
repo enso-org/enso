@@ -88,7 +88,6 @@ impl From<serde_json::error::Error> for Error {
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
-    DocParserGenerateHtmlSource { program: String },
     DocParserGenerateHtmlFromDoc { code: String },
 }
 
@@ -196,17 +195,8 @@ impl Client {
         Ok(client)
     }
 
-    /// Sends a request to parser service to generate HTML code from documented Enso code.
-    pub fn generate_html_docs(&mut self, program: String) -> api::Result<String> {
-        let request = Request::DocParserGenerateHtmlSource { program };
-        let response_doc = self.rpc_call_doc(request)?;
-        match response_doc {
-            ResponseDoc::SuccessDoc { code } => Ok(code),
-            ResponseDoc::Error { message } => Err(ParsingError(message)),
-        }
-    }
-
     /// Sends a request to parser service to generate HTML code from pure documentation code.
+    #[profile(Detail)]
     pub fn generate_html_doc_pure(&mut self, code: String) -> api::Result<String> {
         let request = Request::DocParserGenerateHtmlFromDoc { code };
         let response_doc = self.rpc_call_doc(request)?;

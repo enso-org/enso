@@ -159,12 +159,19 @@ pub struct List {
     /// IDs of [`Component`]s allowed in [`component::List::favorites`] if they are also present in
     /// [`grouping_and_order_of_favorites`].
     allowed_favorites:               HashSet<component::Id>,
+    keep_private_components:         bool,
 }
 
 impl List {
     /// Construct List builder without content.
     pub fn new() -> Self {
         default()
+    }
+
+    /// Construct List builder without content, do not remove private components when extending
+    /// list.
+    pub fn new_with_private_components() -> Self {
+        List { keep_private_components: true, ..default() }
     }
 
     /// Return [`List`] with a new [`local_scope`] with its [`Group::component_id`] field set to
@@ -191,6 +198,7 @@ impl List {
         let local_scope_id = self.local_scope.component_id;
         let id_and_looked_up_entry = |id| Some((id, db.lookup(id).ok()?));
         let ids_and_entries = entry_ids.into_iter().filter_map(id_and_looked_up_entry);
+        let keep_private_components = self.keep_private_components;
         for (id, entry) in ids_and_entries {
             self.allowed_favorites.insert(id);
             let component = Component::new_from_database_entry(id, entry.clone_ref());
@@ -202,7 +210,9 @@ impl List {
                     let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
                     let namespace = &parent_group.qualified_name.project().namespace;
                     let in_local_namespace = namespace == LOCAL_NAMESPACE;
-                    if !component.is_private() || in_local_scope || in_local_namespace {
+                    let keep_private_component =
+                        in_local_scope || in_local_namespace || keep_private_components;
+                    if !component.is_private() || keep_private_component {
                         parent_group.content.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
                         let not_module = entry.kind != Kind::Module;
@@ -216,7 +226,8 @@ impl List {
                         let project = flatten_group.project.as_ref();
                         let in_local_namespace =
                             project.map(|name| name.namespace == LOCAL_NAMESPACE).unwrap_or(false);
-                        if !component.is_private() || in_local_namespace {
+                        let keep_private_component = in_local_namespace || keep_private_components;
+                        if !component.is_private() || keep_private_component {
                             flatten_group.entries.borrow_mut().push(component.clone_ref());
                             component_inserted_somewhere = true;
                         }

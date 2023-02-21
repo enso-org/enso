@@ -71,6 +71,10 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(EDITION_OVERRIDE_KEY, EDITION_OVERRIDE).build();
 
   public static final String DISABLE_IR_CACHES = optionName("disableIrCaches");
+  public static final String PREINITIALIZE = optionName("preinitialize");
+  public static final OptionKey<String> PREINITIALIZE_KEY = new OptionKey<>("");
+  private static final OptionDescriptor PREINITIALIZE_DESCRIPTOR =
+      OptionDescriptor.newBuilder(PREINITIALIZE_KEY, PREINITIALIZE).build();
   public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(false);
   private static final OptionDescriptor DISABLE_IR_CACHES_DESCRIPTOR =
       OptionDescriptor.newBuilder(DISABLE_IR_CACHES_KEY, DISABLE_IR_CACHES).build();
@@ -115,6 +119,7 @@ public class RuntimeOptions {
               EDITION_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
+              PREINITIALIZE_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
               USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR,
               ENABLE_EXECUTION_TIMER_DESCRIPTOR));

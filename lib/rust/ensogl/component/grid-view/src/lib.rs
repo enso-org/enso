@@ -316,6 +316,7 @@ impl<Entry: entry::Entry, EntryParams> Model<Entry, EntryParams> {
 }
 
 impl<E: Entry> Model<E, E::Params> {
+    #[profile(Debug)]
     fn update_entry(
         &self,
         row: Row,

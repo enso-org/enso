@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Error.Common.Syntax_Error
 
+import Standard.Base.Data.Text.Matching_Mode.Matching_Mode
 from Standard.Base.Data.Text.Regex import No_Such_Group, Invalid_Option
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Regex_Option.Regex_Option
