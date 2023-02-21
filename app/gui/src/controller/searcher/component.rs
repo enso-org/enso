@@ -6,6 +6,7 @@ use crate::prelude::*;
 
 use crate::model::suggestion_database;
 
+use controller::searcher::action::MatchKind;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
@@ -171,47 +172,46 @@ impl Component {
             fuzzly::find_best_subsequence(code, pattern.as_ref(), metric)
         });
 
+        // Pick the best match score between label and code matches. Use only the character indices
+        // of the label match. Use an empty array of indices if there is no label match.
+        let label_or_code_match = match (label_subsequence, code_subsequence) {
+            (Some(label), None) => Some((label, MatchKind::Label)),
+            (Some(label), Some(code)) if label.score >= code.score =>
+                Some((label, MatchKind::Label)),
+            (Some(label), Some(code)) =>
+                Some((fuzzly::Subsequence { indices: label.indices, ..code }, MatchKind::Label)),
+            (None, Some(code)) =>
+                Some((fuzzly::Subsequence { indices: Vec::new(), ..code }, MatchKind::Code)),
+            (None, None) => None,
+        };
+
         // Match the input pattern to an entry's aliases, if available, and select the best match.
         let alias_match = self.aliases().map(|aliases| {
             let alias_match = aliases.filter_map(|alias| {
                 if fuzzly::matches(alias, pattern.as_ref()) {
                     let metric = fuzzly::metric::default();
-                    let subsequence = fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric);
-                    subsequence.map(|subsequence| (alias, subsequence))
+                    let subsequence =
+                        fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric);
+                    subsequence.map(|subsequence| (subsequence, alias))
                 } else {
                     None
                 }
             });
-            alias_match.max_by(|(_, lhs), (_, rhs)| lhs.compare_scores(rhs))
+            alias_match.max_by(|(lhs, _), (rhs, _)| lhs.compare_scores(rhs))
         });
         let alias_match = alias_match.flatten();
-        let (alias_name, alias_subsequence) = alias_match.map(|(n, s)| (Some(n), Some(s))).unwrap_or((None, None));
 
-        // Pick best match between alias and code.
-        let alias_or_code_subsequence = match (alias_subsequence, code_subsequence) {
-            (Some(alias), Some(code)) => {
-                let score = alias.score.max(code.score);
-                Some(fuzzly::Subsequence { score, indices: Vec::new() })
-            }
-            (None, code) => code,
-            (alias, None) => alias,
+        // Pick the best match between the previous label or code match and the alias match.
+        let match_info = match (label_or_code_match, alias_match) {
+            (Some((subsequence, kind)), None) => MatchInfo::Matches { subsequence, kind },
+            (Some((subsequence, kind)), Some((alternative, _)))
+                if subsequence.score >= alternative.score =>
+                MatchInfo::Matches { subsequence, kind },
+            (_, Some((subsequence, alias))) =>
+                MatchInfo::Matches { subsequence, kind: MatchKind::Alias(alias.to_im_string()) },
+            (None, None) => MatchInfo::DoesNotMatch,
         };
-
-        // Pick the best match score of the two, use only the character indices matching the label.
-        let subsequence = match (label_subsequence, alias_or_code_subsequence) {
-            (Some(label), Some(code)) => {
-                let score = label.score.max(code.score);
-                Some(fuzzly::Subsequence { score, ..label })
-            }
-            (None, Some(code)) => Some(fuzzly::Subsequence { indices: Vec::new(), ..code }),
-            (Some(label), None) => Some(label),
-            (None, None) => None,
-        };
-
-        *self.match_info.borrow_mut() = match subsequence {
-            Some(subsequence) => MatchInfo::Matches { subsequence, kind: default() },
-            None => MatchInfo::DoesNotMatch,
-        };
+        *self.match_info.borrow_mut() = match_info;
     }
 
     /// Check whether the component contains the "PRIVATE" tag.
@@ -226,7 +226,8 @@ impl Component {
         }
     }
 
-    /// Return an iterator over the component's aliases from the "ALIAS" tags.
+    /// Return an optional iterator over the component's aliases from the "ALIAS" tags in the
+    /// entry's documentation. Returns None if the entry does not contain documentation.
     pub fn aliases(&self) -> Option<impl Iterator<Item = &str>> {
         match &self.data {
             Data::FromDatabase { entry, .. } =>
