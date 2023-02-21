@@ -38,7 +38,7 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
         electron.app.on('before-quit', () => (this.isQuitting = true))
-        electron.app.whenReady().then(() => this.main(windowSize))
+        void electron.app.whenReady().then(() => this.main(windowSize))
         this.registerShortcuts()
     }
 
@@ -85,7 +85,7 @@ class App {
             if (this.args.options.version.value) {
                 this.printVersionAndExit()
             } else if (this.args.groups.debug.options.info.value) {
-                debug.printInfoAndExit()
+                void debug.printInfoAndExit()
             }
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
@@ -186,22 +186,26 @@ class App {
     /** Initialize Inter-Process Communication between the Electron application and the served
      * website. */
     initIpc() {
-        electron.ipcMain.on(ipc.channel.error, (event, data) => logger.error(`IPC error: ${data}`))
+        electron.ipcMain.on(ipc.channel.error, (event, data) =>
+            logger.error(`IPC error: ${JSON.stringify(data)}`)
+        )
         let profilePromises: Promise<string>[] = []
-        const argProfiles = this.args.groups.profile.options.loadProfile.value
+        const argProfiles = this.args.groups.profile.options.loadProfile.value as
+            | string[]
+            | undefined
         if (argProfiles) {
             profilePromises = argProfiles.map((path: string) => fs.readFile(path, 'utf8'))
         }
         const profiles = Promise.all(profilePromises)
         electron.ipcMain.on(ipc.channel.loadProfiles, event => {
-            profiles.then(profiles => {
+            void profiles.then(profiles => {
                 event.reply('profiles-loaded', profiles)
             })
         })
         const profileOutPath = this.args.groups.profile.options.saveProfile.value
         if (profileOutPath) {
             electron.ipcMain.on(ipc.channel.saveProfile, (event, data) => {
-                fss.writeFileSync(profileOutPath, data)
+                fss.writeFileSync(profileOutPath, data as string)
             })
         }
         electron.ipcMain.on(ipc.channel.quit, () => electron.app.quit())
@@ -231,7 +235,7 @@ class App {
             const params = server.urlParamsFromObject(urlCfg)
             const address = `http://localhost:${this.serverPort()}${params}`
             logger.log(`Loading the window address '${address}'.`)
-            window.loadURL(address)
+            void window.loadURL(address)
         }
     }
 
@@ -250,7 +254,7 @@ class App {
 
         console.log('')
         console.log('Backend:')
-        projectManager.version(this.args).then(backend => {
+        void projectManager.version(this.args).then(backend => {
             if (!backend) {
                 console.log(`${indent}No backend available.`)
             } else {

@@ -1,11 +1,11 @@
 /** @file A simple HTTP server which serves application data to the Electron web-view. */
 
-// @ts-expect-error
 import createServer from 'create-servers'
 import * as fs from 'fs'
 import * as mime from 'mime-types'
 import * as path from 'path'
 import * as portfinder from 'portfinder'
+import http from 'http'
 import { logger } from 'enso-content-config'
 
 // =================
@@ -85,7 +85,7 @@ export class Server {
                     http: this.config.port,
                     handler: this.process.bind(this),
                 },
-                (err: any) => {
+                err => {
                     if (err) {
                         logger.error(`Error creating server:`, err.http)
                         reject(err)
@@ -98,15 +98,15 @@ export class Server {
         })
     }
 
-    process(request: { url: string }, response: any) {
-        const url = request.url.split('?')[0]
-        const resource = url == '/' ? '/index.html' : request.url
+    process(request: http.IncomingMessage, response: http.ServerResponse) {
+        const url = request.url!.split('?')[0]
+        const resource = url == '/' ? '/index.html' : request.url!
         const resource_file = `${this.config.dir}${resource}`
-        fs.readFile(resource_file, (err: any, data: any) => {
+        fs.readFile(resource_file, (err, data) => {
             if (err) {
                 logger.error(`Resource '${resource}' not found.`)
             } else {
-                const contentType = mime.contentType(path.extname(resource_file))
+                const contentType = mime.contentType(path.extname(resource_file)) as string
                 const contentLength = data.length
                 response.setHeader('Content-Type', contentType)
                 response.setHeader('Content-Length', contentLength)

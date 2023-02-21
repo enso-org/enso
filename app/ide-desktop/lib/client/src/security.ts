@@ -48,8 +48,8 @@ function enableGlobalSandbox() {
  * https://www.electronjs.org/docs/latest/tutorial/security#5-handle-session-permission-requests-from-remote-content
  */
 function rejectPermissionRequests() {
-    Electron.app.whenReady().then(() => {
-        Electron.session.defaultSession.setPermissionRequestHandler((webContents, permission) => {
+    void Electron.app.whenReady().then(() => {
+        Electron.session.defaultSession.setPermissionRequestHandler((_webContents, permission) => {
             console.error(`Unhandled permission request '${permission}'.`)
         })
     })

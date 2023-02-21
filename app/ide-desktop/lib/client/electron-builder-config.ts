@@ -173,7 +173,8 @@ const config: Configuration = {
             })
 
             console.log('  • Notarizing.')
-            notarize({
+            void notarize({
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                 appBundleId: packager.platformSpecificBuildOptions.appId,
                 appPath: `${appOutDir}/${appName}.app`,
                 // @ts-expect-error

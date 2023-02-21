@@ -175,7 +175,7 @@ class ArchiveToSign implements Signable {
 
             const binariesToSign = await BinaryToSign.lookupMany(workingDir, this.binaries)
             for (const binaryToSign of binariesToSign) {
-                binaryToSign.sign(context)
+                void binaryToSign.sign(context)
             }
 
             if (isJar) {
@@ -212,7 +212,7 @@ class ArchiveToSign implements Signable {
     }
 
     /** Looks up for archives to sign using the given path patterns. */
-    static lookupMany = lookupManyHelper(ArchiveToSign.lookup)
+    static lookupMany = lookupManyHelper(ArchiveToSign.lookup.bind(this))
 }
 
 /** A single code binary file to be signed. */

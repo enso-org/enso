@@ -19,7 +19,6 @@ import plugin_yaml from 'esbuild-plugin-yaml'
 import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
 import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill'
 import aliasPlugin from 'esbuild-plugin-alias'
-// @ts-expect-error
 import timePlugin from 'esbuild-plugin-time'
 import * as copy_plugin from 'enso-copy-plugin'
 

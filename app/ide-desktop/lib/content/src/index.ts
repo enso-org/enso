@@ -20,11 +20,11 @@ const timeout = (time: number) => {
 }
 
 /** A version of `fetch` which timeouts after the provided time. */
-async function fetchTimeout(url: string, timeoutSeconds: number): Promise<any> {
+async function fetchTimeout<T = void>(url: string, timeoutSeconds: number): Promise<T> {
     return fetch(url, { signal: timeout(timeoutSeconds).signal }).then(response => {
         const statusCodeOK = 200
         if (response.status === statusCodeOK) {
-            return response.json()
+            return response.json() as Promise<T>
         } else {
             throw new Error(`Failed to fetch '${url}'. Response status: ${response.status}.`)
         }
@@ -42,7 +42,10 @@ async function checkMinSupportedVersion(config: typeof options) {
         return true
     }
     try {
-        const appConfig: any = await fetchTimeout(config.groups.engine.options.configUrl.value, 300)
+        const appConfig = await fetchTimeout<{ minimumSupportedVersion: string }>(
+            config.groups.engine.options.configUrl.value,
+            300
+        )
         const minSupportedVersion = appConfig.minimumSupportedVersion
         const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
         return comparator.test(Version.ide)
@@ -89,9 +92,7 @@ class Main {
             config,
             configOptions: options,
             packageInfo: {
-                // @ts-expect-error
                 version: BUILD_INFO.default.version,
-                // @ts-expect-error
                 engineVersion: BUILD_INFO.default.engineVersion,
             },
         })
@@ -110,9 +111,9 @@ class Main {
                 ) {
                     // TODO: authentication here
                     // appInstance.config.email.value = user.email
-                    appInstance.run()
+                    void appInstance.run()
                 } else {
-                    appInstance.run()
+                    void appInstance.run()
                 }
                 const email = options.groups.authentication.options.email.value as string | null
                 if (email != null) {
@@ -128,4 +129,5 @@ class Main {
 const API = new Main()
 
 // @ts-expect-error
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 window[globalConfig.windowAppScopeName] = API

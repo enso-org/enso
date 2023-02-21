@@ -21,12 +21,9 @@ const usage =
     `the application from a web-browser, the creation of a window can be suppressed by ` +
     `entering either '-window=false' or '-no-window'.`
 
-class Section {
-    entries: any[] = []
+class Section<T = any> {
     description = ''
-    constructor(entries: any[] = []) {
-        this.entries = entries
-    }
+    constructor(public entries: (readonly [cmdOption: string, option: config.Option<T>])[] = []) {}
 }
 
 /** Command line help printer. The `groupsOrdering` parameter specifies the order in which the
@@ -67,7 +64,7 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
             if (option.primary || cfg.helpExtended) {
                 const cmdOption = naming.camelToKebabCase(option.qualifiedName())
                 maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
-                const entry = [cmdOption, option]
+                const entry = [cmdOption, option] as const
                 section.entries.push(entry)
             }
         }
@@ -77,7 +74,7 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
         if (option.primary || cfg.helpExtended) {
             const cmdOption = naming.camelToKebabCase(optionName)
             maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
-            const entry = [cmdOption, option]
+            const entry = [cmdOption, option] as const
             const section = sections[option.name]
             if (section != null) {
                 section.entries.unshift(entry)
@@ -111,8 +108,8 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
                         ? option.description
                         : option.description.slice(0, firstSentenceSplit + 1)
                 const otherSentences = option.description.slice(firstSentence.length)
-
-                const def = option.defaultDescription ?? option.default
+                // OptionValue
+                const def = option.defaultDescription ?? (option.default as string | null)
                 const defIsEmptyArray = Array.isArray(def) && def.length === 0
                 let defaults = ''
                 if (def != null && def !== '' && !defIsEmptyArray) {
@@ -291,10 +288,10 @@ export function parseArgs() {
             parseError = err
         }
     }) as Record<string, any>
-    const unexpectedArgs = parsedArgs['--']
+    const unexpectedArgs = parsedArgs['--'] as string | null
 
     for (const option of args.optionsRecursive()) {
-        const arg = parsedArgs[naming.camelToKebabCase(option.qualifiedName())]
+        const arg = parsedArgs[naming.camelToKebabCase(option.qualifiedName())] as string[] | null
         const isArray = Array.isArray(arg)
         // Yargs parses missing array options as `[undefined]`.
         const isInvalidArray = isArray && arg.length == 1 && arg[0] == null

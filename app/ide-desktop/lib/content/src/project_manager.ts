@@ -30,7 +30,7 @@ class ProjectManager {
             ws.onopen = () => {
                 ws.send(JSON.stringify(req))
             }
-            ws.onmessage = (event: any) => {
+            ws.onmessage = (event: MessageEvent<string>) => {
                 resolve(JSON.parse(event.data))
             }
             ws.onerror = (error: any) => {
@@ -63,7 +63,7 @@ class ProjectManager {
             ws.onopen = () => {
                 ws.send(JSON.stringify(req))
             }
-            ws.onmessage = event => {
+            ws.onmessage = (event: MessageEvent<string>) => {
                 resolve(JSON.parse(event.data))
             }
             ws.onerror = error => {

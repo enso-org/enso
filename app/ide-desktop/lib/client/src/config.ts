@@ -3,7 +3,7 @@
 
 import chalk from 'chalk'
 import * as content from 'enso-content-config'
-import * as naming from './naming'
+import * as naming from 'naming'
 import * as paths from 'paths'
 
 // =================
@@ -581,3 +581,4 @@ config.groups.startup.options.platform.value = process.platform
 config.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
 
 export type Args = typeof config
+export type Option<T> = content.Option<T>
