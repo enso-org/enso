@@ -5,7 +5,7 @@
     name="doc-test/debug-scene-visualization [native]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚥 GUI            view/debug_scene/visualization"
+    folderName="🚥 GUI            view/examples/visualization"
   >
     <option name="command" value="test --doc  --target-dir dist/intellij_native --package debug-scene-visualization" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

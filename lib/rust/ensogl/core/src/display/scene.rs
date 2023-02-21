@@ -716,6 +716,7 @@ pub struct SceneData {
     pub frp: Frp,
     pub pointer_position_changed: Rc<Cell<bool>>,
     pub shader_compiler: shader::compiler::Controller,
+    initial_shader_compilation: Rc<Cell<TaskState>>,
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
@@ -766,6 +767,7 @@ impl SceneData {
         let context_lost_handler = default();
         let pointer_position_changed = default();
         let shader_compiler = default();
+        let initial_shader_compilation = default();
         Self {
             display_object,
             display_mode,
@@ -789,6 +791,7 @@ impl SceneData {
             frp,
             pointer_position_changed,
             shader_compiler,
+            initial_shader_compilation,
             extensions,
             disable_context_menu,
         }
@@ -1047,6 +1050,59 @@ impl Scene {
     pub fn extension<T: Extension>(&self) -> T {
         self.extensions.get(self)
     }
+
+    /// Begin any preparation necessary to render, e.g. compilation of shaders. Returns when the
+    /// scene is ready to start being displayed.
+    #[profile(Task)]
+    pub async fn prepare_to_render(&self) {
+        match self.initial_shader_compilation.get() {
+            TaskState::Unstarted => {
+                self.begin_shader_initialization();
+                self.next_shader_compiler_idle().await;
+                self.initial_shader_compilation.set(TaskState::Completed);
+            }
+            TaskState::Running => self.next_shader_compiler_idle().await,
+            TaskState::Completed => (),
+        }
+    }
+
+    /// Begin compiling shaders.
+    #[profile(Task)]
+    pub fn begin_shader_initialization(&self) {
+        if self.initial_shader_compilation.get() != TaskState::Unstarted {
+            return;
+        }
+        world::SHAPES_DEFINITIONS.with_borrow(|shapes| {
+            for shape in shapes.iter().filter(|shape| shape.is_main_application_shape()) {
+                // Instantiate shape so that its shader program will be submitted to the
+                // shader compiler. The runtime compiles the shaders in background threads,
+                // and starting early ensures they will be ready when we want to render
+                // them.
+                let _shape = (shape.cons)();
+            }
+        });
+        self.initial_shader_compilation.set(TaskState::Running);
+    }
+
+    /// Wait until the next time the compiler goes from busy to idle. If the compiler is already
+    /// idle, this will complete during the next shader-compiler run.
+    pub async fn next_shader_compiler_idle(&self) {
+        if let Some(context) = &*self.context.borrow() {
+            // Ensure the callback will be run if the queue is already idle.
+            context.shader_compiler.submit_probe_job();
+        } else {
+            return;
+        };
+        // Register a callback that triggers a future, and await it.
+        let (sender, receiver) = futures::channel::oneshot::channel();
+        let sender = Box::new(RefCell::new(Some(sender)));
+        let _handle = self.shader_compiler.on_idle(move || {
+            if let Some(sender) = sender.take() {
+                sender.send(()).unwrap();
+            }
+        });
+        receiver.await.unwrap();
+    }
 }
 
 impl system::gpu::context::Display for Scene {
@@ -1165,6 +1221,17 @@ impl<'t> DomPath for &'t str {
     fn try_into_dom_element(self) -> Option<HtmlElement> {
         web::document.get_html_element_by_id(self)
     }
+}
+
+
+// === Initial shader compilation state ===
+
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
+enum TaskState {
+    #[default]
+    Unstarted,
+    Running,
+    Completed,
 }
 
 
