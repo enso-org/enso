@@ -1,5 +1,3 @@
-        electron.app.on('before-quit', () => (this.isQuitting = true))
-        
 /** @file Definition of an Electron application, which entails the creation of a rudimentary HTTP
  * server and the presentation of a Chrome web view, designed for optimal performance and
  * compatibility across a wide range of hardware configurations. The application's web component
@@ -21,7 +19,19 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
+import opener from 'opener'
 const logger = content.logger
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/** Name of the product. */
+const PRODUCT_NAME = 'enso'
+
+
 
 // ===========
 // === App ===
@@ -40,7 +50,13 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
         electron.app.on('before-quit', () => (this.isQuitting = true))
-        electron.app.whenReady().then(() => this.main(windowSize))
+        // In order to ensure that our `open-url` listener is registered on time, we **must** put it
+        // **before** our `ready listener. We also need to make sure to use `app.on("ready")` and
+        // not `app.whenReady()` because the latter fires earlier than `app.on("open-url")` even if
+        // we register it last.
+        // FIXME [NP]: remove
+        electron.app.on("ready", () => this.main(windowSize))
+        //electron.app.whenReady().then(() => this.main(windowSize))
         this.registerShortcuts()
     }
 
@@ -96,6 +112,7 @@ class App {
                 await this.startContentServerIfEnabled()
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
+                this.initOpenUrlListener()
                 this.loadWindowContent()
             })
         } catch (err) {
@@ -147,6 +164,7 @@ class App {
                     enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
                     disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
                     spellcheck: false,
+                    webSecurity: false,
                 }
                 let windowPreferences: electron.BrowserWindowConstructorOptions = {
                     webPreferences,
@@ -207,6 +225,41 @@ class App {
             })
         }
         electron.ipcMain.on(ipc.channel.quit, () => electron.app.quit())
+        // FIXME [NP]: Move this to the authentication package.
+        electron.ipcMain.on(ipc.channel.openExternalUrl, (event, url) => opener(url))
+        //electron.ipcMain.on(ipc.channel.setAuthenticatedRedirectCallback, (event, callback) => callback())
+    }
+
+    /**
+     * Initialize the listener for `open-url` events.
+     *
+     * This listener is used to open a page in *this* application window, when the user is
+     * redirected to a URL with a protocol supported by this application.
+     *
+     * For example, when the user completes an OAuth sign in flow (e.g., through Google), they are
+     * redirected to a URL like `enso://auth?code=...`. This listener will intercept that URL
+     * and open the page `auth?code=...` in the application window.
+     */
+    initOpenUrlListener() {
+        electron.app.on('open-url', (event, url) => {
+            // Prevent the default behavior (don't open `enso://auth?code=...` URL in the window).
+            event.preventDefault()
+
+            // FIXME [NP]: delete this log
+            console.log("open-url url", url)
+            const parsedUrl = new URL(url)
+            const target = new URL(`http://localhost:${this.serverPort()}`)
+            console.log("open-url search", parsedUrl.search)
+            target.search = parsedUrl.search // ?code=..&state=..
+            console.log("open-url target", target)
+            this.window?.webContents.send(ipc.channel.authenticatedRedirect, target.href)
+
+            //this.window?.loadURL(target.href)
+            //this.window?.webContents.loadURL(target.href)
+            //const address = `http://localhost:${this.serverPort()}`
+            //logger.log(`Loading the window address '${address}'.`)
+            //this.window?.loadURL(address)
+        })
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration
