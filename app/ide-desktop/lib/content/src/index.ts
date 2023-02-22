@@ -9,6 +9,7 @@ import * as semver from 'semver'
 import { Version, options } from 'enso-content-config'
 import * as authentication from 'enso-studio-authentication'
 import { AppProps } from 'enso-studio-authentication'
+import {ProjectManager} from "./project_manager";
 
 const logger = app.log.logger
 
@@ -120,11 +121,13 @@ class Main {
                     //    auth?.style = 'display: none'
                     //    root?.style = 'display: block'
                     //}
+
                     const props: AppProps = {
                         logger,
                         // This package is an Electron desktop app (i.e., not in the Cloud), so
                         // we're running on the desktop.
                         runningOnDesktop: true,
+                        projectManager: ProjectManager.default(),
                         onAuthenticated: () => {
                             // appInstance.config.email.value = user.email
 

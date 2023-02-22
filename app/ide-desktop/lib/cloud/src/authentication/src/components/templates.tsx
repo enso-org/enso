@@ -2,11 +2,11 @@ import * as React from "react";
 
 const templates = [
     {title: "New empty project", templateName: undefined},
-    {title: "Colordo COVID", templateName: "colorado_covid"},
-    {title: "KMeans", templateName: "kmeans"},
-    {title: "NASDAQ Returns", templateName: "nasdaq_returns"},
-    {title: "Restaurants", templateName: "restaruants"},
-    {title: "Github Stars", templateName: "stargazers"},
+    {title: "Colordo COVID", templateName: "Colorado_COVID"},
+    {title: "KMeans", templateName: "Kmeans"},
+    {title: "NASDAQ Returns", templateName: "NASDAQ_Returns"},
+    {title: "Restaurants", templateName: "Orders"},
+    {title: "Github Stars", templateName: "Stargazers"},
 
 ];
 

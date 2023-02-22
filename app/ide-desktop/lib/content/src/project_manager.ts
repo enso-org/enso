@@ -17,7 +17,7 @@ class ProjectManager {
     }
 
     /** * Get the projects list. */
-    listProjects(): any {
+    public listProjects(): any {
         const req = {
             jsonrpc: '2.0',
             id: 0,
@@ -40,7 +40,7 @@ class ProjectManager {
     }
 
     /** * Create an new project. */
-    createProject(name: string, template?: string, action = MISSING_COMPONENT_ACTION_INSTALL): any {
+    public createProject(name: string, template?: string, action = MISSING_COMPONENT_ACTION_INSTALL): any {
         const params = {
             name: name,
             missingComponentAction: action,
