@@ -164,12 +164,17 @@ pub type Synchronized = synchronized::Project;
 // ====================
 
 /// Notification emitted by the project model.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Notification {
     /// One of the backend connections has been lost.
     ConnectionLost(BackendConnection),
     /// Indicates that the project VCS status has changed.
     VcsStatusChanged(VcsStatus),
+    /// Any message to be displayed as a notification
+    Message {
+        /// text of the message
+        message: String,
+    },
 }
 
 /// Denotes one of backend connections used by a project.

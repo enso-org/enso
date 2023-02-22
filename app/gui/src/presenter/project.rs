@@ -319,6 +319,10 @@ impl Project {
                 Notification::VcsStatusChanged(VcsStatus::Clean) => {
                     model.set_project_changed(false);
                 }
+                Notification::Message { message } => {
+                    let message = view::status_bar::event::Label::from(message);
+                    model.status_bar.add_event(message);
+                }
             };
             std::future::ready(())
         });

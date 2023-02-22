@@ -301,8 +301,8 @@ pub enum DiagnosticType {
 #[allow(missing_docs)]
 #[serde(rename_all = "camelCase")]
 pub struct Diagnostic {
-    kind:          DiagnosticType,
-    message:       String,
+    pub kind:          DiagnosticType,
+    pub message:       String,
     path:          Option<Path>,
     location:      Option<TextRange>,
     expression_id: Option<ExpressionId>,

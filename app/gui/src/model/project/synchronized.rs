@@ -18,6 +18,7 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::response;
 use engine_protocol::language_server::CapabilityRegistration;
 use engine_protocol::language_server::ContentRoot;
+use engine_protocol::language_server::DiagnosticType;
 use engine_protocol::language_server::ExpressionUpdates;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::project_manager;
@@ -493,7 +494,23 @@ impl Project {
                     let execution_update = ExecutionUpdate::ExpressionUpdates(updates);
                     execution_update_handler(context_id, execution_update);
                 }
-                Event::Notification(Notification::ExecutionStatus(_)) => {}
+                Event::Notification(Notification::ExecutionStatus(status)) => {
+                    if status.diagnostics.len() > 0 {
+                        let fst = &status.diagnostics[0];
+                        if fst.kind == DiagnosticType::Error {
+                            let notification = model::project::Notification::Message {
+                                message: fst.message.as_str().to_owned(),
+                            };
+                            publisher.notify(notification);
+                        }
+                        error!(
+                            "Evaluation failed in context {}. {:?}: {}",
+                            status.context_id,
+                            fst.kind,
+                            fst.message.as_str()
+                        );
+                    }
+                }
                 Event::Notification(Notification::ExecutionComplete { context_id }) => {
                     execution_update_handler(context_id, ExecutionUpdate::Completed);
                 }
