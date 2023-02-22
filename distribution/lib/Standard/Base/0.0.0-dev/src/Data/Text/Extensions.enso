@@ -267,8 +267,8 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              "contact@enso.org".match regex
 Text.match : Text -> Case_Sensitivity -> Boolean ! Compile_Error
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    matcher = Regex_Matcher.Value case_sensitivity
-    compiled_pattern = matcher.compile pattern
+    case_insensitive = is_case_insensitive case_sensitivity
+    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
 
 ## ALIAS Split Text
