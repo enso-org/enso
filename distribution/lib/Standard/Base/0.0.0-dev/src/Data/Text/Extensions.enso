@@ -224,6 +224,9 @@ Text.characters self =
          example_find =
              ## This matches `abc` @ character 11
              "aabbbbccccaabcaaaa".find "a[ab]c"
+         example_find_insensitive =
+             ## This matches `aBc` @ character 11
+             "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
 Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Compile_Error
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = is_case_insensitive case_sensitivity
@@ -243,6 +246,9 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
          example_find_all =
               ## This matches `aabbbbc` @ character 0 and `abc` @ character 11
              "aabbbbccccaabcaaaa".find_all "a[ab]+c"
+         example_find_all_insensitive =
+              ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
+             "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
 Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Compile_Error
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = is_case_insensitive case_sensitivity
@@ -263,8 +269,13 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      Checks if whole text matches a basic email regex.
 
          example_match =
-             regex = ".+@.+"
+             regex = ".+ct@.+"
+             # Evaluates to true
              "contact@enso.org".match regex
+         example_match_insensitive =
+             regex = ".+ct@.+"
+             # Evaluates to true
+             "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
 Text.match : Text -> Case_Sensitivity -> Boolean ! Compile_Error
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = is_case_insensitive case_sensitivity

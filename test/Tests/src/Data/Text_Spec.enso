@@ -1178,13 +1178,13 @@ spec =
         Test.specify "should allow regexes in match" <|
             hello = "Hello World!"
 
-            check_span (hello.find ".o" case_sensitivity=Case_Sensitivity.Insensitive) (Span.Value (3.up_to 5) "Hello World!")
+            check_span (hello.find ".o" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 5) "Hello World!")
             check_span_all (hello.find_all ".o") [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
 
-            check_span ("foobar".find "BAR" case_sensitivity=Case_Sensitivity.Insensitive) (Span.Value (3.up_to 6) "foobar")
+            check_span ("foobar".find "BAR" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 6) "foobar")
 
             ## Regex matching does not do case folding
-            "Strasse".find "ß" case_sensitivity=Case_Sensitivity.Insensitive . should_equal Nothing
+            "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
 
             ## But it should handle the Unicode normalization
             accents = 'a\u{301}e\u{301}o\u{301}'
@@ -1242,7 +1242,7 @@ spec =
             check_span (txt.find "a..z") (Span.Value (3.up_to 7) txt)
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".find "my" case_sensitivity=Case_Sensitivity.Insensitive
+            match = "MY".find "my" Case_Sensitivity.Insensitive
             check_span match (Span.Value (0.up_to 2) "MY")
 
     Test.group "Text.match" <|
@@ -1250,7 +1250,7 @@ spec =
             "My Text: Goes Here".match "^My Text: (.+)$" . should_be_true
             "555-801-1923".match "^\d{3}-\d{3}-\d{4}$" . should_be_true
             "Hello".match "^[a-z]+$" . should_be_false
-            "Hello".match "^[a-z]+$" case_sensitivity=Case_Sensitivity.Insensitive . should_be_true
+            "Hello".match "^[a-z]+$" Case_Sensitivity.Insensitive . should_be_true
 
         Test.specify "should only match whole input" <|
             "Hello".match "[a-z]" . should_be_false
@@ -1260,7 +1260,7 @@ spec =
             "Korean: 건반".match "^Korean: (.+)$" . should_be_true
 
         Test.specify "should be possible in case-insensitive mode" <|
-            "MY".match "my" case_sensitivity=Case_Sensitivity.Insensitive . should_be_true
+            "MY".match "my" Case_Sensitivity.Insensitive . should_be_true
 
     Test.group "Regex finding" <|
         Test.specify "should be possible on text" <|
@@ -1272,7 +1272,7 @@ spec =
             check_span match (Span.Value (0.up_to 10) "Korean: 건반")
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".find "my" case_sensitivity=Case_Sensitivity.Insensitive
+            match = "MY".find "my" Case_Sensitivity.Insensitive
             check_span match (Span.Value (0.up_to 2) "MY")
 
     Test.group "Regex splitting" <|
