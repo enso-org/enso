@@ -17,7 +17,6 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "target": "ES2019",
-    "baseUrl": ".",
     "paths": {
       "@ensogl-app": ["../../target/ensogl-pack/linked-dist/index"],
       "@build-cfg": ["./build.json"]

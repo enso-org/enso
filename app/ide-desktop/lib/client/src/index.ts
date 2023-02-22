@@ -190,7 +190,9 @@ class App {
             logger.error(`IPC error: ${JSON.stringify(data)}`)
         )
         const argProfiles = this.args.groups.profile.options.loadProfile.value
-        const profilePromises: Promise<string>[] = argProfiles.map((path: string) => fs.readFile(path, 'utf8'))
+        const profilePromises: Promise<string>[] = argProfiles.map((path: string) =>
+            fs.readFile(path, 'utf8')
+        )
         const profiles = Promise.all(profilePromises)
         electron.ipcMain.on(ipc.channel.loadProfiles, event => {
             void profiles.then(profiles => {

@@ -80,6 +80,7 @@ export class Server {
 
     run(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             this.server = createServer(
                 {
                     http: this.config.port,
