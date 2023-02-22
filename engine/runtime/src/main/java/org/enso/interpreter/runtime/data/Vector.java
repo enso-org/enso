@@ -74,7 +74,7 @@ public final class Vector implements TruffleObject {
     long slice_end = Math.min(this_length, end);
 
     if (slice_start >= slice_end) {
-      return new Vector(new Array(0));
+      return new Vector(Array.allocate(0));
     }
 
     if ((slice_start == 0) && (slice_end == this_length)) {
