@@ -363,11 +363,17 @@ const registerOpenAuthenticationUrlCallback = (config: AuthConfig) => {
         // FIXME [NP]: constantize
         // FIXME [NP]: pass the URL as a path, not a host
         } else if (parsedUrl.pathname === "/") {
-            // FIXME [NP]: remove this log
-            logger.log("authenticatedRedirectCallback::Current URL::", window.location.href);
-            logger.log("authenticatedRedirectCallback::URL::", url);
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-            (Auth as any)._handleAuthResponse(url)
+            // FIXME [NP]: don't use `enso://auth` for both authentication redirect & signout redirect so we don't have to disambiguate here.
+            if (parsedUrl.search === "") {
+                logger.log("FIXME [NP]: why does the signout navigate not wor?")
+                navigate(LOGIN_PATH)
+            } else {
+                // FIXME [NP]: remove this log
+                logger.log("authenticatedRedirectCallback::Current URL::", window.location.href);
+                logger.log("authenticatedRedirectCallback::URL::", url);
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+                (Auth as any)._handleAuthResponse(url)
+            }
         // If the user is being redirected from a password reset email, then we need to navigate to
         // the password reset page, with the verification code and email passed in the URL so they
         // can be filled in automatically.
