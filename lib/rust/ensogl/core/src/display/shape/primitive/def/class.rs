@@ -142,6 +142,20 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
         Fill(self, color)
     }
 
+    fn recolorize<RColor, GColor, BColor>(
+        &self,
+        r: RColor,
+        g: GColor,
+        b: BColor,
+    ) -> Recolorize<Self>
+    where
+        RColor: Into<Var<color::Rgba>>,
+        GColor: Into<Var<color::Rgba>>,
+        BColor: Into<Var<color::Rgba>>,
+    {
+        Recolorize(self, r, g, b)
+    }
+
     /// Makes the borders of the shape crisp. Please note that it removes any form of antialiasing
     /// and can cause distortions especially with round surfaces.
     fn pixel_snap(&self) -> PixelSnap<Self> {

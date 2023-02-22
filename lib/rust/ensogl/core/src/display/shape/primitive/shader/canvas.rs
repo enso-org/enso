@@ -240,8 +240,33 @@ impl Canvas {
         self.if_not_defined(num, |this| {
             let color: Glsl = color.into().glsl();
             this.add_current_function_code_line(format!("Shape shape = {};", s.getter()));
-            this.add_current_function_code_line(format!("Srgba color = srgba({color});"));
-            this.new_shape_from_expr("return set_color(shape,rgba(color));")
+            this.add_current_function_code_line(format!("Rgba color = rgba({color});"));
+            this.new_shape_from_expr("return set_color(shape, color);")
+        })
+    }
+
+    pub fn recolorize<RColor, GColor, BColor>(
+        &mut self,
+        num: usize,
+        s: Shape,
+        r: RColor,
+        g: GColor,
+        b: BColor,
+    ) -> Shape
+    where
+        RColor: Into<Var<color::Rgba>>,
+        GColor: Into<Var<color::Rgba>>,
+        BColor: Into<Var<color::Rgba>>,
+    {
+        self.if_not_defined(num, |this| {
+            let r: Glsl = r.into().glsl();
+            let g: Glsl = g.into().glsl();
+            let b: Glsl = b.into().glsl();
+            this.add_current_function_code_line(format!("Shape shape = {};", s.getter()));
+            this.add_current_function_code_line(format!("Rgba r = rgba({r});"));
+            this.add_current_function_code_line(format!("Rgba g = rgba({g});"));
+            this.add_current_function_code_line(format!("Rgba b = rgba({b});"));
+            this.new_shape_from_expr("return recolorize(shape, r, g, b);")
         })
     }
 
