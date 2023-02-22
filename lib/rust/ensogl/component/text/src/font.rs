@@ -687,13 +687,15 @@ impl<F: Family> FontTemplate<F> {
                 }
                 let mut borrowed_cache = self.cache.borrow_mut();
                 let font_data_cache = borrowed_cache.get_mut(variations).unwrap();
-                *font_data_cache.kerning.entry((left, right)).or_insert_with(|| {
+                let calculate_kerning = || {
+                    let _profiler = profiler::start_debug!("calculate_kerning");
                     let tables = face.ttf.as_face_ref().tables();
                     let units_per_em = tables.head.units_per_em;
                     let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
                     let kerning = kern_table.and_then(|t| t.glyphs_kerning(left, right));
                     kerning.unwrap_or_default() as f32 / units_per_em as f32
-                })
+                };
+                *font_data_cache.kerning.entry((left, right)).or_insert_with(calculate_kerning)
             })
             .unwrap_or_default()
     }
