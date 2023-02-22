@@ -201,27 +201,23 @@ impl Component {
         };
 
         // Match the input pattern to an entry's aliases, if available, and select the best match.
-        let alias_match = self.aliases().map(|aliases| {
-            let alias_matches = aliases.filter_map(|alias| {
-                if fuzzly::matches(alias, pattern.as_ref()) {
-                    let metric = fuzzly::metric::default();
-                    let subsequence =
-                        fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric);
-                    subsequence.map(|subsequence| (subsequence, alias))
-                } else {
-                    None
-                }
-            });
-            let alias_match = alias_matches.max_by(|(lhs, _), (rhs, _)| lhs.compare_scores(rhs));
-            alias_match.map(|(subsequence, alias)| {
-                let subsequence = fuzzly::Subsequence {
-                    score: subsequence.score * ALIAS_MATCH_ATTENUATION_FACTOR,
-                    ..subsequence
-                };
-                (subsequence, alias)
-            })
+        let alias_matches = self.aliases().filter_map(|alias| {
+            if fuzzly::matches(alias, pattern.as_ref()) {
+                let metric = fuzzly::metric::default();
+                let subsequence = fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric);
+                subsequence.map(|subsequence| (subsequence, alias))
+            } else {
+                None
+            }
         });
-        let alias_match = alias_match.flatten();
+        let alias_match = alias_matches.max_by(|(lhs, _), (rhs, _)| lhs.compare_scores(rhs));
+        let alias_match = alias_match.map(|(subsequence, alias)| {
+            let subsequence = fuzzly::Subsequence {
+                score: subsequence.score * ALIAS_MATCH_ATTENUATION_FACTOR,
+                ..subsequence
+            };
+            (subsequence, alias)
+        });
 
         // Pick the best match between the previous label or code match and the alias match.
         let match_info = match (label_or_code_match, alias_match) {
@@ -248,10 +244,10 @@ impl Component {
         }
     }
 
-    /// Return an optional iterator over the component's aliases from the "ALIAS" tags in the
-    /// entry's documentation. Returns `None` if the entry does not contain documentation.
-    pub fn aliases(&self) -> Option<impl Iterator<Item = &str>> {
-        match &self.data {
+    /// Return an iterator over the component's aliases from the "ALIAS" tags in the entry's
+    /// documentation.
+    pub fn aliases(&self) -> impl Iterator<Item = &str> {
+        let aliases = match &self.data {
             Data::FromDatabase { entry, .. } => {
                 let aliases = entry.documentation.iter().filter_map(|doc| match doc {
                     DocSection::Tag { name, body }
@@ -262,7 +258,8 @@ impl Component {
                 Some(aliases.flatten())
             }
             _ => None,
-        }
+        };
+        aliases.into_iter().flatten()
     }
 }
 
