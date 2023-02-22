@@ -25,6 +25,16 @@ pub use group::Group;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// A factor to multiply a component's alias match score by. It is intended to reduce the importance
+/// of alias matches compared to label matches.
+const ALIAS_MATCH_ATTENUATION_FACTOR: f32 = 0.75;
+
+
+
 // ====================
 // === Type Aliases ===
 // ====================
@@ -192,7 +202,7 @@ impl Component {
 
         // Match the input pattern to an entry's aliases, if available, and select the best match.
         let alias_match = self.aliases().map(|aliases| {
-            let alias_match = aliases.filter_map(|alias| {
+            let alias_matches = aliases.filter_map(|alias| {
                 if fuzzly::matches(alias, pattern.as_ref()) {
                     let metric = fuzzly::metric::default();
                     let subsequence =
@@ -202,7 +212,14 @@ impl Component {
                     None
                 }
             });
-            alias_match.max_by(|(lhs, _), (rhs, _)| lhs.compare_scores(rhs))
+            let alias_match = alias_matches.max_by(|(lhs, _), (rhs, _)| lhs.compare_scores(rhs));
+            alias_match.map(|(subsequence, alias)| {
+                let subsequence = fuzzly::Subsequence {
+                    score: subsequence.score * ALIAS_MATCH_ATTENUATION_FACTOR,
+                    ..subsequence
+                };
+                (subsequence, alias)
+            })
         });
         let alias_match = alias_match.flatten();
 
