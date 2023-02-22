@@ -3,7 +3,26 @@
 
 use enso_prelude::*;
 
+use crate::Class;
 use std::collections;
+
+
+
+// =====================
+// === Configuration ===
+// =====================
+
+/// Frames shorter than this duration, and all their children, will be excluded from interval
+/// reports.
+///
+/// Some operations are not very expensive, but are repeated in many frames. These operations add
+/// noise to the analysis: Their total duration can be high even if they have no actual performance
+/// impact, and their total duration will vary depending on how long the profile is recorded.
+/// Filtering them out makes profiling results more consistent, and more focused on the costs that
+/// matter.
+// This could logically be a configuration option, but in practice we'll probably never want to turn
+// it off or change it.
+const SKIP_FRAMES_BELOW_MS: f64 = 16.6;
 
 
 
@@ -21,8 +40,15 @@ pub struct Aggregator {
 impl Aggregator {
     /// Add data from a profile to the tree.
     pub fn add_profile<Metadata>(&mut self, profile: &crate::Profile<Metadata>) {
-        for child in &profile.root_interval().children {
-            self.visit_interval(profile, *child);
+        for &child in &profile.root_interval().children {
+            let interval = &profile[child];
+            let measurement = &profile[interval.measurement];
+            if measurement.classify() == Class::OnFrame
+                && interval.interval.duration_ms().unwrap_or_default() < SKIP_FRAMES_BELOW_MS
+            {
+                continue;
+            }
+            self.visit_interval(profile, child);
         }
     }
 
