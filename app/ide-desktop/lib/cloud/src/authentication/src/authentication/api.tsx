@@ -1,6 +1,6 @@
 import { Auth, CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
 import { CognitoUserSession } from "amazon-cognito-identity-js";
-import { DASHBOARD_PATH, Logger, LOGIN_PATH } from "../components/app";
+import { CONFIRM_REGISTRATION_PATH, DASHBOARD_PATH, Logger, LOGIN_PATH, RESET_PASSWORD_PATH } from "../components/app";
 import { AwsCognitoOAuthOpts } from "@aws-amplify/auth/lib-esm/types";
 import { NavigateFunction, redirect } from "react-router-dom";
 import { Hub } from "@aws-amplify/core";
@@ -109,18 +109,19 @@ const AMPLIFY_CONFIG_BROWSER_PBUCHU: AmplifyConfig = {
 
 // === AuthConfig ===
 
-/**
- * Configuration for the authentication service.
- */
+/** Configuration for the authentication service. */
 export interface AuthConfig {
-    /**
-     * Logger for the authentication service.
-     */
+    /** Logger for the authentication service. */
     logger: Logger;
-    /**
-     * Whether the application is running on a desktop (i.e., versus in the Cloud).
-     */
+    /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
     runningOnDesktop: boolean;
+    /**
+     * Function to navigate to a given (relative) URL.
+     *
+     * Used to redirect to pages like the password reset page with the query parameters set in the
+     * URL (e.g., `?verification_code=...`).
+     */
+    navigate: (url: string) => void;
 }
 
 
@@ -254,7 +255,7 @@ const api = (authConfig: AuthConfig): Api => {
     // wrapping all the `Auth` methods we care about and returning an API object, we ensure that
     // `Auth.configure` is called before any other `Auth` methods are called.
     const config = amplifyConfig(authConfig)
-    registerAuthenticatedRedirectCallback(authConfig)
+    registerOpenAuthenticationUrlCallback(authConfig)
     Auth.configure(config)
 
 
@@ -291,6 +292,7 @@ const api = (authConfig: AuthConfig): Api => {
             customState: runningOnDesktop ? window.location.pathname : undefined,
         })
         // We don't care about the details in the success case, just that it happened.
+        // FIXME [NP]: remove the log
         .then((result) => logger.log("signInWithGoogle", result));
 
     const signInWithGithub = () => Auth.federatedSignIn({ customProvider: GITHUB_PROVIDER })
@@ -324,6 +326,63 @@ const api = (authConfig: AuthConfig): Api => {
         signOut,
         listen,
     }
+}
+
+/**
+ * Register the callback that will be invoked when an `enso://` schema URL is opened in the app.
+ * 
+ * Typically this callback is invoked when the user is redirected back to the app after:
+ *
+ * 1. authenticating with a federated identity provider; or
+ * 2. clicking a "reset password" link in a password reset email.
+ *
+ * This is only used when running on the desktop, as the browser version of the app lets Amplify
+ * handle the redirect for us. On the desktop however, we need to handle the redirect ourselves,
+ * because it's a deep link into the app, and Amplify doesn't handle deep links.
+ *
+ * @param config - Configuration for the authentication library.
+ */
+// FIXME [NP]: type this?
+const registerOpenAuthenticationUrlCallback = (config: AuthConfig) => {
+    const { logger, runningOnDesktop, navigate } = config;
+
+    if (!runningOnDesktop) { return }
+
+    const openAuthenticationUrlCallback = (url: string) => {
+        const parsedUrl = new URL(url)
+        // FIXME [NP]: remove log
+        console.log("openAuthenticationUrlCallback::URL::", url)
+
+        // FIXME [NP]: constantize
+        if (parsedUrl.pathname === "/confirmation") {
+            // Navigate to a relative URL to handle the confirmation link.
+            const redirectUrl = `${CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`
+            navigate(redirectUrl)
+        // If the user is being redirected from a federated identity provider, then we need to pass
+        // the URL to the Amplify library, which will parse the URL and complete the OAuth flow.
+        // FIXME [NP]: constantize
+        // FIXME [NP]: pass the URL as a path, not a host
+        } else if (parsedUrl.pathname === "/") {
+            // FIXME [NP]: remove this log
+            logger.log("authenticatedRedirectCallback::Current URL::", window.location.href);
+            logger.log("authenticatedRedirectCallback::URL::", url);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            (Auth as any)._handleAuthResponse(url)
+        // If the user is being redirected from a password reset email, then we need to navigate to
+        // the password reset page, with the verification code and email passed in the URL so they
+        // can be filled in automatically.
+        // FIXME [NP]: constantize
+        // FIXME [NP]: change from password-reset to reset-password
+        } else if (parsedUrl.pathname === "/password-reset") {
+            // Navigate to a relative URL to handle the password reset.
+            const redirectUrl = `${RESET_PASSWORD_PATH}${parsedUrl.search}`
+            navigate(redirectUrl)
+        }
+    }
+
+    // @ts-expect-error
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    window.loginApi.setOpenAuthenticationUrlCallback(openAuthenticationUrlCallback)
 }
 
 
@@ -406,33 +465,6 @@ const amplifyConfig = (authConfig: AuthConfig): AmplifyConfig => {
     return config;
 }
 
-/**
- * Register the callback that will be invoked when the user is redirected back to the app after
- * authenticating with a federated identity provider.
- *
- * This is only used when running on the desktop, as the browser version of the app lets Amplify
- * handle the redirect for us. On the desktop however, we need to handle the redirect ourselves,
- * because it's a deep link into the app, and Amplify doesn't handle deep links.
- *
- * @param config - Configuration for the authentication library.
- */
-const registerAuthenticatedRedirectCallback = (config: AuthConfig) => {
-    const { logger, runningOnDesktop } = config;
-
-    if (!runningOnDesktop) { return }
-
-    const authenticatedRedirectCallback = (url: string) => {
-        // FIXME [NP]: remove this log
-        logger.log("authenticatedRedirectCallback::Current URL::", window.location.href);
-        logger.log("authenticatedRedirectCallback::URL::", url);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        (Auth as any)._handleAuthResponse(url)
-    }
-    // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    window.loginApi.setAuthenticatedRedirectCallback(authenticatedRedirectCallback)
-}
-
 
 
 // ====================
@@ -475,7 +507,8 @@ type AmplifyErrorCode =
   | "NotAuthorizedException" 
   | "InvalidPasswordException"
   | "UsernameExistsException" 
-  | "NetworkError";
+  | "NetworkError"
+  | "InvalidParameterException";
 
 /**
  * The type of the object returned by the AWS Amplify library when an Amplify error occurs.

@@ -68,9 +68,6 @@ export interface AppProps {
   onAuthenticated: () => void;
 }
 
-/// Global configuration for the entire application.
-export type Config = AppProps & AuthConfig;
-
 /**
  * Functional component called by the parent module, returning the root React component for this package.
  * 
@@ -106,7 +103,9 @@ const App = (props: AppProps) => {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter: FC<AppProps> = (props) => {
   const { logger, onAuthenticated } = props;
-  const auth = useMemo(() => authApi(props), []);
+  const navigate = useNavigate();
+  const authConfig = { navigate, ...props }
+  const auth = useMemo(() => authApi(authConfig), []);
 
   return (
     <AuthProvider auth={auth} logger={logger} onAuthenticated={onAuthenticated} >

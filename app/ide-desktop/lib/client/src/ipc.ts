@@ -13,6 +13,6 @@ export const channel = {
     saveProfile: 'save-profile',
     quit: 'quit-ide',
     openExternalUrl: 'open-external-url',
-    setAuthenticatedRedirectCallback: 'set-authenticated-redirect-callback',
-    authenticatedRedirect: 'authenticated-redirect',
+    setOpenAuthenticationUrlCallback: 'set-open-authentication-url-callback',
+    openAuthenticationUrl: 'open-authentication-url',
 }

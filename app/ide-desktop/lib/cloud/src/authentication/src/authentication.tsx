@@ -367,6 +367,11 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
         if (error.code === "UserNotFoundException") {
           toast.error("User not found. Please register first.");
           return
+        } else if (error.code === "InvalidParameterException") {
+          if (error.message === "Cannot reset password for the user as there is no registered/verified email or phone_number") {
+            toast.error("Cannot reset password for user with unverified email. Please verify your email first.")
+            return
+          }
         }
       }
 

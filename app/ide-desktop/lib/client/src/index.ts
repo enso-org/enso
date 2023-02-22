@@ -241,24 +241,17 @@ class App {
      * and open the page `auth?code=...` in the application window.
      */
     initOpenUrlListener() {
+        // FIXME [NP]: Why does this handler get called twice?
         electron.app.on('open-url', (event, url) => {
             // Prevent the default behavior (don't open `enso://auth?code=...` URL in the window).
             event.preventDefault()
 
             // FIXME [NP]: delete this log
-            console.log("open-url url", url)
             const parsedUrl = new URL(url)
-            const target = new URL(`http://localhost:${this.serverPort()}`)
-            console.log("open-url search", parsedUrl.search)
-            target.search = parsedUrl.search // ?code=..&state=..
-            console.log("open-url target", target)
-            this.window?.webContents.send(ipc.channel.authenticatedRedirect, target.href)
-
-            //this.window?.loadURL(target.href)
-            //this.window?.webContents.loadURL(target.href)
-            //const address = `http://localhost:${this.serverPort()}`
-            //logger.log(`Loading the window address '${address}'.`)
-            //this.window?.loadURL(address)
+            // FIXME [NP]: don't parse the URL, make this general by passing `enso://localhost:8080/auth` instead of `enso://auth`.
+            console.log("open-url parsedUrl", parsedUrl)
+            const target = new URL(`http://localhost:${this.serverPort()}${parsedUrl.pathname}${parsedUrl.search}`)
+            this.window?.webContents.send(ipc.channel.openAuthenticationUrl, target.href)
         })
     }
 

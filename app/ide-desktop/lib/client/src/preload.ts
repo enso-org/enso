@@ -56,5 +56,5 @@ contextBridge.exposeInMainWorld('enso_console', {
 contextBridge.exposeInMainWorld('loginApi', {
     openExternalUrl: (url: string) => ipcRenderer.send(ipc.channel.openExternalUrl, url),
     // FIXME [NP]: remove args?
-    setAuthenticatedRedirectCallback: (callback: (url: string) => void) => ipcRenderer.on(ipc.channel.authenticatedRedirect, (event, url, ...args) => callback(url)),
+    setOpenAuthenticationUrlCallback: (callback: (url: string) => void) => ipcRenderer.on(ipc.channel.openAuthenticationUrl, (event, url, ...args) => callback(url)),
 });
