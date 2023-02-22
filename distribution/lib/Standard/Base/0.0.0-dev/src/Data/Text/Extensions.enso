@@ -226,8 +226,8 @@ Text.characters self =
              "aabbbbccccaabcaaaa".find "a[ab]c"
 Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Compile_Error
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    matcher = Regex_Matcher.Value case_sensitivity
-    matcher.compile pattern . match self Matching_Mode.First
+    case_insensitive = is_case_insensitive case_sensitivity
+    Regex.compile pattern case_insensitive=case_insensitive . match self Matching_Mode.First
 
 ## Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
@@ -245,8 +245,8 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              "aabbbbccccaabcaaaa".find_all "a[ab]+c"
 Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Compile_Error
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    matcher = Regex_Matcher.Value case_sensitivity
-    case matcher.compile pattern . match self Regex_Mode.All of
+    case_insensitive = is_case_insensitive case_sensitivity
+    case Regex.compile pattern case_insensitive=case_insensitive . match self Regex_Mode.All of
         Nothing -> []
         matches -> matches
 
@@ -1332,3 +1332,14 @@ slice_text text char_ranges =
        sb.append text char_range.start char_range.end
     sb.toString
 
+## PRIVATE
+   Returns whether this sensitivity setting is Insensitive, and treats
+   Default as False.
+is_case_insensitive : Case_Sensitivity -> Boolean
+is_case_insensitive case_sensitivity = case case_sensitivity of
+    Case_Sensitivity.Default -> False
+    Case_Sensitivity.Sensitive -> False
+    ## TODO [RW] Currently locale is not supported in case-insensitive
+       Regex matching. There are plans to revisit it:
+       https://www.pivotaltracker.com/story/show/181313576
+    Case_Sensitivity.Insensitive _ -> True
