@@ -467,6 +467,7 @@ impl View {
         };
 
         let scene = app.display.default_scene.clone_ref();
+        scene.begin_shader_initialization();
         let model = Model::new(app);
         let frp = Frp::new();
         let network = &frp.network;
