@@ -168,8 +168,6 @@ impl<S: Shape> ShapeViewModel<S> {
                 self.add_to_scene_layer(scene, &layer)
             }
         } else {
-            // Bug in clippy: https://github.com/rust-lang/rust-clippy/issues/9763
-            #[allow(clippy::explicit_auto_deref)]
             let (shape, _) = scene.layers.DETACHED.instantiate(&*self.data.borrow());
             self.shape.swap(&shape);
         }
@@ -189,8 +187,6 @@ impl<S: Shape> ShapeViewModel<S> {
 }
 
 impl<S: Shape> ShapeViewModel<S> {
-    // Clippy error: https://github.com/rust-lang/rust-clippy/issues/9763
-    #[allow(clippy::explicit_auto_deref)]
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
         let (shape, instance) = layer.instantiate(&*self.data.borrow());
         scene.pointer_target_registry.insert(instance.global_instance_id, self.events.clone_ref());
@@ -200,8 +196,6 @@ impl<S: Shape> ShapeViewModel<S> {
 }
 
 impl<S: Shape> ShapeViewModel<S> {
-    // Clippy error: https://github.com/rust-lang/rust-clippy/issues/9763
-    #[allow(clippy::explicit_auto_deref)]
     fn unregister_existing_mouse_targets(&self) {
         for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
             scene().pointer_target_registry.remove(global_instance_id);
@@ -234,8 +228,8 @@ impl<S: Shape> display::Object for ShapeView<S> {
 struct WidgetData<Model: 'static, Frp: 'static> {
     app:            Application,
     display_object: display::object::Instance,
-    frp:            std::mem::ManuallyDrop<Frp>,
-    model:          std::mem::ManuallyDrop<Rc<Model>>,
+    frp:            mem::ManuallyDrop<Frp>,
+    model:          mem::ManuallyDrop<Rc<Model>>,
 }
 
 impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
@@ -248,8 +242,8 @@ impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
         Self {
             app: app.clone_ref(),
             display_object,
-            frp: std::mem::ManuallyDrop::new(frp),
-            model: std::mem::ManuallyDrop::new(model),
+            frp: mem::ManuallyDrop::new(frp),
+            model: mem::ManuallyDrop::new(model),
         }
     }
 }
@@ -261,8 +255,8 @@ impl<Model: 'static, Frp: 'static> Drop for WidgetData<Model, Frp> {
         // This is clearly the case, because the structure will be soon dropped anyway.
         #[allow(unsafe_code)]
         unsafe {
-            let frp = std::mem::ManuallyDrop::take(&mut self.frp);
-            let model = std::mem::ManuallyDrop::take(&mut self.model);
+            let frp = mem::ManuallyDrop::take(&mut self.frp);
+            let model = mem::ManuallyDrop::take(&mut self.model);
             self.app.display.collect_garbage(frp);
             self.app.display.collect_garbage(model);
         }
