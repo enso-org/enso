@@ -2616,6 +2616,7 @@ dependencies = [
  "ensogl-text-embedded-fonts",
  "enum_dispatch",
  "failure",
+ "futures 0.3.26",
  "itertools",
  "js-sys",
  "nalgebra",
