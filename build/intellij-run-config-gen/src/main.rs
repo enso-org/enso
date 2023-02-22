@@ -83,7 +83,7 @@ const DIR_BLACK_LIST: &[&str] = &["target", "dist"];
 const FOLDER_TO_HEADER_MAP: &[(&str, &str, usize)] = &[
     ("build/", "🚧 Build", 10),
     ("tools/", "🔨 Tools", 9),
-    ("lib/rust/ensogl/example/", "🧸 Example", 4),
+    ("lib/rust/ensogl/examples/", "🧸 Example", 4),
     ("lib/rust/ensogl/", "🎨 EnsoGl", 6),
     ("lib/rust/ensogl", "🎨 EnsoGl", 0),
     ("lib/rust/parser/", "👓 Parser", 7),

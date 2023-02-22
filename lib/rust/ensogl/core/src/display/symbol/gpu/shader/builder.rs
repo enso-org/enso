@@ -512,15 +512,19 @@ impl ShaderBuilder {
     }
 }
 
+pub const INPUT_PREFIX: &str = "input_";
+pub const OUTPUT_PREFIX: &str = "output_";
+pub const VERTEX_PREFIX: &str = "vertex_";
+
 pub fn mk_out_name<S: Str>(s: S) -> String {
-    format!("output_{}", s.as_ref())
+    format!("{OUTPUT_PREFIX}{}", s.as_ref())
 }
 pub fn mk_vertex_name<S: Str>(s: S) -> String {
-    format!("vertex_{}", s.as_ref())
+    format!("{VERTEX_PREFIX}{}", s.as_ref())
 }
 pub fn mk_fragment_name<S: Str>(s: S) -> String {
-    format!("input_{}", s.as_ref())
+    format!("{INPUT_PREFIX}{}", s.as_ref())
 }
 pub fn mk_uniform_name<S: Str>(s: S) -> String {
-    format!("input_{}", s.as_ref())
+    format!("{INPUT_PREFIX}{}", s.as_ref())
 }

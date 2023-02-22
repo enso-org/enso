@@ -62,7 +62,7 @@ pub struct ShaderData {
     geometry_material   : Material,
     surface_material    : Material,
     program             : Rc<RefCell<Option<shader::Program>>>,
-    shader_compiler_job : Option<shader_compiler::JobHandler>,
+    shader_compiler_job : Option<shader_compiler::JobHandle>,
     dirty               : Dirty,
     stats               : Stats,
     profiler            : Option<profiler::Debug>,
@@ -122,14 +122,13 @@ impl {
     /// Get the shader code in GLSL 310 format. The shader parameters will not be bound to any
     /// particular mesh and thus this code can be used for optimization purposes only.
     pub fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
-        let bindings = self.collect_variables().into_iter().map(|mut binding| {
-            let scope_type = if binding.decl.tp.uniform_or_function_parameter_only() {
-                    ScopeType::Global
-                } else {
-                    ScopeType::Mesh(crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance)
-                };
-            binding.scope = Some(scope_type);
-            binding
+        let bindings = self.collect_variables().map(|(name, decl)| {
+            let scope = if binding.decl.tp.uniform_or_function_parameter_only() {
+                ScopeType::Global
+            } else {
+                ScopeType::Mesh(crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance)
+            };
+            VarBinding::new(name, decl, Some(scope))
         }).collect_vec();
         self.gen_gpu_code(glsl::Version::V310, &bindings)
     }
@@ -201,19 +200,19 @@ impl {
     }
 
     fn cancel_previous_shader_compiler_job_and_use_new_one
-    (&mut self, handler: shader_compiler::JobHandler) {
+    (&mut self, handler: shader_compiler::JobHandle) {
         // Dropping the previous handler.
         self.shader_compiler_job = Some(handler);
     }
 
     /// Traverses the shader definition and collects all attribute names.
-    pub fn collect_variables(&self) -> Vec<VarBinding> {
-        let mut out = vec![];
-        let vars = self.geometry_material.inputs().iter().chain(self.surface_material.inputs());
-        for (name,decl) in vars {
-            out.push(VarBinding::new(name.clone(), decl.clone(), None));
-        }
-        out
+    pub fn collect_variables(&self) -> impl Iterator<Item=(String, VarDecl)> {
+        let geometry_inputs = self.geometry_material.inputs().iter();
+        let surface_inputs = self.surface_material.inputs().iter();
+        geometry_inputs.chain(surface_inputs)
+            .map(|(name, declaration)| (name.clone(), declaration.clone()))
+            .collect_vec()
+            .into_iter()
     }
 }}
 
