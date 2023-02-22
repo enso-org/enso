@@ -39,6 +39,7 @@ public final class Array implements TruffleObject {
       description = "Creates an array with given elements.",
       autoRegister = false)
   public Array(Object... items) {
+    assert noNulls(items);
     this.items = items;
   }
 
@@ -49,9 +50,25 @@ public final class Array implements TruffleObject {
    */
   @Builtin.Method(
       description = "Creates an uninitialized array of a given size.",
-      autoRegister = false)
-  public Array(long size) {
-    this.items = new Object[(int) size];
+      autoRegister = false,
+      name = "new")
+  public static Array allocate(long size) {
+    var arr = new Object[(int) size];
+    var ctx = EnsoContext.get(null);
+    var nothing = ctx.getBuiltins().nothing();
+    for (int i = 0; i < arr.length; i++) {
+      arr[i] = nothing;
+    }
+    return new Array(arr);
+  }
+
+  private static final boolean noNulls(Object[] arr) {
+    for (int i = 0; i < arr.length; i++) {
+      if (arr[i] == null) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** @return the elements of this array as a java array. */
@@ -107,7 +124,7 @@ public final class Array implements TruffleObject {
   /** @return an empty array */
   @Builtin.Method(description = "Creates an empty Array", autoRegister = false)
   public static Object empty() {
-    return new Array();
+    return allocate(0);
   }
 
   /** @return an identity array */
