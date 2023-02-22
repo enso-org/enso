@@ -3,5 +3,6 @@
   "compilerOptions": {
     "baseUrl": "./src",
     "esModuleInterop": true
-  }
+  },
+  "include": ["../types", "."]
 }

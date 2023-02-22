@@ -22,8 +22,9 @@
       "@build-cfg": ["./build.json"]
     }
   },
-  "include": [".eslintrc.cjs", "lib", "types"],
+  "include": [".eslintrc.cjs", "lib"],
   "ts-node": {
-    "esm": true
+    "esm": true,
+    "files": true
   }
 }
