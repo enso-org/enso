@@ -1184,7 +1184,7 @@ spec =
             check_span ("foobar".find "BAR" case_sensitivity=Case_Sensitivity.Insensitive) (Span.Value (3.up_to 6) "foobar")
 
             ## Regex matching does not do case folding
-            "Strasse".find "ß" case_sensitivity=Case_Sensitivity.Insensitive . should_equal Nothing
+            "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
 
             ## But it should handle the Unicode normalization
             accents = 'a\u{301}e\u{301}o\u{301}'
