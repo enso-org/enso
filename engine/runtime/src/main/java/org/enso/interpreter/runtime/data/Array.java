@@ -50,8 +50,9 @@ public final class Array implements TruffleObject {
    */
   @Builtin.Method(
       description = "Creates an uninitialized array of a given size.",
-      autoRegister = false, name = "new")
-  public static Array empty(long size) {
+      autoRegister = false,
+      name = "new")
+  public static Array allocate(long size) {
     var arr = new Object[(int) size];
     var ctx = EnsoContext.get(null);
     var nothing = ctx.getBuiltins().nothing();
@@ -123,7 +124,7 @@ public final class Array implements TruffleObject {
   /** @return an empty array */
   @Builtin.Method(description = "Creates an empty Array", autoRegister = false)
   public static Object empty() {
-    return new Array();
+    return allocate(0);
   }
 
   /** @return an identity array */
