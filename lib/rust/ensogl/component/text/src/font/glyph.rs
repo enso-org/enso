@@ -212,7 +212,6 @@ pub struct GlyphData {
     /// Attached glyphs should not be considered part of the line during animation because they
     /// will be moved around, so they need to be ignored when computing the line width.
     pub attached_to_cursor: Cell<bool>,
-    pub color:              Cell<color::Lcha>,
 }
 
 
@@ -376,7 +375,6 @@ impl Glyph {
     /// Color setter.
     pub fn set_color(&self, color: color::Lcha) {
         self.view.color.set(Rgba::from(color).into());
-        self.color.set(color)
     }
 
     /// SDF-based glyph thickness getter.
@@ -561,9 +559,7 @@ impl System {
         let x_advance = default();
         let attached_to_cursor = default();
         let view = glyph_shape::View::new_with_data(ShapeData { font });
-        let color = Vector4::new(0.0, 0.0, 0.0, 0.0);
-        view.color.set(color);
-        let color = Cell::new(color.into());
+        view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         view.atlas_index.set(0.0);
         view.opacity_increase.set(self.hinting.opacity_increase);
         view.opacity_exponent.set(self.hinting.opacity_exponent);
@@ -579,7 +575,6 @@ impl System {
                 variations,
                 x_advance,
                 attached_to_cursor,
-                color,
             }),
         }
     }
