@@ -93,7 +93,7 @@ impl FuncCollector {
     fn run(root: &data::aggregate::Frame) -> collections::HashMap<Label, FuncTimings> {
         let mut collector = FuncCollector::default();
         for (label, frame) in &root.children {
-            collector.visit(label, frame, !INCLUDE_ONLY_SUBTREES_MATCHING_PREFIX.is_some());
+            collector.visit(label, frame, INCLUDE_ONLY_SUBTREES_MATCHING_PREFIX.is_none());
         }
         let FuncCollector { funcs, .. } = collector;
         funcs
