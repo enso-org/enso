@@ -4,10 +4,10 @@ use crate::prelude::*;
 use crate::system::web::traits::*;
 
 use crate::debug::stats::StatsData;
-use crate::system::web;
-use crate::system::web::JsValue;
-
 use crate::display::world;
+use crate::system::web;
+use crate::system::web::dom::Shape;
+use crate::system::web::JsValue;
 use num_traits::cast::AsPrimitive;
 use std::collections::VecDeque;
 use std::f64;
@@ -19,7 +19,8 @@ use std::f64;
 
 const PADDING_LEFT: f64 = 8.0;
 const PADDING_TOP: f64 = 8.0;
-
+const FONTS: &str =
+    "\"SF Pro Text\",\"SF Pro Icons\",\"Helvetica Neue\",\"Helvetica\",\"Arial\",sans-serif";
 
 // ==============
 // === Config ===
@@ -40,14 +41,30 @@ pub struct ConfigTemplate<Str, Num> {
     pub plot_background_color:   Str,
     pub plot_bar_size:           Option<Num>,
     pub plot_step_size:          Num,
+    pub plot_selection_width:    Num,
+    pub plot_selection_color:    Str,
     pub margin:                  Num,
     pub outer_margin:            Num,
     pub panel_height:            Num,
     pub labels_width:            Num,
     pub results_width:           Num,
-    pub plots_width:             Num,
+    pub sample_count:            usize,
     pub font_size:               Num,
     pub font_vertical_offset:    Num,
+}
+
+impl<Str> ConfigTemplate<Str, f64> {
+    fn plot_width(&self) -> f64 {
+        self.plot_step_size * self.sample_count as f64
+    }
+
+    fn plot_x(&self) -> f64 {
+        PADDING_LEFT + self.labels_width + self.margin + self.results_width + self.margin
+    }
+
+    fn plot_right_x(&self) -> f64 {
+        self.plot_x() + self.plot_width()
+    }
 }
 
 /// Specialization of the `ConfigTemplate` for users of the library.
@@ -73,7 +90,6 @@ pub type SamplerConfig = ConfigTemplate<JsValue, f64>;
 //         panel_height:          15.0,
 //         labels_width:          130.0,
 //         results_width:         30.0,
-//         plots_width:           100.0,
 //         font_size:             9.0,
 //         font_vertical_offset:  4.0,
 //     }
@@ -92,12 +108,14 @@ fn light_theme() -> Config {
         plot_background_color:   "#f1f1f0".into(),
         plot_bar_size:           Some(2.0),
         plot_step_size:          1.0,
+        plot_selection_width:    3.0,
+        plot_selection_color:    "#008cff20".into(),
         margin:                  6.0,
         outer_margin:            4.0,
         panel_height:            15.0,
         labels_width:            130.0,
         results_width:           30.0,
-        plots_width:             100.0,
+        sample_count:            100,
         font_size:               9.0,
         font_vertical_offset:    4.0,
     }
@@ -126,12 +144,14 @@ impl Config {
             plot_background_color:   (&self.plot_background_color).into(),
             plot_bar_size:           self.plot_bar_size.map(|t| t * ratio),
             plot_step_size:          self.plot_step_size * ratio,
+            plot_selection_width:    self.plot_selection_width * ratio,
+            plot_selection_color:    (&self.plot_selection_color).into(),
             outer_margin:            self.outer_margin * ratio,
             margin:                  self.margin * ratio,
             panel_height:            self.panel_height * ratio,
             labels_width:            self.labels_width * ratio,
             results_width:           self.results_width * ratio,
-            plots_width:             self.plots_width * ratio,
+            sample_count:            self.sample_count,
             font_size:               self.font_size * ratio,
             font_vertical_offset:    self.font_vertical_offset * ratio,
         }
@@ -155,6 +175,7 @@ pub struct Dom {
 #[derive(Debug)]
 pub struct DomData {
     root:    web::HtmlDivElement,
+    details: web::HtmlDivElement,
     canvas:  web::HtmlCanvasElement,
     context: web::CanvasRenderingContext2d,
 }
@@ -162,8 +183,8 @@ pub struct DomData {
 impl Dom {
     /// Constructor.
     #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        let data = DomData::new();
+    pub fn new(config: &Config, screen_shape: Shape) -> Self {
+        let data = DomData::new(config, screen_shape);
         let rc = Rc::new(data);
         Self { rc }
     }
@@ -173,26 +194,100 @@ impl Dom {
 impl DomData {
     /// Constructor.
     #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+    pub fn new(config: &Config, screen_shape: Shape) -> Self {
+        let config = config.clone();
         let root = web::document.create_div_or_panic();
         root.set_class_name("performance-monitor");
         root.set_style_or_warn("position", "absolute");
         root.set_style_or_warn("z-index", "100");
         root.set_style_or_warn("left", format!("{PADDING_LEFT}px"));
         root.set_style_or_warn("top", format!("{PADDING_TOP}px"));
-        root.set_style_or_warn("overflow", "hidden");
-        root.set_style_or_warn("border-radius", "6px");
-        root.set_style_or_warn("border", "2px solid #000000c4");
-        // root.set_style_or_warn("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
+
+        root.set_style_or_warn("display", "flex");
+        root.set_style_or_warn("align-items", "stretch");
+        root.set_style_or_warn("pointer-events", "none");
+        root.set_style_or_warn("font-family", FONTS);
+        root.set_style_or_warn("font-size", "12px");
+
+        let selection_left = config.plot_right_x() - 0.5 - config.plot_selection_width / 2.0;
+        let selection = web::document.create_div_or_panic();
+        selection.set_style_or_warn("position", "absolute");
+        selection.set_style_or_warn("width", format!("{}px", config.plot_selection_width));
+        selection.set_style_or_warn("height", "100px");
+        selection.set_style_or_warn("left", format!("{selection_left}px",));
+        selection.set_style_or_warn("background", &config.plot_selection_color);
+
+        root.append_child(&selection).unwrap();
+
+
         web::document.body_or_panic().prepend_with_node_1(&root).unwrap();
 
         let canvas = web::document.create_canvas_or_panic();
         canvas.set_style_or_warn("display", "block");
+        canvas.set_style_or_warn("pointer-events", "none");
+        canvas.set_style_or_warn("overflow", "hidden");
+        canvas.set_style_or_warn("border-radius", "6px");
+        canvas.set_style_or_warn("border", "2px solid #000000c4");
 
         let context = canvas.get_context("2d").unwrap().unwrap();
         let context: web::CanvasRenderingContext2d = context.dyn_into().unwrap();
         root.append_child(&canvas).unwrap();
-        Self { root, canvas, context }
+
+        let details = web::document.create_div_or_panic();
+        details.set_style_or_warn("height", "100%");
+        details.set_style_or_warn("overflow", "scroll");
+        details.set_style_or_warn("pointer-events", "auto");
+        details.set_style_or_warn("padding-left", "8px");
+        details.set_style_or_warn("padding-right", "8px");
+        details.set_style_or_warn("margin-left", "4px");
+        details.set_style_or_warn("border-radius", "6px");
+        details.set_style_or_warn("border", "2px solid #000000c4");
+        details.set_style_or_warn("background", &config.background_color);
+
+        let pause_icon_svg = "<svg width=\"16\" height=\"16\">
+           <circle cx=\"8\" cy=\"8\" r=\"8\" fill=\"#00000020\" />
+           <rect x=\"5\" y=\"4\" width=\"2\" height=\"8\" style=\"fill:#00000080;\" />
+           <rect x=\"9\" y=\"4\" width=\"2\" height=\"8\" style=\"fill:#00000080;\" />
+        </svg>";
+
+        let play_icon_svg = "<svg width=\"100\" height=\"100\">
+           <circle cx=\"8\" cy=\"8\" r=\"8\" fill=\"#00000020\" />
+           <polygon points=\"6,4 12,8 6,12\" style=\"fill:#00000080;\" />
+        </svg>";
+
+        let pause_icon = web::document.create_div_or_panic();
+        pause_icon.set_inner_html(pause_icon_svg);
+        pause_icon.set_style_or_warn("position", "absolute");
+        pause_icon.set_style_or_warn("top", "8px");
+        pause_icon.set_style_or_warn("left", "8px");
+        root.append_child(&pause_icon).unwrap();
+
+        let play_icon = web::document.create_div_or_panic();
+        play_icon.set_inner_html(play_icon_svg);
+        play_icon.set_style_or_warn("position", "absolute");
+        play_icon.set_style_or_warn("top", "8px");
+        play_icon.set_style_or_warn("left", "30px");
+        root.append_child(&play_icon).unwrap();
+
+
+        root.append_child(&details).unwrap();
+        let out = Self { root, details, canvas, context };
+        out.set_screen_shape(screen_shape);
+        out.hide_details();
+        out
+    }
+
+    fn set_screen_shape(&self, shape: Shape) {
+        self.root
+            .set_style_or_warn("height", format!("{}px", shape.height as f64 - 2.0 * PADDING_TOP));
+    }
+
+    fn hide_details(&self) {
+        self.details.set_style_or_warn("display", "none");
+    }
+
+    fn show_details(&self) {
+        self.details.set_style_or_warn("display", "block");
     }
 }
 
@@ -265,13 +360,17 @@ impl Monitor {
             let scene = world::scene();
             let network = &self.frp.network;
             enso_frp::extend! { network
+                init <- source_();
+                init_shape <- scene.frp.shape.sample(&init);
+                screen_shape <- any(&init_shape, &scene.frp.shape);
                 eval scene.mouse.frp.position_top_left ((p) renderer.borrow_mut().on_mouse_move(*p));
+                eval screen_shape ((s) renderer.borrow_mut().set_screen_shape(*s));
             }
+            init.emit(());
         }
         self.renderer.borrow_mut().toggle();
     }
 }
-
 
 
 // ================
@@ -281,30 +380,54 @@ impl Monitor {
 /// Code responsible for drawing [`Monitor`]'s data.
 #[derive(Debug)]
 struct Renderer {
-    user_config:    Config,
-    config:         SamplerConfig,
-    width:          f64,
-    height:         f64,
-    dom:            Option<Dom>,
-    panels:         Vec<Panel>,
-    selected_panel: Option<usize>,
-    first_draw:     bool,
+    user_config:         Config,
+    config:              SamplerConfig,
+    screen_shape:        Shape,
+    width:               f64,
+    height:              f64,
+    dom:                 Option<Dom>,
+    panels:              Vec<Panel>,
+    selected_panel:      Option<usize>,
+    first_draw:          bool,
+    samples:             Vec<StatsData>,
+    samples_start_index: usize,
 }
 
 impl Renderer {
     fn new() -> Self {
         let user_config = Config::default();
         let panels = default();
+        let screen_shape = default();
         let width = default();
         let height = default();
         let first_draw = true;
         let config = user_config.to_js_config();
         let dom = default();
         let selected_panel = default();
-        let mut out =
-            Self { user_config, config, width, height, dom, panels, selected_panel, first_draw };
+        let samples = default();
+        let samples_start_index = default();
+        let mut out = Self {
+            user_config,
+            config,
+            screen_shape,
+            width,
+            height,
+            dom,
+            panels,
+            selected_panel,
+            first_draw,
+            samples,
+            samples_start_index,
+        };
         out.update_config();
         out
+    }
+
+    fn set_screen_shape(&mut self, shape: Shape) {
+        if let Some(dom) = &mut self.dom {
+            dom.set_screen_shape(shape);
+        }
+        self.screen_shape = shape;
     }
 
     /// Add new display element.
@@ -323,7 +446,7 @@ impl Renderer {
     fn show(&mut self) {
         if !self.visible() {
             self.first_draw = true;
-            self.dom = Some(Dom::new());
+            self.dom = Some(Dom::new(&self.user_config, self.screen_shape));
             self.resize();
         }
     }
@@ -354,16 +477,22 @@ impl Renderer {
     }
 
     fn sample_and_draw(&mut self, stats: &StatsData) {
+        if self.samples.len() < self.config.sample_count {
+            self.samples.push(stats.clone());
+        } else {
+            self.samples[self.samples_start_index] = stats.clone();
+            self.samples_start_index = (self.samples_start_index + 1) % self.config.sample_count;
+        }
         if self.visible() {
             for panel in &self.panels {
                 panel.sample_and_postprocess(stats);
             }
-            self.draw();
+            self.draw(stats);
         }
     }
 
     /// Draw the widget and update all of the graphs.
-    fn draw(&mut self) {
+    fn draw(&mut self, stats: &StatsData) {
         if let Some(dom) = self.dom.clone() {
             if self.first_draw {
                 self.first_draw = false;
@@ -371,7 +500,7 @@ impl Renderer {
             }
             self.shift_plot_area_left(&dom);
             self.clear_labels_area(&dom);
-            self.draw_plots(&dom);
+            self.draw_plots(&dom, stats);
         }
     }
 
@@ -384,7 +513,7 @@ impl Renderer {
             let ratio = web::window.device_pixel_ratio();
             let width = self.config.labels_width
                 + self.config.results_width
-                + self.config.plots_width
+                + self.config.plot_width()
                 + 4.0 * self.config.margin
                 + self.config.outer_margin; // no outer_margin on the left side.
             let mut height = self.config.outer_margin;
@@ -396,8 +525,8 @@ impl Renderer {
             self.width = width;
             self.height = height;
             let scaled_width = width / ratio;
-            dom.root.set_style_or_warn("width", format!("{scaled_width}px"));
-            let width = 1000.0;
+            // dom.root.set_style_or_warn("width", format!("{scaled_width}px"));
+            // let width = 1000.0;
             let u_width = width as u32;
             let u_height = height as u32;
             dom.canvas.set_width(u_width);
@@ -434,8 +563,8 @@ impl Renderer {
         dom.context.fill_rect(self.width - step, 0.0, step, self.height);
     }
 
-    fn draw_plots(&mut self, dom: &Dom) {
-        self.with_all_panels(dom, |selected, panel| panel.draw(selected, dom));
+    fn draw_plots(&mut self, dom: &Dom, stats: &StatsData) {
+        self.with_all_panels(dom, |selected, panel| panel.draw(selected, dom, stats));
     }
 
     fn first_draw(&self, dom: &Dom) {
@@ -482,8 +611,8 @@ impl Panel {
     }
 
     /// Display results of last measurements.
-    pub fn draw(&self, selected: bool, dom: &Dom) {
-        self.rc.borrow_mut().draw(selected, dom)
+    pub fn draw(&self, selected: bool, dom: &Dom, stats: &StatsData) {
+        self.rc.borrow_mut().draw(selected, dom, stats)
     }
 
     /// Fetch the measured value from stats, using the panel's sampler, then post-process the value
@@ -558,6 +687,10 @@ pub trait Sampler: Debug {
 
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
     fn value(&self, stats: &StatsData) -> f64;
+
+    fn details(&self) -> Option<Box<dyn FnMut(&StatsData) -> Vec<String>>> {
+        None
+    }
 
     /// Check whether the newest value is correct, or should be displayed as warning or error.
     fn check(&self, _stats: &StatsData) -> ValueCheck {
@@ -711,16 +844,17 @@ impl PanelData {
 
 impl PanelData {
     /// Draws the panel to the screen.
-    pub fn draw(&mut self, selected: bool, dom: &Dom) {
+    pub fn draw(&mut self, selected: bool, dom: &Dom, stats: &StatsData) {
         self.init_draw(dom, selected);
         self.draw_plots(dom);
         self.finish_draw(dom);
+        self.draw_details(dom, selected, stats);
     }
 
     fn first_draw(&mut self, dom: &Dom) {
         self.init_draw(dom, false);
         dom.context.set_fill_style(&self.config.plot_background_color);
-        dom.context.fill_rect(0.0, 0.0, self.config.plots_width, self.config.panel_height);
+        dom.context.fill_rect(0.0, 0.0, self.config.plot_width(), self.config.panel_height);
         self.finish_draw(dom);
     }
 
@@ -737,13 +871,13 @@ impl PanelData {
     fn init_draw(&mut self, dom: &Dom, selected: bool) {
         self.move_pen_to_next_element(dom, self.config.margin);
         self.draw_labels(dom, selected);
+        // self.draw_details(dom, selected);
         self.draw_results(dom);
     }
 
     fn draw_labels(&mut self, dom: &Dom, selected: bool) {
-        let fonts = "Helvetica,Arial,sans-serif";
         let y_pos = self.config.panel_height - self.config.font_vertical_offset;
-        dom.context.set_font(&format!("bold {}px {}", self.config.font_size, fonts));
+        dom.context.set_font(&format!("bold {}px {}", self.config.font_size, FONTS));
         dom.context.set_text_align("right");
         let color = if selected {
             &self.config.label_color_ok_selected
@@ -753,6 +887,32 @@ impl PanelData {
         dom.context.set_fill_style(color);
         dom.context.fill_text(&self.label, self.config.labels_width, y_pos).unwrap();
         self.move_pen_to_next_element(dom, self.config.labels_width + self.config.margin);
+    }
+
+    fn draw_details(&mut self, dom: &Dom, selected: bool, stats: &StatsData) {
+        if selected {
+            if let Some(mut details) = self.sampler.details() {
+                dom.show_details();
+                let ul = web::document.create_html_element_or_panic("ul");
+                ul.set_style_or_warn("padding-inline-start", "10px");
+                for i in 0..20 {
+                    for entry in details(stats) {
+                        let li = web::document.create_element_or_panic("li");
+                        let a = web::document.create_html_element_or_panic("a");
+                        a.set_attribute("href", &format!("enso://enso-source:{}", entry)).ok();
+                        a.set_inner_html(&entry);
+                        a.set_style_or_warn("color", "inherit");
+                        a.set_style_or_warn("text-decoration", "none");
+                        li.append_child(&a).unwrap();
+                        ul.append_child(&li).unwrap();
+                    }
+                }
+                dom.details.set_text_content(None);
+                dom.details.append_child(&ul).unwrap();
+            } else {
+                dom.hide_details();
+            }
+        }
     }
 
     fn draw_results(&mut self, dom: &Dom) {
@@ -769,7 +929,7 @@ impl PanelData {
     }
 
     fn draw_plots(&mut self, dom: &Dom) {
-        self.move_pen_to_next_element(dom, self.config.plots_width - self.config.plot_step_size);
+        self.move_pen_to_next_element(dom, self.config.plot_width() - self.config.plot_step_size);
         dom.context.set_fill_style(&self.config.plot_background_color);
         dom.context.fill_rect(0.0, 0.0, self.config.plot_step_size, self.config.panel_height);
         let value_height = self.norm_value * self.config.panel_height;
@@ -798,12 +958,13 @@ impl PanelData {
 /// Utility to generate Samplers for stats parameters. See the usages below this declaration to
 /// discover more.
 macro_rules! stats_sampler {
-    ( $label:tt, $name:ident, $stats_expr:expr, $warn_threshold:expr, $err_threshold:expr
+    ( $label:tt, $name:ident, $stats_expr:expr, $details: expr, $warn_threshold:expr, $err_threshold:expr
     , $precision:expr, $value_divisor:expr) => {
         stats_sampler!(
             $label,
             $name,
             $stats_expr,
+            $details,
             $warn_threshold,
             $err_threshold,
             $precision,
@@ -812,7 +973,7 @@ macro_rules! stats_sampler {
         );
     };
 
-    ( $label:tt, $name:ident, $stats_expr:expr, $warn_threshold:expr, $err_threshold:expr
+    ( $label:tt, $name:ident, $stats_expr:expr, $details: expr, $warn_threshold:expr, $err_threshold:expr
     , $precision:expr, $value_divisor:expr, $max_value:expr) => {
         /// Sampler implementation.
         #[derive(Copy, Clone, Debug, Default)]
@@ -825,6 +986,9 @@ macro_rules! stats_sampler {
             fn value(&self, stats: &StatsData) -> f64 {
                 let raw_value: f64 = $stats_expr(stats).as_();
                 raw_value / $value_divisor
+            }
+            fn details(&self) -> Option<Box<dyn FnMut(&StatsData) -> Vec<String>>> {
+                $details
             }
             fn min_size(&self) -> Option<f64> {
                 Some($warn_threshold)
@@ -845,11 +1009,22 @@ macro_rules! stats_sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
-stats_sampler!("Frames per second", Fps, (|s: &StatsData| s.fps), 55.0, 25.0, 2, 1.0, Some(60.0));
+stats_sampler!(
+    "Frames per second",
+    Fps,
+    (|s: &StatsData| s.fps),
+    None,
+    55.0,
+    25.0,
+    2,
+    1.0,
+    Some(60.0)
+);
 stats_sampler!(
     "Frame time (ms)",
     FrameTime,
     (|s: &StatsData| s.frame_time),
+    None,
     1000.0 / 55.0,
     1000.0 / 25.0,
     2,
@@ -859,6 +1034,7 @@ stats_sampler!(
     "WASM memory usage (Mb)",
     WasmMemory,
     (|s: &StatsData| s.wasm_memory_usage),
+    None,
     50.0,
     100.0,
     2,
@@ -868,6 +1044,7 @@ stats_sampler!(
     "GPU memory usage (Mb)",
     GpuMemoryUsage,
     (|s: &StatsData| s.gpu_memory_usage),
+    None,
     100.0,
     500.0,
     2,
@@ -877,16 +1054,36 @@ stats_sampler!(
     "Draw call count",
     DrawCallCount,
     (|s: &StatsData| s.draw_calls.len()),
+    Some(Box::new(|s: &StatsData| {
+        world::with_context(|ctx| {
+            s.draw_calls
+                .iter()
+                .map(|id| {
+                    ctx.symbol_label(*id).map(|t| t.to_owned()).unwrap_or(format!("{:?}", id))
+                })
+                .collect()
+        })
+    })),
     100.0,
     500.0,
     0,
     1.0
 );
-stats_sampler!("Buffer count", BufferCount, (|s: &StatsData| s.buffer_count), 100.0, 500.0, 0, 1.0);
+stats_sampler!(
+    "Buffer count",
+    BufferCount,
+    (|s: &StatsData| s.buffer_count),
+    None,
+    100.0,
+    500.0,
+    0,
+    1.0
+);
 stats_sampler!(
     "Data upload count",
     DataUploadCount,
     (|s: &StatsData| s.data_upload_count),
+    None,
     100.0,
     500.0,
     0,
@@ -896,6 +1093,7 @@ stats_sampler!(
     "Data upload size (Mb)",
     DataUploadSize,
     (|s: &StatsData| s.data_upload_size),
+    None,
     1.0,
     10.0,
     2,
@@ -905,26 +1103,47 @@ stats_sampler!(
     "Sprite system count",
     SpriteSystemCount,
     (|s: &StatsData| s.sprite_system_count),
+    None,
     100.0,
     500.0,
     0,
     1.0
 );
-stats_sampler!("Symbol count", SymbolCount, (|s: &StatsData| s.symbol_count), 100.0, 500.0, 0, 1.0);
+stats_sampler!(
+    "Symbol count",
+    SymbolCount,
+    (|s: &StatsData| s.symbol_count),
+    None,
+    100.0,
+    500.0,
+    0,
+    1.0
+);
 stats_sampler!(
     "Sprite count",
     SpriteCount,
     (|s: &StatsData| s.sprite_count),
+    None,
     100_000.0,
     500_000.0,
     0,
     1.0
 );
-stats_sampler!("Shader count", ShaderCount, (|s: &StatsData| s.shader_count), 100.0, 500.0, 0, 1.0);
+stats_sampler!(
+    "Shader count",
+    ShaderCount,
+    (|s: &StatsData| s.shader_count),
+    None,
+    100.0,
+    500.0,
+    0,
+    1.0
+);
 stats_sampler!(
     "Shader compile count",
     ShaderCompileCount,
     (|s: &StatsData| s.shader_compile_count),
+    None,
     10.0,
     100.0,
     0,

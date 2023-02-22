@@ -284,6 +284,8 @@ impl IsTarget for Wasm {
     }
 }
 
+
+
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct WatchInput {
@@ -346,8 +348,8 @@ impl IsWatchable for Wasm {
             watch_cmd
                 .kill_on_drop(true)
                 .current_dir(&context.repo_root)
-                .arg("watch")
-                .args(["--ignore", "README.md"])
+                .arg("watch-plus")
+                .args(["--why", "--ignore", "README.md"])
                 .args(cargo_watch_flags)
                 .arg("--");
 

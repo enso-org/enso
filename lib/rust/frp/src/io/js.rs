@@ -163,8 +163,8 @@ impl CurrentJsEvent {
             if !is_passed {
                 // Prevent events from propagating to user agent, so default browser actions will
                 // not be triggered.
-                e.prevent_default();
-                e.stop_propagation();
+                // e.prevent_default();
+                // e.stop_propagation();
             }
         }
         new.clone()

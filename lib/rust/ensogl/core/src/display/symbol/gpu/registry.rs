@@ -154,6 +154,10 @@ impl SymbolRegistry {
         self.symbol_labels.borrow_mut().insert(symbol_id, label);
     }
 
+    pub fn symbol_label(&self, symbol_id: SymbolId) -> Option<&'static str> {
+        self.symbol_labels.borrow().get(&symbol_id).copied()
+    }
+
     /// Set the GPU context. In most cases, this happens during app initialization or during context
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
