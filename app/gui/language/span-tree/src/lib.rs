@@ -98,6 +98,11 @@ impl ArgumentInfo {
     pub fn with_call_id(self, call_id: Option<ast::Id>) -> Self {
         Self { call_id, ..self }
     }
+
+    /// Check if this argument info represents an argument with specified name.
+    pub fn has_name(&self, name: &str) -> bool {
+        self.name.as_ref().map_or(false, |n| n == name)
+    }
 }
 
 

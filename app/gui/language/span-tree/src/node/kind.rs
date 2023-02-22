@@ -281,6 +281,10 @@ impl Argument {
         self.tp = Some(tp);
         self
     }
+    pub fn removable(mut self) -> Self {
+        self.removable = true;
+        self
+    }
     pub fn with_removable(mut self, rm: bool) -> Self {
         self.removable = rm;
         self

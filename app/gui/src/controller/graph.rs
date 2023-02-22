@@ -226,6 +226,7 @@ pub struct NodeTrees {
 impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
+        warn!("Ast: {:?}", node.expression());
         let inputs = SpanTree::new(&node.expression(), context).ok()?;
         let macros_info = *node.main_line.macros_info();
         let outputs = if let Some(pat) = node.pattern() {
