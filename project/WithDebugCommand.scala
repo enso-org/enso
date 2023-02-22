@@ -53,11 +53,28 @@ object WithDebugCommand {
   val runCommandName       = "run"
   val testOnlyCommandName  = "testOnly"
 
+  private def isDebugFlag(f : String): Boolean = f match {
+    case `dumpGraphsOption` => true
+    case `showCompilationsOptions` => true
+    case `printAssemblyOption` => true
+    case `debuggerOption` => true
+    case `benchOnlyCommandName` => true
+    case `runCommandName` => true
+    case `testOnlyCommandName` => true
+    case _ => false
+  }
+
   /** The main logic for parsing and transforming the debug flags into JVM level flags */
   def withDebug: Command =
     Command.args(commandName, "<arguments>") { (state, args) =>
-      val (debugFlags, prefixedRunArgs) = args.span(_ != argSeparator)
-      val runArgs                       = " " + prefixedRunArgs.drop(1).mkString(" ")
+      var (debugFlags, prefixedRunArgs) = args.span(isDebugFlag(_))
+      System.err.println(prefixedRunArgs)
+      if (prefixedRunArgs(0) == argSeparator) {
+        prefixedRunArgs = prefixedRunArgs.drop(1)
+      }
+      System.err.println(debugFlags)
+      val runArgs                       = " " + prefixedRunArgs.mkString(" ")
+      System.err.println(runArgs)
 
       val taskKey =
         if (debugFlags.contains(benchOnlyCommandName)) BenchTasks.benchOnly
