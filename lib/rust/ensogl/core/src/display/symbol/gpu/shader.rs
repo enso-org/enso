@@ -123,7 +123,7 @@ impl {
     /// particular mesh and thus this code can be used for optimization purposes only.
     pub fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
         let bindings = self.collect_variables().map(|(name, decl)| {
-            let scope = if binding.decl.tp.uniform_or_function_parameter_only() {
+            let scope = if decl.tp.uniform_or_function_parameter_only() {
                 ScopeType::Global
             } else {
                 ScopeType::Mesh(crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance)
