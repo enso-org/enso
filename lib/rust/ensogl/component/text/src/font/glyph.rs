@@ -41,9 +41,6 @@ use std::sync::LazyLock;
 /// System- and font-specific hinting properties. They affect the way the font is rasterized. In
 /// order to understand how these variables affect the font rendering, see the GLSL file (the
 /// [`FUNCTIONS`] variable).
-///
-/// Also, you can interactively change the values by holding `ctrl + alt + o` or `ctrl + alt + e`
-/// keys and using the `+` and `-` key to increment or decrement the value.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug)]
 pub struct Hinting {
@@ -373,7 +370,7 @@ crate::with_formatting_property_diffs!(define_formatting_property_diffs);
 impl Glyph {
     /// Color getter.
     pub fn color(&self) -> color::Lcha {
-        self.color.get()
+        Rgba::from(self.view.color.get()).into()
     }
 
     /// Color setter.
@@ -508,7 +505,8 @@ impl WeakGlyph {
 // ==============
 
 #[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone, Copy, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default)]
+#[allow(missing_copy_implementations)]
 /// Mocked version of WebGL context.
 pub struct Context;
 
@@ -553,8 +551,6 @@ impl System {
     /// may be set.
     #[profile(Debug)]
     pub fn new_glyph(&self) -> Glyph {
-        #[allow(clippy::clone_on_copy)]
-        #[allow(clippy::unit_arg)]
         let context = self.context.clone();
         let display_object = display::object::Instance::new();
         let font = self.font.clone_ref();
