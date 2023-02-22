@@ -7,9 +7,9 @@ use ast::crumbs::*;
 
 use crate::node;
 
+use ast::opr::match_named_argument;
 use ast::opr::ArgWithOffset;
 use ast::Ast;
-use ast::Shifted;
 
 
 
@@ -142,15 +142,16 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         Ok(infix.into_ast())
                     } else {
                         let mut prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
-                        let item = ast::prefix::Argument {
-                            sast:      Shifted { wrapped: new, off: DEFAULT_OFFSET },
-                            prefix_id: None,
-                        };
+                        let item = ast::prefix::Argument::new(new, DEFAULT_OFFSET, None);
                         match kind {
                             BeforeTarget => prefix.insert_arg(0, item),
                             AfterTarget => prefix.insert_arg(1, item),
                             Append => prefix.args.push(item),
-                            ExpectedArgument(i) => prefix.insert_arg(*i, item),
+                            ExpectedArgument(i) => match self.node.name() {
+                                Some(name) if *i > prefix.args.len() =>
+                                    prefix.insert_arg(prefix.args.len(), item.into_named(name)),
+                                _ => prefix.insert_arg(*i, item),
+                            },
                         }
                         Ok(prefix.into_ast())
                     }
@@ -175,20 +176,31 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
 
 
     fn erase_impl(&self) -> Option<EraseOperation> {
-        if (self.node.kind.is_argument() || self.node.kind.is_this()) && self.node.kind.removable()
-        {
+        if self.node.kind.removable() {
             Some(Box::new(move |root| {
-                let parent_crumb = &self.ast_crumbs[..self.ast_crumbs.len() - 1];
-                let ast = root.get_traversing(parent_crumb)?;
+                let (mut last_crumb, mut parent_crumbs) =
+                    self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
+                let mut ast = root.get_traversing(parent_crumbs)?;
+
+                if match_named_argument(ast).is_some() {
+                    // When erasing named argument, we need to remove the whole argument, not only
+                    // the value part. The named argument AST is always a single infix expression,
+                    // so we need to target the crumb of parent node.
+                    (last_crumb, parent_crumbs) =
+                        parent_crumbs.split_last().expect("Erase target must have parent AST node");
+                    ast = root.get_traversing(parent_crumbs)?;
+                }
+
                 let new_ast = modify_preserving_id(ast, |ast| {
                     if let Some(mut infix) = ast::opr::Chain::try_new(&ast) {
-                        match self.node.kind {
-                            node::Kind::This { .. } => {
-                                infix.erase_target();
-                            }
-                            _ => {
-                                infix.args.pop();
-                            }
+                        let is_target = infix
+                            .args
+                            .first()
+                            .map_or(true, |arg| arg.crumb_to_previous() == *last_crumb);
+                        if is_target {
+                            infix.erase_target();
+                        } else {
+                            infix.args.pop();
                         }
                         Ok(infix.into_ast())
                     } else {
@@ -197,7 +209,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         Ok(prefix.into_ast())
                     }
                 });
-                root.set_traversing(parent_crumb, new_ast?)
+                root.set_traversing(parent_crumbs, new_ast?)
             }))
         } else {
             None

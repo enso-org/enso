@@ -94,12 +94,6 @@ impl ArgumentInfo {
         Self { name, tp, call_id, tag_values }
     }
 
-    /// Specialized constructor for "this" argument.
-    pub fn this(tp: Option<String>, call_id: Option<ast::Id>) -> Self {
-        let name = Some(node::This::NAME.into());
-        Self { name, tp, call_id, tag_values: Vec::new() }
-    }
-
     /// Extend the argument info with the given call id.
     pub fn with_call_id(self, call_id: Option<ast::Id>) -> Self {
         Self { call_id, ..self }

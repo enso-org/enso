@@ -211,11 +211,12 @@ impl<'a> ApplicationBase<'a> {
         let parameters = invocation_info.with_call_id(self.call_id).parameters;
         let mut deque: VecDeque<ArgumentInfo> = parameters.into();
         let first_argument_name = deque.front().and_then(|arg| arg.name.as_ref());
-        let has_self_argument = first_argument_name.map_or(false, |name| name == node::This::NAME);
+        let first_argument_is_self =
+            first_argument_name.map_or(false, |name| name == node::Argument::THIS);
 
         // When a method notation is used on non-static invocation, the first `self` argument is
         // already present the access chain. Remove it from the list of expected prefix arguments.
-        if self.uses_method_notation && has_self_argument && self_in_access {
+        if self.uses_method_notation && self_in_access && first_argument_is_self {
             deque.pop_front();
         }
         Some(deque)
@@ -329,12 +330,9 @@ fn generate_node_for_opr_chain<T: Payload>(
     mut app_base: ApplicationBase,
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
-    // Removing operands is possible only when chain has at least 3 of them
-    // (target and two arguments).
-    let removable = this.args.len() >= 2;
     let node_and_offset: FallibleResult<(Node<T>, usize)> = match &this.target {
         Some(target) => {
-            let kind = node::Kind::this().with_removable(removable);
+            let kind = node::Kind::argument();
             let node = target.arg.generate_node(kind, context)?;
             Ok((node, target.offset))
         }
@@ -364,7 +362,12 @@ fn generate_node_for_opr_chain<T: Payload>(
         if app_base.uses_method_notation && is_last {
             // For method notation, the target of outermost chain element is considered the `self`
             // argument of the method application.
-            let target_arg_info = ArgumentInfo::this(None, app_base.call_id);
+            let target_arg_info = ArgumentInfo::new(
+                Some(node::Argument::THIS.into()),
+                None,
+                app_base.call_id,
+                vec![],
+            );
             node.set_argument_info(target_arg_info);
         }
 
@@ -400,7 +403,7 @@ fn generate_node_for_opr_chain<T: Payload>(
             let arg_ast = Located::new(arg_crumbs, operand.arg.clone_ref());
             gen.spacing(operand.offset);
 
-            let argument_kind = node::Kind::argument().with_removable(removable);
+            let argument_kind = node::Kind::argument();
             let argument = gen.generate_ast_node(arg_ast, argument_kind, context)?;
 
             if let Some(info) = infix_right_argument_info {
@@ -455,9 +458,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
 
     let prefix_arity = this.args.len().max(known_params.len());
 
-    use ast::crumbs::PrefixCrumb::*;
-    // Removing arguments is possible if there at least two of them
-    let removable = this.args.len() >= 2;
+    use ast::crumbs::*;
 
     // When using method notation, expand the infix access chain manually to maintain correct method
     // application info and avoid generating expected arguments twice. We cannot use the
@@ -469,27 +470,70 @@ fn generate_node_for_prefix_chain<T: Payload>(
         this.func.generate_node(node::Kind::Operation, context)
     };
 
+    let crumb_arg: Crumb = PrefixCrumb::Arg.into();
+    let crumb_func: Crumb = PrefixCrumb::Func.into();
+
     let ret = this.args.iter().enumerate().fold(node, |node, (i, arg)| {
         let node = node?;
         let is_first = i == 0;
         let is_last = i + 1 == prefix_arity;
-        let arg_kind = if is_first && !uses_method_notation {
-            node::Kind::from(node::Kind::this().with_removable(removable))
-        } else {
-            node::Kind::from(node::Kind::argument().with_removable(removable))
-        };
 
         let mut gen = ChildGenerator::default();
-        gen.add_node(vec![Func.into()], node);
+        gen.add_node(vec![crumb_func], node);
         gen.spacing(arg.sast.off);
-        if !known_args && matches!(arg_kind, node::Kind::This { .. }) {
-            gen.generate_empty_node(InsertionPointType::BeforeTarget);
-        }
-        let arg_ast = arg.sast.wrapped.clone_ref();
+
+        let arg_ast = &arg.sast.wrapped;
+
+        // Handle named arguments
+        let (located_arg, arg_name) = match ast::opr::match_named_argument(&arg_ast) {
+            Some(ast::opr::NamedArgumentDef { name, larg, loff, opr, roff, rarg }) => {
+                let crumb_left: Crumb = InfixCrumb::LeftOperand.into();
+                let crumb_opr: Crumb = InfixCrumb::Operator.into();
+                let crumb_right: Crumb = InfixCrumb::RightOperand.into();
+
+                gen.generate_ast_node(
+                    Located::new(vec![crumb_arg, crumb_left], larg.clone()),
+                    node::Kind::ArgName,
+                    context,
+                )?;
+                gen.spacing(loff);
+                gen.generate_ast_node(
+                    Located::new(vec![crumb_arg, crumb_opr], opr.clone()),
+                    node::Kind::Token,
+                    context,
+                )?;
+                gen.spacing(roff);
+                (Located::new(vec![crumb_arg, crumb_right], rarg.clone()), Some(name))
+            }
+            None => (Located::new(PrefixCrumb::Arg, arg_ast.clone()), None),
+        };
+
+        let is_target = is_first
+            && !uses_method_notation
+            && arg_name.map_or(true, |name| name == node::Argument::THIS);
+
+        let arg_kind = if is_target {
+            if !known_args {
+                gen.generate_empty_node(InsertionPointType::BeforeTarget);
+            }
+            node::Kind::from(node::Kind::this().with_removable(true))
+        } else {
+            node::Kind::from(node::Kind::argument().with_name(arg_name.map(ToString::to_string)))
+        };
+
         let arg_child: &mut node::Child<T> =
-            gen.generate_ast_node(Located::new(Arg, arg_ast), arg_kind, context)?;
-        if let Some(info) = known_params.pop_front() {
-            arg_child.node.set_argument_info(info)
+            gen.generate_ast_node(located_arg, arg_kind, context)?;
+
+        let known_param = match arg_name {
+            Some(name) => known_params
+                .iter()
+                .position(|param| param.name.as_ref().map_or(false, |n| n == name))
+                .and_then(|pos| known_params.remove(pos)),
+            None => known_params.pop_front(),
+        };
+
+        if let Some(info) = known_param {
+            arg_child.node.set_argument_info(info);
         }
         if !known_args {
             gen.generate_empty_node(InsertionPointType::Append);

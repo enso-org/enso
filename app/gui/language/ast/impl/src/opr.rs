@@ -18,6 +18,7 @@ use crate::SectionLeft;
 use crate::SectionRight;
 use crate::SectionSides;
 use crate::Shape;
+use crate::Var;
 
 
 
@@ -114,6 +115,42 @@ pub fn assignment() -> known::Opr {
 /// Split qualified name into segments, like `"Int.add"` into `["Int","add"]`.
 pub fn name_segments(name: &str) -> impl Iterator<Item = &str> {
     name.split(predefined::ACCESS)
+}
+
+
+
+// =======================
+// === Named arguments ===
+// =======================
+
+/// Matched AST fragments for named argument, flattened into easy to access structure.
+#[allow(missing_docs)]
+pub struct NamedArgumentDef<'a> {
+    pub name: &'a str,
+    pub larg: &'a Ast,
+    pub loff: usize,
+    pub opr:  &'a Ast,
+    pub roff: usize,
+    pub rarg: &'a Ast,
+}
+
+/// match named argument AST:
+/// ```text
+/// name=expression - Infix
+/// name              |- Var
+///     =             |- Opr ASSIGN
+///      expression   `- any Ast
+/// ```
+pub fn match_named_argument(ast: &Ast) -> Option<NamedArgumentDef<'_>> {
+    match ast.shape() {
+        Shape::Infix(Infix { larg, loff, opr, roff, rarg }) if is_assignment_opr(opr) =>
+            match larg.shape() {
+                Shape::Var(Var { name }) =>
+                    Some(NamedArgumentDef { name, larg, loff: *loff, opr, roff: *roff, rarg }),
+                _ => None,
+            },
+        _ => None,
+    }
 }
 
 

@@ -31,10 +31,23 @@ pub struct Argument {
 }
 
 impl Argument {
+    /// Make an argument with specified AST and offset of one.
+    pub fn new(expression: Ast, offset: usize, prefix_id: Option<Id>) -> Self {
+        Self { sast: Shifted::new(offset, expression), prefix_id }
+    }
+
     /// Make an argument consisting of a single blank placeholder: `_`.
     pub fn new_blank(offset: usize, prefix_id: Option<Id>) -> Self {
-        let sast = Shifted::new(offset, Ast::blank());
-        Self { sast, prefix_id }
+        Self::new(Ast::blank(), offset, prefix_id)
+    }
+
+    /// Convert non-named argument expression into named argument.
+    ///
+    /// Note: This function does not check if the argument is already named. Calling it on a named
+    /// argument will return an unspecified invalid result.
+    pub fn into_named(self, name: impl Str) -> Self {
+        let named_ast = Ast::named_argument(name, self.sast.wrapped);
+        Self::new(named_ast, self.sast.off, self.prefix_id)
     }
 }
 
