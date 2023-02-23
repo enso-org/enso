@@ -51,12 +51,10 @@ class App {
         security.enableAll()
         electron.app.on('before-quit', () => (this.isQuitting = true))
         // In order to ensure that our `open-url` listener is registered on time, we **must** put it
-        // **before** our `ready listener. We also need to make sure to use `app.on("ready")` and
-        // not `app.whenReady()` because the latter fires earlier than `app.on("open-url")` even if
-        // we register it last.
-        // FIXME [NP]: remove
+        // **before** (or in this case, **during**) our `ready` listener. We also need to make sure
+        // to use `app.on("ready")` and not `app.whenReady()` because the latter fires earlier than
+        // `app.on("open-url")` even if we register it last.
         electron.app.on("ready", () => this.main(windowSize))
-        //electron.app.whenReady().then(() => this.main(windowSize))
         this.registerShortcuts()
     }
 
@@ -225,9 +223,11 @@ class App {
             })
         }
         electron.ipcMain.on(ipc.channel.quit, () => electron.app.quit())
-        // FIXME [NP]: Move this to the authentication package.
-        electron.ipcMain.on(ipc.channel.openExternalUrl, (event, url) => opener(url))
-        //electron.ipcMain.on(ipc.channel.setAuthenticatedRedirectCallback, (event, callback) => callback())
+        // Register an IPC listener for the `openExternalUrl` event. This event is emitted by the
+        // authentication package when it needs to open a URL in the user's default (i.e., system)
+        // browser. This is used because we don't want to run the OAuth flow in the app, because
+        // users don't trust Electron apps to handle their credentials.
+        electron.ipcMain.on(ipc.channel.openExternalUrl, (_event, url) => opener(url))
     }
 
     /**
@@ -241,16 +241,17 @@ class App {
      * and open the page `auth?code=...` in the application window.
      */
     initOpenUrlListener() {
-        // FIXME [NP]: Why does this handler get called twice?
+        // FIXME [NP2]: Why does this handler get called twice?
         electron.app.on('open-url', (event, url) => {
             // Prevent the default behavior (don't open `enso://auth?code=...` URL in the window).
             event.preventDefault()
 
-            // FIXME [NP]: delete this log
             const parsedUrl = new URL(url)
-            // FIXME [NP]: don't parse the URL, make this general by passing `enso://localhost:8080/auth` instead of `enso://auth`.
-            console.log("open-url parsedUrl", parsedUrl)
-            const target = new URL(`http://localhost:${this.serverPort()}${parsedUrl.pathname}${parsedUrl.search}`)
+            const pathname = parsedUrl.pathname;
+            const search = parsedUrl.search;
+            const port = this.serverPort();
+            // FIXME [NP2]: don't parse the URL, make this general by passing `enso://localhost:8080/auth` instead of `enso://auth`.
+            const target = new URL(`http://localhost:${port}${pathname}${search}`)
             this.window?.webContents.send(ipc.channel.openAuthenticationUrl, target.href)
         })
     }

@@ -1,3 +1,4 @@
+// FIXME [NP]: Address comments in https://github.com/enso-org/enso/pull/5716/files
 /** @file Main App module responsible for rendering virtual router. */
 
 import * as React from 'react'
