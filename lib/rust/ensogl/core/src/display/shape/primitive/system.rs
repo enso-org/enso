@@ -84,6 +84,7 @@ use super::def;
 
 pub mod cached;
 
+pub use cached::AnyCachedShape;
 pub use cached::CachedShape;
 
 

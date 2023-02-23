@@ -81,7 +81,7 @@
 //!         (_style: Style) {
 //!             let bg = Rect((100.px(), 100.px())).fill(color::Rgba::white());
 //!             // Our shape may be very complex, lets read it from the texture.
-//!             let with_bg = &bg + &AnyCachedShape::<cached::Shape>();
+//!             let with_bg = &bg + &AnyCachedShape::<crate::cached::Shape>();
 //!             with_bg.into()
 //!         }
 //!     }
@@ -91,7 +91,7 @@
 //! mod parameterized_shape {
 //!     use super::*;
 //!     ensogl_core::shape! {
-//!         (_style: Style, icon: cached::AnyCachedShape) {
+//!         (_style: Style, icon: AnyCachedShape) {
 //!             let bg = Rect((100.px(), 100.px())).fill(color::Rgba::white());
 //!             let with_bg = &bg + &icon;
 //!             with_bg.into()
@@ -99,10 +99,13 @@
 //!     }
 //! }
 //!
-//! let shape = shape::View::new();
+//! # fn main() {
+//! #   let _world = ensogl_core::display::world::World::new();
+//! let shape = parameterized_shape::View::new();
 //! shape.icon.set(cached::Shape::any_cached_shape_parameter());
 //! // We can change the icon if we want:
 //! shape.icon.set(another_cached::Shape::any_cached_shape_parameter());
+//! # }
 //! ```
 
 use crate::prelude::*;
