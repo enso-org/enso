@@ -99,6 +99,14 @@ spec =
             error.catch . should_equal "bar"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
+        Test.specify "it should be possible to introduce arbitrary dataflow dependencies between values using `if_not_error`" <|
+            42.if_not_error 23 . should_equal 23
+
+            r1 = Error.throw (Illegal_State.Error "foo") . if_not_error 23
+            r1.should_fail_with Illegal_State
+
+            42.if_not_error (Error.throw (Illegal_State.Error "foo")) . should_fail_with Illegal_State
+
     Test.group "Panics" <|
         Test.specify "should be able to be caught" <|
             result = Panic.catch Any (Panic.throw 42) caught_panic->

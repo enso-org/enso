@@ -386,6 +386,7 @@ impl Family for NonVariableFamily {
 
 impl Family for VariableFamily {
     type Variations = VariationAxes;
+    #[profile(Debug)]
     fn update_msdfgen_variations(&self, variations: &Self::Variations) {
         if let Some(face) = self.face.borrow().as_ref() {
             if self.last_axes.borrow().as_ref() != Some(variations) {

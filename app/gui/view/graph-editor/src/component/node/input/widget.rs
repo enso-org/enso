@@ -103,6 +103,7 @@ pub struct View {
 impl View {
     /// Create a new node widget. The widget is initialized to empty state, waiting for widget
     /// metadata to be provided using `set_node_data` and `set_metadata` FRP endpoints.
+    #[profile(Task)]
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(app));
@@ -160,6 +161,7 @@ impl Model {
         Self { app, display_object, kind_model: kind }
     }
 
+    #[profile(Task)]
     fn set_widget_data(&self, frp: &SampledFrp, meta: &Option<Metadata>, node_data: &NodeData) {
         trace!("Setting widget data: {:?} {:?}", meta, node_data);
 
@@ -426,6 +428,7 @@ impl LazyDropdown {
         }
     }
 
+    #[profile(Detail)]
     fn initialize_on_open(&mut self) {
         match self {
             LazyDropdown::Initialized(..) => {}
@@ -451,13 +454,17 @@ impl LazyDropdown {
                     current_value <- all(set_current_value, &init)._0();
                     dropdown.set_selected_entries <+ current_value.map(|s| s.iter().cloned().collect());
                     first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
-                    output_value <+ first_selected_entry.on_change();
 
                     is_open <- all(is_open, &init)._0();
                     dropdown.set_open <+ is_open.on_change();
+
+                    // initialize selection before emitting output. We do not want to emit the
+                    // selected value immediately after initialization, without actual user action.
+                    init.emit(());
+                    output_value <+ first_selected_entry.on_change();
+
                 }
 
-                init.emit(());
                 *self = LazyDropdown::Initialized(dropdown, network);
             }
         }

@@ -26,8 +26,8 @@ pub fn main() {
     let parens_cr1 = ast::crumbs::MatchCrumb::Segs { val: val.clone(), index: 0 };
     let parens_cr = ast::crumbs::MatchCrumb::Segs { val, index: 0 };
     let _input_span_tree = builder::TreeBuilder::<()>::new(36)
-        .add_child(0, 14, node::Kind::Chained, PrefixCrumb::Func)
-        .add_child(0, 9, node::Kind::operation(), PrefixCrumb::Func)
+        .add_child(0, 14, node::Kind::chained(), PrefixCrumb::Func)
+        .add_child(0, 9, node::Kind::Operation, PrefixCrumb::Func)
         .set_ast_id(Uuid::new_v4())
         .done()
         .add_empty_child(10, InsertionPointType::BeforeTarget)
@@ -41,7 +41,7 @@ pub fn main() {
         .set_ast_id(Uuid::new_v4())
         .add_child(1, 19, node::Kind::argument(), parens_cr1)
         .set_ast_id(Uuid::new_v4())
-        .add_child(0, 12, node::Kind::operation(), PrefixCrumb::Func)
+        .add_child(0, 12, node::Kind::Operation, PrefixCrumb::Func)
         .set_ast_id(Uuid::new_v4())
         .done()
         .add_empty_child(13, InsertionPointType::BeforeTarget)
@@ -57,11 +57,11 @@ pub fn main() {
     let input_span_tree2 = Node::<()>::new()
         .new_child(|t| {
             t.new_ast_id()
-                .kind(node::Kind::Chained)
+                .kind(node::Kind::chained())
                 .crumbs(PrefixCrumb::Func)
                 .new_child(|t| {
                     t.size(9.bytes())
-                        .kind(node::Kind::operation())
+                        .kind(node::Kind::Operation)
                         .crumbs(PrefixCrumb::Func)
                         .new_ast_id()
                 })
@@ -85,7 +85,7 @@ pub fn main() {
                         .crumbs(parens_cr)
                         .new_child(|t| {
                             t.size(12.bytes())
-                                .kind(node::Kind::operation())
+                                .kind(node::Kind::Operation)
                                 .crumbs(PrefixCrumb::Func)
                                 .new_ast_id()
                         })

@@ -88,8 +88,6 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
         }
     }
 
-    const borderStyle = (s: string) => chalk.gray(chalk.bold(s))
-
     const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
     const rightWidth = totalWidth - leftWidth
 
@@ -116,8 +114,9 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
                 let otherSentences = option.description.slice(firstSentence.length)
 
                 const def = option.defaultDescription ?? option.default
+                const defIsEmptyArray = Array.isArray(def) && def.length === 0
                 let defaults = ''
-                if (def != null && def !== '') {
+                if (def != null && def !== '' && !defIsEmptyArray) {
                     defaults = ` Defaults to ${chalk.green(def)}.`
                 }
                 let description = firstSentence + defaults + chalk.gray(otherSentences)
@@ -131,6 +130,8 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
     }
 }
 
+/** Wraps the text to a specific output width. If a word is longer than the output width, it will be
+ * split. */
 function wordWrap(str: string, width: number): string[] {
     if (width <= 0) {
         logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
@@ -206,6 +207,8 @@ function fixArgvNoPrefix(argv: string[]): string[] {
     })
 }
 
+/** Parse the given list of arguments into two distinct sets: regular arguments and those specific
+ * to Chrome. */
 function argvAndChromeOptions(processArgs: string[]): {
     argv: string[]
     chromeOptions: ChromeOption[]
@@ -278,15 +281,15 @@ export function parseArgs() {
     // === Parsing ===
 
     let parseError = null as null | Error
-    let xargs = optParser.parse(argv, {}, (err: Error | undefined) => {
+    let parsedArgs = optParser.parse(argv, {}, (err: Error | undefined) => {
         if (err != null) {
             parseError = err
         }
     }) as { [key: string]: any }
-    const unexpectedArgs = xargs['--']
+    const unexpectedArgs = parsedArgs['--']
 
     for (const option of args.optionsRecursive()) {
-        const arg = xargs[naming.camelToKebabCase(option.qualifiedName())]
+        const arg = parsedArgs[naming.camelToKebabCase(option.qualifiedName())]
         const isArray = Array.isArray(arg)
         // Yargs parses missing array options as `[undefined]`.
         const isInvalidArray = isArray && arg.length == 1 && arg[0] == null
@@ -309,7 +312,21 @@ export function parseArgs() {
     const printHelpAndExit = (exitCode?: number) => {
         printHelp({
             args,
-            groupsOrdering: [],
+            groupsOrdering: [
+                args.groups.loader.name,
+                args.groups.startup.name,
+                args.groups.style.name,
+                args.groups.featurePreview.name,
+                args.groups.window.name,
+                args.groups.server.name,
+                args.groups.engine.name,
+                args.groups.performance.name,
+                args.groups.debug.name,
+                args.groups.profile.name,
+                args.groups.authentication.name,
+                args.groups.dataCollection.name,
+                args.groups.chrome.name,
+            ],
             helpExtended: args.options.helpExtended.value,
         })
         process.exit(exitCode)

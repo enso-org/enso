@@ -142,6 +142,7 @@ ensogl_core::define_endpoints_2! { <T: (DropdownValue)>
 }
 
 impl<T: DropdownValue> Frp<T> {
+    #[profile(Debug)]
     fn init(network: &frp::Network, api: &api::Private<T>, model: &Model<T>) {
         let input = &api.input;
         let output = &api.output;

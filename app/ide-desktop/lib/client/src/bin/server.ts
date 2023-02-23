@@ -99,7 +99,8 @@ export class Server {
     }
 
     process(request: { url: string }, response: any) {
-        const resource = request.url == '/' ? '/index.html' : request.url
+        const url = request.url.split('?')[0]
+        const resource = url == '/' ? '/index.html' : request.url
         let resource_file = `${this.config.dir}${resource}`
         fs.readFile(resource_file, (err: any, data: any) => {
             if (err) {

@@ -826,7 +826,8 @@ impl From<language_server::types::SuggestionEntry> for Entry {
 impl TryFrom<&Entry> for language_server::MethodPointer {
     type Error = failure::Error;
     fn try_from(entry: &Entry) -> FallibleResult<Self> {
-        (entry.kind == Kind::Method).ok_or_else(|| NotAMethod(entry.name.clone()))?;
+        let is_method_or_constructor = matches!(entry.kind, Kind::Method | Kind::Constructor);
+        is_method_or_constructor.ok_or_else(|| NotAMethod(entry.name.clone()))?;
         let missing_this_err = || MissingSelfOnMethod(entry.name.clone());
         let defined_on_type = entry.self_type.clone().ok_or_else(missing_this_err)?;
         Ok(language_server::MethodPointer {
@@ -847,7 +848,14 @@ impl TryFrom<Entry> for language_server::MethodPointer {
 impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
     fn from(entry: &Entry) -> span_tree::generate::context::CalledMethodInfo {
         let parameters = entry.arguments.iter().map(to_span_tree_param).collect();
-        span_tree::generate::context::CalledMethodInfo { parameters }
+        let is_static = entry.is_static;
+        let is_constructor = matches!(entry.kind, Kind::Constructor);
+        span_tree::generate::context::CalledMethodInfo {
+            is_static,
+            is_constructor,
+            parameters,
+            ..default()
+        }
     }
 }
 

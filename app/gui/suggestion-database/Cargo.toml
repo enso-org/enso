@@ -14,6 +14,7 @@ span-tree = { path = "../language/span-tree" }
 ast = { path = "../language/ast/impl" }
 parser = { path = "../language/parser" }
 parser-scala = { path = "../language/parser-scala" }
+enso-profiler = { path = "../../../lib/rust/profiler" }
 enso-text = { path = "../../../lib/rust/text" }
 double-representation = { path = "../controller/double-representation" }
 engine-protocol = { path = "../controller/engine-protocol" }

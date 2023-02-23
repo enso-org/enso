@@ -15,6 +15,7 @@ import { Toaster } from 'react-hot-toast';
 import { FC, Fragment, useMemo } from 'react';
 import authApi, { AuthConfig, OAuthUrlOpener } from '../authentication/api';
 import withRouter from '../navigation';
+import {ProjectManager} from "enso-studio-content/src/project_manager";
 
 
 
@@ -66,6 +67,7 @@ export interface AppProps {
    */
   runningOnDesktop: boolean;
   onAuthenticated: () => void;
+  projectManager: ProjectManager | undefined;
 }
 
 /**
@@ -102,7 +104,7 @@ const App = (props: AppProps) => {
 //   allow that. Do we want to allow that, even if it would disable the lint for non-React code?
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter: FC<AppProps> = (props) => {
-  const { logger, onAuthenticated } = props;
+  const { logger, onAuthenticated, runningOnDesktop, projectManager } = props;
   const navigate = useNavigate();
   const authConfig = { navigate, ...props }
   const auth = useMemo(() => authApi(authConfig), []);
@@ -119,8 +121,8 @@ const AppRouter: FC<AppProps> = (props) => {
           {/* Protected pages are visible to authenticated users. */}
           <Route element={<ProtectedLayout />}>
             {/* FIXME [NP]: why do we need this extra one for electron to work? */}
-            <Route index element={<DashboardContainer />} />
-            <Route path={DASHBOARD_PATH} element={<DashboardContainer />} /> 
+            <Route index element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
+            <Route path={DASHBOARD_PATH} element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
             <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
           </Route>
           {/* Other pages are visible to unauthenticated and authenticated users. */}

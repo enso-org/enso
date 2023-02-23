@@ -50,7 +50,6 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
         electron.app.on('before-quit', () => (this.isQuitting = true))
-        this.initOpenUrlListener()
         // In order to ensure that our `open-url` listener is registered on time, we **must** put it
         // **before** our `ready listener. We also need to make sure to use `app.on("ready")` and
         // not `app.whenReady()` because the latter fires earlier than `app.on("open-url")` even if
@@ -61,7 +60,8 @@ class App {
         this.registerShortcuts()
     }
 
-    /** Set Chrome options based on the app configuration. */
+    /** Set Chrome options based on the app configuration. For comprehensive list of available
+     * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
     setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
         const addIf = (opt: content.Option<boolean>, chromeOptName: string, value?: string) => {
             if (opt.value) {
@@ -208,7 +208,7 @@ class App {
     initIpc() {
         electron.ipcMain.on(ipc.channel.error, (event, data) => logger.error(`IPC error: ${data}`))
         let profilePromises: Promise<string>[] = []
-        const argProfiles = this.args.groups.performance.options.loadProfile.value
+        const argProfiles = this.args.groups.profile.options.loadProfile.value
         if (argProfiles) {
             profilePromises = argProfiles.map((path: string) => fs.readFile(path, 'utf8'))
         }
@@ -218,7 +218,7 @@ class App {
                 event.reply('profiles-loaded', profiles)
             })
         })
-        const profileOutPath = this.args.groups.performance.options.saveProfile.value
+        const profileOutPath = this.args.groups.profile.options.saveProfile.value
         if (profileOutPath) {
             electron.ipcMain.on(ipc.channel.saveProfile, (event, data) => {
                 fss.writeFileSync(profileOutPath, data)
@@ -232,10 +232,10 @@ class App {
 
     /**
      * Initialize the listener for `open-url` events.
-     * 
+     *
      * This listener is used to open a page in *this* application window, when the user is
      * redirected to a URL with a protocol supported by this application.
-     * 
+     *
      * For example, when the user completes an OAuth sign in flow (e.g., through Google), they are
      * redirected to a URL like `enso://auth?code=...`. This listener will intercept that URL
      * and open the page `auth?code=...` in the application window.
@@ -272,7 +272,7 @@ class App {
         if (window != null) {
             const urlCfg: { [key: string]: string } = {}
             for (const option of this.args.optionsRecursive()) {
-                if (option.setByUser && option.passToApplication) {
+                if (option.value != option.default && option.passToWebApplication) {
                     urlCfg[option.qualifiedName()] = String(option.value)
                 }
             }

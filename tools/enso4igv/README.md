@@ -54,16 +54,11 @@ to _finish_ the installation.
 ## Using the IGV
 
 Build an instance of the Enso runtime engine (see
-[Running Enso](../../docs/CONTRIBUTING.md#running-enso)) using:
+[Running Enso](../../docs/CONTRIBUTING.md#running-enso)) using and then launch
+it with special `--dump-graphs` option:
 
 ```bash
-enso$ sbt buildEngineDistribution
-```
-
-and then launch it with special `--dump-graphs` option:
-
-```bash
-enso$ ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --dump-graphs --run yourprogram.enso
+enso$ sbt runEngineDistribution --dump-graphs --run yourprogram.enso
 ```
 
 When executed on [GraalVM 22.3.1](http://graalvm.org) these options instruct the

@@ -143,10 +143,14 @@ export abstract class Consumer {
         return out
     }
 
+    /** Start a group, log a message, evaluate the provided function, end the group, and log the
+     * total operation time. */
     groupMeasured<T>(message: string, f: () => T): T {
         return Task.run(message, f)
     }
 
+    /** Start a group, log a message, evaluate the provided async function, end the group, and log
+     * the total operation time. */
     async asyncGroupMeasured<T>(message: string, f: () => Promise<T>): Promise<T> {
         return await Task.asyncRun(message, f)
     }

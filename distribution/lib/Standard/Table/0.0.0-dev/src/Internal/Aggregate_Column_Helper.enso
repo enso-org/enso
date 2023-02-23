@@ -142,12 +142,12 @@ resolve_aggregate table problem_builder aggregate_column =
     table_columns = table.columns
     columns_helper = table.columns_helper
 
-    resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
+    resolve : (Integer|Text) -> Column ! Internal_Missing_Column_Error
     resolve c =
         res = columns_helper.resolve_column_or_expression c problem_builder
         res.if_nothing (Error.throw Internal_Missing_Column_Error)
 
-    resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
+    resolve_selector_to_vector : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Vector Column ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
         resolved = columns_helper.select_columns_helper selector reorder=True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
@@ -164,9 +164,7 @@ resolve_aggregate table problem_builder aggregate_column =
         Group_By c new_name -> Group_By (resolve c) new_name
         Count new_name -> Count new_name
         Count_Distinct c new_name ignore_nothing ->
-            new_c = case c of
-                _ : Column_Selector -> resolve_selector_to_vector c
-                _ -> [resolve c]
+            new_c = resolve_selector_to_vector c
             Count_Distinct new_c new_name ignore_nothing
         Count_Not_Nothing c new_name -> Count_Not_Nothing (resolve c) new_name
         Count_Nothing c new_name -> Count_Nothing (resolve c) new_name

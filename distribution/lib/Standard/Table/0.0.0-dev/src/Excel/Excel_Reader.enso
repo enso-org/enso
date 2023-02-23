@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Input_Stream
 
 import project.Data.Table.Table
@@ -64,6 +65,7 @@ handle_reader file reader =
 read_file : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_file file section headers on_problems xls_format=False =
     reader stream = case section of
+        Excel_Section.Workbook -> Error.throw (Illegal_Argument.Error "Cannot read an entire workbook.")
         Excel_Section.Sheet_Names -> Vector.from_polyglot_array (ExcelReader.readSheetNames stream xls_format)
         Excel_Section.Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames stream xls_format)
         Excel_Section.Worksheet sheet skip_rows row_limit ->
