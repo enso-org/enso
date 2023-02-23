@@ -228,4 +228,14 @@ class ExportsResolution {
     // Take _last_ occurrence of each module
     topModules.map(_.module.unsafeAsModule()).reverse.distinct.reverse
   }
+
+  /** A fast version of [[run]] that does sorting of modules but
+    * neither performs cycle checks nor resolves exports.
+    */
+  def runSort(modules: List[Module]): List[Module] = {
+    val graph      = buildGraph(modules)
+    val tops       = topsort(graph)
+    val topModules = tops.map(_.module)
+    topModules.map(_.module.unsafeAsModule()).reverse.distinct.reverse
+  }
 }

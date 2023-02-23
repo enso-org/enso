@@ -28,6 +28,13 @@ import org.enso.syntax.text.{AST, Parser}
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
+import java.util.concurrent.{
+  CompletableFuture,
+  ExecutorService,
+  LinkedBlockingDeque,
+  ThreadPoolExecutor,
+  TimeUnit
+}
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
@@ -61,6 +68,20 @@ class Compiler(
       new PrintStream(config.outputRedirect.get)
     else context.getOut
   private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler()
+
+  /** The thread pool that handles parsing of modules. */
+  private val pool: ExecutorService = if (config.parallelParsing) {
+    new ThreadPoolExecutor(
+      Compiler.startingThreadCount,
+      Compiler.maximumThreadCount,
+      Compiler.threadKeepalive,
+      TimeUnit.SECONDS,
+      new LinkedBlockingDeque[Runnable](),
+      (runnable: Runnable) => {
+        context.getEnvironment.createThread(runnable)
+      }
+    )
+  } else null
 
   /** Duplicates this compiler with a different config.
     * @param newConfig Configuration to be used in the duplicated Compiler.
@@ -392,10 +413,7 @@ class Compiler(
     module: Module,
     bindingsCachingEnabled: Boolean
   ): List[Module] = {
-    logger.info(
-      s"  Start import/export resolution for s${module.getName} [read-from-cache: ${bindingsCachingEnabled}"
-    )
-    val (importedModules, stubModules) =
+    val (importedModules, modulesImportedWithCachedBindings) =
       try {
         importResolver.mapImports(module, bindingsCachingEnabled)
       } catch {
@@ -406,15 +424,30 @@ class Compiler(
       try { new ExportsResolution().run(importedModules) }
       catch { case e: ExportCycleException => reportCycle(e) }
 
-    val parsedStubModules = stubModules.map { module =>
-      ensureParsed(module)
-      module
-    }
+    val parsingTasks: List[CompletableFuture[Unit]] =
+      modulesImportedWithCachedBindings.map { module =>
+        if (config.parallelParsing) {
+          CompletableFuture.supplyAsync(() => ensureParsed(module), pool)
+        } else {
+          CompletableFuture.completedFuture(ensureParsed(module))
+        }
+      }
 
-    logger.info(
-      s"  End Import/export resolution for ${module.getName} [cached modules: ${stubModules.length}"
-    )
-    requiredModules ++ parsedStubModules
+    joinAllFutures(parsingTasks).get()
+
+    // ** Order matters for codegen **
+    // Consider a case when an exported symbol is referenced but the module that defines the symbol
+    // has not yet registered the method in its scope. This will result in No_Such_Method method during runtime;
+    // the symbol brought to the scope has not been properly resolved yet.
+    val sortedCachedModules =
+      new ExportsResolution().runSort(modulesImportedWithCachedBindings)
+    sortedCachedModules ++ requiredModules
+  }
+
+  private def joinAllFutures[T](
+    futures: List[CompletableFuture[T]]
+  ): CompletableFuture[List[T]] = {
+    CompletableFuture.allOf(futures: _*).thenApply(_ => futures.map(_.join()))
   }
 
   /** Runs the initial passes of the compiler to gather the import statements,
@@ -1036,6 +1069,28 @@ class Compiler(
     */
   def shutdown(waitForPendingJobCompletion: Boolean): Unit = {
     serializationManager.shutdown(waitForPendingJobCompletion)
+    shutdownParsingPool(waitForPendingJobCompletion)
+  }
+
+  private def shutdownParsingPool(waitForPendingCompilation: Boolean): Unit = {
+    if (pool != null) {
+      if (waitForPendingCompilation) {
+        pool.shutdown()
+
+        // Bound the waiting loop
+        val maxCount = 10
+        var counter  = 0
+        while (!pool.isTerminated && counter < maxCount) {
+          counter += 1
+          pool.awaitTermination((50 * counter).toLong, TimeUnit.MILLISECONDS)
+        }
+
+        pool.shutdownNow()
+        Thread.sleep(100)
+      } else {
+        pool.shutdownNow()
+      }
+    }
   }
 
   /** Updates the metadata in a copy of the IR when updating that metadata
@@ -1061,4 +1116,13 @@ object Compiler {
 
   /** The default logging level for the compiler. */
   private val defaultLogLevel: Level = Level.FINE
+
+  /** The maximum number of parsing threads allowed. */
+  val maximumThreadCount: Integer = 10
+
+  /** The number of threads at compiler start. */
+  val startingThreadCount: Integer = 2
+
+  /** The thread keep-alive time in seconds. */
+  val threadKeepalive: Long = 2
 }
