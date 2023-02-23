@@ -83,7 +83,7 @@ const config: Configuration = {
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         //target: (args.target as MacOsTargetName) ?? 'dmg',
-        // FIXME [NP]: This is a temporary workaround to avoid repackaging during rebuilds, which
+        // FIXME [NP2]: This is a temporary workaround to avoid repackaging during rebuilds, which
         //   provides faster development. Revert this once the PR is undrafted.
         target: 'dir',
         icon: `${args.iconsDist}/icon.icns`,
@@ -104,7 +104,7 @@ const config: Configuration = {
     win: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         //target: args.target ?? 'nsis',
-        // FIXME [NP]: This is a temporary workaround to avoid repackaging during rebuilds, which
+        // FIXME [NP2]: This is a temporary workaround to avoid repackaging during rebuilds, which
         //   provides faster development. Revert this once the PR is undrafted.
         target: 'dir',
         icon: `${args.iconsDist}/icon.ico`,

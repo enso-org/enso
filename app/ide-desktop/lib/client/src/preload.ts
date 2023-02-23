@@ -52,9 +52,14 @@ contextBridge.exposeInMainWorld('enso_console', {
 })
 
 // Access to the login API for the purpose of opening OAuth flows in the system browser.
-// FIXME [NP]: move this to the `authentication` package.
 contextBridge.exposeInMainWorld('loginApi', {
+    // Open a URL in the system browser (rather than in the app).
     openExternalUrl: (url: string) => ipcRenderer.send(ipc.channel.openExternalUrl, url),
-    // FIXME [NP]: remove args?
-    setOpenAuthenticationUrlCallback: (callback: (url: string) => void) => ipcRenderer.on(ipc.channel.openAuthenticationUrl, (event, url, ...args) => callback(url)),
+    // Set the callback that will be called when an authenticated-related URL is opened.
+    //
+    // The callback is intended to handle links like `enso://auth?code=...&state=...` from external
+    // sources like the user's system browser or email client. Handling the links involves resuming
+    // whatever flow was in progress when the link was opened (e.g., an OAuth registration flow).
+    setOpenAuthenticationUrlCallback: (callback: (url: string) => void) =>
+        ipcRenderer.on(ipc.channel.openAuthenticationUrl, (_event, url) => callback(url)),
 });

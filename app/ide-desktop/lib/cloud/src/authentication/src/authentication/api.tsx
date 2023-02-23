@@ -1,15 +1,20 @@
+// FIXME [NP]: find and resolve all typescript/eslint errors (including silenced ones)
 import { Auth, CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
 import { CognitoUserSession } from "amazon-cognito-identity-js";
 import { CONFIRM_REGISTRATION_PATH, DASHBOARD_PATH, Logger, LOGIN_PATH, RESET_PASSWORD_PATH } from "../components/app";
 import { AwsCognitoOAuthOpts } from "@aws-amplify/auth/lib-esm/types";
 import { NavigateFunction, redirect } from "react-router-dom";
-import { Hub } from "@aws-amplify/core";
+import { Hub, HubCallback } from "@aws-amplify/core";
+import registerAuthEventListener, { ListenFunction } from "./listen";
 
 
 
 // =================
 // === Constants ===
 // =================
+
+/** Name of the string identifying the "hub" that AWS Amplify issues authentication events on. */
+const AUTHENTICATION_HUB = "auth";
 
 /**
  * The string used to identify the GitHub federated identity provider in AWS Amplify.
@@ -221,19 +226,8 @@ export interface Api {
      * @throws An error if sign out fails.
      */
     signOut: () => Promise<void>;
-    /**
-     * Returns a function that can be used to subscribe to authentication state changes.
-     * 
-     * The returned function takes a callback function as an argument. The callback function will be
-     * called whenever the authentication state changes. The callback function will be called with
-     * the new authentication state as an argument, as well as optional data associated with the
-     * new authentication state.
-     * 
-     * The returned function, when called, returns a function that can be used to unsubscribe from
-     * authentication state changes. Ensure that you call this function before re-subscribing to
-     * avoid memory leaks or duplicate event handlers.
-     */
-    listen: (listener: (event: string, data?: any) => void) => () => void;
+    /** @see {@link ListenFunction} */
+    registerAuthEventListener: ListenFunction;
 }
 
 /**
@@ -309,11 +303,6 @@ const api = (authConfig: AuthConfig): Api => {
 
     const signOut = () => Auth.signOut()
 
-    const listen = (listener: (event: string, data?: any) => void): () => void => {
-        const cancel = Hub.listen("auth", (data) => listener(data.payload.event, data.payload.data))
-        return cancel
-    }
-
     return {
         userSession,
         signUp,
@@ -324,7 +313,7 @@ const api = (authConfig: AuthConfig): Api => {
         forgotPassword,
         forgotPasswordSubmit,
         signOut,
-        listen,
+        registerAuthEventListener,
     }
 }
 
