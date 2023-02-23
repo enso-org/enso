@@ -54,7 +54,8 @@ class InitVcsHandler(
 
     case Status.Failure(ex) =>
       logger.error(
-        s"Initialize project request [$id] for [${rpcSession.clientId}] failed with: ${ex.getMessage}.",
+        s"Initialize project request [$id] for [${rpcSession.clientId}] failed with: ${if (ex.getMessage == null) ex.getClass
+        else ex.getMessage}}.",
         ex
       )
       cancellable.cancel()
