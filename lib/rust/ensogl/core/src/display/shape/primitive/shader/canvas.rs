@@ -245,6 +245,15 @@ impl Canvas {
         })
     }
 
+
+    /// Change the shape color depending on RGB components.
+    ///
+    /// Assuming `s.color` is a previous shape premultiplied color (i.e. the alpha component is
+    /// applied to each channel), a new color is defined as:
+    /// `r * s.color.r + b * s.color.b + g * s.color.g`.
+    ///
+    /// See [`ShapeOps` counterpart
+    /// documentation](crate::display::shape::class::ShapeOps::recolorize) for usage examples.
     pub fn recolorize<RColor, GColor, BColor>(
         &mut self,
         num: usize,

@@ -142,6 +142,27 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
         Fill(self, color)
     }
 
+    /// Change the shape color depending on RGB components.
+    ///
+    /// ### How The New Color Is Defined
+    ///
+    /// Assuming `s.color` is a previous shape premultiplied color (i.e. the alpha component is
+    /// applied to each channel), a new color is defined as:
+    /// `r * s.color.r + b * s.color.b + g * s.color.g`.
+    ///
+    /// ### Usage
+    ///
+    /// The main case for this function is coloring a complex shape serving as a
+    /// template - the best example are [cached
+    /// shapes](crate::display::shape::primitive::system::cached), which cannot be
+    /// parameterized.
+    ///
+    /// When the only colors in that template are [full red](color::Rgba::red),
+    /// [full green](color::Rgba::green), or [full blue](color::Rgba::blue), this method will
+    /// replace the template colors with the specialized ones.
+    ///
+    /// A real-world example is an icon (cached in the texture) which should change color on mouse
+    /// hover or click.
     fn recolorize<RColor, GColor, BColor>(
         &self,
         r: RColor,
