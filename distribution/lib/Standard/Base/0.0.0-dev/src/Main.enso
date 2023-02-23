@@ -60,7 +60,7 @@ export project.Warning.Warning
 
 from project.Data.Boolean export Boolean, True, False
 from project.Function export all
-from project.Data.Numbers export Number, Integer, Decimal
+from project.Data.Numbers export Number, Integer, Decimal, Nan
 from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect, JSON_File
 
 import project.Data

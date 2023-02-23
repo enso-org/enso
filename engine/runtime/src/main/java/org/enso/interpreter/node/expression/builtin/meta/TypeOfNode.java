@@ -13,6 +13,7 @@ import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -36,7 +37,12 @@ public abstract class TypeOfNode extends Node {
 
   @Specialization
   Object doDouble(double value) {
-    return EnsoContext.get(this).getBuiltins().number().getDecimal();
+    var number = EnsoContext.get(this).getBuiltins().number();
+    if (Double.isNaN(value)) {
+      return number.getNaN();
+    } else {
+      return number.getDecimal();
+    }
   }
 
   @Specialization
@@ -110,7 +116,15 @@ public abstract class TypeOfNode extends Node {
     if (interop.fitsInInt(proxy)) {
       return builtins.number().getInteger();
     } else if (interop.fitsInDouble(proxy)) {
-      return builtins.number().getDecimal();
+      try {
+        if (Double.isNaN(interop.asDouble(proxy))) {
+          return builtins.number().getNaN();
+        } else {
+          return builtins.number().getDecimal();
+        }
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
     } else {
       return EnsoContext.get(this).getBuiltins().number();
     }

@@ -102,6 +102,15 @@ spec =
             1.0.is_a Integer . should_be_false
             1.0.is_a Text . should_be_false
 
+            Number.nan.is_a Number . should_be_true
+            Number.nan.is_a Decimal . should_be_true
+            Number.nan.is_a Nan . should_be_true
+            Number.nan.is_a Integer . should_be_false
+
+            (1.0%0.0).is_a Number . should_be_true
+            (1.0%0.0).is_a Decimal . should_be_true
+            (1.0%0.0).is_a Nan . should_be_true
+
             random_gen = Random.new
             Meta.is_a random_gen Random . should_be_true
             Meta.is_a random_gen Integer . should_be_false

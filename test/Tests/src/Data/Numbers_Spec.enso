@@ -452,6 +452,10 @@ spec =
             Number.nan==0 . should_be_false
             Number.nan!=Number.nan . should_be_true
 
+        Test.specify "should support decimal methods on NaN" <|
+            Number.nan*10 . is_nan . should_be_true
+            Number.nan.sin . is_nan . should_be_true
+
         Test.specify "should support inexact equality comparisons" <|
             1.0001 . equals 1.0002 epsilon=0.01 . should_be_true
             1.0001 . equals 1.0002 epsilon=0.0000001 . should_be_false

@@ -339,7 +339,7 @@ type Number
     negative_infinity = Double.NEGATIVE_INFINITY
 
     ## A constant holding the floating-point Not-a-Number value.
-    nan : Decimal
+    nan : Nan
     nan = Double.NaN
 
     ## Checks if the given number is the floating-point Not-a-Number value.
@@ -348,6 +348,7 @@ type Number
        compared with itself, so `x == Number.nan` would not work.
     is_nan : Boolean
     is_nan self = case self of
+        _ : Nan -> True
         _ : Decimal -> Double.isNaN self
         _ -> False
 
@@ -941,10 +942,8 @@ type Integer
 
     parse_builtin text radix = @Builtin_Method "Integer.parse"
 
-Comparable.from (that:Number) =
-    case that.is_nan of
-        True -> Incomparable
-        False -> Default_Ordered_Comparator
+@Builtin_Type
+type Nan
 
 ## UNSTABLE
 
@@ -959,3 +958,8 @@ type Number_Parse_Error
     to_display_text : Text
     to_display_text =
         "Could not parse " + self.text.to_text + " as a double."
+
+
+Comparable.from (_:Integer) = Default_Ordered_Comparator
+Comparable.from (_:Decimal) = Default_Ordered_Comparator
+Comparable.from (_:Nan) = Incomparable

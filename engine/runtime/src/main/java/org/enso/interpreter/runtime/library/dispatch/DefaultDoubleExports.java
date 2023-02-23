@@ -15,6 +15,10 @@ public class DefaultDoubleExports {
 
   @ExportMessage
   static Type getType(Double receiver, @CachedLibrary("receiver") TypesLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().number().getDecimal();
+    if (receiver.isNaN()) {
+      return EnsoContext.get(thisLib).getBuiltins().number().getNaN();
+    } else {
+      return EnsoContext.get(thisLib).getBuiltins().number().getDecimal();
+    }
   }
 }

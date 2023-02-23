@@ -25,49 +25,29 @@ public class TypesFromProxy {
    * @return the associated {@link Type} if it exists and {@code null} otherwise
    */
   public static Type fromTypeSystem(Builtins builtins, String typeName) {
-    switch (typeName) {
-      case ConstantsGen.ANY:
-        return builtins.any();
-      case ConstantsGen.ARRAY:
-        return builtins.array();
-      case ConstantsGen.BOOLEAN:
-        return builtins.bool().getType();
-      case ConstantsGen.DATE:
-        return builtins.date();
-      case ConstantsGen.DATE_TIME:
-        return builtins.dateTime();
-      case ConstantsGen.DURATION:
-        return builtins.duration();
-      case ConstantsGen.DECIMAL:
-        return builtins.number().getDecimal();
-      case ConstantsGen.ERROR:
-        return builtins.dataflowError();
-      case ConstantsGen.FUNCTION:
-        return builtins.function();
-      case ConstantsGen.FILE:
-        return builtins.file();
-      case ConstantsGen.INTEGER:
-        return builtins.number().getInteger();
-      case ConstantsGen.MANAGED_RESOURCE:
-        return builtins.managedResource();
-      case ConstantsGen.NOTHING:
-        return builtins.nothing();
-      case ConstantsGen.NUMBER:
-        return builtins.number().getNumber();
-      case ConstantsGen.PANIC:
-        return builtins.panic();
-      case ConstantsGen.REF:
-        return builtins.ref();
-      case ConstantsGen.TEXT:
-        return builtins.text();
-      case ConstantsGen.TIME_OF_DAY:
-        return builtins.timeOfDay();
-      case ConstantsGen.TIME_ZONE:
-        return builtins.timeZone();
-      case ConstantsGen.VECTOR:
-        return builtins.vector();
-      default:
-        return null;
-    }
+    return switch (typeName) {
+      case ConstantsGen.ANY -> builtins.any();
+      case ConstantsGen.ARRAY -> builtins.array();
+      case ConstantsGen.BOOLEAN -> builtins.bool().getType();
+      case ConstantsGen.DATE -> builtins.date();
+      case ConstantsGen.DATE_TIME -> builtins.dateTime();
+      case ConstantsGen.DURATION -> builtins.duration();
+      case ConstantsGen.DECIMAL -> builtins.number().getDecimal();
+      case ConstantsGen.NAN -> builtins.number().getNaN();
+      case ConstantsGen.ERROR -> builtins.dataflowError();
+      case ConstantsGen.FUNCTION -> builtins.function();
+      case ConstantsGen.FILE -> builtins.file();
+      case ConstantsGen.INTEGER -> builtins.number().getInteger();
+      case ConstantsGen.MANAGED_RESOURCE -> builtins.managedResource();
+      case ConstantsGen.NOTHING -> builtins.nothing();
+      case ConstantsGen.NUMBER -> builtins.number().getNumber();
+      case ConstantsGen.PANIC -> builtins.panic();
+      case ConstantsGen.REF -> builtins.ref();
+      case ConstantsGen.TEXT -> builtins.text();
+      case ConstantsGen.TIME_OF_DAY -> builtins.timeOfDay();
+      case ConstantsGen.TIME_ZONE -> builtins.timeZone();
+      case ConstantsGen.VECTOR -> builtins.vector();
+      default -> null;
+    };
   }
 }

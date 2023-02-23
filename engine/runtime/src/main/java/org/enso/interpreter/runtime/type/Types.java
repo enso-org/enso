@@ -1,8 +1,10 @@
 package org.enso.interpreter.runtime.type;
 
+import com.oracle.truffle.api.dsl.TypeCheck;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import org.enso.interpreter.node.expression.builtin.number.Nan;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -30,6 +32,7 @@ import org.enso.polyglot.data.TypeGraph;
   long.class,
   boolean.class,
   double.class,
+  Nan.class,
   Text.class,
   Function.class,
   Atom.class,
@@ -58,6 +61,16 @@ import org.enso.polyglot.data.TypeGraph;
   EnsoDuration.class
 })
 public class Types {
+
+  @TypeCheck(Nan.class)
+  public static boolean isNan(Object value) {
+    return value instanceof Double dbl && dbl.isNaN();
+  }
+
+  @TypeCheck(double.class)
+  public static boolean isDouble(Object value) {
+    return value instanceof Double dbl && !dbl.isNaN();
+  }
 
   private static final TypeGraph typeHierarchy = buildTypeHierarchy();
 
@@ -116,8 +129,12 @@ public class Types {
   public static String getName(Object value) {
     if (TypesGen.isLong(value) || TypesGen.isEnsoBigInteger(value)) {
       return ConstantsGen.INTEGER;
-    } else if (TypesGen.isDouble(value)) {
-      return ConstantsGen.DECIMAL;
+    } else if (value instanceof Double dbl) {
+      if (dbl.isNaN()) {
+        return ConstantsGen.NAN;
+      } else {
+        return ConstantsGen.DECIMAL;
+      }
     } else if (TypesGen.isBoolean(value)) {
       return ConstantsGen.BOOLEAN;
     } else if (TypesGen.isText(value)) {
@@ -240,6 +257,7 @@ public class Types {
     graph.insert(ConstantsGen.ARRAY, ConstantsGen.ANY);
     graph.insert(ConstantsGen.BOOLEAN, ConstantsGen.ANY);
     graph.insert(ConstantsGen.DECIMAL, ConstantsGen.NUMBER);
+    graph.insert(ConstantsGen.NAN, ConstantsGen.NUMBER);
     graph.insert(ConstantsGen.ERROR, ConstantsGen.ANY);
     graph.insert(ConstantsGen.FUNCTION, ConstantsGen.ANY);
     graph.insert(ConstantsGen.INTEGER, ConstantsGen.NUMBER);
