@@ -5,7 +5,7 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc.
  */
-import { ComponentType, createContext, FC, ReactElement, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from "react-hot-toast"
 
@@ -55,6 +55,7 @@ export interface PartialUserSession {
   /// The user's email address.
   email: string;
 }
+
 
 
 // =================
@@ -468,160 +469,9 @@ export const useAuth = () => useContext(AuthContext);
 
 
 
-// ===================
-// === withoutUser ===
-// ===================
-
-/**
- * A React higher-order component (HOC) used to that can be used to wrap a component that requires
- * that the user is not currently logged in. For example, the login page or the registration page.
- * 
- * What this means is that a component wrapped with this HOC will:
- * 1. redirect the user to the "dashboard" page if they are currently logged in;
- * 2. otherwise render the component as normal.
- */
-export const withoutUser = <T extends object>(
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  Component: ComponentType<T>,
-): FC<T> => (props) => {
-  const { session } = useAuth();
-
-  // If the user is logged in, redirect them to the dashboard page.
-  if (session) {
-    return <Navigate to={DASHBOARD_PATH} />;
-  }
-
-  // If the user is not logged in, render the component as normal.
-  return <Component {...props} />;
-}
-
-
-
 // =======================
-// === withPartialUser ===
+// === ProtectedLayout ===
 // =======================
-
-/**
- * A React higher-order component (HOC) used to that can be used to wrap a component that requires
- * a user that has registered, but not yet set a username, and is currently logged in.
- * 
- * What this means is that a component wrapped with this HOC will:
- * 1. redirect the user to the "login" page if they are not logged in;
- * 2. redirect the user to the "dashboard" page if they are logged in, and have set a username;
- * 3. otherwise render the component as normal, passing the session information to the component.
- */
-export const withPartialUser = <T extends object>(
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  Component: ComponentType<T>,
-): FC<T> => (props) => {
-  const { session } = useAuth();
-
-  // If the user is not logged in, redirect them to the login page.
-  if (!session) {
-    return <Navigate to={LOGIN_PATH} />;
-  }
-
-  // If the user has set a username, redirect them to the "dashboard" page.
-  if (session.state == "full") {
-    return <Navigate to={DASHBOARD_PATH} state={session} />;
-  }
-
-  // If the user is logged in, but has not set a username, render the component as normal.
-  //
-  // The session is passed in to the component, because it is available to us here, and it is
-  // convenient to have it available to the component, without the component having to call
-  // `useAuth` and check for authentication itself.
-  return <Component session={session} {...props} />;
-}
-
-// ================
-// === withUser ===
-// ================
-
-/**
- * A React higher-order component (HOC) used to that can be used to wrap a component that requires
- * a user that has registered, set a username, and is currently logged in.
- * 
- * What this means is that a component wrapped with this HOC will:
- * 1. redirect the user to the "login" page if they are not logged in;
- * 2. redirect the user to the "set username" page if they are logged in, but have not set a username;
- * 3. otherwise render the component as normal, passing the session information to the component.
- */
-export const withUser = <T extends object>(
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  Component: ComponentType<T>,
-): FC<T> => (props) => {
-  const { session } = useAuth();
-
-  // If the user is not logged in, redirect them to the login page.
-  if (!session) {
-    return <Navigate to={LOGIN_PATH} />;
-  }
-
-  // If the user has not set a username, redirect them to the "set username" page.
-  if (session.state == "partial") {
-    return <Navigate to={SET_USERNAME_PATH} state={session} />;
-  }
-
-  // If the user is logged in, render the component as normal.
-  //
-  // The session is passed in to the component, because it is available to us here, and it is
-  // convenient to have it available to the component, without the component having to call
-  // `useAuth` and check for authentication itself.
-  return <Component session={session} {...props} />;
-}
-
-
-
-// ======================
-// === ProtectedRoute ===
-// ======================
-
-interface ProtectedRouteProps {
-  isAllowed: boolean;
-  redirectPath?: string;
-  children?: ReactElement
-}
-
-//export const ProtectedRoute: FC<ProtectedRouteProps> = ({ isAllowed, redirectPath = LOGIN_PATH, children }): ReactNode => {
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const ProtectedRoute: FC<ProtectedRouteProps> = ({ isAllowed, redirectPath = LOGIN_PATH, children }) => {
-  if (!isAllowed) {
-    return <Navigate to={redirectPath} />;
-  }
-
-  return children ? children : <Outlet />;
-}
-
-
-//export const ProtectedRoute: FC<ProtectedRouteProps> = ({ isAllowed, redirectPath = LOGIN_PATH, children }): ReactNode => {
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const ProtectedRoute2: FC<ProtectedRouteProps> = ({ isAllowed, redirectPath = LOGIN_PATH, children }) => {
-  if (!isAllowed) {
-    return <Navigate to={redirectPath} />;
-  }
-
-  return children ? children : <Outlet />;
-}
-
-
-
-
-interface Config {
-  redirectCondition: (props: any) => boolean;
-  redirectPath: string;
-}
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const withRedirectIfUnauthorized = (config: Config) => <T extends object>(Component: FC<T>): FC<T> => (props) => {
-  const { redirectCondition, redirectPath } = config;
-
-  if (redirectCondition(props)) {
-    return <Navigate to={redirectPath} />;
-  }
-
-  return <Component {...props} />;
-}
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ProtectedLayout = () => {
@@ -633,6 +483,12 @@ export const ProtectedLayout = () => {
 
   return <Outlet context={ session } />;
 }
+
+
+
+// ===================
+// === GuestLayout ===
+// ===================
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const GuestLayout = () => {
@@ -649,9 +505,21 @@ export const GuestLayout = () => {
   return <Outlet />;
 }
 
+
+
+// =============================
+// === usePartialUserSession ===
+// =============================
+
 export const usePartialUserSession = () => {
   return useOutletContext<PartialUserSession>();
 }
+
+
+
+// ==========================
+// === useFullUserSession ===
+// ==========================
 
 export const useFullUserSession = () => {
   return useOutletContext<FullUserSession>();

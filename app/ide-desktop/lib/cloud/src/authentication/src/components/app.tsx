@@ -2,7 +2,7 @@
 /** @file Main App module responsible for rendering virtual router. */
 
 import * as React from 'react'
-import { Routes, Route, BrowserRouter, MemoryRouter, useNavigate, useLocation } from 'react-router-dom'
+import { Routes, Route, BrowserRouter, MemoryRouter, useNavigate } from 'react-router-dom'
 
 import { AuthProvider, GuestLayout, ProtectedLayout } from '../authentication';
 import DashboardContainer from "./dashboard";
@@ -14,7 +14,7 @@ import ConfirmRegistrationContainer from "./confirmRegistration";
 import SetUsernameContainer from "./setUsername";
 import { Toaster } from 'react-hot-toast';
 import { FC, Fragment, useMemo } from 'react';
-import authApi, { AuthConfig, OAuthUrlOpener } from '../authentication/api';
+import authApi from '../authentication/api';
 import withRouter from '../navigation';
 import {ProjectManager} from "enso-studio-content/src/project_manager";
 
@@ -96,6 +96,7 @@ const App = (props: AppProps) => {
     </>
   );
 }
+
 
 
 // =================
