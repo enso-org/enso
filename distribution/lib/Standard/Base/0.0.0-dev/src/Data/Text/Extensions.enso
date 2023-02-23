@@ -13,6 +13,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex
+import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Regex_Matcher.Regex_Matcher
 import project.Data.Text.Span.Span
@@ -209,116 +210,77 @@ Text.characters self =
     self.each bldr.append
     bldr.to_vector
 
-## ALIAS find
-
-   Matches the text in `self` against the provided `term`, returning the first
-   or last match if present or `Nothing` if there are no matches.
+## Find the regular expression `pattern` in `self`, returning the first match
+   if present or `Nothing` if not found.
 
    Arguments:
-   - term: The pattern to match `self` against. We recommend using _raw text_
-     to write your patterns.
-   - mode: This argument specifies whether the first or last match should be
-     returned.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-     regular expression and matched using the associated options.
+   - pattern: The pattern to match `self` against.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    > Example
      Find the first substring matching the regex.
 
-         example_match =
-             regex = "a[ab]c"
-             "aabbbbccccaabcaaaa".match regex == "abc"
+         example_find =
+             ## This matches `abc` @ character 11
+             "aabbbbccccaabcaaaa".find "a[ab]c"
+         example_find_insensitive =
+             ## This matches `aBc` @ character 11
+             "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
+Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Compile_Error
+Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+    case_insensitive = case_sensitivity.is_case_insensitive
+    Regex.compile pattern case_insensitive=case_insensitive . match self Matching_Mode.First
 
-   ! Last Match in Regex Mode
-     Regex always performs the search from the front and matching the last
-     occurrence means selecting the last of the matches while still generating
-     matches from the beginning. Regex does not return overlapping matches - it
-     will return a match at some position and then continue the search after that
-     match. This will lead to slightly different behavior for overlapping
-     occurrences of a pattern in Regex mode than in exact text matching mode
-     where the matches are searched for from the back.
-
-   > Example
-     Comparing Matching in Last Mode in Regex and Text mode
-
-         "aAa".match "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Insensitive == "Aa"
-         "aAa".match "aa" mode=Matching_Mode.Last matcher=(Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) == "aA"
-
-Text.match : Text -> Matching_Mode -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
-Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value = case matcher of
-    _ : Text_Matcher ->
-        case_sensitivity = case matcher of
-            Text_Matcher.Case_Sensitive -> Case_Sensitivity.Sensitive
-            Text_Matcher.Case_Insensitive _ -> Case_Sensitivity.Insensitive
-        case self.locate term mode case_sensitivity of
-            Nothing -> Nothing
-            span -> span.text
-    _ : Regex_Matcher -> case mode of
-        Matching_Mode.First ->
-            case matcher.compile term . match self Matching_Mode.First of
-                Nothing -> Nothing
-                match -> match.span 0 . to_grapheme_span . text
-        Matching_Mode.Last ->
-            case matcher.compile term . match self Regex_Mode.All of
-                Nothing -> Nothing
-                matches -> matches.last.span 0 . to_grapheme_span . text
-
-## ALIAS find_all
-
-   Matches all occurrences text in `self` against the provided `term`, returning
-   a vector of matches.
+## Finds all the matches of the regular expression `pattern` in `self`,
+   returning a Vector. If not found, will be an empty Vector.
 
    Arguments:
-   - term: The pattern to match `self` against. We recommend using _raw text_
-     to write your patterns.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-     regular expression and matched using the associated options.
+   - pattern: The pattern to match `self` against.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    > Example
-     Find all substrings matching the regex.
+     Find the substring matching the regex.
 
-         example_match =
-             regex = "a[ab]c"
-             "aabcbbccaacaa".match regex == ["abc", "aac"]
-Text.match_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
-Text.match_all self term=".*" matcher=Regex_Matcher.Value = case matcher of
-    _ : Text_Matcher ->
-        case_sensitivity = case matcher of
-            Text_Matcher.Case_Sensitive -> Case_Sensitivity.Sensitive
-            Text_Matcher.Case_Insensitive _ -> Case_Sensitivity.Insensitive
-        self.locate_all term case_sensitivity . map .text
-    _ : Regex_Matcher ->
-        case matcher.compile term . match self Regex_Mode.All of
-            Nothing -> []
-            matches -> matches.map m-> m.span 0 . to_grapheme_span . text
+         example_find_all =
+              ## This matches `aabbbbc` @ character 0 and `abc` @ character 11
+             "aabbbbccccaabcaaaa".find_all "a[ab]+c"
+         example_find_all_insensitive =
+              ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
+             "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
+Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Compile_Error
+Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+    case_insensitive = case_sensitivity.is_case_insensitive
+    case Regex.compile pattern case_insensitive=case_insensitive . match self Regex_Mode.All of
+        Nothing -> []
+        matches -> matches
 
 ## ALIAS Check Matches
 
    Checks if the whole text in `self` matches a provided `pattern`.
 
    Arguments:
-   - pattern: The pattern to match `self` against. We recommend using _raw text_
-     to write your patterns.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-     regular expression and matched using the associated options.
+   - pattern: The pattern to match `self` against.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    > Example
-     Checks if some text matches a basic email regex. NOTE: This regex is _not_
-     compliant with RFC 5322.
+     Checks if whole text matches a basic email regex.
 
          example_match =
-             regex = ".+@.+"
-             "contact@enso.org".is_match regex
-Text.is_match : Text -> (Text_Matcher | Regex_Matcher) -> Boolean ! Compile_Error
-Text.is_match self pattern=".*" matcher=Regex_Matcher.Value = case matcher of
-    Text_Matcher.Case_Sensitive -> self == pattern
-    Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale
-    _ : Regex_Matcher ->
-        compiled_pattern = matcher.compile pattern
-        compiled_pattern.matches self
+             regex = ".+ct@.+"
+             # Evaluates to true
+             "contact@enso.org".match regex
+         example_match_insensitive =
+             regex = ".+ct@.+"
+             # Evaluates to true
+             "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
+Text.match : Text -> Case_Sensitivity -> Boolean ! Compile_Error
+Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+    case_insensitive = case_sensitivity.is_case_insensitive
+    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
+    compiled_pattern.matches self
 
 ## ALIAS Split Text
 
@@ -1380,4 +1342,3 @@ slice_text text char_ranges =
     char_ranges.map char_range->
        sb.append text char_range.start char_range.end
     sb.toString
-
