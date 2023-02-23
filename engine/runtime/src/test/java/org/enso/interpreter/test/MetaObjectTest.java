@@ -1,27 +1,21 @@
 package org.enso.interpreter.test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.net.URI;
-import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import org.enso.interpreter.runtime.type.ConstantsGen;
-import org.enso.polyglot.RuntimeOptions;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.Language;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.URI;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import org.enso.interpreter.runtime.type.ConstantsGen;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

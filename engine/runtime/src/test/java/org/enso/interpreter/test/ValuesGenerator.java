@@ -131,6 +131,12 @@ class ValuesGenerator {
     """, "Decimal").type();
   }
 
+  public Value typeNan() {
+    return v("typeNan", """
+    from Standard.Base import Nothing, Vector, Number, Decimal, Integer, Nan
+    """, "Nan").type();
+  }
+
   public Value typeBoolean() {
     return v("typeBoolean", """
     import Standard.Base.Data.Boolean.Boolean
@@ -279,6 +285,7 @@ class ValuesGenerator {
       collect.add(v(null, "", "123 * 10^40").type());
       collect.add(v(null, "", "123 * 10^40 + 0.0").type());
       collect.add(v(null, "", "123 * 10^40 + 1.0").type());
+      collect.add(v(null, "import Standard.Base.Data.Numbers.Number", "Number.nan").type());
     }
 
     if (languages.contains(Language.JAVA)) {
@@ -288,6 +295,7 @@ class ValuesGenerator {
       collect.add(ctx.asValue((long) 5435432));
       collect.add(ctx.asValue((float) Math.PI));
       collect.add(ctx.asValue((double) Math.E));
+      collect.add(ctx.asValue(Double.NaN));
     }
 
     for (var v : collect) {
