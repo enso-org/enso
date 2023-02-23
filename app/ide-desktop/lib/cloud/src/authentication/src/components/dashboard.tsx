@@ -212,7 +212,6 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
 
     return (
         <>
-            <button onClick={signOut}>Log out</button>
             <Templates onChange={handleCreateProject}/>
             <table className="items-center w-full bg-transparent border-collapse">
                 <thead>
@@ -220,6 +219,7 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
                 </thead>
                 <tbody>{itemsTable}</tbody>
             </table>
+            <button onClick={signOut}>Log out</button>
         </>
     );
 }

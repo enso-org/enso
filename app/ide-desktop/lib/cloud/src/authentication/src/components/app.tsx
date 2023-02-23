@@ -55,6 +55,8 @@ export const SET_USERNAME_PATH = "/set-username";
 export interface Logger {
     /** Logs a message to the console. */
     log: (message?: any, ...optionalParams: any[]) => void,
+    /** Logs an error message to the console. */
+    error: (message?: any, ...optionalParams: any[]) => void,
 }
 
 /// Global configuration for the `App` component.

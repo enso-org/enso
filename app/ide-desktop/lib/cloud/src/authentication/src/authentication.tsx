@@ -14,6 +14,7 @@ import * as api from './api';
 import { isAmplifyError, isAuthError, Api } from './authentication/api';
 import { DASHBOARD_PATH, Logger, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
 import { useAsyncEffect } from './hooks';
+import { ListenerCallback } from './authentication/listen';
 
 
 
@@ -67,6 +68,15 @@ const SIGN_IN_WITH_PASSWORD_SUCCESS = "Successfully logged in!"
 const FORGOT_PASSWORD_SUCCESS = "We have sent you an email with further instructions!"
 const RESET_PASSWORD_SUCCESS = "Successfully reset password!"
 const SIGN_OUT_SUCCESS = "Successfully logged out!"
+
+/**
+ * URL that the Electron main page is hosted on.
+ * 
+ * This **must** be the actual page that the Electron app is hosted on, otherwise the OAuth flow
+ * will not work and will redirect the user to a blank page. If this is the correct URL, no redirect
+ * will occur (which is the desired behaviour).
+ */
+const MAIN_PAGE_URL = "http://localhost:8080";
 
 
 
@@ -170,48 +180,39 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    logger.log(`authProvider::hub::register::refresh ${refresh}`);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const listener = (event: string, _data?: any) => {
-      logger.log(`hub::${event}::refresh ${refresh}`);
+    const listener: ListenerCallback = (event) => {
       if (event === "signIn") {
           setRefresh((refresh) => refresh + 1);
       } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
-          // FIXME [NP]: make this variable.
-          // FIXME [NP]: document this https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
-          // FIXME [NP]: make this Electron-specific
-//           const url = `http://localhost:8080${_data.payload.data}`;
-          const url = `http://localhost:8080/`
-          window.history.replaceState({}, "", url)
+          // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so we
+          // have to hack it by replacing the URL in the browser's history. This is done because
+          // otherwise the user will be redirected to a URL like `enso://auth`, which will not work.
+          //
+          // See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
+          window.history.replaceState({}, "", MAIN_PAGE_URL)
           setRefresh((refresh) => refresh + 1)
-          //navigate(DASHBOARD_PATH)
-          //window.history.go();
+      // Typescript doesn't know that this is an exhaustive match, so we need to disable the
+      // `no-unnecessary-condition` rule. We can't just turn the final block into an `else` because
+      // then we wouldn't get an error if we added a new event type.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       } else if (event === "signOut") {
-//           setRefresh((refresh) => refresh + 1)
           setSession(undefined)
       }
     };
     
     const cancel = auth.registerAuthEventListener(listener);
+    // Return the `cancel` function from the `useEffect`, which ensures that the listener is cleaned
+    // up between renders. This must be done because the `useEffect` will be called multiple times
+    // during the lifetime of the component.
     return cancel
   }, [auth, logger]);
 
+  // Register an async effect that will fetch the user's session whenever the `refresh` state is
+  // incremented. This is useful when a user has just logged in (as their cached credentials are out
+  // of date, so this will update them).
   const [authSession] = useAsyncEffect(null, logger, async () => {
-    logger.log(`AuthProvider::useAsyncEffect::refresh ${refresh}`)
-    // FIXME [NP]: rename this
     return await auth.userSession();
   }, [refresh])
-
-  // FIXME [NP]: remove
-  //// Ensure the AWS Amplify library is loaded & configured prior to providing the `AuthContext` to
-  //// the rest of the app. The AWS Amplify library must be configured before anything else happens
-  //// because until that is done, we cannot check session status, authenticate users, etc.
-  //useEffect(() => {
-  //  // FIXME [NP]: remove this log
-  //  console.log("EFFECT: initialized");
-
-  //  setInitialized(true);
-  //}, [])
 
   // Fetch the JWT access token from the session via the AWS Amplify library.
   //
@@ -221,9 +222,6 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // token.
   useEffect(() => {
       const fetchSession = async () => {
-        // FIXME [NP]: remove this log
-        console.log(`AuthProvider::useEffect::fetchSession::${JSON.stringify(authSession)}::${refresh}`);
-
         if (!authSession) {
           setInitialized(true);
           setSession(undefined);
@@ -251,12 +249,11 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
             organization
           }
 
-          // FIXME [NP]: is this the correct place to do this?
+          // Execute the callback that should inform the Electron app that the user has logged in.
+          // This is done to transition the app from the authentication/dashboard view to the IDE.
           onAuthenticated()
         }
 
-        // FIXME [NP]: remove this
-        console.log("EFFECT: fetchSession: session", session)
         setSession(session)
         setInitialized(true)
       };
@@ -266,11 +263,11 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
       // couldn't get the token, so we catch the error and return `undefined` instead.
       fetchSession()
         .catch((error) => {
-          // FIXME [NP]: catch error and log it properly
-          // FIXME [NP]: remove eslint disable
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-          toast.error(error.message);
-          console.log(error)
+          if (isUserFacingError(error)) {
+            toast.error(error.message);
+          } else {
+            logger.error(error)
+          }
         });
   }, [authSession, refresh])
 
@@ -413,10 +410,6 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   const signOut = async () => {
     await auth.signOut();
 
-    // Now that we've signed out, we need to refresh the session so that the user's token is cleared.
-    //setRefresh(refresh + 1);
-
-    //navigate(LOGIN_PATH)
     toast.success(SIGN_OUT_SUCCESS)
   }
 
@@ -433,22 +426,31 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     session,
   };
 
-  logger.log(`authProvider::render::initialized ${initialized}::refresh ${refresh}::session ${JSON.stringify(session)}`)
   return (
-        //{/* If the user is not logged in, redirect them to the login page. */}
-        //{initialized && !session && <Navigate to={LOGIN_PATH} />}
-        //{/* If the user is logged in, but has not set a username, redirect them to the set username page. */}
-        //{initialized && session && session.state === "partial" && <Navigate to={SET_USERNAME_PATH} state={session} />}
-        //{/* Only render the underlying app after we assert for the presence of a current user. */}
-        //{initialized && session && session.state === "full" && children}
-        //{/* FIXME [NP]: show an error page or make this unreachable? */}
     <AuthContext.Provider value={value}>
         {/* Only render the underlying app after we assert for the presence of a current user. */}
         {initialized && children}
-        {/* FIXME [NP]: show an error page or make this unreachable? */}
     </AuthContext.Provider>
   )
 };
+
+/**
+ * Type of an error containing a `string`-typed `message` field.
+ * 
+ * Many types of errors fall into this category. We use this type to check if an error can be safely
+ * displayed to the user.
+ */
+interface UserFacingError {
+  /** The user-facing error message. */
+  message: string;
+}
+
+/**
+ * Returns `true` if the value is a {@link UserFacingError}.
+ */
+const isUserFacingError = (value: unknown): value is UserFacingError => {
+  return typeof value === "object" && value !== null && "message" in value;
+}
 
 
 

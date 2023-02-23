@@ -16,33 +16,24 @@ const AUTHENTICATION_HUB = "auth";
 // =================
 
 /**
- * List of all known authentication state change events.
- * 
- * @see {@link AuthEvent}
- */
-const ALL_AUTH_EVENTS = [
-    /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
-    "customOAuthState",
-    /** Issued when the user completes the sign-in process (via federated identity provider). */
-    "cognitoHostedUI",
-    /** Issued when the user completes the sign-in process (via email/password). */
-    "signIn",
-    /** Issued when the user signs out. */
-    "signOut",
-];
-
-/**
  * Authentication state change events.
  * 
  * These are issues by AWS Amplify when it detects a change in authentication state. For example,
  * when the user signs in or signs out by accessing a page like `enso://auth?code=...&state=...`.
  */
-type AuthEvent = typeof ALL_AUTH_EVENTS[number];
+enum AuthEvent {
+    /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
+    customOAuthState = "customOAuthState",
+    /** Issued when the user completes the sign-in process (via federated identity provider). */
+    cognitoHostedUi = "cognitoHostedUI",
+    /** Issued when the user completes the sign-in process (via email/password). */
+    signIn = "signIn",
+    /** Issued when the user signs out. */
+    signOut = "signOut",
+}
 
-/**
- * Function that returns `true` if the given `string` is an {@link AuthEvent}.
- */
-const isAuthEvent = (value: string): value is AuthEvent => ALL_AUTH_EVENTS.includes(value);
+/** Function that returns `true` if the given `string` is an {@link AuthEvent}. */
+const isAuthEvent = (value: string): value is AuthEvent => Object.values(AuthEvent).includes(value as AuthEvent);
 
 
 
@@ -83,5 +74,5 @@ const registerAuthEventListener: ListenFunction = (listener) => {
     return cancel
 }
 
-export { ListenFunction }
+export { ListenerCallback, ListenFunction }
 export default registerAuthEventListener;
