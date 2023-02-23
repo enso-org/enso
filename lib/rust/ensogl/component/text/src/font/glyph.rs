@@ -23,54 +23,12 @@ use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::system::gpu::texture;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::Texture;
-use ensogl_core::system::web::platform;
-use font::FontWithAtlas;
+use font::FontWithGpuData;
 use font::GlyphRenderInfo;
 use font::Style;
 use font::Weight;
 use font::Width;
 use owned_ttf_parser::GlyphId;
-use std::sync::LazyLock;
-
-
-
-// ===============
-// === Hinting ===
-// ===============
-
-/// System- and font-specific hinting properties. They affect the way the font is rasterized. In
-/// order to understand how these variables affect the font rendering, see the GLSL file (the
-/// [`FUNCTIONS`] variable).
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug)]
-pub struct Hinting {
-    pub opacity_increase: f32,
-    pub opacity_exponent: f32,
-}
-
-impl Default for Hinting {
-    fn default() -> Self {
-        Self { opacity_increase: 0.0, opacity_exponent: 1.0 }
-    }
-}
-
-static HINTING_MAP: LazyLock<HashMap<(Option<platform::Platform>, &'static str), Hinting>> =
-    LazyLock::new(|| {
-        HashMap::from([
-            ((Some(platform::Platform::MacOS), "mplus1p"), Hinting {
-                opacity_increase: 0.4,
-                opacity_exponent: 4.0,
-            }),
-            ((Some(platform::Platform::Windows), "mplus1p"), Hinting {
-                opacity_increase: 0.3,
-                opacity_exponent: 3.0,
-            }),
-            ((Some(platform::Platform::Linux), "mplus1p"), Hinting {
-                opacity_increase: 0.3,
-                opacity_exponent: 3.0,
-            }),
-        ])
-    });
 
 
 
@@ -124,7 +82,7 @@ impl SystemData {
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct ShapeData {
-    pub font: FontWithAtlas,
+    pub font: FontWithGpuData,
 }
 
 impl ShapeData {
@@ -148,9 +106,7 @@ mod glyph_shape {
             font_size: f32,
             color: Vector4<f32>,
             sdf_weight: f32,
-            atlas_index: f32,
-            opacity_increase: f32,
-            opacity_exponent: f32
+            atlas_index: f32
         ) {
             // The shape does not matter. The [`SystemData`] defines custom GLSL code.
             Plane().into()
@@ -179,6 +135,8 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
         });
 
         symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
+        symbol.variables().add_uniform_or_panic("opacity_increase", &font.opacity_increase);
+        symbol.variables().add_uniform_or_panic("opacity_exponent", &font.opacity_exponent);
 
         SystemData {}
     }
@@ -527,8 +485,7 @@ fn get_context(scene: &Scene) -> Context {
 #[allow(missing_docs)]
 pub struct System {
     context:  Context,
-    hinting:  Immutable<Hinting>,
-    pub font: FontWithAtlas,
+    pub font: FontWithGpuData,
 }
 
 impl System {
@@ -538,11 +495,8 @@ impl System {
         let scene = scene.as_ref();
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font_name);
-        let platform = platform::current();
-        let hinting = HINTING_MAP.get(&(platform, font.name())).copied().unwrap_or_default();
-        let hinting = Immutable(hinting);
         let context = get_context(scene);
-        Self { context, hinting, font }
+        Self { context, font }
     }
 
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
@@ -561,8 +515,6 @@ impl System {
         let view = glyph_shape::View::new_with_data(ShapeData { font });
         view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         view.atlas_index.set(0.0);
-        view.opacity_increase.set(self.hinting.opacity_increase);
-        view.opacity_exponent.set(self.hinting.opacity_exponent);
         display_object.add_child(&view);
         Glyph {
             data: Rc::new(GlyphData {

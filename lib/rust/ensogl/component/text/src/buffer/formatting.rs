@@ -72,7 +72,7 @@ def_unit!(SdfWeight(f32) = 0.0);
 macro_rules! with_formatting_properties {
     ($macro_name:ident) => {
         $macro_name! {
-            font_size       : Size,
+            font_size  : Size,
             color      : color::Lcha,
             weight     : Weight,
             width      : Width,
