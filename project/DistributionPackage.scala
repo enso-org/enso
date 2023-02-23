@@ -186,7 +186,7 @@ object DistributionPackage {
       ensoVersion = ensoVersion,
       stdLibRoot = distributionRoot / "lib",
       ensoExecutable =
-        distributionRoot / "bin" / Platform.executableFileName("enso"),
+        distributionRoot / "bin" / "enso",
       cacheFactory = cacheFactory.sub("stdlib"),
       log = log
     )

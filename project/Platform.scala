@@ -29,13 +29,4 @@ object Platform {
     }
   }
 
-  /** Returns the executable file name on the current platform.
-    *
-    * @param name the executable name
-    * @return the file name of provided executable on the current platform
-    */
-  def executableFileName(name: String): String = {
-    if (isWindows) s"$name.exe" else name
-  }
-
 }
