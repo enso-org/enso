@@ -12,7 +12,6 @@ import * as debug from 'runner/debug'
 import host from 'runner/host'
 import { logger } from 'runner/log'
 import { sortedWasmFunctions } from 'runner/wasm'
-import { HelpScreenSection } from 'runner/debug'
 
 // ===============
 // === Exports ===
@@ -23,7 +22,7 @@ export { config }
 export type { LogLevel } from 'runner/log/logger'
 
 export { logger, Logger, Consumer } from 'runner/log'
-export { Option } from 'runner/config'
+export { Param } from 'runner/config'
 
 // ==============================
 // === Files to be downloaded ===
@@ -194,7 +193,7 @@ class Scheduler {
 /** The main application class. */
 export class App {
     packageInfo: debug.PackageInfo
-    config: config.Options
+    config: config.Config
     wasm: any = null
     loader: wasm.Loader | null = null
     shaders: Shaders<string> | null = null
@@ -205,23 +204,16 @@ export class App {
     initialized = false
 
     constructor(opts?: {
-        configOptions?: config.Options
+        configExtension?: config.ExternalConfig
         packageInfo?: Record<string, string>
-        config?: config.StringConfig
+        config?: Record<string, any>
     }) {
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
-        this.config = config.options
-        const unrecognized = log.Task.runCollapsed('Resolving application configuration.', () => {
-            const inputConfig = opts?.configOptions
-            if (inputConfig != null) {
-                this.config = inputConfig
-            }
-            logger.log(this.config.prettyPrint())
-            return this.config.loadAll([opts?.config, host.urlParams()])
-        })
-        if (unrecognized.length > 0) {
-            logger.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
-            this.showConfigOptions(unrecognized)
+        this.config = new config.Config(opts?.configExtension)
+        const unrecognizedParams = this.config.resolve([opts?.config, host.urlParams()])
+        if (unrecognizedParams) {
+            this.config.print()
+            this.showConfigOptions(unrecognizedParams)
         } else {
             this.initBrowser()
             this.initialized = true
@@ -252,7 +244,7 @@ export class App {
         if (host.browser) {
             this.styleRoot()
             dom.disableContextMenu()
-            if (this.config.options.debug.value) {
+            if (this.config.params.debug.value) {
                 logger.log('Application is run in debug mode. Logs will not be hidden.')
             } else {
                 this.printScamWarning()
@@ -276,6 +268,7 @@ export class App {
         if (!this.initialized) {
             logger.log("App wasn't initialized properly. Skipping run.")
         } else {
+            this.config.print()
             await this.loadAndInitWasm()
             await this.runEntryPoints()
         }
@@ -297,7 +290,7 @@ export class App {
                  return module.exports`
             )()
             const out: unknown = await snippetsFn.init(wasm)
-            if (this.config.groups.debug.options.enableSpector.value) {
+            if (this.config.params.enableSpector.value) {
                 /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
                 /* eslint @typescript-eslint/no-unsafe-call: "off" */
                 if (host.browser) {
@@ -317,7 +310,7 @@ export class App {
     async loadWasm() {
         const loader = new wasm.Loader(this.config)
 
-        const shadersUrl = this.config.groups.loader.options.shadersUrl.value
+        const shadersUrl = this.config.params.shadersUrl.value
         const shadersNames = await log.Task.asyncRunCollapsed(
             'Downloading shaders list.',
             async () => {
@@ -328,8 +321,8 @@ export class App {
         )
 
         const files = new Files(
-            this.config.groups.loader.options.jsUrl.value,
-            this.config.groups.loader.options.wasmUrl.value
+            this.config.params.pkgJsUrl.value,
+            this.config.params.pkgWasmUrl.value
         )
         for (const mangledName of shadersNames) {
             const unmangledName = name.unmangle(mangledName)
@@ -395,7 +388,7 @@ export class App {
     /** Check whether the time needed to run before main entry points is reasonable. Print a warning
      * message otherwise. */
     checkBeforeMainEntryPointsTime(time: number) {
-        if (time > this.config.groups.startup.options.maxBeforeMainTimeMs.value) {
+        if (time > this.config.params.maxBeforeMainEntryPointsTimeMs.value) {
             logger.error(
                 `Entry points took ${time} milliseconds to run. This is too long. ` +
                     'Before main entry points should be used for fast initialization only.'
@@ -424,7 +417,7 @@ export class App {
 
     /** Run both before main entry points and main entry point. */
     async runEntryPoints() {
-        const entryPointName = this.config.groups.startup.options.entry.value
+        const entryPointName = this.config.params.entry.value
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             await this.runBeforeMainEntryPoints()
@@ -460,75 +453,25 @@ export class App {
                     description = rustDocs
                 }
             }
-            const href = '?startup.entry=' + entryPoint.strippedName
+            const href = '?entry=' + entryPoint.strippedName
             return new debug.HelpScreenEntry(entryPoint.strippedName, [description], href)
         })
-        const name = 'Entry points'
-        const sections = [new debug.HelpScreenSection({ name, entries })]
 
         const headers = ['Name', 'Description']
-        new debug.HelpScreen().display({ title, headers, sections })
+        new debug.HelpScreen().display({ title, headers, entries })
     }
 
-    showConfigOptions(unknownOptions?: string[]) {
+    showConfigOptions(unknownConfigOptions?: string[]) {
         logger.log('Showing config options help screen.')
-        let msg = ''
-        if (unknownOptions) {
-            const optionLabel = unknownOptions.length > 1 ? 'options' : 'option'
-            msg = `Unknown config ${optionLabel}: ${unknownOptions.map(t => `'${t}'`).join(', ')}. `
-        }
-        const sectionsData: [string, string, debug.HelpScreenEntry[]][] = Object.entries(
-            this.config.groups
-        ).map(([groupName, group]) => {
-            const groupOptions = group.optionsRecursive()
-            const entriesData: [string, string, string][] = groupOptions.map(opt => [
-                opt.qualifiedName(),
-                opt.description,
-                String(opt.default),
-            ])
-            entriesData.sort()
-            const entries = entriesData.map(([name, description, def]) => {
-                return new debug.HelpScreenEntry(name, [description, def])
-            })
-            const option = this.config.options[groupName]
-            if (option != null) {
-                const entry = new debug.HelpScreenEntry(groupName, [
-                    option.description,
-                    String(option.default),
-                ])
-                entries.unshift(entry)
-            }
-            const name =
-                groupName.charAt(0).toUpperCase() +
-                groupName.slice(1).replace(/([A-Z])/g, ' $1') +
-                ' Options'
-            const description = group.description
-            return [name, description, entries]
-        })
-        sectionsData.sort()
-        const sections = sectionsData.map(
-            ([name, description, entries]) =>
-                new debug.HelpScreenSection({ name, description, entries })
-        )
-
-        const rootEntries = Object.entries(this.config.options).flatMap(([optionName, option]) => {
-            if (optionName in this.config.groups) {
-                return []
-            }
-            const entry = new debug.HelpScreenEntry(optionName, [
-                option.description,
-                String(option.default),
-            ])
-            return [entry]
-        })
-        if (rootEntries.length > 0) {
-            const name = 'Other Options'
-            sections.push(new debug.HelpScreenSection({ name, entries: rootEntries }))
-        }
-
+        const msg = unknownConfigOptions
+            ? `Unknown config options: '${unknownConfigOptions.join(', ')}'. `
+            : ''
         const title = msg + 'Available options:'
+        const entries = Array.from(Object.entries(this.config.params)).map(([key, option]) => {
+            return new debug.HelpScreenEntry(key, [option.description, String(option.default)])
+        })
         const headers = ['Name', 'Description', 'Default']
-        new debug.HelpScreen().display({ title, headers, sections })
+        new debug.HelpScreen().display({ title, headers, entries })
     }
 
     /** Print the warning for the end user that they should not copy any code to the console. */

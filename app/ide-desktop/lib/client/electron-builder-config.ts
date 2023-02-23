@@ -168,7 +168,6 @@ const config: Configuration = {
             await signArchivesMacOs({
                 appOutDir: appOutDir,
                 productFilename: appName,
-                // @ts-ignore
                 entitlements: context.packager.config.mac.entitlements,
                 identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
             })
@@ -177,9 +176,7 @@ const config: Configuration = {
             notarize({
                 appBundleId: packager.platformSpecificBuildOptions.appId,
                 appPath: `${appOutDir}/${appName}.app`,
-                // @ts-ignore
                 appleId: process.env.APPLEID,
-                // @ts-ignore
                 appleIdPassword: process.env.APPLEIDPASS,
             })
         }

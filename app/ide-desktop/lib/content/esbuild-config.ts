@@ -112,9 +112,8 @@ const config: esbuild.BuildOptions = {
     sourcemap: true,
     minify: true,
     metafile: true,
-    format: 'esm',
     publicPath: '/assets',
-    platform: 'browser',
+    platform: 'node',
     incremental: true,
     color: true,
     logOverride: {
@@ -153,12 +152,7 @@ export async function watch(onRebuild?: () => void, inject?: esbuild.BuildOption
  * Bundles the package.
  */
 export async function bundle() {
-    try {
-        return esbuild.build({ ...config, watch: false, incremental: false })
-    } catch (error) {
-        console.error(error)
-        throw error
-    }
+    return esbuild.build({ ...config, watch: false, incremental: false })
 }
 
 export default { watch, bundle, output_path }

@@ -18,7 +18,6 @@
   "workspaces": [
     "lib/client",
     "lib/content",
-    "lib/content-config",
     "lib/copy-plugin",
     "lib/icons",
     "lib/server"

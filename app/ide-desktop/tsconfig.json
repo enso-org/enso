@@ -1,21 +1,13 @@
 {
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "noImplicitOverride": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitAny": true,
-    "removeComments": true,
-    "resolveJsonModule": true,
     "sourceMap": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true,
-    "target": "ES2019"
+    "noImplicitAny": true,
+    "target": "ES2019",
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
   },
   "ts-node": {
     "esm": true

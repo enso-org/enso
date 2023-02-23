@@ -86,4 +86,5 @@ pub fn main() {
     mem::forget(root);
     mem::forget(rect1);
     mem::forget(rect2);
+    warn!("Hello World!");
 }

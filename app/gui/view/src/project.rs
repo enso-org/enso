@@ -154,7 +154,7 @@ pub enum SearcherVariant {
 
 impl SearcherVariant {
     fn new(app: &Application) -> Self {
-        if ARGS.groups.feature_preview.options.new_component_browser.value {
+        if ARGS.enable_new_component_browser {
             Self::ComponentBrowser(app.new_view::<component_browser::View>())
         } else {
             Self::OldNodeSearcher(Rc::new(app.new_view::<searcher::View>()))
@@ -267,8 +267,7 @@ impl Model {
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
         let debug_mode_popup = debug_mode_popup::View::new(app);
-        let runs_in_web = ARGS.groups.startup.options.platform.value == "web";
-        let window_control_buttons = runs_in_web.as_some_from(|| {
+        let window_control_buttons = ARGS.is_in_cloud.as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
             display_object.add_child(&window_control_buttons);
             scene.layers.panel.add(&window_control_buttons);
@@ -461,7 +460,7 @@ impl Deref for View {
 impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let theme = match ARGS.groups.feature_preview.options.theme.value.as_ref() {
+        let theme = match ARGS.theme.as_ref() {
             "dark" => Theme::Dark,
             _ => Theme::Light,
         };

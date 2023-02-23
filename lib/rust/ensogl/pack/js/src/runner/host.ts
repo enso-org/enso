@@ -1,7 +1,5 @@
 /** @file Utilities to work with the host environment, whether it is a browser of node. */
 
-import { logger } from './log'
-
 // ======================
 // === Host Utilities ===
 // ======================
@@ -19,36 +17,11 @@ const node = !browser
 // const global = {}
 global ??= window
 
-interface UrlParams {
-    [key: string]: string | UrlParams
-}
-
 /** Returns the parameters passed in the URL query string. */
-function urlParams(): UrlParams {
+function urlParams(): Record<string, any> {
     if (browser) {
-        const out: UrlParams = {}
         const urlParams = new URLSearchParams(window.location.search)
-        for (const [name, value] of urlParams.entries()) {
-            let obj = out
-            const path = name.split('.')
-            const lastSegment = path.pop()
-            if (lastSegment == null) {
-                logger.error(`Invalid URL parameter name: '${name}'`)
-            } else {
-                let segment = null
-                while ((segment = path.shift()) != null) {
-                    const nextObj = obj[segment] ?? {}
-                    if (typeof nextObj === 'string') {
-                        logger.error(`Duplicate URL parameter name: '${name}'`)
-                    } else {
-                        obj[segment] = nextObj
-                        obj = nextObj
-                    }
-                }
-                obj[lastSegment] = value
-            }
-        }
-        return out
+        return Object.fromEntries(urlParams.entries())
     } else {
         return {}
     }
