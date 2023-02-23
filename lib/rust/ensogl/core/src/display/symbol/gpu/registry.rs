@@ -89,6 +89,7 @@ pub struct SymbolRegistry {
     pub dirty:          Dirty,
     view_projection:    Uniform<Matrix4<f32>>,
     z_zoom_1:           Uniform<f32>,
+    pub display_mode:   Uniform<i32>,
     pub variables:      UniformScope,
     context:            Rc<RefCell<Option<Context>>>,
     pub stats:          Stats,
@@ -108,6 +109,7 @@ impl SymbolRegistry {
         let variables = UniformScope::new();
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
         let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
+        let display_mode = variables.add_or_panic("display_mode", 0);
         let context = default();
         let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let global_id_provider = default();
@@ -122,6 +124,7 @@ impl SymbolRegistry {
             dirty,
             view_projection,
             z_zoom_1,
+            display_mode,
             variables,
             context,
             stats,

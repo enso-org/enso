@@ -3,6 +3,7 @@
 
 use crate::prelude::*;
 
+use crate::display::shape::cached::CACHED_TEXTURE_MAX_DISTANCE;
 use crate::display::shape::primitive::def::primitive;
 use crate::display::shape::primitive::glsl::codes;
 use crate::display::shape::primitive::shader::overload;
@@ -84,10 +85,15 @@ fn glsl_codes() -> String {
     format!("{header}\n\n{display_modes}\n{error_codes}")
 }
 
-/// The GLSL common code and debug codes.
-pub fn glsl_prelude_and_codes() -> String {
+fn glsl_constants() -> String {
     let codes = glsl_codes();
-    format!("{GLSL_PRELUDE}\n\n{codes}")
+    format!("{codes}\n\nconst float CACHED_SHAPE_MAX_DISTANCE = {CACHED_TEXTURE_MAX_DISTANCE:?};")
+}
+
+/// The GLSL common code and shared constants (including debug codes).
+pub fn glsl_prelude_and_constants() -> String {
+    let constants = glsl_constants();
+    format!("{GLSL_PRELUDE}\n\n{constants}")
 }
 
 fn gen_glsl_boilerplate() -> String {
@@ -96,7 +102,7 @@ fn gen_glsl_boilerplate() -> String {
     let color = overload::allow_overloading(COLOR);
     let debug = overload::allow_overloading(DEBUG);
     let shape = overload::allow_overloading(SHAPE);
-    let codes_and_prelude = glsl_prelude_and_codes();
+    let codes_and_prelude = glsl_prelude_and_constants();
     let defs_header = header("SDF Primitives");
     let sdf_defs = overload::allow_overloading(&primitive::all_shapes_glsl_definitions());
     [

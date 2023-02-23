@@ -32,7 +32,7 @@ mod icon1 {
 
 mod icon2 {
     use super::*;
-    ensogl_core::cached_shape! { 202 x 312;
+    ensogl_core::cached_shape! { 200 x 310;
         (_style: Style) {
             let shape = Rect((200.px(), 310.px())).fill(color::Rgba::red());
             shape.into()
@@ -40,6 +40,60 @@ mod icon2 {
     }
 }
 
+/// A rounded rectangle with an arrow pointing in from the left.
+pub mod data_input {
+    use super::*;
+    use std::f32::consts::PI;
+
+    /// An arrow shape consisting of a straight line and a triangular head. The arrow points upwards
+    /// and the tip is positioned at the origin.
+    pub fn arrow(length: f32, width: f32, head_length: f32, head_width: f32) -> AnyShape {
+        // We overlap the line with the head by this amount to make sure that the renderer does not
+        // display a gap between them.
+        const OVERLAP: f32 = 1.0;
+        let line_length = length - head_length + OVERLAP;
+        let line = Rect((width.px(), line_length.px()));
+        let line = line.translate_y((-line_length / 2.0 - head_length + OVERLAP).px());
+        let head = Triangle(head_width, head_length).translate_y((-head_length / 2.0).px());
+        (line + head).into()
+    }
+
+    ensogl_core::cached_shape! { 16 x 16;
+        (style: Style) {
+            let vivid_color: Var<color::Rgba> = "srgba(1.0, 0.0, 0.0, 1.0)".into();
+            let dull_color: Var<color::Rgba> = "srgba(0.0, 1.0, 0.0, 1.0)".into();
+
+            // === Rectangle ===
+
+            let rect = Rect((11.0.px(),12.0.px())).corners_radius(2.0.px());
+            let rect = rect.translate_x(2.5.px());
+            let rect = rect.fill(dull_color);
+
+
+            // === Arrow ===
+
+            let arrow = arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians());
+            let arrow = arrow.translate_x(4.0.px());
+            let arrow = arrow.fill(vivid_color);
+
+
+            // === Shape ===
+
+            (rect + arrow).into()
+        }
+    }
+}
+
+mod shape {
+    use super::*;
+    ensogl_core::shape! {
+        (_style: Style, shape: cached::AnyCachedShape) {
+            let bg = Rect((100.px(), 100.px())).fill(color::Rgba::white());
+            let with_bg = &bg + &shape;
+            with_bg.into()
+        }
+    }
+}
 
 
 // ======================
@@ -55,7 +109,7 @@ pub struct TextureSystemData {}
 impl TextureSystemData {
     fn material() -> Material {
         let mut material = Material::new();
-        let shader = "output_color = texture(input_pass_cached_shapes,input_uv); output_id=vec4(0.0,0.0,0.0,0.0);";
+        let shader = "output_color = texture(input_pass_cached_shapes,input_uv); output_color.rgb *= output_color.a; output_id=vec4(0.0,0.0,0.0,0.0);";
         material.add_input_def::<FloatSampler>("pass_cached_shapes");
         material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
         material.set_main(shader);
@@ -79,7 +133,7 @@ mod background {
     ensogl_core::shape! {
         below = [texture, icon1, icon2];
         (style: Style,) {
-            Rect((1024.0.px(), 1024.0.px())).fill(color::Rgba::white()).into()
+            Rect((296.0.px(), 326.0.px())).fill(color::Rgba::black()).into()
         }
     }
 }
@@ -109,19 +163,54 @@ pub fn main() {
     let navigator = Navigator::new(scene, &camera);
 
     let background = background::View::new();
-    background.set_size(Vector2(1024.0, 1024.0));
-    background.set_xy(Vector2(100.0, 0.0));
+    background.set_size(Vector2(296.0, 326.0));
+    background.set_xy(Vector2(0.0, -1000.0));
     world.default_scene.add_child(&background);
     world.default_scene.layers.main.add(&background);
 
     let texture_preview = texture::View::new();
-    texture_preview.set_size(Vector2(1024.0, 1024.0));
-    texture_preview.set_xy(Vector2(100.0, 0.0));
+    texture_preview.set_size(Vector2(296.0, 326.0));
+    texture_preview.set_xy(Vector2(0.0, -1000.0));
     world.default_scene.add_child(&texture_preview);
     world.default_scene.layers.main.add(&texture_preview);
+
+    let shapes = [shape::View::new(), shape::View::new(), shape::View::new()];
+    for shape in &shapes {
+        shape.set_size(Vector2(100.0, 100.0));
+        world.default_scene.add_child(shape);
+        world.default_scene.layers.main.add(shape);
+    }
+    shapes[0].set_xy((-60.0, 0.0));
+    shapes[0].shape.set(icon1::Shape::any_cached_shape_parameter());
+    shapes[1].set_xy((60.0, 0.0));
+    shapes[1].shape.set(icon2::Shape::any_cached_shape_parameter());
+    shapes[2].set_xy((180.0, 0.0));
+    shapes[2].shape.set(data_input::Shape::any_cached_shape_parameter());
+
+    let icon1 = icon1::View::new();
+    icon1.set_size(Vector2(100.0, 100.0));
+    icon1.set_xy((-60.0, -120.0));
+    world.default_scene.add_child(&icon1);
+    world.default_scene.layers.main.add(&icon1);
+
+    let icon2 = icon2::View::new();
+    icon2.set_size(Vector2(100.0, 100.0));
+    icon2.set_xy((60.0, -120.0));
+    world.default_scene.add_child(&icon2);
+    world.default_scene.layers.main.add(&icon2);
+
+    let icon3 = data_input::View::new();
+    icon3.set_size(Vector2(100.0, 100.0));
+    icon3.set_xy((180.0, -120.0));
+    world.default_scene.add_child(&icon3);
+    world.default_scene.layers.main.add(&icon3);
 
     world.keep_alive_forever();
     mem::forget(navigator);
     mem::forget(background);
     mem::forget(texture_preview);
+    mem::forget(shapes);
+    mem::forget(icon1);
+    mem::forget(icon2);
+    mem::forget(icon3);
 }
