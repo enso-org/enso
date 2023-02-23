@@ -35,3 +35,13 @@ type Case_Sensitivity
         Case_Sensitivity.Default -> False
         Case_Sensitivity.Sensitive -> False
         Case_Sensitivity.Insensitive _ -> True
+
+    ## PRIVATE
+       Create matcher function
+    create_match_function : Boolean -> (Text -> Text -> Boolean)
+    create_match_function self use_regex=False = case use_regex of
+        True -> (name-> pattern-> Regex.compile pattern case_insensitive=self.is_case_insensitive . matches name)
+        False -> case self of
+            Case_Sensitivity.Default -> (==)
+            Case_Sensitivity.Sensitive -> (==)
+            Case_Sensitivity.Insensitive locale -> (name-> criterion-> name.equals_ignore_case criterion locale)

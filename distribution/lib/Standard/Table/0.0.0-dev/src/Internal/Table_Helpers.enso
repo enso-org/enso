@@ -324,13 +324,8 @@ is_index_valid length ix =
    A helper method to match columns by name
 match_columns : Text -> Case_Sensitivity -> Boolean -> Vector -> Vector
 match_columns name case_sensitivity use_regex columns =
-    matcher = case use_regex of
-        True -> (name-> pattern-> Regex.compile pattern case_insensitive=case_sensitivity.is_case_insensitive . matches name)
-        False -> case case_sensitivity of
-            Case_Sensitivity.Default -> (==)
-            Case_Sensitivity.Sensitive -> (==)
-            Case_Sensitivity.Insensitive locale -> (name-> criterion-> name.equals_ignore_case criterion locale)
-    columns.filter c-> matcher c.name name
+    match = case_sensitivity.create_match_function use_regex
+    columns.filter c-> match c.name name
 
 ## PRIVATE
    A helper type used by transform helpers.
