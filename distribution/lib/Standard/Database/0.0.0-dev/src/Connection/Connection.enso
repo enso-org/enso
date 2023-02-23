@@ -117,12 +117,11 @@ type Connection
 
        ! Error Conditions
 
-         - If provided with a `Raw_SQL` query or a text short-hand that looks
-           like a query (currently the heuristic is to check if the name
-           contains `SELECT`), if any SQL error occurs when executing the query,
-           an `SQL_Error` dataflow error is raised.Error
+         - If provided with a `Raw_SQL` query or `Text` that looks like a query, if
+           any SQL error occurs when executing the query, a `SQL_Error` error is
+           raised.
          - If provided with a `Table_Name` or a text short-hand and the table is
-           not found, a `Table_Not_Found` dataflow error is raised.
+           not found, a `Table_Not_Found` error is raised.
     query : Text | SQL_Query -> Text -> Table ! Table_Not_Found | SQL_Error
     query self query alias="" = case query of
         _ : Text ->
