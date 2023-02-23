@@ -257,7 +257,7 @@ public class Types {
     graph.insert(ConstantsGen.ARRAY, ConstantsGen.ANY);
     graph.insert(ConstantsGen.BOOLEAN, ConstantsGen.ANY);
     graph.insert(ConstantsGen.DECIMAL, ConstantsGen.NUMBER);
-    graph.insert(ConstantsGen.NAN, ConstantsGen.NUMBER);
+    graph.insert(ConstantsGen.NAN, ConstantsGen.DECIMAL);
     graph.insert(ConstantsGen.ERROR, ConstantsGen.ANY);
     graph.insert(ConstantsGen.FUNCTION, ConstantsGen.ANY);
     graph.insert(ConstantsGen.INTEGER, ConstantsGen.NUMBER);
