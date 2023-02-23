@@ -486,7 +486,7 @@ type Table
        > Example
          Rename the "Alpha" column to "Beta" and last column to "LastColumn"
 
-              table.rename_columns (Map.from_vector [["Alpha", "Beta"], [-1, "LastColumn"])
+              table.rename_columns (Map.from_vector [["Alpha", "Beta"], [-1, "LastColumn"]])
 
        > Example
          Rename the first column to "FirstColumn" passed as a Vector
@@ -501,7 +501,8 @@ type Table
        > Example
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
-              table.rename_columns Map.from_vector [[Column_Selector.By_Name "name=(.*)" Case_Sensitivity.Sensitive use_regex=True, "key:$1"]]
+              by_name = Column_Selector.By_Name "name=(.*)" Case_Sensitivity.Sensitive use_regex=True
+              table.rename_columns (Map.from_vector [[by_name, "key:$1"]])
     rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self column_map=["Column"] (error_on_missing_columns=True) (on_problems=Report_Warning) =
         new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems
