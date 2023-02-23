@@ -830,8 +830,8 @@ type Table
                     problems.each parse_problem_builder.report_other_warning
                     Column.Value (Java_Column.new column.name new_storage)
 
-            result = Table.new new_columns
-            parse_problem_builder.attach_problems_after on_problems result
+            parse_problem_builder.attach_problems_before on_problems <|
+                Table.new new_columns
 
     ## Replaces the first, last, or all occurrences of `term` with
        `new_text` in each text row of selected columns.
