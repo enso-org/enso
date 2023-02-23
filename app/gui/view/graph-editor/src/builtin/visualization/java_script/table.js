@@ -16,7 +16,7 @@ class TableVisualization extends Visualization {
     // type names do not go out of sync. Should be removed once
     // https://github.com/enso-org/enso/issues/5195 is implemented.
     static inputType =
-        'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Any '
+        'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any '
     static label = 'Table'
 
     constructor(data) {
@@ -97,32 +97,19 @@ class TableVisualization extends Visualization {
 
         function genMatrix(data, level, header) {
             let result = '<tr><th></th>'
-            if (header) {
-                header.forEach((elt, ix) => {
-                    result += '<th>' + elt + '</th>'
-                })
-            } else {
-                data[0].forEach((elt, ix) => {
-                    result += '<th>' + ix + '</th>'
-                })
-            }
+            result += header
+                ? header.map(h => `<th>${h}</th>`).join('')
+                : data[0].map((_, ix) => `<th>${ix}</th>`).join('')
             result += '</tr>'
-            const table = []
 
-            data.forEach((d, i) => {
-                d.forEach((elem, idx) => {
-                    table[idx] = table[idx] || []
-                    table[idx].push(elem)
-                })
+            const rows = data.map((row, ix) => {
+                let row_html = `<tr><th>${ix}</th>`
+                row_html += row.map(d => toTableCell(d, level)).join('')
+                row_html += '</tr>'
+                return row_html
             })
+            result += rows.join('')
 
-            table.forEach((row, ix) => {
-                result += '<tr><th>' + ix + '</th>'
-                row.forEach(d => {
-                    result += toTableCell(d, level)
-                })
-                result += '</tr>'
-            })
             return tableOf(result, level)
         }
 
@@ -223,18 +210,22 @@ class TableVisualization extends Visualization {
                 result += '<td class="plaintext">' + to_render + '</td>'
             }
             result += '<tr>'
-            parsedData.indices_header.forEach(addHeader)
+            if (parsedData.indices_header) {
+                parsedData.indices_header.forEach(addHeader)
+            }
             parsedData.header.forEach(addHeader)
             result += '</tr>'
             let rows = 0
             if (parsedData.data.length > 0) {
                 rows = parsedData.data[0].length
-            } else if (parsedData.indices.length > 0) {
+            } else if (parsedData.indices && parsedData.indices.length > 0) {
                 rows = parsedData.indices[0].length
             }
             for (let i = 0; i < rows; ++i) {
                 result += '<tr>'
-                parsedData.indices.forEach(ix => addHeader(ix[i]))
+                if (parsedData.indices) {
+                    parsedData.indices.forEach(ix => addHeader(ix[i]))
+                }
                 parsedData.data.forEach(col => addCell(col[i]))
                 result += '</tr>'
             }

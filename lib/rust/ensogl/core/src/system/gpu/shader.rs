@@ -60,7 +60,7 @@ impl ToGlEnum for Type {
 
 /// Abstractions for shader sources (vertex and fragment one).
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct Sources<Vertex, Fragment> {
     pub vertex:   Vertex,
     pub fragment: Fragment,
@@ -71,6 +71,38 @@ pub type Code = Sources<String, String>;
 
 /// Shader sources as compiled shaders that are not linked yet.
 pub type CompiledCode = Sources<Shader<Vertex>, Shader<Fragment>>;
+
+impl<V, F> Sources<V, F> {
+    /// Apply [`Into::into`] to the [`vertex`] and [`fragment`] elements and return the result.
+    pub fn into<V1, F1>(self) -> Sources<V1, F1>
+    where
+        V: Into<V1>,
+        F: Into<F1>, {
+        let Sources { vertex, fragment } = self;
+        let vertex = vertex.into();
+        let fragment = fragment.into();
+        Sources { vertex, fragment }
+    }
+
+    /// Return references to the [`vertex`] and [`fragment`] elements.
+    pub fn as_ref(&self) -> Sources<&V, &F> {
+        let Sources { vertex, fragment } = self;
+        let vertex = &vertex;
+        let fragment = &fragment;
+        Sources { vertex, fragment }
+    }
+}
+
+impl<VF> Sources<VF, VF> {
+    /// Apply a function to the [`vertex`] and [`fragment`] elements and return the result.
+    pub fn map<VF1, F>(self, f: F) -> Sources<VF1, VF1>
+    where F: Fn(VF) -> VF1 {
+        let Sources { vertex, fragment } = self;
+        let vertex = f(vertex);
+        let fragment = f(fragment);
+        Sources { vertex, fragment }
+    }
+}
 
 
 
