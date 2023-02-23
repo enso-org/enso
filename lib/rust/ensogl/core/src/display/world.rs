@@ -87,6 +87,25 @@ fn init_context() {
 /// A constructor of view of some specific shape.
 pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
 
+/// The definition of shapes created with the `shape!` macro.
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct ShapeDefinition {
+    /// Location in the source code that the shape was defined.
+    pub definition_path: &'static str,
+    /// A constructor of single shape view.
+    #[derivative(Debug = "ignore")]
+    pub cons:            ShapeCons,
+}
+
+impl ShapeDefinition {
+    /// Return `true` if it is possible that this shape is used by the main application.
+    pub fn is_main_application_shape(&self) -> bool {
+        // Shapes defined in `examples` directories are not used in the main application.
+        !self.definition_path.contains("/examples/")
+    }
+}
+
 /// The definition of shapes created with the `cached_shape!` macro.
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -101,7 +120,7 @@ pub struct CachedShapeDefinition {
 thread_local! {
     /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
     /// program execution, before the `main` function is called.
-    pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeCons>> = default();
+    pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeDefinition>> = default();
 
     /// All shapes defined with the `cached_shape!` macro. They will be populated on the beginning
     /// of program execution, before the `main` function is called.
@@ -116,12 +135,9 @@ thread_local! {
 
 /// A precompiled shader definition. It contains the main function body for the vertex and fragment
 /// shaders.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deref)]
 #[allow(missing_docs)]
-pub struct PrecompiledShader {
-    pub vertex:   String,
-    pub fragment: String,
-}
+pub struct PrecompiledShader(shader::Code);
 
 thread_local! {
     /// List of all precompiled shaders. They are registered here before main entry point is run by
@@ -168,7 +184,8 @@ fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
         let fragment_field = web::Reflect::get(&value, &"fragment".into())?;
         let vertex: String = vertex_field.dyn_into::<web::JsString>()?.into();
         let fragment: String = fragment_field.dyn_into::<web::JsString>()?.into();
-        let precompiled_shader = PrecompiledShader { vertex, fragment };
+        let vertex = strip_instance_declarations(&vertex);
+        let precompiled_shader = PrecompiledShader(shader::Code { vertex, fragment });
         debug!("Registering precompiled shaders for '{key}'.");
         PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
             map.insert(key, precompiled_shader);
@@ -177,12 +194,45 @@ fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
     Ok(())
 }
 
+/// Remove initial instance variable declarations.
+///
+/// When pre-compiling vertex shaders we don't have full information about inputs, and instead treat
+/// all inputs as instance variables. After the program has been optimized, we need to strip these
+/// imprecise declarations so they don't conflict with the real declarations we add when building
+/// the shader.
+fn strip_instance_declarations(input: &str) -> String {
+    let mut code = String::with_capacity(input.len());
+    let mut preamble_ended = false;
+    let input_prefix = display::symbol::gpu::shader::builder::INPUT_PREFIX;
+    let vertex_prefix = display::symbol::gpu::shader::builder::VERTEX_PREFIX;
+    for line in input.lines() {
+        // Skip lines as long as they match the `input_foo = vertex_foo` pattern.
+        if !preamble_ended {
+            let trimmed = line.trim_start();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let mut parts = trimmed.split(' ');
+            if let Some(part) = parts.next() && part.starts_with(input_prefix)
+                    && let Some(part) = parts.next() && part == "="
+                    && let Some(part) = parts.next() && part.starts_with(vertex_prefix)
+                    && let None = parts.next() {
+                continue;
+            }
+        }
+        preamble_ended = true;
+        code.push_str(line);
+        code.push('\n');
+    }
+    code
+}
+
 fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
     let mut map = HashMap::new();
     SHAPES_DEFINITIONS.with(|shapes| {
-        for shape_cons in shapes.borrow().iter() {
-            let shape = shape_cons();
+        for shape in shapes.borrow().iter() {
+            let shape = (shape.cons)();
             let path = shape.definition_path();
             let code = shape.abstract_shader_code_in_glsl_310();
             map.insert(path, code);
@@ -272,6 +322,7 @@ impl<'t> From<&'t World> for &'t Scene {
 }
 
 
+
 // ===========
 // === FRP ===
 // ===========
@@ -281,6 +332,7 @@ crate::define_endpoints_2! {
         after_rendering(),
     }
 }
+
 
 
 // =========================
