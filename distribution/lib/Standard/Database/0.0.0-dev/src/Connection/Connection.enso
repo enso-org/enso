@@ -129,8 +129,7 @@ type Connection
                 if self.tables.at 'Name' . to_vector . contains query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query
             result.catch SQL_Error sql_error->
-                is_probably_a_query = query.contains "SELECT"
-                case is_probably_a_query of
+                case self.dialect.is_probably_a_query query of
                     True -> result
                     False ->
                         Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True)
