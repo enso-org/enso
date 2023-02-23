@@ -420,7 +420,7 @@ mod tests {
 
     mod shape1 {
         use super::*;
-        cached_shape! { 256 x 256;
+        cached_shape! { 240 x 240;
             (_style: Style) {
                 Plane().into()
             }
@@ -429,7 +429,7 @@ mod tests {
 
     mod shape2 {
         use super::*;
-        cached_shape! { 256 x 128;
+        cached_shape! { 240 x 112;
             (_style: Style) {
                 Plane().into()
             }
@@ -438,7 +438,7 @@ mod tests {
 
     mod shape3 {
         use super::*;
-        cached_shape! { 128 x 130;
+        cached_shape! { 112 x 114;
             (_style: Style) {
                 Plane().into()
             }
@@ -452,6 +452,8 @@ mod tests {
         shape3::cached_shape_system_definition::register_cached_shape();
         let _world = World::new();
 
+        // Those sizes includes margins for sdf. The margins are of [`CACHED_TEXTURE_MAX_DISTANCE`]
+        // size.
         let tex_width = 512.0;
         let tex_height = 258.0;
         assert_eq!(texture_size(), Vector2(tex_width as i32, tex_height as i32));
@@ -460,18 +462,9 @@ mod tests {
         assert_eq!(shape2::Shape::get_position_in_texture(), Vector2(128.0, -65.0));
         assert_eq!(shape3::Shape::get_position_in_texture(), Vector2(64.0, 64.0));
 
-        assert_eq!(
-            shape1::Shape::location_in_texture(),
-            ((0.0, 0.0), (0.5, 256.0 / tex_height)).into()
-        );
-        assert_eq!(
-            shape2::Shape::location_in_texture(),
-            ((0.5, 0.0), (1.0, 128.0 / tex_height)).into()
-        );
-        assert_eq!(
-            shape3::Shape::location_in_texture(),
-            ((0.5, 128.0 / tex_height), (0.75, 1.0)).into()
-        );
+        assert_eq!(shape1::Shape::location_in_texture(), ((-256.0, -129.0), (0.0, 127.0)).into());
+        assert_eq!(shape2::Shape::location_in_texture(), ((0.0, -129.0), (256.0, -1.0)).into());
+        assert_eq!(shape3::Shape::location_in_texture(), ((0.0, -1.0), (128.0, 129.0)).into());
 
         let view = shape1::Shape::create_view_for_texture();
         assert_eq!(view.xy(), Vector2(-128.0, -1.0));
