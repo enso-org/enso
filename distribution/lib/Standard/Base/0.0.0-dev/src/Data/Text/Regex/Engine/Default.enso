@@ -186,7 +186,7 @@ type Pattern
        - internal_pattern: The internal representation of the compiled pattern.
        - options: The vector of options with which this pattern was built.
        - engine: A handle to the engine that built this pattern.
-    Value (internal_pattern : TRegexObject) (options : Vector (Regex_Option | Option)) (engine : Default_Engine)
+    Value (internal_pattern : Any) (options : Vector (Regex_Option | Option)) (engine : Default_Engine)
 
     ## PRIVATE
 
