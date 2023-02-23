@@ -321,6 +321,7 @@
 - [Moved regex functionality out of `Text.locate` and `Text.locate_all` into
   `Text.match` and `Text.match_all`.][5679]
 - [`File.parent` may return `Nothing`.][5699]
+- [`Numbers.Nan` is a separate builtin type][5744]
 - [Removed non-regex functionality from `is_match`, `match`, and `match_all`,
   and renamed them to `match`, `find`, `find_all` (respectively).][5721]
 
@@ -495,6 +496,7 @@
 [5656]: https://github.com/enso-org/enso/pull/5656
 [5679]: https://github.com/enso-org/enso/pull/5679
 [5699]: https://github.com/enso-org/enso/pull/5699
+[5744]: https://github.com/enso-org/enso/pull/5744
 [5678]: https://github.com/enso-org/enso/pull/5678
 [5721]: https://github.com/enso-org/enso/pull/5721
 
