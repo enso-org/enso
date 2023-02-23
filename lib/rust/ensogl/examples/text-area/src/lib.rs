@@ -290,6 +290,22 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
                         buffer::RangeLike::Selections,
                         formatting::FontSizeDiff(-2.0),
                     ),
+                    "KeyO" => {
+                        let sign = if event.shift_key() { -1.0 } else { 1.0 };
+                        let glyph_system = area.glyph_system.value().unwrap();
+                        glyph_system.font.opacity_increase.modify(|value| {
+                            *value += sign * 0.01;
+                            warn!("opacity_increase: {value}");
+                        });
+                    }
+                    "KeyE" => {
+                        let sign = if event.shift_key() { -1.0 } else { 1.0 };
+                        let glyph_system = area.glyph_system.value().unwrap();
+                        glyph_system.font.opacity_exponent.modify(|value| {
+                            *value = (*value + sign * 0.1).max(0.0);
+                            warn!("opacity_exponent: {value}");
+                        });
+                    }
                     _ => (),
                 }
                 if let Some(property) = set_property {
