@@ -229,7 +229,7 @@ Text.characters self =
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
 Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Compile_Error
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    case_insensitive = case_sensitivity.is_case_insensitive
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     Regex.compile pattern case_insensitive=case_insensitive . match self Matching_Mode.First
 
 ## Finds all the matches of the regular expression `pattern` in `self`,
@@ -251,7 +251,7 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
 Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Compile_Error
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    case_insensitive = case_sensitivity.is_case_insensitive
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     case Regex.compile pattern case_insensitive=case_insensitive . match self Regex_Mode.All of
         Nothing -> []
         matches -> matches
@@ -278,7 +278,7 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
 Text.match : Text -> Case_Sensitivity -> Boolean ! Compile_Error
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    case_insensitive = case_sensitivity.is_case_insensitive
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
 
