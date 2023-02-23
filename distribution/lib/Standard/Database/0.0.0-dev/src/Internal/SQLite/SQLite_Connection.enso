@@ -108,9 +108,23 @@ type SQLite_Connection
 
     ## PRIVATE
        Internal read function for a statement with optional types.
+
+       Arguments:
+       - statement: SQL_Statement to execute.
+       - expected_types: Optional vector of expected types for each column.
     read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
     read_statement self statement expected_types=Nothing =
         self.connection.read_statement statement expected_types
+
+    ## PRIVATE
+       Internal read function for a statement with optional types returning just last row.
+
+       Arguments:
+       - statement: SQL_Statement to execute.
+       - expected_types: Optional vector of expected types for each column.
+    read_last_row : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
+    read_last_row self statement expected_types=Nothing =
+        self.connection.read_last_row statement expected_types
 
     ## ADVANCED
 

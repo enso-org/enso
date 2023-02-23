@@ -13,7 +13,6 @@ import Standard.Base.Error.Unimplemented.Unimplemented
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
 import project.Data.Column as Column_Module
-import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Join_Condition.Join_Condition
@@ -475,12 +474,22 @@ type Table
                other, a `Duplicate_Output_Column_Names`.
 
        > Example
-         Rename the first column to "FirstColumn"
+         Rename the "Alpha" column to "Beta"
 
-              table.rename_columns (Column_Name_Mapping.By_Position ["FirstColumn"])
+              table.rename_columns (Map.from_vector [["Alpha", "Beta"]])
 
        > Example
-         Rename the first column to "FirstColumn" passed as a Vector
+         Rename the last column to "LastColumn"
+
+              table.rename_columns (Map.from_vector [[-1, "LastColumn"]])
+
+       > Example
+         Rename the "Alpha" column to "Beta" and last column to "LastColumn"
+
+              table.rename_columns (Map.from_vector [["Alpha", "Beta"], [-1, "LastColumn"]])
+
+       > Example
+         Rename the first column to "FirstColumn"
 
               table.rename_columns ["FirstColumn"]
 
@@ -492,18 +501,12 @@ type Table
        > Example
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
-              table.rename_columns (Column_Name_Mapping.By_Name (Map.from_vector [["name=(.*)", "key:$1"]]) Regex_Matcher.Value)
-    rename_columns : Map | Vector Text | Column_Name_Mapping -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (error_on_missing_columns=True) (on_problems=Report_Warning) = case column_map of
-        _ : Vector ->
-            self.rename_columns (Column_Name_Mapping.By_Position column_map) error_on_missing_columns on_problems
-        _ : Map ->
-            self.rename_columns (Column_Name_Mapping.By_Name column_map) error_on_missing_columns on_problems
-        _ ->
-            case Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems of
-                new_names ->
-                    new_columns = self.columns.map_with_index i->c->(c.rename (new_names.at i))
-                    Table.new new_columns
+              by_name = Column_Selector.By_Name "name=(.*)" Case_Sensitivity.Sensitive use_regex=True
+              table.rename_columns (Map.from_vector [[by_name, "key:$1"]])
+    rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
+    rename_columns self column_map=["Column"] (error_on_missing_columns=True) (on_problems=Report_Warning) =
+        new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        new_names.if_not_error (Table.new (self.columns.map c-> c.rename (new_names.at c.name)))
 
     ## Returns a new table with the columns renamed based on entries in the
        first row.
@@ -531,7 +534,7 @@ type Table
                 Nothing -> Nothing
                 _ -> val.to_text
         new_names = self.columns.map mapper
-        self.drop (First 1) . rename_columns (Column_Name_Mapping.By_Position new_names) on_problems=on_problems
+        self.drop (First 1) . rename_columns new_names on_problems=on_problems
 
     ## ALIAS group, summarize
 
@@ -1141,6 +1144,30 @@ type Table
             _ : Integer -> self.slice 0 max_rows
         proxy = Rows_View.Value table
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
+
+    ## Returns the first row of the table.
+
+       In the database backend, it first materializes the table to in-memory.
+    first_row : Row ! Index_Out_Of_Bounds
+    first_row self =
+        if self.row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+            Row.Value self 0
+
+    ## Returns the second row of the table.
+
+       In the database backend, it first materializes the table to in-memory.
+    second_row : Row ! Index_Out_Of_Bounds
+    second_row self =
+        if self.row_count < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.row_count) else
+            Row.Value self 1
+
+    ## Returns the last row of the table.
+
+       In the database backend, it first materializes the table to in-memory.
+    last_row : Row ! Index_Out_Of_Bounds
+    last_row self =
+        if self.row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+            Row.Value self (self.row_count-1)
 
     ## Joins two tables according to the specified join conditions.
 
