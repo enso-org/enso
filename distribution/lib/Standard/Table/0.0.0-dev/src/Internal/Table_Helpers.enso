@@ -1,11 +1,8 @@
 from Standard.Base import all
-import Standard.Base.Data.Text.Matching
-import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
 import project.Data.Column.Column
-import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Position.Position
 import project.Data.Sort_Column.Sort_Column
@@ -209,101 +206,65 @@ type Table_Column_Helper
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-rename_columns : Vector -> Column_Name_Mapping -> Boolean -> Problem_Behavior -> Map
+rename_columns : Vector -> Map (Text | Integer | Column_Selector) Text | Vector Text -> Boolean -> Problem_Behavior -> Map Text Text
 rename_columns internal_columns mapping error_on_missing_columns on_problems =
     unique = Unique_Name_Strategy.new
-    col_count = internal_columns.length
     problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
-    ## Computes the new name for a By_Name rename condition.first_new_name
-
-       In case of text matching, that is just the new provided name.
-       In case of regex matching, the substitutions are performed.
-    make_new_name name matching_criterion new_name matching_strategy = case matching_strategy of
-        _ : Regex_Matcher ->
-            pattern = matching_strategy.compile matching_criterion
-            pattern.replace name new_name
-        _ : Text_Matcher -> new_name
-
     ## Computes a vector of pairs, where each pairs is one of the columns from
-       the original table and a list of new names proposed for it.
+       the original table and a new name proposed for it.
 
-       The list can be empty if the column remains unchanged. The list may also
-       contain multiple entries if multiple matchers have matched the column.
-    columns_with_proposed_new_names = case mapping of
-        Column_Name_Mapping.By_Name map matching_strategy ->
-            name_selectors = map.to_vector
-            match_matrix = Matching.make_match_matrix matching_strategy objects=internal_columns criteria=name_selectors object_name_mapper=(.name) criterion_mapper=(.first)
-            problem_builder.report_missing_input_columns <|
-                match_matrix.unmatched_criteria.map .first
-            internal_columns.map_with_index i-> column->
-                matching_selectors = match_matrix.criteria_matching_object i
-                new_names = matching_selectors.map selector->
-                    make_new_name column.name selector.first selector.second matching_strategy
-                Pair.new column new_names
-        Column_Name_Mapping.By_Index map ->
-            index_selectors = map.to_vector
-            partitioned_selectors = index_selectors.partition selector->
-                is_index_valid col_count selector.first
-            inbound_selectors = partitioned_selectors.first
-            oob_indices = partitioned_selectors.second . map .first
-            problem_builder.report_oob_indices oob_indices
-
-            index_mapping = inbound_selectors.fold Map.empty acc-> selector->
-                ix = selector.first
-                resolved_ix = if ix < 0 then ix + col_count else ix
-
-                matches = acc.get resolved_ix []
-                acc.insert resolved_ix matches+[selector]
-
-            internal_columns.map_with_index i-> column->
-                matching_selectors = index_mapping.get i []
-                new_names = matching_selectors.map selector->
-                    selector.second
-                Pair.new column new_names
-        Column_Name_Mapping.By_Position vec ->
-            good_names = case vec.length > col_count of
-                True ->
-                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (First col_count)))
-                    vec.take (First col_count)
-                False -> vec
-
-            new_names = good_names.map (name-> [name]) . pad col_count []
-            internal_columns.zip new_names Pair.new
+       The list can be empty if the column remains unchanged.
+       The list may also contain duplicate input columns.
+    columns_with_new_names = case mapping of
+        vec : Vector ->
+            col_count = internal_columns.length
+            good_names = if vec.length <= col_count then vec else
+                problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (First col_count)))
+                vec.take (First col_count)
+            internal_columns.take good_names.length . zip good_names
+        _ : Map ->
+            resolve_rename selector replacement = case selector of
+                name : Text -> resolve_rename (Column_Selector.By_Name name Case_Sensitivity.Sensitive False) replacement
+                ix : Integer -> if is_index_valid internal_columns.length ix then [Pair.new (internal_columns.at ix) replacement] else
+                    problem_builder.report_oob_indices [ix]
+                    []
+                Column_Selector.By_Name name case_sensitivity use_regex ->
+                    matches = match_columns name case_sensitivity use_regex internal_columns
+                    case matches.is_empty of
+                        True ->
+                            problem_builder.report_missing_input_columns [name]
+                            []
+                        False ->
+                            if use_regex.not then matches.map c-> Pair.new c replacement else
+                                pattern = Regex.compile name case_insensitive=case_sensitivity.is_case_insensitive_in_memory
+                                matches.map c-> Pair.new c (pattern.replace c.name replacement)
+                Column_Selector.Blank_Columns _ _ ->
+                    Error.throw (Illegal_Argument.Error "Cannot use `Blank_Columns` to rename.")
+            builder = mapping.to_vector.fold Vector.new_builder builder-> pair-> builder.append_vector_range (resolve_rename pair.first pair.second)
+            builder.to_vector
 
     ## Resolves actual new names for renamed columns.
-
        If a column received ambiguous new names, an error is raised.
-       If a column is not renamed, `Not_Renamed` is given as its new name.
-       (We do not use Nothing, to be able to handle the case where the new name
-       is set to `Nothing`.)
-    columns_with_new_names = columns_with_proposed_new_names.map p->
-        column = p.first
-        new_names = p.second
-        if new_names.is_empty then Pair.new column Not_Renamed else
-            first_new_name = new_names.first
-            names_unambiguous = new_names.all (== first_new_name)
-            if names_unambiguous then Pair.new column first_new_name else
-                Error.throw (Ambiguous_Column_Rename.Error column.name new_names)
+    name_map = columns_with_new_names.fold Map.empty current-> pair->
+        old_name = pair.first.name
+        case current.contains_key old_name of
+            False -> current.insert old_name pair.second
+            True -> if current.get old_name == pair.second then current else
+                new_names = columns_with_new_names.filter p->p.first.name==old_name . map p-> p.second
+                Error.throw (Ambiguous_Column_Rename.Error old_name new_names)
 
     ## Renamed names take precedence, so we first deduplicate those.
-
-       This will replace the renamed columns with their effective names, while
-       keeping the unaffected columns as original pairs, so that they are marked
-       for processing in the next step.
-    after_renames = columns_with_new_names.map p->
-        new_name = p.second
-        case new_name of
-            Not_Renamed -> p
-            _ -> unique.make_unique new_name
+    resolved_name_map = name_map.map unique.make_unique
 
     ## Then we ensure that the names of not-renamed columns are also unique and
        return the effective column names for each column.
-    new_column_names = after_renames.map x-> case x of
-        Pair.Value unchanged_column Not_Renamed ->
-            unique.make_unique unchanged_column.name
-        renamed_column_name : Text -> renamed_column_name
+    not_renamed = internal_columns.filter c-> resolved_name_map.contains_key c.name . not
+    new_column_names = not_renamed.fold resolved_name_map current-> column->
+        new_name = unique.make_unique column.name
+        current.insert column.name new_name
 
+    ## Attach any problems
     problem_builder.report_unique_name_strategy unique
     problem_builder.attach_problems_before on_problems new_column_names
 
@@ -338,13 +299,6 @@ sort_columns internal_columns order text_ordering =
     internal_columns.sort order=order on=mapper by=comparator
 
 ## PRIVATE
-   Converts the generic `No_Matches_Found` error to a more specific
-   `Missing_Input_Columns`. Any other errors are returned as-is.
-promote_no_matches_to_missing_columns error = case error of
-    Matching.No_Matches_Found.Error criteria -> Maybe.Some <| Missing_Input_Columns.Error criteria
-    _ -> Nothing
-
-## PRIVATE
    Selects element from the vector based on the given indices.
 
    The elements are returned in the same order as their provided indices.
@@ -371,12 +325,8 @@ is_index_valid length ix =
    A helper method to match columns by name
 match_columns : Text -> Case_Sensitivity -> Boolean -> Vector -> Vector
 match_columns name case_sensitivity use_regex columns =
-    matcher = if use_regex then Regex_Matcher.Value case_sensitivity=case_sensitivity else
-        case case_sensitivity of
-            Case_Sensitivity.Default -> Text_Matcher.Case_Sensitive
-            Case_Sensitivity.Sensitive -> Text_Matcher.Case_Sensitive
-            Case_Sensitivity.Insensitive locale -> Text_Matcher.Case_Insensitive locale=locale
-    columns.filter c-> matcher.match_single_criterion c.name name
+    match = case_sensitivity.create_match_function use_regex
+    columns.filter c-> match c.name name
 
 ## PRIVATE
    A helper type used by transform helpers.

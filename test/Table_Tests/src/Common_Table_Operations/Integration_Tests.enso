@@ -39,7 +39,8 @@ spec setup =
             rows = t4.rows . map .to_vector
             r1 = rows.at 0
             r1.second . should_equal 5
-            ["A", "B"].contains r1.first . should_be_true
+            a_or_b = (r1.first == "A") || (r1.first == "B")
+            a_or_b . should_be_true
             rows.at 1 . should_equal ["C", 13]
 
         Test.specify "aggregates and filtering" <|

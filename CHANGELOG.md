@@ -100,6 +100,9 @@
 - [Improved argument placeholder resolution in more complex expressions][5656].
   It is now possible to drop node connections onto missing arguments of chained
   and nested function calls.
+- [The component browser suggestions take into account entry aliases][5678]. The
+  searcher input is now matched to entry aliases too. The alias match is used to
+  filter and sort component browser entries.
 
 #### EnsoGL (rendering engine)
 
@@ -318,6 +321,10 @@
 - [Moved regex functionality out of `Text.locate` and `Text.locate_all` into
   `Text.match` and `Text.match_all`.][5679]
 - [`File.parent` may return `Nothing`.][5699]
+- [Removed non-regex functionality from `is_match`, `match`, and `match_all`,
+  and renamed them to `match`, `find`, `find_all` (respectively).][5721]
+- [Updated `rename_columns` to new API. Added `first_row`, `second_row` and
+  `last_row` to Table types][5719]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -488,7 +495,11 @@
 [5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
 [5656]: https://github.com/enso-org/enso/pull/5656
+[5678]: https://github.com/enso-org/enso/pull/5678
+[5679]: https://github.com/enso-org/enso/pull/5679
 [5699]: https://github.com/enso-org/enso/pull/5699
+[5719]: https://github.com/enso-org/enso/pull/5719
+[5721]: https://github.com/enso-org/enso/pull/5721
 
 #### Enso Compiler
 

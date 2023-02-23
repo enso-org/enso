@@ -5,18 +5,21 @@
 // === Color ===
 // =============
 
-/// The default color used for [`Shape`]s. The LCHA representation was chosen because it gives good
-/// results for color blending (better than RGB and way better than sRGB).
+/// The default color used for [`Shape`]s.
 struct Color {
-    Lcha repr;
+    Rgba repr;
 };
 
-Color color (Lcha color) {
+Color color (Rgba color) {
     return Color(color);
 }
 
-Color color(vec3 lch, float a) {
-    return Color(lcha(lch, a));
+Color color(vec3 rgb, float a) {
+    return Color(rgba(rgb, a));
+}
+
+Color color(Rgb rgb, float a) {
+    return Color(rgba(rgb, a));
 }
 
 Srgba srgba(Color color) {
@@ -31,13 +34,13 @@ Srgba srgba(Color color) {
 
 /// The premultiplied version of [`Color`] (the `xyz` components are multiplied by its alpha).
 struct PremultipliedColor {
-    Lcha repr;
+    Rgba repr;
 };
 
 PremultipliedColor premultiply(Color t) {
     float alpha = a(t.repr);
     vec3 rgb = t.repr.raw.rgb * alpha;
-    return PremultipliedColor(lcha(rgb, alpha));
+    return PremultipliedColor(rgba(rgb, alpha));
 }
 
 Color unpremultiply(PremultipliedColor c) {
@@ -50,11 +53,15 @@ Color unpremultiply(PremultipliedColor c) {
 /// in the [`Color`]'s color space. See docs of [`Color`] to learn more.
 PremultipliedColor blend(PremultipliedColor bg, PremultipliedColor fg) {
     vec4 raw = fg.repr.raw + (1.0 - fg.repr.raw.a) * bg.repr.raw;
-    return PremultipliedColor(lcha(raw));
+    return PremultipliedColor(rgba(raw));
 }
 
 Srgba srgba(PremultipliedColor color) {
     return srgba(unpremultiply(color));
+}
+
+Rgba rgba(PremultipliedColor color) {
+    return unpremultiply(color).repr;
 }
 
 
@@ -77,6 +84,10 @@ BoundingBox bounding_box (float min_x, float max_x, float min_y, float max_y) {
 
 BoundingBox bounding_box (float w, float h) {
     return BoundingBox(-w, w, -h, h);
+}
+
+BoundingBox bounding_box (vec2 center_point, float w, float h) {
+    return BoundingBox(center_point.x - w, center_point.x + w, center_point.y - h, center_point.y + h);
 }
 
 BoundingBox bounding_box (vec2 size) {
@@ -123,6 +134,10 @@ BoundingBox grow (BoundingBox a, float value) {
     float min_y = a.min_y - value;
     float max_y = a.max_y + value;
     return BoundingBox(min_x, max_x, min_y, max_y);
+}
+
+bool contains(BoundingBox box, vec2 point) {
+    return box.min_x <= point.x && box.max_x >= point.x && box.min_y <= point.y && box.max_y >= point.y;
 }
 
 
@@ -270,13 +285,19 @@ struct Shape {
     Id id;
     /// The Signed Distance Field, describing the shape boundaries.
     BoundSdf sdf;
-    /// The color of the shape. Please note that we are storing the premultiplied version of the
-    /// color, as blending requires premultiplied values. We could store the non-premultiplied,
-    /// however, then we would need to unpremultiply the color after blending, which leads to
-    /// a serious issue. If the alpha is 0, then either unpremultiplication needs to be more costly
-    /// and check for this condition, or it will produce infinite/invalid values for the `xyz`
-    /// components. If we blend such a color with another one, then we will get artifacts, as
-    /// multiplying an infinite/invalid value by 0 is an undefined behavior.
+    /// The color of the shape.
+    ///
+    /// We are storing the premultiplied version of the color, as blending requires premultiplied
+    /// values. We could store the non-premultiplied, however, then we would need to unpremultiply
+    /// the color after blending, which leads to a serious issue. If the alpha is 0, then either
+    /// unpremultiplication needs to be more costly and check for this condition, or it will produce
+    /// infinite/invalid values for the `xyz` components. If we blend such a color with another one,
+    /// then we will get artifacts, as multiplying an infinite/invalid value by 0 is an undefined
+    /// behavior.
+    ///
+    /// The [`alpha`] field is applied on thin field, except if we are in
+    /// `DISPLAY_MODE_CACHED_SHAPES_TEXTURE`. This display mode is an exception, because otherwise
+    /// cached shapes would have darker borders if not aligned to the texture pixels.
     PremultipliedColor color;
     /// The opacity of the shape. It is the result of rendering of the [`sdf`].
     float alpha;
@@ -284,7 +305,11 @@ struct Shape {
 
 Shape shape (Id id, BoundSdf bound_sdf, PremultipliedColor color) {
     float alpha = render(bound_sdf);
-    color.repr.raw *= alpha;
+    // See [`color`] field documentation for explanation why DISPLAY_MODE_CACHED_SHAPES_TEXTURE is
+    // an exception.
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        color.repr.raw *= alpha;
+    }
     return Shape(id, bound_sdf, color, alpha);
 }
 
@@ -292,16 +317,12 @@ Shape shape (Id id, BoundSdf bound_sdf, Color color) {
     return shape(id, bound_sdf, premultiply(color));
 }
 
-Shape shape (Id id, BoundSdf bound_sdf, Srgba rgba) {
-    return shape(id, bound_sdf, Color(lcha(rgba)));
+Shape shape (Id id, BoundSdf bound_sdf, Rgba rgba) {
+    return shape(id, bound_sdf, Color(rgba));
 }
 
 Shape shape (Id id, BoundSdf bound_sdf) {
-    return shape(id, bound_sdf, srgba(1.0, 0.0, 0.0, 1.0));
-}
-
-Shape shape (Id id, BoundSdf bound_sdf, Lcha lcha) {
-    return shape(id, bound_sdf, Color(lcha));
+    return shape(id, bound_sdf, rgba(1.0, 0.0, 0.0, 1.0));
 }
 
 /// A debug [`Shape`] constructor. Should not be used to create shapes that are rendered to the
@@ -315,21 +336,33 @@ Shape debug_shape (BoundSdf bound_sdf) {
 Shape resample (Shape s, float multiplier) {
     Id id = s.id;
     BoundSdf sdf = resample(s.sdf, multiplier);
-    s.color.repr.raw.a /= s.alpha;
+    // The [`alpha`] field is not applied on [`color`] if we are in
+    // `DISPLAY_MODE_CACHED_SHAPES_TEXTURE`. See [`color`] docs for explanation.
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        s.color.repr.raw.a /= s.alpha;
+    }
     return shape(id, sdf, s.color);
 }
 
 Shape pixel_snap (Shape s) {
     Id id = s.id;
     BoundSdf sdf = pixel_snap(s.sdf);
-    s.color.repr.raw.a /= s.alpha;
+    // The [`alpha`] field is not applied on [`color`] if we are in
+    // `DISPLAY_MODE_CACHED_SHAPES_TEXTURE`. See [`color`] docs for explanation.
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        s.color.repr.raw.a /= s.alpha;
+    }
     return shape(id, sdf, s.color);
 }
 
 Shape grow (Shape s, float value) {
     Id id = s.id;
     BoundSdf sdf = grow(s.sdf,value);
-    s.color.repr.raw.a /= s.alpha;
+    // The [`alpha`] field is not applied on [`color`] if we are in
+    // `DISPLAY_MODE_CACHED_SHAPES_TEXTURE`. See [`color`] docs for explanation.
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        s.color.repr.raw.a /= s.alpha;
+    }
     return shape(id, sdf, s.color);
 }
 
@@ -338,6 +371,22 @@ Shape inverse (Shape s1) {
 }
 
 Shape unify (Shape s1, Shape s2) {
+    if (input_display_mode == DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        // In DISPLAY_MODE_CACHED_SHAPES_TEXTURE the color has not [`alpha`] field applied (See
+        // [`color`] documentation for explanation). That means, that even outside the
+        // foreground shape the [`color`] field will be in the full shape's intensity. However we
+        // need to make the foregroud color to give way for background colors, so it won't "cover"
+        // the background shape.
+        // There are two conditions we want to met:
+        // * If we are outside the foreground shape, but inside the background shape, the foreground
+        //   color should blend properly with background color, so it alpha must apply the sdf render
+        //   results ([`alpha`] field).
+        // * We want to keep the color consistent near border of the both shapes.
+        // The code below meets the both conditions.
+        if (s2.sdf.distance > s1.sdf.distance) {
+            s2.color.repr.raw *= s2.alpha;
+        }
+    }
     return shape(s1.id, unify(s1.sdf, s2.sdf), blend(s1.color, s2.color));
 }
 
@@ -353,9 +402,11 @@ Shape intersection_no_blend (Shape s1, Shape s2) {
     return shape(s1.id, intersection(s1.sdf, s2.sdf), s1.color);
 }
 
-Shape set_color(Shape shape, Srgba t) {
-    t.raw.a *= shape.alpha;
-    shape.color = premultiply(Color(lcha(t)));
+Shape set_color(Shape shape, Rgba t) {
+    if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+        t.raw.a *= shape.alpha;
+    }
+    shape.color = premultiply(Color(t));
     return shape;
 }
 
@@ -363,6 +414,32 @@ Shape with_infinite_bounds (Shape s) {
     BoundSdf sdf = s.sdf;
     sdf.bounds = infinite();
     return shape(s.id, sdf, s.color);
+}
+
+/// Read the shape from the Cached Shapes Texture.
+///
+/// The `tex_bbox` is expressed in texture pixels, where origin is at the texture center.
+Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
+    BoundingBox texture_bbox = bounding_box(tex_bbox.x, tex_bbox.z, tex_bbox.y, tex_bbox.w);
+    BoundingBox shape_bbox = bounding_box(position, (tex_bbox.z - tex_bbox.x) / 2.0, (tex_bbox.w - tex_bbox.y) / 2.0);
+    
+    vec2 texture_bbox_center = (tex_bbox.xy + tex_bbox.zw) / 2.0;
+    vec2 texture_position = texture_bbox_center + position;
+    vec2 texture_uv_origin = vec2(0.5, 0.5);
+    vec2 texture_uv = (texture_position / vec2(textureSize(input_pass_cached_shapes, 0))) + texture_uv_origin;
+    Rgba color_and_distance;
+    if (contains(texture_bbox, texture_position)) {
+        color_and_distance = rgba(texture(input_pass_cached_shapes, texture_uv));
+    } else {
+        color_and_distance = rgba(0.0, 0.0, 0.0, 0.0);
+    }
+    // The signed distance is stored in the texture's alpha channel in a special way. See
+    // [`crate::display::shape::primitive::system::cached`] documentation for details.
+    float alpha_representing_0_sdf = 0.5;
+    float distance = -(color_and_distance.raw.a - alpha_representing_0_sdf) * 2.0 * CACHED_SHAPE_MAX_DISTANCE;
+    BoundSdf sdf = bound_sdf(distance, shape_bbox);
+    Color shape_color = color(color_and_distance.raw.rgb, 1.0);
+    return shape(id, sdf, shape_color);
 }
 
 

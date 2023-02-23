@@ -133,7 +133,7 @@ public abstract class Atom implements TruffleObject {
   public Array getMembers(boolean includeInternal) {
     Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
     if (members == null) {
-      return new Array(0);
+      return Array.allocate(0);
     }
     Object[] mems = members.keySet().toArray();
     return new Array(mems);
