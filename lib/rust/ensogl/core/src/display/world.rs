@@ -55,8 +55,8 @@ thread_local! {
 }
 
 /// Perform an action with a reference to the global context.
-pub fn with_context<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
-    CONTEXT.with_borrow(|t| f(t.as_ref().unwrap()))
+pub fn with_context<T>(f: impl FnOnce(&SymbolRegistry) -> T) -> T {
+    CONTEXT.with_borrow(move |t| f(t.as_ref().unwrap()))
 }
 
 /// Initialize global state (set stack trace size, logger output, etc).
@@ -110,11 +110,18 @@ impl ShapeDefinition {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct CachedShapeDefinition {
-    /// The size of the shape in the texture.
-    pub size: Vector2<i32>,
-    /// A constructor of single shape view.
+    /// The size of the texture's space occupied by the shape.
+    pub size: Vector2,
+    /// A pointer to function setting the global information about position in the cached shapes
+    /// texture, usually a concrete implementation of
+    /// [`set_position_in_texture`](crate::display::shape::system::cached::CachedShape::set_position_in_texture)
     #[derivative(Debug = "ignore")]
-    pub cons: ShapeCons,
+    pub position_on_texture_setter: Box<dyn Fn(Vector2)>,
+    /// A pointer to function creating a shape instance properly placed for cached texture
+    /// rendering, usually a concrete implementation of
+    /// [`create_view_for_texture`](crate::display::shape::system::cached::CachedShape::create_view_for_texture)
+    #[derivative(Debug = "ignore")]
+    pub for_texture_constructor: ShapeCons,
 }
 
 thread_local! {
@@ -251,16 +258,14 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
 /// Uniforms managed by world.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Uniforms {
-    time:         Uniform<f32>,
-    display_mode: Uniform<i32>,
+    time: Uniform<f32>,
 }
 
 impl Uniforms {
     /// Constructor.
     pub fn new(scope: &UniformScope) -> Self {
         let time = scope.add_or_panic("time", 0.0);
-        let display_mode = scope.add_or_panic("display_mode", 0);
-        Self { time, display_mode }
+        Self { time }
     }
 }
 
@@ -367,6 +372,7 @@ impl WorldDataWithLoop {
         // Context is initialized automatically before main entry point starts in WASM. We are
         // performing manual initialization for native tests to work correctly.
         init_context();
+        display::shape::primitive::system::cached::initialize_cached_shape_positions_in_texture();
         let frp = Frp::new();
         let data = WorldData::new(&frp.private.output);
         let on_frame_start = animation::on_frame_start();
@@ -508,7 +514,7 @@ impl WorldData {
     fn init_debug_hotkeys(&self) {
         let stats_monitor = self.stats_monitor.clone_ref();
         let display_mode = self.display_mode.clone_ref();
-        let display_mode_uniform = self.uniforms.display_mode.clone_ref();
+        let display_mode_uniform = with_context(|ctx| ctx.display_mode.clone_ref());
         let emit_measurements_handle = self.emit_measurements_handle.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
