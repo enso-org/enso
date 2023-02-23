@@ -136,6 +136,15 @@ macro_rules! define_property {
             }
         )*
 
+        impl From<ResolvedProperty> for Property {
+            fn from(property: ResolvedProperty) -> Self {
+                match property {
+                    $(ResolvedProperty::[<$field:camel>](value) =>
+                        Self::[<$field:camel>](Some(value))),*
+                }
+            }
+        }
+
         /// A property name without values.
         #[allow(missing_docs)]
         #[derive(Clone, Copy, Debug, From, PartialEq, Eq)]
