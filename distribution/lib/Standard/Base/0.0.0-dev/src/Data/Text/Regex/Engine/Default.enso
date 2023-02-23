@@ -38,6 +38,7 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Text.Matching_Mode.Matching_Mode
+import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Invalid_Option
 import project.Data.Text.Regex.Invalid_Bounds_Error
 import project.Data.Text.Regex.Mode_Error
@@ -137,6 +138,22 @@ type Default_Engine
 
         Pattern.Value internal_pattern all_options self
 
+    compile_2 : Text -> Vector (Regex_Option | Option) -> Pattern ! (Compile_Error | Invalid_Option)
+    compile_2 self expression options =
+        all_options = options + self.engine_opts
+        options_bitmask = from_enso_options all_options
+        unicode_regex = UnicodeRegex.new
+
+        maybe_java_pattern = Panic.recover Any <|
+            Prim_Text_Helper.compile_regex (unicode_regex.transform expression) options_bitmask
+
+        internal_pattern = maybe_java_pattern.map_error case _ of
+            err : PatternSyntaxException -> Syntax_Error.Error ("The regex could not be compiled: " + err.getMessage)
+            other -> other
+
+        Pattern.Value internal_pattern all_options self
+
+
     ## ADVANCED
 
        Escape the special characters in `expression` such that the result is a
@@ -169,7 +186,7 @@ type Pattern
        - internal_pattern: The internal representation of the compiled pattern.
        - options: The vector of options with which this pattern was built.
        - engine: A handle to the engine that built this pattern.
-    Value (internal_pattern : Java_Pattern) (options : Vector (Regex_Option | Option)) (engine : Default_Engine)
+    Value (internal_pattern : TRegexObject) (options : Vector (Regex_Option | Option)) (engine : Default_Engine)
 
     ## PRIVATE
 
@@ -196,7 +213,7 @@ type Pattern
         #normalized_input = if self.options.contains Regex_Option.Ascii_Matching then input else
         #    Text_Utils.normalize input
         normalized_input = input
-        internal_matcher = self.internal_pattern.matcher normalized_input . region start end
+        internal_matcher = self.internal_pattern.exec normalized_input . region start end
 
         if self.options.contains Option.No_Anchoring_Bounds then
             internal_matcher.useAnchoringBounds False
@@ -348,10 +365,9 @@ type Pattern
                  input = "aa"
                  pattern.matches input
     matches : Text -> Boolean
-    matches self input = case self.match input mode=Regex_Mode.Full of
-        _ : Match -> True
-        _ : Vector -> True
-        _ -> False
+    matches self input =
+        m = self.internal_pattern.exec input 0
+        m . isMatch && m.getEnd 0 == input.length
 
     ## ADVANCED
 

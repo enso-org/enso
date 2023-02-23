@@ -7,3 +7,5 @@ import project.Data.Text.Text
    Forces flattening of a text value.
 optimize : Text
 optimize text = @Builtin_Method "Prim_Text_Helper.optimize"
+
+compile_regex pattern options = @Builtin_Method "Prim_Text_Helper.compile_regex"
