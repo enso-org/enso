@@ -53,7 +53,7 @@ public class Number {
     return decimal.getType();
   }
 
-  public Type getNaN() {
+  public Type getNan() {
     return nan.getType();
   }
 }

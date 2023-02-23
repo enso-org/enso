@@ -33,7 +33,7 @@ public class TypesFromProxy {
       case ConstantsGen.DATE_TIME -> builtins.dateTime();
       case ConstantsGen.DURATION -> builtins.duration();
       case ConstantsGen.DECIMAL -> builtins.number().getDecimal();
-      case ConstantsGen.NAN -> builtins.number().getNaN();
+      case ConstantsGen.NAN -> builtins.number().getNan();
       case ConstantsGen.ERROR -> builtins.dataflowError();
       case ConstantsGen.FUNCTION -> builtins.function();
       case ConstantsGen.FILE -> builtins.file();
