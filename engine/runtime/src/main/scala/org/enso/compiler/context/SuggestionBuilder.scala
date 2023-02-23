@@ -382,10 +382,14 @@ final class SuggestionBuilder[A: IndexedSource](
     resolvedName: BindingsMap.ResolvedName
   ): TypeArg = resolvedName match {
     case tp: BindingsMap.ResolvedType =>
-      TypeArg.Sum(
-        Some(tp.qualifiedName),
-        tp.getVariants.map(r => TypeArg.Value(r.qualifiedName))
-      )
+      if (tp.getVariants.size > 1) {
+        TypeArg.Sum(
+          Some(tp.qualifiedName),
+          tp.getVariants.map(r => TypeArg.Value(r.qualifiedName))
+        )
+      } else {
+        TypeArg.Sum(Some(tp.qualifiedName), Seq.empty)
+      }
     case _: BindingsMap.ResolvedName =>
       TypeArg.Value(resolvedName.qualifiedName)
   }
