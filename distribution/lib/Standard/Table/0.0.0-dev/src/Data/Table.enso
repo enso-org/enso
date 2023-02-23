@@ -479,7 +479,7 @@ type Table
               table.rename_columns (Map.from_vector [["Alpha", "Beta"]])
 
        > Example
-         Rename the last column to "LastColumn" passed as a Map
+         Rename the last column to "LastColumn"
 
               table.rename_columns (Map.from_vector [[-1, "LastColumn"]])
 
@@ -489,7 +489,7 @@ type Table
               table.rename_columns (Map.from_vector [["Alpha", "Beta"], [-1, "LastColumn"]])
 
        > Example
-         Rename the first column to "FirstColumn" passed as a Vector
+         Rename the first column to "FirstColumn"
 
               table.rename_columns ["FirstColumn"]
 

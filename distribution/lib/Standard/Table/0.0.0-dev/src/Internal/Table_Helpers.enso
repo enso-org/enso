@@ -241,7 +241,8 @@ rename_columns internal_columns mapping error_on_missing_columns on_problems =
                                 matches.map c-> Pair.new c (pattern.replace c.name replacement)
                 Column_Selector.Blank_Columns _ _ ->
                     Error.throw (Illegal_Argument.Error "Cannot use `Blank_Columns` to rename.")
-            mapping.to_vector.fold [] current-> pair-> current + resolve_rename pair.first pair.second
+            builder = mapping.to_vector.fold Vector.new_builder builder-> pair-> builder.append_vector_range (resolve_rename pair.first pair.second)
+            builder.to_vector
 
     ## Resolves actual new names for renamed columns.
        If a column received ambiguous new names, an error is raised.
