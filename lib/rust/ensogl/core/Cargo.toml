@@ -38,6 +38,7 @@ js-sys = { workspace = true }
 nalgebra = { workspace = true }
 num_enum = { version = "0.5.1" }
 num-traits = { version = "0.2" }
+ordered-float = { workspace = true }
 rustc-hash = { version = "1.0.1" }
 semver = { version = "1.0.9" }
 serde = { version = "1" }
