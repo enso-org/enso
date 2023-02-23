@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
-import project.Data.Column_Type_Selection.Auto
+import project.Data.Value_Type.Auto
 import project.Data.Storage.Storage
 import project.Internal.Parse_Values_Helper
 

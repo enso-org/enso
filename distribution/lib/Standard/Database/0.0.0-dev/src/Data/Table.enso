@@ -16,6 +16,7 @@ import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Value_Type.Auto
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Java_Exports
