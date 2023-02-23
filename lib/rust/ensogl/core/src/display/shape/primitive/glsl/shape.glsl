@@ -412,6 +412,10 @@ Shape set_color(Shape shape, Rgba t) {
     return shape;
 }
 
+/// Change the shape color depending on RGB components.
+///
+/// See documentation of [`ShapeOps::colorize`] for detailed explanation and
+/// usage examples.
 Shape recolorize(Shape shape, Rgba r, Rgba g, Rgba b) {
     PremultipliedColor r_prem = premultiply(Color(r));
     PremultipliedColor g_prem = premultiply(Color(g));
