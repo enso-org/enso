@@ -432,18 +432,48 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     out.println("    } catch (UnexpectedResultException e) {");
     out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
     out.println("      var builtins = EnsoContext.get(this).getBuiltins();");
-    out.println(
-        "      var expected = builtins.fromTypeSystem(TypesGen.getName(arguments[arg"
-            + arg.getPosition()
-            + "Idx]));");
-    out.println(
-        "      var error = builtins.error().makeTypeError(expected, arguments[arg"
-            + arg.getPosition()
-            + "Idx], \""
-            + varName
-            + "\");");
+
+    String constantName = getConstantName(arg.getTypeName());
+    if (constantName != null) {
+      out.println("      var expected = builtins.fromTypeSystem(" + constantName + ");");
+      out.println(
+              "      var error = builtins.error().makeTypeError(expected, arguments[arg"
+                      + arg.getPosition()
+                      + "Idx], \""
+                      + varName
+                      + "\");");
+    } else {
+      out.println(
+              "      var error = builtins.error().makeUnsupportedArgumentsError(new Object[] { arguments[arg"
+                      + arg.getPosition()
+                      + "Idx] }, \"Unsupported argument for "
+                      + varName
+                      + " expected a "
+                      + capitalize(arg.getTypeName())
+                      + "\");");
+    }
     out.println("      throw new PanicException(error,this);");
     out.println("    }");
+  }
+
+  private String getConstantName(String typeName) {
+    String upperCaseTypeName = typeName.toUpperCase();
+    String constantsType = "org.enso.interpreter.runtime.type.ConstantsGen.";
+    String methodName = switch (upperCaseTypeName) {
+      case "ARRAY", "BOOLEAN", "FUNCTION", "REF", "TEXT", "VECTOR", "WARNING" -> upperCaseTypeName;
+      case "ENSODATE", "ENSODURATION", "ENSOFILE" ->  upperCaseTypeName.substring(4);
+      case "ARRAYPROXY" -> "ARRAY_PROXY";
+      case "DATAFLOWERROR" -> "ERROR";
+      case "DOUBLE" -> "DECIMAL";
+      case "ENSOBIGINTEGER", "LONG" -> "INTEGER";
+      case "ENSODATETIME" -> "DATE_TIME";
+      case "ENSOHASHMAP" -> "MAP";
+      case "ENSOTIMEOFDAY" -> "TIME_OF_DAY";
+      case "ENSOTIMEZONE" -> "TIME_ZONE";
+      case "MANAGEDRESOURCE" -> "MANAGED_RESOURCE";
+      default -> null;
+    };
+    return methodName == null ? null : constantsType + methodName;
   }
 
   private boolean generateWarningsCheck(
