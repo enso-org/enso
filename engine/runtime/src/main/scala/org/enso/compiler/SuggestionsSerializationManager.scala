@@ -17,11 +17,14 @@ final class SuggestionsSerializationManager(logger: TruffleLogger) {
   private val debugLogLevel = Level.FINE
 
   private lazy val mapper = {
-    val mapper  = new ObjectMapper() with ClassTagExtensions
+    val mapper = new ObjectMapper() with ClassTagExtensions
     mapper.registerModule(DefaultScalaModule)
   }
 
-  case class SuggetionWithVersion (version : Int, suggestions : Iterable[Suggestion])
+  case class SuggetionWithVersion(
+    version: Int,
+    suggestions: Iterable[Suggestion]
+  )
 
   def serialize(
     suggestions: Iterable[Suggestion],
@@ -38,7 +41,7 @@ final class SuggestionsSerializationManager(logger: TruffleLogger) {
 
       r.createDirectories()
       f = r.resolve("suggestion.json")
-      val w    = f.newBufferedWriter(StandardCharsets.UTF_8)
+      val w = f.newBufferedWriter(StandardCharsets.UTF_8)
       w.write(toJson(suggestions))
       w.close()
     } finally {
@@ -46,9 +49,11 @@ final class SuggestionsSerializationManager(logger: TruffleLogger) {
     }
   }
 
-  def toJson(suggestions: Iterable[Suggestion]): String = new String(mapper
-    .writerWithDefaultPrettyPrinter()
-    .writeValueAsBytes(new SuggetionWithVersion(5068, suggestions)))
+  def toJson(suggestions: Iterable[Suggestion]): String = new String(
+    mapper
+      .writerWithDefaultPrettyPrinter()
+      .writeValueAsBytes(new SuggetionWithVersion(5068, suggestions))
+  )
 
   def deserialize(pkg: Package[TruffleFile]): Unit = {
     logger.log(debugLogLevel, "deserialize [{}]", pkg.config.name)

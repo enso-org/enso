@@ -75,7 +75,7 @@ class SuggestionDiffTest extends AnyWordSpecLike with Matchers {
 
     val code   = """foo = 42"""
     val module = code.preprocessModule
-    val t1 = build(code, module)
+    val t1     = build(code, module)
 
     t1 shouldEqual expected
 

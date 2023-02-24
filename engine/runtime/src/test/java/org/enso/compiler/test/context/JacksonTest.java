@@ -1,26 +1,27 @@
 package org.enso.compiler.test.context;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule;
 import java.util.List;
+
 import org.enso.polyglot.Suggestion;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-
 import org.junit.Test;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.scala.DefaultScalaModule;
+
 import scala.Option;
-import scala.collection.immutable.Seq;
 
 public class JacksonTest {
 
   @Test
   public void testSerdeOfSuggestion() throws Exception {
     Object shape = new Suggestion.Module(
-      "SampleModule", 
-      Option.apply("doc"), 
-      Option.apply("html"), 
-      Option.empty(), 
+      "SampleModule",
+      Option.apply("doc"),
+      Option.apply("html"),
+      Option.empty(),
       Option.empty()
     );
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
@@ -37,10 +38,10 @@ public class JacksonTest {
   @Test
   public void testArraySerdeOfSuggestion() throws Exception {
     Object shape = new Suggestion[]{new Suggestion.Module(
-      "SampleModule", 
-      Option.apply("doc"), 
-      Option.apply("html"), 
-      Option.empty(), 
+      "SampleModule",
+      Option.apply("doc"),
+      Option.apply("html"),
+      Option.empty(),
       Option.empty()
       )};
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
@@ -62,10 +63,10 @@ public class JacksonTest {
   @Test
   public void testRecordSerdeOfSuggestion() throws Exception {
     Object shape = new SuggestionCache(11, List.of(new Suggestion.Module(
-      "SampleModule", 
-      Option.apply("doc"), 
-      Option.apply("html"), 
-      Option.empty(), 
+      "SampleModule",
+      Option.apply("doc"),
+      Option.apply("html"),
+      Option.empty(),
       Option.empty()
     )));
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
@@ -82,7 +83,7 @@ public class JacksonTest {
       fail("Expecting Suggestion.Module: " + cache);
     }
   }
-  
+
   public record SuggestionCache(
     @JsonProperty("version") int version,
     @JsonProperty("suggestions") List<Suggestion> suggestions

@@ -32,18 +32,29 @@ object SuggestionDiff {
           true
       }
 
-  case class SuggestionData(version : Int, suggestions : Iterable[Suggestion])
+  case class SuggestionData(version: Int, suggestions: Iterable[Suggestion])
 
   def deserialize(
     json: String
-  ): Tree[Api.SuggestionUpdate] = {
-    val mapper  = new ObjectMapper() with ClassTagExtensions
+  ): Tree[Suggestion] = {
+    val mapper = new ObjectMapper() with ClassTagExtensions
     mapper.registerModule(DefaultScalaModule)
 
-    val r : ObjectReader = mapper.readerFor[SuggestionData]
-    val o : SuggestionData = r.readValue[SuggestionData](json)
+    val r: ObjectReader   = mapper.readerFor[SuggestionData]
+    val o: SuggestionData = r.readValue[SuggestionData](json)
     System.err.println("suggestions are here: " + o.suggestions)
-    Tree.empty
+
+    import scala.collection.mutable
+    type TreeBuilder =
+      mutable.Builder[Tree.Node[Suggestion], Vector[Tree.Node[Suggestion]]]
+
+    val builder: TreeBuilder = Vector.newBuilder
+    for (s <- o.suggestions) {
+      val update = Tree.Node(s, Vector())
+      builder += update
+    }
+
+    Tree.Root(builder.result())
   }
 
   /** Compare two suggestions for equality.
