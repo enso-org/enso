@@ -15,7 +15,7 @@ import project.Data.Table as Database_Table_Module
 
 from project.Internal.Result_Set import read_column, result_set_to_table
 from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
-from project.Errors import SQL_Error
+from project.Errors import SQL_Error, Table_Not_Found
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
@@ -106,27 +106,45 @@ type Connection
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
 
-    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
+    ## Set up a query returning a Table object, which can be used to work with
+       data within the database or load it into memory.
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
+         If supplied as `Text`, the name is checked against the `tables` list to
+         determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
-    query : Text | SQL_Query -> Text -> Table
-    query self query alias="" = handle_sql_errors <| case query of
+
+       ! Error Conditions
+
+         - If provided with a `Raw_SQL` query or `Text` that looks like a query, if
+           any SQL error occurs when executing the query, a `SQL_Error` error is
+           raised.
+         - If provided with a `Table_Name` or a text short-hand and the table is
+           not found, a `Table_Not_Found` error is raised.
+    query : Text | SQL_Query -> Text -> Table ! Table_Not_Found | SQL_Error
+    query self query alias="" = case query of
         _ : Text ->
-            self.query alias=alias <|
+            result = self.query alias=alias <|
                 if self.tables.at 'Name' . to_vector . contains query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query
-        SQL_Query.Raw_SQL raw_sql ->
+            result.catch SQL_Error sql_error->
+                case self.dialect.is_probably_a_query query of
+                    True -> result
+                    False ->
+                        Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True)
+        SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
             columns = self.jdbc_connection.fetch_columns raw_sql
             name = if alias == "" then (UUID.randomUUID.to_text) else alias
             ctx = Context.for_query raw_sql name
             Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
-            ctx = Context.for_table name (if alias == "" then name else alias)
-            columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (Query.Select Nothing ctx))
-            Database_Table_Module.make_table self name columns ctx
+            result = handle_sql_errors <|
+                ctx = Context.for_table name (if alias == "" then name else alias)
+                columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (Query.Select Nothing ctx))
+                Database_Table_Module.make_table self name columns ctx
+            result.catch SQL_Error sql_error->
+                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False)
 
     ## Execute the query and load the results into memory as a Table.
 
@@ -182,6 +200,12 @@ type Connection
        It creates a new table in the database with the given name (will fail if
        the table already existed), inserts the contents of the provided
        in-memory table and returns a handle to the newly created table.
+
+       ! Temporary Tables
+
+         Note that temporary tables may not be visible in the table catalog, so
+         some features which rely on it like the `Table.query` shorthand mode
+         may not work correctly with temporary tables.
 
        Arguments:
        - name: The name of the table to create.
