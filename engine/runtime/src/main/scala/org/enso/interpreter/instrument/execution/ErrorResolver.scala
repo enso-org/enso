@@ -36,22 +36,19 @@ object ErrorResolver {
     element: TruffleStackTraceElement
   )(implicit ctx: RuntimeContext): Option[Api.StackTraceElement] = {
     val node = Option(element.getLocation)
-    node.map(x => {
+    node.flatMap(x => {
       x.getEncapsulatingSourceSection match {
-        case null =>
-          x.getRootNode match {
-            case null => null
-            case _    => Api.StackTraceElement(x.getRootNode.getName, None, None, None)
-          }
+        case null if x.getRootNode == null => None
+        case null => Some(Api.StackTraceElement(x.getRootNode.getName, None, None, None))
         case section =>
-          Api.StackTraceElement(
+          Some(Api.StackTraceElement(
             element.getTarget.getRootNode.getName,
             findFileByModuleName(section.getSource.getName),
             Some(LocationResolver.sectionToRange(section)),
             LocationResolver.getExpressionId(section).map(_.externalId)
-          )
+          ))
       }
-    }).filterNot(_ == null)
+    })
   }
 
   /** Find source file path by the module name.

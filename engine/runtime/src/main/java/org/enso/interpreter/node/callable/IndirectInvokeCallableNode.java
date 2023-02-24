@@ -18,7 +18,12 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.*;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -52,9 +57,9 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail);
 
-  @Specialization
+  @Specialization(guards = "warnings.hasWarnings(warning)")
   Object invokeWithWarnings(
-          WithWarnings warnings,
+          Object warning,
           MaterializedFrame callerFrame,
           State state,
           Object[] arguments,
@@ -63,10 +68,10 @@ public abstract class IndirectInvokeCallableNode extends Node {
           InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
           BaseNode.TailStatus isTail,
           @Cached IndirectInvokeCallableNode invokeCallableNode,
-          @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary) {
-    var rawValue = warnings.getValue();
-    var result = invokeCallableNode.execute(
-            rawValue,
+          @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    try {
+      var result = invokeCallableNode.execute(
+            warnings.removeWarnings(warning),
             callerFrame,
             state,
             arguments,
@@ -75,8 +80,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
             argumentsExecutionMode,
             isTail);
 
-    try {
-      Warning[] extracted = warningsLibrary.getWarnings(warnings, null);
+      Warning[] extracted = warnings.getWarnings(warning, null);
       return new WithWarnings(result, extracted);
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);
