@@ -43,12 +43,14 @@ object ErrorResolver {
         case null =>
           Some(Api.StackTraceElement(x.getRootNode.getName, None, None, None))
         case section =>
-          Some(Api.StackTraceElement(
-            element.getTarget.getRootNode.getName,
-            findFileByModuleName(section.getSource.getName),
-            Some(LocationResolver.sectionToRange(section)),
-            LocationResolver.getExpressionId(section).map(_.externalId)
-          ))
+          Some(
+            Api.StackTraceElement(
+              element.getTarget.getRootNode.getName,
+              findFileByModuleName(section.getSource.getName),
+              Some(LocationResolver.sectionToRange(section)),
+              LocationResolver.getExpressionId(section).map(_.externalId)
+            )
+          )
       }
     })
   }
