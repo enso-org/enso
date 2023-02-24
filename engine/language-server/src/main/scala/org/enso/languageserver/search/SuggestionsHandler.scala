@@ -111,6 +111,8 @@ final class SuggestionsHandler(
       .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseModuleUpdateNotification])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.LibraryLoaded])
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
     context.system.eventStream
@@ -471,6 +473,7 @@ final class SuggestionsHandler(
         libraryLoaded.namespace,
         libraryLoaded.name
       )
+      System.err.println("Loaded library: " + libraryLoaded.name)
 
     case SuggestionUpdatesCompleted =>
       if (state.suggestionUpdatesQueue.nonEmpty) {
