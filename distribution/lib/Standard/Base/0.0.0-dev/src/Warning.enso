@@ -29,7 +29,7 @@ type Warning
 
        Are any warnings attached to the value?
     has_warnings : Any -> Boolean
-    has_warnings value = has_warnings value
+    has_warnings value = has_warnings_builtin value
 
     ## UNSTABLE
 
@@ -258,8 +258,8 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
 ## PRIVATE
 
    Builtin function that sees if any warnings attached.
-has_warnings : Any -> Array Warning
-has_warnings value = @Builtin_Method "Warning.has_warnings"
+has_warnings_builtin : Any -> Array Warning
+has_warnings_builtin value = @Builtin_Method "Warning.has_warnings_builtin"
 
 ## PRIVATE
 

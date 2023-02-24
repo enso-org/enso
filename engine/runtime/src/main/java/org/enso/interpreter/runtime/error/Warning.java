@@ -86,7 +86,7 @@ public final class Warning implements TruffleObject {
   }
 
   @Builtin.Method(
-      name = "has_warnings",
+      name = "has_warnings_builtin",
       description = "Are any warnings attached to the value.",
       autoRegister = false)
   @Builtin.Specialize
@@ -96,7 +96,7 @@ public final class Warning implements TruffleObject {
   }
 
   @Builtin.Method(
-      name = "has_warnings",
+      name = "has_warnings_builtin",
       description = "Are any warnings attached to the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)

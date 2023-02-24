@@ -57,6 +57,10 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail);
 
+  /** Only this specialization will match objects with warnings attached as they
+   *  will have type `WithWarnings` which is not a subtype of `Function` or
+   *  other types from specializations below; and the last specialization is
+   *  a `Fallback`. */
   @Specialization(guards = "warnings.hasWarnings(warning)")
   Object invokeWithWarnings(
       Object warning,

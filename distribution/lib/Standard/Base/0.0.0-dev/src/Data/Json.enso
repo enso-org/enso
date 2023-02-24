@@ -114,13 +114,12 @@ type JS_Object
        Values will be recursively converted to JSON serializable as needed.
     from_pairs : Vector -> JS_Object
     from_pairs pairs =
-        js_object_fn = pairs.fold new_object current->pair->
+        js_object = pairs.fold new_object current->pair->
             case pair.first of
                 text : Text ->
                     js_value = pair.second.to_js_object
                     set_value current text js_value
                 _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
-        js_object = js_object_fn
         JS_Object.Value js_object
 
     ## PRIVATE
