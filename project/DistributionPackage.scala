@@ -210,7 +210,7 @@ object DistributionPackage {
         if (diff.modified.nonEmpty) {
           println(s"Generating index for ${libName} ")
           val command = Seq(
-            (if (Platform.isWindows) ".\\" else "") + ensoExecutable.toString,
+            Platform.executableFileName(ensoExecutable.toString),
             "--no-compile-dependencies",
             "--compile",
             path.toString
