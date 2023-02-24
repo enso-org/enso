@@ -1,8 +1,25 @@
 // FIXME [NP]: docs
-import { ReactNode, createContext, useContext, useState } from "react";
+import { ReactNode, createContext, useContext, useState, useEffect } from "react";
+
 import { useAsyncEffect } from "../../hooks";
 import { useLogger } from "../../logger";
 import { UserSession } from "../api";
+import { ListenerCallback } from "../listen";
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/**
+ * URL that the Electron main page is hosted on.
+ * 
+ * This **must** be the actual page that the Electron app is hosted on, otherwise the OAuth flow
+ * will not work and will redirect the user to a blank page. If this is the correct URL, no redirect
+ * will occur (which is the desired behaviour).
+ */
+const MAIN_PAGE_URL = "http://localhost:8080";
 
 
 
@@ -12,6 +29,7 @@ import { UserSession } from "../api";
 
 interface SessionContextType {
     session: UserSession | null;
+    // FIXME [NP]: do we actually need `refreshSession` in any of the children?
     refreshSession: () => void;
 }
 
@@ -25,14 +43,15 @@ const SessionContext = createContext<SessionContextType>({} as SessionContextTyp
 // =======================
 
 interface SessionProviderProps {
+    registerAuthEventListener: (callback: ListenerCallback) => void;
     userSession: () => Promise<UserSession | null>;
     children: ReactNode;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const SessionProvider = (props: SessionProviderProps) => {
+    const { children, userSession, registerAuthEventListener } = props;
     const logger = useLogger();
-    const { children, userSession } = props;
 
     // Flag used to avoid rendering child components until we've fetched the user's session at least
     // once. Avoids flash of the login screen when the user is already logged in.
@@ -60,6 +79,45 @@ export const SessionProvider = (props: SessionProviderProps) => {
       setInitialized(true);
       return session;
     }, [refresh, userSession])
+
+    // Register an effect that will listen for authentication events. When the event occurs, we will
+    // refresh or clear the user's session, forcing a re-render of the page with the new session.
+    //
+    // For example, if a user clicks the signout button, this will clear the user's session, which
+    // means we want the login screen to render (which is a child of this provider).
+    useEffect(() => {
+      const listener: ListenerCallback = (event) => {
+        if (event === "signIn") {
+            logger.log("FIXME [NP]: signIn event")
+            refreshSession();
+        } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
+            // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so we
+            // have to hack it by replacing the URL in the browser's history. This is done because
+            // otherwise the user will be redirected to a URL like `enso://auth`, which will not
+            // work.
+            //
+            // See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
+            logger.log("FIXME [NP]: oauth or hosted UI event")
+            window.history.replaceState({}, "", MAIN_PAGE_URL)
+            refreshSession();
+        // Typescript doesn't know that this is an exhaustive match, so we need to disable the
+        // `no-unnecessary-condition` rule. We can't just turn the final block into an `else` because
+        // then we wouldn't get an error if we added a new event type.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        } else if (event === "signOut") {
+            logger.log("FIXME [NP]: signout event")
+            // FIXME [NP]: do we want this here or in the actual `signOut` call?
+            // FIXME [NP]: does this do anything if `signOut` is broken, or do we need to do `setSession(undefined)`?
+            refreshSession();
+        }
+      };
+      
+      const cancel = registerAuthEventListener(listener);
+      // Return the `cancel` function from the `useEffect`, which ensures that the listener is cleaned
+      // up between renders. This must be done because the `useEffect` will be called multiple times
+      // during the lifetime of the component.
+      return cancel
+    }, [registerAuthEventListener]);
 
     const value = { session, refreshSession };
 

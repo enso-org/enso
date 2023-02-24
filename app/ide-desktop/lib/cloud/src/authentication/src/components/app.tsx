@@ -104,7 +104,7 @@ const AppRouter: FC<AppProps> = (props) => {
 
   return (
     <LoggerProvider logger={logger}>
-      <SessionProvider userSession={auth.userSession}>
+      <SessionProvider userSession={auth.userSession} registerAuthEventListener={auth.registerAuthEventListener}>
         <AuthProvider auth={auth} onAuthenticated={onAuthenticated} >
           <Routes>
             <Fragment>

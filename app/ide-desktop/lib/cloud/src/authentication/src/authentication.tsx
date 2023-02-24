@@ -12,8 +12,6 @@ import { toast } from "react-hot-toast"
 import { createBackend, Organization, SetUsernameBody } from './api';
 import { isAmplifyError, isAuthError, Api } from './authentication/api';
 import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
-import { useAsyncEffect } from './hooks';
-import { ListenerCallback } from './authentication/listen';
 import { useLogger } from './logger';
 import { useSession } from './authentication/providers/session';
 
@@ -70,15 +68,6 @@ const SIGN_IN_WITH_PASSWORD_SUCCESS = "Successfully logged in!"
 const FORGOT_PASSWORD_SUCCESS = "We have sent you an email with further instructions!"
 const RESET_PASSWORD_SUCCESS = "Successfully reset password!"
 const SIGN_OUT_SUCCESS = "Successfully logged out!"
-
-/**
- * URL that the Electron main page is hosted on.
- * 
- * This **must** be the actual page that the Electron app is hosted on, otherwise the OAuth flow
- * will not work and will redirect the user to a blank page. If this is the correct URL, no redirect
- * will occur (which is the desired behaviour).
- */
-const MAIN_PAGE_URL = "http://localhost:8080";
 
 
 
@@ -171,44 +160,13 @@ export interface AuthProviderProps {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
-  const { session, refreshSession } = useSession();
   const { auth, children } = props
+  const { session } = useSession();
   const logger = useLogger();
   const onAuthenticated = useCallback(props.onAuthenticated, [])
   const navigate = useNavigate();
   const [initialized, setInitialized] = useState(false);
   const [userSession, setUserSession] = useState<UserSession | undefined>(undefined);
-
-  useEffect(() => {
-    const listener: ListenerCallback = (event) => {
-      if (event === "signIn") {
-          logger.log("FIXME [NP]: signIn event")
-          refreshSession();
-      } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
-          // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so we
-          // have to hack it by replacing the URL in the browser's history. This is done because
-          // otherwise the user will be redirected to a URL like `enso://auth`, which will not work.
-          //
-          // See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
-          logger.log("FIXME [NP]: oauth or hosted UI event")
-          window.history.replaceState({}, "", MAIN_PAGE_URL)
-          refreshSession();
-      // Typescript doesn't know that this is an exhaustive match, so we need to disable the
-      // `no-unnecessary-condition` rule. We can't just turn the final block into an `else` because
-      // then we wouldn't get an error if we added a new event type.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      } else if (event === "signOut") {
-          logger.log("FIXME [NP]: signout event")
-          setUserSession(undefined)
-      }
-    };
-    
-    const cancel = auth.registerAuthEventListener(listener);
-    // Return the `cancel` function from the `useEffect`, which ensures that the listener is cleaned
-    // up between renders. This must be done because the `useEffect` will be called multiple times
-    // during the lifetime of the component.
-    return cancel
-  }, [auth, logger]);
 
   // Fetch the JWT access token from the session via the AWS Amplify library.
   //
@@ -318,6 +276,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
       throw error;
     }
 
+    // FIXME [NP]: we do this here & at the call site, is this redundant?
     navigate(LOGIN_PATH)
     toast.success(CONFIRM_SIGN_UP_SUCCESS)
   } 
@@ -407,26 +366,10 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     toast.success(RESET_PASSWORD_SUCCESS)
   };
 
-  const signOut = async () => {
-    // FIXME [NP2]: For some reason, the redirect back to the IDE from the browser doesn't work
-    //   correctly so this `await` throws a timeout error. As a workaround, we catch this error
-    //   and force a refresh of the session manually by running the `signOut` again. This works
-    //   because Amplify will see that we've already signed out and clear the cache accordingly.
-    //   Ideally we should figure out how to fix the redirect and remove this `catch`. This has the
-    //   unintended consequence of catching any other errors that might occur during sign out, that
-    //   we really shouldn't be catching. This also has the unintended consequence of delaying the
-    //   sign out process by a few seconds (until the timeout occurs).
-
-    try {
-      await auth.signOut();
-    } catch(error) {
-      logger.error("Sign out failed", error);
-    } finally {
-      await auth.signOut();
-    }
-
-    toast.success(SIGN_OUT_SUCCESS)
-  }
+  const signOut = () => auth
+    .signOut()
+    .then(() => toast.success(SIGN_OUT_SUCCESS))
+    .then(() => {});
 
   const value = {
     signUp: withLoadingToast(signUp),

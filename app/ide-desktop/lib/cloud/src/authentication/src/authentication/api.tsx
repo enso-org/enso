@@ -14,9 +14,6 @@ import { Logger } from "../logger";
 // === Constants ===
 // =================
 
-/** Name of the string identifying the "hub" that AWS Amplify issues authentication events on. */
-const AUTHENTICATION_HUB = "auth";
-
 /**
  * The string used to identify the GitHub federated identity provider in AWS Amplify.
  *
@@ -302,7 +299,23 @@ const api = (authConfig: AuthConfig): Api => {
         // We don't care about the details in the success case, just that it happened.
         .then(() => {})
 
-    const signOut = () => Auth.signOut()
+    const signOut = async () => {
+        // FIXME [NP2]: For some reason, the redirect back to the IDE from the browser doesn't work
+        //   correctly so this `await` throws a timeout error. As a workaround, we catch this error
+        //   and force a refresh of the session manually by running the `signOut` again. This works
+        //   because Amplify will see that we've already signed out and clear the cache accordingly.
+        //   Ideally we should figure out how to fix the redirect and remove this `catch`. This has the
+        //   unintended consequence of catching any other errors that might occur during sign out, that
+        //   we really shouldn't be catching. This also has the unintended consequence of delaying the
+        //   sign out process by a few seconds (until the timeout occurs).
+        try {
+          await Auth.signOut();
+        } catch(error) {
+          logger.error("Sign out failed", error);
+        } finally {
+          await Auth.signOut();
+        }
+    }
 
     return {
         userSession,
