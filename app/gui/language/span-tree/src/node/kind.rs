@@ -22,8 +22,8 @@ pub enum Kind {
     Operation,
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
     Argument(Argument),
-    /// A node being a name part of named argument. Always present before the `Argument` node.
-    ArgName,
+    /// A node representing a named argument. Always contains two tokens and an `Argument` node.
+    NamedArgument,
     /// A node being a unmodifiable token in macro.
     Token,
     /// A node being a placeholder for inserting new child to Prefix or Operator chain. It should
@@ -78,6 +78,9 @@ impl Kind {
     }
     pub fn is_argument(&self) -> bool {
         matches!(self, Self::Argument { .. })
+    }
+    pub fn is_named_argument(&self) -> bool {
+        matches!(self, Self::NamedArgument)
     }
     pub fn is_token(&self) -> bool {
         matches!(self, Self::Token { .. })
@@ -149,6 +152,26 @@ impl Kind {
         })
     }
 
+    /// Get a reference to the name of an argument represented by this node, if available. Returns
+    /// `None` if the node could not be attached with the argument information.
+    pub fn argument_name(&self) -> Option<&str> {
+        match self {
+            Self::Chained(t) => t.name.as_deref(),
+            Self::Argument(t) => t.name.as_deref(),
+            Self::InsertionPoint(t) => t.name.as_deref(),
+            _ => None,
+        }
+    }
+
+    /// Get the definition index of an argument represented by this node, if available. Returns
+    /// `None` if the node could not be attached with the argument information.
+    pub fn definition_index(&self) -> Option<usize> {
+        match self {
+            Self::Argument(t) => t.definition_index,
+            _ => None,
+        }
+    }
+
     /// Get the function call AST ID associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
@@ -186,6 +209,18 @@ impl Kind {
         }
     }
 
+    /// Argument definition index setter. Returns bool indicating whether the operation was
+    /// possible.
+    pub fn set_definition_index(&mut self, index: usize) -> bool {
+        match self {
+            Self::Argument(t) => {
+                t.definition_index = Some(index);
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// Short string representation. Skips the inner fields and returns only the variant name.
     pub fn variant_name(&self) -> &str {
         match self {
@@ -193,7 +228,7 @@ impl Kind {
             Self::Chained(_) => "Chained",
             Self::Operation => "Operation",
             Self::Argument(_) => "Argument",
-            Self::ArgName => "ArgName",
+            Self::NamedArgument => "NamedArgument",
             Self::Token => "Token",
             Self::InsertionPoint(_) => "InsertionPoint",
         }
@@ -260,11 +295,13 @@ impl From<Chained> for Kind {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Argument {
-    pub removable:  bool,
-    pub name:       Option<String>,
-    pub tp:         Option<String>,
-    pub call_id:    Option<ast::Id>,
-    pub tag_values: Vec<String>,
+    pub removable:        bool,
+    /// The index of the argument in the function definition.
+    pub definition_index: Option<usize>,
+    pub name:             Option<String>,
+    pub tp:               Option<String>,
+    pub call_id:          Option<ast::Id>,
+    pub tag_values:       Vec<String>,
 }
 
 
@@ -342,8 +379,11 @@ impl InsertionPoint {
     pub fn append() -> Self {
         Self::default().with_kind(InsertionPointType::Append)
     }
-    pub fn expected_argument(ix: usize) -> Self {
-        Self::default().with_kind(InsertionPointType::ExpectedArgument(ix))
+    pub fn expected_argument(index: usize) -> Self {
+        Self::default().with_kind(InsertionPointType::ExpectedArgument { index, named: false })
+    }
+    pub fn expected_named_argument(index: usize) -> Self {
+        Self::default().with_kind(InsertionPointType::ExpectedArgument { index, named: true })
     }
 }
 
@@ -384,7 +424,10 @@ pub enum InsertionPointType {
     /// Note that this is just argument index in the application, it may be not the same as the
     /// index of the function parameter, as `this` argument might be passed using the `this.func`
     /// notation.
-    ExpectedArgument(usize),
+    ExpectedArgument {
+        index: usize,
+        named: bool,
+    },
 }
 
 // === Matchers ===

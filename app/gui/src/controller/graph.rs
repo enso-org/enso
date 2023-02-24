@@ -226,7 +226,6 @@ pub struct NodeTrees {
 impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
-        warn!("Ast: {:?}", node.expression());
         let inputs = SpanTree::new(&node.expression(), context).ok()?;
         let macros_info = *node.main_line.macros_info();
         let outputs = if let Some(pat) = node.pattern() {
@@ -742,9 +741,7 @@ impl Handle {
 
         let updated_expression = if connection.destination.var_crumbs.is_empty() {
             let port = info.port()?;
-            let only_insertion_points_after =
-                info.chained_ports_after().all(|p| p.node.is_insertion_point());
-            if port.is_action_available(Action::Erase) && only_insertion_points_after {
+            if port.is_action_available(Action::Erase) {
                 info.erase()
             } else {
                 info.set(Ast::blank())

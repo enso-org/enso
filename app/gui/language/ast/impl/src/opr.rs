@@ -125,7 +125,9 @@ pub fn name_segments(name: &str) -> impl Iterator<Item = &str> {
 
 /// Matched AST fragments for named argument, flattened into easy to access structure.
 #[allow(missing_docs)]
+#[derive(Debug)]
 pub struct NamedArgumentDef<'a> {
+    pub id:   Option<Id>,
     pub name: &'a str,
     pub larg: &'a Ast,
     pub loff: usize,
@@ -134,7 +136,9 @@ pub struct NamedArgumentDef<'a> {
     pub rarg: &'a Ast,
 }
 
-/// match named argument AST:
+/// Match AST against named argument pattern. Pack AST fragments into flat `NamedArgumentDef`
+/// structure. Does not clone or allocate.
+///
 /// ```text
 /// name=expression - Infix
 /// name              |- Var
@@ -142,11 +146,12 @@ pub struct NamedArgumentDef<'a> {
 ///      expression   `- any Ast
 /// ```
 pub fn match_named_argument(ast: &Ast) -> Option<NamedArgumentDef<'_>> {
+    let id = ast.id;
     match ast.shape() {
         Shape::Infix(Infix { larg, loff, opr, roff, rarg }) if is_assignment_opr(opr) =>
             match larg.shape() {
                 Shape::Var(Var { name }) =>
-                    Some(NamedArgumentDef { name, larg, loff: *loff, opr, roff: *roff, rarg }),
+                    Some(NamedArgumentDef { id, name, larg, loff: *loff, opr, roff: *roff, rarg }),
                 _ => None,
             },
         _ => None,

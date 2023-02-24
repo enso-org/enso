@@ -121,6 +121,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 let expect_arg = kind.is_expected_argument();
                 let extended_infix =
                     (!expect_arg).and_option_from(|| ast::opr::Chain::try_new(ast));
+                let mut inserted_positional_placeholder_at = None;
                 let new_ast = modify_preserving_id(ast, |ast| {
                     if let Some(mut infix) = extended_infix {
                         let item = ArgWithOffset { arg: new, offset: DEFAULT_OFFSET };
@@ -135,7 +136,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                             BeforeTarget | AfterTarget => infix.target = Some(item),
                             Append if has_arg => infix.push_operand(item),
                             Append => *last_arg = Some(item),
-                            ExpectedArgument(_) => panic!(
+                            ExpectedArgument { .. } => panic!(
                                 "Expected arguments should be filtered out befire this if block"
                             ),
                         };
@@ -147,16 +148,74 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                             BeforeTarget => prefix.insert_arg(0, item),
                             AfterTarget => prefix.insert_arg(1, item),
                             Append => prefix.args.push(item),
-                            ExpectedArgument(i) => match self.node.name() {
-                                Some(name) if *i > prefix.args.len() =>
-                                    prefix.insert_arg(prefix.args.len(), item.into_named(name)),
-                                _ => prefix.insert_arg(*i, item),
-                            },
+                            ExpectedArgument { index, named } => {
+                                let item = match self.node.name() {
+                                    Some(name) if *named => item.into_named(name),
+                                    _ => {
+                                        inserted_positional_placeholder_at = Some(*index);
+                                        item
+                                    }
+                                };
+                                prefix.args.push(item)
+                            }
                         }
                         Ok(prefix.into_ast())
                     }
                 });
-                root.set_traversing(&self.ast_crumbs, new_ast?)
+
+                let mut modified_ast = root.set_traversing(&self.ast_crumbs, new_ast?)?;
+
+                // when inserting a positional argument, some further named arguments might end up
+                // in their natural position. We can rewrite them to be positional. That way
+                // performing erase and insert actions multiple times will not accumulate named
+                // arguments.
+                if let Some(insert_position) = inserted_positional_placeholder_at {
+                    // The just inserted argument is part of a prefix expression, which itself might
+                    // be a target of another prefix expression. We want to access that expression's
+                    // arguments, so we need to go up two levels.
+                    let mut next_parent = match self.parent()? {
+                        Some(node) => node.parent()?,
+                        None => None,
+                    };
+                    let mut next_positional_index = insert_position + 1;
+
+                    while let Some(node) = next_parent {
+                        next_parent = node.parent()?;
+                        warn!("node: {:?}", node.node.kind);
+                        let argument_node = node
+                            .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
+                            .filter(|found| found.ast_crumbs.is_empty());
+                        match argument_node {
+                            Some(found)
+                                if found.ast_crumbs.is_empty()
+                                    && found.node.is_named_argument() =>
+                            {
+                                let arg_expression = found.node.last_child().expect(
+                                    "Named argument should have an expression as its last child.",
+                                );
+                                let definition_index = arg_expression.kind.definition_index();
+                                if definition_index == Some(next_positional_index) {
+                                    // We found an named argument that matches its own position.
+                                    // Rewrite it to be positional.
+                                    let expr_crumbs = &arg_expression.ast_crumbs;
+                                    let arg_crumbs = &expr_crumbs[..expr_crumbs.len() - 1];
+                                    let expr = root.get_traversing(expr_crumbs)?.clone();
+                                    modified_ast = modified_ast.set_traversing(arg_crumbs, expr)?;
+                                    next_positional_index += 1;
+                                }
+                            }
+                            _ => {
+                                // No named argument found. We either escaped the prefix chain or
+                                // found a next placeholder. In either case, it is guaranteed that
+                                // there aren't any more named arguments that could be rewritten to
+                                // positional.
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                Ok(modified_ast)
             })),
             node::Kind::Token => None,
             _ => match &self.ast_crumbs.last() {
@@ -180,9 +239,11 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
             Some(Box::new(move |root| {
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
-                let mut ast = root.get_traversing(parent_crumbs)?;
 
-                if match_named_argument(ast).is_some() {
+                let mut ast = root.get_traversing(parent_crumbs)?;
+                let is_named_argument = match_named_argument(ast).is_some();
+
+                if is_named_argument {
                     // When erasing named argument, we need to remove the whole argument, not only
                     // the value part. The named argument AST is always a single infix expression,
                     // so we need to target the crumb of parent node.
@@ -209,7 +270,51 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         Ok(prefix.into_ast())
                     }
                 });
-                root.set_traversing(parent_crumbs, new_ast?)
+                let mut modified_ast = root.set_traversing(parent_crumbs, new_ast?)?;
+
+
+                if !is_named_argument {
+                    // when erasing a positional argument, all further positional arguments will
+                    // end up in wrong position. To fix that, we need to rewrite them as named
+                    // arguments.
+
+                    let mut next_parent = parent_crumbs
+                        .split_last()
+                        .and_then(|(_, crumbs)| {
+                            self.span_tree.root_ref().get_descendant_by_ast_crumbs(crumbs)
+                        })
+                        .map(|found| found.node);
+
+                    while let Some(node) = next_parent {
+                        next_parent = node.parent()?;
+                        let argument_node = node
+                            .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
+                            .filter(|found| found.ast_crumbs.is_empty());
+
+                        match argument_node {
+                            Some(found) if found.node.is_argument() =>
+                                if let Some(arg_name) = found.node.kind.argument_name() {
+                                    let arg_crumbs = &found.node.ast_crumbs;
+                                    let expression = modified_ast.get_traversing(&arg_crumbs)?;
+                                    let named_ast = Ast::named_argument(arg_name, expression);
+                                    modified_ast =
+                                        modified_ast.set_traversing(&arg_crumbs, named_ast)?;
+                                },
+                            Some(found) if found.node.is_named_argument() => {
+                                // Found named argument. Continue searching for positional arguments
+                                // past it, as it might be out of definition order.
+                            }
+                            _ => {
+                                // No arguments found. We are no longer in prefix chain or found a
+                                // placeholder. In either case, it is guaranteed that there aren't
+                                // any more positional arguments to rewrite.
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                Ok(modified_ast)
             }))
         } else {
             None
@@ -247,7 +352,7 @@ mod test {
     use crate::builder::TreeBuilder;
     use crate::generate::context;
     use crate::node;
-    use crate::node::InsertionPointType::ExpectedArgument;
+    use crate::node::InsertionPoint;
     use crate::SpanTree;
 
     use ast::HasRepr;
@@ -404,8 +509,8 @@ mod test {
         let tree = TreeBuilder::<()>::new(7)
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_leaf(4, 7, node::Kind::this(), PrefixCrumb::Arg)
-            .add_empty_child(7, ExpectedArgument(1))
-            .add_empty_child(7, ExpectedArgument(2))
+            .add_empty_child(7, InsertionPoint::expected_argument(1))
+            .add_empty_child(7, InsertionPoint::expected_argument(2))
             .build();
 
         let ast = Ast::prefix(Ast::var("foo"), Ast::var("bar"));
@@ -430,8 +535,8 @@ mod test {
             .add_leaf(0, 4, node::Kind::this(), InfixCrumb::LeftOperand)
             .add_leaf(5, 6, node::Kind::Operation, InfixCrumb::Operator)
             .add_leaf(7, 10, node::Kind::argument(), InfixCrumb::RightOperand)
-            .add_empty_child(10, ExpectedArgument(0))
-            .add_empty_child(10, ExpectedArgument(1))
+            .add_empty_child(10, InsertionPoint::expected_argument(0))
+            .add_empty_child(10, InsertionPoint::expected_argument(1))
             .build();
 
         let ast = Ast::infix(Ast::cons("Main"), ".", Ast::var("foo"));
