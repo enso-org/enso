@@ -18,6 +18,7 @@ import authApi from '../authentication/api';
 import withRouter from '../navigation';
 import {ProjectManager} from "enso-studio-content/src/project_manager";
 import { Logger, LoggerProvider } from '../logger';
+import { SessionProvider } from '../authentication/providers/session';
 
 
 
@@ -103,28 +104,30 @@ const AppRouter: FC<AppProps> = (props) => {
 
   return (
     <LoggerProvider logger={logger}>
-      <AuthProvider auth={auth} onAuthenticated={onAuthenticated} >
-        <Routes>
-          <Fragment>
-            {/* Login & registration pages are visible to unauthenticated users. */}
-            <Route element={<GuestLayout />}>
-              <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
-              <Route path={LOGIN_PATH} element={<LoginContainer />} /> 
-            </Route>
-            {/* Protected pages are visible to authenticated users. */}
-            <Route element={<ProtectedLayout />}>
-              {/* FIXME [NP]: why do we need this extra one for electron to work? */}
-              <Route index element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
-              <Route path={DASHBOARD_PATH} element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
-              <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
-            </Route>
-            {/* Other pages are visible to unauthenticated and authenticated users. */}
-            <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
-            <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
-            <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
-          </Fragment>
-        </Routes>
-      </AuthProvider>
+      <SessionProvider userSession={auth.userSession}>
+        <AuthProvider auth={auth} onAuthenticated={onAuthenticated} >
+          <Routes>
+            <Fragment>
+              {/* Login & registration pages are visible to unauthenticated users. */}
+              <Route element={<GuestLayout />}>
+                <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
+                <Route path={LOGIN_PATH} element={<LoginContainer />} /> 
+              </Route>
+              {/* Protected pages are visible to authenticated users. */}
+              <Route element={<ProtectedLayout />}>
+                {/* FIXME [NP]: why do we need this extra one for electron to work? */}
+                <Route index element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
+                <Route path={DASHBOARD_PATH} element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
+                <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
+              </Route>
+              {/* Other pages are visible to unauthenticated and authenticated users. */}
+              <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
+              <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
+              <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
+            </Fragment>
+          </Routes>
+        </AuthProvider>
+      </SessionProvider>
     </LoggerProvider>
   )
 }

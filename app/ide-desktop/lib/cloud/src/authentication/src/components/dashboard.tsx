@@ -116,6 +116,7 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
                 const localProjects: any[] = (await projectManager!.listProjects())["result"]["projects"]
                 for (let item of localProjects) {
                     newProjectsList.push({
+                        // FIXME [NP]: getting an undefined here for some reason?
                         organizationId: organization.id,
                         projectId: item.id,
                         name: item.name,

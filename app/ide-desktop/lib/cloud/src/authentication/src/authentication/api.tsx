@@ -562,7 +562,7 @@ export const isAuthError = (error: unknown): error is AuthError => {
 // ===================
 
 /// User's session, provides information for identifying and authenticating the user.
-interface UserSession {
+export interface UserSession {
     /// User's email address, used to uniquely identify the user.
     ///
     /// Provided by the identity provider the user used to log in. One of:

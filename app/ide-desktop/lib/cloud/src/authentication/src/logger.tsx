@@ -32,9 +32,9 @@ const LoggerContext = createContext<LoggerContextType>({} as LoggerContextType)
 
 
 
-// =======================
+// ======================
 // === LoggerProvider ===
-// =======================
+// ======================
 
 interface LoggerProviderProps {
     children: ReactNode;

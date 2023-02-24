@@ -15,6 +15,7 @@ import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET
 import { useAsyncEffect } from './hooks';
 import { ListenerCallback } from './authentication/listen';
 import { useLogger } from './logger';
+import { useSession } from './authentication/providers/session';
 
 
 
@@ -170,26 +171,18 @@ export interface AuthProviderProps {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
+  const { session, refreshSession } = useSession();
   const { auth, children } = props
   const logger = useLogger();
   const onAuthenticated = useCallback(props.onAuthenticated, [])
   const navigate = useNavigate();
   const [initialized, setInitialized] = useState(false);
-  const [session, setSession] = useState<UserSession | undefined>(undefined);
-  // State that, when incremented, forces a refresh of the user session. This is useful when a user
-  // has just logged in (so their cached credentials are out of date).
-  const [refresh, setRefresh] = useState(0);
-
-  // Function that forces a refresh of the user session.
-  //
-  // Should be called after any operation that **will** (not **might**) change the user's session.
-  // For example, this should be called after signing out. Calling this will result in a re-render
-  // of the whole page, which is why it should only be done when necessary.
-  const refreshSession = () => setRefresh((refresh) => refresh + 1);
+  const [userSession, setUserSession] = useState<UserSession | undefined>(undefined);
 
   useEffect(() => {
     const listener: ListenerCallback = (event) => {
       if (event === "signIn") {
+          logger.log("FIXME [NP]: signIn event")
           refreshSession();
       } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
           // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so we
@@ -197,6 +190,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
           // otherwise the user will be redirected to a URL like `enso://auth`, which will not work.
           //
           // See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
+          logger.log("FIXME [NP]: oauth or hosted UI event")
           window.history.replaceState({}, "", MAIN_PAGE_URL)
           refreshSession();
       // Typescript doesn't know that this is an exhaustive match, so we need to disable the
@@ -204,7 +198,8 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
       // then we wouldn't get an error if we added a new event type.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       } else if (event === "signOut") {
-          setSession(undefined)
+          logger.log("FIXME [NP]: signout event")
+          setUserSession(undefined)
       }
     };
     
@@ -215,13 +210,6 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     return cancel
   }, [auth, logger]);
 
-  // Register an async effect that will fetch the user's session whenever the `refresh` state is
-  // incremented. This is useful when a user has just logged in (as their cached credentials are out
-  // of date, so this will update them).
-  const [authSession] = useAsyncEffect(null, async () => {
-    return await auth.userSession();
-  }, [refresh])
-
   // Fetch the JWT access token from the session via the AWS Amplify library.
   //
   // When invoked, retrieves the access token (if available) from the storage method chosen when
@@ -230,12 +218,13 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // token.
   useEffect(() => {
       const fetchSession = async () => {
-        if (!authSession) {
+        logger.log("FIXME [NP]: fetchSession effect")
+        if (!session) {
           setInitialized(true);
-          setSession(undefined);
+          setUserSession(undefined);
           return;
         }
-        const { accessToken, email } = authSession;
+        const { accessToken, email } = session;
 
         const backend = createBackend(accessToken, logger);
 
@@ -243,16 +232,16 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
         const organization = await backend.getUsersMe();
         logger.log("EFFECT: fetchSession 5");
 
-        let session: UserSession;
+        let userSession: UserSession;
 
         if (!organization) {
-          session = {
+          userSession = {
             state: "partial",
             email,
             accessToken,
           }
         } else {
-          session = {
+          userSession = {
             state: "full",
             email,
             accessToken,
@@ -264,7 +253,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
           onAuthenticated()
         }
 
-        setSession(session)
+        setUserSession(userSession)
         setInitialized(true)
       };
 
@@ -279,7 +268,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
             logger.error(error)
           }
         });
-  }, [authSession, refresh])
+  }, [session])
 
   const withLoadingToast = (action: (...args: any) => Promise<void>) => async (...args: any) => {
     const loadingToast = toast.loading("Please wait...")
@@ -339,7 +328,10 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
       // FIXME [NP]: don't create a new API client here, reuse the one from the context.
       const backend = createBackend(accessToken, logger);
 
+      // FIXME [NP]: do we have to refresh after setting the username? In which case we want a
+      //   `refresh` dep on the above effect?
       await backend.setUsername(body);
+      // FIXME [NP]: do we need this navigate if we're setting the username?
       navigate(DASHBOARD_PATH);
       toast.success(SET_USERNAME_SUCCESS);
   };
@@ -349,7 +341,6 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     password: string,
   ) => {
     try {
-      logger.log(email)
       await auth.signInWithPassword(email, password);
     } catch (error) {
       if (isAmplifyError(error)) {
@@ -369,7 +360,6 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
       throw error
     }
 
-    navigate(DASHBOARD_PATH)
     toast.success(SIGN_IN_WITH_PASSWORD_SUCCESS)
   };
 
@@ -448,7 +438,8 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     forgotPassword: withLoadingToast(forgotPassword),
     resetPassword: withLoadingToast(resetPassword),
     signOut,
-    session,
+    // FIXME [NP]: why don't these names match?
+    session: userSession,
   };
 
   return (
