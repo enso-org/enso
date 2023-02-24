@@ -422,7 +422,7 @@ export class App {
         }
     }
 
-    /** Run both before main entry points and main entry point. */
+    /** Run both before-main entry points and main entry point. */
     async runEntryPoints() {
         const entryPointName = this.config.groups.startup.options.entry.value
         const entryPoint = this.mainEntryPoints.get(entryPointName)

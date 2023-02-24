@@ -9,7 +9,6 @@ use ensogl_core::system::gpu;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::texture;
 use ensogl_core::system::web::platform;
-use ensogl_text_embedded_fonts::Embedded;
 use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
 use owned_ttf_parser as ttf;
@@ -226,21 +225,6 @@ pub struct Face {
     pub ttf:  ttf::OwnedFace,
 }
 
-impl Face {
-    /// Load the font face from memory. Corrupted faces will be reported.
-    fn load_from_memory(name: &str, embedded: &Embedded) -> Option<Face> {
-        let result = Self::load_from_memory_internal(name, embedded);
-        result.map_err(|err| error!("Error parsing font: {}", err)).ok()
-    }
-
-    fn load_from_memory_internal(name: &str, embedded: &Embedded) -> anyhow::Result<Face> {
-        let data = embedded.data.get(name).ok_or_else(|| anyhow!("Font '{}' not found", name))?;
-        let ttf = ttf::OwnedFace::from_vec((**data).into(), TTF_FONT_FACE_INDEX)?;
-        let msdf = msdf::OwnedFace::load_from_memory(data)?;
-        Ok(Face { msdf, ttf })
-    }
-}
-
 
 
 // ==============
@@ -310,7 +294,7 @@ impl NonVariableFamily {
     /// ignored.
     fn load_all_faces(&self, embedded: &Embedded) {
         for (header, file_name) in &self.definition.map {
-            if let Some(face) = Face::load_from_memory(file_name, embedded) {
+            if let Some(face) = embedded.load_face(file_name) {
                 self.faces.borrow_mut().insert(*header, face);
             }
         }
@@ -350,7 +334,7 @@ impl VariableFamily {
     /// Load all font faces from the embedded font data. Corrupted faces will be reported and
     /// ignored.
     fn load_all_faces(&self, embedded: &Embedded) {
-        if let Some(face) = Face::load_from_memory(&self.definition.file_name, embedded) {
+        if let Some(face) = embedded.load_face(&self.definition.file_name) {
             // Set default variation axes during face initialization. This is needed to make some
             // fonts appear on the screen. In case some axes are not found, warnings will be
             // silenced.
@@ -818,9 +802,8 @@ impl {
             Entry::Occupied (entry) => Some(entry.get().clone_ref()),
             Entry::Vacant   (entry) => {
                 debug!("Loading font: {:?}", name);
-                let definition = self.embedded.definitions.get(&name)?;
                 let hinting = Hinting::for_font(&name);
-                let font = load_from_embedded_registry(name, definition, &self.embedded);
+                let font = self.embedded.load_font(name)?;
                 let font = FontWithGpuData::new(font, hinting, &self.scene);
                 entry.insert(font.clone_ref());
                 Some(font)
@@ -833,7 +816,7 @@ impl Registry {
     /// Constructor.
     pub fn init_and_load_embedded_fonts(scene: &scene::Scene) -> Registry {
         let scene = scene.clone_ref();
-        let embedded = Embedded::init_and_load_embedded_fonts();
+        let embedded = Embedded::new();
         let fonts = HashMap::new();
         let data = RegistryData { scene, embedded, fonts };
         let rc = Rc::new(RefCell::new(data));
@@ -844,25 +827,6 @@ impl Registry {
 impl scene::Extension for Registry {
     fn init(scene: &scene::Scene) -> Self {
         Self::init_and_load_embedded_fonts(scene)
-    }
-}
-
-fn load_from_embedded_registry(
-    name: Name,
-    definition: &family::Definition,
-    embedded: &Embedded,
-) -> Font {
-    match definition {
-        family::Definition::NonVariable(definition) => {
-            let family = NonVariableFamily::from(definition);
-            family.load_all_faces(embedded);
-            NonVariableFont::new(name, family).into()
-        }
-        family::Definition::Variable(definition) => {
-            let family = VariableFamily::from(definition);
-            family.load_all_faces(embedded);
-            VariableFont::new(name, family).into()
-        }
     }
 }
 
@@ -877,7 +841,7 @@ fn load_from_embedded_registry(
 /// [`glyph::FUNCTIONS`]).
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug)]
-pub struct Hinting {
+struct Hinting {
     opacity_increase: f32,
     opacity_exponent: f32,
 }
@@ -902,5 +866,56 @@ impl Hinting {
 impl Default for Hinting {
     fn default() -> Self {
         Self { opacity_increase: 0.0, opacity_exponent: 1.0 }
+    }
+}
+
+
+
+// =========================
+// === Embedded Registry ===
+// =========================
+
+/// A registry of font data built-in to the application.
+#[derive(Debug)]
+pub struct Embedded {
+    definitions: HashMap<Name, family::Definition>,
+    data:        HashMap<&'static str, &'static [u8]>,
+}
+
+impl Embedded {
+    /// Load the registry.
+    pub fn new() -> Self {
+        let fonts = ensogl_text_embedded_fonts::Embedded::init_and_load_embedded_fonts();
+        let ensogl_text_embedded_fonts::Embedded { definitions, data } = fonts;
+        Self { definitions, data }
+    }
+
+    /// Load a font from the registry.
+    pub fn load_font(&self, name: Name) -> Option<Font> {
+        self.definitions.get(&name).map(|definition| match definition {
+            family::Definition::NonVariable(definition) => {
+                let family = NonVariableFamily::from(definition);
+                family.load_all_faces(self);
+                NonVariableFont::new(name, family).into()
+            }
+            family::Definition::Variable(definition) => {
+                let family = VariableFamily::from(definition);
+                family.load_all_faces(self);
+                VariableFont::new(name, family).into()
+            }
+        })
+    }
+
+    /// Load the font face from memory. Corrupted faces will be reported.
+    fn load_face(&self, name: &str) -> Option<Face> {
+        let result = self.load_face_internal(name);
+        result.map_err(|err| error!("Error parsing font: {}", err)).ok()
+    }
+
+    fn load_face_internal(&self, name: &str) -> anyhow::Result<Face> {
+        let data = self.data.get(name).ok_or_else(|| anyhow!("Font '{}' not found", name))?;
+        let ttf = ttf::OwnedFace::from_vec((**data).into(), TTF_FONT_FACE_INDEX)?;
+        let msdf = msdf::OwnedFace::load_from_memory(data)?;
+        Ok(Face { msdf, ttf })
     }
 }

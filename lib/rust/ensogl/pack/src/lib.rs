@@ -87,7 +87,7 @@
 //! `dist/shaders`.
 //!
 //! 6. The `target/ensogl-pack/wasm-pack/index.ts` is compiled to
-//! `target/ensogl-pack/dis/index.js`. It is then compiled to `target/ensogl-pack/dist/index.js`.
+//! `target/ensogl-pack/dist/index.js`.
 //!
 //!
 //!
