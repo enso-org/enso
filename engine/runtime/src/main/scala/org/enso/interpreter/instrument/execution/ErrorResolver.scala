@@ -38,8 +38,10 @@ object ErrorResolver {
     val node = Option(element.getLocation)
     node.flatMap(x => {
       x.getEncapsulatingSourceSection match {
-        case null if x.getRootNode == null => None
-        case null => Some(Api.StackTraceElement(x.getRootNode.getName, None, None, None))
+        case null if x.getRootNode == null =>
+          None
+        case null =>
+          Some(Api.StackTraceElement(x.getRootNode.getName, None, None, None))
         case section =>
           Some(Api.StackTraceElement(
             element.getTarget.getRootNode.getName,
