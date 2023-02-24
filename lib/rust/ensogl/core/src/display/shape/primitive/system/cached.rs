@@ -350,7 +350,7 @@ impl Parameter for AnyCachedShape {
 #[macro_export]
 macro_rules! cached_shape {
     (
-        $width:literal x $height:literal;
+        size=($width:expr, $height:expr);
         $(type SystemData = $system_data:ident;)?
         $(type ShapeData = $shape_data:ident;)?
         $(flavor = $flavor:path;)?
@@ -371,6 +371,7 @@ macro_rules! cached_shape {
 
         pub mod cached_shape_system_definition {
             use $crate::prelude::*;
+            use super::*;
             use super::shape_system_definition::Shape;
             use $crate::display::shape::primitive::system::cached::CachedShape;
 

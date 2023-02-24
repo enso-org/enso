@@ -79,25 +79,12 @@ macro_rules! define_icons {
         }
 
         impl Id {
-            /// Create icon's shape with given size.
-            pub fn create_shape(&self, size: Vector2) -> $crate::Any {
+            /// Get the cached texture location of the current icon.
+            ///
+            /// May be used to set [`AnyCachedShape`] parameter on shape.
+            pub fn any_cached_shape_location(&self) -> Vector4 {
                 match self {$(
-                    Self::$variant => {
-                        let view = $name::View::new();
-                        view.set_size(size);
-                        let color_fn = Box::new(f!([view]()
-                            color::Lcha::from(color::Rgba::from(view.color.get()))
-                        ));
-                        let set_color_fn = Box::new(f!((c)
-                            view.color.set(color::Rgba::from(c).into())
-                        ));
-                        let view = Box::new(view);
-                        $crate::Any {
-                            view,
-                            color_fn,
-                            set_color_fn,
-                        }
-                    }
+                    Self::$variant => $name::Shape::any_cached_shape_parameter(),
                 )*}
             }
 

@@ -12,7 +12,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_grid_view as grid;
-use ide_view_component_list_panel_icons::Any as AnyIcon;
+use ide_view_component_list_panel_icons::any as any_icon;
 use ide_view_component_list_panel_icons::SIZE;
 
 
@@ -65,31 +65,22 @@ pub struct Params {
 #[derive(Debug, Clone, CloneRef)]
 pub struct Data {
     display_object: display::object::Instance,
-    icon:           Rc<RefCell<Option<AnyIcon>>>,
+    icon:           any_icon::View,
     color:          Rc<Cell<color::Lcha>>,
 }
 
 impl Data {
     pub fn new() -> Self {
         let display_object = display::object::Instance::new();
-        let icon = default();
+        let icon = any_icon::View::new();
+        icon.set_size((SIZE, SIZE));
         let color = default();
         Self { display_object, icon, color }
     }
 
-    fn set_icon(&self, icon_id: icon::Id) {
-        let size = Vector2(SIZE, SIZE);
-        let icon = icon_id.create_shape(size);
-        icon.set_color(color::Rgba::from(self.color.get()).into());
-        self.display_object.add_child(&icon);
-        *self.icon.borrow_mut() = Some(icon);
-    }
-
     fn set_color(&self, color: color::Lcha) {
         self.color.set(color);
-        if let Some(icon) = self.icon.borrow().deref() {
-            icon.set_color(color::Rgba::from(color).into());
-        }
+        self.icon.color.set(color::Rgba::from(color).into());
     }
 }
 
@@ -123,7 +114,7 @@ impl grid::entry::Entry for View {
             init <- source_();
 
             icon <- input.set_model.map(|m| m.icon_id);
-            eval icon((icon) data.set_icon(*icon));
+            eval icon((icon) data.icon.icon.set(icon.any_cached_shape_location()));
 
             active_color <- input.set_model.map(|m| m.active);
             inactive_color <- input.set_model.map(|m| m.inactive);

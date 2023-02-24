@@ -18,8 +18,12 @@ use theme::grid::entry::special_icons;
 // === Export ===
 // ==============
 
-pub use ide_view_component_list_panel_icons::Any;
+pub use ide_view_component_list_panel_icons::any;
 pub use ide_view_component_list_panel_icons::SIZE;
+
+
+// ===
+// ===
 
 
 
@@ -30,11 +34,10 @@ pub use ide_view_component_list_panel_icons::SIZE;
 define_icons! {
     /// A five-pointed star.
     pub mod star(Star) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let shape = FiveStar(8.0.px(),0.447);
                 let shape = shape.fill(vivid_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
@@ -44,11 +47,10 @@ define_icons! {
 
     /// Local scope section button. A dot inside a circle.
     pub mod local_scope(LocalScope) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dot = Circle(3.0.px());
                 let outer = Circle(8.0.px()) - Circle(7.0.px());
                 let shape = dot + outer;
@@ -61,11 +63,10 @@ define_icons! {
 
     /// Sub-modules section button. Three rectangles placed behind each other with perspective.
     pub mod sub_modules(SubModules) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let corners_radius = 1.5;
                 let top = Rect((8.0.px(), 1.5.px()));
                 let top = top.corners_radius(corners_radius.px()).translate_y(4.75.px());
@@ -83,12 +84,11 @@ define_icons! {
 
     /// Four rounded rectangles in different colors arranged in a grid.
     pub mod libraries(Libraries) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
                 use special_icons::libraries as theme;
-                let vivid_color: Var<color::Rgba> = color.into();
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(theme::dull_alpha).into();
                 let secondary_alpha: Var<f32> = style.get_number(theme::secondary_alpha).into();
                 let tertiary_alpha: Var<f32> = style.get_number(theme::tertiary_alpha).into();
@@ -123,12 +123,11 @@ define_icons! {
 
     /// A plus and three rounded rectangles in different colors aranged in a grid.
     pub mod marketplace(Marketplace) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
                 use special_icons::marketplace as theme;
-                let vivid_color: Var<color::Rgba> = color.into();
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(theme::dull_alpha).into();
                 let secondary_alpha: Var<f32> = style.get_number(theme::secondary_alpha).into();
                 let tertiary_alpha: Var<f32> = style.get_number(theme::tertiary_alpha).into();
@@ -163,11 +162,10 @@ define_icons! {
 
     /// A rounded rectangle with an arrow pointing in from the left.
     pub mod data_input(DataInput) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
@@ -195,11 +193,10 @@ define_icons! {
 
     /// A rounded rectangle with an arrow pointing out to the right.
     pub mod data_output(DataOutput) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
@@ -227,11 +224,10 @@ define_icons! {
 
     /// A rounded rectangle with the letter "A" and a text cursor.
     pub mod text_input(TextInput) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
@@ -268,11 +264,10 @@ define_icons! {
 
     /// A rounded rectangle with the number "5" and a text cursor.
     pub mod number_input(NumberInput) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
@@ -325,11 +320,10 @@ define_icons! {
 
     /// A table with 4x2 cells and a cursor shape in front of it.
     pub mod table_edit(TableEdit) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 // We need to create the table in two parts, left and right of the cursor to achieve
@@ -349,11 +343,10 @@ define_icons! {
 
     /// An arrow to the left on top and an arrow to the right below.
     pub mod convert(Convert) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let upper_arrow = arrow(11.0,2.0,4.0,6.0).rotate((-PI/2.0).radians());
                 let upper_arrow = upper_arrow.translate(((-8.0).px(),2.0.px()));
                 let lower_arrow = arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians());
@@ -368,11 +361,10 @@ define_icons! {
 
     /// A table with an eraser in front.
     pub mod dataframe_clean(DataframeClean) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let table_color = dull_color;
@@ -403,11 +395,10 @@ define_icons! {
 
     /// A light column on the left, a dark column in the middle and a plus on the right.
     pub mod add_column(AddColumn) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let old_color = dull_color;
@@ -428,11 +419,10 @@ define_icons! {
 
     /// A light row at the top, a dark row in the middle and a plus at the bottom.
     pub mod add_row(AddRow) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let old_color = dull_color;
@@ -452,11 +442,10 @@ define_icons! {
 
     /// Two light columns on the left and one dark column detached on the right.
     pub mod select_column(SelectColumn) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let unselected = table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
@@ -473,11 +462,10 @@ define_icons! {
 
     /// Two light rows at the top and one dark row detached at the bottom.
     pub mod select_row(SelectRow) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let unselected = table(3,2, 4.0).translate(((-7.0).px(),(-1.0).px()));
@@ -494,11 +482,10 @@ define_icons! {
 
     /// A light column, a dark column and a lightning bolt on the right.
     pub mod dataframe_map_column(DataframeMapColumn) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let dull_color = dull_color;
@@ -519,11 +506,10 @@ define_icons! {
 
     /// A light row, a dark row and a lightning bolt below.
     pub mod dataframe_map_row(DataframeMapRow) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let dull_color = dull_color;
@@ -544,11 +530,10 @@ define_icons! {
 
     /// Two columns with a plus in-between.
     pub mod dataframes_join(DataframesJoin) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.multiply_alpha(&dull_alpha);
                 let column_color = dull_color.clone();
@@ -558,7 +543,7 @@ define_icons! {
                 let left_column = left_column.fill(column_color.clone());
                 let right_column = table(1,3, 3.0).translate((5.0.px(),(-5.5).px()));
                 let right_column = right_column.fill(column_color);
-                let plus = plus(6.0,1.0).fill(plus_color);
+                let plus = plus(6.0,2.0).fill(plus_color);
 
                 let shape = left_column + right_column + plus;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -569,11 +554,10 @@ define_icons! {
 
     /// Two rows with a plus in-between.
     pub mod dataframes_union(DataframesUnion) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.multiply_alpha(&dull_alpha);
                 let row_color = dull_color.clone();
@@ -594,11 +578,10 @@ define_icons! {
 
     /// A capital "Σ".
     pub mod sigma(Sigma) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let shape = path(2.0,&[
                     ( 4.0 ,  4.0),
                     ( 4.0 ,  5.5),
@@ -618,11 +601,10 @@ define_icons! {
     /// The shape of a sheet of paper that has been ripped apart with a vertical crack through the
     /// middle. Both pieces contain two thin rectangles as a simple representation of lines of text.
     pub mod split_text(SplitText) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
@@ -670,11 +652,10 @@ define_icons! {
 
     /// Some rectangles and circles in different colors.
     pub mod data_science(DataScience) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let circle = Circle(2.0.px());
@@ -696,11 +677,10 @@ define_icons! {
 
     /// A WiFi symbol, consisting of a small circle and three arcs of increasing size above it.
     pub mod network(Network) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let circle = Circle(1.0.px()).fill(vivid_color.clone());
@@ -721,10 +701,9 @@ define_icons! {
 
     /// A dark rectangle containing the simple terminal prompt ">_".
     pub mod system(System) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
                 use special_icons::system as theme;
                 let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
                 let background = background.translate_y((-0.5).px());
@@ -748,11 +727,10 @@ define_icons! {
     /// Two half arrow, one on top and pointing to the right, one at the bottom and pointing to the
     /// left. The shape has an outline in a darker color.
     pub mod io(IO) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let half_arrow = arrow(14.0,5.0,7.0,11.0).rotate((PI/2.0).radians()) - HalfPlane();
@@ -774,11 +752,10 @@ define_icons! {
     /// a thin rectangular tube shape below with a triangular end piece. The whole shape has an
     /// outline.
     pub mod preparation(Preparation) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
@@ -820,12 +797,11 @@ define_icons! {
     /// Two intersecting circles. The circles, their outlines and the intersection are displayed in
     /// different colors.
     pub mod join(Join) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
                 use special_icons::join as theme;
-                let vivid_color: Var<color::Rgba> = color.into();
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let intersection_alpha: Var<f32> = style.get_number(theme::intersection_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
@@ -853,11 +829,10 @@ define_icons! {
     /// A page with three lines representing text. The upper line is part of an arrow pointing out
     /// to the right.
     pub mod text(Text) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let page = Rect((10.0.px(),14.0.px())).corners_radius(2.0.px());
                 let page = page.translate_x((-2.0).px());
                 let page = &page - page.shrink(1.0.px());
@@ -879,11 +854,10 @@ define_icons! {
 
     /// A clock shape.
     pub mod date_and_time(DateAndTime) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let circle = Circle(7.75.px());
                 let circle = &circle - circle.shrink(1.0.px());
 
@@ -902,11 +876,10 @@ define_icons! {
     /// The shape location marker. A thick circle outline going over into a triangle that poins
     /// down. Around the tip there is an ellipse outline.
     pub mod spatial(Spatial) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let circle = Circle(4.5.px()).translate_y(3.5.px());
                 let circle = &circle - circle.shrink(2.0.px());
                 let triangle = Triangle(7.0,5.75).rotate(PI.radians()).translate_y((-2.125).px());
@@ -929,11 +902,10 @@ define_icons! {
 
     /// The shape of a christal ball with a bas below.
     pub mod predictive(Predictive) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let circle = Circle(5.5.px());
                 let sphere = &circle - circle.shrink(1.0.px());
 
@@ -956,11 +928,10 @@ define_icons! {
 
     /// The shape of an android.
     pub mod machine_learning(MachineLearning) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let body = Rect((10.0.px(),15.0.px()))
                     .corners_radiuses(5.0.px(),5.0.px(),2.0.px(),2.0.px())
                     .translate_y((-0.5).px());
@@ -985,12 +956,11 @@ define_icons! {
     /// The simplified shape of a camera. It consists of a small red circle in a bigger circle
     /// outline, representing the lens and a base above that the camera is mounted on.
     pub mod computer_vision(ComputerVision) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            pointer_events = false;
-            (style: Style, color: Vector4) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            (style: Style) {
                 use special_icons::computer_vision as theme;
-                let vivid_color: Var<color::Rgba> = color.into();
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let lens = Circle(2.0.px()).fill(style.get_color(theme::highlight));
@@ -1016,10 +986,10 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Type`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod r#type(Type) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+                        (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let circle = Circle(5.5.px()) - Circle(4.0.px());
                 let shape = circle.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -1032,10 +1002,10 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Constructor`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod constructor(Constructor) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+                        (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let circle = Circle(5.5.px()) - Circle(4.0.px());
                 let shape = circle.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -1048,10 +1018,10 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Function`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod function(Function) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+                        (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let triangle = Triangle(12.0, 12.0).rotate((PI/2.0).radians());
                 let shape = triangle.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -1064,10 +1034,10 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Local`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod local(Local) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+                        (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let dot = Circle(4.0.px());
                 let shape = dot.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -1080,10 +1050,10 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Method`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod method(Method) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+                        (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let rhomb = path(1.5, &[
                     (6.0, 0.0),
                     (0.0, -6.0),
@@ -1102,10 +1072,10 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Module`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod module(Module) {
-        ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape, crate::entry::background];
-            (style: Style, color: Vector4) {
-                let vivid_color: Var<color::Rgba> = color.into();
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+                        (style: Style) {
+                let vivid_color: Var<color::Rgba> = color::Rgba::red().into();
                 let rect = Rect((14.0.px(), 14.0.px())).corners_radius(3.0.px());
                 let rect = &rect - rect.shrink(1.5.px());
                 let shape = rect.fill(vivid_color);
