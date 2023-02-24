@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Column_Name_Mapping
 import Standard.Table.Data.Table.Table as Materialized_Table
 
 import project.Data.SQL_Query.SQL_Query
@@ -103,7 +102,7 @@ type Connection
             table = result_set_to_table <|
                 metadata.getTables database schema name_like types_array
 
-            renamed = table.rename_columns (Column_Name_Mapping.By_Name name_map)
+            renamed = table.rename_columns name_map
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
 
@@ -141,10 +140,25 @@ type Connection
 
     ## PRIVATE
        Internal read function for a statement with optional types.
+
+       Arguments:
+       - statement: SQL_Statement to execute.
+       - expected_types: Optional vector of expected types for each column.
     read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
     read_statement self statement expected_types=Nothing =
         self.jdbc_connection.with_prepared_statement statement stmt->
             result_set_to_table stmt.executeQuery expected_types
+
+    ## PRIVATE
+       Internal read function for a statement with optional types returning just last row.
+
+       Arguments:
+       - statement: SQL_Statement to execute.
+       - expected_types: Optional vector of expected types for each column.
+    read_last_row : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
+    read_last_row self statement expected_types=Nothing =
+        self.jdbc_connection.with_prepared_statement statement stmt->
+            result_set_to_table stmt.executeQuery expected_types True
 
     ## ADVANCED
 
