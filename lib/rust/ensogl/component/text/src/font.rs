@@ -654,9 +654,9 @@ impl<F: Family> FontTemplate<F> {
     ) -> GlyphRenderInfo {
         #[derive(Debug)]
         struct GlyphCacheMiss<'a, T> {
-            face: &'a str,
+            face:       &'a str,
             variations: &'a T,
-            glyph_id: GlyphId,
+            glyph_id:   GlyphId,
         }
         profiler::metadata_logger!("GlyphCacheMiss", log_miss(String));
         log_miss(format!("{:?}", GlyphCacheMiss {
@@ -705,6 +705,90 @@ impl<F: Family> FontTemplate<F> {
     /// Get number of rows in MSDF texture.
     pub fn msdf_texture_rows(&self) -> usize {
         self.atlas.rows()
+    }
+}
+
+
+// === Cache Snapshots ===
+
+pub mod image {
+    pub struct Ppm(pub Vec<u8>);
+    pub struct Raw(pub Vec<u8>);
+}
+
+pub struct CacheSnapshot<T> {
+    pub atlas:  T,
+    pub glyphs: String,
+}
+
+impl FontTemplate<NonVariableFamily> {
+    /// Return the current glyph cache data.
+    pub fn cache_snapshot(&self) -> CacheSnapshot<image::Ppm> {
+        let atlas = image::Ppm(self.atlas.serialize_ppm());
+        let cache: HashMap<String, _> = self
+            .cache
+            .borrow()
+            .iter()
+            .map(|(variation, info)| {
+                let width = match variation.width {
+                    Width::UltraCondensed => "UltraCondensed",
+                    Width::ExtraCondensed => "ExtraCondensed",
+                    Width::Condensed => "Condensed",
+                    Width::SemiCondensed => "SemiCondensed",
+                    Width::Normal => "Normal",
+                    Width::SemiExpanded => "SemiExpanded",
+                    Width::Expanded => "Expanded",
+                    Width::ExtraExpanded => "ExtraExpanded",
+                    Width::UltraExpanded => "UltraExpanded",
+                };
+                let weight = variation.weight.to_number().to_string();
+                let style = match variation.style {
+                    Style::Normal => "Normal",
+                    Style::Italic => "Italic",
+                    Style::Oblique => "Oblique",
+                };
+                let variation = format!("{width}-{weight}-{style}");
+                let mut glyphs: HashMap<String, GlyphRenderInfo> =
+                    info.glyphs.iter().map(|(id, data)| (id.0.to_string(), *data)).collect();
+                (variation, glyphs)
+            })
+            .collect();
+        let glyphs = serde_json::to_string(&cache).unwrap();
+        CacheSnapshot { atlas, glyphs }
+    }
+
+    pub fn load_cache(&self, snapshot: CacheSnapshot<image::Raw>) {
+        self.atlas.load_bytes(snapshot.atlas.0);
+        let cache: HashMap<(String, String, String), HashMap<u16, GlyphRenderInfo>> =
+            serde_json::from_str(&snapshot.glyphs).unwrap();
+        *self.cache.borrow_mut() = cache
+            .into_iter()
+            .map(|(variation, info)| {
+                let width = match variation.0.as_ref() {
+                    "UltraCondensed" => Width::UltraCondensed,
+                    "ExtraCondensed" => Width::ExtraCondensed,
+                    "Condensed" => Width::Condensed,
+                    "SemiCondensed" => Width::SemiCondensed,
+                    "Normal" => Width::Normal,
+                    "SemiExpanded" => Width::SemiExpanded,
+                    "Expanded" => Width::Expanded,
+                    "ExtraExpanded" => Width::ExtraExpanded,
+                    "UltraExpanded" => Width::UltraExpanded,
+                    _ => panic!(),
+                };
+                let weight = Weight::from(variation.1.parse::<u16>().unwrap());
+                let style = match variation.2.as_ref() {
+                    "Normal" => Style::Normal,
+                    "Italic" => Style::Italic,
+                    "Oblique" => Style::Oblique,
+                    _ => panic!(),
+                };
+                let variation = NonVariableFaceHeader { width, weight, style };
+                let kerning = default();
+                let glyphs = info.into_iter().map(|(id, data)| (GlyphId(id), data)).collect();
+                (variation, FontDataCache { kerning, glyphs })
+            })
+            .collect();
     }
 }
 
@@ -765,6 +849,7 @@ fn get_texture(_context: &Context) -> AtlasTexture {
     0.0
 }
 
+use crate::font::glyph::Glyph;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::display::world::Context;
 

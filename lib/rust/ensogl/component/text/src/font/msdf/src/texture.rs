@@ -4,8 +4,6 @@ use crate::prelude::*;
 
 use crate::Msdf;
 
-use serde;
-
 
 
 // ===============
@@ -17,7 +15,7 @@ use serde;
 /// This structure keeps texture data in 8-bit-per-channel RGB format, which is ready to be passed
 /// to WebGL `texImage2D`. The texture contains MSDFs for all loaded glyph, organized in vertical
 /// column.
-#[derive(Clone, CloneRef, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct Texture {
     /// A plain data of this texture.
     data: Rc<RefCell<Vec<u8>>>,
@@ -73,6 +71,20 @@ impl Texture {
         let scaled_to_byte = value * UNSIGNED_BYTE_MAX;
         let clamped_to_byte = scaled_to_byte.clamp(UNSIGNED_BYTE_MIN, UNSIGNED_BYTE_MAX);
         clamped_to_byte as u8
+    }
+
+    pub fn serialize_ppm(&self) -> Vec<u8> {
+        let mut out = vec![];
+        let rows = self.rows();
+        let header = format!("P6\n32 {rows}\n255\n");
+        out.extend(header.bytes());
+        out.extend(&*self.data.borrow());
+        out
+    }
+
+    #[profile(Debug)]
+    pub fn load_bytes(&self, bytes: Vec<u8>) {
+        *self.data.borrow_mut() = bytes;
     }
 }
 

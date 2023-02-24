@@ -134,6 +134,8 @@ mod examples {
 }
 #[allow(unused_imports)]
 use examples::*;
+#[allow(unused_imports)]
+use ensogl_dynamic_assets::*;
 mod profile_workflow;
 
 

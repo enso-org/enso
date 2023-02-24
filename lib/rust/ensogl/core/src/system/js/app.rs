@@ -36,6 +36,24 @@ pub mod js_bindings {
         #[wasm_bindgen(js_name = registerSetShadersRustFn)]
         pub fn register_set_shaders_rust_fn(this: &App, closure: &Closure<dyn FnMut(JsValue)>);
 
+        /// Register in JS a closure to get sources of dynamic assets from Rust.
+        #[allow(unsafe_code)]
+        #[wasm_bindgen(method)]
+        #[wasm_bindgen(js_name = registerGetDynamicAssetsSourcesRustFn)]
+        pub fn register_get_dynamic_assets_sources_rust_fn(
+            this: &App,
+            _closure: &Closure<dyn FnMut() -> JsValue>,
+        );
+
+        /// Register in JS a closure to set dynamic assets in Rust.
+        #[allow(unsafe_code)]
+        #[wasm_bindgen(method)]
+        #[wasm_bindgen(js_name = registerSetDynamicAssetRustFn)]
+        pub fn register_set_dynamic_asset_rust_fn(
+            this: &App,
+            _closure: &Closure<dyn FnMut(JsValue, JsValue, JsValue)>,
+        );
+
         /// Show a spinner covering the whole viewport.
         #[allow(unsafe_code)]
         #[wasm_bindgen(method)]
@@ -62,6 +80,16 @@ pub mod js_bindings {
     impl App {
         pub fn register_get_shaders_rust_fn(&self, _closure: &Closure<dyn FnMut() -> JsValue>) {}
         pub fn register_set_shaders_rust_fn(&self, _closure: &Closure<dyn FnMut(JsValue)>) {}
+        pub fn register_get_dynamic_assets_sources_rust_fn(
+            &self,
+            _closure: &Closure<dyn FnMut() -> JsValue>,
+        ) {
+        }
+        pub fn register_set_dynamic_asset_rust_fn(
+            &self,
+            _closure: &Closure<dyn FnMut(JsValue, JsValue, JsValue)>,
+        ) {
+        }
 
         pub fn show_progress_indicator(&self, _progress: f32) {}
         pub fn hide_progress_indicator(&self) {}

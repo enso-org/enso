@@ -2167,6 +2167,7 @@ dependencies = [
  "ensogl",
  "ensogl-component",
  "ensogl-drop-manager",
+ "ensogl-dynamic-assets",
  "ensogl-examples",
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
@@ -2591,6 +2592,7 @@ dependencies = [
  "ensogl-drop-down",
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
+ "ensogl-dynamic-assets",
  "ensogl-file-browser",
  "ensogl-flame-graph",
  "ensogl-grid-view",
@@ -2688,6 +2690,18 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+]
+
+[[package]]
+name = "ensogl-dynamic-assets"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "enso-shapely",
+ "ensogl-core",
+ "ensogl-text",
+ "js-sys",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -3138,6 +3152,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "rustybuzz",
  "serde",
+ "serde_json",
  "wasm-bindgen-test",
  "xi-rope",
 ]

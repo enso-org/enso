@@ -218,6 +218,7 @@ pub mod paths {
         TargetEnsoglPack {
             wasm_pack:    TargetEnsoglPackWasmPack,
             shaders:      TargetEnsoglPackShaders,
+            assets:       PathBuf,
             shaders_hash: PathBuf,
             runtime_libs: TargetEnsoglPackRuntimeLibs,
             dist:         TargetEnsoglPackDist,
@@ -241,14 +242,20 @@ pub mod paths {
 
         TargetEnsoglPackDist {
             app:              PathBuf,
+            asset_extractor:  PathBuf,
             shader_extractor: PathBuf,
-            pkg_js:          PathBuf,
+            pkg_js:           PathBuf,
             main_wasm:        PathBuf,
             shaders:          TargetEnsoglPackDistShaders,
+            assets:           TargetEnsoglPackDistAssets,
         }
 
         TargetEnsoglPackDistShaders {
             list: PathBuf,
+        }
+
+        TargetEnsoglPackDistAssets {
+            manifest: PathBuf,
         }
     }
 }
@@ -278,18 +285,24 @@ impl Paths {
         p.target.ensogl_pack.shaders.root = p.target.ensogl_pack.join("shaders");
         p.target.ensogl_pack.shaders.list = p.target.ensogl_pack.shaders.join("list.txt");
         p.target.ensogl_pack.shaders_hash = p.target.ensogl_pack.join("shaders-hash");
+        p.target.ensogl_pack.assets = p.target.ensogl_pack.join("assets");
         p.target.ensogl_pack.runtime_libs.root = p.target.ensogl_pack.join("runtime-libs");
         p.target.ensogl_pack.runtime_libs.runtime_libs =
             p.target.ensogl_pack.runtime_libs.join("runtime-libs.js");
         p.target.ensogl_pack.dist.root = p.target.ensogl_pack.join("dist");
         p.target.ensogl_pack.linked_dist = p.target.ensogl_pack.join("linked-dist");
         p.target.ensogl_pack.dist.app = p.target.ensogl_pack.dist.join("index.js");
+        p.target.ensogl_pack.dist.asset_extractor =
+            p.target.ensogl_pack.dist.join("asset-extractor.js");
         p.target.ensogl_pack.dist.shader_extractor =
             p.target.ensogl_pack.dist.join("shader-extractor.js");
         p.target.ensogl_pack.dist.pkg_js = p.target.ensogl_pack.dist.join("pkg.js");
         p.target.ensogl_pack.dist.main_wasm = p.target.ensogl_pack.dist.join("pkg.wasm");
         p.target.ensogl_pack.dist.shaders.root = p.target.ensogl_pack.dist.join("shaders");
         p.target.ensogl_pack.dist.shaders.list = p.target.ensogl_pack.dist.shaders.join("list.txt");
+        p.target.ensogl_pack.dist.assets.root = p.target.ensogl_pack.dist.join("assets");
+        p.target.ensogl_pack.dist.assets.manifest =
+            p.target.ensogl_pack.dist.assets.join("manifest.json");
         Ok(p)
     }
 }
@@ -367,6 +380,8 @@ async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
         run_script("build", &args).await?;
         let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
         run_script("build-shader-extractor", &args).await?;
+        let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
+        run_script("build-asset-extractor", &args).await?;
         println!("BUILD build-runtime-libs");
         let args = ["--", &format!("--outdir={}", paths.target.ensogl_pack.runtime_libs.display())];
         run_script("build-runtime-libs", &args).await?;
@@ -435,6 +450,18 @@ async fn extract_shaders(paths: &Paths) -> Result<()> {
         .arg(&paths.target.ensogl_pack.dist.shader_extractor)
         .arg("--out-dir")
         .arg(&paths.target.ensogl_pack.shaders)
+        .run_ok()
+        .await
+}
+
+/// Extract asset sources from the WASM artifact.
+async fn extract_assets(paths: &Paths) -> Result<()> {
+    info!("Extracting asset sources from generated WASM file.");
+    ide_ci::programs::Node
+        .cmd()?
+        .arg(&paths.target.ensogl_pack.dist.asset_extractor)
+        .arg("--out-dir")
+        .arg(&paths.target.ensogl_pack.assets)
         .run_ok()
         .await
 }
@@ -529,6 +556,7 @@ pub async fn build(
     compile_this_crate_ts_sources(&paths).await?;
     run_wasm_pack(&paths, provider).await?;
     extract_shaders(&paths).await?;
+    extract_assets(&paths).await?;
     optimize_shaders(&paths).await?;
     let out_dir = Path::new(&outputs.out_dir);
     ide_ci::fs::copy(&paths.target.ensogl_pack.dist, out_dir)?;

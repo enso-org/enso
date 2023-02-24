@@ -242,6 +242,18 @@ export class App {
         rustSetShadersFn = fn
     }
 
+    /** Registers the Rust function that extracts asset source files. */
+    registerGetDynamicAssetsSourcesRustFn(fn: GetAssetsSourcesFn) {
+        logger.log(`Registering 'getAssetsSourcesFn'.`)
+        rustGetAssetsSourcesFn = fn
+    }
+
+    /** Registers the Rust function that injects dynamic assets. */
+    registerSetDynamicAssetRustFn(fn: SetAssetFn) {
+        logger.log(`Registering 'setAssetFn'.`)
+        rustSetAssetFn = fn
+    }
+
     /** Log the message on the remote server. */
     remoteLog(message: string, data: any) {
         // TODO: Implement remote logging. This should be done after cloud integration.
@@ -583,6 +595,30 @@ export class App {
             }
         })
     }
+
+    getAssetSources(): Map<string, Map<string, Map<string, ArrayBuffer>>> | null {
+        return log.Task.run('Getting dynamic asset sources from Rust.', () => {
+            if (!rustGetAssetsSourcesFn) {
+                logger.error('The Rust dynamic asset sources function was not registered.')
+                return null
+            } else {
+                const result = rustGetAssetsSourcesFn()
+                logger.log(`Got ${result.size} asset definitions.`)
+                return result
+            }
+        })
+    }
+
+    setAsset(builder: string, key: string, data: Map<string, ArrayBuffer>) {
+        log.Task.runCollapsed(`Sending dynamic asset to Rust.`, () => {
+            if (!rustSetAssetFn) {
+                logger.error('The Rust asset injection function was not registered.')
+            } else {
+                logger.log(`Setting asset definition.`)
+                rustSetAssetFn(builder, key, data)
+            }
+        })
+    }
 }
 
 // ==========================
@@ -594,6 +630,12 @@ type SetShadersFn = (map: Map<string, { vertex: string; fragment: string }>) => 
 
 let rustGetShadersFn: null | GetShadersFn = null
 let rustSetShadersFn: null | SetShadersFn = null
+
+type GetAssetsSourcesFn = () => Map<string, Map<string, Map<string, ArrayBuffer>>>
+type SetAssetFn = (builder: string, key: string, data: Map<string, ArrayBuffer>) => void
+
+let rustGetAssetsSourcesFn: null | GetAssetsSourcesFn = null
+let rustSetAssetFn: null | SetAssetFn = null
 
 /** Registers the Rust function that extracts the shader definitions. */
 function registerGetShadersRustFn(fn: GetShadersFn) {
@@ -607,4 +649,16 @@ function registerSetShadersRustFn(fn: SetShadersFn) {
     rustSetShadersFn = fn
 }
 
-host.exportGlobal({ registerGetShadersRustFn, registerSetShadersRustFn })
+/** Registers the Rust function that extracts asset source files. */
+function registerGetDynamicAssetsSourcesRustFn(fn: GetAssetsSourcesFn) {
+    logger.log(`Registering 'getAssetsSourcesFn'.`)
+    rustGetAssetsSourcesFn = fn
+}
+
+/** Registers the Rust function that injects dynamic assets. */
+function registerSetDynamicAssetRustFn(fn: SetAssetFn) {
+    logger.log(`Registering 'setAssetFn'.`)
+    rustSetAssetFn = fn
+}
+
+host.exportGlobal({ registerGetShadersRustFn, registerSetShadersRustFn, registerGetDynamicAssetsSourcesRustFn, registerSetDynamicAssetRustFn })
