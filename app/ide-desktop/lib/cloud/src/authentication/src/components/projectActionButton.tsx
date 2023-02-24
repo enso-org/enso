@@ -9,7 +9,8 @@ import {
 
 import {unstable_batchedUpdates as batchedUpdates} from "react-dom";
 import {useFullUserSession} from "../authentication";
-import {ProjectState, Project, useBackend} from "../api";
+import {ProjectState, Project, createBackend} from "../api";
+import { useLogger } from "../logger";
 
 const STATUS_CHECK_INTERVAL = 10000;
 
@@ -23,7 +24,8 @@ type props = {
 export const ProjectActionButton: React.FC<props> = (props) => {
     // FIXME [NP]: move this up a boundary layer and provide a provider for this
     const { accessToken } = useFullUserSession();
-    const backend = useBackend();
+    const logger = useLogger();
+    const backend = createBackend(accessToken, logger);
     const {project, onOpen, onOpenStart, onClose} = props;
     const [checkStatusInterval, setCheckStatusInterval] = useState<number | undefined>(undefined);
     const [hasProjectOpened, setHasProjectOpened] = useState(false);

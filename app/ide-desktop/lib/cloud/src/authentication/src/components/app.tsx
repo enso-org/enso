@@ -17,7 +17,7 @@ import { FC, Fragment, useMemo } from 'react';
 import authApi from '../authentication/api';
 import withRouter from '../navigation';
 import {ProjectManager} from "enso-studio-content/src/project_manager";
-import { BackendProvider } from '../api';
+import { Logger, LoggerProvider } from '../logger';
 
 
 
@@ -46,19 +46,6 @@ export const SET_USERNAME_PATH = "/set-username";
 // ===========
 // === App ===
 // ===========
-
-/**
- * Interface used to log logs, errors, etc.
- *
- * In the browser, this is the `Console` interface. In Electron, this is the `Logger` interface
- * provided by the EnsoGL packager.
- */
-export interface Logger {
-    /** Logs a message to the console. */
-    log: (message?: any, ...optionalParams: any[]) => void,
-    /** Logs an error message to the console. */
-    error: (message?: any, ...optionalParams: any[]) => void,
-}
 
 /// Global configuration for the `App` component.
 export interface AppProps {
@@ -115,28 +102,30 @@ const AppRouter: FC<AppProps> = (props) => {
   const auth = useMemo(() => authApi(authConfig), []);
 
   return (
-    <AuthProvider auth={auth} logger={logger} onAuthenticated={onAuthenticated} >
-      <Routes>
-        <Fragment>
-          {/* Login & registration pages are visible to unauthenticated users. */}
-          <Route element={<GuestLayout />}>
-            <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
-            <Route path={LOGIN_PATH} element={<LoginContainer />} /> 
-          </Route>
-          {/* Protected pages are visible to authenticated users. */}
-          <Route element={<BackendProvider accessToken={"buzz"} logger={logger}><ProtectedLayout /></BackendProvider>}>
-            {/* FIXME [NP]: why do we need this extra one for electron to work? */}
-            <Route index element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
-            <Route path={DASHBOARD_PATH} element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
-            <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
-          </Route>
-          {/* Other pages are visible to unauthenticated and authenticated users. */}
-          <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
-          <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
-          <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
-        </Fragment>
-      </Routes>
-    </AuthProvider>
+    <LoggerProvider logger={logger}>
+      <AuthProvider auth={auth} onAuthenticated={onAuthenticated} >
+        <Routes>
+          <Fragment>
+            {/* Login & registration pages are visible to unauthenticated users. */}
+            <Route element={<GuestLayout />}>
+              <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
+              <Route path={LOGIN_PATH} element={<LoginContainer />} /> 
+            </Route>
+            {/* Protected pages are visible to authenticated users. */}
+            <Route element={<ProtectedLayout />}>
+              {/* FIXME [NP]: why do we need this extra one for electron to work? */}
+              <Route index element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
+              <Route path={DASHBOARD_PATH} element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
+              <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
+            </Route>
+            {/* Other pages are visible to unauthenticated and authenticated users. */}
+            <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
+            <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
+            <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
+          </Fragment>
+        </Routes>
+      </AuthProvider>
+    </LoggerProvider>
   )
 }
 

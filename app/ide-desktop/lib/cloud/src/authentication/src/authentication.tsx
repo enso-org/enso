@@ -9,12 +9,12 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from "react-hot-toast"
 
-import { Backend, Organization, SetUsernameBody } from './api';
+import { createBackend, Organization, SetUsernameBody } from './api';
 import { isAmplifyError, isAuthError, Api } from './authentication/api';
-import { DASHBOARD_PATH, Logger, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
+import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
 import { useAsyncEffect } from './hooks';
 import { ListenerCallback } from './authentication/listen';
-import { Client } from './client';
+import { useLogger } from './logger';
 
 
 
@@ -162,7 +162,6 @@ const AuthContext = createContext<AuthContextType>(
 // ====================
 
 export interface AuthProviderProps {
-    logger: Logger,
     auth: Api,
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void;
@@ -171,7 +170,8 @@ export interface AuthProviderProps {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
-  const { logger, auth, children } = props
+  const { auth, children } = props
+  const logger = useLogger();
   const onAuthenticated = useCallback(props.onAuthenticated, [])
   const navigate = useNavigate();
   const [initialized, setInitialized] = useState(false);
@@ -180,10 +180,17 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // has just logged in (so their cached credentials are out of date).
   const [refresh, setRefresh] = useState(0);
 
+  // Function that forces a refresh of the user session.
+  //
+  // Should be called after any operation that **will** (not **might**) change the user's session.
+  // For example, this should be called after signing out. Calling this will result in a re-render
+  // of the whole page, which is why it should only be done when necessary.
+  const refreshSession = () => setRefresh((refresh) => refresh + 1);
+
   useEffect(() => {
     const listener: ListenerCallback = (event) => {
       if (event === "signIn") {
-          setRefresh((refresh) => refresh + 1);
+          refreshSession();
       } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
           // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so we
           // have to hack it by replacing the URL in the browser's history. This is done because
@@ -191,7 +198,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
           //
           // See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
           window.history.replaceState({}, "", MAIN_PAGE_URL)
-          setRefresh((refresh) => refresh + 1)
+          refreshSession();
       // Typescript doesn't know that this is an exhaustive match, so we need to disable the
       // `no-unnecessary-condition` rule. We can't just turn the final block into an `else` because
       // then we wouldn't get an error if we added a new event type.
@@ -211,7 +218,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // Register an async effect that will fetch the user's session whenever the `refresh` state is
   // incremented. This is useful when a user has just logged in (as their cached credentials are out
   // of date, so this will update them).
-  const [authSession] = useAsyncEffect(null, logger, async () => {
+  const [authSession] = useAsyncEffect(null, async () => {
     return await auth.userSession();
   }, [refresh])
 
@@ -230,22 +237,11 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
         }
         const { accessToken, email } = authSession;
 
-
-        // FIXME [NP]: don't create a new API client here, reuse the one from the context.
-        const headers = new Headers();
-        headers.append("Authorization", `Bearer ${accessToken}`)
-        const client = Client.builder().defaultHeaders(headers).build();
-        const backend = new Backend(client, logger);
+        const backend = createBackend(accessToken, logger);
 
         // Request the user's organization information from the Cloud backend.
-        let organization;
-        try {
-          organization = await backend.getUsersMe();
-        } catch (error) {
-          logger.error(error);
-          organization = null;
-        }
-        console.log("EFFECT: fetchSession 5");
+        const organization = await backend.getUsersMe();
+        logger.log("EFFECT: fetchSession 5");
 
         let session: UserSession;
 
@@ -341,10 +337,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
       const body: SetUsernameBody = { userName: username, userEmail: email };
 
       // FIXME [NP]: don't create a new API client here, reuse the one from the context.
-      const headers = new Headers();
-      headers.append("Authorization", `Bearer ${accessToken}`)
-      const client = Client.builder().defaultHeaders(headers).build();
-      const backend = new Backend(client, logger);
+      const backend = createBackend(accessToken, logger);
 
       await backend.setUsername(body);
       navigate(DASHBOARD_PATH);
@@ -375,10 +368,6 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
 
       throw error
     }
-
-    // Now that we've logged in, we need to refresh the session so that the user's organization
-    // information is available.
-    //setRefresh(refresh + 1);
 
     navigate(DASHBOARD_PATH)
     toast.success(SIGN_IN_WITH_PASSWORD_SUCCESS)
@@ -429,7 +418,22 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   };
 
   const signOut = async () => {
-    await auth.signOut();
+    // FIXME [NP2]: For some reason, the redirect back to the IDE from the browser doesn't work
+    //   correctly so this `await` throws a timeout error. As a workaround, we catch this error
+    //   and force a refresh of the session manually by running the `signOut` again. This works
+    //   because Amplify will see that we've already signed out and clear the cache accordingly.
+    //   Ideally we should figure out how to fix the redirect and remove this `catch`. This has the
+    //   unintended consequence of catching any other errors that might occur during sign out, that
+    //   we really shouldn't be catching. This also has the unintended consequence of delaying the
+    //   sign out process by a few seconds (until the timeout occurs).
+
+    try {
+      await auth.signOut();
+    } catch(error) {
+      logger.error("Sign out failed", error);
+    } finally {
+      await auth.signOut();
+    }
 
     toast.success(SIGN_OUT_SUCCESS)
   }

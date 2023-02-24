@@ -10,10 +10,11 @@ import {unstable_batchedUpdates as batchedUpdate} from "react-dom";
 import { useAuth, useFullUserSession } from '../authentication';
 
 import withRouter from '../navigation'
-import {Project, ProjectState, useBackend} from "../api";
+import {createBackend, Project, ProjectState} from "../api";
 import {Templates} from "./templates";
 import {ProjectActionButton} from "./projectActionButton";
 import {ProjectManager} from "enso-studio-content/src/project_manager";
+import { useLogger } from '../logger';
 
 
 
@@ -51,8 +52,8 @@ const tableHeaders = columns.map((columnName, index) => {
 const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
     const { signOut } = useAuth();
     const { accessToken, organization } = useFullUserSession();
-    // FIXME [NP]: add provider for this
-    const backend = useBackend();
+    const logger = useLogger();
+    const backend = createBackend(accessToken, logger);
     const { runningOnDesktop, projectManager } = props;
     const [projectsList, setProjectsList] = useState<Project[]>([]);
 
@@ -109,7 +110,6 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
         void (async (): Promise<void> => {
             let newProjectsList: Project[] = [];
 
-            await backend.listProjects()
             if (!runningOnDesktop) {
                 newProjectsList = await backend.listProjects();
             } else {

@@ -1,11 +1,12 @@
 // FIXME [NP]: find and resolve all typescript/eslint errors (including silenced ones)
 import { Auth, CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
 import { CognitoUserSession } from "amazon-cognito-identity-js";
-import { CONFIRM_REGISTRATION_PATH, DASHBOARD_PATH, Logger, LOGIN_PATH, RESET_PASSWORD_PATH } from "../components/app";
+import { CONFIRM_REGISTRATION_PATH, DASHBOARD_PATH, LOGIN_PATH, RESET_PASSWORD_PATH } from "../components/app";
 import { AwsCognitoOAuthOpts } from "@aws-amplify/auth/lib-esm/types";
 import { NavigateFunction, redirect } from "react-router-dom";
 import { Hub, HubCallback } from "@aws-amplify/core";
 import registerAuthEventListener, { ListenFunction } from "./listen";
+import { Logger } from "../logger";
 
 
 
@@ -340,7 +341,7 @@ const registerOpenAuthenticationUrlCallback = (config: AuthConfig) => {
     const openAuthenticationUrlCallback = (url: string) => {
         const parsedUrl = new URL(url)
         // FIXME [NP]: remove log
-        console.log("openAuthenticationUrlCallback::URL::", url)
+        logger.log("openAuthenticationUrlCallback::URL::", url)
 
         // FIXME [NP]: constantize
         if (parsedUrl.pathname === "/confirmation") {

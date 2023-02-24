@@ -4,6 +4,7 @@ import { LOGIN_PATH } from "./app";
 import withRouter from "../navigation";
 import { useAuth } from "../authentication";
 import toast from "react-hot-toast";
+import { useLogger } from "../logger";
 
 
 
@@ -12,6 +13,7 @@ import toast from "react-hot-toast";
 // ====================================
 
 const confirmRegistrationContainer: FC = () => {
+  const logger = useLogger();
   const { confirmSignUp } = useAuth();
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -32,8 +34,7 @@ const confirmRegistrationContainer: FC = () => {
       // FIXME [NP]: encode ONLY email here, not the whole query string
       .then(() => navigate(LOGIN_PATH + search.toString()))
       .catch((error) => {
-        // FIXME [NP]: handle this error properly
-        console.error(error)
+        logger.error("Error while confirming sign-up", error)
         toast.error("Something went wrong! Please try again or contact the administrators.");
         navigate(LOGIN_PATH);
       })

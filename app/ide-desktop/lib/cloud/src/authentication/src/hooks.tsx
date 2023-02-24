@@ -1,5 +1,5 @@
 import { DependencyList, useEffect, useState } from "react";
-import { Logger } from "./components/app";
+import { useLogger } from "./logger";
 
 
 
@@ -39,7 +39,8 @@ export const useInput = (initialValue: string) => {
 // https://devtrium.com/posts/async-functions-useeffect
 // FIXME [NP]: use useLogger here
 // eslint-disable-next-line jsdoc/require-jsdoc
-export function useAsyncEffect<T>(initialValue: T, logger: Logger, fetch: () => Promise<T>, deps?: DependencyList): [T] {
+export function useAsyncEffect<T>(initialValue: T, fetch: () => Promise<T>, deps?: DependencyList): [T] {
+    const logger = useLogger();
     const [value, setValue] = useState<T>(initialValue);
 
     useEffect(() => {
@@ -57,9 +58,7 @@ export function useAsyncEffect<T>(initialValue: T, logger: Logger, fetch: () => 
             setValue(result);
         }
 
-        load()
-            // FIXME [NP]: use logger.error here
-            .catch(error => logger.log("Error while fetching data", error));
+        load().catch(error => logger.error("Error while fetching data", error));
 
         // Cancel any future `setValue` calls.
         return () => { active = false }
