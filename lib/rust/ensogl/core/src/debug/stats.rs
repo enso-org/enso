@@ -15,6 +15,7 @@
 
 use enso_prelude::*;
 
+use crate::display::world;
 use crate::display::SymbolId;
 use enso_types::unit2::Duration;
 use enso_web::Performance;
@@ -80,7 +81,8 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
     }
 
     pub fn new_draw_call(&self, symbol_id: SymbolId) {
-        self.rc.borrow_mut().stats_data.new_draw_call(symbol_id);
+        let label = world::with_context(|ctx| ctx.symbol_label(symbol_id).unwrap_or("Unknown"));
+        self.rc.borrow_mut().stats_data.new_draw_call(label);
     }
 }
 
@@ -217,7 +219,7 @@ gen_stats! {
     fps                  : f64,
     wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
-    draw_calls           : Vec<SymbolId>,
+    draw_calls           : Vec<&'static str>,
     buffer_count         : usize,
     data_upload_count    : usize,
     data_upload_size     : u32,
@@ -230,8 +232,8 @@ gen_stats! {
 }
 
 impl StatsData {
-    pub fn new_draw_call(&mut self, symbol_id: SymbolId) {
-        self.draw_calls.push(symbol_id);
+    pub fn new_draw_call(&mut self, symbol_name: &'static str) {
+        self.draw_calls.push(symbol_name);
     }
 }
 

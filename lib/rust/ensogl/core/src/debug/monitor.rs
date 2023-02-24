@@ -41,6 +41,7 @@ pub struct ConfigTemplate<Str, Num> {
     pub plot_background_color:   Str,
     pub plot_bar_size:           Option<Num>,
     pub plot_step_size:          Num,
+    pub plot_selection_border:   Num,
     pub plot_selection_width:    Num,
     pub plot_selection_color:    Str,
     pub margin:                  Num,
@@ -108,7 +109,8 @@ fn light_theme() -> Config {
         plot_background_color:   "#f1f1f0".into(),
         plot_bar_size:           Some(2.0),
         plot_step_size:          1.0,
-        plot_selection_width:    3.0,
+        plot_selection_border:   2.0,
+        plot_selection_width:    1.0,
         plot_selection_color:    "#008cff20".into(),
         margin:                  6.0,
         outer_margin:            4.0,
@@ -144,6 +146,7 @@ impl Config {
             plot_background_color:   (&self.plot_background_color).into(),
             plot_bar_size:           self.plot_bar_size.map(|t| t * ratio),
             plot_step_size:          self.plot_step_size * ratio,
+            plot_selection_border:   self.plot_selection_border * ratio,
             plot_selection_width:    self.plot_selection_width * ratio,
             plot_selection_color:    (&self.plot_selection_color).into(),
             outer_margin:            self.outer_margin * ratio,
@@ -168,25 +171,40 @@ impl Config {
 /// as to use `Drop` to clean the HTML when not used anymore.
 #[derive(Clone, Debug, Deref)]
 pub struct Dom {
-    rc: Rc<DomData>,
+    #[deref]
+    rc:             Rc<DomData>,
+    pause_on_press: Rc<web::Closure<dyn Fn()>>,
+    play_on_press:  Rc<web::Closure<dyn Fn()>>,
 }
 
 /// Internal representation of `Dom`.
 #[derive(Debug)]
 pub struct DomData {
-    root:    web::HtmlDivElement,
-    details: web::HtmlDivElement,
-    canvas:  web::HtmlCanvasElement,
-    context: web::CanvasRenderingContext2d,
+    root:      web::HtmlDivElement,
+    details:   web::HtmlDivElement,
+    plot_area: PlotArea,
+
+    control_button: ControlButton,
 }
+
+
 
 impl Dom {
     /// Constructor.
     #[allow(clippy::new_without_default)]
-    pub fn new(config: &Config, screen_shape: Shape) -> Self {
+    pub fn new(frp: &api::Public, config: &Config, screen_shape: Shape) -> Self {
         let data = DomData::new(config, screen_shape);
+        let button = &data.control_button;
+        let pause_on_press = web::Closure::<dyn Fn()>::new(f!(frp.pause_data_processing()));
+        let play_on_press = web::Closure::<dyn Fn()>::new(f!(frp.resume_data_processing()));
+        let pause_on_press_fn = pause_on_press.as_ref().unchecked_ref();
+        let play_on_press_fn = play_on_press.as_ref().unchecked_ref();
+        button.pause.add_event_listener_with_callback("mousedown", pause_on_press_fn).unwrap();
+        button.play.add_event_listener_with_callback("mousedown", play_on_press_fn).unwrap();
         let rc = Rc::new(data);
-        Self { rc }
+        let pause_on_press = Rc::new(pause_on_press);
+        let play_on_press = Rc::new(play_on_press);
+        Self { rc, pause_on_press, play_on_press }
     }
 }
 
@@ -209,29 +227,26 @@ impl DomData {
         root.set_style_or_warn("font-family", FONTS);
         root.set_style_or_warn("font-size", "12px");
 
-        let selection_left = config.plot_right_x() - 0.5 - config.plot_selection_width / 2.0;
+        let bg_color = &config.background_color;
+        let selection_border = config.plot_selection_border;
+        let selection_left =
+            config.plot_right_x() - 0.5 - config.plot_selection_width / 2.0 - selection_border;
         let selection = web::document.create_div_or_panic();
         selection.set_style_or_warn("position", "absolute");
         selection.set_style_or_warn("width", format!("{}px", config.plot_selection_width));
         selection.set_style_or_warn("height", "100px");
         selection.set_style_or_warn("left", format!("{selection_left}px",));
-        selection.set_style_or_warn("background", &config.plot_selection_color);
+        selection.set_style_or_warn("border", format!("{selection_border}px solid {bg_color}"));
+
+        // selection.set_style_or_warn("background", &config.plot_selection_color);
 
         root.append_child(&selection).unwrap();
 
 
         web::document.body_or_panic().prepend_with_node_1(&root).unwrap();
 
-        let canvas = web::document.create_canvas_or_panic();
-        canvas.set_style_or_warn("display", "block");
-        canvas.set_style_or_warn("pointer-events", "none");
-        canvas.set_style_or_warn("overflow", "hidden");
-        canvas.set_style_or_warn("border-radius", "6px");
-        canvas.set_style_or_warn("border", "2px solid #000000c4");
-
-        let context = canvas.get_context("2d").unwrap().unwrap();
-        let context: web::CanvasRenderingContext2d = context.dyn_into().unwrap();
-        root.append_child(&canvas).unwrap();
+        let plot_area = PlotArea::default();
+        root.append_child(&plot_area).unwrap();
 
         let details = web::document.create_div_or_panic();
         details.set_style_or_warn("height", "100%");
@@ -243,39 +258,18 @@ impl DomData {
         details.set_style_or_warn("border-radius", "6px");
         details.set_style_or_warn("border", "2px solid #000000c4");
         details.set_style_or_warn("background", &config.background_color);
-
-        let pause_icon_svg = "<svg width=\"16\" height=\"16\">
-           <circle cx=\"8\" cy=\"8\" r=\"8\" fill=\"#00000020\" />
-           <rect x=\"5\" y=\"4\" width=\"2\" height=\"8\" style=\"fill:#00000080;\" />
-           <rect x=\"9\" y=\"4\" width=\"2\" height=\"8\" style=\"fill:#00000080;\" />
-        </svg>";
-
-        let play_icon_svg = "<svg width=\"100\" height=\"100\">
-           <circle cx=\"8\" cy=\"8\" r=\"8\" fill=\"#00000020\" />
-           <polygon points=\"6,4 12,8 6,12\" style=\"fill:#00000080;\" />
-        </svg>";
-
-        let pause_icon = web::document.create_div_or_panic();
-        pause_icon.set_inner_html(pause_icon_svg);
-        pause_icon.set_style_or_warn("position", "absolute");
-        pause_icon.set_style_or_warn("top", "8px");
-        pause_icon.set_style_or_warn("left", "8px");
-        root.append_child(&pause_icon).unwrap();
-
-        let play_icon = web::document.create_div_or_panic();
-        play_icon.set_inner_html(play_icon_svg);
-        play_icon.set_style_or_warn("position", "absolute");
-        play_icon.set_style_or_warn("top", "8px");
-        play_icon.set_style_or_warn("left", "30px");
-        root.append_child(&play_icon).unwrap();
-
-
         root.append_child(&details).unwrap();
-        let out = Self { root, details, canvas, context };
+
+        let control_button = ControlButton::default();
+        root.append_child(&control_button).unwrap();
+
+        let out = Self { root, details, plot_area, control_button };
         out.set_screen_shape(screen_shape);
         out.hide_details();
         out
     }
+
+
 
     fn set_screen_shape(&self, shape: Shape) {
         self.root
@@ -291,12 +285,121 @@ impl DomData {
     }
 }
 
+#[derive(Debug, Deref)]
+pub struct PlotArea {
+    #[deref]
+    root:              web::HtmlDivElement,
+    plot:              web::HtmlCanvasElement,
+    plot_context:      web::CanvasRenderingContext2d,
+    selection:         web::HtmlCanvasElement,
+    selection_context: web::CanvasRenderingContext2d,
+}
+
+impl PlotArea {
+    fn new() -> Self {
+        let root = web::document.create_div_or_panic();
+        root.set_style_or_warn("display", "block");
+        root.set_style_or_warn("pointer-events", "none");
+        root.set_style_or_warn("overflow", "hidden");
+        root.set_style_or_warn("border-radius", "6px");
+        root.set_style_or_warn("border", "2px solid #000000c4");
+
+        let plot = web::document.create_canvas_or_panic();
+        let plot_context = plot.get_context("2d").unwrap().unwrap();
+        let plot_context: web::CanvasRenderingContext2d = plot_context.dyn_into().unwrap();
+        root.append_child(&plot).unwrap();
+
+        let selection = web::document.create_canvas_or_panic();
+        let selection_context = selection.get_context("2d").unwrap().unwrap();
+        let selection_context: web::CanvasRenderingContext2d =
+            selection_context.dyn_into().unwrap();
+        root.append_child(&selection).unwrap();
+
+        Self { root, plot, plot_context, selection, selection_context }
+    }
+
+    fn set_size(&self, width: u32, height: u32) {
+        let selection_width = 4;
+        let ratio = web::window.device_pixel_ratio();
+        self.plot.set_width(width);
+        self.plot.set_height(height);
+        self.selection.set_width(selection_width);
+        self.selection.set_height(height);
+        self.plot.set_style_or_warn("width", format!("{}px", width as f64 / ratio));
+        self.plot.set_style_or_warn("height", format!("{}px", height as f64 / ratio));
+        self.selection.set_style_or_warn("width", format!("{}px", selection_width as f64 / ratio));
+        self.selection.set_style_or_warn("height", format!("{}px", height as f64 / ratio));
+    }
+}
+
+impl Default for PlotArea {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Drop for DomData {
     fn drop(&mut self) {
         self.root.remove()
     }
 }
 
+#[derive(Debug, Deref)]
+pub struct ControlButton {
+    #[deref]
+    root:  web::HtmlDivElement,
+    pause: web::HtmlDivElement,
+    play:  web::HtmlDivElement,
+}
+
+impl ControlButton {
+    fn new() -> Self {
+        let root = web::document.create_div_or_panic();
+        root.set_class_name("control-button");
+        root.set_style_or_warn("position", "absolute");
+        root.set_style_or_warn("top", "8px");
+        root.set_style_or_warn("left", "8px");
+
+        let pause_icon = "<svg width=\"16\" height=\"16\">
+           <circle cx=\"8\" cy=\"8\" r=\"8\" fill=\"#00000020\" />
+           <rect x=\"5\" y=\"4\" width=\"2\" height=\"8\" style=\"fill:#00000080;\" />
+           <rect x=\"9\" y=\"4\" width=\"2\" height=\"8\" style=\"fill:#00000080;\" />
+        </svg>";
+
+        let play_icon = "<svg width=\"100\" height=\"100\">
+           <circle cx=\"8\" cy=\"8\" r=\"8\" fill=\"#00000020\" />
+           <polygon points=\"6,4 12,8 6,12\" style=\"fill:#00000080;\" />
+        </svg>";
+
+        let pause = web::document.create_div_or_panic();
+        pause.set_inner_html(pause_icon);
+        pause.set_style_or_warn("pointer-events", "auto");
+        root.append_child(&pause).unwrap();
+
+        let play = web::document.create_div_or_panic();
+        play.set_inner_html(play_icon);
+        play.set_style_or_warn("pointer-events", "auto");
+        play.set_style_or_warn("display", "none");
+        root.append_child(&play).unwrap();
+        Self { root, pause, play }
+    }
+
+    fn pause(&self) {
+        self.pause.set_style_or_warn("display", "none");
+        self.play.set_style_or_warn("display", "block");
+    }
+
+    fn resume(&self) {
+        self.pause.set_style_or_warn("display", "block");
+        self.play.set_style_or_warn("display", "none");
+    }
+}
+
+impl Default for ControlButton {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 
 // ===============
@@ -305,9 +408,10 @@ impl Drop for DomData {
 
 crate::define_endpoints_2! {
     Input {
+        pause_data_processing(),
+        resume_data_processing(),
     }
-    Output {
-    }
+    Output {}
 }
 
 /// Visual panel showing performance-related statistics.
@@ -320,7 +424,8 @@ pub struct Monitor {
 
 impl Default for Monitor {
     fn default() -> Self {
-        let mut renderer = Renderer::new();
+        let frp = Frp::new();
+        let mut renderer = Renderer::new(&frp.public);
         renderer.add::<FrameTime>();
         renderer.add::<Fps>();
         renderer.add::<WasmMemory>();
@@ -334,7 +439,6 @@ impl Default for Monitor {
         renderer.add::<ShaderCompileCount>();
         renderer.add::<SpriteSystemCount>();
         renderer.add::<SpriteCount>();
-        let frp = Frp::new();
         let initialized = default();
         Self { renderer: Rc::new(RefCell::new(renderer)), frp, initialized }
     }
@@ -365,6 +469,8 @@ impl Monitor {
                 screen_shape <- any(&init_shape, &scene.frp.shape);
                 eval scene.mouse.frp.position_top_left ((p) renderer.borrow_mut().on_mouse_move(*p));
                 eval screen_shape ((s) renderer.borrow_mut().set_screen_shape(*s));
+                eval_ self.frp.input.pause_data_processing (renderer.borrow_mut().pause());
+                eval_ self.frp.input.resume_data_processing (renderer.borrow_mut().resume());
             }
             init.emit(());
         }
@@ -380,6 +486,7 @@ impl Monitor {
 /// Code responsible for drawing [`Monitor`]'s data.
 #[derive(Debug)]
 struct Renderer {
+    frp:                 api::Public,
     user_config:         Config,
     config:              SamplerConfig,
     screen_shape:        Shape,
@@ -389,12 +496,14 @@ struct Renderer {
     panels:              Vec<Panel>,
     selected_panel:      Option<usize>,
     first_draw:          bool,
+    paused:              bool,
     samples:             Vec<StatsData>,
     samples_start_index: usize,
 }
 
 impl Renderer {
-    fn new() -> Self {
+    fn new(frp: &api::Public) -> Self {
+        let frp = frp.clone_ref();
         let user_config = Config::default();
         let panels = default();
         let screen_shape = default();
@@ -404,9 +513,11 @@ impl Renderer {
         let config = user_config.to_js_config();
         let dom = default();
         let selected_panel = default();
+        let paused = default();
         let samples = default();
         let samples_start_index = default();
         let mut out = Self {
+            frp,
             user_config,
             config,
             screen_shape,
@@ -416,11 +527,26 @@ impl Renderer {
             panels,
             selected_panel,
             first_draw,
+            paused,
             samples,
             samples_start_index,
         };
         out.update_config();
         out
+    }
+
+    fn pause(&mut self) {
+        self.paused = true;
+        if let Some(dom) = &self.dom {
+            dom.control_button.pause();
+        }
+    }
+
+    fn resume(&mut self) {
+        self.paused = false;
+        if let Some(dom) = &self.dom {
+            dom.control_button.resume();
+        }
     }
 
     fn set_screen_shape(&mut self, shape: Shape) {
@@ -446,7 +572,7 @@ impl Renderer {
     fn show(&mut self) {
         if !self.visible() {
             self.first_draw = true;
-            self.dom = Some(Dom::new(&self.user_config, self.screen_shape));
+            self.dom = Some(Dom::new(&self.frp, &self.user_config, self.screen_shape));
             self.resize();
         }
     }
@@ -477,17 +603,20 @@ impl Renderer {
     }
 
     fn sample_and_draw(&mut self, stats: &StatsData) {
-        if self.samples.len() < self.config.sample_count {
-            self.samples.push(stats.clone());
-        } else {
-            self.samples[self.samples_start_index] = stats.clone();
-            self.samples_start_index = (self.samples_start_index + 1) % self.config.sample_count;
-        }
-        if self.visible() {
-            for panel in &self.panels {
-                panel.sample_and_postprocess(stats);
+        if !self.paused {
+            if self.samples.len() < self.config.sample_count {
+                self.samples.push(stats.clone());
+            } else {
+                self.samples[self.samples_start_index] = stats.clone();
+                self.samples_start_index =
+                    (self.samples_start_index + 1) % self.config.sample_count;
             }
-            self.draw(stats);
+            if self.visible() {
+                for panel in &self.panels {
+                    panel.sample_and_postprocess(stats);
+                }
+                self.draw(stats);
+            }
         }
     }
 
@@ -499,6 +628,7 @@ impl Renderer {
                 self.first_draw(&dom);
             }
             self.shift_plot_area_left(&dom);
+            self.copy_plot_to_selection(&dom);
             self.clear_labels_area(&dom);
             self.draw_plots(&dom, stats);
         }
@@ -529,10 +659,7 @@ impl Renderer {
             // let width = 1000.0;
             let u_width = width as u32;
             let u_height = height as u32;
-            dom.canvas.set_width(u_width);
-            dom.canvas.set_height(u_height);
-            dom.canvas.set_style_or_warn("width", format!("{}px", width / ratio));
-            dom.canvas.set_style_or_warn("height", format!("{}px", height / ratio));
+            dom.plot_area.set_size(u_width, u_height);
         }
     }
 
@@ -540,9 +667,10 @@ impl Renderer {
         let width = self.width;
         let height = self.height;
         let shift = -(self.config.plot_step_size);
-        dom.context
+        dom.plot_area
+            .plot_context
             .draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                &dom.canvas,
+                &dom.plot_area.plot,
                 0.0,
                 0.0,
                 width,
@@ -555,12 +683,14 @@ impl Renderer {
             .unwrap();
     }
 
+    fn copy_plot_to_selection(&mut self, dom: &Dom) {}
+
     fn clear_labels_area(&mut self, dom: &Dom) {
         let step = self.config.plot_step_size;
         let width = self.config.labels_width + self.config.results_width + 3.0 * self.config.margin;
-        dom.context.set_fill_style(&self.config.background_color);
-        dom.context.fill_rect(0.0, 0.0, width, self.height);
-        dom.context.fill_rect(self.width - step, 0.0, step, self.height);
+        dom.plot_area.plot_context.set_fill_style(&self.config.background_color);
+        dom.plot_area.plot_context.fill_rect(0.0, 0.0, width, self.height);
+        dom.plot_area.plot_context.fill_rect(self.width - step, 0.0, step, self.height);
     }
 
     fn draw_plots(&mut self, dom: &Dom, stats: &StatsData) {
@@ -568,25 +698,25 @@ impl Renderer {
     }
 
     fn first_draw(&self, dom: &Dom) {
-        dom.context.set_fill_style(&self.config.background_color);
-        dom.context.fill_rect(0.0, 0.0, self.width, self.height);
+        dom.plot_area.plot_context.set_fill_style(&self.config.background_color);
+        dom.plot_area.plot_context.fill_rect(0.0, 0.0, self.width, self.height);
         self.with_all_panels(dom, |_, panel| panel.first_draw(dom));
     }
 
     fn with_all_panels<F: Fn(bool, &Panel)>(&self, dom: &Dom, f: F) {
         let mut total_off = self.config.outer_margin;
-        dom.context.translate(0.0, total_off).unwrap();
+        dom.plot_area.plot_context.translate(0.0, total_off).unwrap();
         for (panel_index, panel) in self.panels.iter().enumerate() {
             let off = self.config.margin;
-            dom.context.translate(0.0, off).unwrap();
+            dom.plot_area.plot_context.translate(0.0, off).unwrap();
             total_off += off;
             let selected = self.selected_panel == Some(panel_index);
             f(selected, panel);
             let off = self.config.panel_height;
-            dom.context.translate(0.0, off).unwrap();
+            dom.plot_area.plot_context.translate(0.0, off).unwrap();
             total_off += off;
         }
-        dom.context.translate(0.0, -total_off).unwrap();
+        dom.plot_area.plot_context.translate(0.0, -total_off).unwrap();
     }
 }
 
@@ -688,7 +818,7 @@ pub trait Sampler: Debug {
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
     fn value(&self, stats: &StatsData) -> f64;
 
-    fn details(&self) -> Option<Box<dyn FnMut(&StatsData) -> Vec<String>>> {
+    fn details(&self) -> Option<Box<dyn FnMut(&StatsData) -> &[&'static str]>> {
         None
     }
 
@@ -853,18 +983,23 @@ impl PanelData {
 
     fn first_draw(&mut self, dom: &Dom) {
         self.init_draw(dom, false);
-        dom.context.set_fill_style(&self.config.plot_background_color);
-        dom.context.fill_rect(0.0, 0.0, self.config.plot_width(), self.config.panel_height);
+        dom.plot_area.plot_context.set_fill_style(&self.config.plot_background_color);
+        dom.plot_area.plot_context.fill_rect(
+            0.0,
+            0.0,
+            self.config.plot_width(),
+            self.config.panel_height,
+        );
         self.finish_draw(dom);
     }
 
     fn move_pen_to_next_element(&mut self, dom: &Dom, offset: f64) {
-        dom.context.translate(offset, 0.0).unwrap();
+        dom.plot_area.plot_context.translate(offset, 0.0).unwrap();
         self.draw_offset += offset;
     }
 
     fn finish_draw(&mut self, dom: &Dom) {
-        dom.context.translate(-self.draw_offset, 0.0).unwrap();
+        dom.plot_area.plot_context.translate(-self.draw_offset, 0.0).unwrap();
         self.draw_offset = 0.0;
     }
 
@@ -877,15 +1012,15 @@ impl PanelData {
 
     fn draw_labels(&mut self, dom: &Dom, selected: bool) {
         let y_pos = self.config.panel_height - self.config.font_vertical_offset;
-        dom.context.set_font(&format!("bold {}px {}", self.config.font_size, FONTS));
-        dom.context.set_text_align("right");
+        dom.plot_area.plot_context.set_font(&format!("bold {}px {}", self.config.font_size, FONTS));
+        dom.plot_area.plot_context.set_text_align("right");
         let color = if selected {
             &self.config.label_color_ok_selected
         } else {
             &self.config.label_color_ok
         };
-        dom.context.set_fill_style(color);
-        dom.context.fill_text(&self.label, self.config.labels_width, y_pos).unwrap();
+        dom.plot_area.plot_context.set_fill_style(color);
+        dom.plot_area.plot_context.fill_text(&self.label, self.config.labels_width, y_pos).unwrap();
         self.move_pen_to_next_element(dom, self.config.labels_width + self.config.margin);
     }
 
@@ -923,15 +1058,23 @@ impl PanelData {
             ValueCheck::Warning => &self.config.label_color_warn,
             ValueCheck::Error => &self.config.label_color_err,
         };
-        dom.context.set_fill_style(color);
-        dom.context.fill_text(&display_value, self.config.results_width, y_pos).unwrap();
+        dom.plot_area.plot_context.set_fill_style(color);
+        dom.plot_area
+            .plot_context
+            .fill_text(&display_value, self.config.results_width, y_pos)
+            .unwrap();
         self.move_pen_to_next_element(dom, self.config.results_width + self.config.margin);
     }
 
     fn draw_plots(&mut self, dom: &Dom) {
         self.move_pen_to_next_element(dom, self.config.plot_width() - self.config.plot_step_size);
-        dom.context.set_fill_style(&self.config.plot_background_color);
-        dom.context.fill_rect(0.0, 0.0, self.config.plot_step_size, self.config.panel_height);
+        dom.plot_area.plot_context.set_fill_style(&self.config.plot_background_color);
+        dom.plot_area.plot_context.fill_rect(
+            0.0,
+            0.0,
+            self.config.plot_step_size,
+            self.config.panel_height,
+        );
         let value_height = self.norm_value * self.config.panel_height;
         let y_pos = self.config.panel_height - value_height;
         let bar_height = self.config.plot_bar_size.unwrap_or(value_height);
@@ -940,8 +1083,8 @@ impl PanelData {
             ValueCheck::Warning => &self.config.plot_color_warn,
             ValueCheck::Error => &self.config.plot_color_err,
         };
-        dom.context.set_fill_style(color);
-        dom.context.fill_rect(0.0, y_pos, self.config.plot_step_size, bar_height);
+        dom.plot_area.plot_context.set_fill_style(color);
+        dom.plot_area.plot_context.fill_rect(0.0, y_pos, self.config.plot_step_size, bar_height);
     }
 }
 
@@ -987,7 +1130,7 @@ macro_rules! stats_sampler {
                 let raw_value: f64 = $stats_expr(stats).as_();
                 raw_value / $value_divisor
             }
-            fn details(&self) -> Option<Box<dyn FnMut(&StatsData) -> Vec<String>>> {
+            fn details(&self) -> Option<Box<dyn FnMut(&StatsData) -> &[&'static str]>> {
                 $details
             }
             fn min_size(&self) -> Option<f64> {
@@ -1054,16 +1197,7 @@ stats_sampler!(
     "Draw call count",
     DrawCallCount,
     (|s: &StatsData| s.draw_calls.len()),
-    Some(Box::new(|s: &StatsData| {
-        world::with_context(|ctx| {
-            s.draw_calls
-                .iter()
-                .map(|id| {
-                    ctx.symbol_label(*id).map(|t| t.to_owned()).unwrap_or(format!("{:?}", id))
-                })
-                .collect()
-        })
-    })),
+    Some(Box::new(|s: &StatsData| &s.draw_calls)),
     100.0,
     500.0,
     0,
