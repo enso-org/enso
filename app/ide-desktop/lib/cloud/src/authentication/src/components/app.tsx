@@ -17,6 +17,7 @@ import { FC, Fragment, useMemo } from 'react';
 import authApi from '../authentication/api';
 import withRouter from '../navigation';
 import {ProjectManager} from "enso-studio-content/src/project_manager";
+import { BackendProvider } from '../api';
 
 
 
@@ -123,7 +124,7 @@ const AppRouter: FC<AppProps> = (props) => {
             <Route path={LOGIN_PATH} element={<LoginContainer />} /> 
           </Route>
           {/* Protected pages are visible to authenticated users. */}
-          <Route element={<ProtectedLayout />}>
+          <Route element={<BackendProvider accessToken={"buzz"} logger={logger}><ProtectedLayout /></BackendProvider>}>
             {/* FIXME [NP]: why do we need this extra one for electron to work? */}
             <Route index element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
             <Route path={DASHBOARD_PATH} element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />

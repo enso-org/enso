@@ -9,12 +9,12 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from "react-hot-toast"
 
-import { getUsersMe, Organization, SetUsernameBody } from './api';
-import * as api from './api';
+import { Backend, Organization, SetUsernameBody } from './api';
 import { isAmplifyError, isAuthError, Api } from './authentication/api';
 import { DASHBOARD_PATH, Logger, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
 import { useAsyncEffect } from './hooks';
 import { ListenerCallback } from './authentication/listen';
+import { Client } from './client';
 
 
 
@@ -230,8 +230,21 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
         }
         const { accessToken, email } = authSession;
 
+
+        // FIXME [NP]: don't create a new API client here, reuse the one from the context.
+        const headers = new Headers();
+        headers.append("Authorization", `Bearer ${accessToken}`)
+        const client = Client.builder().defaultHeaders(headers).build();
+        const backend = new Backend(client, logger);
+
         // Request the user's organization information from the Cloud backend.
-        const organization = await getUsersMe(accessToken);
+        let organization;
+        try {
+          organization = await backend.getUsersMe();
+        } catch (error) {
+          logger.error(error);
+          organization = null;
+        }
         console.log("EFFECT: fetchSession 5");
 
         let session: UserSession;
@@ -326,7 +339,14 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
 
   const setUsername = async (accessToken: string, username: string, email: string) => {
       const body: SetUsernameBody = { userName: username, userEmail: email };
-      await api.setUsername(accessToken, body);
+
+      // FIXME [NP]: don't create a new API client here, reuse the one from the context.
+      const headers = new Headers();
+      headers.append("Authorization", `Bearer ${accessToken}`)
+      const client = Client.builder().defaultHeaders(headers).build();
+      const backend = new Backend(client, logger);
+
+      await backend.setUsername(body);
       navigate(DASHBOARD_PATH);
       toast.success(SET_USERNAME_SUCCESS);
   };

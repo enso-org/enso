@@ -10,7 +10,7 @@ import {unstable_batchedUpdates as batchedUpdate} from "react-dom";
 import { useAuth, useFullUserSession } from '../authentication';
 
 import withRouter from '../navigation'
-import {createProject, Project, listProjects, ProjectState} from "../api";
+import {Project, ProjectState, useBackend} from "../api";
 import {Templates} from "./templates";
 import {ProjectActionButton} from "./projectActionButton";
 import {ProjectManager} from "enso-studio-content/src/project_manager";
@@ -51,6 +51,8 @@ const tableHeaders = columns.map((columnName, index) => {
 const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
     const { signOut } = useAuth();
     const { accessToken, organization } = useFullUserSession();
+    // FIXME [NP]: add provider for this
+    const backend = useBackend();
     const { runningOnDesktop, projectManager } = props;
     const [projectsList, setProjectsList] = useState<Project[]>([]);
 
@@ -81,7 +83,7 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
         const newProjectName = getNewProjectName(templateName);
 
         if (!runningOnDesktop) {
-            const newProject = await createProject(accessToken, {
+            const newProject = await backend.createProject({
                 projectName: newProjectName,
                 projectTemplateName: templateName?.toLowerCase()
             });
@@ -107,8 +109,9 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
         void (async (): Promise<void> => {
             let newProjectsList: Project[] = [];
 
+            await backend.listProjects()
             if (!runningOnDesktop) {
-                newProjectsList = await listProjects(accessToken);
+                newProjectsList = await backend.listProjects();
             } else {
                 const localProjects: any[] = (await projectManager!.listProjects())["result"]["projects"]
                 for (let item of localProjects) {

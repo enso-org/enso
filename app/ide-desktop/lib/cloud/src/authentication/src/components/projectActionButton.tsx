@@ -9,7 +9,7 @@ import {
 
 import {unstable_batchedUpdates as batchedUpdates} from "react-dom";
 import {useFullUserSession} from "../authentication";
-import {closeProject, openProject, ProjectState, getProject, Project} from "../api";
+import {ProjectState, Project, useBackend} from "../api";
 
 const STATUS_CHECK_INTERVAL = 10000;
 
@@ -21,13 +21,15 @@ type props = {
 };
 
 export const ProjectActionButton: React.FC<props> = (props) => {
+    // FIXME [NP]: move this up a boundary layer and provide a provider for this
     const { accessToken } = useFullUserSession();
+    const backend = useBackend();
     const {project, onOpen, onOpenStart, onClose} = props;
     const [checkStatusInterval, setCheckStatusInterval] = useState<number | undefined>(undefined);
     const [hasProjectOpened, setHasProjectOpened] = useState(false);
 
     const handleCloseProject = async () => {
-        await closeProject(accessToken, project.projectId);
+        await backend.closeProject(project.projectId);
 
         batchedUpdates(() => {
             setCheckStatusInterval(undefined);
@@ -37,12 +39,12 @@ export const ProjectActionButton: React.FC<props> = (props) => {
     };
 
     const handleOpenProject = async () => {
-        await openProject(accessToken, project.projectId, {forceCreate: false});
+        await backend.openProject(project.projectId);
 
         const checkProjectStatus = async () => {
-            let response = await getProject(accessToken, project.projectId);
+            let response = await backend.getProject(project.projectId);
 
-            if (response?.state.type === ProjectState.Opened) {
+            if (response.state.type === ProjectState.Opened) {
                 setHasProjectOpened(true);
                 setCheckStatusInterval(undefined);
                 clearInterval(checkStatusInterval);
@@ -75,12 +77,9 @@ export const ProjectActionButton: React.FC<props> = (props) => {
         case ProjectState.OpenInProgress:
             if (!checkStatusInterval && accessToken) {
                 const checkProjectStatus = async () => {
-                    let response = await getProject(
-                        accessToken,
-                        project.projectId
-                    );
+                    let response = await backend.getProject(project.projectId);
 
-                    if (response?.state.type === ProjectState.Opened) {
+                    if (response.state.type === ProjectState.Opened) {
                         setHasProjectOpened(true);
                         setCheckStatusInterval(undefined);
                         clearInterval(checkStatusInterval);
