@@ -118,7 +118,7 @@ public final class Warning implements TruffleObject {
 
   @Builtin.Method(
       name = "set_array",
-      description = "Gets all the warnings associated with the value.",
+      description = "Sets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize
   public static Object set(WithWarnings value, Object warnings, InteropLibrary interop) {
@@ -127,7 +127,7 @@ public final class Warning implements TruffleObject {
 
   @Builtin.Method(
       name = "set_array",
-      description = "Gets all the warnings associated with the value.",
+      description = "Sets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
   public static Object set(Object value, Object warnings, InteropLibrary interop) {

@@ -39,7 +39,10 @@ object ErrorResolver {
     node.map(x => {
       x.getEncapsulatingSourceSection match {
         case null =>
-          Api.StackTraceElement(x.getRootNode.getName, None, None, None)
+          x.getRootNode match {
+            case null => null
+            case _    => Api.StackTraceElement(x.getRootNode.getName, None, None, None)
+          }
         case section =>
           Api.StackTraceElement(
             element.getTarget.getRootNode.getName,
@@ -48,7 +51,7 @@ object ErrorResolver {
             LocationResolver.getExpressionId(section).map(_.externalId)
           )
       }
-    })
+    }).filterNot(_ == null)
   }
 
   /** Find source file path by the module name.

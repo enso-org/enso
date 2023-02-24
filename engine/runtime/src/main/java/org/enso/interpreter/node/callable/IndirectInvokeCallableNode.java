@@ -6,6 +6,8 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
@@ -16,9 +18,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -51,6 +51,37 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail);
+
+  @Specialization
+  Object invokeWithWarnings(
+          WithWarnings warnings,
+          MaterializedFrame callerFrame,
+          State state,
+          Object[] arguments,
+          CallArgumentInfo[] schema,
+          InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+          InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+          BaseNode.TailStatus isTail,
+          @Cached IndirectInvokeCallableNode invokeCallableNode,
+          @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary) {
+    var rawValue = warnings.getValue();
+    var result = invokeCallableNode.execute(
+            rawValue,
+            callerFrame,
+            state,
+            arguments,
+            schema,
+            defaultsExecutionMode,
+            argumentsExecutionMode,
+            isTail);
+
+    try {
+      Warning[] extracted = warningsLibrary.getWarnings(warnings, null);
+      return new WithWarnings(result, extracted);
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
+  }
 
   @Specialization
   Object invokeFunction(
