@@ -42,7 +42,6 @@ object SuggestionDiff {
 
     val r: ObjectReader   = mapper.readerFor[SuggestionData]
     val o: SuggestionData = r.readValue[SuggestionData](json)
-    System.err.println("suggestions are here: " + o.suggestions)
 
     import scala.collection.mutable
     type TreeBuilder =
