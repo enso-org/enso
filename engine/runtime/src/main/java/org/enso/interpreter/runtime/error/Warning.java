@@ -86,9 +86,9 @@ public final class Warning implements TruffleObject {
   }
 
   @Builtin.Method(
-          name = "has_warnings",
-          description = "Are any warnings attached to the value.",
-          autoRegister = false)
+      name = "has_warnings",
+      description = "Are any warnings attached to the value.",
+      autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static Boolean hasWarnings(WithWarnings value, WarningsLibrary warningsLib) {
@@ -96,9 +96,9 @@ public final class Warning implements TruffleObject {
   }
 
   @Builtin.Method(
-          name = "has_warnings",
-          description = "Are any warnings attached to the value.",
-          autoRegister = false)
+      name = "has_warnings",
+      description = "Are any warnings attached to the value.",
+      autoRegister = false)
   @Builtin.Specialize(fallback = true)
   public static Boolean hasWarnings(Object value, WarningsLibrary warnings) {
     return warnings.hasWarnings(value);

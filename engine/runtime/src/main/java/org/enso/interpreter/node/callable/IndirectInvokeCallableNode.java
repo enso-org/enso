@@ -59,26 +59,27 @@ public abstract class IndirectInvokeCallableNode extends Node {
 
   @Specialization(guards = "warnings.hasWarnings(warning)")
   Object invokeWithWarnings(
-          Object warning,
-          MaterializedFrame callerFrame,
-          State state,
-          Object[] arguments,
-          CallArgumentInfo[] schema,
-          InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-          InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-          BaseNode.TailStatus isTail,
-          @Cached IndirectInvokeCallableNode invokeCallableNode,
-          @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      Object warning,
+      MaterializedFrame callerFrame,
+      State state,
+      Object[] arguments,
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      BaseNode.TailStatus isTail,
+      @Cached IndirectInvokeCallableNode invokeCallableNode,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
-      var result = invokeCallableNode.execute(
-            warnings.removeWarnings(warning),
-            callerFrame,
-            state,
-            arguments,
-            schema,
-            defaultsExecutionMode,
-            argumentsExecutionMode,
-            isTail);
+      var result =
+          invokeCallableNode.execute(
+              warnings.removeWarnings(warning),
+              callerFrame,
+              state,
+              arguments,
+              schema,
+              defaultsExecutionMode,
+              argumentsExecutionMode,
+              isTail);
 
       Warning[] extracted = warnings.getWarnings(warning, null);
       return new WithWarnings(result, extracted);
