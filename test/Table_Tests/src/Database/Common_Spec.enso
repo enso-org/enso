@@ -62,8 +62,14 @@ spec prefix connection =
             m3.column_names . should_equal ["a", "b"]
             m3.at "a" . to_vector . should_equal [4]
 
-            # The effective name may get a deduplication prefix/suffix so we need to use `t4.name` instead of the literal string. Still it will contain the 'weird characters' we wanted.
-            t4 = upload 'weird table name SELECT * FROM hehe WHERE "X" = \'Y\'; --' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]]) temporary=False
+            ## The effective name may get a deduplication prefix/suffix so we
+               need to use `t4.name` instead of the literal string. Still it
+               will contain the weird characters we wanted.
+
+               Also, the table name cannot be too long as Postgres truncates at
+               63 chars (and we append 37 chars of uniqueness suffix) and the
+               test logic will break then.
+            t4 = upload 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]]) temporary=False
             t5 = connection.query t4.name
             m5 = t5.read
             m5.column_names . should_equal ["X", "Y"]
