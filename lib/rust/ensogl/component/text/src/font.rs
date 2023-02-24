@@ -652,6 +652,18 @@ impl<F: Family> FontTemplate<F> {
         glyph_id: GlyphId,
         face: &Face,
     ) -> GlyphRenderInfo {
+        #[derive(Debug)]
+        struct GlyphCacheMiss<'a, T> {
+            face: &'a str,
+            variations: &'a T,
+            glyph_id: GlyphId,
+        }
+        profiler::metadata_logger!("GlyphCacheMiss", log_miss(String));
+        log_miss(format!("{:?}", GlyphCacheMiss {
+            face: &self.name.normalized,
+            variations,
+            glyph_id,
+        }));
         self.family.update_msdfgen_variations(variations);
         let render_info = GlyphRenderInfo::load(&face.msdf, glyph_id, &self.atlas);
         if !self.cache.borrow().contains_key(variations) {
