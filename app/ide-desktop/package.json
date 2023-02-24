@@ -28,12 +28,13 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.47.1",
     "@typescript-eslint/parser": "^5.47.1",
+    "cross-env": "^7.0.3",
     "eslint": "^8.30.0",
     "eslint-plugin-jsdoc": "^39.6.4",
     "patch-package": "^6.4.7"
   },
   "scripts": {
-    "dev": "PORT=8081 npm exec --workspace enso-studio-cloud -- react-scripts start",
+    "dev": "cross-env PORT=8081 npm exec --workspace enso-studio-cloud -- react-scripts start",
     "dev2": "npm exec --workspace cloud-dashboard -- next dev -p 8081",
     "watch": "npm run watch --workspace enso-studio-content",
     "postinstall": "patch-package"
