@@ -176,7 +176,6 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // token.
   useEffect(() => {
       const fetchSession = async () => {
-        logger.log("FIXME [NP]: fetchSession effect")
         if (!session) {
           setInitialized(true);
           setUserSession(undefined);
@@ -188,7 +187,6 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
 
         // Request the user's organization information from the Cloud backend.
         const organization = await backend.getUsersMe();
-        logger.log("EFFECT: fetchSession 5");
 
         let userSession: UserSession;
 
@@ -215,9 +213,6 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
         setInitialized(true)
       };
 
-      // `Auth.currentSession()` throws an error if the user is not signed in. If the user isn't
-      // signed in, we can't get the token. For our purposes, we don't care why *exactly* we
-      // couldn't get the token, so we catch the error and return `undefined` instead.
       fetchSession()
         .catch((error) => {
           if (isUserFacingError(error)) {

@@ -2,7 +2,6 @@
 import { ReactNode, createContext, useContext, useState, useEffect } from "react";
 
 import { useAsyncEffect } from "../../hooks";
-import { useLogger } from "../../logger";
 import { UserSession } from "../api";
 import { ListenerCallback } from "../listen";
 
@@ -51,7 +50,6 @@ interface SessionProviderProps {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const SessionProvider = (props: SessionProviderProps) => {
     const { children, userSession, registerAuthEventListener } = props;
-    const logger = useLogger();
 
     // Flag used to avoid rendering child components until we've fetched the user's session at least
     // once. Avoids flash of the login screen when the user is already logged in.
@@ -74,7 +72,6 @@ export const SessionProvider = (props: SessionProviderProps) => {
     // incremented. This is useful when a user has just logged in (as their cached credentials are
     // out of date, so this will update them).
     const [session] = useAsyncEffect(null, async () => {
-      logger.log("FIXME [NP]: async userSession event")
       const session = await userSession();
       setInitialized(true);
       return session;
@@ -88,7 +85,6 @@ export const SessionProvider = (props: SessionProviderProps) => {
     useEffect(() => {
       const listener: ListenerCallback = (event) => {
         if (event === "signIn") {
-            logger.log("FIXME [NP]: signIn event")
             refreshSession();
         } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
             // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so we
@@ -97,7 +93,6 @@ export const SessionProvider = (props: SessionProviderProps) => {
             // work.
             //
             // See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
-            logger.log("FIXME [NP]: oauth or hosted UI event")
             window.history.replaceState({}, "", MAIN_PAGE_URL)
             refreshSession();
         // Typescript doesn't know that this is an exhaustive match, so we need to disable the
@@ -105,9 +100,6 @@ export const SessionProvider = (props: SessionProviderProps) => {
         // then we wouldn't get an error if we added a new event type.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         } else if (event === "signOut") {
-            logger.log("FIXME [NP]: signout event")
-            // FIXME [NP]: do we want this here or in the actual `signOut` call?
-            // FIXME [NP]: does this do anything if `signOut` is broken, or do we need to do `setSession(undefined)`?
             refreshSession();
         }
       };

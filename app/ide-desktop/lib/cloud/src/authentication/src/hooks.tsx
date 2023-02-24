@@ -37,8 +37,6 @@ export const useInput = (initialValue: string) => {
 
 // FIXME [NP]: docs: https://stackoverflow.com/questions/61751728/asynchronous-calls-with-react-usememo
 // https://devtrium.com/posts/async-functions-useeffect
-// FIXME [NP]: use useLogger here
-// eslint-disable-next-line jsdoc/require-jsdoc
 export function useAsyncEffect<T>(initialValue: T, fetch: () => Promise<T>, deps?: DependencyList): [T] {
     const logger = useLogger();
     const [value, setValue] = useState<T>(initialValue);
