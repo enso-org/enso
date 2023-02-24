@@ -67,12 +67,10 @@ pub struct UnknownIcon {
 
 pub mod any {
     ensogl_core::shape! {
-    //        above = [grid_view::selectable::highlight::shape];
-            pointer_events = false;
-            (style: Style, icon: AnyCachedShape, color: Vector4) {
-                let color: Var<color::Rgba> = color.into();
-                //icon.recolorize(color, color::Rgba::transparent(), color::Rgba::transparent()).into()
-                icon.into()
-            }
+        pointer_events = false;
+        (style: Style, icon: AnyCachedShape, color: Vector4) {
+            let color: Var<color::Rgba> = color.into();
+            icon.recolorize(color, color::Rgba::transparent(), color::Rgba::transparent()).into()
         }
+    }
 }
