@@ -545,15 +545,18 @@ impl Searcher {
         let old_context = old_input.context().map(|ctx| ctx.into_ast().repr());
 
         self.invalidate_picked_suggestions();
+        eprintln!("Old context: {old_context:?}");
+        eprintln!("New context: {new_context:?}");
         let context_changed = old_context != new_context;
         if context_changed {
-            debug!("Reloading list.");
+            eprintln!("Reloading list.");
             self.reload_list();
         } else {
+            eprintln!("Context did not change.");
             let data = self.data.borrow();
             data.components.update_filtering(data.input.pattern());
             if let Actions::Loaded { list } = &data.actions {
-                debug!("Update filtering.");
+                eprintln!("Update filtering.");
                 list.update_filtering(data.input.pattern());
                 executor::global::spawn(self.notifier.publish(Notification::NewActionList));
             }
@@ -748,6 +751,9 @@ impl Searcher {
         let expression = self.get_expression(self.data.borrow().input.ast());
         self.graph.graph().set_expression(node_id, expression)?;
         let graph = self.graph.graph();
+        if let Mode::NewNode { .. } = *self.mode {
+            self.graph.graph().introduce_name_on(node_id)?;
+        }
         if let Some(this) = self.this_arg.deref().as_ref() {
             this.introduce_pattern(graph.clone_ref())?;
         }
@@ -1353,10 +1359,10 @@ pub mod test {
         data:            MockData,
         test:            TestWithLocalPoolExecutor,
         searcher:        Searcher,
-        entry1:          Rc<model::suggestion_database::Entry>,
-        entry2:          Rc<model::suggestion_database::Entry>,
-        entry3:          Rc<model::suggestion_database::Entry>,
-        entry4:          Rc<model::suggestion_database::Entry>,
+        test_function_1: Rc<model::suggestion_database::Entry>,
+        test_var_1:      Rc<model::suggestion_database::Entry>,
+        test_method:     Rc<model::suggestion_database::Entry>,
+        test_method_3:   Rc<model::suggestion_database::Entry>,
         test_function_2: Rc<model::suggestion_database::Entry>,
     }
 
@@ -1407,27 +1413,36 @@ pub mod test {
                 project: project.clone_ref(),
                 node_edit_guard: node_metadata_guard,
             };
-            let (_, entry1) = searcher
+            let (_, test_function_1) = searcher
                 .database
                 .lookup_by_qualified_name(&module_name.clone().new_child("testFunction1"))
                 .unwrap();
-            let (_, entry2) = searcher
+            let (_, test_var_1) = searcher
                 .database
                 .lookup_by_qualified_name(&module_name.clone().new_child("test_var_1"))
                 .unwrap();
-            let (_, entry3) = searcher
+            let (_, test_method) = searcher
                 .database
                 .lookup_by_qualified_name(&module_name.clone().new_child("test_method"))
                 .unwrap();
-            let entry4 = searcher
+            let test_method_3 = searcher
                 .database
-                .lookup_by_qualified_name_str("test.Test.Test.test_method")
+                .lookup_by_qualified_name_str("test.Test.Test.test_method3")
                 .unwrap();
             let (_, test_function_2) = searcher
                 .database
                 .lookup_by_qualified_name(&module_name.new_child("testFunction2"))
                 .unwrap();
-            Fixture { data, test, searcher, entry1, entry2, entry3, entry4, test_function_2 }
+            Fixture {
+                data,
+                test,
+                searcher,
+                test_function_1,
+                test_var_1,
+                test_method,
+                test_method_3,
+                test_function_2,
+            }
         }
 
         fn new() -> Self {
@@ -1441,7 +1456,7 @@ pub mod test {
         let database = mock_suggestion_database! {
             test.Test {
                 mod Test {
-                    static fn test_method(this: Standard.Base.Any, arg: Standard.Base.Text) -> Standard.Base.Text;
+                    static fn test_method3(this: Standard.Base.Any, arg: Standard.Base.Text) -> Standard.Base.Text;
                 }
             }
             mock_namespace.Mock_Project {
@@ -1510,20 +1525,23 @@ pub mod test {
         ];
 
         for case in &cases {
-            let Fixture { mut test, searcher, entry1, test_function_2: test_function_2, .. } =
-                Fixture::new_custom(|data, client| {
-                    data.change_main_body(&[case.node_line]);
-                    data.selected_node = true;
-                    // We expect following calls:
-                    // 1) for the function - with the "this" filled (if the test case says so);
-                    // 2) for subsequent completions - without "self"
-                    data.expect_completion(client, case.sets_this.as_some(mock_type), None, &[
-                        1, 5, 9,
-                    ]);
+            let Fixture {
+                mut test,
+                searcher,
+                test_function_1: entry1,
+                test_function_2: test_function_2,
+                ..
+            } = Fixture::new_custom(|data, client| {
+                data.change_main_body(&[case.node_line]);
+                data.selected_node = true;
+                // We expect following calls:
+                // 1) for the function - with the "this" filled (if the test case says so);
+                // 2) for subsequent completions - without "self"
+                data.expect_completion(client, case.sets_this.as_some(mock_type), None, &[1, 5, 9]);
 
-                    data.expect_completion(client, None, None, &[1, 5, 9]);
-                    data.expect_completion(client, None, None, &[1, 5, 9]);
-                });
+                data.expect_completion(client, None, None, &[1, 5, 9]);
+                data.expect_completion(client, None, None, &[1, 5, 9]);
+            });
 
             searcher.reload_list();
 
@@ -1556,7 +1574,7 @@ pub mod test {
         let mut fixture = Fixture::new_custom(|data, client| {
             data.expect_completion(client, None, None, &[20]);
         });
-        let Fixture { test, searcher, entry3, .. } = &mut fixture;
+        let Fixture { test, searcher, test_method: entry3, .. } = &mut fixture;
         searcher.use_suggestion(action::Suggestion::FromDatabase(entry3.clone_ref())).unwrap();
         assert!(searcher.actions().is_loading());
         test.run_until_stalled();
@@ -1587,7 +1605,6 @@ pub mod test {
             data.expect_completion(client, None, None, &[1]);
             data.expect_completion(client, None, None, &[]);
             data.expect_completion(client, None, None, &[]);
-            data.expect_completion(client, None, None, &[1, 2, 3, 4, 9]);
         });
         let Fixture { searcher, .. } = &mut fixture;
 
@@ -1600,645 +1617,475 @@ pub mod test {
         searcher.set_input("unknownFunction ".to_string(), Byte(14)).unwrap();
     }
 
-    // #[test]
-    // fn non_picked_function_arg_suggestion_ambiguous() {
-    //     fn run_case(input: impl Str, setup: impl FnOnce(&mut Fixture)) {
-    //         // In each case we expect that we can pick two methods with the same name, but
-    // different         // second argument, so the controller should call Engine for each type.
-    //         const EXPECTED_REQUESTS: usize = 2;
-    //         let requested_types: Rc<RefCell<HashSet<Option<String>>>> = default();
-    //         let requested_types2 = requested_types.clone();
-    //         let mut fixture = Fixture::new_custom(move |data, client| {
-    //             data.graph.module.code.insert_str(0, "import test.Test.Test\n\n");
-    //             data.code_location.line += 2;
-    //             for _ in 0..EXPECTED_REQUESTS {
-    //                 let requested_types = requested_types2.clone();
-    //                 client.expect.completion(
-    //                     move |_path, _position, _self_type, return_type, _tags| {
-    //                         requested_types.borrow_mut().insert(return_type.clone());
-    //                         Ok(completion_response(&[]))
-    //                     },
-    //                 );
-    //             }
-    //         });
-    //         setup(&mut fixture);
-    //         let Fixture { test, searcher, .. } = &mut fixture;
-    //         searcher.set_input(input.into()).unwrap();
-    //         test.run_until_stalled();
-    //         assert_eq!(requested_types.borrow().len(), EXPECTED_REQUESTS);
-    //
-    //         assert!(requested_types.borrow().contains(&Some("Standard.Base.Number".
-    // to_string())));         assert!(requested_types.borrow().contains(&Some("Standard.Base.
-    // Text".to_string())));     }
-    //
-    //     run_case("test_method (foo bar) ".to_string(), |_| {});
-    //     run_case("(foo bar).test_method ".to_string(), |_| {});
-    //     // Here the "Test" module is shadowed by local, so the call is ambiguous
-    //     run_case("Test.test_method ".to_string(), |fixture| {
-    //         let shadowing = model::suggestion_database::Entry {
-    //             name: "test".to_string(),
-    //             ..(*fixture.entry2).clone()
-    //         };
-    //         fixture.searcher.database.put_entry(133, shadowing)
-    //     });
-    // }
-    //
-    // #[test]
-    // fn loading_list() {
-    //     let Fixture { mut test, searcher, entry1, test_function_2, .. } =
-    //         Fixture::new_custom(|data, client| {
-    //             // entry with id 99999 does not exist, so only two actions from suggestions db
-    //             // should be displayed in searcher.
-    //             data.expect_completion(client, None, None, &[101, 99999, 103]);
-    //         });
-    //
-    //     let mut subscriber = searcher.subscribe();
-    //     searcher.reload_list();
-    //     assert!(searcher.actions().is_loading());
-    //     test.run_until_stalled();
-    //     let list = searcher.actions().list().unwrap().to_action_vec();
-    //     // There are 8 entries, because: 2 were returned from `completion` method, two are
-    // mocked,     // and all of these are repeated in "All Search Result" category.
-    //     assert_eq!(list.len(), 8);
-    //     assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(entry1)));
-    //     assert_eq!(list[3],
-    // Action::Suggestion(action::Suggestion::FromDatabase(test_function_2)));
-    //     let notification = subscriber.next().boxed_local().expect_ready();
-    //     assert_eq!(notification, Some(Notification::NewActionList));
-    // }
-    //
-    // #[test]
-    // fn loading_components() {
-    //     // Prepare a sample component group to be returned by a mock Language Server client.
-    //     let module_qualified_name = crate::test::mock::data::module_qualified_name().to_string();
-    //     let sample_ls_component_group = language_server::LibraryComponentGroup {
-    //         library: project::QualifiedName::standard_base_library().to_string(),
-    //         name:    "Test Group 1".to_string(),
-    //         color:   None,
-    //         icon:    None,
-    //         exports: vec![
-    //             language_server::LibraryComponent {
-    //                 name:     module_qualified_name.clone() + ".test_method2",
-    //                 shortcut: None,
-    //             },
-    //             language_server::LibraryComponent {
-    //                 name:     module_qualified_name + ".test_method",
-    //                 shortcut: None,
-    //             },
-    //         ],
-    //     };
-    //     // Create a test fixture with mocked Engine responses.
-    //     let Fixture { mut test, searcher, entry3, test_function_2, .. } =
-    //         Fixture::new_custom(|data, client| {
-    //             // Entry with id 99999 does not exist, so only two actions from suggestions db
-    //             // should be displayed in searcher.
-    //             data.expect_completion(client, None, None, &[5, 99999, 103]);
-    //             data.graph.ctx.component_groups = vec![sample_ls_component_group];
-    //         });
-    //     // Reload the components list in the Searcher.
-    //     searcher.reload_list();
-    //     test.run_until_stalled();
-    //     // Verify the contents of the components list loaded by the Searcher.
-    //     let components = searcher.components();
-    //     if let [module_group] = &components.top_modules().next().unwrap()[..] {
-    //         let expected_group_name =
-    //             format!("{}.{}", entry3.defined_in.project().project, entry3.defined_in.name());
-    //         assert_eq!(module_group.name, expected_group_name);
-    //         let entries = module_group.entries.borrow();
-    //         assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry3.name && e2.name()
-    // == test_function_2.name);
-    //     } else {
-    //         panic!(
-    //             "Wrong top modules in Component List: {:?}",
-    //             components.top_modules().collect::<Vec<_>>()
-    //         );
-    //     }
-    //     let favorites = &components.favorites;
-    //     assert_eq!(favorites.len(), 2);
-    //     let favorites_group_0 = &favorites[0];
-    //     assert_eq!(favorites_group_0.name, component::hardcoded::INPUT_GROUP_NAME);
-    //     let favorites_group_1 = &favorites[1];
-    //     assert_eq!(favorites_group_1.name, "Test Group 1");
-    //     let favorites_entries = favorites_group_1.entries.borrow();
-    //     assert_eq!(favorites_entries.len(), 1);
-    //     assert_eq!(favorites_entries[0].id().unwrap(), 5);
-    // }
-    //
-    // #[test]
-    // fn parsed_input() {
-    //     let parser = Parser::new();
-    //
-    //     fn args_reprs(prefix: &ast::prefix::Chain) -> Vec<String> {
-    //         prefix.args.iter().map(|arg| arg.repr()).collect()
-    //     }
-    //
-    //     let input = "";
-    //     let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();
-    //     assert!(parsed.expression.is_none());
-    //     assert_eq!(parsed.pattern.as_str(), "");
-    //
-    //     let input = "foo";
-    //     let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();
-    //     assert!(parsed.expression.is_none());
-    //     assert_eq!(parsed.pattern.as_str(), "foo");
-    //
-    //     let input = " foo";
-    //     let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();
-    //     assert!(parsed.expression.is_none());
-    //     assert_eq!(parsed.pattern_offset, 1);
-    //     assert_eq!(parsed.pattern.as_str(), "foo");
-    //
-    //     let input = "foo  ";
-    //     let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();
-    //     let expression = parsed.expression.unwrap();
-    //     assert_eq!(expression.off, 0);
-    //     assert_eq!(expression.func.repr(), "foo");
-    //     assert_eq!(args_reprs(&expression), Vec::<String>::new());
-    //     assert_eq!(parsed.pattern_offset, 2);
-    //     assert_eq!(parsed.pattern.as_str(), "");
-    //
-    //     let input = "foo bar";
-    //     let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();
-    //     let expression = parsed.expression.unwrap();
-    //     assert_eq!(expression.off, 0);
-    //     assert_eq!(expression.func.repr(), "foo");
-    //     assert_eq!(args_reprs(&expression), Vec::<String>::new());
-    //     assert_eq!(parsed.pattern_offset, 1);
-    //     assert_eq!(parsed.pattern.as_str(), "bar");
-    //
-    //     let input = "foo  bar  baz";
-    //     let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();
-    //     let expression = parsed.expression.unwrap();
-    //     assert_eq!(expression.off, 0);
-    //     assert_eq!(expression.func.repr(), "foo");
-    //     assert_eq!(args_reprs(&expression), vec!["  bar".to_string()]);
-    //     assert_eq!(parsed.pattern_offset, 2);
-    //     assert_eq!(parsed.pattern.as_str(), "baz");
-    //
-    //     let input = "  foo bar baz ";
-    //     let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();
-    //     let expression = parsed.expression.unwrap();
-    //     assert_eq!(expression.off, 2);
-    //     assert_eq!(expression.func.repr(), "foo");
-    //     assert_eq!(args_reprs(&expression), vec![" bar".to_string(), " baz".to_string()]);
-    //     assert_eq!(parsed.pattern_offset, 1);
-    //     assert_eq!(parsed.pattern.as_str(), "");
-    //
-    //     let input = "foo bar (baz ";
-    //     let parsed = ParsedInput::new(input.to_string(), &parser).unwrap();
-    //     let expression = parsed.expression.unwrap();
-    //     assert_eq!(expression.off, 0);
-    //     assert_eq!(expression.func.repr(), "foo");
-    //     assert_eq!(args_reprs(&expression), vec![" bar".to_string(), " (baz".to_string()]);
-    // }
-    //
-    // fn are_same(
-    //     action: &action::Suggestion,
-    //     entry: &Rc<model::suggestion_database::Entry>,
-    // ) -> bool {
-    //     match action {
-    //         action::Suggestion::FromDatabase(lhs) => Rc::ptr_eq(lhs, entry),
-    //         action::Suggestion::Hardcoded(_) => false,
-    //     }
-    // }
-    //
-    // #[test]
-    // fn picked_completions_list_maintaining() {
-    //     let Fixture { test: _test, searcher, entry1, entry2, .. } =
-    //         Fixture::new_custom(|data, client| {
-    //             data.expect_completion(client, None, None, &[]);
-    //             data.expect_completion(client, None, None, &[]);
-    //             data.expect_completion(client, None, None, &[]);
-    //             data.expect_completion(client, None, None, &[]);
-    //             data.expect_completion(client, None, None, &[]);
-    //             data.expect_completion(client, None, None, &[]);
-    //         });
-    //     let frags_borrow = || Ref::map(searcher.data.borrow(), |d|
-    // &d.fragments_added_by_picking);
-    //
-    //     // Picking first suggestion.
-    //     let new_input =
-    //         searcher.use_suggestion(action::Suggestion::FromDatabase(entry1.clone_ref())).
-    // unwrap();     assert_eq!(new_input, "testFunction1 ");
-    //     let (func,) = frags_borrow().iter().cloned().expect_tuple();
-    //     // assert_eq!(func.id, CompletedFragmentId::Function);
-    //     assert!(are_same(&func.picked_suggestion, &entry1));
-    //
-    //     // Typing more args by hand.
-    //     searcher.set_input("testFunction1 some_arg pat".to_string()).unwrap();
-    //     let (func,) = frags_borrow().iter().cloned().expect_tuple();
-    //     // assert_eq!(func.id, CompletedFragmentId::Function);
-    //     assert!(are_same(&func.picked_suggestion, &entry1));
-    //
-    //     // Picking argument's suggestion.
-    //     let new_input =
-    //         searcher.use_suggestion(action::Suggestion::FromDatabase(entry2.clone_ref())).
-    // unwrap();     assert_eq!(new_input, "testFunction1 some_arg test_var_1 ");
-    //     let new_input =
-    //         searcher.use_suggestion(action::Suggestion::FromDatabase(entry2.clone_ref())).
-    // unwrap();     assert_eq!(new_input, "testFunction1 some_arg test_var_1 test_var_1 ");
-    //     let (function, arg1, arg2) = frags_borrow().iter().cloned().expect_tuple();
-    //     // assert_eq!(function.id, CompletedFragmentId::Function);
-    //     assert!(are_same(&function.picked_suggestion, &entry1));
-    //     // assert_eq!(arg1.id, CompletedFragmentId::Argument { index: 1 });
-    //     assert!(are_same(&arg1.picked_suggestion, &entry2));
-    //     // assert_eq!(arg2.id, CompletedFragmentId::Argument { index: 2 });
-    //     assert!(are_same(&arg2.picked_suggestion, &entry2));
-    //
-    //     // Backspacing back to the second arg.
-    //     searcher.set_input("testFunction1 some_arg test_var_1 test_v".to_string()).unwrap();
-    //     let (picked, arg) = frags_borrow().iter().cloned().expect_tuple();
-    //     // assert_eq!(picked.id, CompletedFragmentId::Function);
-    //     assert!(are_same(&picked.picked_suggestion, &entry1));
-    //     // assert_eq!(arg.id, CompletedFragmentId::Argument { index: 1 });
-    //     assert!(are_same(&arg.picked_suggestion, &entry2));
-    //
-    //     // Editing the picked function.
-    //     searcher.set_input("testFunction2 some_arg test_var_1 test_v".to_string()).unwrap();
-    //     let (arg,) = frags_borrow().iter().cloned().expect_tuple();
-    //     // assert_eq!(arg.id, CompletedFragmentId::Argument { index: 1 });
-    //     assert!(are_same(&arg.picked_suggestion, &entry2));
-    // }
-    //
-    // #[test]
-    // fn applying_this_var() {
-    //     #[derive(Copy, Clone, Debug)]
-    //     struct Case {
-    //         before: &'static str,
-    //         after:  &'static str,
-    //     }
-    //
-    //     impl Case {
-    //         fn new(before: &'static str, after: &'static str) -> Self {
-    //             Case { before, after }
-    //         }
-    //
-    //         fn run(&self) {
-    //             let parser = Parser::new();
-    //             let ast = parser.parse_line_ast(self.before).unwrap();
-    //             let new_ast = apply_this_argument("foo", &ast);
-    //             assert_eq!(new_ast.repr(), self.after, "Case {self:?} failed: {ast:?}");
-    //         }
-    //     }
-    //
-    //     let cases = [
-    //         Case::new("bar", "foo.bar"),
-    //         Case::new("bar.baz", "foo.bar.baz"),
-    //         Case::new("bar baz", "foo.bar baz"),
-    //         Case::new("+ 2", "foo + 2"),
-    //         Case::new("+ 2 + 3", "foo + 2 + 3"),
-    //         Case::new("+ 2 - 3", "foo + 2 - 3"),
-    //         Case::new("+ bar baz", "foo + bar baz"),
-    //         Case::new("map x-> x.characters.length", "foo.map x-> x.characters.length"),
-    //         Case::new("at 3 == y", "foo.at 3 == y"),
-    //     ];
-    //
-    //     for case in &cases {
-    //         case.run();
-    //     }
-    // }
-    //
-    // #[test]
-    // fn adding_node_introducing_this_var() {
-    //     struct Case {
-    //         line:   &'static str,
-    //         result: String,
-    //         run:    Box<dyn FnOnce(&mut Fixture)>,
-    //     }
-    //
-    //     impl Case {
-    //         fn new(
-    //             line: &'static str,
-    //             result: &[&str],
-    //             run: impl FnOnce(&mut Fixture) + 'static,
-    //         ) -> Self {
-    //             Case {
-    //                 line,
-    //                 result: crate::test::mock::main_from_lines(result),
-    //                 run: Box::new(run),
-    //             }
-    //         }
-    //     }
-    //
-    //     let cases = vec![
-    //         // Completion was picked.
-    //         Case::new("2 + 2", &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"], |f| {
-    //             f.searcher
-    //                 .use_suggestion(action::Suggestion::FromDatabase(f.entry1.clone()))
-    //                 .unwrap();
-    //         }),
-    //         // The input was manually written (not picked).
-    //         Case::new("2 + 2", &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"], |f| {
-    //             f.searcher.set_input("testFunction1 ".to_owned()).unwrap();
-    //         }),
-    //         // Completion was picked and edited.
-    //         Case::new("2 + 2", &["sum1 = 2 + 2", "operator1 = sum1.var.testFunction1"], |f| {
-    //             f.searcher
-    //                 .use_suggestion(action::Suggestion::FromDatabase(f.entry1.clone()))
-    //                 .unwrap();
-    //             let new_parsed_input =
-    //                 ParsedInput::new("var.testFunction1", f.searcher.ide.parser());
-    //             f.searcher.data.borrow_mut().input = new_parsed_input.unwrap();
-    //         }),
-    //         // Variable name already present, need to use it. And not break it.
-    //         Case::new(
-    //             "my_var = 2 + 2",
-    //             &["my_var = 2 + 2", "operator1 = my_var.testFunction1"],
-    //             |f| {
-    //                 f.searcher
-    //                     .use_suggestion(action::Suggestion::FromDatabase(f.entry1.clone()))
-    //                     .unwrap();
-    //             },
-    //         ),
-    //         // Variable names unusable (subpatterns are not yet supported).
-    //         // Don't use "this" argument adjustments at all.
-    //         Case::new("[x,y] = 2 + 2", &["[x,y] = 2 + 2", "testfunction11 = testFunction1"], |f|
-    // {             f.searcher
-    //                 .use_suggestion(action::Suggestion::FromDatabase(f.entry1.clone()))
-    //                 .unwrap();
-    //         }),
-    //     ];
-    //
-    //     for case in cases.into_iter() {
-    //         let mut fixture = Fixture::new_custom(|data, client| {
-    //             data.selected_node = true;
-    //             // The last node will be used as searcher target.
-    //             data.change_main_body(&[case.line, "Nothing"]);
-    //             data.expect_completion(client, None, None, &[]);
-    //         });
-    //         (case.run)(&mut fixture);
-    //         fixture.searcher.commit_node().unwrap();
-    //         let updated_def = fixture.searcher.graph.graph().definition().unwrap().item;
-    //         assert_eq!(updated_def.ast.repr(), case.result);
-    //     }
-    // }
-    //
-    // #[test]
-    // fn adding_imports_with_nodes() {
-    //     fn expect_inserted_import_for(
-    //         entry: &Rc<model::suggestion_database::Entry>,
-    //         expected_import: Vec<&QualifiedName>,
-    //     ) {
-    //         let Fixture { test: _test, mut searcher, .. } = Fixture::new();
-    //         let module = searcher.graph.graph().module.clone_ref();
-    //         let parser = searcher.ide.parser().clone_ref();
-    //
-    //         let picked_method = FragmentAddedByPickingSuggestion {
-    //             id:                CompletedFragmentId::Function,
-    //             picked_suggestion: action::Suggestion::FromDatabase(entry.clone_ref()),
-    //         };
-    //         with(searcher.data.borrow_mut(), |mut data| {
-    //             data.fragments_added_by_picking.push(picked_method);
-    //             data.input = ParsedInput::new(entry.name.to_string(), &parser).unwrap();
-    //         });
-    //
-    //         // Add new node.
-    //         let node_id = searcher.mode.node_id();
-    //         searcher.mode = Immutable(Mode::NewNode { node_id, source_node: None });
-    //         searcher.commit_node().unwrap();
-    //
-    //         let module_info = module.info();
-    //         let imported_names = module_info
-    //             .iter_imports()
-    //             .map(|import| import.qualified_module_name().unwrap())
-    //             .collect_vec();
-    //
-    //         let expected_import = expected_import.into_iter().cloned().collect_vec();
-    //         assert_eq!(imported_names, expected_import);
-    //     }
-    //
-    //     let Fixture { entry1, entry2, entry3, entry4, .. } = Fixture::new();
-    //     expect_inserted_import_for(&entry1, vec![]);
-    //     expect_inserted_import_for(&entry2, vec![]);
-    //     expect_inserted_import_for(&entry3, vec![]);
-    //     expect_inserted_import_for(&entry4, vec![&entry4.defined_in]);
-    // }
-    //
-    // #[test]
-    // fn committing_node() {
-    //     let Fixture { test: _test, mut searcher, entry4, .. } =
-    //         Fixture::new_custom(|data, _client| {
-    //             data.change_main_body(&["2 + 2", "Nothing"]); // The last node will be used as
-    //                                                           // searcher target.
-    //         });
-    //
-    //     let (node1, searcher_target) = searcher.graph.graph().nodes().unwrap().expect_tuple();
-    //
-    //     let module = searcher.graph.graph().module.clone_ref();
-    //     // Setup searcher.
-    //     let parser = Parser::new();
-    //     let picked_method = FragmentAddedByPickingSuggestion {
-    //         id:                CompletedFragmentId::Function,
-    //         picked_suggestion: action::Suggestion::FromDatabase(entry4),
-    //     };
-    //     with(searcher.data.borrow_mut(), |mut data| {
-    //         data.fragments_added_by_picking.push(picked_method);
-    //         data.input = ParsedInput::new("Test.test_method".to_string(), &parser).unwrap();
-    //     });
-    //
-    //     // Add new node.
-    //     searcher.mode =
-    //         Immutable(Mode::NewNode { node_id: searcher_target.id(), source_node: None });
-    //     searcher.commit_node().unwrap();
-    //
-    //     let expected_code =
-    //         "import test.Test.Test\nmain =\n    2 + 2\n    operator1 = Test.test_method";
-    //     assert_eq!(module.ast().repr(), expected_code);
-    //     let expected_intended_method = Some(MethodId {
-    //         module:          "test.Test.Test".to_string().try_into().unwrap(),
-    //         defined_on_type: "test.Test.Test".to_string().try_into().unwrap(),
-    //         name:            "test_method".to_string(),
-    //     });
-    //     let (_, searcher_target) = searcher.graph.graph().nodes().unwrap().expect_tuple();
-    //     assert_eq!(searcher_target.metadata.unwrap().intended_method, expected_intended_method);
-    //
-    //     // Edit existing node.
-    //     searcher.mode = Immutable(Mode::EditNode { node_id: node1.info.id() });
-    //     searcher.commit_node().unwrap();
-    //     let expected_code =
-    //         "import test.Test.Test\nmain =\n    Test.test_method\n    operator1 =
-    // Test.test_method";     let (node1, _) =
-    // searcher.graph.graph().nodes().unwrap().expect_tuple();     assert_eq!(node1.metadata.
-    // unwrap().intended_method, expected_intended_method);     assert_eq!(module.ast().repr(),
-    // expected_code); }
-    //
-    // #[test]
-    // fn initialized_data_when_editing_node() {
-    //     let Fixture { test: _test, searcher, entry4, .. } = Fixture::new();
-    //
-    //     let graph = searcher.graph.graph();
-    //     let (node,) = graph.nodes().unwrap().expect_tuple();
-    //     let node_id = node.info.id();
-    //     let database = searcher.database;
-    //
-    //     // Node had not intended method.
-    //     let searcher_data = Data::new_with_edited_node(&graph, &database, node_id).unwrap();
-    //     assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
-    //     assert!(searcher_data.fragments_added_by_picking.is_empty());
-    //     assert!(searcher_data.actions.is_loading());
-    //
-    //     // Node had intended method, but it's outdated.
-    //     let intended_method = MethodId {
-    //         module:          "test.Test.Test".to_string().try_into().unwrap(),
-    //         defined_on_type: "test.Test.Test".to_string().try_into().unwrap(),
-    //         name:            "test_method".to_string(),
-    //     };
-    //     graph
-    //         .module
-    //         .with_node_metadata(
-    //             node_id,
-    //             Box::new(|md| {
-    //                 md.intended_method = Some(intended_method);
-    //             }),
-    //         )
-    //         .unwrap();
-    //     let searcher_data = Data::new_with_edited_node(&graph, &database, node_id).unwrap();
-    //     assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
-    //     assert!(searcher_data.fragments_added_by_picking.is_empty());
-    //     assert!(searcher_data.actions.is_loading());
-    //
-    //     // Node had up-to-date intended method.
-    //     graph.set_expression(node_id, "Test.test_method 12").unwrap();
-    //     // We set metadata in previous section.
-    //     let searcher_data = Data::new_with_edited_node(&graph, &database, node_id).unwrap();
-    //     assert_eq!(searcher_data.input.repr(), "Test.test_method 12");
-    //     assert!(searcher_data.actions.is_loading());
-    //     let (initial_fragment,) = searcher_data.fragments_added_by_picking.expect_tuple();
-    //     assert!(are_same(&initial_fragment.picked_suggestion, &entry4))
-    // }
-    //
-    // #[test]
-    // fn simple_function_call_parsing() {
-    //     let parser = Parser::new();
-    //
-    //     let ast = parser.parse_line_ast("foo").unwrap();
-    //     let call = SimpleFunctionCall::try_new(&ast).expect("Returned None for \"foo\"");
-    //     assert!(call.this_argument.is_none());
-    //     assert_eq!(call.function_name, "foo");
-    //
-    //     let ast = parser.parse_line_ast("Main.foo").unwrap();
-    //     let call = SimpleFunctionCall::try_new(&ast).expect("Returned None for \"Main.foo\"");
-    //     assert_eq!(call.this_argument.unwrap().repr(), "Main");
-    //     assert_eq!(call.function_name, "foo");
-    //
-    //     let ast = parser.parse_line_ast("(2 + 3).foo").unwrap();
-    //     let call = SimpleFunctionCall::try_new(&ast).expect("Returned None for \"(2 + 3).foo\"");
-    //     assert_eq!(call.this_argument.unwrap().repr(), "(2 + 3)");
-    //     assert_eq!(call.function_name, "foo");
-    //
-    //     let ast = parser.parse_line_ast("foo + 3").unwrap();
-    //     assert!(SimpleFunctionCall::try_new(&ast).is_none());
-    //
-    //     let ast = parser.parse_line_ast("foo bar baz").unwrap();
-    //     assert!(SimpleFunctionCall::try_new(&ast).is_none());
-    //
-    //     let ast = parser.parse_line_ast("Main . (foo bar)").unwrap();
-    //     assert!(SimpleFunctionCall::try_new(&ast).is_none());
-    // }
-    //
-    // #[test]
-    // fn adding_example() {
-    //     let Fixture { test: _test, searcher, .. } = Fixture::new();
-    //     let module = searcher.graph.graph().module.clone_ref();
-    //     let example = model::suggestion_database::example::Example {
-    //         name:               "Test Example".to_owned(),
-    //         code:               "x = 2 + 2\nx + 4".to_owned(),
-    //         imports:            vec![],
-    //         documentation_html: "Lorem ipsum".to_owned(),
-    //     };
-    //     let expected_code = "test_example1 =\n    x = 2 + 2\n    x + 4\n\n\
-    //         main = \n    2 + 2\n    Mock_Module.test_example1";
-    //     searcher.add_example(&Rc::new(example)).unwrap();
-    //     assert_eq!(module.ast().repr(), expected_code);
-    // }
-    //
-    // #[test]
-    // fn adding_example_twice() {
-    //     let Fixture { test: _test, searcher, .. } = Fixture::new();
-    //     let module = searcher.graph.graph().module.clone_ref();
-    //     let example = model::suggestion_database::example::Example {
-    //         name:               "Test Example".to_owned(),
-    //         code:               "[1,2,3,4,5]".to_owned(),
-    //         imports:            vec!["std.Base.Network.Http".to_owned()],
-    //         documentation_html: "Lorem ipsum".to_owned(),
-    //     };
-    //     let expected_code = "import std.Base.Network.Http\n\
-    //         test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\
-    //         main = \n    2 + 2\n    Mock_Module.test_example1\n    Mock_Module.test_example2";
-    //     let example = Rc::new(example);
-    //     searcher.add_example(&example).unwrap();
-    //     searcher.add_example(&example).unwrap();
-    //     assert_eq!(module.ast().repr(), expected_code);
-    // }
-    //
-    // #[test]
-    // fn edit_guard() {
-    //     let Fixture { test: _test, mut searcher, .. } = Fixture::new();
-    //     let graph = searcher.graph.graph();
-    //     let node = graph.nodes().unwrap().last().unwrap().clone();
-    //     let initial_node_expression = node.main_line.expression();
-    //     let node_id = node.info.id();
-    //     searcher.mode = Immutable(Mode::EditNode { node_id });
-    //     searcher.node_edit_guard =
-    //         Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
-    //
-    //     // Apply an edit to the node.
-    //     graph.set_expression(node_id, "Edited Node").unwrap();
-    //
-    //     // Verify the metadata was initialised after the guard creation.
-    //     let module = graph.module.clone_ref();
-    //     module
-    //         .with_node_metadata(
-    //             node_id,
-    //             Box::new(|metadata| {
-    //                 assert_eq!(
-    //                     metadata.edit_status,
-    //                     Some(NodeEditStatus::Edited {
-    //                         previous_expression:      node.info.expression().to_string(),
-    //                         previous_intended_method: None,
-    //                     })
-    //                 );
-    //             }),
-    //         )
-    //         .unwrap();
-    //
-    //     // Verify the metadata is cleared after the searcher is dropped.
-    //     drop(searcher);
-    //     module
-    //         .with_node_metadata(
-    //             node_id,
-    //             Box::new(|metadata| {
-    //                 assert_eq!(metadata.edit_status, None);
-    //             }),
-    //         )
-    //         .unwrap();
-    //     // Verify the node was reverted.
-    //
-    //     let node = graph.nodes().unwrap().last().unwrap().clone();
-    //     let final_node_expression = node.main_line.expression();
-    //     assert_eq!(initial_node_expression.to_string(), final_node_expression.to_string());
-    // }
-    //
-    // #[test]
-    // fn edit_guard_no_revert() {
-    //     let Fixture { test: _test, mut searcher, .. } = Fixture::new();
-    //     let graph = searcher.graph.graph();
-    //     let node = graph.nodes().unwrap().last().unwrap().clone();
-    //     let node_id = node.info.id();
-    //     searcher.mode = Immutable(Mode::EditNode { node_id });
-    //     searcher.node_edit_guard =
-    //         Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
-    //
-    //     // Apply an edit to the node.
-    //     let new_expression = "Edited Node";
-    //     graph.set_expression(node_id, new_expression).unwrap();
-    //     // Prevent reverting the node by calling the `prevent_revert` method.
-    //     searcher.node_edit_guard.deref().as_ref().unwrap().prevent_revert();
-    //
-    //     // Verify the node is not reverted after the searcher is dropped.
-    //     drop(searcher);
-    //     let node = graph.nodes().unwrap().last().unwrap().clone();
-    //     let final_node_expression = node.main_line.expression();
-    //     assert_eq!(final_node_expression.to_string(), new_expression);
-    // }
+    #[test]
+    fn loading_list() {
+        let Fixture { mut test, searcher, test_function_1, test_function_2, .. } =
+            Fixture::new_custom(|data, client| {
+                // entry with id 99999 does not exist, so only two actions from suggestions db
+                // should be displayed in searcher.
+                data.expect_completion(client, None, None, &[101, 99999, 103]);
+            });
+
+        let mut subscriber = searcher.subscribe();
+        searcher.reload_list();
+        assert!(searcher.actions().is_loading());
+        test.run_until_stalled();
+        let list = searcher.actions().list().unwrap().to_action_vec();
+        // There are 8 entries, because: 2 were returned from `completion` method, two are mocked,
+        // and all of these are repeated in "All Search Result" category.
+        assert_eq!(list.len(), 8);
+        assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(test_function_1)));
+        assert_eq!(list[3], Action::Suggestion(action::Suggestion::FromDatabase(test_function_2)));
+        let notification = subscriber.next().boxed_local().expect_ready();
+        assert_eq!(notification, Some(Notification::NewActionList));
+    }
+
+    #[test]
+    fn loading_components() {
+        // Prepare a sample component group to be returned by a mock Language Server client.
+        let module_qualified_name = crate::test::mock::data::module_qualified_name().to_string();
+        let sample_ls_component_group = language_server::LibraryComponentGroup {
+            library: project::QualifiedName::standard_base_library().to_string(),
+            name:    "Test Group 1".to_string(),
+            color:   None,
+            icon:    None,
+            exports: vec![
+                language_server::LibraryComponent {
+                    name:     module_qualified_name.clone() + ".test_method2",
+                    shortcut: None,
+                },
+                language_server::LibraryComponent {
+                    name:     module_qualified_name + ".test_method",
+                    shortcut: None,
+                },
+            ],
+        };
+        // Create a test fixture with mocked Engine responses.
+        let Fixture { mut test, searcher, test_method: entry3, test_function_2, .. } =
+            Fixture::new_custom(|data, client| {
+                // Entry with id 99999 does not exist, so only two actions from suggestions db
+                // should be displayed in searcher.
+                data.expect_completion(client, None, None, &[5, 99999, 103]);
+                data.graph.ctx.component_groups = vec![sample_ls_component_group];
+            });
+        // Reload the components list in the Searcher.
+        searcher.reload_list();
+        test.run_until_stalled();
+        // Verify the contents of the components list loaded by the Searcher.
+        let components = searcher.components();
+        if let [module_group] = &components.top_modules().next().unwrap()[..] {
+            let expected_group_name =
+                format!("{}.{}", entry3.defined_in.project().project, entry3.defined_in.name());
+            assert_eq!(module_group.name, expected_group_name);
+            let entries = module_group.entries.borrow();
+            assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry3.name && e2.name() == test_function_2.name);
+        } else {
+            panic!(
+                "Wrong top modules in Component List: {:?}",
+                components.top_modules().collect::<Vec<_>>()
+            );
+        }
+        let favorites = &components.favorites;
+        assert_eq!(favorites.len(), 2);
+        let favorites_group_0 = &favorites[0];
+        assert_eq!(favorites_group_0.name, component::hardcoded::INPUT_GROUP_NAME);
+        let favorites_group_1 = &favorites[1];
+        assert_eq!(favorites_group_1.name, "Test Group 1");
+        let favorites_entries = favorites_group_1.entries.borrow();
+        assert_eq!(favorites_entries.len(), 1);
+        assert_eq!(favorites_entries[0].id().unwrap(), 5);
+    }
+
+    fn are_same(
+        action: &action::Suggestion,
+        entry: &Rc<model::suggestion_database::Entry>,
+    ) -> bool {
+        match action {
+            action::Suggestion::FromDatabase(lhs) => Rc::ptr_eq(lhs, entry),
+            action::Suggestion::Hardcoded(_) => false,
+        }
+    }
+
+    #[test]
+    fn picked_completions_list_maintaining() {
+        let Fixture { test: _test, searcher, test_function_1, test_var_1, .. } =
+            Fixture::new_custom(|data, client| {
+                data.expect_completion(client, None, None, &[]);
+                data.expect_completion(client, None, None, &[]);
+                data.expect_completion(client, None, None, &[]);
+                // data.expect_completion(client, None, None, &[]);
+                // data.expect_completion(client, None, None, &[]);
+                // data.expect_completion(client, None, None, &[]);
+            });
+        let picked_suggestions = || Ref::map(searcher.data.borrow(), |d| &d.picked_suggestions);
+
+        // Picking first suggestion.
+        let new_input = searcher
+            .use_suggestion(action::Suggestion::FromDatabase(test_function_1.clone_ref()))
+            .unwrap();
+        assert_eq!(new_input.text, "testFunction1 ");
+        let (func,) = picked_suggestions().iter().cloned().expect_tuple();
+        assert!(are_same(&func.entry, &test_function_1));
+
+        // Typing more args by hand.
+        searcher.set_input("testFunction1 some_arg pat".to_string(), Byte(26)).unwrap();
+        let (func,) = picked_suggestions().iter().cloned().expect_tuple();
+        assert!(are_same(&func.entry, &test_function_1));
+
+        // Picking argument's suggestion.
+        let new_input = searcher
+            .use_suggestion(action::Suggestion::FromDatabase(test_var_1.clone_ref()))
+            .unwrap();
+        assert_eq!(new_input.text, "test_var_1 ");
+        let new_input = searcher
+            .use_suggestion(action::Suggestion::FromDatabase(test_var_1.clone_ref()))
+            .unwrap();
+        assert_eq!(new_input.text, "test_var_1 ");
+        let (function, arg1, arg2) = picked_suggestions().iter().cloned().expect_tuple();
+        assert!(are_same(&function.entry, &test_function_1));
+        assert!(are_same(&arg1.entry, &test_var_1));
+        assert!(are_same(&arg2.entry, &test_var_1));
+
+        // TODO
+        // // Backspacing back to the second arg.
+        // searcher
+        //     .set_input("testFunction1 some_arg test_var_1 test_v".to_string(), Byte(40))
+        //     .unwrap();
+        // // let (picked, arg) = picked_suggestions().iter().cloned().expect_tuple();
+        // // assert!(are_same(&picked.entry, &test_function_1));
+        // // assert!(are_same(&arg.entry, &test_var_1));
+        //
+        // // Editing the picked function.
+        // searcher
+        //     .set_input("testFunction2 some_arg test_var_1 test_v".to_string(), Byte(13))
+        //     .unwrap();
+        // let (arg,) = picked_suggestions().iter().cloned().expect_tuple();
+        // assert!(are_same(&arg.entry, &test_var_1));
+    }
+
+    #[test]
+    fn applying_this_var() {
+        #[derive(Copy, Clone, Debug)]
+        struct Case {
+            before: &'static str,
+            after:  &'static str,
+        }
+
+        impl Case {
+            fn new(before: &'static str, after: &'static str) -> Self {
+                Case { before, after }
+            }
+
+            fn run(&self) {
+                let parser = Parser::new();
+                let ast = parser.parse_line_ast(self.before).unwrap();
+                let new_ast = apply_this_argument("foo", &ast);
+                assert_eq!(new_ast.repr(), self.after, "Case {self:?} failed: {ast:?}");
+            }
+        }
+
+        let cases = [
+            Case::new("bar", "foo.bar"),
+            Case::new("bar.baz", "foo.bar.baz"),
+            Case::new("bar baz", "foo.bar baz"),
+            Case::new("+ 2", "foo + 2"),
+            Case::new("+ 2 + 3", "foo + 2 + 3"),
+            Case::new("+ 2 - 3", "foo + 2 - 3"),
+            Case::new("+ bar baz", "foo + bar baz"),
+            Case::new("map x-> x.characters.length", "foo.map x-> x.characters.length"),
+            Case::new("at 3 == y", "foo.at 3 == y"),
+        ];
+
+        for case in &cases {
+            case.run();
+        }
+    }
+
+    #[test]
+    fn adding_node_introducing_this_var() {
+        struct Case {
+            line:              &'static str,
+            result:            String,
+            expect_completion: bool,
+            run:               Box<dyn FnOnce(&mut Fixture)>,
+        }
+
+        impl Case {
+            fn new(
+                line: &'static str,
+                result: &[&str],
+                expect_completion: bool,
+                run: impl FnOnce(&mut Fixture) + 'static,
+            ) -> Self {
+                Case {
+                    line,
+                    expect_completion,
+                    result: crate::test::mock::main_from_lines(result),
+                    run: Box::new(run),
+                }
+            }
+        }
+
+        let cases = vec![
+            // Completion was picked.
+            Case::new("2 + 2", &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"], true, |f| {
+                f.searcher
+                    .use_suggestion(action::Suggestion::FromDatabase(f.test_function_1.clone()))
+                    .unwrap();
+            }),
+            // The input was manually written (not picked).
+            Case::new("2 + 2", &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"], false, |f| {
+                f.searcher.set_input("testFunction1".to_owned(), Byte(13)).unwrap();
+            }),
+            // Completion was picked and edited.
+            Case::new(
+                "2 + 2",
+                &["sum1 = 2 + 2", "operator1 = sum1.var.testFunction1"],
+                true,
+                |f| {
+                    f.searcher
+                        .use_suggestion(action::Suggestion::FromDatabase(f.test_function_1.clone()))
+                        .unwrap();
+                    let new_parsed_input =
+                        input::Input::parse(f.searcher.ide.parser(), "var.testFunction1", Byte(17));
+                    f.searcher.data.borrow_mut().input = new_parsed_input;
+                },
+            ),
+            // Variable name already present, need to use it. And not break it.
+            Case::new(
+                "my_var = 2 + 2",
+                &["my_var = 2 + 2", "operator1 = my_var.testFunction1"],
+                true,
+                |f| {
+                    f.searcher
+                        .use_suggestion(action::Suggestion::FromDatabase(f.test_function_1.clone()))
+                        .unwrap();
+                },
+            ),
+            // Variable names unusable (subpatterns are not yet supported).
+            // Don't use "this" argument adjustments at all.
+            Case::new(
+                "[x,y] = 2 + 2",
+                &["[x,y] = 2 + 2", "testfunction11 = testFunction1"],
+                true,
+                |f| {
+                    f.searcher
+                        .use_suggestion(action::Suggestion::FromDatabase(f.test_function_1.clone()))
+                        .unwrap();
+                },
+            ),
+        ];
+
+        for case in cases.into_iter() {
+            let mut fixture = Fixture::new_custom(|data, client| {
+                data.selected_node = true;
+                // The last node will be used as searcher target.
+                data.change_main_body(&[case.line, "Nothing"]);
+                if case.expect_completion {
+                    data.expect_completion(client, None, None, &[]);
+                }
+            });
+            (case.run)(&mut fixture);
+            fixture.searcher.commit_node().unwrap();
+            let updated_def = fixture.searcher.graph.graph().definition().unwrap().item;
+            assert_eq!(updated_def.ast.repr(), case.result);
+        }
+    }
+
+    #[test]
+    fn adding_imports_with_nodes() {
+        fn expect_inserted_import_for(
+            entry: &Rc<model::suggestion_database::Entry>,
+            expected_import: Vec<&QualifiedName>,
+        ) {
+            let Fixture { test: _test, mut searcher, .. } = Fixture::new();
+            let module = searcher.graph.graph().module.clone_ref();
+            let parser = searcher.ide.parser().clone_ref();
+
+            let picked_method = PickedSuggestion {
+                entry:         action::Suggestion::FromDatabase(entry.clone_ref()),
+                inserted_code: default(),
+            };
+            with(searcher.data.borrow_mut(), |mut data| {
+                data.picked_suggestions.push(picked_method);
+                data.input = input::Input::parse(&parser, entry.name.to_string(), Byte(0));
+            });
+
+            // Add new node.
+            let node_id = searcher.mode.node_id();
+            searcher.mode = Immutable(Mode::NewNode { node_id, source_node: None });
+            searcher.commit_node().unwrap();
+
+            let module_info = module.info();
+            let imported_names = module_info
+                .iter_imports()
+                .map(|import| import.qualified_module_name().unwrap())
+                .collect_vec();
+
+            let expected_import = expected_import.into_iter().cloned().collect_vec();
+            assert_eq!(imported_names, expected_import);
+        }
+
+        let Fixture {
+            test_function_1: entry1,
+            test_var_1: entry2,
+            test_method: entry3,
+            test_method_3: entry4,
+            ..
+        } = Fixture::new();
+        expect_inserted_import_for(&entry1, vec![]);
+        expect_inserted_import_for(&entry2, vec![]);
+        expect_inserted_import_for(&entry3, vec![]);
+        expect_inserted_import_for(&entry4, vec![&entry4.defined_in]);
+    }
+
+    #[test]
+    fn committing_node() {
+        let Fixture { test: _test, mut searcher, test_method_3: entry4, .. } =
+            Fixture::new_custom(|data, _client| {
+                data.change_main_body(&["2 + 2", "Nothing"]); // The last node will be used as
+                                                              // searcher target.
+            });
+
+        let (node1, searcher_target) = searcher.graph.graph().nodes().unwrap().expect_tuple();
+
+        let module = searcher.graph.graph().module.clone_ref();
+        // Setup searcher.
+        let parser = Parser::new();
+        let picked_method = PickedSuggestion {
+            entry:         action::Suggestion::FromDatabase(entry4.clone_ref()),
+            inserted_code: String::from("Test.test_method"),
+        };
+        with(searcher.data.borrow_mut(), |mut data| {
+            data.picked_suggestions.push(picked_method);
+            data.input = input::Input::parse(&parser, "Test.test_method".to_string(), Byte(16));
+        });
+
+        // Add new node.
+        searcher.mode =
+            Immutable(Mode::NewNode { node_id: searcher_target.id(), source_node: None });
+        searcher.commit_node().unwrap();
+
+        let expected_code =
+            "import test.Test.Test\nmain =\n    2 + 2\n    operator1 = Test.test_method";
+        assert_eq!(module.ast().repr(), expected_code);
+        let expected_intended_method = Some(MethodId {
+            module:          "test.Test.Test".to_string().try_into().unwrap(),
+            defined_on_type: "test.Test.Test".to_string().try_into().unwrap(),
+            name:            "test_method".to_string(),
+        });
+
+        // Edit existing node.
+        searcher.mode = Immutable(Mode::EditNode { node_id: node1.info.id() });
+        searcher.commit_node().unwrap();
+        let expected_code =
+            "import test.Test.Test\nmain =\n    Test.test_method\n    operator1 = Test.test_method";
+        assert_eq!(module.ast().repr(), expected_code);
+    }
+
+    #[test]
+    fn adding_example() {
+        let Fixture { test: _test, searcher, .. } = Fixture::new();
+        let module = searcher.graph.graph().module.clone_ref();
+        let example = model::suggestion_database::example::Example {
+            name:               "Test Example".to_owned(),
+            code:               "x = 2 + 2\nx + 4".to_owned(),
+            imports:            vec![],
+            documentation_html: "Lorem ipsum".to_owned(),
+        };
+        let expected_code = "test_example1 =\n    x = 2 + 2\n    x + 4\n\n\
+            main = \n    2 + 2\n    Mock_Module.test_example1";
+        searcher.add_example(&Rc::new(example)).unwrap();
+        assert_eq!(module.ast().repr(), expected_code);
+    }
+
+    #[test]
+    fn adding_example_twice() {
+        let Fixture { test: _test, searcher, .. } = Fixture::new();
+        let module = searcher.graph.graph().module.clone_ref();
+        let example = model::suggestion_database::example::Example {
+            name:               "Test Example".to_owned(),
+            code:               "[1,2,3,4,5]".to_owned(),
+            imports:            vec!["std.Base.Network.Http".to_owned()],
+            documentation_html: "Lorem ipsum".to_owned(),
+        };
+        let expected_code = "import std.Base.Network.Http\n\
+            test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\
+            main = \n    2 + 2\n    Mock_Module.test_example1\n    Mock_Module.test_example2";
+        let example = Rc::new(example);
+        searcher.add_example(&example).unwrap();
+        searcher.add_example(&example).unwrap();
+        assert_eq!(module.ast().repr(), expected_code);
+    }
+
+    #[test]
+    fn edit_guard() {
+        let Fixture { test: _test, mut searcher, .. } = Fixture::new();
+        let graph = searcher.graph.graph();
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let initial_node_expression = node.main_line.expression();
+        let node_id = node.info.id();
+        searcher.mode = Immutable(Mode::EditNode { node_id });
+        searcher.node_edit_guard =
+            Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
+
+        // Apply an edit to the node.
+        graph.set_expression(node_id, "Edited Node").unwrap();
+
+        // Verify the metadata was initialised after the guard creation.
+        let module = graph.module.clone_ref();
+        module
+            .with_node_metadata(
+                node_id,
+                Box::new(|metadata| {
+                    assert_eq!(
+                        metadata.edit_status,
+                        Some(NodeEditStatus::Edited {
+                            previous_expression:      node.info.expression().to_string(),
+                            previous_intended_method: None,
+                        })
+                    );
+                }),
+            )
+            .unwrap();
+
+        // Verify the metadata is cleared after the searcher is dropped.
+        drop(searcher);
+        module
+            .with_node_metadata(
+                node_id,
+                Box::new(|metadata| {
+                    assert_eq!(metadata.edit_status, None);
+                }),
+            )
+            .unwrap();
+        // Verify the node was reverted.
+
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let final_node_expression = node.main_line.expression();
+        assert_eq!(initial_node_expression.to_string(), final_node_expression.to_string());
+    }
+
+    #[test]
+    fn edit_guard_no_revert() {
+        let Fixture { test: _test, mut searcher, .. } = Fixture::new();
+        let graph = searcher.graph.graph();
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let node_id = node.info.id();
+        searcher.mode = Immutable(Mode::EditNode { node_id });
+        searcher.node_edit_guard =
+            Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
+
+        // Apply an edit to the node.
+        let new_expression = "Edited Node";
+        graph.set_expression(node_id, new_expression).unwrap();
+        // Prevent reverting the node by calling the `prevent_revert` method.
+        searcher.node_edit_guard.deref().as_ref().unwrap().prevent_revert();
+
+        // Verify the node is not reverted after the searcher is dropped.
+        drop(searcher);
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let final_node_expression = node.main_line.expression();
+        assert_eq!(final_node_expression.to_string(), new_expression);
+    }
 }

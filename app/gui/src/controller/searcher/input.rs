@@ -186,12 +186,14 @@ impl Input {
         } else {
             edited_ast_on_left
         };
+        eprintln!("Edited AST: {:?}", edited_ast);
         let ast = InputAst::Line(ast);
         Self { ast, cursor_position, edited_ast }
     }
 
     /// Create the structure parsing the string.
     pub fn parse(parser: &Parser, expression: impl Str, cursor_position: text::Byte) -> Self {
+        eprintln!("Parse: {}", expression.as_ref());
         match parser.parse_line(expression.as_ref()) {
             Ok(ast) => Self::new(ast, cursor_position),
             Err(_) => Self {
