@@ -14,12 +14,10 @@ import { AmplifyConfig, toNestedAmplifyConfig } from "./config";
 // === Constants ===
 // =================
 
-/**
- * The string used to identify the GitHub federated identity provider in AWS Amplify.
+/** String used to identify the GitHub federated identity provider in AWS Amplify.
  *
  * This provider alone requires a string because it is not a standard provider, and thus has no
- * constant defined in the AWS Amplify library.
- */
+ * constant defined in the AWS Amplify library. */
 const GITHUB_PROVIDER = "Github";
 
 const SIGN_IN_WITH_PASSWORD_USER_NOT_FOUND_MESSAGE = "User not found. Please register first.";
@@ -97,62 +95,49 @@ const isAuthError = (error: unknown): error is AuthError => {
 // ===============
 
 export interface Cognito {
-    /**
-     * Returns the current user's session.
+    /** Returns the current user's session.
      *
      * Will refresh the session if it has expired.
      *
      * @returns `UserSession` if the user is logged in, `None` otherwise.
-     * @throws An error if failed due to an unknown error.
-     */
+     * @throws An error if failed due to an unknown error. */
     userSession: () => Promise<Option<UserSession>>;
-    /**
-     * Sign up with the given parameters (i.e., username and password).
+    /** Sign up with the given parameters (i.e., username and password).
      * 
      * Does not rely on external identity providers (e.g., Google or GitHub).
      *
      * @returns A promise that resolves to either success or known error.
-     * @throws An error if failed due to an unknown error.
-     */
+     * @throws An error if failed due to an unknown error. */
     signUp: (username: string, password: string) => Promise<Result<null, SignUpError>>;
-    /**
-     * Sends the verification code to confirm the user's email address.
+    /** Sends the verification code to confirm the user's email address.
      *
      * @param email - User's email address.
      * @param code - Verification code that was sent to the user's email address.
      * @returns A promise that resolves to either success or known error.
-     * @throws An error if failed due to an unknown error.
-     */
+     * @throws An error if failed due to an unknown error. */
     confirmSignUp: (email: string, code: string) => Promise<Result<null, ConfirmSignUpError>>;
-    /**
-     * Signs in via the Google federated identity provider.
+    /** Signs in via the Google federated identity provider.
      * 
      * This function will open the Google authentication page in the user's browser. The user will
      * be asked to log in to their Google account, and then to grant access to the application.
-     * After the user has granted access, the browser will be redirected to the application.
-     */
+     * After the user has granted access, the browser will be redirected to the application. */
     signInWithGoogle: () => Promise<null>;
-    /**
-     * Signs in via the GitHub federated identity provider.
+    /** Signs in via the GitHub federated identity provider.
      * 
      * This function will open the GitHub authentication page in the user's browser. The user will
      * be asked to log in to their GitHub account, and then to grant access to the application.
-     * After the user has granted access, the browser will be redirected to the application.
-     */
+     * After the user has granted access, the browser will be redirected to the application. */
     signInWithGitHub: () => Promise<null>;
-    /**
-     * Signs in with the given username and password.
+    /** Signs in with the given username and password.
      * 
      * Does not rely on external identity providers (e.g., Google or GitHub).
      * 
      * @param username - Username of the user to sign in.
      * @param password - Password of the user to sign in.
      * @returns A promise that resolves to either success or known error.
-     * @throws An error if failed due to an unknown error.
-     */
+     * @throws An error if failed due to an unknown error. */
     signInWithPassword: (username: string, password: string) => Promise<Result<null, SignInWithPasswordError>>;
-    /**
-     * Sends a password reset email to the given email address.
+    /** Sends a password reset email to the given email address.
      * 
      * The user will be able to reset their password by following the link in the email, which takes
      * them to the "reset password" page of the application. The verification code will be filled in
@@ -160,11 +145,9 @@ export interface Cognito {
      *
      * @param email - Email address to send the password reset email to.
      * @returns A promise that resolves to either success or known error.
-     * @throws An error if failed due to an unknown error.
-     */
+     * @throws An error if failed due to an unknown error. */
     forgotPassword: (username: string) => Promise<Result<null, ForgotPasswordError>>;
-    /**
-     * Submits a new password for the given email address.
+    /** Submits a new password for the given email address.
      * 
      * The user will have received a verification code in an email, which they will have entered on
      * the "reset password" page of the application. This function will submit the new password
@@ -174,14 +157,11 @@ export interface Cognito {
      * @param code - Verification code that was sent to the user's email address.
      * @param password - New password to set.
      * @returns A promise that resolves to either success or known error.
-     * @throws An error if failed due to an unknown error.
-     */
+     * @throws An error if failed due to an unknown error. */
     forgotPasswordSubmit: (username: string, code: string, newPassword: string) => Promise<Result<null, ForgotPasswordSubmitError>>;
-    /**
-     * Signs out the current user.
+    /** Signs out the current user.
      * 
-     * @returns A promise that resolves if successful.
-     */
+     * @returns A promise that resolves if successful. */
     signOut: () => Promise<void>;
 }
 
@@ -214,8 +194,7 @@ export class CognitoImpl implements Cognito {
 
     // === Interface `impl`s ===
 
-    /**
-     * We want to signal to Amplify to fire a "custom state change" event when the user is
+    /** We want to signal to Amplify to fire a "custom state change" event when the user is
      * redirected back to the application after signing in via an external identity provider. This
      * is done so we get a chance to fix the location history that Amplify messes up when it
      * redirects the user to the identity provider's authentication page.
@@ -227,8 +206,7 @@ export class CognitoImpl implements Cognito {
      * We use `undefined` outside of the desktop application because Amplify only messes up the
      * location history in the desktop application.
      * 
-     * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
-     */
+     * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
     customState = () => this.fromDesktop ? window.location.pathname : undefined;
     userSession = userSession;
     signUp = (username: string, password: string) => signUp(username, password, this.fromDesktop)
@@ -247,21 +225,17 @@ export class CognitoImpl implements Cognito {
 // === AssertString ===
 // ====================
 
-/**
- * Type signature for a function that asserts that a parameter is a string.
- */
+/** Type signature for a function that asserts that a parameter is a string. */
 type AssertString = (param: any, message: string) => asserts param is string
 
-/**
- * Asserts that a parameter is a string.
+/** Asserts that a parameter is a string.
  * 
  * Used both to assert that a parameter is a string at runtime, and to inform TypeScript that a
  * parameter is a string.
  * 
  * @param param - The parameter to assert.
  * @param message - The error message to throw if the assertion fails.
- * @throws An error if the assertion fails.
- */
+ * @throws An error if the assertion fails. */
 const assertString: AssertString = (param, message) => {
     if (typeof param !== "string") {
       throw new Error(message);
@@ -274,17 +248,17 @@ const assertString: AssertString = (param, message) => {
 // === UserSession ===
 // ===================
 
-/// User's session, provides information for identifying and authenticating the user.
+/** User's session, provides information for identifying and authenticating the user. */
 export interface UserSession {
-    /// User's email address, used to uniquely identify the user.
-    ///
-    /// Provided by the identity provider the user used to log in. One of:
-    ///
-    /// - GitHub
-    /// - Google
-    /// - Email
+    /** User's email address, used to uniquely identify the user.
+     *
+     * Provided by the identity provider the user used to log in. One of:
+     *
+     * - GitHub
+     * - Google
+     * - Email */
     email: string;
-    /// User's access token, used to authenticate the user (e.g., when making API calls).
+    /** User's access token, used to authenticate the user (e.g., when making API calls). */
     accessToken: string;
 }
 
@@ -303,21 +277,17 @@ const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind =>
     }
 }
 
-/**
- * Returns the current `CognitoUserSession`.
+/** Returns the current `CognitoUserSession`.
  *
  * Will refresh the session if it has expired.
  *
  * @returns `CognitoUserSession` if the user is logged in, `CurrentSessionErrorKind`
- * otherwise.
- */
+ * otherwise. */
 const getAmplifyCurrentSession = () => Result
     .wrapAsync(() => Auth.currentSession())
     .then(result => result.mapErr(intoCurrentSessionErrorKind));
 
-/**
- * Parses a `CognitoUserSession` into a `UserSession`.
- */
+/** Parses a `CognitoUserSession` into a `UserSession`. */
 const parseUserSession = (session: CognitoUserSession): UserSession => {
     const payload = session.getIdToken().payload;
     // The `email` field is mandatory, so we assert that it exists and is a string.

@@ -15,12 +15,10 @@ const AUTHENTICATION_HUB = "auth";
 // === AuthEvent ===
 // =================
 
-/**
- * Authentication state change events.
+/** Authentication state change events.
  * 
  * These are issues by AWS Amplify when it detects a change in authentication state. For example,
- * when the user signs in or signs out by accessing a page like `enso://auth?code=...&state=...`.
- */
+ * when the user signs in or signs out by accessing a page like `enso://auth?code=...&state=...`. */
 enum AuthEvent {
     /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
     customOAuthState = "customOAuthState",
@@ -41,22 +39,17 @@ const isAuthEvent = (value: string): value is AuthEvent => Object.values(AuthEve
 // === RegisterAuthEventListener ===
 // =================================
 
-/**
- * Type of the callback called in response to authentication state changes.
+/** Type of the callback called in response to authentication state changes.
  * 
- * @see {@link Api["listen"]}
- */
+ * @see {@link Api["listen"]} */
 type ListenerCallback = (event: AuthEvent, data?: any) => void;
 
-/**
- * Function that unsubscribes the {@link ListenerCallback} from authentication state changes.
+/** Function that unsubscribes the {@link ListenerCallback} from authentication state changes.
  * 
- * @see {@link Api["listen"]}
- */
+ * @see {@link Api["listen"]} */
 type UnsubscribeFunction = () => void;
 
-/**
- * A function that can be used to subscribe to {@link AuthEvent}s.
+/** A function that can be used to subscribe to {@link AuthEvent}s.
  * 
  * This function takes a {@link ListenerCallback} function as an argument. The callback will be
  * called whenever an {@link AuthEvent} fires. The callback will be called with the
@@ -64,8 +57,7 @@ type UnsubscribeFunction = () => void;
  * 
  * The returned function, when called, returns an {@link UnsubscribeFunction} that can be used to
  * unsubscribe from {@link AuthEvent}s. Ensure that you call this function before re-subscribing to
- * avoid memory leaks or duplicate event handlers.
- */
+ * avoid memory leaks or duplicate event handlers. */
 type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction;
 
 const registerAuthEventListener: ListenFunction = (listener) => {

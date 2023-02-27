@@ -1,7 +1,5 @@
-/**
- * @file Container responsible for rendering and interactions in setting username flow, after
- * registration.
- */
+/** @file Container responsible for rendering and interactions in setting username flow, after
+ * registration. */
 import * as React from 'react'
 
 import { useAuth, usePartialUserSession } from '../providers/auth';

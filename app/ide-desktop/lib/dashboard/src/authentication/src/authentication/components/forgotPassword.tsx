@@ -1,7 +1,5 @@
-/**
- * @file Container responsible for rendering and interactions in first half of forgot password
- * flow.
- */
+/** @file Container responsible for rendering and interactions in first half of forgot password
+ * flow. */
 import * as React from 'react'
 import { Link } from 'react-router-dom';
 
@@ -11,8 +9,6 @@ import { useInput } from '../../hooks'
 import { handleEvent } from '../../utils';
 import { LOGIN_PATH } from '../../components/app';
 import * as Icons from '../../components/svg';
-
-
 
 
 
@@ -81,4 +77,3 @@ const forgotPasswordContainer = () => {
 }
 
 export default withRouter(forgotPasswordContainer)
-

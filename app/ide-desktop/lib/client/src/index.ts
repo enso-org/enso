@@ -157,8 +157,6 @@ class App {
                     enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
                     disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
                     spellcheck: false,
-                    // FIXME [NP2]: reset webSecurity to true if possible
-                    webSecurity: true,
                 }
                 let windowPreferences: electron.BrowserWindowConstructorOptions = {
                     webPreferences,
@@ -237,7 +235,6 @@ class App {
      * and open the page `auth?code=...` in the application window.
      */
     initOpenUrlListener() {
-        // FIXME [NP2]: Why does this handler get called twice?
         electron.app.on('open-url', (event, url) => {
             // We only want to handle URLs that are both deep links and that are meant for this
             // application. We can tell if it is by checking the protocol. Any non-matching URLs are

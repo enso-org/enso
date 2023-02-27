@@ -13,13 +13,11 @@ import { ListenerCallback } from "../listen";
 // === Constants ===
 // =================
 
-/**
- * URL that the Electron main page is hosted on.
+/** URL that the Electron main page is hosted on.
  * 
  * This **must** be the actual page that the Electron app is hosted on, otherwise the OAuth flow
  * will not work and will redirect the user to a blank page. If this is the correct URL, no redirect
- * will occur (which is the desired behaviour).
- */
+ * will occur (which is the desired behaviour). */
 const MAIN_PAGE_URL = "http://localhost:8080";
 
 /** Initial value of the session refresh counter. This value itself is meaningless. The only point

@@ -1,5 +1,3 @@
-// FIXME [NP]: Make all comments match the style of the first comment in this file: https://github.com/enso-org/enso/pull/5716/files#r1113048958
-// FIXME [NP]: Find all locations we throw and error and update their docs accordingly: https://github.com/enso-org/enso/pull/5716/files#r1113052508
 // FIXME [NP]: Find all locations where we use `{ ...  }` style in props and update them to use a variable that we deconstruct later: https://github.com/enso-org/enso/pull/5716/files#r1113049785
 // FIXME [NP]: Find all locations where we create a named variable just to return it and remove them: https://github.com/enso-org/enso/pull/5716/files#r1113053192
 // FIXME [NP]: Group all constants: https://github.com/enso-org/enso/pull/5716/files#r1113064368

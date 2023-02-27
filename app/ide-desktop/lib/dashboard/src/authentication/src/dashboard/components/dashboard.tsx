@@ -2,10 +2,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/**
- * @file Main dashboard container responsible for listing user's projects as well as other
- * interactive components.
- */
+/** @file Main dashboard container responsible for listing user's projects as well as other
+ * interactive components. */
 
 import * as React from 'react'
 import { useEffect, useState } from 'react'

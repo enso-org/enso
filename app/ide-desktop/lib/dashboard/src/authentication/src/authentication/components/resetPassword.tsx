@@ -1,7 +1,5 @@
-/**
- * @file Container responsible for rendering and interactions in second half of forgot password
- * flow.
- */
+/** @file Container responsible for rendering and interactions in second half of forgot password
+ * flow. */
 import * as React from 'react'
 import { Link, useLocation } from 'react-router-dom';
 import toast from "react-hot-toast";

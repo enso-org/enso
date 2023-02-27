@@ -25,19 +25,19 @@ import { SessionProvider } from '../authentication/providers/session';
 // === Constants ===
 // =================
 
-/// Path to the root of the app (i.e., the Cloud dashboard).
+/** Path to the root of the app (i.e., the Cloud dashboard). */
 export const DASHBOARD_PATH = "/";
-/// Path to the login page.
+/** Path to the login page. */
 export const LOGIN_PATH = "/login";
-/// Path to the registration page.
+/** Path to the registration page. */
 export const REGISTRATION_PATH = "/registration";
-/// Path to the confirm registration page.
+/** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = "/confirmation";
-/// Path to the forgot password page.
+/** Path to the forgot password page. */
 export const FORGOT_PASSWORD_PATH = "/forgot-password";
-/// Path to the reset password page.
+/** Path to the reset password page. */
 export const RESET_PASSWORD_PATH = "/password-reset";
-/// Path to the set username page.
+/** Path to the set username page. */
 export const SET_USERNAME_PATH = "/set-username";
 
 
@@ -46,26 +46,20 @@ export const SET_USERNAME_PATH = "/set-username";
 // === App ===
 // ===========
 
-/// Global configuration for the `App` component.
+/** Global configuration for the `App` component. */
 export interface AppProps {
-  /**
-   * Logger to use for logging.
-   */
+  /** Logger to use for logging. */
   logger: Logger;
-  /**
-   * Whether the application is running on a desktop (i.e., versus in the Cloud).
-   */
+  /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
   runningOnDesktop: boolean;
   onAuthenticated: () => void;
   projectManager?: ProjectManager;
 }
 
-/**
- * Functional component called by the parent module, returning the root React component for this package.
+/** Functional component called by the parent module, returning the root React component for this package.
  * 
  * This component handles all the initialization and rendering of the app, and manages the app's
- * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
- */
+ * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const App = (props: AppProps) => {
   const { runningOnDesktop } = props;
@@ -90,7 +84,7 @@ const App = (props: AppProps) => {
 // === AppRouter ===
 // =================
 
-/// Router definition for the app.
+/** Router definition for the app. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter = (props: AppProps) => {
   const { logger, onAuthenticated, runningOnDesktop, projectManager } = props;

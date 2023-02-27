@@ -6,12 +6,10 @@ import { ReactNode, createContext, useContext } from "react";
 // === Logger ===
 // ==============
 
-/**
- * Interface used to log logs, errors, etc.
+/** Interface used to log logs, errors, etc.
  *
  * In the browser, this is the `Console` interface. In Electron, this is the `Logger` interface
- * provided by the EnsoGL packager.
- */
+ * provided by the EnsoGL packager. */
 export interface Logger {
     /** Logs a message to the console. */
     log: (message?: any, ...optionalParams: any[]) => void,

@@ -1,10 +1,8 @@
-/**
- * @file Module for authenticating users with AWS Cognito.
+/** @file Module for authenticating users with AWS Cognito.
  * 
  * Provides an `AuthProvider` component that wraps the entire application, and a `useAuth` hook that
  * can be used from any React component to access the currently logged-in user's session data. The
- * hook also provides methods for registering a user, logging in, logging out, etc.
- */
+ * hook also provides methods for registering a user, logging in, logging out, etc. */
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from "react-hot-toast"
@@ -46,30 +44,32 @@ export type UserSession =
   | FullUserSession
   | PartialUserSession;
 
-/// Object containing the currently signed-in user's session data.
+/** Object containing the currently signed-in user's session data. */
 export interface FullUserSession {
-  /// A type-hint for TypeScript to be able to disambiguate between this interface and other `UserSession` variants. */
+  /** A type-hint for TypeScript to be able to disambiguate between this interface and other
+   * `UserSession` variants. */
   state: "full",
-  /// The user's JSON Web Token (JWT), used for authenticating and authorizing requests to the API.
+  /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
   accessToken: string;
-  /// The user's email address.
+  /** User's email address. */
   email: string;
-  /// The user's organization information.
+  /** User's organization information. */
   organization: Organization;
 }
 
-/// Object containing the currently signed-in user's session data, if the user has not yet set their
-/// username.
-///
-/// If a user has not yet set their username, they do not yet have an organization associated with
-/// their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
-/// used by the `SetUsername` component.
+/** Object containing the currently signed-in user's session data, if the user has not yet set their
+ * username.
+ *
+ * If a user has not yet set their username, they do not yet have an organization associated with
+ * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
+ * used by the `SetUsername` component. */
 export interface PartialUserSession {
-  /// A type-hint for TypeScript to be able to disambiguate between this interface and other `UserSession` variants. */
+  /** A type-hint for TypeScript to be able to disambiguate between this interface and other
+   * `UserSession` variants. */
   state: "partial",
-  /// The user's JSON Web Token (JWT), used for authenticating and authorizing requests to the API.
+  /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
   accessToken: string;
-  /// The user's email address.
+  /** User's email address. */
   email: string;
 }
 
@@ -79,67 +79,26 @@ export interface PartialUserSession {
 // === AuthContext ===
 // ===================
 
-/**
- * Interface returned by the `useAuth` hook.
+/** Interface returned by the `useAuth` hook.
  *
  * Contains the currently authenticated user's session data, as well as methods for signing in,
  * signing out, etc. All interactions with the authentication API should be done through this
  * interface.
- */
+ * 
+ * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
-    /**
-     * Method for signing up a new user with an email address and a password.
-     *
-     * Does not rely on external identity providers (e.g., Google, GitHub).
-     */
     signUp: (email: string, password: string) => Promise<void>;
-    /** Method for confirming a user's email address after they attempt to sign up. */
     confirmSignUp: (email: string, code: string) => Promise<void>;
-    /**
-     * Method for assigning a user a username after they have signed up and confirmed their email.
-     */
     setUsername: (accessToken: string, username: string, email: string) => Promise<void>;
-    /**
-     * Method for signing in a user via their Google account.
-     *
-     * This method will open a new browser window to allow the user to authenticate with Google.
-     * Once the user has authenticated, the browser window will close, and the user will be signed
-     * in.
-     */
     signInWithGoogle: () => Promise<null>
-    /**
-     * Method for signing in a user via their GitHub account.
-     *
-     * This method will open a new browser window to allow the user to authenticate with GitHub.
-     * Once the user has authenticated, the browser window will close, and the user will be signed
-     * in.
-     */
     signInWithGitHub: () => Promise<null>;
-    /** Method for signing in a user with an email address and a password. */
     signInWithPassword: (email: string, password: string) => Promise<void>;
-    /**
-     * Method for starting the password recovery process for a user.
-     *
-     * This method will send an email to the user with a link to reset their password. The user must
-     * click this link to complete the process. Clicking the link will redirect them to the second
-     * page of the process (i.e., the "reset password" page), where the confirmation code will
-     * already be filled in.
-     */
     forgotPassword: (email: string) => Promise<void>;
-    /**
-     * Method for completing the password recovery process for a user.
-     *
-     * This method will reset the user's password to the given value. The user must have already
-     * started the password recovery process by clicking the link in the email they received.
-     */
     resetPassword: (email: string, code: string, password: string) => Promise<void>;
-    /** Method for signing out the currently authenticated user. */
     signOut: () => Promise<void>;
-    /**
-     * Session containing the currently authenticated user's authentication information.
+    /** Session containing the currently authenticated user's authentication information.
      *
-     * If the user has not signed in, the session will be `undefined`.
-     */
+     * If the user has not signed in, the session will be `undefined`. */
     session: UserSession | undefined;
 }
 
@@ -363,20 +322,16 @@ export const AuthProvider = (props: AuthProviderProps) => {
   )
 };
 
-/**
- * Type of an error containing a `string`-typed `message` field.
+/** Type of an error containing a `string`-typed `message` field.
  * 
  * Many types of errors fall into this category. We use this type to check if an error can be safely
- * displayed to the user.
- */
+ * displayed to the user. */
 interface UserFacingError {
   /** The user-facing error message. */
   message: string;
 }
 
-/**
- * Returns `true` if the value is a {@link UserFacingError}.
- */
+/** Returns `true` if the value is a {@link UserFacingError}. */
 const isUserFacingError = (value: unknown): value is UserFacingError => {
   return typeof value === "object" && value !== null && "message" in value;
 }
@@ -387,12 +342,10 @@ const isUserFacingError = (value: unknown): value is UserFacingError => {
 // === useAuth ===
 // ===============
 
-/**
- * A React hook that provides access to the authentication context.
+/** A React hook that provides access to the authentication context.
  *
  * Only the hook is exported, and not the context, because we only want to use the hook directly
- * and never the context component.
- */
+ * and never the context component. */
 export const useAuth = () => useContext(AuthContext);
 
 
