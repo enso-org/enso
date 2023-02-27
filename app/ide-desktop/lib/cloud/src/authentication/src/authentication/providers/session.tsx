@@ -1,8 +1,9 @@
 // FIXME [NP]: docs
 import { ReactNode, createContext, useContext, useState, useEffect } from "react";
+import { None, Option } from "ts-results";
 
 import { useAsyncEffect } from "../../hooks";
-import { UserSession } from "../api";
+import { UserSession } from "../cognito";
 import { ListenerCallback } from "../listen";
 
 
@@ -27,7 +28,7 @@ const MAIN_PAGE_URL = "http://localhost:8080";
 // ======================
 
 interface SessionContextType {
-    session: UserSession | null;
+    session: Option<UserSession>;
     // FIXME [NP]: do we actually need `refreshSession` in any of the children?
     refreshSession: () => void;
 }
@@ -43,7 +44,7 @@ const SessionContext = createContext<SessionContextType>({} as SessionContextTyp
 
 interface SessionProviderProps {
     registerAuthEventListener: (callback: ListenerCallback) => void;
-    userSession: () => Promise<UserSession | null>;
+    userSession: () => Promise<Option<UserSession>>;
     children: ReactNode;
 }
 
@@ -71,7 +72,7 @@ export const SessionProvider = (props: SessionProviderProps) => {
     // Register an async effect that will fetch the user's session whenever the `refresh` state is
     // incremented. This is useful when a user has just logged in (as their cached credentials are
     // out of date, so this will update them).
-    const [session] = useAsyncEffect(null, async () => {
+    const [session] = useAsyncEffect(None, async () => {
       const session = await userSession();
       setInitialized(true);
       return session;

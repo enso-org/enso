@@ -10,10 +10,11 @@ import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-do
 import { toast } from "react-hot-toast"
 
 import { createBackend, Organization, SetUsernameBody } from './api';
-import { isAmplifyError, isAuthError, Api } from './authentication/api';
+import { Api } from './authentication/api';
 import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
 import { useLogger } from './logger';
 import { useSession } from './authentication/providers/session';
+import { UnreachableCaseError } from './error';
 
 
 
@@ -102,7 +103,7 @@ interface AuthContextType {
      * Once the user has authenticated, the browser window will close, and the user will be signed
      * in.
      */
-    signInWithGoogle: () => Promise<void>
+    signInWithGoogle: () => Promise<null>
     /**
      * Method for signing in a user via their GitHub account.
      *
@@ -110,7 +111,7 @@ interface AuthContextType {
      * Once the user has authenticated, the browser window will close, and the user will be signed
      * in.
      */
-    signInWithGitHub: () => Promise<void>;
+    signInWithGitHub: () => Promise<null>;
     /** Method for signing in a user with an email address and a password. */
     signInWithPassword: (email: string, password: string) => Promise<void>;
     /**
@@ -161,6 +162,7 @@ export interface AuthProviderProps {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   const { auth, children } = props
+  const { cognito } = auth
   const { session } = useSession();
   const logger = useLogger();
   const onAuthenticated = useCallback(props.onAuthenticated, [])
@@ -176,12 +178,12 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   // token.
   useEffect(() => {
       const fetchSession = async () => {
-        if (!session) {
+        if (session.none) {
           setInitialized(true);
           setUserSession(undefined);
           return;
         }
-        const { accessToken, email } = session;
+        const { accessToken, email } = session.val;
 
         const backend = createBackend(accessToken, logger);
 
@@ -234,47 +236,32 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     }
   }
 
-  const signUp = async (username: string, password: string) => {
-    try {
-      await auth.signUp(username, password)
-    } catch (error) {
-      if (isAmplifyError(error)) {
-        if (error.code === "UsernameExistsException") {
-          toast.error(error.message)
-          return;
-        } else if (error.code === "InvalidPasswordException") {
-          toast.error(error.message)
-          return;
+  const signUp = (username: string, password: string) => cognito
+    .signUp(username, password)
+    .then(result => {
+      if (result.ok) {
+        toast.success(SIGN_UP_SUCCESS)
+      } else {
+        toast.error(result.val.message)
+      }
+    })
+
+  const confirmSignUp = async (email: string, code: string) => cognito 
+    .confirmSignUp(email, code)
+    .then(result => {
+      if (result.err) {
+        switch (result.val.kind) {
+          case "UserAlreadyConfirmed":
+            break;
+          default:
+            throw new UnreachableCaseError(result.val.kind)
         }
       }
 
-      throw error;
-    }
-
-    toast.success(SIGN_UP_SUCCESS)
-  };
-
-  const confirmSignUp = async (email: string, code: string) => {
-    try {
-      await auth.confirmSignUp(email, code);
-    } catch (error) {
-      if (isAmplifyError(error)) {
-        if (error.code === "NotAuthorizedException") {
-          if (error.message === "User cannot be confirmed. Current status is CONFIRMED") {
-            toast.success(CONFIRM_SIGN_UP_SUCCESS)
-            navigate(LOGIN_PATH)
-            return;
-          }
-        }
-      }
-
-      throw error;
-    }
-
-    // FIXME [NP]: we do this here & at the call site, is this redundant?
-    navigate(LOGIN_PATH)
-    toast.success(CONFIRM_SIGN_UP_SUCCESS)
-  } 
+      toast.success(CONFIRM_SIGN_UP_SUCCESS)
+      // FIXME [NP]: we do this here & at the call site, is this redundant?
+      navigate(LOGIN_PATH)
+    })
 
   const setUsername = async (accessToken: string, username: string, email: string) => {
       const body: SetUsernameBody = { userName: username, userEmail: email };
@@ -293,75 +280,44 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
   const signInWithPassword = async (
     email: string,
     password: string,
-  ) => {
-    try {
-      await auth.signInWithPassword(email, password);
-    } catch (error) {
-      if (isAmplifyError(error)) {
-        if (error.code === "UserNotFoundException") {
-          navigate(REGISTRATION_PATH);
-          toast.error("User not found. Please register first.")
-          return
-        } else if (error.code === "UserNotConfirmedException") {
-          toast.error("User not confirmed. Please check your email for a confirmation link.");
-          return
-        } else if (error.code === "NotAuthorizedException") {
-          toast.error("Incorrect username or password.");
-          return
-        }
+  ) => cognito
+    .signInWithPassword(email, password)
+    .then(result => {
+      if (result.ok) {
+        toast.success(SIGN_IN_WITH_PASSWORD_SUCCESS)
+        return;
       }
 
-      throw error
-    }
-
-    toast.success(SIGN_IN_WITH_PASSWORD_SUCCESS)
-  };
-
-  const forgotPassword = async (email: string) => {
-    try {
-      await auth.forgotPassword(email);
-    } catch (error) {
-      if (isAmplifyError(error)) {
-        if (error.code === "UserNotFoundException") {
-          toast.error("User not found. Please register first.");
-          return
-        } else if (error.code === "InvalidParameterException") {
-          if (error.message === "Cannot reset password for the user as there is no registered/verified email or phone_number") {
-            toast.error("Cannot reset password for user with unverified email. Please verify your email first.")
-            return
-          }
-        }
+      if (result.val.kind === "UserNotFound") {
+        navigate(REGISTRATION_PATH)
       }
 
-      throw error
-    }
+      toast.error(result.val.message)
+    })
 
-    navigate(RESET_PASSWORD_PATH)
-    toast.success(FORGOT_PASSWORD_SUCCESS)
-  }
-
-  const resetPassword = async (email: string, code: string, password: string) => {
-    try {
-      await auth.forgotPasswordSubmit(email, code, password)
-    } catch (error) {
-      if (isAuthError(error)) {
-        toast.error(error.log)
-        return
+  const forgotPassword = async (email: string) => cognito
+    .forgotPassword(email)
+    .then(result => {
+      if (result.ok) {
+        toast.success(FORGOT_PASSWORD_SUCCESS)
+        navigate(RESET_PASSWORD_PATH)
+      } else {
+        toast.error(result.val.message)
       }
+    })
 
-      if (isAmplifyError(error)) {
-        toast.error(error.message)
-        return
+  const resetPassword = async (email: string, code: string, password: string) => cognito
+    .forgotPasswordSubmit(email, code, password)
+    .then(result => {
+      if (result.ok) {
+        toast.success(RESET_PASSWORD_SUCCESS)
+        navigate(LOGIN_PATH)
+      } else {
+        toast.error(result.val.message)
       }
+    })
 
-      throw error
-    }
-
-    navigate(LOGIN_PATH)
-    toast.success(RESET_PASSWORD_SUCCESS)
-  };
-
-  const signOut = () => auth
+  const signOut = () => cognito
     .signOut()
     .then(() => toast.success(SIGN_OUT_SUCCESS))
     .then(() => {});
@@ -370,8 +326,8 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     signUp: withLoadingToast(signUp),
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
-    signInWithGoogle: auth.signInWithGoogle,
-    signInWithGitHub: auth.signInWithGithub,
+    signInWithGoogle: cognito.signInWithGoogle,
+    signInWithGitHub: cognito.signInWithGitHub,
     signInWithPassword: withLoadingToast(signInWithPassword),
     forgotPassword: withLoadingToast(forgotPassword),
     resetPassword: withLoadingToast(resetPassword),
