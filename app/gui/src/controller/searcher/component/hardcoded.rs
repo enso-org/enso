@@ -91,6 +91,7 @@ impl Snippet {
     /// documentation parser cannot be created or the argument fails to parse as valid
     /// documentation.
     fn with_documentation(mut self, documentation: &str) -> Self {
+        // TODO: we need the Scala parser in searcher tests only for HTML documentation.
         self.documentation_html = Some(documentation.to_string());
         self
     }

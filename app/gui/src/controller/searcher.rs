@@ -943,11 +943,11 @@ impl Searcher {
                     info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(&response);
                     let mut data = this.data.borrow_mut();
-                    list.update_filtering(&data.input.pattern);
+                    list.update_filtering(data.input.pattern());
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = response.results;
                     data.components = this.make_component_list(completions, &this_type);
-                    data.components.update_filtering(&data.input.pattern);
+                    data.components.update_filtering(data.input.pattern());
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
@@ -955,7 +955,7 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components = this.make_component_list(this.database.keys(), &this_type);
-                    data.components.update_filtering(&data.input.pattern);
+                    data.components.update_filtering(data.input.pattern());
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1503,12 +1503,12 @@ pub mod test {
         Rc::new(database)
     }
 
-    // Test checks that:
-    // 1) if the selected node is assigned to a single variable (or can be assigned), the list is
-    //    not immediately presented;
-    // 2) instead the searcher model obtains the type information for the selected node and uses it
-    //    to query Language Server for the suggestion list;
-    // 3) The query for argument type takes the this-argument presence into consideration.
+    /// Test checks that:
+    /// 1) if the selected node is assigned to a single variable (or can be assigned), the list is
+    ///    not immediately presented;
+    /// 2) instead the searcher model obtains the type information for the selected node and uses it
+    ///    to query Language Server for the suggestion list;
+    /// 3) The query for argument type takes the this-argument presence into consideration.
     #[test]
     fn loading_list_w_self() {
         let mock_type = crate::test::mock::data::TYPE_NAME;
@@ -1529,7 +1529,7 @@ pub mod test {
         ];
 
         for case in &cases {
-            let Fixture { mut test, searcher, test_function_1: entry1, test_function_2, .. } =
+            let Fixture { mut test, searcher, test_function_1, test_function_2, .. } =
                 Fixture::new_custom(|data, client| {
                     data.change_main_body(&[case.node_line]);
                     data.selected_node = true;
@@ -1559,11 +1559,11 @@ pub mod test {
 
             test.run_until_stalled();
             assert!(!searcher.actions().is_loading());
-            searcher
-                .use_suggestion(action::Suggestion::FromDatabase(test_function_2.clone_ref()))
-                .unwrap();
-            searcher.use_suggestion(action::Suggestion::FromDatabase(entry1.clone_ref())).unwrap();
-            let expected_input = format!("{} {}", test_function_2.name, entry1.name);
+            let suggestion2 = action::Suggestion::FromDatabase(test_function_2.clone_ref());
+            searcher.use_suggestion(suggestion2).unwrap();
+            let suggestion1 = action::Suggestion::FromDatabase(test_function_1.clone_ref());
+            searcher.use_suggestion(suggestion1).unwrap();
+            let expected_input = format!("{} {}", test_function_2.name, test_function_1.name);
             assert_eq!(searcher.data.borrow().input.ast().repr(), expected_input);
         }
     }
@@ -1573,8 +1573,8 @@ pub mod test {
         let mut fixture = Fixture::new_custom(|data, client| {
             data.expect_completion(client, None, &[20]);
         });
-        let Fixture { test, searcher, test_method: entry3, .. } = &mut fixture;
-        searcher.use_suggestion(action::Suggestion::FromDatabase(entry3.clone_ref())).unwrap();
+        let Fixture { test, searcher, test_method, .. } = &mut fixture;
+        searcher.use_suggestion(action::Suggestion::FromDatabase(test_method.clone_ref())).unwrap();
         assert!(searcher.actions().is_loading());
         test.run_until_stalled();
         assert!(!searcher.actions().is_loading());
@@ -1583,7 +1583,7 @@ pub mod test {
     #[test]
     fn arguments_suggestions_for_picked_function() {
         let mut fixture = Fixture::new_custom(|data, client| {
-            data.expect_completion(client, None, &[]); // First arg suggestion.
+            data.expect_completion(client, None, &[]); // Function suggestion.
         });
 
 
@@ -1660,7 +1660,7 @@ pub mod test {
             ],
         };
         // Create a test fixture with mocked Engine responses.
-        let Fixture { mut test, searcher, test_method: entry3, test_function_2, .. } =
+        let Fixture { mut test, searcher, test_method, test_function_2, .. } =
             Fixture::new_custom(|data, client| {
                 // Entry with id 99999 does not exist, so only two actions from suggestions db
                 // should be displayed in searcher.
@@ -1673,11 +1673,17 @@ pub mod test {
         // Verify the contents of the components list loaded by the Searcher.
         let components = searcher.components();
         if let [module_group] = &components.top_modules().next().unwrap()[..] {
-            let expected_group_name =
-                format!("{}.{}", entry3.defined_in.project().project, entry3.defined_in.name());
+            let expected_group_name = format!(
+                "{}.{}",
+                test_method.defined_in.project().project,
+                test_method.defined_in.name()
+            );
             assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
-            assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry3.name && e2.name() == test_function_2.name);
+            assert_matches!(
+                entries.as_slice(),
+                [e1, e2] if e1.name() == test_method.name && e2.name() == test_function_2.name
+            );
         } else {
             panic!(
                 "Wrong top modules in Component List: {:?}",
@@ -1716,9 +1722,8 @@ pub mod test {
         let picked_suggestions = || Ref::map(searcher.data.borrow(), |d| &d.picked_suggestions);
 
         // Picking first suggestion.
-        let new_input = searcher
-            .use_suggestion(action::Suggestion::FromDatabase(test_function_1.clone_ref()))
-            .unwrap();
+        let suggestion = action::Suggestion::FromDatabase(test_function_1.clone_ref());
+        let new_input = searcher.use_suggestion(suggestion).unwrap();
         assert_eq!(new_input.text, "testFunction1 ");
         let (func,) = picked_suggestions().iter().cloned().expect_tuple();
         assert!(are_same(&func.entry, &test_function_1));
@@ -1729,13 +1734,10 @@ pub mod test {
         assert!(are_same(&func.entry, &test_function_1));
 
         // Picking argument's suggestion.
-        let new_input = searcher
-            .use_suggestion(action::Suggestion::FromDatabase(test_var_1.clone_ref()))
-            .unwrap();
+        let suggestion1 = action::Suggestion::FromDatabase(test_var_1.clone_ref());
+        let new_input = searcher.use_suggestion(suggestion1.clone()).unwrap();
         assert_eq!(new_input.text, "test_var_1 ");
-        let new_input = searcher
-            .use_suggestion(action::Suggestion::FromDatabase(test_var_1.clone_ref()))
-            .unwrap();
+        let new_input = searcher.use_suggestion(suggestion1).unwrap();
         assert_eq!(new_input.text, "test_var_1 ");
         let (function, arg1, arg2) = picked_suggestions().iter().cloned().expect_tuple();
         assert!(are_same(&function.entry, &test_function_1));
