@@ -30,6 +30,29 @@ const AMPLIFY_CONFIGS = {
 
 
 
+// ================
+// === LoginApi ===
+// ================
+
+/** `window.loginApi` is a context bridge to the main process, when we're running in an Electron
+ * context.
+ * 
+ * # Safety
+ *
+ * We're assuming that the main process has exposed the `loginApi` context bridge (see
+ * `lib/client/src/preload.ts` for details), and that it contains the functions defined in this
+ * interface. Our app can't function if these assumptions are not met, so we're disabling the
+ * TypeScript checks for this interface when we use it. */
+interface LoginApi {
+    /** Open a URL in the system browser. */
+    openExternalUrl: (url: string) => void;
+    /** Set the callback to be called when the system browser redirects back to a URL in the app,
+     * via a deep link. See {@link registerOpenAuthenticationUrlCallback} for details. */
+    setOpenAuthenticationUrlCallback: (callback: (url: string) => void) => void;
+}
+
+
+
 // ==================
 // === AuthConfig ===
 // ==================
@@ -113,14 +136,11 @@ const loadAmplifyConfig = (logger: Logger, runningOnDesktop: boolean, navigate: 
 }
 
 const openUrlWithExternalBrowser = (url: string) => {
-    // # Safety
-    //
-    // We're using `window.loginApi` here, which is a context bridge to the main process.
-    // We're assuming that the main process has exposed the `loginApi` context bridge, and
-    // that it contains the `openExternalUrl` function.
+    /** See {@link LoginApi} for safety details. */
     // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    window.loginApi.openExternalUrl(url)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const loginApi: LoginApi = window.loginApi;
+    loginApi.openExternalUrl(url)
 }
 
 /** Register the callback that will be invoked when an `enso://` schema URL is opened in the app.
@@ -158,9 +178,11 @@ const registerOpenAuthenticationUrlCallback = (
         }
     }
 
+    /** See {@link LoginApi} for safety details. */
     // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    window.loginApi.setOpenAuthenticationUrlCallback(openAuthenticationUrlCallback)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const loginApi: LoginApi = window.loginApi;
+    loginApi.setOpenAuthenticationUrlCallback(openAuthenticationUrlCallback)
 }
 
 /** If the user is being redirected after clicking the registration confirmation link in their
@@ -192,6 +214,12 @@ const handleAuthResponse = (url: string) => {
         // need to be sure to restore the original `window.location.replaceState`
         // function before any non-Amplify code runs, which we can't guarantee if
         // `_handleAuthResponse` is allowed to complete asynchronously.
+        //
+        // # Safety
+        //
+        // It is safe to disable the `unbound-method` lint here because we intentionally want to use
+        // the original `window.history.replaceState` function, which is not bound to the
+        // `window.history` object.
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const replaceState = window.history.replaceState;
         window.history.replaceState = () => false;

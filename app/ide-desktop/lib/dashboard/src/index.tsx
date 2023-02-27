@@ -1,7 +1,5 @@
 /** @file Index file declaring main DOM structure for the app. */
 
-// eslint-disable-next-line
-// @ts-ignore
 import * as authentication from 'enso-studio-authentication'
 import { AppProps } from './authentication/src/components/app'
 
@@ -13,5 +11,8 @@ const props: AppProps = {
     onAuthenticated: () => {}
 }
 
+// For whatever reason, TypeScript fails to infer the type of `authentication.run` correctly, so we
+// need to disable the type checking for this line. This is especially weird since VSCode shows the
+// correct type for `authentication.run` when hovering over it.
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 authentication.run(props)
