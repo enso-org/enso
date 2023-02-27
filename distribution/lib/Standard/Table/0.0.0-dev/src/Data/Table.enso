@@ -39,7 +39,7 @@ import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
 
-from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
+from project.Data.Value_Type import Auto, ensure_valid_parse_target
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
@@ -703,6 +703,9 @@ type Table
        - columns: The columns of the table to use for distinguishing the rows.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
@@ -734,71 +737,101 @@ type Table
 
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
-       type (columns with other types are not affected). If `column_types` are
-       provided, only selected columns are parsed, according to the specified
-       type.
+       type (columns with other types are not affected).
 
        The default parser options only parse values where the process is
        reversible (e.g., 0123 would not be converted to an integer as there is
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
-    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
-    parse_values self value_formatter=Data_Formatter.Value column_types=Nothing on_problems=Report_Warning =
-        columns = self.columns
-        problem_builder = Vector.new_builder
 
-        find_datatype index column =
-            matching_input = column_types.filter selection->
-                selector = selection.column
-                case selector of
-                    _ : Text -> column.name == selector
-                    _ : Integer -> if selector >= 0 then index == selector else
-                        index == columns.length + selector
-            if matching_input.length == 0 then Nothing else
-                if matching_input.length == 1 then matching_input.first.datatype else
-                    first_type = matching_input.first.datatype
-                    ambiguous = matching_input.any s-> s.datatype != first_type
-                    problem_builder.append (Duplicate_Type_Selector.Error column.name ambiguous)
-                    if ambiguous then Nothing else first_type
+       Arguments:
+       - columns: The columns to parse. If not specified, all text columns
+         will be parsed.
+       - type: The type to parse the columns to. Defaults to `Auto` meaning that
+         the type will be inferred from the data.
+       - format: The formatting settings to use when parsing the columns.
+         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
+         can be used. For `Boolean`, it should be two values that represent true
+         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+         passed to provide complete customisation of the formatting.
+       - error_on_missing_columns: if `True` (the default) raises an error if
+         any column is missing. Otherwise, reported as a problem.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
 
-        expected_types = case column_types of
-            Nothing -> columns.map _->Auto
-            _ ->
-                missing_columns = Vector.new_builder
-                invalid_indices = Vector.new_builder
-                column_types.each selection->
-                    selector = selection.column
-                    case selector of
-                        _ : Integer ->
-                            valid = Table_Helpers.is_index_valid columns.length selector
-                            if valid.not then
-                                invalid_indices.append selector
-                        _ : Text ->
-                            found = columns.any col-> col.name == selector
-                            if found.not then
-                                missing_columns.append selector
-                if missing_columns.is_empty.not then
-                    problem_builder.append (Missing_Input_Columns.Error missing_columns.to_vector)
-                if invalid_indices.is_empty.not then
-                    problem_builder.append (Column_Indexes_Out_Of_Range.Error invalid_indices.to_vector)
-                columns.map_with_index find_datatype
+       ! Error Conditions
 
-        new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
-            Nothing -> column
-            _ ->
-                parser = if expected_type == Auto then value_formatter.make_auto_parser else
-                    value_formatter.make_datatype_parser expected_type
-                storage = column.java_column.getStorage
-                new_storage_and_problems = parser.parseColumn column.name storage
-                new_storage = new_storage_and_problems.value
-                problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
-                problems.each problem_builder.append
-                Column.Value (Java_Column.new column.name new_storage)
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error or problem
+           following the `error_on_missing_columns` rules.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error or problem following the
+           `error_on_missing_columns` rules.
+         - If a column selected for parsing is not a text column, an
+           `Invalid_Value_Type` error is raised.
+         - If no columns have been selected for parsing,
+           a `No_Input_Columns_Selected` error is raised.
+         - If some values in a column did not match the expected datatype
+           format, an `Invalid_Format` problem is reported. The problematic
+           cells are replaced with `Nothing`.
+         - If parsing a numeric column and the selected format does not allow
+           leading zeros (the default) and such cells are found, a
+           `Leading_Zeros` problem is reported. These cells are replaced with
+           `Nothing`.
 
-        ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
-           https://github.com/enso-org/enso/pull/3400
-        result = Table.new new_columns
-        on_problems.attach_problems_after result problem_builder.to_vector
+         > Example
+           Parse the first and last columns containing Yes/No values as booleans.
+
+               table.parse_values columns=[0, -1] type=Boolean format="Yes|No"
+
+         > Example
+           Parse dates in a column in the format `yyyy-MM-dd` (the default format).
+
+               table.parse_values "birthday" Date
+
+         > Example
+           Parse dates in a column in the format `dd/MM/yyyy`.
+
+               table.parse_values "birthday" Date 'dd/MM/yyyy'
+
+         > Example
+           Parse all columns inferring their types, using `,` as the decimal point for numbers.
+
+               table.parse_values format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
+    parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Table
+    parse_values self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning = ensure_valid_parse_target type <|
+        formatter = case format of
+            _ : Text ->
+                Data_Formatter.Value.with_format type format
+            _ -> format
+
+        parser = if type == Auto then formatter.make_auto_parser else
+            formatter.make_datatype_parser type
+
+        select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+        selected_columns = self.columns_helper.select_columns_helper columns reorder=True select_problem_builder
+        select_problem_builder.attach_problems_before on_problems <|
+            selected_column_names = case selected_columns.is_empty of
+                True ->
+                    no_columns_problem_behavior = case error_on_missing_columns of
+                        True -> Problem_Behavior.Report_Error
+                        False -> on_problems
+                    no_columns_problem_behavior.attach_problem_before No_Input_Columns_Selected Map.empty
+                False ->
+                    Map.from_vector <| selected_columns.map c-> [c.name, True]
+
+            parse_problem_builder = Problem_Builder.new
+            new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
+                Value_Type.expect_text column.value_type related_column=column.name <|
+                    storage = column.java_column.getStorage
+                    new_storage_and_problems = parser.parseColumn column.name storage
+                    new_storage = new_storage_and_problems.value
+                    problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem type)
+                    problems.each parse_problem_builder.report_other_warning
+                    Column.Value (Java_Column.new column.name new_storage)
+
+            parse_problem_builder.attach_problems_before on_problems <|
+                Table.new new_columns
 
     ## Replaces the first, last, or all occurrences of `term` with
        `new_text` in each text row of selected columns.

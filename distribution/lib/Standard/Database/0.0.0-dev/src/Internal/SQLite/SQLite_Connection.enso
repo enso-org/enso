@@ -147,6 +147,12 @@ type SQLite_Connection
        the table already existed), inserts the contents of the provided
        in-memory table and returns a handle to the newly created table.
 
+       ! Temporary Tables
+
+         Note that temporary tables may not be visible in the table catalog, so
+         some features which rely on it like the `Table.query` shorthand mode
+         may not work correctly with temporary tables.
+
        Arguments:
        - name: The name of the table to create.
        - table: An In-Memory table specifying the contents to upload. Schema of

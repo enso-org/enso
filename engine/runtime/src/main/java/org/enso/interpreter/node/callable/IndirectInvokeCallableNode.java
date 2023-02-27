@@ -6,6 +6,8 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
@@ -19,6 +21,9 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -51,6 +56,42 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail);
+
+  /**
+   * Only this specialization will match objects with warnings attached as they will have type
+   * `WithWarnings` which is not a subtype of `Function` or other types from specializations below;
+   * and the last specialization is a `Fallback`.
+   */
+  @Specialization(guards = "warnings.hasWarnings(warning)")
+  Object invokeWithWarnings(
+      Object warning,
+      MaterializedFrame callerFrame,
+      State state,
+      Object[] arguments,
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      BaseNode.TailStatus isTail,
+      @Cached IndirectInvokeCallableNode invokeCallableNode,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    try {
+      var result =
+          invokeCallableNode.execute(
+              warnings.removeWarnings(warning),
+              callerFrame,
+              state,
+              arguments,
+              schema,
+              defaultsExecutionMode,
+              argumentsExecutionMode,
+              isTail);
+
+      Warning[] extracted = warnings.getWarnings(warning, null);
+      return new WithWarnings(result, extracted);
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
+  }
 
   @Specialization
   Object invokeFunction(

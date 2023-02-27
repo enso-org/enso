@@ -122,6 +122,7 @@ define_modifiers! {
     Difference   difference    (child1,child2) ()
     Intersection intersection  (child1,child2) ()
     Fill         fill          (child)         (color:Rgba)
+    Recolorize   recolorize    (child)         (r: Rgba, g: Rgba, b: Rgba)
     PixelSnap    pixel_snap    (child)         ()
     Grow         grow          (child)         (value:f32)
     Shrink       shrink        (child)         (value:f32)

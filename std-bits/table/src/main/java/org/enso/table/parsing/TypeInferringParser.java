@@ -2,7 +2,6 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
 import org.enso.table.parsing.problems.SimplifiedProblemAggregator;
@@ -41,6 +40,13 @@ public class TypeInferringParser extends DatatypeParser {
 
   @Override
   public WithProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
+    // If there are now rows, the Auto parser would guess some random type (the first one that is
+    // checked). Instead,
+    // we just return the empty column unchanged.
+    if (sourceStorage.size() == 0) {
+      return fallbackParser.parseColumn(columnName, sourceStorage);
+    }
+
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
