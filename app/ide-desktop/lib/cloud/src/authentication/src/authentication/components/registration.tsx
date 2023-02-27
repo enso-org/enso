@@ -10,6 +10,7 @@ import withRouter from '../../navigation'
 import { useInput } from '../../hooks'
 import { handleEvent } from '../../utils';
 import { LOGIN_PATH } from '../../components/app';
+import * as Icons from '../../components/svg';
 
 
 
@@ -51,17 +52,7 @@ const registrationContainer: FC = () => {
               </label>
               <div className="relative">
                 <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                  </svg>
+                  <Icons.Svg data={Icons.PATHS.at} />
                 </div>
 
                 <input
@@ -84,17 +75,7 @@ const registrationContainer: FC = () => {
               <div className="relative">
                 <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
                   <span>
-                    <svg
-                      className="h-6 w-6"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+                    <Icons.Svg data={Icons.PATHS.lock} />
                   </span>
                 </div>
 
@@ -118,17 +99,7 @@ const registrationContainer: FC = () => {
               <div className="relative">
                 <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
                   <span>
-                    <svg
-                      className="h-6 w-6"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+                    <Icons.Svg data={Icons.PATHS.lock} />
                   </span>
                 </div>
 
@@ -150,17 +121,7 @@ const registrationContainer: FC = () => {
               >
                 <span className="mr-2 uppercase">Register</span>
                 <span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
+                  <Icons.Svg data={Icons.PATHS.createAccount} />
                 </span>
               </button>
             </div>
@@ -172,17 +133,7 @@ const registrationContainer: FC = () => {
             className="inline-flex items-center font-bold text-indigo-500 hover:text-indigo-700 text-sm text-center"
           >
             <span>
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-              </svg>
+              <Icons.Svg data={Icons.PATHS.goBack} />
             </span>
             <span className="ml-2">Already have an account?</span>
           </Link>
