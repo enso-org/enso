@@ -1,4 +1,5 @@
 //! This module contains all structures related to Searcher Controller.
+
 use crate::model::traits::*;
 use crate::prelude::*;
 
@@ -1288,6 +1289,7 @@ pub mod test {
     use enso_suggestion_database::mock_suggestion_database;
     use enso_suggestion_database::SuggestionDatabase;
     use json_rpc::expect_call;
+    use parser::Parser;
     use std::assert_matches::assert_matches;
 
 
@@ -1333,7 +1335,6 @@ pub mod test {
             &self,
             client: &mut language_server::MockClient,
             self_type: Option<&str>,
-            return_type: Option<&str>,
             result: &[SuggestionId],
         ) {
             let completion_response = completion_response(result);
@@ -1341,7 +1342,7 @@ pub mod test {
                 module      = self.graph.module.path.file_path().clone(),
                 position    = self.code_location,
                 self_type   = self_type.map(Into::into),
-                return_type = return_type.map(Into::into),
+                return_type = None,
                 tag         = None
             ) => Ok(completion_response));
         }
@@ -1525,12 +1526,10 @@ pub mod test {
                     // We expect following calls:
                     // 1) for the function - with the "this" filled (if the test case says so);
                     // 2) for subsequent completions - without "self"
-                    data.expect_completion(client, case.sets_this.as_some(mock_type), None, &[
-                        1, 5, 9,
-                    ]);
+                    data.expect_completion(client, case.sets_this.as_some(mock_type), &[1, 5, 9]);
 
-                    data.expect_completion(client, None, None, &[1, 5, 9]);
-                    data.expect_completion(client, None, None, &[1, 5, 9]);
+                    data.expect_completion(client, None, &[1, 5, 9]);
+                    data.expect_completion(client, None, &[1, 5, 9]);
                 });
 
             searcher.reload_list();
@@ -1562,7 +1561,7 @@ pub mod test {
     #[test]
     fn arguments_suggestions_for_picked_method() {
         let mut fixture = Fixture::new_custom(|data, client| {
-            data.expect_completion(client, None, None, &[20]);
+            data.expect_completion(client, None, &[20]);
         });
         let Fixture { test, searcher, test_method: entry3, .. } = &mut fixture;
         searcher.use_suggestion(action::Suggestion::FromDatabase(entry3.clone_ref())).unwrap();
@@ -1574,7 +1573,7 @@ pub mod test {
     #[test]
     fn arguments_suggestions_for_picked_function() {
         let mut fixture = Fixture::new_custom(|data, client| {
-            data.expect_completion(client, None, None, &[]); // First arg suggestion.
+            data.expect_completion(client, None, &[]); // First arg suggestion.
         });
 
 
@@ -1592,9 +1591,9 @@ pub mod test {
         let mut fixture = Fixture::new_custom(|data, client| {
             data.graph.module.code.insert_str(0, "import test.Test.Test\n\n");
             data.code_location.line += 2;
-            data.expect_completion(client, None, None, &[1]);
-            data.expect_completion(client, None, None, &[]);
-            data.expect_completion(client, None, None, &[]);
+            data.expect_completion(client, None, &[1]);
+            data.expect_completion(client, None, &[]);
+            data.expect_completion(client, None, &[]);
         });
         let Fixture { searcher, .. } = &mut fixture;
 
@@ -1613,7 +1612,7 @@ pub mod test {
             Fixture::new_custom(|data, client| {
                 // entry with id 99999 does not exist, so only two actions from suggestions db
                 // should be displayed in searcher.
-                data.expect_completion(client, None, None, &[101, 99999, 103]);
+                data.expect_completion(client, None, &[101, 99999, 103]);
             });
 
         let mut subscriber = searcher.subscribe();
@@ -1655,7 +1654,7 @@ pub mod test {
             Fixture::new_custom(|data, client| {
                 // Entry with id 99999 does not exist, so only two actions from suggestions db
                 // should be displayed in searcher.
-                data.expect_completion(client, None, None, &[5, 99999, 103]);
+                data.expect_completion(client, None, &[5, 99999, 103]);
                 data.graph.ctx.component_groups = vec![sample_ls_component_group];
             });
         // Reload the components list in the Searcher.
@@ -1700,12 +1699,9 @@ pub mod test {
     fn picked_completions_list_maintaining() {
         let Fixture { test: _test, searcher, test_function_1, test_var_1, .. } =
             Fixture::new_custom(|data, client| {
-                data.expect_completion(client, None, None, &[]);
-                data.expect_completion(client, None, None, &[]);
-                data.expect_completion(client, None, None, &[]);
-                // data.expect_completion(client, None, None, &[]);
-                // data.expect_completion(client, None, None, &[]);
-                // data.expect_completion(client, None, None, &[]);
+                data.expect_completion(client, None, &[]);
+                data.expect_completion(client, None, &[]);
+                data.expect_completion(client, None, &[]);
             });
         let picked_suggestions = || Ref::map(searcher.data.borrow(), |d| &d.picked_suggestions);
 
@@ -1872,7 +1868,7 @@ pub mod test {
                 // The last node will be used as searcher target.
                 data.change_main_body(&[case.line, "Nothing"]);
                 if case.expect_completion {
-                    data.expect_completion(client, None, None, &[]);
+                    data.expect_completion(client, None, &[]);
                 }
             });
             (case.run)(&mut fixture);

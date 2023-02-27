@@ -141,7 +141,7 @@ impl Display for InputAst {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InputAst::Line(ast) => write!(f, "{}", ast.repr()),
-            InputAst::Invalid(string) => write!(f, "{}", string),
+            InputAst::Invalid(string) => write!(f, "{string}"),
         }
     }
 }
