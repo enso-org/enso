@@ -575,7 +575,6 @@ export const config = content.options.merge(
         },
     })
 )
-config.groups.window.options.frame.value = process.platform !== 'darwin'
 config.groups.startup.options.platform.value = process.platform
 // @ts-expect-error
 config.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION

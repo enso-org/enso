@@ -27,6 +27,12 @@ type Warning
 
     ## UNSTABLE
 
+       Are any warnings attached to the value?
+    has_warnings : Any -> Boolean
+    has_warnings value = has_warnings_builtin value
+
+    ## UNSTABLE
+
        Gets all the warnings attached to the given value. Warnings are returned in the
        reverse-chronological order with respect to their attachment time.
     get_all : Any -> Vector Warning
@@ -248,6 +254,12 @@ create payload origin = @Builtin_Method "Warning.create"
    and, compared to `Warning.attach` requires an explicit stacktrace associated with it.
 attach_with_stacktrace : Any -> Any -> Vector Stack_Trace_Element -> Any
 attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
+
+## PRIVATE
+
+   Builtin function that sees if any warnings attached.
+has_warnings_builtin : Any -> Array Warning
+has_warnings_builtin value = @Builtin_Method "Warning.has_warnings_builtin"
 
 ## PRIVATE
 

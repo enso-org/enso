@@ -253,7 +253,7 @@ make_enso js_object =
    enso_object must be Text, Boolean, Nothing, Number, Vector, Array, JS_Object (and children as well).
 make_javascript enso_object =
     ## Have to remove warnings before passing into JavaScript otherwise will be an Object.
-    if Warning.get_all enso_object != [] then make_javascript (Warning.set enso_object []) else
+    if Warning.get_all enso_object != [] then make_javascript (Warning.clear enso_object) else
         case enso_object of
             _ : JS_Object ->
                 enso_object.field_names.fold new_object current->key->
@@ -286,8 +286,7 @@ foreign js get_value object key = """
     return object[key]
 
 foreign js set_value object key value = """
-    object[key] = value
-    return object
+    return {...object, [key]: value}
 
 foreign js get_property_names object = """
     return Object.getOwnPropertyNames(object)

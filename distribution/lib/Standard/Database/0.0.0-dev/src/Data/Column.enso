@@ -2,14 +2,13 @@ from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Sort_Column
+from Standard.Table import Sort_Column, Data_Formatter
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
-import Standard.Table.Data.Column_Type_Selection.Auto
-import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
+from Standard.Table.Data.Value_Type import Value_Type, Auto
 from Standard.Table.Errors import Floating_Point_Equality
 
 import project.Data.SQL_Statement.SQL_Statement
@@ -838,41 +837,10 @@ type Column
             new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
             Column.Value self.name self.connection SQL_Type.boolean new_expr self.context
 
-    ## Parses a text column into values
-
-       Arguments:
-       - type: Target type to parse the value to.
-         If `Auto`, will attempt to deduce the type automatically.
-       - format: For date/time types, the format to parse the value with.
-         For boolean types, two values that represent true and false separated
-         by `|`.
-       - on_problems: What to do if the value cannot be parsed.
-         By default, an `Invalid_Format` warning is attached and the value is
-         set to `Nothing`.
-
-       > Example
-         Parse dates in a column in the format `yyyy-MM-dd` (the default format).
-
-             import Standard.Examples
-
-             example_contains = Examples.text_column_1.parse Date
-
-       > Example
-         Parse dates in a column in the format `dd/MM/yyyy`
-
-             import Standard.Examples
-
-             example_contains = Examples.text_column_1.parse Date 'dd/MM/yyyy'
-
-       > Example
-         Parse a Yes/No column into a boolean column.
-
-             import Standard.Examples
-
-             example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
+    ## Parsing values is not supported in database columns.
     @type Widget_Helpers.parse_type_selector
-    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Nothing -> Problem_Behavior -> Column
-    parse self type=Auto format=Nothing on_problems=Report_Warning =
+    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
         _ = [type, format, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
 

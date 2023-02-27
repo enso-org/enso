@@ -81,7 +81,7 @@ define_icons! {
         }
     }
 
-    /// Four rounded rectangles in different colors aranged in a grid.
+    /// Four rounded rectangles in different colors arranged in a grid.
     pub mod libraries(Libraries) {
         ensogl_core::shape! {
             above = [grid_view::selectable::highlight::shape, crate::entry::background];
