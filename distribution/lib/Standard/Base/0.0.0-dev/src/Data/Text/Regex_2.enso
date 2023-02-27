@@ -1,0 +1,42 @@
+import project.Any.Any
+import project.Data.Boolean.Boolean
+import project.Data.Numbers.Integer
+import project.Data.Text.Prim_Text_Helper
+import project.Data.Text.Regex.Pattern_2.Pattern_2
+import project.Data.Text.Text
+from project.Error.Common import Compile_Error, Syntax_Error
+import project.Panic.Panic
+
+polyglot java import com.ibm.icu.impl.UnicodeRegex
+
+compile_2 : Text -> Pattern_2 ! (Compile_Error | Invalid_Option | Syntax_Error)
+compile_2 self expression  =
+    #all_options = options + self.engine_opts
+    #options_bitmask = from_enso_options all_options
+    options_bitmask = 0
+    unicode_regex = UnicodeRegex.new
+
+    maybe_regex_object = Panic.recover Any <|
+        Prim_Text_Helper.compile_regex (unicode_regex.transform expression) options_bitmask
+
+    internal_regex_object = maybe_regex_object.map_error case _ of
+        # err : PatternSyntaxException -> Syntax_Error.Error ("The regex could not be compiled: " + err.getMessage)
+        other -> other
+
+    Pattern_2.Value internal_regex_object
+
+## PRIVATE
+
+   An error representing that one of the passed options was invalid.
+
+   Arguments:
+   - opt: The option that was not valid for this regex engine.
+type Invalid_Option
+    Error (opt : Any)
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the invalid option error.
+    to_display_text : Text
+    to_display_text self =
+        "The option " + self.opt.to_text + " is not valid for the default regex engine."

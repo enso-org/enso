@@ -1,0 +1,20 @@
+import project.Any.Any
+import project.Data.Boolean.Boolean
+import project.Data.Map.Map
+import project.Data.Numbers.Integer
+import project.Data.Range.Extensions
+import project.IO
+import project.Data.Text.Text
+
+type Pattern_2
+    ## internal_regex_object : RegexObject (Truffle)
+       (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
+    Value (internal_regex_object : Any)
+
+    # start_iterator
+
+    matches : Text -> Boolean
+    matches self input =
+        m = self.internal_pattern.exec input 0
+        IO.println m
+        m . isMatch && m.getEnd 0 == input.length

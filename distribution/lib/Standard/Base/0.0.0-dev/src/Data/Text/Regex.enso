@@ -71,11 +71,6 @@ compile expression engine=Default.new match_ascii=Nothing case_insensitive=Nothi
     options_vec = from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
     engine.compile expression options_vec
 
-compile_2 : Text -> Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Regex_Option -> Pattern ! Compile_Error
-compile_2 expression engine=Default.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
-    options_vec = from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
-    engine.compile_2 expression options_vec
-
 ## Escape the special characters in `expression` such that the result is a valid
    literal pattern for the original string.
 
