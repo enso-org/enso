@@ -44,7 +44,7 @@ class App {
             await this.printVersion()
             process.exit()
         } else if (this.args.groups.debug.options.info.value) {
-            await debug.printInfo()
+            await electron.app.whenReady().then(async () => await debug.printInfo())
             process.exit()
         } else {
             this.setChromeOptions(chromeOptions)
