@@ -55,7 +55,6 @@ export const ProjectActionButton = (props: Props) => {
         };
 
         const newCheckStatusInterval = window.setInterval(
-            // eslint-disable-next-line @typescript-eslint/no-misused-promises
             checkProjectStatus,
             STATUS_CHECK_INTERVAL
         );
@@ -91,7 +90,6 @@ export const ProjectActionButton = (props: Props) => {
                 };
 
                 const newCheckStatusInterval = window.setInterval(
-                    // eslint-disable-next-line @typescript-eslint/no-misused-promises
                     checkProjectStatus,
                     STATUS_CHECK_INTERVAL
                 );
@@ -126,7 +124,6 @@ export const ProjectActionButton = (props: Props) => {
                     </button>
                 </>
             );
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         case ProjectState.opened || hasProjectOpened:
             return (
                 <>

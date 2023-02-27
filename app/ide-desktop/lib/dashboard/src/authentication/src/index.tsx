@@ -49,7 +49,6 @@ export const run = (props: AppProps) => {
     // Return interface for `getElementById` is `HTMLElement` or `null`. Since we are fetching the
     // `authentication` element, and that element is expected to always be present in the `index.html`,
     // we can disable the `no-non-null-assertion` on this line.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const root: HTMLElement = document.getElementById(rootElementId)!
     ReactDOM.createRoot(root).render(<App {...props} />);
 }

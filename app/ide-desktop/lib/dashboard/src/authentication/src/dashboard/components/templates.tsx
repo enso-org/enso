@@ -30,7 +30,6 @@ export const Templates = (props: Props) => {
                         >
                             <div className="m-auto text-center">
                                 <button onClick={() => {
-                                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
                                     onChange(template.templateName)
                                 }}>
                                     <svg

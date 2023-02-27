@@ -97,9 +97,10 @@ export const SessionProvider = (props: SessionProviderProps) => {
             // See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
             window.history.replaceState({}, "", MAIN_PAGE_URL)
             refreshSession();
-        // Typescript doesn't know that this is an exhaustive match, so we need to disable the
-        // `no-unnecessary-condition` rule. We can't just turn the final block into an `else` because
-        // then we wouldn't get an error if we added a new event type.
+        // Typescript tells us we don't need the final condition because this is an exhaustive
+        // match, but we don't want to turn this into an `else` in case we add more event types we
+        // care about in the future. If we did so, then TypeScript wouldn't notify us about missing
+        // cases.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         } else if (event === "signOut") {
             refreshSession();

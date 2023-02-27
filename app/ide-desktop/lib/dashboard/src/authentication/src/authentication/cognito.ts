@@ -348,6 +348,11 @@ const intoSignUpParams = (username: string, password: string, fromDesktop: boole
         // desktop. This is used to determine the schema used in the callback links sent in
         // the verification emails. For example, `http://` for the Cloud, and `enso://` for
         // the desktop.
+        //
+        // # Safety
+        //
+        // It is necessary to disable the naming convention rule here, because the key is expected
+        // to appear exactly as-is in Cognito, so we must match it.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         "custom:fromDesktop": fromDesktop ? "true": "false",
     }

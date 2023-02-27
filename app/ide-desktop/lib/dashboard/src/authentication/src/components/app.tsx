@@ -69,7 +69,7 @@ export interface AppProps {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const App = (props: AppProps) => {
   const { runningOnDesktop } = props;
-  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unnecessary-condition
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const Router = runningOnDesktop ? MemoryRouter : BrowserRouter;
 
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`

@@ -14,5 +14,4 @@ const props: AppProps = {
 // For whatever reason, TypeScript fails to infer the type of `authentication.run` correctly, so we
 // need to disable the type checking for this line. This is especially weird since VSCode shows the
 // correct type for `authentication.run` when hovering over it.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 authentication.run(props)
