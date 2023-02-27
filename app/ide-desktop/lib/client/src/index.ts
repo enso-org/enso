@@ -258,6 +258,7 @@ class App {
         }
 
         console.log('')
+
         console.log('Backend:')
         return projectManager.version(this.args).then(backend => {
             if (!backend) {
