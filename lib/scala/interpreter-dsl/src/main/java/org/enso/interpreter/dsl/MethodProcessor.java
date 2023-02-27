@@ -501,7 +501,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     for (Filer f : builtinMethods.keySet()) {
       for (Map.Entry<String, String[]> entry : builtinMethods.get(f).entrySet()) {
         writer.append(entry.getKey() + ":" + String.join(":", Arrays.asList(entry.getValue())) + "\n");
-        pastEntries.remove(entry.getKey());
+        if (pastEntries.containsKey(entry.getKey())) {
+          pastEntries.remove(entry.getKey());
+        }
       }
     }
   }

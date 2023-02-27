@@ -107,7 +107,9 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
                 + ":"
                 + constr.getFullName()
                 + "\n");
-        pastEntries.remove(entry.getKey());
+        if (pastEntries.containsKey(entry.getKey())) {
+          pastEntries.remove(entry.getKey());
+        }
       }
     }
     try (PrintWriter out = new PrintWriter(jfo.openWriter())) {
