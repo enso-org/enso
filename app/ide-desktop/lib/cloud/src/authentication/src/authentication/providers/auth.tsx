@@ -9,7 +9,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from "react-hot-toast"
 
-import { createBackend, Organization, SetUsernameBody } from '../../dashboard/service';
+import { createBackend, Organization, SetUsernameRequestBody } from '../../dashboard/service';
 import { AuthService } from '../service';
 import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from '../../components/app';
 import { useLogger } from '../../providers/logger';
@@ -30,6 +30,7 @@ const MESSAGES = {
   forgotPasswordSuccess: "We have sent you an email with further instructions!",
   resetPasswordSuccess: "Successfully reset password!",
   signOutSuccess: "Successfully logged out!",
+  pleaseWait: "Please wait...",
 }
 
 
@@ -250,11 +251,9 @@ export const AuthProvider = (props: AuthProviderProps) => {
         });
   }, [session])
 
-  const withLoadingToast = (action: (...args: any) => Promise<void>) => async (...args: any) => {
-    const loadingToast = toast.loading("Please wait...")
+  const withLoadingToast = <T extends any[]>(action: (...args: T) => Promise<void>) => async (...args: T) => {
+    const loadingToast = toast.loading(MESSAGES.pleaseWait)
     try {
-      // FIXME [NP]: make this type-safe
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await action(...args)
     } finally {
       toast.dismiss(loadingToast)
@@ -284,20 +283,16 @@ export const AuthProvider = (props: AuthProviderProps) => {
       }
 
       toast.success(MESSAGES.confirmSignUpSuccess)
-      // FIXME [NP]: we do this here & at the call site, is this redundant?
       navigate(LOGIN_PATH)
     })
 
   const setUsername = async (accessToken: string, username: string, email: string) => {
-      const body: SetUsernameBody = { userName: username, userEmail: email };
+      const body: SetUsernameRequestBody = { userName: username, userEmail: email };
 
-      // FIXME [NP]: don't create a new API client here, reuse the one from the context.
+      // FIXME [NP2]: don't create a new API client here, reuse the one from the context.
       const backend = createBackend(accessToken, logger);
 
-      // FIXME [NP]: do we have to refresh after setting the username? In which case we want a
-      //   `refresh` dep on the above effect?
       await backend.setUsername(body);
-      // FIXME [NP]: do we need this navigate if we're setting the username?
       navigate(DASHBOARD_PATH);
       toast.success(MESSAGES.setUsernameSuccess);
   };
@@ -357,7 +352,6 @@ export const AuthProvider = (props: AuthProviderProps) => {
     forgotPassword: withLoadingToast(forgotPassword),
     resetPassword: withLoadingToast(resetPassword),
     signOut,
-    // FIXME [NP]: why don't these names match?
     session: userSession,
   };
 

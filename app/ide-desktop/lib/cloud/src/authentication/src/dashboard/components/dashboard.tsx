@@ -121,7 +121,6 @@ const dashboardContainer = (props: DashboardProps) => {
                 // eslint-disable-next-line prefer-const
                 for (let item of localProjects) {
                     newProjectsList.push({
-                        // FIXME [NP]: getting an undefined here for some reason?
                         organizationId: organization.id,
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                         projectId: item.id,

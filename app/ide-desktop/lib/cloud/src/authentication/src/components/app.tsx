@@ -32,7 +32,6 @@ export const LOGIN_PATH = "/login";
 /// Path to the registration page.
 export const REGISTRATION_PATH = "/registration";
 /// Path to the confirm registration page.
-// FIXME [NP]: use a more specific path
 export const CONFIRM_REGISTRATION_PATH = "/confirmation";
 /// Path to the forgot password page.
 export const FORGOT_PASSWORD_PATH = "/forgot-password";
@@ -92,8 +91,6 @@ const App = (props: AppProps) => {
 // =================
 
 /// Router definition for the app.
-// FIXME [NP]: React components are expected to use PascalCase, but our linter is not configured to
-//   allow that. Do we want to allow that, even if it would disable the lint for non-React code?
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter = (props: AppProps) => {
   const { logger, onAuthenticated, runningOnDesktop, projectManager } = props;
@@ -114,7 +111,6 @@ const AppRouter = (props: AppProps) => {
               </Route>
               {/* Protected pages are visible to authenticated users. */}
               <Route element={<ProtectedLayout />}>
-                {/* FIXME [NP]: why do we need this extra one for electron to work? */}
                 <Route index element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
                 <Route path={DASHBOARD_PATH} element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
                 <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 

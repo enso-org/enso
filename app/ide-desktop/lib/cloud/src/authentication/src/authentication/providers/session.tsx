@@ -33,8 +33,6 @@ const INITIAL_REFRESH_COUNT = 0;
 
 interface SessionContextType {
     session: Option<UserSession>;
-    // FIXME [NP]: do we actually need `refreshSession` in any of the children?
-    refreshSession: () => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -70,7 +68,6 @@ export const SessionProvider = (props: SessionProviderProps) => {
     // Should be called after any operation that **will** (not **might**) change the user's session.
     // For example, this should be called after signing out. Calling this will result in a re-render
     // of the whole page, which is why it should only be done when necessary.
-    // FIXME [NP]: remove
     const refreshSession = () => setRefresh((refresh) => refresh + 1);
 
     // Register an async effect that will fetch the user's session whenever the `refresh` state is
@@ -116,7 +113,7 @@ export const SessionProvider = (props: SessionProviderProps) => {
       return cancel
     }, [registerAuthEventListener]);
 
-    const value = { session, refreshSession };
+    const value = { session };
 
     return (
         <SessionContext.Provider value={value}>

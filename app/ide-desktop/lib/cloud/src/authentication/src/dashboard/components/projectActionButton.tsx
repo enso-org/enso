@@ -23,7 +23,6 @@ type Props = {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ProjectActionButton = (props: Props) => {
-    // FIXME [NP]: move this up a boundary layer and provide a provider for this
     const { accessToken } = useFullUserSession();
     const logger = useLogger();
     const backend = createBackend(accessToken, logger);
