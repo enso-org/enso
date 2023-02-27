@@ -17,8 +17,8 @@
   "private": true,
   "workspaces": [
     "lib/client",
-    "lib/cloud",
-    "lib/cloud/src/authentication",
+    "lib/dashboard",
+    "lib/dashboard/src/authentication",
     "lib/content",
     "lib/content-config",
     "lib/copy-plugin",
@@ -35,7 +35,6 @@
   },
   "scripts": {
     "dev": "cross-env PORT=8081 npm exec --workspace enso-studio-cloud -- react-scripts start",
-    "dev2": "npm exec --workspace cloud-dashboard -- next dev -p 8081",
     "watch": "npm run watch --workspace enso-studio-content",
     "postinstall": "patch-package"
   }
