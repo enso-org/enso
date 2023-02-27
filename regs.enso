@@ -1,15 +1,17 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Text.Regex_2
+import Standard.Base.Data.Text.Regex.Pattern_2.Pattern_2
 
 #main = Test_Suite.run_main spec
 main =
   p = Regex_2.compile_2 "ab"
   IO.println p
+  case p of Pattern_2.Value internal -> IO.println internal
+  mt = p.matches "ab"
+  IO.println mt
+
   ##
-          case p of Default_Engine.Pattern.Value internal _ _ -> IO.println internal
-          mt = p.matches "ab"
-          IO.println mt
 
           #m = p.match "cabbie" Matching_Mode.First
           #IO.println m.groups

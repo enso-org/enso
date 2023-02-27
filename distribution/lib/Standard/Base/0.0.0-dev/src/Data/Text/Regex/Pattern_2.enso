@@ -15,6 +15,6 @@ type Pattern_2
 
     matches : Text -> Boolean
     matches self input =
-        m = self.internal_pattern.exec input 0
+        m = self.internal_regex_object.exec input 0
         IO.println m
         m . isMatch && m.getEnd 0 == input.length
