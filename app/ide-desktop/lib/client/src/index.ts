@@ -20,16 +20,8 @@ import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 import opener from 'opener'
+import { DEEP_LINK_PROTOCOL } from '../shared'
 const logger = content.logger
-
-
-
-// =================
-// === Constants ===
-// =================
-
-/** Name of the product. */
-const PRODUCT_NAME = 'enso'
 
 
 
@@ -50,6 +42,9 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
         electron.app.on('before-quit', () => (this.isQuitting = true))
+        // FIXME [NP2]: either change this back to whenReady or rewrite the docs.
+        // See: https://github.com/enso-org/enso/pull/5716/files#r1113030328
+        //
         // In order to ensure that our `open-url` listener is registered on time, we **must** put it
         // **before** (or in this case, **during**) our `ready` listener. We also need to make sure
         // to use `app.on("ready")` and not `app.whenReady()` because the latter fires earlier than
@@ -162,6 +157,7 @@ class App {
                     enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
                     disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
                     spellcheck: false,
+                    // FIXME [NP2]: reset webSecurity to true if possible
                     webSecurity: false,
                 }
                 let windowPreferences: electron.BrowserWindowConstructorOptions = {
@@ -243,16 +239,34 @@ class App {
     initOpenUrlListener() {
         // FIXME [NP2]: Why does this handler get called twice?
         electron.app.on('open-url', (event, url) => {
-            // Prevent the default behavior (don't open `enso://auth?code=...` URL in the window).
+            // We only want to handle URLs that are both deep links and that are meant for this
+            // application. We can tell if it is by checking the protocol. Any non-matching URLs are
+            // ignored by this handler (and passed to the default handler). Any matchin URLs are
+            // handled **only** by this handler.
+            const parsedUrl = new URL(url)
+            const isDeepLink = parsedUrl.protocol === `${DEEP_LINK_PROTOCOL}:`
+            if (!isDeepLink) {
+                return
+            }
+
+            // Don't open the deep link URL in the window, we want the system browser to handle it.
             event.preventDefault()
 
-            const parsedUrl = new URL(url)
+            // Parse the relevant details from the URL, and pass it to the designated authentication
+            // URL handler over the IPC channel. This URL handler should have been registered by the
+            // `preload` module, and is responsible for opening the URL in the system browser.
+            //
+            // FIXME [NP2]: The reason we parse and re-create the URL here at all is because some of
+            // the URLs sent by our authentication flows are malformed. That is, some take the form
+            // `enso://localhost:8080/auth` and others take the form `enso://auth`. What we are
+            // doing here is effectively normalizing the URLs to always start with a known value (in
+            // this case) `http://localhost:8080` instead. This is a hack, and should be fixed by
+            // making the authentication flows send consistent URLs in the first place.
+            const port = this.serverPort();
             const pathname = parsedUrl.pathname;
             const search = parsedUrl.search;
-            const port = this.serverPort();
-            // FIXME [NP2]: don't parse the URL, make this general by passing `enso://localhost:8080/auth` instead of `enso://auth`.
-            const target = new URL(`http://localhost:${port}${pathname}${search}`)
-            this.window?.webContents.send(ipc.channel.openAuthenticationUrl, target.href)
+            const normalizedUrl = new URL(`http://localhost:${port}${pathname}${search}`)
+            this.window?.webContents.send(ipc.channel.openAuthenticationUrl, normalizedUrl.href)
         })
     }
 

@@ -1,3 +1,4 @@
+// FIXME [NP]: Rename this to `enso-cloud-dashboard` and move it to `app/ide-desktop/lib/dashboard`
 // FIXME [NP]: Remove the `app/ide-desktop/.eslintrc.cjs` file
 // FIXME [NP]: Remove the `@typescript-eslint/eslint-plugin` dependency from parent `package.json`
 // FIXME [NP]: Remove the `@typescript-eslint/parser` dependency from parent `package.json`

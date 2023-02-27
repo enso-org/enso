@@ -80,7 +80,6 @@ function limitWebViewCreation() {
 function preventNavigation() {
     Electron.app.on('web-contents-created', (event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
-            console.log(`Navigation to '${navigationUrl}'.`)
             const parsedUrl = new URL(navigationUrl)
             if (parsedUrl.origin !== origin && !trustedHosts.includes(parsedUrl.host)) {
                 event.preventDefault()
