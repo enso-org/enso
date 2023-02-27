@@ -1,4 +1,5 @@
 import * as React from "react";
+import { FC } from "react";
 import {useState} from "react";
 
 import {
@@ -14,14 +15,15 @@ import { useLogger } from "../logger";
 
 const STATUS_CHECK_INTERVAL = 10000;
 
-type props = {
+type Props = {
     project: Project;
     onOpen: () => void;
     onOpenStart: () => void;
     onClose: () => void;
 };
 
-export const ProjectActionButton: React.FC<props> = (props) => {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const ProjectActionButton: FC<Props> = (props) => {
     // FIXME [NP]: move this up a boundary layer and provide a provider for this
     const { accessToken } = useFullUserSession();
     const logger = useLogger();
@@ -44,7 +46,7 @@ export const ProjectActionButton: React.FC<props> = (props) => {
         await backend.openProject(project.projectId);
 
         const checkProjectStatus = async () => {
-            let response = await backend.getProject(project.projectId);
+            const response = await backend.getProject(project.projectId);
 
             if (response.state.type === ProjectState.Opened) {
                 setHasProjectOpened(true);
@@ -55,6 +57,7 @@ export const ProjectActionButton: React.FC<props> = (props) => {
         };
 
         const newCheckStatusInterval = window.setInterval(
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
             checkProjectStatus,
             STATUS_CHECK_INTERVAL
         );
@@ -79,7 +82,7 @@ export const ProjectActionButton: React.FC<props> = (props) => {
         case ProjectState.OpenInProgress:
             if (!checkStatusInterval && accessToken) {
                 const checkProjectStatus = async () => {
-                    let response = await backend.getProject(project.projectId);
+                    const response = await backend.getProject(project.projectId);
 
                     if (response.state.type === ProjectState.Opened) {
                         setHasProjectOpened(true);
@@ -90,6 +93,7 @@ export const ProjectActionButton: React.FC<props> = (props) => {
                 };
 
                 const newCheckStatusInterval = window.setInterval(
+                    // eslint-disable-next-line @typescript-eslint/no-misused-promises
                     checkProjectStatus,
                     STATUS_CHECK_INTERVAL
                 );
@@ -124,6 +128,7 @@ export const ProjectActionButton: React.FC<props> = (props) => {
                     </button>
                 </>
             );
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         case ProjectState.Opened || hasProjectOpened:
             return (
                 <>

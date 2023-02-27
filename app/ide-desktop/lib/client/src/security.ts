@@ -8,10 +8,10 @@ import Electron from 'electron'
 // =================
 
 /** The list of hosts that the app can access. They are required for user authentication to work. */
-const trustedHosts = ['accounts.google.com', 'accounts.youtube.com', 'github.com', 'localhost', 'localhost:8080', 'localhost:8081']
+const trustedHosts = ['accounts.google.com', 'accounts.youtube.com', 'github.com']
 
 /** The list of URLs a new WebView can be pointed to. */
-const webViewUrlWhitelist: string[] = ['localhost', 'localhost:8080', 'localhost:8081', 'http://localhost', 'http://localhost:8080', 'http://localhost:8081', 'https://localhost/', 'https://localhost:8080/', 'https://localhost:8081/']
+const webViewUrlWhitelist: string[] = []
 
 // =============
 // === Utils ===

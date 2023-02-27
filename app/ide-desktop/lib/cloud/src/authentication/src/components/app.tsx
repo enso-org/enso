@@ -59,7 +59,7 @@ export interface AppProps {
    */
   runningOnDesktop: boolean;
   onAuthenticated: () => void;
-  projectManager: ProjectManager | undefined;
+  projectManager?: ProjectManager;
 }
 
 /**

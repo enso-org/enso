@@ -1,4 +1,5 @@
 import * as React from "react";
+import { FC } from "react";
 
 const templates = [
     {title: "New empty project", templateName: undefined},
@@ -10,7 +11,14 @@ const templates = [
 
 ];
 
-export const Templates: React.FC<any> = ({onChange}) => {
+type Props = {
+    onChange: (templateName: string | undefined) => void;
+}
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const Templates: FC<Props> = (props) => {
+    const { onChange } = props;
+
     return (
         <div className="bg-white">
             <div className="mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
@@ -23,6 +31,7 @@ export const Templates: React.FC<any> = ({onChange}) => {
                         >
                             <div className="m-auto text-center">
                                 <button onClick={() => {
+                                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
                                     onChange(template.templateName)
                                 }}>
                                     <svg

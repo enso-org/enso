@@ -90,10 +90,13 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
             });
             setProjectsList([...projectsList, ...[newProject]]);
         } else {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const createdProject = await projectManager!.createProject(newProjectName, templateName);
             const newProject = {
                 organizationId: organization.id,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                 projectId: createdProject["result"].projectId,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                 name: createdProject["result"].projectName,
                 state: {"type": "Created"},
                 packageName: "Main",
@@ -113,12 +116,16 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
             if (!runningOnDesktop) {
                 newProjectsList = await backend.listProjects();
             } else {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                 const localProjects: any[] = (await projectManager!.listProjects())["result"]["projects"]
+                // eslint-disable-next-line prefer-const
                 for (let item of localProjects) {
                     newProjectsList.push({
                         // FIXME [NP]: getting an undefined here for some reason?
                         organizationId: organization.id,
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                         projectId: item.id,
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                         name: item.name,
                         state: {"type": "Created"},
                         packageName: "Main",
@@ -143,6 +150,7 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
         </tr>
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (projectsList && projectsList.length > 0) {
         const setProjectOpening = (projectItemIndex: number): void => {
             setProjectsList((currProjectList) => {

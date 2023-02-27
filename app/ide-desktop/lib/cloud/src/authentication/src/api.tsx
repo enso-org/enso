@@ -34,8 +34,11 @@ export type Organization = {
     name: string;
 }
 
+// FIXME [NP2]: Rename all enums to camelCase and remove lint silences
 export enum VersionType {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     Backend = "Backend",
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     Ide = "Ide",
 }
 
@@ -43,14 +46,23 @@ export type Version = {
     versionType: VersionType;
     ami: string | undefined;
     created: string;
+    // This does not follow our naming convention because it's defined this way in the backend, so
+    // we need to match it.
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     version_number: string;
 };
 
+// FIXME [NP2]: Rename all enums to camelCase and remove lint silences
 export enum ProjectState {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     Created = "Created",
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     New = "New",
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     OpenInProgress = "OpenInProgress",
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     Opened = "Opened",
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     Closed = "Closed",
 }
 
