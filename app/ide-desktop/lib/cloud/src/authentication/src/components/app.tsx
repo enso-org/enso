@@ -1,4 +1,3 @@
-// FIXME [NP]: Address comments in https://github.com/enso-org/enso/pull/5716/files
 /** @file Main App module responsible for rendering virtual router. */
 
 import * as React from 'react'
@@ -96,7 +95,7 @@ const App = (props: AppProps) => {
 // FIXME [NP]: React components are expected to use PascalCase, but our linter is not configured to
 //   allow that. Do we want to allow that, even if it would disable the lint for non-React code?
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const AppRouter: FC<AppProps> = (props) => {
+const AppRouter = (props: AppProps) => {
   const { logger, onAuthenticated, runningOnDesktop, projectManager } = props;
   const navigate = useNavigate();
   const authConfig = { navigate, ...props }

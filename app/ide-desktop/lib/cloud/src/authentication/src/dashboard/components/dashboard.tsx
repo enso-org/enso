@@ -4,7 +4,7 @@
  */
 
 import * as React from 'react'
-import { FC, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {unstable_batchedUpdates as batchedUpdate} from "react-dom";
 
 import { useAuth, useFullUserSession } from '../../authentication/providers/auth';
@@ -49,7 +49,7 @@ const tableHeaders = columns.map((columnName, index) => {
     );
 });
 
-const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
+const dashboardContainer = (props: DashboardProps) => {
     const { signOut } = useAuth();
     const { accessToken, organization } = useFullUserSession();
     const logger = useLogger();
@@ -156,21 +156,21 @@ const dashboardContainer: FC<DashboardProps> = (props: DashboardProps) => {
             setProjectsList((currProjectList) => {
                 const newProjectList = [...currProjectList];
                 newProjectList[projectItemIndex]!.state.type =
-                    ProjectState.OpenInProgress;
+                    ProjectState.openInProgress;
                 return newProjectList;
             });
         };
         const setProjectOpen = (projectItemIndex: number): void => {
             setProjectsList((currProjectList) => {
                 const newProjectList = [...currProjectList];
-                newProjectList[projectItemIndex]!.state.type = ProjectState.Opened;
+                newProjectList[projectItemIndex]!.state.type = ProjectState.opened;
                 return newProjectList;
             });
         };
         const setProjectClosed = (projectItemIndex: number): void => {
             setProjectsList((currProjectList) => {
                 const newProjectList = [...currProjectList];
-                newProjectList[projectItemIndex]!.state.type = ProjectState.Closed;
+                newProjectList[projectItemIndex]!.state.type = ProjectState.closed;
                 return newProjectList;
             });
         };

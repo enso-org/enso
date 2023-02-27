@@ -20,7 +20,7 @@ import * as Icons from '../../components/svg';
 // === forgotPasswordContainer ===
 // ===============================
 
-const forgotPasswordContainer: React.FC<any> = () => {
+const forgotPasswordContainer = () => {
     const { forgotPassword } = useAuth();
 
     const { value: email, bind: bindEmail } = useInput("")

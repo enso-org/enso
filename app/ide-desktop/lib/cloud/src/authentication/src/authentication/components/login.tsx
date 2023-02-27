@@ -2,7 +2,6 @@
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import * as React from 'react'
-import { FC } from 'react'
 import { Link, useLocation } from 'react-router-dom';
 import { faGoogle, faGithub } from '@fortawesome/free-brands-svg-icons';
 
@@ -19,8 +18,7 @@ import * as Icons from '../../components/svg';
 // === loginContainer ===
 // ======================
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const loginContainer: FC = () => {
+const loginContainer = () => {
     const { search } = useLocation();
     const { signInWithGoogle, signInWithGitHub, signInWithPassword } = useAuth();
 

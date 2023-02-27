@@ -1,4 +1,3 @@
-// FIXME [NP]: docs
 import { ReactNode, createContext, useContext, useState, useEffect } from "react";
 import { None, Option } from "ts-results";
 
@@ -25,6 +24,7 @@ const MAIN_PAGE_URL = "http://localhost:8080";
  * of the session refresh counter is to trigger a re-fetch of the user's credentials and a re-render
  * of the `AuthProvider` component when the counter is incremented. */
 const INITIAL_REFRESH_COUNT = 0;
+
 
 
 // ======================
@@ -133,4 +133,3 @@ export const SessionProvider = (props: SessionProviderProps) => {
 // ==================
 
 export const useSession = () => useContext(SessionContext);
-

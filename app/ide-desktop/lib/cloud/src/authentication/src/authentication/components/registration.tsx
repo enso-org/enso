@@ -18,7 +18,7 @@ import * as Icons from '../../components/svg';
 // === registrationContainer ===
 // =============================
 
-const registrationContainer: FC = () => {
+const registrationContainer = () => {
     const { signUp } = useAuth();
     const { value: email, bind: bindEmail } = useInput("")
     const { value: password, bind: bindPassword } = useInput("")

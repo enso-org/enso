@@ -1,4 +1,4 @@
-// FIXME [NP]: these should all be regular `.svg` files rather than React components, but React
+// FIXME [NP2]: these should all be regular `.svg` files rather than React components, but React
 // doesn't include the `svg` files when building for Electron. How do we solve this?
 
 
@@ -38,14 +38,14 @@ type Props = {
  * SVG path data. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const Svg = (props: Props) =>
-<svg
-  className="h-6 w-6"
-  fill="none"
-  strokeLinecap="round"
-  strokeLinejoin="round"
-  strokeWidth="2"
-  viewBox="0 0 24 24"
-  stroke="currentColor"
->
-  <path d={props.data} />
-</svg>;
+  <svg
+    className="h-6 w-6"
+    fill="none"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path d={props.data} />
+  </svg>;

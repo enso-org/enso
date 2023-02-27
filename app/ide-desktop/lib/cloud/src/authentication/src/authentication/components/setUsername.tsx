@@ -3,7 +3,6 @@
  * registration.
  */
 import * as React from 'react'
-import { FC } from 'react'
 
 import { useAuth, usePartialUserSession } from '../providers/auth';
 import withRouter from '../../navigation'
@@ -17,7 +16,7 @@ import * as Icons from '../../components/svg';
 // === setUsernameContainer ===
 // ============================
 
-const setUsernameContainer: FC = () => {
+const setUsernameContainer = () => {
     const { setUsername } = useAuth();
     const { accessToken, email } = usePartialUserSession();
 

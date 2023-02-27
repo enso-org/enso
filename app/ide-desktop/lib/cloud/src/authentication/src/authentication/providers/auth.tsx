@@ -185,7 +185,7 @@ export interface AuthProviderProps {
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
+export const AuthProvider = (props: AuthProviderProps) => {
   const { authService, children } = props
   const { cognito } = authService
   const { session } = useSession();

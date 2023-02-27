@@ -1,5 +1,4 @@
 import * as React from "react";
-import { FC } from "react";
 
 const templates = [
     {title: "New empty project", templateName: undefined},
@@ -16,7 +15,7 @@ type Props = {
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const Templates: FC<Props> = (props) => {
+export const Templates = (props: Props) => {
     const { onChange } = props;
 
     return (

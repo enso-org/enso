@@ -19,7 +19,6 @@ export const OAUTH_RESPONSE_TYPE: OAuthResponseType = "code";
 // === Types ===
 // =============
 
-// FIXME [NP]: document all these types
 /** The AWS region in which our Cognito pool is located. This is always set to `eu-west-1` because
  * that is the only region in which our Cognito pools are currently available in. */
 type AwsRegion = "eu-west-1";

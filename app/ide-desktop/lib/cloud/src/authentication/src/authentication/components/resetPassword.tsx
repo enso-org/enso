@@ -19,7 +19,7 @@ import * as Icons from '../../components/svg';
 // === resetPasswordContainer ===
 // ==============================
 
-const resetPasswordContainer: React.FC<any> = () => {
+const resetPasswordContainer = () => {
     const { resetPassword } = useAuth();
     const { search } = useLocation();
 

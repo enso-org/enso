@@ -1,4 +1,4 @@
-import { FC, useEffect } from "react";
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LOGIN_PATH } from "../../components/app";
 import withRouter from "../../navigation";
@@ -12,7 +12,7 @@ import { useLogger } from "../../providers/logger";
 // === confirmRegistrationContainer ===
 // ====================================
 
-const confirmRegistrationContainer: FC = () => {
+const confirmRegistrationContainer = () => {
   const logger = useLogger();
   const { confirmSignUp } = useAuth();
   const { search } = useLocation();

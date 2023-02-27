@@ -42,21 +42,18 @@ const openProjectPath = (projectId: ProjectId) => `projects/${projectId}/open`;
 
 export type ProjectId = string;
 
-export type Organization = {
+export interface Organization {
     id: string;
     userEmail: string;
     name: string;
 }
 
-// FIXME [NP2]: Rename all enums to camelCase and remove lint silences
 export enum VersionType {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    Backend = "Backend",
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    Ide = "Ide",
+    backend = "Backend",
+    ide = "Ide",
 }
 
-export type Version = {
+export interface Version {
     versionType: VersionType;
     ami: string | undefined;
     created: string;
@@ -64,20 +61,14 @@ export type Version = {
     // we need to match it.
     // eslint-disable-next-line @typescript-eslint/naming-convention
     version_number: string;
-};
+}
 
-// FIXME [NP2]: Rename all enums to camelCase and remove lint silences
 export enum ProjectState {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    Created = "Created",
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    New = "New",
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    OpenInProgress = "OpenInProgress",
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    Opened = "Opened",
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    Closed = "Closed",
+    created = "Created",
+    new = "New",
+    openInProgress = "OpenInProgress",
+    opened = "Opened",
+    closed = "Closed",
 }
 
 export type ProjectStateType = {
@@ -259,57 +250,6 @@ export class Backend {
         }
     }
 }
-
-
-// FIXME [NP]: uncomment this once the backend is ready.
-//// ======================
-//// === BackendContext ===
-//// ======================
-//
-//type BackendContextType = Backend;
-//
-//// eslint-disable-next-line @typescript-eslint/naming-convention
-//const BackendContext = createContext<BackendContextType>({} as BackendContextType)
-//
-//
-//
-//// =======================
-//// === BackendProvider ===
-//// =======================
-//
-//export interface BackendProviderProps {
-//    accessToken: string;
-//    logger: Logger;
-//    children: ReactNode;
-//}
-//
-//// eslint-disable-next-line @typescript-eslint/naming-convention
-//export const BackendProvider = (props: BackendProviderProps) => {
-//    const { accessToken, logger, children } = props;
-//
-//    // Create an HTTP client with the access token as a default header. This way, any request made
-//    // using this HTTP client will be authorized.
-//    const headers = new Headers();
-//    headers.append("Authorization", `Bearer ${accessToken}`);
-//    const client = Client.builder().defaultHeaders(headers).build();
-//
-//    // Create a Cloud backend API client from the HTTP client.
-//    const backend = new Backend(client, logger);
-//
-//    return (
-//        <BackendContext.Provider value={backend}>
-//            {children}
-//        </BackendContext.Provider>
-//    );
-//}
-//
-//
-//
-//// ==================
-//// === useBackend ===
-//// ==================
-//
-//export const useBackend = () => useContext(BackendContext);
 
 
 
