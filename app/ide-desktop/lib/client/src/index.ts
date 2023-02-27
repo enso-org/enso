@@ -19,6 +19,7 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
+import * as process from 'process'
 const logger = content.logger
 
 // ===========
@@ -33,13 +34,25 @@ class App {
     args: config.Args
     isQuitting = false
     constructor() {
+        this.args = config.config
+    }
+
+    async run() {
         const { args, windowSize, chromeOptions } = configParser.parseArgs()
         this.args = args
-        this.setChromeOptions(chromeOptions)
-        security.enableAll()
-        electron.app.on('before-quit', () => (this.isQuitting = true))
-        electron.app.whenReady().then(() => this.main(windowSize))
-        this.registerShortcuts()
+        if (this.args.options.version.value) {
+            await this.printVersion()
+            process.exit()
+        } else if (this.args.groups.debug.options.info.value) {
+            await electron.app.whenReady().then(async () => await debug.printInfo())
+            process.exit()
+        } else {
+            this.setChromeOptions(chromeOptions)
+            security.enableAll()
+            electron.app.on('before-quit', () => (this.isQuitting = true))
+            electron.app.whenReady().then(() => this.main(windowSize))
+            this.registerShortcuts()
+        }
     }
 
     /** Set Chrome options based on the app configuration. For comprehensive list of available
@@ -80,13 +93,8 @@ class App {
     /** Main app entry point. */
     async main(windowSize: config.WindowSize) {
         // We catch all errors here. Otherwise, it might be possible that the app will run partially
-        // and and enter a "zombie mode", where user is not aware of the app still running.
+        // and enter a "zombie mode", where user is not aware of the app still running.
         try {
-            if (this.args.options.version.value) {
-                this.printVersionAndExit()
-            } else if (this.args.groups.debug.options.info.value) {
-                debug.printInfoAndExit()
-            }
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
@@ -235,7 +243,7 @@ class App {
         }
     }
 
-    printVersionAndExit() {
+    printVersion(): Promise<void> {
         let indent = ' '.repeat(4)
         let maxNameLen = 0
         for (let name in debug.versionInfo) {
@@ -250,7 +258,7 @@ class App {
 
         console.log('')
         console.log('Backend:')
-        projectManager.version(this.args).then(backend => {
+        return projectManager.version(this.args).then(backend => {
             if (!backend) {
                 console.log(`${indent}No backend available.`)
             } else {
@@ -259,7 +267,6 @@ class App {
                     console.log(`${indent}${line}`)
                 }
             }
-            process.exit()
         })
     }
 
@@ -299,4 +306,5 @@ class App {
 // === App startup ===
 // ===================
 
-new App()
+const app = new App()
+app.run()
