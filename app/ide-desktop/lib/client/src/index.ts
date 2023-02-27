@@ -158,7 +158,7 @@ class App {
                     disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
                     spellcheck: false,
                     // FIXME [NP2]: reset webSecurity to true if possible
-                    webSecurity: false,
+                    webSecurity: true,
                 }
                 let windowPreferences: electron.BrowserWindowConstructorOptions = {
                     webPreferences,

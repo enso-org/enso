@@ -131,8 +131,27 @@ const registerOpenAuthenticationUrlCallback = (
                 // FIXME [NP]: remove this log
                 logger.log("authenticatedRedirectCallback::Current URL::", window.location.href);
                 logger.log("authenticatedRedirectCallback::URL::", url);
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-                (Auth as any)._handleAuthResponse(url)
+                void (async () => {
+                    // Temporarily override the `window.location` object so that Amplify doesn't try
+                    // to call `window.location.replaceState` (which doesn't work in the renderer
+                    // process because of Electron's `webSecurity`). This is a hack, but it's the
+                    // only way to get Amplify to work with a custom URL protocol in Electron.
+                    //
+                    // Note that this entire hack must happen within an async IIFE block, because we
+                    // need to be sure to restore the original `window.location.replaceState`
+                    // function before any non-Amplify code runs, which we can't guarantee if
+                    // `_handleAuthResponse` is allowed to complete asynchronously.
+                    // eslint-disable-next-line @typescript-eslint/unbound-method
+                    const replaceState = window.history.replaceState;
+                    window.history.replaceState = () => false;
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+                        await (Auth as any)._handleAuthResponse(url)
+                    } finally {
+                        // Restore the original `window.location.replaceState` function.
+                        window.history.replaceState = replaceState;
+                    }
+                })()
             }
         // If the user is being redirected from a password reset email, then we need to navigate to
         // the password reset page, with the verification code and email passed in the URL so they

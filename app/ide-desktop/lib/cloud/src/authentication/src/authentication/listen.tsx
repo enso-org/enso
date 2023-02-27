@@ -69,7 +69,7 @@ type UnsubscribeFunction = () => void;
 type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction;
 
 const registerAuthEventListener: ListenFunction = (listener) => {
-    const callback: HubCallback = (data) => isAuthEvent(data.payload.event) && listener(data.payload.event, data.payload.data);
+    const callback: HubCallback = (data) => { console.log("hub event", data, JSON.stringify(data)); isAuthEvent(data.payload.event) && listener(data.payload.event, data.payload.data) };
     const cancel = Hub.listen(AUTHENTICATION_HUB, callback);
     return cancel
 }

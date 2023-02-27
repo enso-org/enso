@@ -38,6 +38,8 @@ const bundlerOptions: esbuild.BuildOptions = {
     },
     sourcemap: true,
     external: ['electron'],
+    // FIXME [NP]: remove this line
+    minify: false,
 }
 
 await esbuild.build(bundlerOptions)

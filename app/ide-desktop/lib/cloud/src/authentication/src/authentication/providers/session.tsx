@@ -85,6 +85,7 @@ export const SessionProvider = (props: SessionProviderProps) => {
     // means we want the login screen to render (which is a child of this provider).
     useEffect(() => {
       const listener: ListenerCallback = (event) => {
+        console.log("Authentication event:", event, JSON.stringify(event));
         if (event === "signIn") {
             refreshSession();
         } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
