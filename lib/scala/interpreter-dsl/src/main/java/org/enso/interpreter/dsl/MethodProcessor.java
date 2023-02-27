@@ -423,7 +423,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
   private void generateCheckedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = "TypesGen.expect" + capitalize(arg.getTypeName());
+    String builtinName = capitalize(arg.getTypeName());
+    String castName = "TypesGen.expect" + builtinName;
     String varName = mkArgumentInternalVarName(arg);
     out.println("    " + arg.getTypeName() + " " + varName + ";");
     out.println("    try {");
@@ -432,48 +433,22 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     out.println("    } catch (UnexpectedResultException e) {");
     out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
     out.println("      var builtins = EnsoContext.get(this).getBuiltins();");
-
-    String constantName = getConstantName(arg.getTypeName());
-    if (constantName != null) {
-      out.println("      var expected = builtins.fromTypeSystem(" + constantName + ");");
-      out.println(
-              "      var error = builtins.error().makeTypeError(expected, arguments[arg"
+    out.println("      var ensoTypeName = org.enso.interpreter.runtime.type.ConstantsGen.getEnsoTypeName(\"" + builtinName + "\");");
+    out.println("      var error = (ensoTypeName != null)");
+    out.println("        ? builtins.error().makeTypeError(builtins.fromTypeSystem(ensoTypeName), arguments[arg"
                       + arg.getPosition()
                       + "Idx], \""
                       + varName
-                      + "\");");
-    } else {
-      out.println(
-              "      var error = builtins.error().makeUnsupportedArgumentsError(new Object[] { arguments[arg"
+                      + "\")");
+    out.println("        : builtins.error().makeUnsupportedArgumentsError(new Object[] { arguments[arg"
                       + arg.getPosition()
                       + "Idx] }, \"Unsupported argument for "
                       + varName
                       + " expected a "
-                      + capitalize(arg.getTypeName())
+                      + builtinName
                       + "\");");
-    }
     out.println("      throw new PanicException(error,this);");
     out.println("    }");
-  }
-
-  private String getConstantName(String typeName) {
-    String upperCaseTypeName = typeName.toUpperCase();
-    String constantsType = "org.enso.interpreter.runtime.type.ConstantsGen.";
-    String methodName = switch (upperCaseTypeName) {
-      case "ARRAY", "BOOLEAN", "FUNCTION", "REF", "TEXT", "VECTOR", "WARNING" -> upperCaseTypeName;
-      case "ENSODATE", "ENSODURATION", "ENSOFILE" ->  upperCaseTypeName.substring(4);
-      case "ARRAYPROXY" -> "ARRAY_PROXY";
-      case "DATAFLOWERROR" -> "ERROR";
-      case "DOUBLE" -> "DECIMAL";
-      case "ENSOBIGINTEGER", "LONG" -> "INTEGER";
-      case "ENSODATETIME" -> "DATE_TIME";
-      case "ENSOHASHMAP" -> "MAP";
-      case "ENSOTIMEOFDAY" -> "TIME_OF_DAY";
-      case "ENSOTIMEZONE" -> "TIME_ZONE";
-      case "MANAGEDRESOURCE" -> "MANAGED_RESOURCE";
-      default -> null;
-    };
-    return methodName == null ? null : constantsType + methodName;
   }
 
   private boolean generateWarningsCheck(
@@ -526,9 +501,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     for (Filer f : builtinMethods.keySet()) {
       for (Map.Entry<String, String[]> entry : builtinMethods.get(f).entrySet()) {
         writer.append(entry.getKey() + ":" + String.join(":", Arrays.asList(entry.getValue())) + "\n");
-        if (pastEntries.containsKey(entry.getKey())) {
-          pastEntries.remove(entry.getKey());
-        }
+        pastEntries.remove(entry.getKey());
       }
     }
   }
@@ -589,7 +562,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   protected MethodMetadataEntry toMetadataEntry(String line) {
     String[] elements = line.split(":");
     if (elements.length != 4) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    return new MethodMetadataEntry(elements[0], elements[1], Boolean.valueOf(elements[2]), Boolean.valueOf(elements[3]));
+    return new MethodMetadataEntry(elements[0], elements[1], Boolean.parseBoolean(elements[2]), Boolean.parseBoolean(elements[3]));
   }
 
   private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";
