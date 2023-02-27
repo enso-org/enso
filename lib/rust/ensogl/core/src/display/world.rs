@@ -463,7 +463,7 @@ impl WorldData {
     /// Create and initialize new world instance.
     pub fn new(frp: &api::private::Output) -> Self {
         let frp = frp.clone_ref();
-        let stats = Stats::new(web::window.performance_or_panic());
+        let stats = with_context(|context| context.stats.clone_ref());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());

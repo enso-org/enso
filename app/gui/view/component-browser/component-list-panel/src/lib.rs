@@ -176,7 +176,12 @@ pub mod background {
     use super::*;
 
     ensogl_core::shape! {
-        below = [grid::entry::background, grid_view::entry::overlay, grid_view::selectable::highlight::shape];
+        below = [
+            grid::entry::background,
+            grid::entry::icon::any,
+            grid_view::entry::overlay,
+            grid_view::selectable::highlight::shape
+        ];
         (style:Style,bg_color:Vector4) {
             let alpha = Var::<f32>::from(format!("({bg_color}.w)"));
             let bg_color = &Var::<color::Rgba>::from(bg_color.clone());

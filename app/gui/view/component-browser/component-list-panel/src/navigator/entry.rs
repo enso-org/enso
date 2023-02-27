@@ -64,22 +64,17 @@ pub struct Params {
 /// multiple buttons to simplify the implementation.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Data {
-    display_object: display::object::Instance,
-    icon:           any_icon::View,
-    color:          Rc<Cell<color::Lcha>>,
+    icon: any_icon::View,
 }
 
 impl Data {
     pub fn new() -> Self {
-        let display_object = display::object::Instance::new();
         let icon = any_icon::View::new();
         icon.set_size((SIZE, SIZE));
-        let color = default();
-        Self { display_object, icon, color }
+        Self { icon }
     }
 
     fn set_color(&self, color: color::Lcha) {
-        self.color.set(color);
         self.icon.color.set(color::Rgba::from(color).into());
     }
 }
@@ -94,7 +89,7 @@ impl Data {
 #[derive(Clone, CloneRef, Debug)]
 pub struct View {
     frp:  grid::entry::EntryFrp<Self>,
-    data: Data,
+    icon: any_icon::View,
 }
 
 impl grid::entry::Entry for View {
@@ -103,7 +98,8 @@ impl grid::entry::Entry for View {
 
     fn new(_app: &Application, _text_layer: Option<&Layer>) -> Self {
         let frp = grid::entry::EntryFrp::<Self>::new();
-        let data = Data::new();
+        let icon = any_icon::View::new();
+        icon.set_size((SIZE, SIZE));
         let network = frp.network();
         let input = &frp.private().input;
         let out = &frp.private().output;
@@ -113,8 +109,8 @@ impl grid::entry::Entry for View {
         frp::extend! { network
             init <- source_();
 
-            icon <- input.set_model.map(|m| m.icon_id);
-            eval icon((icon) data.icon.icon.set(icon.any_cached_shape_location()));
+            icon_id <- input.set_model.map(|m| m.icon_id);
+            eval icon_id((id) icon.icon.set(id.any_cached_shape_location()));
 
             active_color <- input.set_model.map(|m| m.active);
             inactive_color <- input.set_model.map(|m| m.inactive);
@@ -126,7 +122,7 @@ impl grid::entry::Entry for View {
             color_anim.target <+ active_color.sample(&entry_selected);
             color_anim.target <+ inactive_color.sample(&entry_deselected);
 
-            eval color_anim.value((color) data.set_color(*color));
+            eval color_anim.value((color) icon.color.set(color::Rgba::from(*color).into()));
 
             style <- input.set_params.on_change();
             selection_color <- style.map(|s| s.selection_color).on_change();
@@ -141,7 +137,7 @@ impl grid::entry::Entry for View {
         }
         init.emit(());
 
-        Self { frp, data }
+        Self { frp, icon }
     }
 
     fn frp(&self) -> &grid::entry::EntryFrp<Self> {
@@ -151,6 +147,6 @@ impl grid::entry::Entry for View {
 
 impl display::Object for View {
     fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
+        &self.icon.display_object()
     }
 }
