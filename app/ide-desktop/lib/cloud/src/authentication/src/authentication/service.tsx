@@ -4,7 +4,7 @@ import { CONFIRM_REGISTRATION_PATH, LOGIN_PATH, RESET_PASSWORD_PATH } from "../c
 import registerAuthEventListener, { ListenFunction } from "./listen";
 import { Logger } from "../providers/logger";
 import { Cognito, CognitoImpl } from "./cognito";
-import { AmplifyConfig } from "./config";
+import { AmplifyConfig, AWS_REGION, CLOUD_REDIRECT, DESKTOP_REDIRECT, OAUTH_RESPONSE_TYPE, OAUTH_SCOPES } from "./config";
 
 
 
@@ -12,86 +12,22 @@ import { AmplifyConfig } from "./config";
 // === Constants ===
 // =================
 
-// FIXME [NP]: move this to a config file
-//const electronAmplifyConfigTesting: AuthOptions = {
-//  region: "us-east-1",
-//  // FIXME [NP]
-//  //identityPoolId: "",
-//  userPoolId: "us-east-1_VcFZzGyhv",
-//  userPoolWebClientId: "7vic1uoogbq4aq2rve897j0ep0",
-//  oauth: {
-//    options: {}, // FIXME [NP]
-//    domain: "test-enso-pool.auth.us-east-1.amazoncognito.com/",
-//    scope: ['email', 'openid'], // FIXME [NP]
-//    redirectSignIn: "enso://localhost",
-//    redirectSignOut: "enso://localhost",
-//    responseType: "code",
-//  },
-//}
-//const browserAmplifyConfigNpekin: AuthOptions = {
-//  region: "eu-west-1",
-//  // FIXME [NP]
-//  //identityPoolId: "",
-//  userPoolId: "eu-west-1_sP5bQ4mJs",
-//  userPoolWebClientId: "27gd0b05qlnkj1lcsnd0b4fb89",
-//  oauth: {
-//    options: {}, // FIXME [NP]
-//    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
-//    domain: "npekin-enso-domain.auth.eu-west-1.amazoncognito.com/",
-//    scope: ['email', 'openid'], // FIXME [NP]
-//    redirectSignIn: "http://localhost:8081",
-//    redirectSignOut: "http://localhost:8081",
-//    responseType: "code",
-//  },
-//}
-const AMPLIFY_CONFIG_ELECTRON_PBUCHU: AmplifyConfig = {
-    region: "eu-west-1",
-    // FIXME [NP]
-    //identityPoolId: "",
-    userPoolId: "eu-west-1_jSF1RbgPK",
-    userPoolWebClientId: "1bnib0jfon3aqc5g3lkia2infr",
-    oauth: {
-        options: {}, // FIXME [NP]
-        //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
+const BASE_AMPLIFY_CONFIG: Partial<AmplifyConfig> = {
+    region: AWS_REGION,
+    scope: OAUTH_SCOPES,
+    responseType: OAUTH_RESPONSE_TYPE,
+}
+
+/** Collection of configuration details for Amplify user pools, sorted by deployment environment. */
+const AMPLIFY_CONFIGS = {
+    /** Configuration for @pbuchu's Cognito user pool. */
+    pbuchu: {
+        userPoolId: "eu-west-1_jSF1RbgPK",
+        userPoolWebClientId: "1bnib0jfon3aqc5g3lkia2infr",
         domain: "pb-enso-domain.auth.eu-west-1.amazoncognito.com",
-        scope: ['email', 'openid'], // FIXME [NP]
-        redirectSignIn: "enso://auth",
-        redirectSignOut: "enso://auth",
-        responseType: "code",
+        ...BASE_AMPLIFY_CONFIG,
     },
 }
-const AMPLIFY_CONFIG_BROWSER_PBUCHU: AmplifyConfig = {
-    region: "eu-west-1",
-    // FIXME [NP]
-    //identityPoolId: "",
-    userPoolId: "eu-west-1_jSF1RbgPK",
-    userPoolWebClientId: "1bnib0jfon3aqc5g3lkia2infr",
-    oauth: {
-        options: {}, // FIXME [NP]
-        //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
-        domain: "pb-enso-domain.auth.eu-west-1.amazoncognito.com",
-        scope: ['email', 'openid'], // FIXME [NP]
-        redirectSignIn: "http://localhost:8081",
-        redirectSignOut: "http://localhost:8081",
-        responseType: "code",
-    },
-}
-//const browserAmplifyConfigProd: AuthOptions = {
-//  region: "eu-west-1",
-//  // FIXME [NP]
-//  //identityPoolId: "",
-//  userPoolId: "eu-west-1_9Kycu2SbD",
-//  userPoolWebClientId: "4j9bfs8e7415erf82l129v0qhe",
-//  oauth: {
-//    options: {}, // FIXME [NP]
-//    //domain: "https://npekin-enso-domain.auth.eu-west-1.amazoncognito.com",
-//    domain: "production-enso-domain.auth.eu-west-1.amazoncognito.com/",
-//    scope: ['email', 'openid'], // FIXME [NP]
-//    redirectSignIn: "https://cloud.enso.org",
-//    redirectSignOut: "https://cloud.enso.org",
-//    responseType: "code",
-//  },
-//}
 
 
 
@@ -157,11 +93,10 @@ const authService = (authConfig: AuthConfig): AuthService => {
     }
 }
 
-const loadAmplifyConfig = (logger: Logger, runningOnDesktop: boolean, navigate: (url: string) => void) => {
-    // Load the baseline Amplify configuration, which is different depending on whether we're
-    // running on the desktop or in the cloud.
-    // FIXME [NP]: Don't rely on pre-defined dev environments.
-    const amplifyConfig = runningOnDesktop ? AMPLIFY_CONFIG_ELECTRON_PBUCHU : AMPLIFY_CONFIG_BROWSER_PBUCHU;
+const loadAmplifyConfig = (logger: Logger, runningOnDesktop: boolean, navigate: (url: string) => void): AmplifyConfig => {
+    // Load the environment-specific Amplify configuration.
+    const baseConfig = AMPLIFY_CONFIGS.pbuchu;
+
     if (runningOnDesktop) {
         // If we're running on the desktop, we want to override the default URL opener for OAuth
         // flows.  This is because the default URL opener opens the URL in the desktop app itself,
@@ -171,14 +106,18 @@ const loadAmplifyConfig = (logger: Logger, runningOnDesktop: boolean, navigate: 
         // - users trust their system browser with their credentials more than they trust our app;
         // - our app can keep itself on the relevant page until the user is sent back to it (i.e.,
         //   we avoid unnecessary reloads/refreshes caused by redirects.
-        amplifyConfig.oauth.options.urlOpener = openUrlWithExternalBrowser;
+        baseConfig.urlOpener = openUrlWithExternalBrowser;
 
         // To handle redirects back to the application from the system browser, we also need to
         // register a custom URL handler.
         registerOpenAuthenticationUrlCallback(logger, navigate);
     }
 
-    return amplifyConfig;
+    // Set the redirect URLs for the OAuth flows, depending on our environment.
+    baseConfig.redirectSignIn = runningOnDesktop ? DESKTOP_REDIRECT : CLOUD_REDIRECT;
+    baseConfig.redirectSignOut = runningOnDesktop ? DESKTOP_REDIRECT : CLOUD_REDIRECT;
+
+    return baseConfig as AmplifyConfig
 }
 
 // Ensure that you have the `loginApi` context bridge exposed in the main process. See the

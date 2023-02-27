@@ -1,8 +1,8 @@
 import { Auth, CognitoHostedUIIdentityProvider, SignUpParams } from "@aws-amplify/auth";
 import { CognitoUserSession } from "amazon-cognito-identity-js";
-import { Err, Result, Option, Some, None } from "ts-results";
+import { Result, Option } from "ts-results";
 import { Logger } from "../providers/logger";
-import { AmplifyConfig } from "./config";
+import { AmplifyConfig, toNestedAmplifyConfig } from "./config";
 
 
 // =================
@@ -192,7 +192,8 @@ export class CognitoImpl implements Cognito {
         // By wrapping all the `Auth` methods we care about and returning an `Cognito` API object
         // containing them, we ensure that `Auth.configure` is called before any other `Auth`
         // methods are called.
-        Auth.configure(amplifyConfig)
+        const config = toNestedAmplifyConfig(amplifyConfig);
+        Auth.configure(config)
     }
 
 

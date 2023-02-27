@@ -54,7 +54,9 @@ module.exports = {
         'jsdoc/require-jsdoc': 'warn',
         'jsdoc/require-param-description': 'warn',
         'jsdoc/require-param-name': 'warn',
-        'jsdoc/require-param-type': 'warn',
+        // Disabled because this seems to conflict with `jsdoc/no-types`. Are these mutually
+        // exclusive?
+        'jsdoc/require-param-type': 'off',
         'jsdoc/require-property': 'warn',
         'jsdoc/require-property-description': 'warn',
         'jsdoc/require-property-name': 'warn',
