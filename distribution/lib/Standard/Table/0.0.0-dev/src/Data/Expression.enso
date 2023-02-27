@@ -32,7 +32,9 @@ type Expression
        Converts an expression into a compatible column name.
     to_column_name : Text -> Text
     to_column_name expression =
-        expression.replace "[^A-Za-z_0-9]" "_" matcher=Regex_Matcher.Value
+        no_returns = expression.replace '\r' " " matcher=Text_Matcher.Case_Sensitive
+        no_new_lines = no_returns.replace '\n' " " matcher=Text_Matcher.Case_Sensitive
+        no_new_lines.replace "[^A-Za-z_0-9]" "_" matcher=Regex_Matcher.Value
 
 
 type Expression_Error
