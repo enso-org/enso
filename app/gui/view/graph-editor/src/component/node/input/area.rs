@@ -1026,9 +1026,15 @@ impl Area {
             frp.output.source.expression <+ expression.map(|e| e.code.clone_ref());
             expression_changed_by_user <- model.label.content.gate(&frp.input.set_editing);
             frp.output.source.expression <+ expression_changed_by_user.ref_into();
-            frp.output.source.expression_edit <+ model.label.selections.map2(&expression_changed_by_user, f!([model](selection, full_content) {
-                (full_content.into(), selection.iter().map(|sel| sel.map(|loc| text::Byte::from_in_context_snapped(&model.label, loc))).collect_vec())
-            }));
+            frp.output.source.expression_edit <+ model.label.selections.map2(
+                &expression_changed_by_user,
+                f!([model](selection, full_content) {
+                    let full_content = full_content.into();
+                    let to_byte = |loc| text::Byte::from_in_context_snapped(&model.label, loc);
+                    let selections = selection.iter().map(|sel| sel.map(to_byte)).collect_vec();
+                    (full_content, selections)
+                })
+            );
             trace frp.output.source.expression_edit;
 
 

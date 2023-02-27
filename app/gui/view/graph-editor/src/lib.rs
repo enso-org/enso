@@ -1594,7 +1594,9 @@ impl GraphEditorModelWithNetwork {
             });
 
             let node_expression_edit = node.model().input.expression_edit.clone_ref();
-            model.frp.private.output.node_expression_edited <+ node_expression_edit.map(move |(expr, selection)| (node_id, expr.clone_ref(), selection.clone()));
+            model.frp.private.output.node_expression_edited <+ node_expression_edit.map(
+                move |(expr, selection)| (node_id, expr.clone_ref(), selection.clone())
+            );
 
 
             // === Actions ===

@@ -221,8 +221,9 @@ impl Buffer {
 
             sel_on_set_cursor <- input.set_cursor.map(f!((t) m.set_cursor(*t)));
             sel_on_add_cursor <- input.add_cursor.map(f!((t) m.add_cursor(*t)));
-            sel_on_set_single_selection <-
-                input.set_single_selection.map(f!((t) m.set_single_selection(*t)));
+            sel_on_set_single_selection <- input.set_single_selection.map(
+                f!((t) m.set_single_selection(*t))
+            );
             sel_on_set_newest_end <- input.set_newest_selection_end.map
                 (f!((t) m.set_newest_selection_end(*t)));
             sel_on_set_oldest_end <- input.set_oldest_selection_end.map

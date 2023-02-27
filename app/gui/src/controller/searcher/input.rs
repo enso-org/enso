@@ -79,7 +79,7 @@ pub struct EditedAst {
     /// suggestion should replace the entire name. `None` if no name is edited - in that case
     /// suggestion should be inserted at the cursor position.
     pub edited_name:           Option<AstWithRange>,
-    /// Editor accessor chain (like `Foo.Bar.buz`) which is currently edited.
+    /// Accessor chain (like `Foo.Bar.buz`) which is currently edited.
     pub edited_accessor_chain: Option<AstWithRange<ast::opr::Chain>>,
 }
 
@@ -157,8 +157,6 @@ impl Display for InputAst {
 /// This structure is responsible for keeping and interpreting the searcher input - it provides
 /// the information [what part of the input is a filtering pattern](Input::pattern), and [what part
 /// should be replaced when inserting a suggestion](Input::after_inserting_suggestion).
-///
-/// # How the Component Browser Input Is Interpreted
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Input {
@@ -186,14 +184,12 @@ impl Input {
         } else {
             edited_ast_on_left
         };
-        eprintln!("Edited AST: {:?}", edited_ast);
         let ast = InputAst::Line(ast);
         Self { ast, cursor_position, edited_ast }
     }
 
     /// Create the structure parsing the string.
     pub fn parse(parser: &Parser, expression: impl Str, cursor_position: text::Byte) -> Self {
-        eprintln!("Parse: {}", expression.as_ref());
         match parser.parse_line(expression.as_ref()) {
             Ok(ast) => Self::new(ast, cursor_position),
             Err(_) => Self {
@@ -276,7 +272,7 @@ impl Input {
         &self,
         suggestion: &action::Suggestion,
         has_this: bool,
-    ) -> InsertedSuggestion {
+    ) -> FallibleResult<InsertedSuggestion> {
         let replaced = self.replaced_range();
         let generate_this = self.context().is_none() && !has_this;
         let code_to_insert = suggestion.code_to_insert(generate_this);
@@ -287,21 +283,35 @@ impl Input {
         let raw_range = replaced.start.value..replaced.end.value;
         let range_start = raw_range.start;
         let range_end = raw_range.end;
-        if !new_input.is_char_boundary(range_start) {
-            error!("Not a char boundary: index {range_start} at '{new_input}'.");
-        }
-        if !new_input.is_char_boundary(range_end) {
-            error!("Not a char boundary: index {range_end} at '{new_input}'.");
-        }
+        Self::ensure_on_char_boundary(&new_input, range_start)?;
+        Self::ensure_on_char_boundary(&new_input, range_end)?;
         new_input.replace_range(raw_range, &code_to_insert);
         new_input.insert(end_of_inserted_code.value, ' ');
-        InsertedSuggestion {
+        Ok(InsertedSuggestion {
             new_input,
             replaced,
             inserted_code: (replaced.start..end_of_inserted_code).into(),
             inserted_text: (replaced.start..end_of_inserted_text).into(),
+        })
+    }
+
+    /// Return `true` if the `index` is on a char boundary inside `string` and can be used as a
+    /// range boundary. Otherwise, return `false` and report an error.
+    fn ensure_on_char_boundary(string: &str, index: usize) -> FallibleResult<()> {
+        if !string.is_char_boundary(index) {
+            Err(NotACharBoundary { index, string: string.into() }.into())
+        } else {
+            Ok(())
         }
     }
+}
+
+#[derive(Clone, Debug, Fail)]
+#[allow(missing_docs)]
+#[fail(display = "Not a char boundary: index {} at '{}'.", index, string)]
+pub struct NotACharBoundary {
+    index:  usize,
+    string: String,
 }
 
 

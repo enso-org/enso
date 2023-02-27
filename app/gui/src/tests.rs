@@ -66,9 +66,9 @@ fn span_tree_args() {
     let data = Unified::new();
     let fixture = data.fixture_customize(|_, json_client, _| {
         // The searcher requests for completion when we clear the input.
-        // controller::searcher::test::expect_completion(json_client, &[1]);
+        controller::searcher::test::expect_completion(json_client, &[1]);
         // Additional completion request happens after picking completion.
-        // controller::searcher::test::expect_completion(json_client, &[1]);
+        controller::searcher::test::expect_completion(json_client, &[1]);
     });
     let Fixture { graph, executed_graph, searcher, suggestion_db, .. } = &fixture;
     let entry = suggestion_db.lookup(1).unwrap();

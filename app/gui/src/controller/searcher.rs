@@ -13,7 +13,6 @@ use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::import;
-use double_representation::module::MethodId;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
@@ -538,25 +537,22 @@ impl Searcher {
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String, cursor_position: Byte) -> FallibleResult {
-        warn!("Manually setting input to {new_input} with cursor position {cursor_position}");
+        debug!("Manually setting input to {new_input} with cursor position {cursor_position}");
         let parsed_input = input::Input::parse(self.ide.parser(), new_input, cursor_position);
         let new_context = parsed_input.context().map(|ctx| ctx.into_ast().repr());
         let old_input = mem::replace(&mut self.data.borrow_mut().input, parsed_input);
         let old_context = old_input.context().map(|ctx| ctx.into_ast().repr());
 
         self.invalidate_picked_suggestions();
-        eprintln!("Old context: {old_context:?}");
-        eprintln!("New context: {new_context:?}");
         let context_changed = old_context != new_context;
         if context_changed {
-            eprintln!("Reloading list.");
+            debug!("Reloading list.");
             self.reload_list();
         } else {
-            eprintln!("Context did not change.");
             let data = self.data.borrow();
             data.components.update_filtering(data.input.pattern());
             if let Actions::Loaded { list } = &data.actions {
-                eprintln!("Update filtering.");
+                debug!("Update filtering.");
                 list.update_filtering(data.input.pattern());
                 executor::global::spawn(self.notifier.publish(Notification::NewActionList));
             }
@@ -578,12 +574,12 @@ impl Searcher {
         &self,
         picked_suggestion: action::Suggestion,
     ) -> FallibleResult<text::Change<Byte, String>> {
-        info!("Picking suggestion: {picked_suggestion:?}.");
+        debug!("Picking suggestion: {picked_suggestion:?}.");
         let change = {
             let mut data = self.data.borrow_mut();
             let inserted = data
                 .input
-                .after_inserting_suggestion(&picked_suggestion, self.this_var().is_some());
+                .after_inserting_suggestion(&picked_suggestion, self.this_var().is_some())?;
             let new_cursor_position = inserted.inserted_text.end;
             let inserted_code = inserted.new_input[inserted.inserted_code].to_owned();
             data.input =
@@ -635,14 +631,14 @@ impl Searcher {
         let transaction_name = "Previewing Component Browser suggestion.";
         let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
 
-        warn!("Previewing suggestion: \"{picked_suggestion:?}\".");
+        debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
         self.clear_temporary_imports();
 
         let preview_change = self
             .data
             .borrow()
             .input
-            .after_inserting_suggestion(&picked_suggestion, self.this_var().is_some());
+            .after_inserting_suggestion(&picked_suggestion, self.this_var().is_some())?;
         let preview_ast = self.ide.parser().parse_line_ast(preview_change.new_input).ok();
         let expression = self.get_expression(preview_ast.as_ref());
 
@@ -653,7 +649,6 @@ impl Searcher {
             let all_suggestions = picked_so_far.chain(iter::once(&picked_suggestion));
             self.add_required_imports(all_suggestions, false)?;
         }
-        warn!("Previewing expression: \"{:?}\".", expression);
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
 
         Ok(())
@@ -941,7 +936,6 @@ impl Searcher {
             let this_type = this_type.await;
             info!("Requesting new suggestion list. Type of `self` is {this_type:?}.");
             let file = graph.module.path().file_path();
-            eprintln!("completion: {this_type:?}");
             let response = ls.completion(file, &position, &this_type, &None, &tags).await;
             match response {
                 Ok(response) => {
@@ -1017,7 +1011,6 @@ impl Searcher {
     ) -> component::List {
         let favorites = self.graph.component_groups();
         let module_name = self.module_qualified_name();
-        error!("Module name: {module_name}");
         let mut builder = component_list_builder_with_favorites(
             &self.database,
             module_name.as_ref(),
@@ -1525,23 +1518,20 @@ pub mod test {
         ];
 
         for case in &cases {
-            let Fixture {
-                mut test,
-                searcher,
-                test_function_1: entry1,
-                test_function_2: test_function_2,
-                ..
-            } = Fixture::new_custom(|data, client| {
-                data.change_main_body(&[case.node_line]);
-                data.selected_node = true;
-                // We expect following calls:
-                // 1) for the function - with the "this" filled (if the test case says so);
-                // 2) for subsequent completions - without "self"
-                data.expect_completion(client, case.sets_this.as_some(mock_type), None, &[1, 5, 9]);
+            let Fixture { mut test, searcher, test_function_1: entry1, test_function_2, .. } =
+                Fixture::new_custom(|data, client| {
+                    data.change_main_body(&[case.node_line]);
+                    data.selected_node = true;
+                    // We expect following calls:
+                    // 1) for the function - with the "this" filled (if the test case says so);
+                    // 2) for subsequent completions - without "self"
+                    data.expect_completion(client, case.sets_this.as_some(mock_type), None, &[
+                        1, 5, 9,
+                    ]);
 
-                data.expect_completion(client, None, None, &[1, 5, 9]);
-                data.expect_completion(client, None, None, &[1, 5, 9]);
-            });
+                    data.expect_completion(client, None, None, &[1, 5, 9]);
+                    data.expect_completion(client, None, None, &[1, 5, 9]);
+                });
 
             searcher.reload_list();
 
@@ -1908,7 +1898,7 @@ pub mod test {
             };
             with(searcher.data.borrow_mut(), |mut data| {
                 data.picked_suggestions.push(picked_method);
-                data.input = input::Input::parse(&parser, entry.name.to_string(), Byte(0));
+                data.input = input::Input::parse(&parser, entry.name.to_string(), default());
             });
 
             // Add new node.
@@ -1969,11 +1959,6 @@ pub mod test {
         let expected_code =
             "import test.Test.Test\nmain =\n    2 + 2\n    operator1 = Test.test_method";
         assert_eq!(module.ast().repr(), expected_code);
-        let expected_intended_method = Some(MethodId {
-            module:          "test.Test.Test".to_string().try_into().unwrap(),
-            defined_on_type: "test.Test.Test".to_string().try_into().unwrap(),
-            name:            "test_method".to_string(),
-        });
 
         // Edit existing node.
         searcher.mode = Immutable(Mode::EditNode { node_id: node1.info.id() });

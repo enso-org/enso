@@ -207,7 +207,6 @@ impl List {
                         component_inserted_somewhere = true;
                         let not_module = entry.kind != Kind::Module;
                         if in_local_scope && not_module {
-                            error!("Adding entry {:?} to local scope", component.id());
                             self.local_scope.entries.borrow_mut().push(component.clone_ref());
                         }
                     }
