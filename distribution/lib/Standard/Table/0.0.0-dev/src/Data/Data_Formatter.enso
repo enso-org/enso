@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
-import project.Data.Column_Type_Selection.Auto
+import project.Data.Value_Type.Auto
 import project.Data.Storage.Storage
 import project.Internal.Parse_Values_Helper
 
@@ -123,6 +123,31 @@ type Data_Formatter
        - locale: The locale to use when parsing dates and times.
     with_locale : Locale -> Data_Formatter
     with_locale self datetime_locale = self.clone datetime_locale=datetime_locale
+
+    ## UNSTABLE
+       Create a clone of self with a changed format string for a particular
+       datatype.
+
+       It is mostly a convenience function to easily specify a datatype format.
+
+       Arguments:
+       - type: The datatype for which to change the format. The format can be
+         changed only for Date_Time, Date, Time_Of_Day and Boolean types.
+       - format: The new format string to set. For dates, it is the usual date
+         format notation, and for booleans it should be two values that
+         represent true and false, separated by a `|`.
+    with_format : (Auto|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) -> Text -> Data_Formatter
+    with_format self type format = case type of
+        Auto -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Auto`.")
+        Integer -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Integer`.")
+        Decimal -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Decimal`.")
+        Date -> self.with_datetime_formats date_formats=[format]
+        Date_Time -> self.with_datetime_formats datetime_formats=[format]
+        Time_Of_Day -> self.with_datetime_formats time_formats=[format]
+        Boolean ->
+            formats = format.split "|"
+            if formats.length != 2 then Error.throw (Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`, for example: 'Yes|No'.") else
+                self.with_boolean_values true_values=[formats.at 0] false_values=[formats.at 1]
 
     ## PRIVATE
        Clone the instance with some properties overridden.

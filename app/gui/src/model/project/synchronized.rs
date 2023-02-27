@@ -19,6 +19,7 @@ use engine_protocol::language_server::response;
 use engine_protocol::language_server::CapabilityRegistration;
 use engine_protocol::language_server::ContentRoot;
 use engine_protocol::language_server::ExpressionUpdates;
+use engine_protocol::language_server::FileEditList;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
@@ -161,9 +162,9 @@ impl ContentRoots {
 
 
 
-// ========================
-// === VCS status check ===
-// ========================
+// =============================
+// === VCS status and reload ===
+// =============================
 
 /// Check whether the current state of the project differs from the most recent snapshot in the VCS,
 /// and emit a notification.
@@ -182,6 +183,24 @@ async fn check_vcs_status_and_notify(
     };
     publisher.notify(model::project::Notification::VcsStatusChanged(notify_status));
     status
+}
+
+/// Apply file changes to module files based on a `FileEditList` structure, e.g. from a
+/// `text/didChange` notification when files are reloaded from the VCS.
+#[profile(Detail)]
+async fn update_modules_on_file_change(
+    changes: FileEditList,
+    parser: Parser,
+    module_registry: Rc<model::registry::Registry<module::Path, module::Synchronized>>,
+) -> FallibleResult {
+    for file_edit in changes.edits {
+        let file_path = file_edit.path.clone();
+        let module_path = module::Path::from_file_path(file_path).unwrap();
+        if let Some(module) = module_registry.get(&module_path).await? {
+            module.apply_text_change_from_ls(file_edit.edits, &parser).await?;
+        }
+    }
+    Ok(())
 }
 
 
@@ -457,8 +476,10 @@ impl Project {
         let publisher = self.notifications.clone_ref();
         let project_root_id = self.project_content_root_id();
         let language_server = self.json_rpc().clone_ref();
+        let parser = self.parser().clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
+        let weak_module_registry = Rc::downgrade(&self.module_registry);
         let execution_update_handler = self.execution_update_handler();
         move |event| {
             debug!("Received an event from the json-rpc protocol: {event:?}");
@@ -487,6 +508,18 @@ impl Project {
                             error!("Error while checking project VCS status: {err}");
                         }
                     });
+                }
+                Event::Notification(Notification::TextDidChange(changes)) => {
+                    let parser = parser.clone();
+                    if let Some(module_registry) = weak_module_registry.upgrade() {
+                        executor::global::spawn(async move {
+                            let status =
+                                update_modules_on_file_change(changes, parser, module_registry);
+                            if let Err(err) = status.await {
+                                error!("Error while applying file changes to modules: {err}");
+                            }
+                        });
+                    }
                 }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     let ExpressionUpdates { context_id, updates } = updates;

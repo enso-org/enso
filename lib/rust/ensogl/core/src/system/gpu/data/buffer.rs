@@ -280,7 +280,7 @@ impl<T: Storable> BufferData<T> {
     /// Upload the provided data range to the GPU buffer. In case the local buffer was resized,
     /// it will be re-created on the GPU.
     fn upload_data(&mut self, opt_range: &Option<RangeInclusive<usize>>) {
-        info_span!("Uploading buffer data.").in_scope(|| {
+        debug_span!("Uploading buffer data.").in_scope(|| {
             self.stats.inc_data_upload_count();
             match opt_range {
                 None => self.replace_gpu_buffer(),

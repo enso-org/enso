@@ -285,6 +285,10 @@ pub enum NotificationKind {
     },
     /// The metadata (e.g. some node's position) has been changed.
     MetadataChanged,
+    /// The source file has been modified on the language server side, the module content is
+    /// reloaded to be in sync with the language server file content. This occurs after a
+    /// `vcs/restore` request when the project state is rolled back to a previous snapshot.
+    Reloaded,
 }
 
 /// Notification about change in module content.

@@ -9,6 +9,7 @@ import project.Error.Unimplemented.Unimplemented
 import project.Nothing
 import project.Meta
 import project.Meta.Atom
+import project.Panic.Panic
 from project.Data.Boolean import all
 
 ## Provides custom ordering, equality check and hash code for types that need it.
@@ -165,9 +166,15 @@ type Default_Ordered_Comparator
     ## Handles only primitive types, not atoms or vectors.
     compare : Any -> Any -> Ordering
     compare x y =
-        if Comparable.less_than_builtin x y then Ordering.Less else
-            if Comparable.equals_builtin x y then Ordering.Equal else
-                if Comparable.less_than_builtin y x then Ordering.Greater
+        case Comparable.less_than_builtin x y of
+            True -> Ordering.Less
+            False ->
+                case Comparable.equals_builtin x y of
+                    True -> Ordering.Equal
+                    False ->
+                        case Comparable.less_than_builtin y x of
+                            True -> Ordering.Greater
+                            False -> Panic.throw "Unreachable"
 
     hash : Number -> Integer
     hash x = Comparable.hash_builtin x

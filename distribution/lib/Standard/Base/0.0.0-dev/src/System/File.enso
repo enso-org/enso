@@ -1,3 +1,4 @@
+from Standard.Base import all
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
@@ -5,7 +6,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
-import project.Data.Text.Matching_Mode
+import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
@@ -388,7 +389,7 @@ type File
              import Standard.Examples
 
              example_parent = Examples.csv.parent
-    parent : File
+    parent : File | Nothing
     parent self = @Builtin_Method "File.parent"
 
     ## Returns the path of this file.
@@ -696,7 +697,7 @@ type Output_Stream
         File_Error.handle_java_exceptions self.file <|
             java_stream.write contents.to_array
             java_stream.flush
-        Nothing
+            Nothing
 
     ## ADVANCED
 

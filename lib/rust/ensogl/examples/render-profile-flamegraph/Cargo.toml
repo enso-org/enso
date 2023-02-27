@@ -1,0 +1,36 @@
+[package]
+name = "ensogl-example-render-profile-flamegraph"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-debug-api = { path = "../../../debug-api" }
+enso-frp = { path = "../../../frp" }
+enso-profiler-data = { path = "../../../profiler/data" }
+enso-profiler-demo-data = { path = "../../../profiler/demo-data" }
+enso-profiler-flame-graph = { path = "../../../profiler/flame-graph" }
+enso-web = { path = "../../../web" }
+ensogl-core = { path = "../../core" }
+ensogl-flame-graph = { path = "../../component/flame-graph" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-text = { path = "../../component/text" }
+ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
+ensogl-tooltip = { path = "../../component/tooltip" }
+futures = { workspace = true }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = "0.4"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  'Headers',
+  'Request',
+  'RequestInit',
+  'RequestMode',
+  'Response',
+  'Window',
+]

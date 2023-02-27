@@ -5,7 +5,7 @@
     name="clippy/enso-debug-scene [wasm, windows]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚥 GUI            view/debug_scene"
+    folderName="🚥 GUI            view/examples"
   >
     <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target x86_64-pc-windows-msvc --target-dir dist/intellij_wasm_windows --package enso-debug-scene" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

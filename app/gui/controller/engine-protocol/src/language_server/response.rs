@@ -133,3 +133,11 @@ pub struct VcsStatus {
     pub changed:   Vec<Path>,
     pub last_save: SaveVcs,
 }
+
+/// Response of `vcs_restore` method.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct RestoreVcs {
+    pub changed: Vec<Path>,
+}

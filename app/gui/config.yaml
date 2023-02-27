@@ -16,8 +16,8 @@ minimumSupportedVersion": "2.0.0-alpha.6"
 
 # The minimum engine version supported by the application. The projects opened with the older versions
 # will have the "Unsupported engine version" message displayed.
-engineVersionSupported: "2022.1.1-nightly.2022-04-26"
+engineVersionSupported: "2023.1.1-nightly.2023.2.8"
 
 # The minimum language edition supported by the application. It will be displayed as edition user
 # should put in their package.yaml file to have project compatible with the IDE.
-languageEditionSupported: "2022.1.1-nightly.2022-04-26"
+languageEditionSupported: "2023.1.1-nightly.2023.2.8"
