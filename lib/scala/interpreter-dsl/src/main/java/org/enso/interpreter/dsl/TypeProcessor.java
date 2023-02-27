@@ -106,6 +106,8 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
                 + constr.getTpeName()
                 + ":"
                 + constr.getFullName()
+                + ":"
+                + constr.builtinTypeName
                 + "\n");
         if (pastEntries.containsKey(entry.getKey())) {
           pastEntries.remove(entry.getKey());
@@ -118,7 +120,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
       out.println("public class " + ConstantsGenClass + " {");
       out.println();
 
-      var lookup = new ArrayList<String>();
+      var lookup = new HashMap<String, String>();
       for (Filer f : builtinTypes.keySet()) {
         for (Map.Entry<String, BuiltinTypeConstr> entry : builtinTypes.get(f).entrySet()) {
           BuiltinTypeConstr constr = entry.getValue();
@@ -126,18 +128,17 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
             var name = entry.getKey().toUpperCase();
             generateEntry(name, constr.getFullName(), out);
             if (!constr.getBuiltinTypeName().equals("")) {
-              lookup.add("      case \"" + constr.getBuiltinTypeName() + "\" -> " + ConstantsGenClass + "." + name + ";");
+              lookup.put(constr.getBuiltinTypeName(), name);
             }
           }
         }
       }
 
       pastEntries
-          .values()
-          .forEach(
-              entry ->
-                entry.stdlibName().ifPresent(n -> generateEntry(entry.ensoName().toUpperCase(), n, out))
-          );
+        .forEach((k, v) -> {
+          v.stdlibName().ifPresent(name -> generateEntry(v.ensoName().toUpperCase(), name, out));
+          v.builtinTypeName().ifPresent(builtinTypeName -> lookup.put(builtinTypeName, k.toUpperCase()));
+        });
 
       out.println();
 
@@ -146,7 +147,9 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
       out.println("      case \"Long\" -> " + ConstantsGenClass + ".INTEGER;");
       out.println("      case \"Double\" -> " + ConstantsGenClass + ".DECIMAL;");
       out.println("      case \"Text\" -> " + ConstantsGenClass + ".TEXT;");
-      lookup.forEach(out::println);
+      lookup.forEach((k, v) ->
+          out.println("      case \"" + k + "\" -> " + ConstantsGenClass + "." + v + ";")
+      );
       out.println("      default -> null;");
       out.println("    };");
       out.println("  }");
@@ -204,11 +207,11 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
     return SourceVersion.latest();
   }
 
-  public record TypeMetadataEntry(String ensoName, String clazzName, Optional<String> stdlibName) implements MetadataEntry {
+  public record TypeMetadataEntry(String ensoName, String clazzName, Optional<String> stdlibName, Optional<String> builtinTypeName) implements MetadataEntry {
 
     @Override
     public String toString() {
-      return ensoName + ":" + clazzName + ":" + stdlibName.orElse("");
+      return ensoName + ":" + clazzName + ":" + stdlibName.orElse("") + ":" + builtinTypeName.orElse("");
     }
 
     @Override
@@ -225,7 +228,8 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
   public static TypeMetadataEntry fromStringToMetadataEntry(String line) {
     String[] elements = line.split(":");
     if (elements.length < 2) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    Optional<String> stdLibName = elements.length == 3 ? Optional.of(elements[2]) : Optional.empty();
-    return new TypeMetadataEntry(elements[0], elements[1], stdLibName);
+    Optional<String> stdLibName = elements.length >= 3 ? Optional.of(elements[2]) : Optional.empty();
+    Optional<String> builtinTypeName = elements.length == 4 ? Optional.of(elements[3]) : Optional.empty();
+    return new TypeMetadataEntry(elements[0], elements[1], stdLibName, builtinTypeName);
   }
 }
