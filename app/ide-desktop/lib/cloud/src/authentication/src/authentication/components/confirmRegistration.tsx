@@ -4,7 +4,7 @@ import { LOGIN_PATH } from "../../components/app";
 import withRouter from "../../navigation";
 import { useAuth } from "../providers/auth";
 import toast from "react-hot-toast";
-import { useLogger } from "../../logger";
+import { useLogger } from "../../providers/logger";
 
 
 

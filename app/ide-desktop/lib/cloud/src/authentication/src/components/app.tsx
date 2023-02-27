@@ -5,7 +5,7 @@ import * as React from 'react'
 import { Routes, Route, BrowserRouter, MemoryRouter, useNavigate } from 'react-router-dom'
 
 import { AuthProvider, GuestLayout, ProtectedLayout } from '../authentication/providers/auth';
-import DashboardContainer from "./dashboard";
+import DashboardContainer from "../dashboard/components/dashboard";
 import ForgotPasswordContainer from "../authentication/components/forgotPassword";
 import ResetPasswordContainer from "../authentication/components/resetPassword";
 import LoginContainer from "../authentication/components/login";
@@ -17,7 +17,7 @@ import { FC, Fragment, useMemo } from 'react';
 import authService from '../authentication/service';
 import withRouter from '../navigation';
 import {ProjectManager} from "enso-studio-content/src/project_manager";
-import { Logger, LoggerProvider } from '../logger';
+import { Logger, LoggerProvider } from '../providers/logger';
 import { SessionProvider } from '../authentication/providers/session';
 
 

@@ -9,9 +9,9 @@ import {
 } from "@heroicons/react/24/outline";
 
 import {unstable_batchedUpdates as batchedUpdates} from "react-dom";
-import {useFullUserSession} from "../authentication/providers/auth";
+import {useFullUserSession} from "../../authentication/providers/auth";
 import {ProjectState, Project, createBackend} from "../service";
-import { useLogger } from "../logger";
+import { useLogger } from "../../providers/logger";
 
 const STATUS_CHECK_INTERVAL = 10000;
 

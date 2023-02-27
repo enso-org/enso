@@ -2,7 +2,7 @@
 import { Auth } from "@aws-amplify/auth";
 import { CONFIRM_REGISTRATION_PATH, LOGIN_PATH, RESET_PASSWORD_PATH } from "../components/app";
 import registerAuthEventListener, { ListenFunction } from "./listen";
-import { Logger } from "../logger";
+import { Logger } from "../providers/logger";
 import { Cognito, CognitoImpl } from "./cognito";
 import { AmplifyConfig } from "./config";
 

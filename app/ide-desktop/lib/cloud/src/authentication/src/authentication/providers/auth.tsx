@@ -9,12 +9,28 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from "react-hot-toast"
 
-import { createBackend, Organization, SetUsernameBody } from '../../service';
+import { createBackend, Organization, SetUsernameBody } from '../../dashboard/service';
 import { AuthService } from '../service';
 import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from '../../components/app';
-import { useLogger } from '../../logger';
+import { useLogger } from '../../providers/logger';
 import { useSession } from './session';
 import { UnreachableCaseError } from '../../error';
+
+
+
+// =================
+// === Constants ===
+// =================
+
+const MESSAGES = {
+  signUpSuccess: "We have sent you an email with further instructions!",
+  confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
+  setUsernameSuccess: "Your username has been set!",
+  signInWithPasswordSuccess: "Successfully logged in!",
+  forgotPasswordSuccess: "We have sent you an email with further instructions!",
+  resetPasswordSuccess: "Successfully reset password!",
+  signOutSuccess: "Successfully logged out!",
+}
 
 
 
@@ -29,9 +45,9 @@ export type UserSession =
   | FullUserSession
   | PartialUserSession;
 
-/// The type of the object containing the currently signed-in user's session data.
+/// Object containing the currently signed-in user's session data.
 export interface FullUserSession {
-  /// Literal for narrowing the type of the `Session` object.
+  /// A type-hint for TypeScript to be able to disambiguate between this interface and other `UserSession` variants. */
   state: "full",
   /// The user's JSON Web Token (JWT), used for authenticating and authorizing requests to the API.
   accessToken: string;
@@ -41,34 +57,20 @@ export interface FullUserSession {
   organization: Organization;
 }
 
-/// The type of the object containing the currently signed-in user's session data, if the user has
-/// not yet set their username.
+/// Object containing the currently signed-in user's session data, if the user has not yet set their
+/// username.
 ///
 /// If a user has not yet set their username, they do not yet have an organization associated with
 /// their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
 /// used by the `SetUsername` component.
 export interface PartialUserSession {
-  /// Literal for narrowing the type of the `Session` object.
+  /// A type-hint for TypeScript to be able to disambiguate between this interface and other `UserSession` variants. */
   state: "partial",
   /// The user's JSON Web Token (JWT), used for authenticating and authorizing requests to the API.
   accessToken: string;
   /// The user's email address.
   email: string;
 }
-
-
-
-// =================
-// === Constants ===
-// =================
-
-const SIGN_UP_SUCCESS = "We have sent you an email with further instructions!"
-const CONFIRM_SIGN_UP_SUCCESS = "Your account has been confirmed! Please log in."
-const SET_USERNAME_SUCCESS = "Your username has been set!"
-const SIGN_IN_WITH_PASSWORD_SUCCESS = "Successfully logged in!"
-const FORGOT_PASSWORD_SUCCESS = "We have sent you an email with further instructions!"
-const RESET_PASSWORD_SUCCESS = "Successfully reset password!"
-const SIGN_OUT_SUCCESS = "Successfully logged out!"
 
 
 
@@ -140,6 +142,29 @@ interface AuthContextType {
     session: UserSession | undefined;
 }
 
+/** Create a global instance of the `AuthContextType`, that will be re-used between all React
+ * components that use the `useAuth` hook.
+ * 
+ * # Safety of Context Initialization
+ *
+ * An `as ...` cast is unsafe. We use this cast when creating the context. So it appears that the
+ * `AuthContextType` can be unsafely (i.e., only partially) initialized as a result of this.
+ * 
+ * So it appears that we should remove the cast and initialize the context as `undefined` instead.
+ * 
+ * **However**, initializing a context the existing way is the recommended way to initialize a
+ * context in React.  It is safe, for non-obvious reasons. It is safe because the `AuthContext` is
+ * only accessible through the `useAuth` hook.
+ * 
+ * 1. If the `useAuth` hook is called in a component that is a child of an `AuthProvider`, then the
+ * context is guaranteed to be initialized, because the `AuthProvider` constructor is what
+ * initializes it. So the cast is safe.
+ * 2. If the `useAuth` hook is called in a component that is not a child of an `AuthProvider`, then
+ * the hook will throw an error regardless, because React does not support using hooks outside of
+ * their supporting providers.
+ * 
+ * So changing the cast would provide no safety guarantees, and would require us to introduce null
+ * checks everywhere we use the context. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AuthContext = createContext<AuthContextType>(
     {} as AuthContextType
@@ -188,7 +213,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
         const backend = createBackend(accessToken, logger);
 
         // Request the user's organization information from the Cloud backend.
-        const organization = await backend.getUsersMe();
+        const organization = await backend.getUser();
 
         let userSession: UserSession;
 
@@ -240,7 +265,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     .signUp(username, password)
     .then(result => {
       if (result.ok) {
-        toast.success(SIGN_UP_SUCCESS)
+        toast.success(MESSAGES.signUpSuccess)
       } else {
         toast.error(result.val.message)
       }
@@ -258,7 +283,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
         }
       }
 
-      toast.success(CONFIRM_SIGN_UP_SUCCESS)
+      toast.success(MESSAGES.confirmSignUpSuccess)
       // FIXME [NP]: we do this here & at the call site, is this redundant?
       navigate(LOGIN_PATH)
     })
@@ -274,7 +299,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
       await backend.setUsername(body);
       // FIXME [NP]: do we need this navigate if we're setting the username?
       navigate(DASHBOARD_PATH);
-      toast.success(SET_USERNAME_SUCCESS);
+      toast.success(MESSAGES.setUsernameSuccess);
   };
 
   const signInWithPassword = async (
@@ -284,7 +309,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     .signInWithPassword(email, password)
     .then(result => {
       if (result.ok) {
-        toast.success(SIGN_IN_WITH_PASSWORD_SUCCESS)
+        toast.success(MESSAGES.signInWithPasswordSuccess)
         return;
       }
 
@@ -299,7 +324,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     .forgotPassword(email)
     .then(result => {
       if (result.ok) {
-        toast.success(FORGOT_PASSWORD_SUCCESS)
+        toast.success(MESSAGES.forgotPasswordSuccess)
         navigate(RESET_PASSWORD_PATH)
       } else {
         toast.error(result.val.message)
@@ -310,7 +335,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
     .forgotPasswordSubmit(email, code, password)
     .then(result => {
       if (result.ok) {
-        toast.success(RESET_PASSWORD_SUCCESS)
+        toast.success(MESSAGES.resetPasswordSuccess)
         navigate(LOGIN_PATH)
       } else {
         toast.error(result.val.message)
@@ -319,7 +344,7 @@ export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
 
   const signOut = () => cognito
     .signOut()
-    .then(() => toast.success(SIGN_OUT_SUCCESS))
+    .then(() => toast.success(MESSAGES.signOutSuccess))
     .then(() => {});
 
   const value = {

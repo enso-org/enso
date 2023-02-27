@@ -5,10 +5,10 @@
  * asynchronous and return a `Promise` that resolves to the response from the API.
  */
 // FIXME [NP]: document all of the below
-import { Client } from './http';
+import { Client } from '../http';
 
-import { API_URL } from "./config";
-import { Logger } from './logger';
+import { API_URL } from "../config";
+import { Logger } from '../providers/logger';
 
 
 
@@ -17,6 +17,21 @@ import { Logger } from './logger';
 // =================
 
 const DEFAULT_OPEN_PROJECT_BODY: OpenProjectBody = { forceCreate: false };
+
+/** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
+const SET_USER_NAME_PATH = "users";
+/** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
+const GET_USER_PATH = "users/me";
+/** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
+const LIST_PROJECTS_PATH = "projects";
+/** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
+const CREATE_PROJECT_PATH = "projects";
+/** Relative HTTP path to the "close project" endpoint of the Cloud backend API. */
+const closeProjectPath = (projectId: ProjectId) => `projects/${projectId}/close`;
+/** Relative HTTP path to the "get project" endpoint of the Cloud backend API. */
+const getProjectPath = (projectId: ProjectId) => `projects/${projectId}`;
+/** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
+const openProjectPath = (projectId: ProjectId) => `projects/${projectId}/open`;
 
 
 
@@ -90,6 +105,7 @@ export type Project = {
 
 // === SetUsername ===
 
+// FIXME [NP]: rename this to `SetUserNameRequestBody`?
 export interface SetUsernameBody {
     userName: string;
     userEmail: string;
@@ -150,14 +166,14 @@ export class Backend {
 
     /** Sets the username of the current user, on the Cloud backend API. */
     setUsername = (body: SetUsernameBody): Promise<Organization> => this
-        .post(`users`)
+        .post(SET_USER_NAME_PATH)
         .json(body)
         .send()
         .then((response) => response.model())
    
     /** Returns organization info for the current user, from the Cloud backend API. */
-    getUsersMe = (): Promise<Organization | null> => this
-        .get(`users/me`)
+    getUser = (): Promise<Organization | null> => this
+        .get(GET_USER_PATH)
         .send()
         .then((response) => {
             // FIXME [NP]: make this error type-safe with Result.
@@ -170,7 +186,7 @@ export class Backend {
 
     /** Returns a list of projects belonging to the current user, from the Cloud backend API. */
     listProjects = (): Promise<Project[]> => this
-        .get(`projects`)
+        .get(LIST_PROJECTS_PATH)
         .send()
         .then(async (response) => {
             // FIXME [NP]: make this error type-safe with Result.
@@ -186,7 +202,7 @@ export class Backend {
 
     /** Creates a project for the current user, on the Cloud backend API. */
     createProject = async (body: CreateProjectBody): Promise<Project> => {
-        const request = this.post(`projects`).json(body);
+        const request = this.post(CREATE_PROJECT_PATH).json(body);
         const response = await request.send()
 
         // FIXME [NP]: make this error type-safe with Result.
@@ -202,7 +218,8 @@ export class Backend {
 
     /** Closes the project identified by the given project ID, on the Cloud backend API. */
     closeProject = async (projectId: ProjectId): Promise<void> => {
-        const request = this.post(`projects/${projectId}/close`);
+        const path = closeProjectPath(projectId);
+        const request = this.post(path);
         const response = await request.send()
 
         // FIXME [NP]: make this error type-safe with Result.
@@ -212,9 +229,10 @@ export class Backend {
         }
     }
 
-    /** Returns project details for the specified project ID, from the Cloud backend API */
+    /** Returns project details for the specified project ID, from the Cloud backend API. */
     getProject = async (projectId: ProjectId): Promise<Project> => {
-        const request = this.get(`projects/${projectId}`);
+        const path = getProjectPath(projectId);
+        const request = this.get(path);
         const response = await request.send()
 
         // FIXME [NP]: make this error type-safe with Result.
@@ -230,7 +248,8 @@ export class Backend {
 
     /** Sets project to an open state, on the Cloud backend API. */
     openProject = async (projectId: ProjectId, body: OpenProjectBody = DEFAULT_OPEN_PROJECT_BODY): Promise<void> => {
-        const request = this.get(`projects/${projectId}/open`).json(body);
+        const path = openProjectPath(projectId);
+        const request = this.get(path).json(body);
         const response = await request.send()
 
         // FIXME [NP]: make this error type-safe with Result.

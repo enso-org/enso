@@ -1,3 +1,9 @@
+// FIXME [NP]: Make all comments match the style of the first comment in this file: https://github.com/enso-org/enso/pull/5716/files#r1113048958
+// FIXME [NP]: Find all locations we throw and error and update their docs accordingly: https://github.com/enso-org/enso/pull/5716/files#r1113052508
+// FIXME [NP]: Find all locations where we use `{ ...  }` style in props and update them to use a variable that we deconstruct later: https://github.com/enso-org/enso/pull/5716/files#r1113049785
+// FIXME [NP]: Find all locations where we create a named variable just to return it and remove them: https://github.com/enso-org/enso/pull/5716/files#r1113053192
+// FIXME [NP]: Group all constants: https://github.com/enso-org/enso/pull/5716/files#r1113064368
+// FIXME [NP]: Replace all imports with `import * as ... from ...` instead of `import { ... } from ...`: https://github.com/enso-org/enso/pull/5716/files#r1113059306
 // FIXME [NP]: Rename this to `enso-cloud-dashboard` and move it to `app/ide-desktop/lib/dashboard`
 // FIXME [NP]: Remove the `app/ide-desktop/.eslintrc.cjs` file
 // FIXME [NP]: Remove the `@typescript-eslint/eslint-plugin` dependency from parent `package.json`

@@ -21,6 +21,10 @@ import { ListenerCallback } from "../listen";
  */
 const MAIN_PAGE_URL = "http://localhost:8080";
 
+/** Initial value of the session refresh counter. This value itself is meaningless. The only point
+ * of the session refresh counter is to trigger a re-fetch of the user's credentials and a re-render
+ * of the `AuthProvider` component when the counter is incremented. */
+const INITIAL_REFRESH_COUNT = 0;
 
 
 // ======================
@@ -59,7 +63,7 @@ export const SessionProvider = (props: SessionProviderProps) => {
     // State that, when incremented, forces a refresh of the user session. This is useful when a
     // user has just logged in (so their cached credentials are out of date). Should be used via the
     // `refreshSession` function.
-    const [refresh, setRefresh] = useState(0);
+    const [refresh, setRefresh] = useState(INITIAL_REFRESH_COUNT);
 
     // Function that forces a refresh of the user session.
     //

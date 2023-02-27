@@ -1,5 +1,5 @@
 import { DependencyList, useEffect, useState } from "react";
-import { useLogger } from "./logger";
+import { useLogger } from "./providers/logger";
 
 
 

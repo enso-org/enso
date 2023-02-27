@@ -1,7 +1,7 @@
 import { Auth, CognitoHostedUIIdentityProvider, SignUpParams } from "@aws-amplify/auth";
 import { CognitoUserSession } from "amazon-cognito-identity-js";
 import { Err, Result, Option, Some, None } from "ts-results";
-import { Logger } from "../logger";
+import { Logger } from "../providers/logger";
 import { AmplifyConfig } from "./config";
 
 
