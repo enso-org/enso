@@ -1,3 +1,7 @@
+// FIXME [NP3]: Remove these lints.
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
  * @file Main dashboard container responsible for listing user's projects as well as other
  * interactive components.
@@ -93,8 +97,8 @@ const dashboardContainer = (props: DashboardProps) => {
             const createdProject = await projectManager!.createProject(newProjectName, templateName);
             const newProject = {
                 organizationId: organization.id,
-                projectId: createdProject["result"].projectId,
-                name: createdProject["result"].projectName,
+                projectId: createdProject.result.projectId,
+                name: createdProject.result.projectName,
                 state: {"type": "Created"},
                 packageName: "Main",
                 address: null,
@@ -113,8 +117,8 @@ const dashboardContainer = (props: DashboardProps) => {
             if (!runningOnDesktop) {
                 newProjectsList = await backend.listProjects();
             } else {
-                const localProjects: any[] = (await projectManager!.listProjects())["result"]["projects"]
-                for (let item of localProjects) {
+                const localProjects: any[] = (await projectManager!.listProjects()).result.projects
+                for (const item of localProjects) {
                     newProjectsList.push({
                         organizationId: organization.id,
                         projectId: item.id,
@@ -142,7 +146,7 @@ const dashboardContainer = (props: DashboardProps) => {
         </tr>
     );
 
-    if (projectsList && projectsList.length > 0) {
+    if (projectsList.length > 0) {
         const setProjectOpening = (projectItemIndex: number): void => {
             setProjectsList((currProjectList) => {
                 const newProjectList = [...currProjectList];

@@ -1,3 +1,5 @@
+/** @file Contains useful error types common across the module. */
+
 /** An error used to indicate when an unreachable case is hit in a `switch` or `if` statement.
  * 
  * TypeScript is sometimes unable to determine if we're exhaustively matching in a `switch` or `if`
@@ -10,6 +12,7 @@ export class UnreachableCaseError extends Error {
         // rule to allow this. As for why we're using `never` in a literal, it's because we expect
         // TypeScript to let us know that we're in an unreachable case at type check time (through
         // the signature of this constructor), but if that fails we still want to know at runtime.
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         super(`Unreachable case: ${value}`)
     }
 }

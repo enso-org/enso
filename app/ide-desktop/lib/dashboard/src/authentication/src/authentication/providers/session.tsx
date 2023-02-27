@@ -1,3 +1,5 @@
+/** @file Provider for the {@link SessionContextType}, which contains information about the currently
+ * authenticated user's session. */
 import { ReactNode, createContext, useContext, useState, useEffect } from "react";
 import { None, Option } from "ts-results";
 
@@ -35,6 +37,7 @@ interface SessionContextType {
     session: Option<UserSession>;
 }
 
+/** See {@link AuthContext} for safety details. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const SessionContext = createContext<SessionContextType>({} as SessionContextType)
 

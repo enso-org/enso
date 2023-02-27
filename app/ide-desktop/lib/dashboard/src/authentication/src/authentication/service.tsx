@@ -1,3 +1,6 @@
+/** @file Provides an {@link AuthService} which consists of an underyling {@link Cognito} API
+ * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
+ * work with Electron. */
 import { Auth } from "@aws-amplify/auth";
 import { CONFIRM_REGISTRATION_PATH, DASHBOARD_PATH, LOGIN_PATH, RESET_PASSWORD_PATH } from "../components/app";
 import registerAuthEventListener, { ListenFunction } from "./listen";

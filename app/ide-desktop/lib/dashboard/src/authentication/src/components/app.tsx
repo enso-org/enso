@@ -12,7 +12,7 @@ import RegistrationContainer from "../authentication/components/registration";
 import ConfirmRegistrationContainer from "../authentication/components/confirmRegistration";
 import SetUsernameContainer from "../authentication/components/setUsername";
 import { Toaster } from 'react-hot-toast';
-import { FC, Fragment, useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import authService from '../authentication/service';
 import withRouter from '../navigation';
 import {ProjectManager} from "enso-studio-content/src/project_manager";

@@ -1,3 +1,8 @@
+/** @file Provides {@link Cognito} class which is the entrypoint into the AWS Amplify library.
+ * 
+ * All of the functions used for authentication are provided by the AWS Amplify library, but we
+ * provide a thin wrapper around them to make them easier to use. Mainly, we perform some error
+ * handling and conditional logic to vary behaviour between desktop & cloud. */
 import { Auth, CognitoHostedUIIdentityProvider, SignUpParams } from "@aws-amplify/auth";
 import { CognitoUserSession } from "amazon-cognito-identity-js";
 import { Result, Option } from "ts-results";

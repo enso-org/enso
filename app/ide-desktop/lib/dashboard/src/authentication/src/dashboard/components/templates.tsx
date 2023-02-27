@@ -1,3 +1,4 @@
+/** @file Renders the list of templates that can be used to create a project from. */
 import * as React from "react";
 
 const templates = [
@@ -7,10 +8,9 @@ const templates = [
     {title: "NASDAQ Returns", templateName: "NASDAQ_Returns"},
     {title: "Restaurants", templateName: "Orders"},
     {title: "Github Stars", templateName: "Stargazers"},
-
 ];
 
-type Props = {
+interface Props {
     onChange: (templateName: string | undefined) => void;
 }
 

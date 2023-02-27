@@ -1,3 +1,4 @@
+/** @file Renders an interactive button displaying the status of a project. */
 import * as React from "react";
 import {useState} from "react";
 
@@ -14,12 +15,12 @@ import { useLogger } from "../../providers/logger";
 
 const STATUS_CHECK_INTERVAL = 10000;
 
-type Props = {
+interface Props {
     project: Project;
     onOpen: () => void;
     onOpenStart: () => void;
     onClose: () => void;
-};
+}
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ProjectActionButton = (props: Props) => {
@@ -55,7 +56,7 @@ export const ProjectActionButton = (props: Props) => {
         };
 
         const newCheckStatusInterval = window.setInterval(
-            checkProjectStatus,
+            () => void checkProjectStatus(),
             STATUS_CHECK_INTERVAL
         );
 
@@ -90,7 +91,7 @@ export const ProjectActionButton = (props: Props) => {
                 };
 
                 const newCheckStatusInterval = window.setInterval(
-                    checkProjectStatus,
+                    () => void checkProjectStatus(),
                     STATUS_CHECK_INTERVAL
                 );
 
@@ -124,6 +125,8 @@ export const ProjectActionButton = (props: Props) => {
                     </button>
                 </>
             );
+        // FIXME [NP3]: Figure out why this is necessary.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         case ProjectState.opened || hasProjectOpened:
             return (
                 <>
