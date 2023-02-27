@@ -151,6 +151,8 @@ In order to build and run Enso you will need the following tools:
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
 - On MacOS and Linux, the `tar` command is required for running some tests. It
   should be installed by default on most distributions.
+- On Windows, the `run` command must be run in the latest version of
+  `Powershell` or in `cmd`.
 - If you want to be able to build the Launcher Native Image, you will need a
   native C compiler for your platform as described in the
   [Native Image Prerequisites](https://www.graalvm.org/reference-manual/native-image/#prerequisites).
