@@ -439,6 +439,8 @@ impl Searcher {
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
         let module_repr: Rope = module_ast.repr().into();
+        error!("module_repr_len = {}", module_repr.len());
+        error!("def_span = {def_span:?}");
         // TODO: is it correct?
         let position = module_repr.offset_to_location_snapped(def_span.end - text::ByteDiff(1));
         let this_arg = Rc::new(match mode {
@@ -578,15 +580,14 @@ impl Searcher {
         debug!("Picking suggestion: {picked_suggestion:?}.");
         let change = {
             let mut data = self.data.borrow_mut();
-            let inserted = data
-                .input
-                .after_inserting_suggestion(&picked_suggestion, self.this_var().is_some())?;
+            let this_var = self.this_var().is_some();
+            let inserted = data.input.after_inserting_suggestion(&picked_suggestion, this_var)?;
             let new_cursor_position = inserted.inserted_text.end;
             let inserted_code = inserted.new_input[inserted.inserted_code].to_owned();
-            data.input =
-                input::Input::parse(self.ide.parser(), &inserted.new_input, new_cursor_position);
-            data.picked_suggestions
-                .push(PickedSuggestion { entry: picked_suggestion, inserted_code });
+            let parser = self.ide.parser();
+            data.input = input::Input::parse(parser, &inserted.new_input, new_cursor_position);
+            let suggestion = PickedSuggestion { entry: picked_suggestion, inserted_code };
+            data.picked_suggestions.push(suggestion);
             inserted.input_change()
         };
         self.reload_list();
@@ -635,11 +636,9 @@ impl Searcher {
         debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
         self.clear_temporary_imports();
 
-        let preview_change = self
-            .data
-            .borrow()
-            .input
-            .after_inserting_suggestion(&picked_suggestion, self.this_var().is_some())?;
+        let this_var = self.this_var().is_some();
+        let preview_change =
+            self.data.borrow().input.after_inserting_suggestion(&picked_suggestion, this_var)?;
         let preview_ast = self.ide.parser().parse_line_ast(preview_change.new_input).ok();
         let expression = self.get_expression(preview_ast.as_ref());
 
