@@ -26,7 +26,6 @@ const registrationContainer = () => {
 
     const handleSubmit = () => {
       // The password & confirm password fields must match.
-      // FIXME [NP]: test this?
       if (password !== confirmPassword) {
         toast.error("Passwords do not match.")
         return Promise.resolve()

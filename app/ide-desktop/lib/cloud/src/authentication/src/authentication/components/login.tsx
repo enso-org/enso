@@ -14,6 +14,14 @@ import * as Icons from '../../components/svg';
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const EMAIL_QUERY_PARAM = "email";
+
+
+
 // ======================
 // === loginContainer ===
 // ======================
@@ -22,9 +30,7 @@ const loginContainer = () => {
     const { search } = useLocation();
     const { signInWithGoogle, signInWithGitHub, signInWithPassword } = useAuth();
 
-    // Parse the email from the query params.
-    const query = new URLSearchParams(search);
-    const initialEmail = query.get("email");
+    const initialEmail = parseUrlSearchParams(search);
 
     const { value: email, bind: bindEmail } = useInput(initialEmail ?? "")
     const { value: password, bind: bindPassword } = useInput("")
@@ -143,6 +149,12 @@ const loginContainer = () => {
         </div>
       </div>
     );
+}
+
+const parseUrlSearchParams = (search: string) => {
+  const query = new URLSearchParams(search);
+  const email = query.get(EMAIL_QUERY_PARAM);
+  return email
 }
 
 

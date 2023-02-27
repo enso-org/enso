@@ -1,6 +1,5 @@
-// FIXME [NP]: find and resolve all typescript/eslint errors (including silenced ones)
 import { Auth } from "@aws-amplify/auth";
-import { CONFIRM_REGISTRATION_PATH, LOGIN_PATH, RESET_PASSWORD_PATH } from "../components/app";
+import { CONFIRM_REGISTRATION_PATH, DASHBOARD_PATH, LOGIN_PATH, RESET_PASSWORD_PATH } from "../components/app";
 import registerAuthEventListener, { ListenFunction } from "./listen";
 import { Logger } from "../providers/logger";
 import { Cognito, CognitoImpl } from "./cognito";
@@ -44,12 +43,10 @@ export interface AuthConfig {
     logger: Logger;
     /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
     runningOnDesktop: boolean;
-    /**
-     * Function to navigate to a given (relative) URL.
+    /** Function to navigate to a given (relative) URL.
      *
      * Used to redirect to pages like the password reset page with the query parameters set in the
-     * URL (e.g., `?verification_code=...`).
-     */
+     * URL (e.g., `?verification_code=...`). */
     navigate: (url: string) => void;
 }
 
@@ -59,18 +56,15 @@ export interface AuthConfig {
 // === AuthService ===
 // ===================
 
-/**
- * API for the authentication service.
- */
+/** API for the authentication service. */
 export interface AuthService {
-    // FIXME [NP]: docs
+    /** @see {@link Cognito} */
     cognito: Cognito,
     /** @see {@link ListenFunction} */
     registerAuthEventListener: ListenFunction;
 }
 
-/**
- * Creates an instance of the authentication service.
+/** Creates an instance of the authentication service.
  * 
  * # Warning
  * 
@@ -78,9 +72,7 @@ export interface AuthService {
  * application. This is because it performs global configuration of the Amplify library.
  * 
  * @param authConfig - Configuration for the authentication service.
- * @returns An instance of the authentication service.
- */
-// FIXME [NP]: make this type safe
+ * @returns An instance of the authentication service. */
 const authService = (authConfig: AuthConfig): AuthService => {
     const { logger, runningOnDesktop, navigate } = authConfig;
 
@@ -120,9 +112,6 @@ const loadAmplifyConfig = (logger: Logger, runningOnDesktop: boolean, navigate: 
     return baseConfig as AmplifyConfig
 }
 
-// Ensure that you have the `loginApi` context bridge exposed in the main process. See the
-// `exposeLoginApi` function for more details.
-// FIXME [NP]: is the above doc OK?
 const openUrlWithExternalBrowser = (url: string) => {
     // # Safety
     //
@@ -134,8 +123,7 @@ const openUrlWithExternalBrowser = (url: string) => {
     window.loginApi.openExternalUrl(url)
 }
 
-/**
- * Register the callback that will be invoked when an `enso://` schema URL is opened in the app.
+/** Register the callback that will be invoked when an `enso://` schema URL is opened in the app.
  * 
  * Typically this callback is invoked when the user is redirected back to the app after:
  *
@@ -144,64 +132,26 @@ const openUrlWithExternalBrowser = (url: string) => {
  *
  * This is only used when running on the desktop, as the browser version of the app lets Amplify
  * handle the redirect for us. On the desktop however, we need to handle the redirect ourselves,
- * because it's a deep link into the app, and Amplify doesn't handle deep links.
- */
-// FIXME [NP]: type this?
+ * because it's a deep link into the app, and Amplify doesn't handle deep links. */
 const registerOpenAuthenticationUrlCallback = (
     logger: Logger,
     navigate: (url: string) => void,
 ) => {
     const openAuthenticationUrlCallback = (url: string) => {
         const parsedUrl = new URL(url)
-        // FIXME [NP]: remove log
-        logger.log("openAuthenticationUrlCallback::URL::", url)
 
-        // FIXME [NP]: constantize
-        if (parsedUrl.pathname === "/confirmation") {
+        if (isConfirmRegistrationRedirect(parsedUrl)) {
             // Navigate to a relative URL to handle the confirmation link.
             const redirectUrl = `${CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`
             navigate(redirectUrl)
-        // If the user is being redirected from a federated identity provider, then we need to pass
-        // the URL to the Amplify library, which will parse the URL and complete the OAuth flow.
-        // FIXME [NP]: constantize
-        // FIXME [NP]: pass the URL as a path, not a host
-        } else if (parsedUrl.pathname === "/") {
-            // FIXME [NP]: don't use `enso://auth` for both authentication redirect & signout redirect so we don't have to disambiguate here.
-            if (parsedUrl.search === "") {
-                logger.log("FIXME [NP]: why does the signout navigate not wor?")
-                navigate(LOGIN_PATH)
-            } else {
-                // FIXME [NP]: remove this log
-                logger.log("authenticatedRedirectCallback::Current URL::", window.location.href);
-                logger.log("authenticatedRedirectCallback::URL::", url);
-                void (async () => {
-                    // Temporarily override the `window.location` object so that Amplify doesn't try
-                    // to call `window.location.replaceState` (which doesn't work in the renderer
-                    // process because of Electron's `webSecurity`). This is a hack, but it's the
-                    // only way to get Amplify to work with a custom URL protocol in Electron.
-                    //
-                    // Note that this entire hack must happen within an async IIFE block, because we
-                    // need to be sure to restore the original `window.location.replaceState`
-                    // function before any non-Amplify code runs, which we can't guarantee if
-                    // `_handleAuthResponse` is allowed to complete asynchronously.
-                    // eslint-disable-next-line @typescript-eslint/unbound-method
-                    const replaceState = window.history.replaceState;
-                    window.history.replaceState = () => false;
-                    try {
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-                        await (Auth as any)._handleAuthResponse(url)
-                    } finally {
-                        // Restore the original `window.location.replaceState` function.
-                        window.history.replaceState = replaceState;
-                    }
-                })()
-            }
+        } else if (isSignOutRedirect(parsedUrl)) {
+            navigate(LOGIN_PATH)
+        } else if (isSignInRedirect(parsedUrl)) {
+            handleAuthResponse(url)
         // If the user is being redirected from a password reset email, then we need to navigate to
         // the password reset page, with the verification code and email passed in the URL so they
         // can be filled in automatically.
-        // FIXME [NP]: constantize
-        // FIXME [NP]: change from password-reset to reset-password
-        } else if (parsedUrl.pathname === "/password-reset") {
+        } else if (isResetPasswordRedirect(parsedUrl)) {
             // Navigate to a relative URL to handle the password reset.
             const redirectUrl = `${RESET_PASSWORD_PATH}${parsedUrl.search}`
             navigate(redirectUrl)
@@ -213,6 +163,47 @@ const registerOpenAuthenticationUrlCallback = (
     window.loginApi.setOpenAuthenticationUrlCallback(openAuthenticationUrlCallback)
 }
 
+/** If the user is being redirected after clicking the registration confirmation link in their
+ * email, then the URL will be for the confirmation page path. */
+const isConfirmRegistrationRedirect = (url: URL) => url.pathname === CONFIRM_REGISTRATION_PATH
+
+/** If the user is being redirected after a sign-out, then no query args will be present. */
+// FIXME [NP2]: don't use `enso://auth` for both authentication redirect & signout redirect so we
+// don't have to disambiguate between the two on the `DASHBOARD_PATH`.
+const isSignOutRedirect = (url: URL) => url.pathname === DASHBOARD_PATH && url.search === ""
+
+/** If the user is being redirected after a sign-out, then query args will be present. */
+const isSignInRedirect = (url: URL) => url.pathname === DASHBOARD_PATH && url.search !== ""
+
+/** If the user is being redirected after clicking the reset password confirmation link in their
+ * email, then the URL will be for the confirm password reset path. */
+const isResetPasswordRedirect = (url: URL) => url.pathname === RESET_PASSWORD_PATH
+
+/** When the user is being redirected from a federated identity provider, then we need to pass the
+ * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */
+const handleAuthResponse = (url: string) => {
+    void (async () => {
+        // Temporarily override the `window.location` object so that Amplify doesn't try
+        // to call `window.location.replaceState` (which doesn't work in the renderer
+        // process because of Electron's `webSecurity`). This is a hack, but it's the
+        // only way to get Amplify to work with a custom URL protocol in Electron.
+        //
+        // Note that this entire hack must happen within an async IIFE block, because we
+        // need to be sure to restore the original `window.location.replaceState`
+        // function before any non-Amplify code runs, which we can't guarantee if
+        // `_handleAuthResponse` is allowed to complete asynchronously.
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const replaceState = window.history.replaceState;
+        window.history.replaceState = () => false;
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            await (Auth as any)._handleAuthResponse(url)
+        } finally {
+            // Restore the original `window.location.replaceState` function.
+            window.history.replaceState = replaceState;
+        }
+    })()
+}
 
 
 

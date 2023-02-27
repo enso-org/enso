@@ -12,6 +12,7 @@ import { useInput } from '../../hooks'
 import { handleEvent } from '../../utils';
 import { LOGIN_PATH } from '../../components/app';
 import * as Icons from '../../components/svg';
+import { EMAIL_QUERY_PARAM, VERIFICATION_CODE_QUERY_PARAM } from './confirmRegistration';
 
 
 
@@ -23,10 +24,7 @@ const resetPasswordContainer = () => {
     const { resetPassword } = useAuth();
     const { search } = useLocation();
 
-    // Parse the verification code & email from the query params.
-    const query = new URLSearchParams(search);
-    const initialCode = query.get("verification_code");
-    const initialEmail = query.get("email");
+    const { verificationCode: initialCode, email: initialEmail } = parseUrlSearchParams(search);
 
     const { value: email, bind: bindEmail } = useInput(initialEmail ?? "")
     const { value: code, bind: bindCode } = useInput(initialCode ?? "");
@@ -161,6 +159,13 @@ const resetPasswordContainer = () => {
         </div>
       </div>
     );
+}
+
+const parseUrlSearchParams = (search: string) => {
+    const query = new URLSearchParams(search);
+    const verificationCode = query.get(VERIFICATION_CODE_QUERY_PARAM);
+    const email = query.get(EMAIL_QUERY_PARAM);
+    return { verificationCode, email }
 }
 
 export default withRouter(resetPasswordContainer)

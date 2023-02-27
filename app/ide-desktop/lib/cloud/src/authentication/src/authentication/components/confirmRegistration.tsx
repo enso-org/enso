@@ -8,6 +8,15 @@ import { useLogger } from "../../providers/logger";
 
 
 
+// =================
+// === Constants ===
+// =================
+
+export const VERIFICATION_CODE_QUERY_PARAM = "verification_code";
+export const EMAIL_QUERY_PARAM = "email";
+
+
+
 // ====================================
 // === confirmRegistrationContainer ===
 // ====================================
@@ -18,11 +27,7 @@ const confirmRegistrationContainer = () => {
   const { search } = useLocation();
   const navigate = useNavigate();
 
-  // Parse the verification code & email from the query params.
-  // FIXME [NP]: refactor to hook, here, in login, and in reset password
-  const query = new URLSearchParams(search);
-  const verificationCode = query.get("verification_code");
-  const email = query.get("email");
+  const { verificationCode, email } = parseUrlSearchParams(search);
 
   useEffect(() => {
     if (!email || !verificationCode) {
@@ -31,7 +36,6 @@ const confirmRegistrationContainer = () => {
     }
 
     confirmSignUp(email, verificationCode)
-      // FIXME [NP]: encode ONLY email here, not the whole query string
       .then(() => navigate(LOGIN_PATH + search.toString()))
       .catch((error) => {
         logger.error("Error while confirming sign-up", error)
@@ -42,5 +46,13 @@ const confirmRegistrationContainer = () => {
  
   return (<div></div>);
 }
+
+const parseUrlSearchParams = (search: string) => {
+  const query = new URLSearchParams(search);
+  const verificationCode = query.get(VERIFICATION_CODE_QUERY_PARAM);
+  const email = query.get(EMAIL_QUERY_PARAM);
+  return { verificationCode, email }
+}
+
 
 export default withRouter(confirmRegistrationContainer);

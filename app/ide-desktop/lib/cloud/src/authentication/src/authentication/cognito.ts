@@ -21,9 +21,21 @@ const SIGN_IN_WITH_PASSWORD_USER_NOT_FOUND_MESSAGE = "User not found. Please reg
 const SIGN_IN_WITH_PASSWORD_USER_NOT_CONFIRMED_MESSAGE = "User is not confirmed. Please check your email for a confirmation link.";
 const SIGN_IN_WITH_PASSWORD_INCORRECT_USERNAME_OR_PASSWORD_MESSAGE = "Incorrect username or password.";
 const FORGOT_PASSWORD_USER_NOT_FOUND_MESSAGE = "User not found. Please register first.";
-// FIXME [NP]: doc this as the message we match against
-const AMPLIFY_FORGOT_PASSWORD_USER_NOT_CONFIRMED_MESSAGE = "Cannot reset password for the user as there is no registered/verified email or phone_number";
 const FORGOT_PASSWORD_USER_NOT_CONFIRMED_MESSAGE = "Cannot reset password for user with unverified email. Please verify your email first.";
+
+/** A list of known Amplify errors that we can match against prior to trying to convert to our
+ * internal error types. This is useful for disambiguating between Amplify errors with the same code
+ * but different messages. */
+const KNOWN_ERRORS = {
+    userAlreadyConfirmed: {
+        code: "NotAuthorizedException",
+        message: "User cannot be confirmed. Current status is CONFIRMED",
+    },
+    forgotPasswordUserNotConfirmed: {
+        code: "InvalidParameterException",
+        message: "Cannot reset password for the user as there is no registered/verified email or phone_number",
+    }
+}
 
 
 
@@ -79,15 +91,14 @@ const isAuthError = (error: unknown): error is AuthError => {
 // === Cognito ===
 // ===============
 
-// FIXME [NP]: all these docs are old?
 export interface Cognito {
     /**
-     * Returns the current user's session, or `null` if the user is not logged in.
+     * Returns the current user's session.
      *
      * Will refresh the session if it has expired.
      *
-     * @returns `UserSession` if the user is logged in, `null` otherwise.
-     * @throws An error if the session cannot be retrieved.
+     * @returns `UserSession` if the user is logged in, `None` otherwise.
+     * @throws An error if failed due to an unknown error.
      */
     userSession: () => Promise<Option<UserSession>>;
     /**
@@ -95,8 +106,8 @@ export interface Cognito {
      * 
      * Does not rely on external identity providers (e.g., Google or GitHub).
      *
-     * @returns A promise that resolves if the sign up was successful.
-     * @throws An error if sign up fails.
+     * @returns A promise that resolves to either success or known error.
+     * @throws An error if failed due to an unknown error.
      */
     signUp: (username: string, password: string) => Promise<Result<null, SignUpError>>;
     /**
@@ -104,8 +115,8 @@ export interface Cognito {
      *
      * @param email - User's email address.
      * @param code - Verification code that was sent to the user's email address.
-     * @returns A promise that resolves if the verification code was sent successfully.
-     * @throws An error if the verification fails.
+     * @returns A promise that resolves to either success or known error.
+     * @throws An error if failed due to an unknown error.
      */
     confirmSignUp: (email: string, code: string) => Promise<Result<null, ConfirmSignUpError>>;
     /**
@@ -131,8 +142,8 @@ export interface Cognito {
      * 
      * @param username - Username of the user to sign in.
      * @param password - Password of the user to sign in.
-     * @returns A promise that resolves if the sign in was successful.
-     * @throws An error if sign in fails.
+     * @returns A promise that resolves to either success or known error.
+     * @throws An error if failed due to an unknown error.
      */
     signInWithPassword: (username: string, password: string) => Promise<Result<null, SignInWithPasswordError>>;
     /**
@@ -143,8 +154,8 @@ export interface Cognito {
      * automatically.
      *
      * @param email - Email address to send the password reset email to.
-     * @returns A promise that resolves if the email was sent successfully.
-     * @throws An error if the email fails to send.
+     * @returns A promise that resolves to either success or known error.
+     * @throws An error if failed due to an unknown error.
      */
     forgotPassword: (username: string) => Promise<Result<null, ForgotPasswordError>>;
     /**
@@ -157,15 +168,14 @@ export interface Cognito {
      * @param email - Email address to reset the password for.
      * @param code - Verification code that was sent to the user's email address.
      * @param password - New password to set.
-     * @returns A promise that resolves if the password was reset successfully.
-     * @throws An error if the password fails to reset.
+     * @returns A promise that resolves to either success or known error.
+     * @throws An error if failed due to an unknown error.
      */
     forgotPasswordSubmit: (username: string, code: string, newPassword: string) => Promise<Result<null, ForgotPasswordSubmitError>>;
     /**
      * Signs out the current user.
      * 
-     * @returns A promise that resolves if the sign out was successful.
-     * @throws An error if sign out fails.
+     * @returns A promise that resolves if successful.
      */
     signOut: () => Promise<void>;
 }
@@ -199,13 +209,25 @@ export class CognitoImpl implements Cognito {
 
     // === Interface `impl`s ===
 
-    // FIXME [NP]: document this https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
+    /**
+     * We want to signal to Amplify to fire a "custom state change" event when the user is
+     * redirected back to the application after signing in via an external identity provider. This
+     * is done so we get a chance to fix the location history that Amplify messes up when it
+     * redirects the user to the identity provider's authentication page.
+     * 
+     * In order to do so, we need to pass custom state along for the entire OAuth flow, which is
+     * obtained by calling this function. This function will return the current location path if
+     * the user is signing in from the desktop application, and `undefined` otherwise.
+     * 
+     * We use `undefined` outside of the desktop application because Amplify only messes up the
+     * location history in the desktop application.
+     * 
+     * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
+     */
     customState = () => this.fromDesktop ? window.location.pathname : undefined;
     userSession = userSession;
-    // FIXME [NP]: constantize
     signUp = (username: string, password: string) => signUp(username, password, this.fromDesktop)
     confirmSignUp = confirmSignUp
-    // FIXME [NP]: document this https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
     signInWithGoogle = () => signInWithGoogle(this.customState())
     signInWithGitHub = signInWithGitHub;
     signInWithPassword = signInWithPassword
@@ -378,9 +400,8 @@ export interface ConfirmSignUpError {
 }
 
 const intoConfirmSignUpErrorOrThrow = (error: AmplifyError): ConfirmSignUpError => {
-    if (error.code === "NotAuthorizedException") {
-        // FIXME [NP]: constantize?
-        if (error.message === "User cannot be confirmed. Current status is CONFIRMED") {
+    if (error.code === KNOWN_ERRORS.userAlreadyConfirmed.code) {
+        if (error.message === KNOWN_ERRORS.userAlreadyConfirmed.message) {
             return {
                 // We don't re-use the `error.code` here because Amplify overloads the same kind
                 // for multiple kinds of errors that we want to disambiguate.
@@ -493,8 +514,8 @@ const intoForgotPasswordErrorOrThrow = (error: AmplifyError): ForgotPasswordErro
             kind: "UserNotFound",
             message: FORGOT_PASSWORD_USER_NOT_FOUND_MESSAGE,
         };
-    } else if (error.code === "InvalidParameterException") {
-        if (error.message === AMPLIFY_FORGOT_PASSWORD_USER_NOT_CONFIRMED_MESSAGE) {
+    } else if (error.code === KNOWN_ERRORS.forgotPasswordUserNotConfirmed.code) {
+        if (error.message === KNOWN_ERRORS.forgotPasswordUserNotConfirmed.message) {
             return {
                 kind: "UserNotConfirmed",
                 message: FORGOT_PASSWORD_USER_NOT_CONFIRMED_MESSAGE,

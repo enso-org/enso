@@ -56,9 +56,6 @@ export function useAsyncEffect<T>(initialValue: T, fetch: () => Promise<T>, deps
     const [value, setValue] = useState<T>(initialValue);
 
     useEffect(() => {
-        // FIXME [NP]: remove this
-        logger.log("useAsyncEffect", initialValue, fetch, deps)
-
         let active = true;
 
         // Declare the async data fetching function.

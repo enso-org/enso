@@ -37,7 +37,7 @@ export const CONFIRM_REGISTRATION_PATH = "/confirmation";
 /// Path to the forgot password page.
 export const FORGOT_PASSWORD_PATH = "/forgot-password";
 /// Path to the reset password page.
-export const RESET_PASSWORD_PATH = "/reset-password";
+export const RESET_PASSWORD_PATH = "/password-reset";
 /// Path to the set username page.
 export const SET_USERNAME_PATH = "/set-username";
 
