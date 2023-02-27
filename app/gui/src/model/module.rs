@@ -407,6 +407,7 @@ pub struct NodeMetadata {
     ///
     /// The methods may be defined for different types, so the name alone don't specify them.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
+    // TODO: It is not used anywhere. Deprecate?
     pub intended_method: Option<MethodId>,
     /// Information about uploading file.
     ///

@@ -25,7 +25,6 @@ use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 use flo_stream::Subscriber;
-use parser::Parser;
 
 
 // ==============
@@ -439,7 +438,8 @@ impl Searcher {
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
         let module_repr: Rope = module_ast.repr().into();
-        let position = module_repr.offset_to_location_snapped(def_span.end);
+        // TODO: is it correct?
+        let position = module_repr.offset_to_location_snapped(def_span.end - text::ByteDiff(1));
         let this_arg = Rc::new(match mode {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
