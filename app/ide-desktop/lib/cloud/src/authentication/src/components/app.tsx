@@ -4,17 +4,17 @@
 import * as React from 'react'
 import { Routes, Route, BrowserRouter, MemoryRouter, useNavigate } from 'react-router-dom'
 
-import { AuthProvider, GuestLayout, ProtectedLayout } from '../authentication';
+import { AuthProvider, GuestLayout, ProtectedLayout } from '../authentication/providers/auth';
 import DashboardContainer from "./dashboard";
-import ForgotPasswordContainer from "./forgotPassword";
-import ResetPasswordContainer from "./resetPassword";
-import LoginContainer from "./login";
-import RegistrationContainer from "./registration";
-import ConfirmRegistrationContainer from "./confirmRegistration";
-import SetUsernameContainer from "./setUsername";
+import ForgotPasswordContainer from "../authentication/components/forgotPassword";
+import ResetPasswordContainer from "../authentication/components/resetPassword";
+import LoginContainer from "../authentication/components/login";
+import RegistrationContainer from "../authentication/components/registration";
+import ConfirmRegistrationContainer from "../authentication/components/confirmRegistration";
+import SetUsernameContainer from "../authentication/components/setUsername";
 import { Toaster } from 'react-hot-toast';
 import { FC, Fragment, useMemo } from 'react';
-import authApi from '../authentication/api';
+import authService from '../authentication/service';
 import withRouter from '../navigation';
 import {ProjectManager} from "enso-studio-content/src/project_manager";
 import { Logger, LoggerProvider } from '../logger';
@@ -100,12 +100,12 @@ const AppRouter: FC<AppProps> = (props) => {
   const { logger, onAuthenticated, runningOnDesktop, projectManager } = props;
   const navigate = useNavigate();
   const authConfig = { navigate, ...props }
-  const auth = useMemo(() => authApi(authConfig), []);
+  const auth = useMemo(() => authService(authConfig), []);
 
   return (
     <LoggerProvider logger={logger}>
       <SessionProvider userSession={auth.cognito.userSession} registerAuthEventListener={auth.registerAuthEventListener}>
-        <AuthProvider auth={auth} onAuthenticated={onAuthenticated} >
+        <AuthProvider authService={auth} onAuthenticated={onAuthenticated} >
           <Routes>
             <Fragment>
               {/* Login & registration pages are visible to unauthenticated users. */}

@@ -5,11 +5,11 @@ import { FC } from 'react'
 import { Link } from 'react-router-dom';
 import toast from "react-hot-toast";
 
-import { useAuth } from '../authentication';
-import withRouter from '../navigation'
-import { useInput } from '../hooks'
-import { handleEvent } from '../utils';
-import { LOGIN_PATH } from './app';
+import { useAuth } from '../providers/auth';
+import withRouter from '../../navigation'
+import { useInput } from '../../hooks'
+import { handleEvent } from '../../utils';
+import { LOGIN_PATH } from '../../components/app';
 
 
 

@@ -9,12 +9,12 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
 import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { toast } from "react-hot-toast"
 
-import { createBackend, Organization, SetUsernameBody } from './api';
-import { Api } from './authentication/api';
-import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from './components/app';
-import { useLogger } from './logger';
-import { useSession } from './authentication/providers/session';
-import { UnreachableCaseError } from './error';
+import { createBackend, Organization, SetUsernameBody } from '../../service';
+import { AuthService } from '../service';
+import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from '../../components/app';
+import { useLogger } from '../../logger';
+import { useSession } from './session';
+import { UnreachableCaseError } from '../../error';
 
 
 
@@ -153,7 +153,7 @@ const AuthContext = createContext<AuthContextType>(
 // ====================
 
 export interface AuthProviderProps {
-    auth: Api,
+    authService: AuthService,
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void;
     children: ReactNode;
@@ -161,8 +161,8 @@ export interface AuthProviderProps {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps): JSX.Element => {
-  const { auth, children } = props
-  const { cognito } = auth
+  const { authService, children } = props
+  const { cognito } = authService
   const { session } = useSession();
   const logger = useLogger();
   const onAuthenticated = useCallback(props.onAuthenticated, [])

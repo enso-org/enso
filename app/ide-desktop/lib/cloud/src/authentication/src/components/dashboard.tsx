@@ -7,10 +7,10 @@ import * as React from 'react'
 import { FC, useEffect, useState } from 'react'
 import {unstable_batchedUpdates as batchedUpdate} from "react-dom";
 
-import { useAuth, useFullUserSession } from '../authentication';
+import { useAuth, useFullUserSession } from '../authentication/providers/auth';
 
 import withRouter from '../navigation'
-import {createBackend, Project, ProjectState} from "../api";
+import {createBackend, Project, ProjectState} from "../service";
 import {Templates} from "./templates";
 import {ProjectActionButton} from "./projectActionButton";
 import {ProjectManager} from "enso-studio-content/src/project_manager";

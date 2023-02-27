@@ -6,11 +6,11 @@ import { FC } from 'react'
 import { Link, useLocation } from 'react-router-dom';
 import { faGoogle, faGithub } from '@fortawesome/free-brands-svg-icons';
 
-import { useAuth } from '../authentication';
-import { useInput } from '../hooks';
-import withRouter from '../navigation'
-import { handleEvent } from '../utils';
-import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from './app';
+import { useAuth } from '../providers/auth';
+import { useInput } from '../../hooks';
+import withRouter from '../../navigation'
+import { handleEvent } from '../../utils';
+import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '../../components/app';
 
 
 

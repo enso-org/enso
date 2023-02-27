@@ -5,10 +5,10 @@
 import * as React from 'react'
 import { FC } from 'react'
 
-import { useAuth, usePartialUserSession } from '../authentication';
-import withRouter from '../navigation'
-import { useInput } from '../hooks'
-import { handleEvent } from '../utils';
+import { useAuth, usePartialUserSession } from '../providers/auth';
+import withRouter from '../../navigation'
+import { useInput } from '../../hooks'
+import { handleEvent } from '../../utils';
 
 
 

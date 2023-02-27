@@ -5,8 +5,7 @@
  * asynchronous and return a `Promise` that resolves to the response from the API.
  */
 // FIXME [NP]: document all of the below
-import { createContext, ReactNode, useContext } from 'react';
-import { Client, HttpResponse } from './client';
+import { Client } from './http';
 
 import { API_URL } from "./config";
 import { Logger } from './logger';

@@ -1,10 +1,10 @@
 import { FC, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LOGIN_PATH } from "./app";
-import withRouter from "../navigation";
-import { useAuth } from "../authentication";
+import { LOGIN_PATH } from "../../components/app";
+import withRouter from "../../navigation";
+import { useAuth } from "../providers/auth";
 import toast from "react-hot-toast";
-import { useLogger } from "../logger";
+import { useLogger } from "../../logger";
 
 
 
