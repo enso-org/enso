@@ -41,9 +41,8 @@ async function getInfo() {
     }
 }
 
-/** Print the current system information and exit the application. */
-export async function printInfoAndExit() {
+/** Print the current system information */
+export async function printInfo() {
     const info = await getInfo()
     console.log(JSON.stringify(info, undefined, 4))
-    process.exit()
 }
