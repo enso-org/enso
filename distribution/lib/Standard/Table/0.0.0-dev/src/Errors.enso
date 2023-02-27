@@ -330,14 +330,17 @@ type No_Index_Set_Error
     to_display_text self = "The table does not have an index set."
 
 type Invalid_Value_Type
-    Error expected actual
+    Error expected actual related_column=Nothing
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "Expected " + self.expected.to_text + " type, but got " + self.actual.to_text + "."
+        prefix = case self.related_column of
+            Nothing -> "Expected "
+            column_name -> "Expected " + column_name + " column to have "
+        prefix + self.expected.to_text + " type, but got " + self.actual.to_text + "."
 
 ## UNSTABLE
 

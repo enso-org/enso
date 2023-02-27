@@ -16,6 +16,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
+import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -74,7 +75,8 @@ Nothing.to_js_object self = self
    For atoms and maps, the object is converted to a JS_Object.
 Array.to_js_object : Vector
 Array.to_js_object self =
-    proxy = Array_Proxy.new self.length i-> self.at i . to_js_object
+    stripped = Warning.clear self
+    proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
 ## Converts the given value to a JSON serializable object.
@@ -83,7 +85,8 @@ Array.to_js_object self =
    For atoms, the object is converted to a JS_Object.
 Vector.to_js_object : Vector
 Vector.to_js_object self =
-    proxy = Array_Proxy.new self.length i-> self.at i . to_js_object
+    stripped = Warning.clear self
+    proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
 ## Converts the given value to a JSON serializable object.
