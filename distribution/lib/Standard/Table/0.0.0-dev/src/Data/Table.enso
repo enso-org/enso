@@ -2,12 +2,12 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 import project.Data.Aggregate_Column.Aggregate_Column
@@ -684,7 +684,7 @@ type Table
             directions = columns_for_ordering.map c->
                 c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
+            java_table = Illegal_Argument.handle_java_exception <|
                 self.java_table.orderBy java_columns.to_array directions.to_array comparator
             Table.Value java_table
 

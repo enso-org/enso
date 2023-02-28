@@ -8,9 +8,9 @@ import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
+import project.Error.Common.Incomparable_Values
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.Incomparable_Values.Incomparable_Values
 import project.Meta
 import project.Nothing.Nothing
 import project.Runtime.Ref.Ref
@@ -342,13 +342,12 @@ compute_fold counter current value =
         counter.increment
 
         if counter.comparatorError.not then
-            value_comparator = Comparable.from value
             if counter.minimum.is_nothing then counter.setMinimum value else
-                ordering = Incomparable_Values.handle_errors <| value_comparator.compare value counter.minimum
+                ordering = Ordering.compare value counter.minimum
                 if ordering.is_error then counter.failComparator else
                     if ordering == Ordering.Less then counter.setMinimum value
             if counter.maximum.is_nothing then counter.setMaximum value else
-                ordering = Incomparable_Values.handle_errors <| value_comparator.compare value counter.maximum
+                ordering = Ordering.compare value counter.maximum
                 if ordering.is_error then counter.failComparator else
                     if ordering == Ordering.Greater then counter.setMaximum value
 

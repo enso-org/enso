@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Incomparable_Values.Incomparable_Values
+import Standard.Base.Error.Common.Incomparable_Values
 
 import Standard.Base.Data.Ordering.Comparator
 

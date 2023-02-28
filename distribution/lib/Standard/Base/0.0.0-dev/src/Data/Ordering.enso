@@ -2,11 +2,11 @@ import project.Any.Any
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Error.Common.Incomparable_Values
 import project.Error.Common.Type_Error
 import project.Error.Error
-import project.Error.Incomparable_Values.Incomparable_Values
 import project.Error.Unimplemented.Unimplemented
-import project.Nothing
+import project.Nothing.Nothing
 import project.Meta
 import project.Meta.Atom
 import project.Panic.Panic
