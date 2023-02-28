@@ -155,19 +155,31 @@ impl Display for InputAst {
 /// The Component Browser Input.
 ///
 /// This structure is responsible for keeping and interpreting the searcher input - it provides
-/// the information [what part of the input is a filtering pattern](Input::pattern), and [what part
-/// should be replaced when inserting a suggestion](Input::after_inserting_suggestion).
+/// the information:
+/// * [what part of the input is a filtering pattern](Input::pattern), and
+/// * [what part should be replaced when inserting a suggestion](Input::after_inserting_suggestion).
+///
+/// Both information are deduced from the _edited name_. The edited name is a concrete
+/// identifier which we deduce the user is currently editing - we assume this is an identifier where
+/// the text cursor is positioned (including the "end" of the identifier, like `foo|`).
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Input {
+    /// The input in the AST form.
     pub ast:             InputAst,
+    /// The current cursor position in the input.
     pub cursor_position: text::Byte,
+    /// The edited part of the input: the name being edited and it's context. See [`EditedAst`] for
+    /// details.
     pub edited_ast:      EditedAst,
 }
 
 impl Input {
     /// Create the structure from the code already parsed to AST.
     pub fn new(ast: ast::BlockLine<Ast>, cursor_position: text::Byte) -> Self {
+        // We primarily check the character on the left of the cursor (`cursor_position_before`),
+        // to properly handle the situation when the cursor is at end of the edited name.
+        // But if there is no identifier on the left then we check the right side.
         let cursor_position_before =
             (cursor_position > text::Byte(0)).then(|| cursor_position - text::ByteDiff(1));
         let ast_stack_on_left =

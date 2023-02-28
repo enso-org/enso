@@ -852,6 +852,10 @@ ensogl::define_endpoints! {
         /// Set the node expression.
         set_expression (node::Expression),
 
+        /// Edit the node expression: if the node is currently edited, the given range will be
+        /// replaced with the string, and the text cursor will be placed after the inserted string.
+        ///
+        /// If the node is **not** edited, nothing changes.
         edit_expression (text::Range<Byte>, ImString),
 
         /// Set the mode in which the cursor will indicate that editing of the node is possible.
