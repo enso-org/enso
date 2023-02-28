@@ -10,7 +10,7 @@ import { unstable_batchedUpdates as batchedUpdate } from 'react-dom'
 import { useAuth, useFullUserSession } from '../authentication'
 
 import withRouter from '../navigation'
-import { createProject, Project, listProjects, ProjectState } from '../api'
+import { Project, ProjectState } from '../api'
 import { Templates } from './templates'
 import { ProjectActionButton } from './projectActionButton'
 import { ProjectManager } from 'enso-studio-content/src/project_manager'
