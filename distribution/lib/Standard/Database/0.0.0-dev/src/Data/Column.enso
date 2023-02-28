@@ -360,7 +360,9 @@ type Column
         op = case other of
             _ : Column -> if self.sql_type.is_definitely_numeric || other.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
             _ -> if self.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
-        self.make_binary_op op other
+        new_type = if op == 'ADD_TEXT' then self.sql_type else
+            SQL_Type.arithmetic_type self.sql_type (SQL_Type.approximate_type other)
+        self.make_binary_op op other new_type=new_type
 
     ## UNSTABLE
 
@@ -373,7 +375,9 @@ type Column
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
-    - self other = self.make_binary_op "-" other
+    - self other =
+        new_type = SQL_Type.arithmetic_type self.sql_type (SQL_Type.approximate_type other)
+        self.make_binary_op "-" other new_type=new_type
 
     ## UNSTABLE
 
@@ -386,7 +390,9 @@ type Column
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
     * : Column | Any -> Column
-    * self other = self.make_binary_op "*" other
+    * self other =
+        new_type = SQL_Type.arithmetic_type self.sql_type (SQL_Type.approximate_type other)
+        self.make_binary_op "*" other new_type=new_type
 
     ## ALIAS Divide Columns
 
@@ -452,7 +458,9 @@ type Column
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
     % self other =
-        self.make_binary_op "%" other
+        new_type = SQL_Type.arithmetic_type self.sql_type (SQL_Type.approximate_type other)
+        op = if new_type == SQL_Type.integer then "%" else "mod"
+        self.make_binary_op op other new_type=new_type
 
     ## ALIAS Power
 
@@ -480,7 +488,8 @@ type Column
 
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ : Column | Any -> Column
-    ^ self other = self.make_binary_op '^' other
+    ^ self other =
+        self.make_binary_op '^' other new_type=SQL_Type.double
 
     ## UNSTABLE
 
@@ -494,7 +503,7 @@ type Column
        operation is performed pairwise between corresponding elements of `self`
        and `other`.
     && : Column | Any -> Column
-    && self other = self.make_binary_op "AND" other
+    && self other = self.make_binary_op "AND" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -508,7 +517,7 @@ type Column
        operation is performed pairwise between corresponding elements of `self`
        and `other`.
     || : Column | Any -> Column
-    || self other = self.make_binary_op "OR" other
+    || self other = self.make_binary_op "OR" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -662,7 +671,7 @@ type Column
        Arguments:
        - new_name: The name to rename `self` column to.
     rename : Text -> Column ! Unsupported_Name
-    rename self new_name = Helpers.ensure_name_is_sane new_name <|
+    rename self new_name =
         Column.Value new_name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE

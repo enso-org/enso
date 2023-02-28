@@ -50,25 +50,6 @@ unify_vector_singleton x = case x of
     _ -> [x]
 
 ## PRIVATE
-
-   This is used to check if the new name is safe for use in SQL queries.
-
-   Arguments:
-   - name: The name to check for safety.
-   - action: The action to perform if the name is safe.
-
-   In a future version we will decouple the internal SQL-safe names from the
-   external names shown to the user, but as a temporary solution we only allow
-   SQL-safe names for columns.
-
-   # TODO [RW] better name handling in Tables (#1513)
-ensure_name_is_sane : Text -> (Any -> Any) -> Any ! Unsupported_Name
-ensure_name_is_sane name ~action =
-    is_safe = Pattern.matches "[A-Za-z_0-9]+" name
-    if is_safe then action else
-        Error.throw <| Unsupported_Name.Error (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")
-
-## PRIVATE
 assume_default_locale : Locale -> Any -> Any ! Unsupported_Database_Operation
 assume_default_locale locale ~action =
     case locale == Locale.default of

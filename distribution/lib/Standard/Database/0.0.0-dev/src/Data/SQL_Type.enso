@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
+import project.Data.Column.Column
+
 polyglot java import java.sql.Types
 
 ## Represents an internal SQL data-type.
@@ -77,10 +79,15 @@ type SQL_Type
     date_time : SQL_Type
     date_time = SQL_Type.Value Types.TIMESTAMP_WITH_TIMEZONE "TIMESTAMP"
 
+    ## The SQL type representing a null column.
+    null : SQL_Type
+    null = SQL_Type.Value Types.NULL "NULL"
+
     ## ADVANCED
        Given an Enso value gets the approximate SQL type.
     approximate_type : Any -> SQL_Type ! Illegal_Argument
     approximate_type value = case value of
+        _ : Column -> value.sql_type
         _ : Boolean -> SQL_Type.boolean
         _ : Integer -> SQL_Type.integer
         _ : Decimal -> SQL_Type.double
@@ -88,7 +95,20 @@ type SQL_Type
         _ : Date -> SQL_Type.date
         _ : Time_Of_Day -> SQL_Type.time_of_day
         _ : Date_Time -> SQL_Type.date_time
-            _ -> Error.throw (Illegal_Argument.Error "Unsupported type.")
+        Nothing -> SQL_Type.null
+        _ -> Error.throw (Illegal_Argument.Error "Unsupported type.")
+
+    ## PRIVATE
+       Returns the SQL type that is the result of applying an arithmetic
+       operation to the two given types.
+    arithmetic_type : SQL_Type -> SQL_Type -> SQL_Type ! Illegal_Argument
+    arithmetic_type left right = if right == SQL_Type.null then left else
+        if left == SQL_Type.null then right else
+            if left == right then left else
+                case left.is_definitely_numeric && right.is_definitely_numeric of
+                    False -> Error.throw (Illegal_Argument.Error "Unsupported types for arithmetic operation.")
+                    True -> if left.is_definitely_integer && right.is_definitely_integer then SQL_Type.integer else
+                        SQL_Type.double
 
     ## PRIVATE
 
