@@ -26,7 +26,6 @@ use engine_protocol::language_server;
 use parser::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
-use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::Context as SpanTreeContext;
 use span_tree::SpanTree;
 
@@ -1006,18 +1005,6 @@ impl Handle {
     }
 }
 
-
-// === Span Tree Context ===
-
-/// Span Tree generation context for a graph that does not know about execution.
-///
-/// It just applies the information from the metadata.
-impl span_tree::generate::Context for Handle {
-    fn call_info(&self, _id: node::Id, _name: Option<&str>) -> Option<CalledMethodInfo> {
-        None
-    }
-}
-
 impl model::undo_redo::Aware for Handle {
     fn undo_redo_repository(&self) -> Rc<model::undo_redo::Repository> {
         self.module.undo_redo_repository()
@@ -1048,12 +1035,9 @@ pub mod tests {
     use parser::Parser;
 
 
-
     /// Returns information about all the connections between graph's nodes.
-    ///
-    /// Will use `self` as the context for span tree generation.
     pub fn connections(graph: &Handle) -> FallibleResult<Connections> {
-        graph.connections(graph)
+        graph.connections(&span_tree::generate::context::Empty)
     }
 
     /// All the data needed to set up and run the graph controller in mock environment.
@@ -1226,39 +1210,6 @@ main =
             assert!(graph.parse_node_expression("5+5").is_ok());
             assert!(graph.parse_node_expression("a+5").is_ok());
             assert!(graph.parse_node_expression("a=5").is_err());
-        })
-    }
-
-    #[test]
-    fn span_tree_context_handling_metadata_and_name() {
-        let entry = crate::test::mock::data::suggestion_entry_foo();
-        let mut test = Fixture::set_up();
-        test.data.suggestions.insert(0, entry.clone());
-        test.data.code = "main = bar".to_owned();
-        test.run(|graph| async move {
-            let nodes = graph.nodes().unwrap();
-            assert_eq!(nodes.len(), 1);
-            let id = nodes[0].info.id();
-            graph.module.set_node_metadata(id, default()).unwrap();
-
-            let get_invocation_info = || {
-                let node = &graph.nodes().unwrap()[0];
-                assert_eq!(node.info.id(), id);
-                let expression = node.info.expression().repr();
-                graph.call_info(id, Some(expression.as_str()))
-            };
-
-            // Now node is `bar` while the intended method is `foo`.
-            // No invocation should be reported, as the name is mismatched.
-            assert!(get_invocation_info().is_none());
-
-            // Now the name should be good and we should the information about node being a call.
-            graph.set_expression(id, &entry.name).unwrap();
-            crate::test::assert_call_info(get_invocation_info().unwrap(), &entry);
-
-            // Now we remove metadata, so the information is no more.
-            graph.module.remove_node_metadata(id).unwrap();
-            assert!(get_invocation_info().is_none());
         })
     }
 

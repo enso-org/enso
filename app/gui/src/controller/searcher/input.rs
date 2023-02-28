@@ -10,6 +10,20 @@ use parser::Parser;
 
 
 
+// ==============
+// === Errors ===
+// ==============
+
+#[derive(Clone, Debug, Fail)]
+#[allow(missing_docs)]
+#[fail(display = "Not a char boundary: index {} at '{}'.", index, string)]
+pub struct NotACharBoundary {
+    index:  usize,
+    string: String,
+}
+
+
+
 // ====================
 // === AstWithRange ===
 // ====================
@@ -293,10 +307,8 @@ impl Input {
         let end_of_inserted_text = end_of_inserted_code + text::Bytes(1);
         let mut new_input = self.ast.to_string();
         let raw_range = replaced.start.value..replaced.end.value;
-        let range_start = raw_range.start;
-        let range_end = raw_range.end;
-        Self::ensure_on_char_boundary(&new_input, range_start)?;
-        Self::ensure_on_char_boundary(&new_input, range_end)?;
+        Self::ensure_on_char_boundary(&new_input, raw_range.start)?;
+        Self::ensure_on_char_boundary(&new_input, raw_range.end)?;
         new_input.replace_range(raw_range, &code_to_insert);
         new_input.insert(end_of_inserted_code.value, ' ');
         Ok(InsertedSuggestion {
@@ -318,13 +330,6 @@ impl Input {
     }
 }
 
-#[derive(Clone, Debug, Fail)]
-#[allow(missing_docs)]
-#[fail(display = "Not a char boundary: index {} at '{}'.", index, string)]
-pub struct NotACharBoundary {
-    index:  usize,
-    string: String,
-}
 
 
 // ============
