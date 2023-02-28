@@ -2,8 +2,9 @@
   "include": ["src/**/*"],
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
-    "rootDir": "src",
     "baseUrl": "./src",
+    "declaration": true,
+    "declarationMap": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSourceMap": true,
@@ -12,16 +13,15 @@
     "moduleResolution": "node",
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
+    "outDir": "dist",
     "removeComments": true,
     "resolveJsonModule": true,
+    "rootDir": "src",
+    "skipLibCheck": true,
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "ES2019",
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "declaration": true,
-    "declarationMap": true
+    "target": "ES2019"
   },
   "ts-node": {
     "esm": true

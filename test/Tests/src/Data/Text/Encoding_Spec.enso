@@ -5,6 +5,8 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
+polyglot java import java.lang.String as Java_String
+
 spec =
     Test.group "Encoding object" <|
         Test.specify "Can get standard UTF encodings" <|
@@ -46,17 +48,25 @@ spec =
             Test.assert_no_problems result
             result . should_equal test
 
-        Test.specify "Invalid ASCII should raise a warning when decoding" <|
+        Test.specify "Invalid ASCII should raise a problem when decoding (error by default)" <|
             action = Text.from_bytes invalid_ascii Encoding.ascii on_problems=_
             tester result = result . should_equal invalid
             problems = [Encoding_Error.Error "Encoding issues at 12."]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "Invalid ASCII should raise a warning when encoding" <|
+            default_error = Text.from_bytes invalid_ascii Encoding.ascii
+            default_error.should_fail_with Encoding_Error
+            default_error.catch.message . should_equal "Encoding issues at 12."
+
+        Test.specify "Invalid ASCII should raise a problem when encoding (warning by default)" <|
             action = invalid.bytes Encoding.ascii on_problems=_
             tester result = result . should_equal invalid_ascii_out
             problems = [Encoding_Error.Error "Encoding issues at 12."]
             Problems.test_problem_handling action problems tester
+
+            default_warning = invalid.bytes Encoding.ascii
+            default_warning.should_equal invalid_ascii_out
+            Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
 
     Test.group "UTF_8" <|
         kshi = '\u0915\u094D\u0937\u093F'
@@ -75,6 +85,18 @@ spec =
             Test.assert_no_problems dump
             dump.should_equal kshi_utf_8
 
+        Test.specify "should raise a problem when encoding (warning by default)" <|
+            unpaired_surrogate = Integer.parse "DEDC" 16
+            text = Text.from_codepoints [unpaired_surrogate]
+
+            action = text.utf_8 on_problems=_
+            tester _ = Nothing
+            problems = [Encoding_Error.Error "Encoding issues at 0."]
+            Problems.test_problem_handling action problems tester
+
+            default_warning = text.utf_8
+            Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
+
         Test.specify "should convert an array of bytes to text via encoding" <|
             result = Text.from_bytes kshi_utf_8 Encoding.utf_8
             Test.assert_no_problems result
@@ -85,17 +107,21 @@ spec =
             Test.assert_no_problems result
             result . should_equal kshi
 
-        Test.specify "Invalid UTF-8 should raise a warning when decoding via encoding" <|
+        Test.specify "Invalid UTF-8 should raise a problem when decoding via encoding" <|
             action = Text.from_bytes invalid_utf_8 Encoding.utf_8 on_problems=_
             tester result = result . should_equal invalid
             problems = [Encoding_Error.Error "Encoding issues at 19."]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "Invalid UTF-8 should raise a warning when decoding" <|
+        Test.specify "Invalid UTF-8 should raise a problem when decoding (error by default)" <|
             action = Text.from_utf_8 invalid_utf_8 on_problems=_
             tester result = result . should_equal invalid
             problems = [Encoding_Error.Error "Encoding issues at 19."]
             Problems.test_problem_handling action problems tester
+
+            default_error = Text.from_utf_8 invalid_utf_8
+            default_error.should_fail_with Encoding_Error
+            default_error.catch.message . should_equal "Encoding issues at 19."
 
     Test.group "UTF_16 BigEndian" <|
         kshi = '\u0915\u094D\u0937\u093F'
@@ -153,13 +179,13 @@ spec =
             Test.assert_no_problems result
             result . should_equal test
 
-        Test.specify "Invalid Windows-1252 should raise a warning when decoding" <|
+        Test.specify "Invalid Windows-1252 should raise a problem when decoding" <|
             action = Text.from_bytes invalid_windows Encoding.windows_1252 on_problems=_
             tester result = result . should_equal invalid
             problems = [Encoding_Error.Error "Encoding issues at 16."]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "Invalid Windows-1252 should raise a warning when encoding" <|
+        Test.specify "Invalid Windows-1252 should raise a problem when encoding" <|
             action = invalid.bytes Encoding.windows_1252 on_problems=_
             tester result = result . should_equal invalid_windows_out
             problems = [Encoding_Error.Error "Encoding issues at 16."]

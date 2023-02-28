@@ -29,5 +29,31 @@ class DefaultLogMessageRendererSpec
 
       noException should be thrownBy renderer.render(message)
     }
+
+    "render NullPointerException with null message" in {
+      val renderer = new DefaultLogMessageRenderer(printExceptions = true)
+      val ts       = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+
+      val exception =
+        SerializedException.fromException(new NullPointerException)
+      val message =
+        WSLogMessage(LogLevel.Trace, ts, null, null, Some(exception))
+
+      val txt = renderer.render(message)
+      txt.toString() should equal(txt)
+    }
+
+    "JSONize NullPointerException with null message" in {
+      val ts = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+
+      val exception =
+        SerializedException.fromException(new NullPointerException)
+      val message =
+        WSLogMessage(LogLevel.Trace, ts, null, null, Some(exception))
+
+      import io.circe.syntax._
+
+      message.asJson.noSpaces
+    }
   }
 }

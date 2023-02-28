@@ -17,9 +17,9 @@ pub enum Kind {
     /// A root of the expression tree.
     Root,
     /// A node chained with parent node. See crate's docs for more info about chaining.
-    Chained,
+    Chained(Chained),
     /// A node representing operation (operator or function) of parent Infix, Section or Prefix.
-    Operation(Operation),
+    Operation,
     /// A node being a target (or "self") parameter of parent Infix, Section or Prefix.
     This(This),
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
@@ -31,8 +31,6 @@ pub enum Kind {
     /// between AST tokens. For example, given expression `foo   bar`, the span assigned to the
     /// `InsertionPoint` between `foo` and `bar` should be set to 3.
     InsertionPoint(InsertionPoint),
-    /// A parenthesized expression.
-    Group,
 }
 
 
@@ -40,7 +38,7 @@ pub enum Kind {
 
 #[allow(missing_docs)]
 impl Kind {
-    pub fn operation() -> Operation {
+    pub fn chained() -> Chained {
         default()
     }
     pub fn this() -> This {
@@ -150,7 +148,7 @@ impl Kind {
     /// Get the function call AST ID associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
-            Self::Operation(t) => t.call_id,
+            Self::Chained(t) => t.call_id,
             Self::This(t) => t.call_id,
             Self::Argument(t) => t.call_id,
             Self::InsertionPoint(t) => t.call_id,
@@ -162,7 +160,7 @@ impl Kind {
     /// or was skipped.
     pub fn set_argument_info(&mut self, argument_info: ArgumentInfo) -> bool {
         match self {
-            Self::Operation(t) => {
+            Self::Chained(t) => {
                 t.call_id = argument_info.call_id;
                 true
             }
@@ -193,13 +191,12 @@ impl Kind {
     pub fn variant_name(&self) -> &str {
         match self {
             Self::Root => "Root",
-            Self::Chained => "Chained",
-            Self::Operation(_) => "Operation",
+            Self::Chained(_) => "Chained",
+            Self::Operation => "Operation",
             Self::This(_) => "This",
             Self::Argument(_) => "Argument",
             Self::Token => "Token",
             Self::InsertionPoint(_) => "InsertionPoint",
-            Self::Group => "Group",
         }
     }
 }
@@ -214,34 +211,35 @@ impl Default for Kind {
 }
 
 
-// =================
-// === Operation ===
-// =================
+// ===============
+// === Chained ===
+// ===============
 
-/// Kind representing an operation (operator or function) of parent Infix, Section or Prefix.
+/// A node chained with parent node, potentially being a first argument of a nested infix call
+/// expression.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct Operation {
-    /// The AST ID of function application that this operation is part of. If this is an access
-    /// chain operation (e.g. `method.call arg`), the call will be the outermost expression
-    /// containing all arguments. For other infix operators (not access), the call will be the
-    /// infix expression containing two arguments.
+pub struct Chained {
+    /// The AST ID of function application that this Chained is a target of. If this is a part of
+    /// an infix operator chain (e.g. `1 + 2 + 3`) and this chained represents `1 + 2`
+    /// subexpression, it is effectively a target (`self`) argument of the second `+` operator.
+    /// In that case the `call_id` will point at its parent `1 + 2 + 3` expression.
     pub call_id: Option<ast::Id>,
 }
 
 
 // === Setters ===
 
-impl Operation {
-    /// Set operation `call_id` field. See [`Operation::call_id`] for more information.
+impl Chained {
+    /// Set Chained `call_id` field. See [`Chained::call_id`] for more information.
     pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
         self.call_id = call_id;
         self
     }
 }
 
-impl From<Operation> for Kind {
-    fn from(t: Operation) -> Self {
-        Self::Operation(t)
+impl From<Chained> for Kind {
+    fn from(t: Chained) -> Self {
+        Self::Chained(t)
     }
 }
 

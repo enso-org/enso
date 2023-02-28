@@ -21,7 +21,7 @@ public class GetStackTraceNode extends Node {
   public static Array stackTraceToArray(Throwable exception) {
     var elements = TruffleStackTrace.getStackTrace(exception);
     if (elements == null) return new Array();
-    var ret = new Array(elements.size());
+    var ret = Array.allocate(elements.size());
     for (int i = 0; i < elements.size(); i++) {
       var element = elements.get(i);
       ret.getItems()[i] = element.getGuestObject();

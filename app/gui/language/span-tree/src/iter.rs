@@ -94,7 +94,7 @@ impl<'a, T> LeafIterator<'a, T> {
     fn can_descend(&self, current_node: &Node<T>) -> bool {
         match &self.fragment {
             TreeFragment::AllNodes => true,
-            TreeFragment::ChainAndDirectChildren => current_node.kind == node::Kind::Chained,
+            TreeFragment::ChainAndDirectChildren => current_node.kind.is_chained(),
         }
     }
 }
@@ -119,7 +119,6 @@ mod tests {
         use ast::crumbs::InfixCrumb::*;
         use ast::crumbs::PrefixCrumb::*;
         use node::Kind;
-        use node::Kind::*;
 
         // Tree we use for tests (C means chained nodes):
         // root:                (-)
@@ -131,21 +130,21 @@ mod tests {
         // gg-children:     ()()     ()() ()
 
         let tree: SpanTree = TreeBuilder::new(14)
-            .add_child(0, 10, Chained, vec![LeftOperand])
+            .add_child(0, 10, Kind::chained(), vec![LeftOperand])
             .add_leaf(0, 3, Kind::this(), vec![LeftOperand])
-            .add_leaf(4, 1, Kind::operation(), vec![Operator])
+            .add_leaf(4, 1, Kind::Operation, vec![Operator])
             .add_child(6, 3, Kind::argument(), vec![RightOperand])
-            .add_leaf(0, 1, Kind::operation(), vec![Func])
+            .add_leaf(0, 1, Kind::Operation, vec![Func])
             .add_leaf(2, 1, Kind::this(), vec![Arg])
             .done()
             .done()
-            .add_leaf(11, 1, Kind::operation(), vec![Operator])
-            .add_child(13, 1, Chained, vec![RightOperand])
+            .add_leaf(11, 1, Kind::Operation, vec![Operator])
+            .add_child(13, 1, Kind::chained(), vec![RightOperand])
             .add_leaf(0, 3, Kind::this(), vec![LeftOperand])
-            .add_leaf(4, 1, Kind::operation(), vec![Operator])
-            .add_child(6, 5, Chained, vec![RightOperand])
+            .add_leaf(4, 1, Kind::Operation, vec![Operator])
+            .add_child(6, 5, Kind::chained(), vec![RightOperand])
             .add_leaf(0, 1, Kind::this(), vec![LeftOperand])
-            .add_leaf(2, 1, Kind::operation(), vec![Operator])
+            .add_leaf(2, 1, Kind::Operation, vec![Operator])
             .add_leaf(4, 1, Kind::argument(), vec![RightOperand])
             .done()
             .done()

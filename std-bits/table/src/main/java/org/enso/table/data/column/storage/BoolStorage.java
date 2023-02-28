@@ -10,6 +10,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
 import org.enso.table.data.index.Index;
@@ -78,13 +79,13 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(String name, Object argument) {
-    return ops.runMap(name, this, argument);
+  protected Storage<?> runVectorizedMap(String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+    return ops.runMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
-    return ops.runZip(name, this, argument);
+  protected Storage<?> runVectorizedZip(String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+    return ops.runZip(name, this, argument, problemBuilder);
   }
 
   public BitSet getValues() {
@@ -214,7 +215,7 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new MapOperation<>(Maps.EQ) {
               @Override
-              public BoolStorage runMap(BoolStorage storage, Object arg) {
+              public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -230,7 +231,7 @@ public final class BoolStorage extends Storage<Boolean> {
               }
 
               @Override
-              public BoolStorage runZip(BoolStorage storage, Storage<?> arg) {
+              public BoolStorage runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 BitSet out = new BitSet();
                 BitSet missing = new BitSet();
                 for (int i = 0; i < storage.size; i++) {
@@ -248,7 +249,7 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new MapOperation<>(Maps.AND) {
               @Override
-              public BoolStorage runMap(BoolStorage storage, Object arg) {
+              public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -263,7 +264,7 @@ public final class BoolStorage extends Storage<Boolean> {
               }
 
               @Override
-              public BoolStorage runZip(BoolStorage storage, Storage<?> arg) {
+              public BoolStorage runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
@@ -292,7 +293,7 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new MapOperation<>(Maps.OR) {
               @Override
-              public BoolStorage runMap(BoolStorage storage, Object arg) {
+              public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -307,7 +308,7 @@ public final class BoolStorage extends Storage<Boolean> {
               }
 
               @Override
-              public BoolStorage runZip(BoolStorage storage, Storage<?> arg) {
+              public BoolStorage runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);

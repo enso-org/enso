@@ -15,12 +15,12 @@ public abstract class UnaryMapOperation<T, I extends Storage<T>> extends MapOper
   protected abstract Storage<?> run(I storage);
 
   @Override
-  public Storage<?> runMap(I storage, Object arg) {
+  public Storage<?> runMap(I storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     return run(storage);
   }
 
   @Override
-  public Storage<?> runZip(I storage, Storage<?> arg) {
+  public Storage<?> runZip(I storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     return run(storage);
   }
 }

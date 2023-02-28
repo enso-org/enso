@@ -34,9 +34,6 @@ to perform the following tasks:
 - Change the expected GraalVM version in the [`build.sbt`](../../build.sbt)
   configuration. This is both a version number and (if it is changed), the
   associated version of Java.
-- Change the expected GraalVM version in the
-  [`release-publish-edition`](../../.github/workflows/release-publish-edition.yml)
-  workflow.
 - Change the base image in the [`Dockerfile`](../../tools/ci/docker/Dockerfile)
   to contain the correct GraalVM version.
 - Just to be sure, search for the version regex in all the files in the repo.

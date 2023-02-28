@@ -5,7 +5,7 @@
     name="doc-test/debug-scene-text-grid-visualization [native]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚥 GUI            view/debug_scene/text-grid-visualization"
+    folderName="🚥 GUI            view/examples/text-grid-visualization"
   >
     <option name="command" value="test --doc  --target-dir dist/intellij_native --package debug-scene-text-grid-visualization" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

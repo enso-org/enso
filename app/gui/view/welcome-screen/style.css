@@ -110,7 +110,7 @@
 
 .enso-internal-templates-view .enso-internal-card-geo {
   flex: 0 0 530px;
-  background-image: url("/assets/geo.png");
+  background-image: url("/geo.png");
   background-size: 100%;
 }
 
@@ -131,6 +131,6 @@
 
 .enso-internal-templates-view .enso-internal-card-visualize {
   flex: 0 0 820px;
-  background-image: url("/assets/visualize.png");
+  background-image: url("/visualize.png");
   background-size: 100% 100%;
 }

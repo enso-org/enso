@@ -501,10 +501,14 @@ impl Container {
             eval_ frp.toggle_visibility (model.toggle_visibility());
 
             visualisation_uninitialised <- frp.set_visualization.map(|t| t.is_none());
-            set_default_visualisation <- frp.set_vis_input_type.gate(&visualisation_uninitialised).unwrap();
-            default_visualisation <- set_default_visualisation.map(f!((tp) {
+            default_visualisation <- visualisation_uninitialised.on_true().map(|_| {
+                Some(visualization::Registry::default_visualisation())
+            });
+            vis_input_type <- frp.set_vis_input_type.gate(&visualisation_uninitialised).unwrap();
+            default_visualisation_for_type <- vis_input_type.map(f!((tp) {
                registry.default_visualization_for_type(tp)
             }));
+            default_visualisation <- any(&default_visualisation, &default_visualisation_for_type);
 
             eval  frp.set_data          ((t) model.set_visualization_data(t));
             frp.source.size    <+ frp.set_size;

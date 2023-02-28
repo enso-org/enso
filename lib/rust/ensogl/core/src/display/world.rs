@@ -55,8 +55,8 @@ thread_local! {
 }
 
 /// Perform an action with a reference to the global context.
-pub fn with_context<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
-    CONTEXT.with_borrow(|t| f(t.as_ref().unwrap()))
+pub fn with_context<T>(f: impl FnOnce(&SymbolRegistry) -> T) -> T {
+    CONTEXT.with_borrow(move |t| f(t.as_ref().unwrap()))
 }
 
 /// Initialize global state (set stack trace size, logger output, etc).
@@ -87,21 +87,47 @@ fn init_context() {
 /// A constructor of view of some specific shape.
 pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
 
+/// The definition of shapes created with the `shape!` macro.
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct ShapeDefinition {
+    /// Location in the source code that the shape was defined.
+    pub definition_path: &'static str,
+    /// A constructor of single shape view.
+    #[derivative(Debug = "ignore")]
+    pub cons:            ShapeCons,
+}
+
+impl ShapeDefinition {
+    /// Return `true` if it is possible that this shape is used by the main application.
+    pub fn is_main_application_shape(&self) -> bool {
+        // Shapes defined in `examples` directories are not used in the main application.
+        !self.definition_path.contains("/examples/")
+    }
+}
+
 /// The definition of shapes created with the `cached_shape!` macro.
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct CachedShapeDefinition {
-    /// The size of the shape in the texture.
-    pub size: Vector2<i32>,
-    /// A constructor of single shape view.
+    /// The size of the texture's space occupied by the shape.
+    pub size: Vector2,
+    /// A pointer to function setting the global information about position in the cached shapes
+    /// texture, usually a concrete implementation of
+    /// [`set_position_in_texture`](crate::display::shape::system::cached::CachedShape::set_position_in_texture)
     #[derivative(Debug = "ignore")]
-    pub cons: ShapeCons,
+    pub position_on_texture_setter: Box<dyn Fn(Vector2)>,
+    /// A pointer to function creating a shape instance properly placed for cached texture
+    /// rendering, usually a concrete implementation of
+    /// [`create_view_for_texture`](crate::display::shape::system::cached::CachedShape::create_view_for_texture)
+    #[derivative(Debug = "ignore")]
+    pub for_texture_constructor: ShapeCons,
 }
 
 thread_local! {
     /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
     /// program execution, before the `main` function is called.
-    pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeCons>> = default();
+    pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeDefinition>> = default();
 
     /// All shapes defined with the `cached_shape!` macro. They will be populated on the beginning
     /// of program execution, before the `main` function is called.
@@ -116,12 +142,9 @@ thread_local! {
 
 /// A precompiled shader definition. It contains the main function body for the vertex and fragment
 /// shaders.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deref)]
 #[allow(missing_docs)]
-pub struct PrecompiledShader {
-    pub vertex:   String,
-    pub fragment: String,
-}
+pub struct PrecompiledShader(shader::Code);
 
 thread_local! {
     /// List of all precompiled shaders. They are registered here before main entry point is run by
@@ -168,7 +191,8 @@ fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
         let fragment_field = web::Reflect::get(&value, &"fragment".into())?;
         let vertex: String = vertex_field.dyn_into::<web::JsString>()?.into();
         let fragment: String = fragment_field.dyn_into::<web::JsString>()?.into();
-        let precompiled_shader = PrecompiledShader { vertex, fragment };
+        let vertex = strip_instance_declarations(&vertex);
+        let precompiled_shader = PrecompiledShader(shader::Code { vertex, fragment });
         debug!("Registering precompiled shaders for '{key}'.");
         PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
             map.insert(key, precompiled_shader);
@@ -177,12 +201,45 @@ fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
     Ok(())
 }
 
+/// Remove initial instance variable declarations.
+///
+/// When pre-compiling vertex shaders we don't have full information about inputs, and instead treat
+/// all inputs as instance variables. After the program has been optimized, we need to strip these
+/// imprecise declarations so they don't conflict with the real declarations we add when building
+/// the shader.
+fn strip_instance_declarations(input: &str) -> String {
+    let mut code = String::with_capacity(input.len());
+    let mut preamble_ended = false;
+    let input_prefix = display::symbol::gpu::shader::builder::INPUT_PREFIX;
+    let vertex_prefix = display::symbol::gpu::shader::builder::VERTEX_PREFIX;
+    for line in input.lines() {
+        // Skip lines as long as they match the `input_foo = vertex_foo` pattern.
+        if !preamble_ended {
+            let trimmed = line.trim_start();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let mut parts = trimmed.split(' ');
+            if let Some(part) = parts.next() && part.starts_with(input_prefix)
+                    && let Some(part) = parts.next() && part == "="
+                    && let Some(part) = parts.next() && part.starts_with(vertex_prefix)
+                    && let None = parts.next() {
+                continue;
+            }
+        }
+        preamble_ended = true;
+        code.push_str(line);
+        code.push('\n');
+    }
+    code
+}
+
 fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
     let mut map = HashMap::new();
     SHAPES_DEFINITIONS.with(|shapes| {
-        for shape_cons in shapes.borrow().iter() {
-            let shape = shape_cons();
+        for shape in shapes.borrow().iter() {
+            let shape = (shape.cons)();
             let path = shape.definition_path();
             let code = shape.abstract_shader_code_in_glsl_310();
             map.insert(path, code);
@@ -201,16 +258,14 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
 /// Uniforms managed by world.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Uniforms {
-    time:         Uniform<f32>,
-    display_mode: Uniform<i32>,
+    time: Uniform<f32>,
 }
 
 impl Uniforms {
     /// Constructor.
     pub fn new(scope: &UniformScope) -> Self {
         let time = scope.add_or_panic("time", 0.0);
-        let display_mode = scope.add_or_panic("display_mode", 0);
-        Self { time, display_mode }
+        Self { time }
     }
 }
 
@@ -272,6 +327,7 @@ impl<'t> From<&'t World> for &'t Scene {
 }
 
 
+
 // ===========
 // === FRP ===
 // ===========
@@ -281,6 +337,7 @@ crate::define_endpoints_2! {
         after_rendering(),
     }
 }
+
 
 
 // =========================
@@ -315,6 +372,7 @@ impl WorldDataWithLoop {
         // Context is initialized automatically before main entry point starts in WASM. We are
         // performing manual initialization for native tests to work correctly.
         init_context();
+        display::shape::primitive::system::cached::initialize_cached_shape_positions_in_texture();
         let frp = Frp::new();
         let data = WorldData::new(&frp.private.output);
         let on_frame_start = animation::on_frame_start();
@@ -456,7 +514,7 @@ impl WorldData {
     fn init_debug_hotkeys(&self) {
         let stats_monitor = self.stats_monitor.clone_ref();
         let display_mode = self.display_mode.clone_ref();
-        let display_mode_uniform = self.uniforms.display_mode.clone_ref();
+        let display_mode_uniform = with_context(|ctx| ctx.display_mode.clone_ref());
         let emit_measurements_handle = self.emit_measurements_handle.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
