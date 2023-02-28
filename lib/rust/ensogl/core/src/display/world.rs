@@ -5,7 +5,6 @@ use crate::control::callback::traits::*;
 use crate::data::dirty::traits::*;
 use crate::display::render::*;
 use crate::prelude::*;
-use crate::system::web::traits::*;
 use wasm_bindgen::prelude::*;
 
 use crate::animation;

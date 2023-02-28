@@ -6,9 +6,12 @@
 
 use prelude::*;
 
-use ensogl_core::cached_shape;
-use ensogl_core::data::color;
-use ensogl_core::display;
+
+// ==============
+// === Export ===
+// ==============
+
+pub use ensogl_core::display::shape::compound::from_cache::recolorized as any;
 
 
 
@@ -57,21 +60,4 @@ pub const SHRINK_AMOUNT: f32 = 0.0;
 pub struct UnknownIcon {
     /// The copied icon name from parsed string.
     pub name: String,
-}
-
-
-
-// ======================
-// === Any Icon Shape ===
-// ======================
-
-pub mod any {
-    ensogl_core::shape! {
-        above = [ensogl_grid_view::selectable::highlight::shape];
-        pointer_events = false;
-        (style: Style, icon: AnyCachedShape, color: Vector4) {
-            let color: Var<color::Rgba> = color.into();
-            icon.recolorize(color, color::Rgba::transparent(), color::Rgba::transparent()).into()
-        }
-    }
 }

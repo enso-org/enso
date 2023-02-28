@@ -6,7 +6,6 @@ use ide_view_component_list_panel_icons::common_part::*;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::compound::path::path;
 use ensogl_core::display::IntoGlsl;
-use ensogl_grid_view as grid_view;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
 use ide_view_component_list_panel_icons::define_icons;
 use ide_view_component_list_panel_icons::SHRINK_AMOUNT;
@@ -21,6 +20,7 @@ use theme::grid::entry::special_icons;
 
 pub use ide_view_component_list_panel_icons::any;
 pub use ide_view_component_list_panel_icons::SIZE;
+
 
 
 const VIVID_COLOR: Var<color::LinearRgba> = Var::Static(color::LinearRgba::new(1.0, 0.0, 0.0, 1.0));

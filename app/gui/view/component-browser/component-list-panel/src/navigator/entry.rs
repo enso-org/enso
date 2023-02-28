@@ -57,31 +57,6 @@ pub struct Params {
 
 
 // ============
-// === Data ===
-// ============
-
-/// Grid view entry type which represents a single icon. We use grid view with icons instead of
-/// multiple buttons to simplify the implementation.
-#[derive(Debug, Clone, CloneRef)]
-pub struct Data {
-    icon: any_icon::View,
-}
-
-impl Data {
-    pub fn new() -> Self {
-        let icon = any_icon::View::new();
-        icon.set_size((SIZE, SIZE));
-        Self { icon }
-    }
-
-    fn set_color(&self, color: color::Lcha) {
-        self.icon.color.set(color::Rgba::from(color).into());
-    }
-}
-
-
-
-// ============
 // === View ===
 // ============
 
@@ -122,7 +97,7 @@ impl grid::entry::Entry for View {
             color_anim.target <+ active_color.sample(&entry_selected);
             color_anim.target <+ inactive_color.sample(&entry_deselected);
 
-            eval color_anim.value((color) icon.color.set(color::Rgba::from(*color).into()));
+            eval color_anim.value((color) icon.r_component.set(color::Rgba::from(*color).into()));
 
             style <- input.set_params.on_change();
             selection_color <- style.map(|s| s.selection_color).on_change();
@@ -147,6 +122,6 @@ impl grid::entry::Entry for View {
 
 impl display::Object for View {
     fn display_object(&self) -> &display::object::Instance {
-        &self.icon.display_object()
+        self.icon.display_object()
     }
 }

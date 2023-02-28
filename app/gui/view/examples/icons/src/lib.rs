@@ -80,7 +80,7 @@ pub fn entry_point_searcher_icons() {
     icon::Id::for_each(|id| {
         let shape = ide_view_component_list_panel_icons::any::View::new();
         shape.icon.set(id.any_cached_shape_location());
-        shape.color.set(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
+        shape.r_component.set(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
         shape.set_x(x);
         shape.set_size((SIZE, SIZE));
         x += 20.0;

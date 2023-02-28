@@ -412,7 +412,7 @@ impl grid_view::Entry for View {
             let colors = ResolvedColors::from_main_color(network, &data.style, &color, &colors, &is_dimmed);
             eval colors.background ((c) data.background.color.set(color::Rgba::from(c).into()));
             data.label.set_property_default <+ colors.text.ref_into_some();
-            eval colors.icon ((c) data.icon.color.set(color::Rgba::from(*c).into()));
+            eval colors.icon ((c) data.icon.r_component.set(color::Rgba::from(*c).into()));
             out.hover_highlight_color <+ colors.hover_highlight;
             // We want to animate only when params changed (the different section is highlighted).
             // Other case, where entry receives new model with new section means it is reused

@@ -6,5 +6,4 @@ edition = "2021"
 
 [dependencies]
 ensogl-core = { path = "../../../../../../lib/rust/ensogl/core" }
-ensogl-grid-view = { path = "../../../../../../lib/rust/ensogl/component/grid-view" }
 failure = { workspace = true }

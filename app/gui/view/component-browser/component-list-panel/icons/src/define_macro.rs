@@ -44,10 +44,10 @@
 ///
 /// fn main () {
 ///     let app = ensogl_core::application::Application::new("root");
-///     let icon1 = Id::Icon1.create_shape(Vector2(10.0, 10.0));
+///     let icon1 = Id::Icon1.cached_view();
 ///     let icon2_id: Id = "Icon2".parse().unwrap();
 ///     assert_eq!(icon2_id, Id::Icon2);
-///     let icon2 = icon2_id.create_shape(Vector2(11.0, 11.0));
+///     let icon2 = icon2_id.cached_view();
 ///     app.display.default_scene.add_child(&icon1);
 ///     app.display.default_scene.add_child(&icon2);
 ///
@@ -86,6 +86,13 @@ macro_rules! define_icons {
                 match self {$(
                     Self::$variant => $name::Shape::any_cached_shape_parameter(),
                 )*}
+            }
+
+            /// Create a view reading the icon from the cached texture.
+            pub fn cached_view(&self) -> $crate::any::View {
+                let view = $crate::any::View::new();
+                view.icon.set(self.any_cached_shape_location());
+                view
             }
 
             /// Call `f` for each possible icon id.
