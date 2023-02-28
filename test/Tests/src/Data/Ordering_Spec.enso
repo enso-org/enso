@@ -92,9 +92,16 @@ spec =
             Ordering.Greater.and_then Ordering.Equal . should_equal Ordering.Greater
             Ordering.Greater.and_then Ordering.Greater . should_equal Ordering.Greater
 
+        Test.specify "should handle partial ordering of Decimal type" <|
+            Ordering.compare Number.nan 42.0 . should_fail_with Incomparable_Values.Error
+            Ordering.compare 42.0 Number.nan . should_fail_with Incomparable_Values.Error
+            Ordering.compare 42.5 67.9 . should_equal Ordering.Less
+            Meta.is_same_object (Comparable.from Number.nan) (Comparable.from 42.0) . should_be_true
+
         Test.specify "should fail with Type_Error for wrong type of that" <|
             Ordering.compare Ordering.Less 1 . should_fail_with Type_Error.Error
             Ordering.compare Ordering.Less Nothing . should_fail_with Type_Error.Error
             Ordering.compare Ordering.Less "Hello" . should_fail_with Type_Error.Error
+
 
 main = Test_Suite.run_main spec

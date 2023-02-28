@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.hash;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import java.util.ArrayList;
 import java.util.List;
@@ -177,12 +178,25 @@ public final class EnsoHashMapBuilder {
 
     @Override
     public boolean equals(Object a, Object b) {
-      return equalsNode.execute(a, b);
+      Object res = equalsNode.execute(a, b);
+      if (res instanceof Boolean resBool) {
+        return resBool;
+      } else {
+        return false;
+      }
     }
 
     @Override
     public int hashCode(Object o) {
-      return (int) hashCodeNode.execute(o);
+      Object res = hashCodeNode.execute(o);
+      if (res instanceof Long resLong) {
+        assert resLong.compareTo((long) Integer.MAX_VALUE) < 0;
+        return resLong.intValue();
+      } else if (res instanceof Integer resInt) {
+        return resInt;
+      } else {
+        throw CompilerDirectives.shouldNotReachHere("Unexpected returned value from hashCodeNode.execute: " + res);
+      }
     }
   }
 }
