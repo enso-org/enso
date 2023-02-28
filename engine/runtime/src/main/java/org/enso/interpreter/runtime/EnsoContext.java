@@ -436,7 +436,7 @@ public class EnsoContext {
   }
 
   /**
-   * @param name human readable name of the pool
+   * @param name human-readable name of the pool
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
@@ -446,7 +446,7 @@ public class EnsoContext {
 
   /**
    * @param parallel amount of parallelism for the pool
-   * @param name human readable name of the pool
+   * @param name human-readable name of the pool
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */

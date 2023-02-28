@@ -155,12 +155,10 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   public Optional<T> load(EnsoContext context) {
     synchronized (this) {
       TruffleLogger logger = context.getLogger(this.getClass());
-      logger.log(logLevel, "loading from Cache");
       return getCacheRoots(context)
           .flatMap(
               roots -> {
                 try {
-                  logger.log(logLevel, "got roots: " + roots);
                   Optional<T> loadedCache;
                   // Load from the global root as a priority.
                   loadedCache = loadCacheFrom(roots.globalCacheRoot(), context, logger);

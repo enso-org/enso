@@ -241,10 +241,7 @@ class Compiler(
         go(pending, compiledModules ++ newCompiled)
       }
 
-    logger.info("start - run internal: " + modules.map(_.getName))
-    val res = go(modules, List())
-    logger.info("end - run internal")
-    res
+    go(modules, List())
   }
 
   private def runCompilerPipeline(

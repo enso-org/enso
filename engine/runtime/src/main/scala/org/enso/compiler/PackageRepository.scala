@@ -121,9 +121,9 @@ trait PackageRepository {
 
   /** Returns a package directory corresponding to the requested library */
   def getPackageForLibraryJava(
-    lib: LibraryName
+    libraryName: LibraryName
   ): java.util.Optional[Package[TruffleFile]] =
-    getPackageForLibrary(lib).toJava
+    getPackageForLibrary(libraryName).toJava
 
   /** Returns all loaded modules of the requested library */
   def getModulesForLibrary(libraryName: LibraryName): List[Module]
@@ -672,9 +672,9 @@ object PackageRepository {
       loadedPackages.keySet.exists(_.namespace == namespace)
 
     override def getPackageForLibrary(
-      lib: LibraryName
+      libraryName: LibraryName
     ): Option[Package[TruffleFile]] =
-      loadedPackages.get(lib).flatten
+      loadedPackages.get(libraryName).flatten
 
     override def getModulesForLibrary(libraryName: LibraryName): List[Module] =
       getPackageForLibrary(libraryName)
@@ -688,10 +688,11 @@ object PackageRepository {
       ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
         if (!loadedLibraryBindings.contains(libraryName)) {
           loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
-          serializationManager.deserializeLibraryBindings(libraryName).foreach {
-            cache =>
+          serializationManager
+            .deserializeLibraryBindings(libraryName)
+            .foreach(cache =>
               loadedLibraryBindings.addOne((libraryName, cache))
-          }
+            )
         }
         loadedLibraryBindings.get(libraryName)
       }
@@ -699,10 +700,11 @@ object PackageRepository {
 
     private def loadDependencies(pkg: Package[TruffleFile]): Unit = {
       val manifestFile = fs.getChild(pkg.root, LibraryManifest.filename)
-      readManifest(manifestFile).flatMap(LibraryManifest.fromYaml(_)).foreach {
-        manifest =>
-          manifest.dependencies.foreach(ensurePackageIsLoaded)
-      }
+      readManifest(manifestFile)
+        .flatMap(LibraryManifest.fromYaml(_))
+        .foreach(
+          _.dependencies.foreach(ensurePackageIsLoaded)
+        )
     }
 
     private def readManifest(file: TruffleFile): Try[String] = {

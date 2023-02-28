@@ -24,7 +24,7 @@ public class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Met
 
     public ModuleCache(Module module) {
         this.module = module;
-        this.logLevel = Level.WARNING;
+        this.logLevel = Level.FINEST;
         this.stringRepr = module.getName().toString();
         this.entryName = module.getName().item();
         this.dataSuffix = irCacheDataExtension;

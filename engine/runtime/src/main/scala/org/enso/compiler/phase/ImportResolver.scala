@@ -89,14 +89,10 @@ class ImportResolver(compiler: Compiler) {
         if (seen.contains(current)) {
           go(stack, seen, required)
         } else {
-          // 1. Has it already been parsed? read directly
-          // 2. Try to load from cache? If successful, load from it
-          // 3. If not successful,
-
           val (next, isRequired) = if (bindingsCachingEnabled) {
             // Do we have bindings available for this modules' library?
-            // - yes - extract the resolved imports but don't add them to the compilation pipeline
-            // - no - ensure they are parsed and only then try to reoslve the imports and add them to the compilation pipeline
+            // - yes - extract the resolved imports but don't add them to the import/export resolution
+            // - no - ensure they are parsed (load them from cache) and add them to the import/export resolution
             compiler.importExportBindings(current) match {
               case Some(bindings) =>
                 val converted = bindings

@@ -134,20 +134,20 @@ class SerializationManager(compiler: Compiler) {
   }
 
   def serializeLibraryBindings(
-    library: LibraryName,
+    libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
   ): Future[Boolean] = {
     logger.log(
       Level.INFO,
-      s"Requesting serialization for library [$library] bindings."
+      s"Requesting serialization for library [$libraryName] bindings."
     )
 
     val task: Callable[Boolean] =
-      doSerializeLibrary(library, useGlobalCacheLocations)
+      doSerializeLibrary(libraryName, useGlobalCacheLocations)
     if (compiler.context.getEnvironment.isCreateThreadAllowed) {
       isWaitingForSerialization.synchronized {
         val future = pool.submit(task)
-        isWaitingForSerialization.put(library.toQualifiedName, future)
+        isWaitingForSerialization.put(libraryName.toQualifiedName, future)
         future
       }
     } else {
@@ -157,7 +157,7 @@ class SerializationManager(compiler: Compiler) {
         case e: Throwable =>
           logger.log(
             debugLogLevel,
-            s"Serialization task failed in module [${library}].",
+            s"Serialization task failed for library [${libraryName}].",
             e
           )
           CompletableFuture.completedFuture(false)
@@ -219,23 +219,26 @@ class SerializationManager(compiler: Compiler) {
   }
 
   def deserializeLibraryBindings(
-    library: LibraryName
+    libraryName: LibraryName
   ): Option[ImportExportCache.CachedBindings] = {
-    if (isWaitingForSerialization(library)) {
-      abort(library)
+    if (isWaitingForSerialization(libraryName)) {
+      abort(libraryName)
       None
     } else {
-      while (isSerializingLibrary(library)) {
+      while (isSerializingLibrary(libraryName)) {
         Thread.sleep(100)
       }
-      new ImportExportCache(library).load(compiler.context).toScala match {
+      new ImportExportCache(libraryName).load(compiler.context).toScala match {
         case result @ Some(_: ImportExportCache.CachedBindings) =>
-          logger.log(Level.FINEST, s"Deserialized library bindings [$library].")
+          logger.log(
+            Level.FINE,
+            s"Restored bindings for library [$libraryName]."
+          )
           result
         case _ =>
           logger.log(
             Level.FINEST,
-            s"Unable to load a cache for module [${library}]."
+            s"Unable to load bindings for library [${libraryName}]."
           )
           None
       }
@@ -533,14 +536,10 @@ object SerializationManager {
   /** The thread keep-alive time in seconds. */
   val threadKeepalive: Long = 3
 
-  implicit class LibraryOps(val libraryName: LibraryName) extends AnyVal {
+  implicit private class LibraryOps(val libraryName: LibraryName)
+      extends AnyVal {
     def toQualifiedName: QualifiedName =
       QualifiedName(List(libraryName.namespace), libraryName.name)
   }
 
-  implicit class IterableOps[T](val l: Iterable[Option[T]]) extends AnyVal {
-    def toOption: Option[Iterable[T]] = {
-      Some(l.map(_.getOrElse(return None)))
-    }
-  }
 }
