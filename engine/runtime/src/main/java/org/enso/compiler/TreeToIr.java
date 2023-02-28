@@ -765,6 +765,9 @@ final class TreeToIr {
           items = cons(exp, items);
           for (var next : arr.getRest()) {
             exp = translateExpression(next.getBody(), false);
+            if (exp == null) {
+              yield translateSyntaxError(arr, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+            }
             items = cons(exp, items);
           }
         }
