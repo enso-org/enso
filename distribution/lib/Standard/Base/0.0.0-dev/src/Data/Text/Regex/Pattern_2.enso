@@ -1,10 +1,15 @@
 import project.Any.Any
-import project.Data.Boolean.Boolean
+#import project.Data.Boolean.Boolean
+from project.Data.Boolean import Boolean, True, False
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
-import project.IO
+import project.Data.Range.Range
+import project.Data.Text.Span.Span
+import project.Data.Text.Regex.Match_2.Match_2
 import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.IO
 
 type Pattern_2
     ## internal_regex_object : RegexObject (Truffle)
@@ -18,3 +23,67 @@ type Pattern_2
         m = self.internal_regex_object.exec input 0
         IO.println m
         m . isMatch && m.getEnd 0 == input.length
+
+    match_all : Text -> Vector Match_2
+    match_all self input =
+        it = Match_Iterator.new self input
+        go it = case it.next of
+            Match_Iterator_Value.Next filler match next_it ->
+                IO.println ("filler [" + filler.text + "]")
+                IO.println ("match [" + (match.span 0).text + "]")
+                #IO.println match
+                go next_it
+            Match_Iterator_Value.Last filler ->
+                IO.println ("last filler [" + filler.text + "]")
+        go it
+
+type Match_Iterator
+    new : Pattern_2 -> Text -> Match_Iterator
+    new pattern input = Match_Iterator.Value pattern input 0
+
+    Value (pattern : Pattern_2) (input : Text) (cursor : Integer)
+
+    next : Match_Iterator_Value
+    next self =
+        regex_result = self.pattern.internal_regex_object.exec self.input self.cursor
+        case regex_result.isMatch of
+            False ->
+                filler_range = Range.new self.cursor (self.input.length)
+                filler_span = Span.Value filler_range self.input
+                Match_Iterator_Value.Last filler_span
+            True ->
+                match_start = regex_result.getStart 0
+                #match_end = regex_result.getEnd 0
+                filler_range = Range.new self.cursor match_start
+                filler_span = Span.Value filler_range self.input
+                match = Match_2.Value regex_result self.input
+                next_cursor = match.end 0
+                next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
+                Match_Iterator_Value.Next filler_span match next_iterator
+
+type Match_Iterator_Value
+  Next (filler : Span) (match : Match_2) (next_iterator : Match_Iterator)
+  Last (filler : Span)
+
+##
+    type Pattern_Iterator_Next_Value
+        ## match : RegexResult (Truffle)
+           (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
+        Value (filler : Span) (match : Object)
+
+    type Pattern_Iterator
+        Value (pattern : Pattern_2) (input : Text) (search_start : Integer) (done : Boolean)
+
+        new : Pattern_2 -> Pattern_Iterator
+        new pattern = Pattern_Iterator.Value pattern 0 false
+
+        next : Pattern_Iterator_Next_Value
+        next self =
+            m = self.pattern.internal_regex_object.exec self.input self.search_start
+            case m.isMatch of
+                True ->
+                    filler_start = self.search_start
+                    filler_end = m.getStart 0
+                    filler_range = Range.new filler_start filler_end
+                    filler = Span.Value filler_range input
+                    next_search_start = m.getEnd 0

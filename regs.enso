@@ -11,6 +11,8 @@ main =
   mt = p.matches "ab"
   IO.println mt
 
+  p.match_all "heyabyeahab yo abc no cab ab abab ye "
+
   ##
 
           #m = p.match "cabbie" Matching_Mode.First
