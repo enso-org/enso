@@ -402,23 +402,6 @@ pub struct Searcher {
 }
 
 impl Searcher {
-    /// Create new Searcher Controller.
-    pub async fn new(
-        ide: controller::Ide,
-        project: &model::Project,
-        method: language_server::MethodPointer,
-        mode: Mode,
-        cursor_position: Byte,
-    ) -> FallibleResult<Self> {
-        let graph = controller::ExecutedGraph::new(project.clone_ref(), method).await?;
-        Self::new_from_graph_controller(ide, project, graph, mode, cursor_position)
-    }
-
-    /// Abort editing and perform cleanup.
-    pub fn abort_editing(&self) {
-        self.clear_temporary_imports();
-    }
-
     /// Create new Searcher Controller, when you have Executed Graph Controller handy.
     #[profile(Task)]
     pub fn new_from_graph_controller(
@@ -427,6 +410,7 @@ impl Searcher {
         graph: controller::ExecutedGraph,
         mode: Mode,
         cursor_position: Byte,
+        position_in_code: Location<Byte>,
     ) -> FallibleResult<Self> {
         let project = project.clone_ref();
         let data = if let Mode::EditNode { node_id } = mode {
@@ -435,14 +419,6 @@ impl Searcher {
             default()
         };
         let node_metadata_guard = Rc::new(Some(EditGuard::new(&mode, graph.clone_ref())));
-        let module_ast = graph.graph().module.ast();
-        let def_id = graph.graph().id;
-        let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
-        let module_repr: Rope = module_ast.repr().into();
-        error!("module_repr_len = {}", module_repr.len());
-        error!("def_span = {def_span:?}");
-        // TODO: is it correct?
-        let position = module_repr.offset_to_location_snapped(def_span.end - text::ByteDiff(1));
         let this_arg = Rc::new(match mode {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
@@ -458,7 +434,7 @@ impl Searcher {
             mode: Immutable(mode),
             database: project.suggestion_db(),
             language_server: project.json_rpc(),
-            position_in_code: Immutable(position),
+            position_in_code: Immutable(position_in_code),
             project,
             node_edit_guard: node_metadata_guard,
         };
@@ -468,6 +444,11 @@ impl Searcher {
     fn init(self) -> Self {
         self.reload_list();
         self
+    }
+
+    /// Abort editing and perform cleanup.
+    pub fn abort_editing(&self) {
+        self.clear_temporary_imports();
     }
 
     /// Return true if user is currently filtering entries (the input has non-empty _pattern_ part).

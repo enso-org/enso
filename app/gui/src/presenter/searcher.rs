@@ -500,6 +500,10 @@ impl Searcher {
         view: view::project::View,
         parameters: SearcherParams,
     ) -> FallibleResult<Self> {
+        // We get the position for searcher before initializing the input node, because the
+        // added node will affect the AST, and the position will become incorrect.
+        let position_in_code = graph_controller.graph().definition_end_location()?;
+
         let mode = Self::init_input_node(
             parameters,
             graph_presenter,
@@ -513,6 +517,7 @@ impl Searcher {
             graph_controller,
             mode,
             text::Byte(0),
+            position_in_code,
         )?;
 
         // Clear input on a new node. By default this will be set to whatever is used as the default

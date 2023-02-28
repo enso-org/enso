@@ -761,6 +761,20 @@ impl Handle {
         module::locate(&module_ast, &self.id)
     }
 
+    /// The span of the definition of this graph in the module's AST.
+    pub fn definition_span(&self) -> FallibleResult<enso_text::Range<enso_text::Byte>> {
+        let def = self.definition()?;
+        self.module.ast().range_of_descendant_at(&def.crumbs)
+    }
+
+    /// The location of the last byte of the definition of this graph in the module's AST.
+    pub fn definition_end_location(&self) -> FallibleResult<enso_text::Location<enso_text::Byte>> {
+        let module_ast = self.module.ast();
+        let module_repr: enso_text::Rope = module_ast.repr().into();
+        let def_span = self.definition_span()?;
+        Ok(module_repr.offset_to_location_snapped(def_span.end))
+    }
+
     /// Updates the AST of the definition of this graph.
     #[profile(Debug)]
     pub fn update_definition_ast<F>(&self, f: F) -> FallibleResult
