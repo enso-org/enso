@@ -103,6 +103,8 @@
 - [The component browser suggestions take into account entry aliases][5678]. The
   searcher input is now matched to entry aliases too. The alias match is used to
   filter and sort component browser entries.
+- [The Component Browser icons are cached on texture][5779] improving its
+  performance on slower machines.
 
 #### EnsoGL (rendering engine)
 
@@ -500,6 +502,7 @@
 [5699]: https://github.com/enso-org/enso/pull/5699
 [5719]: https://github.com/enso-org/enso/pull/5719
 [5721]: https://github.com/enso-org/enso/pull/5721
+[5779]: https://github.com/enso-org/enso/pull/5779
 
 #### Enso Compiler
 
