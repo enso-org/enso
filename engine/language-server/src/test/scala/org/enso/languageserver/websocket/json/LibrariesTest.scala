@@ -609,7 +609,7 @@ class LibrariesTest extends BaseServerTest {
             .loadPackage(cachedLibraryRoot.location.toFile)
             .get
         pkg.name shouldEqual "Bar"
-        pkg.listSources.map(
+        pkg.listSources().map(
           _.file.getName
         ) should contain theSameElementsAs Seq("Main.enso")
 
