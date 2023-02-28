@@ -1146,11 +1146,7 @@ impl EditGuard {
                 module.with_node_metadata(
                     self.node_id,
                     Box::new(|metadata| {
-                        let previous_intended_method = metadata.intended_method.clone();
-                        metadata.edit_status = Some(NodeEditStatus::Edited {
-                            previous_expression,
-                            previous_intended_method,
-                        });
+                        metadata.edit_status = Some(NodeEditStatus::Edited { previous_expression });
                     }),
                 )
             }
@@ -1190,20 +1186,13 @@ impl EditGuard {
                 debug!("Deleting temporary node {} after aborting edit.", self.node_id);
                 self.graph.graph().remove_node(self.node_id)?;
             }
-            Some(NodeEditStatus::Edited { previous_expression, previous_intended_method }) => {
+            Some(NodeEditStatus::Edited { previous_expression }) => {
                 debug!(
                     "Reverting expression of node {} to {} after aborting edit.",
                     self.node_id, &previous_expression
                 );
                 let graph = self.graph.graph();
                 graph.set_expression(self.node_id, previous_expression)?;
-                let module = &self.graph.graph().module;
-                module.with_node_metadata(
-                    self.node_id,
-                    Box::new(|metadata| {
-                        metadata.intended_method = previous_intended_method;
-                    }),
-                )?;
             }
         };
         Ok(())
@@ -1493,8 +1482,6 @@ pub mod test {
     fn loading_list_w_self() {
         let mock_type = crate::test::mock::data::TYPE_NAME;
 
-        /// The case is: `main` contains a single, selected node. Searcher is brought up.
-        /// Mock `entry1` suggestion is picked twice.
         struct Case {
             /// The single line of the initial `main` body.
             node_line: &'static str,
@@ -1723,22 +1710,6 @@ pub mod test {
         assert!(are_same(&function.entry, &test_function_1));
         assert!(are_same(&arg1.entry, &test_var_1));
         assert!(are_same(&arg2.entry, &test_var_1));
-
-        // TODO
-        // // Backspacing back to the second arg.
-        // searcher
-        //     .set_input("testFunction1 some_arg test_var_1 test_v".to_string(), Byte(40))
-        //     .unwrap();
-        // // let (picked, arg) = picked_suggestions().iter().cloned().expect_tuple();
-        // // assert!(are_same(&picked.entry, &test_function_1));
-        // // assert!(are_same(&arg.entry, &test_var_1));
-        //
-        // // Editing the picked function.
-        // searcher
-        //     .set_input("testFunction2 some_arg test_var_1 test_v".to_string(), Byte(13))
-        //     .unwrap();
-        // let (arg,) = picked_suggestions().iter().cloned().expect_tuple();
-        // assert!(are_same(&arg.entry, &test_var_1));
     }
 
     #[test]
@@ -1807,9 +1778,8 @@ pub mod test {
         let cases = vec![
             // Completion was picked.
             Case::new("2 + 2", &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"], true, |f| {
-                f.searcher
-                    .use_suggestion(action::Suggestion::FromDatabase(f.test_function_1.clone()))
-                    .unwrap();
+                let suggestion = action::Suggestion::FromDatabase(f.test_function_1.clone());
+                f.searcher.use_suggestion(suggestion).unwrap();
             }),
             // The input was manually written (not picked).
             Case::new("2 + 2", &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"], false, |f| {
@@ -1821,11 +1791,11 @@ pub mod test {
                 &["sum1 = 2 + 2", "operator1 = sum1.var.testFunction1"],
                 true,
                 |f| {
-                    f.searcher
-                        .use_suggestion(action::Suggestion::FromDatabase(f.test_function_1.clone()))
-                        .unwrap();
-                    let new_parsed_input =
-                        input::Input::parse(f.searcher.ide.parser(), "var.testFunction1", Byte(17));
+                    let suggestion = action::Suggestion::FromDatabase(f.test_function_1.clone());
+                    f.searcher.use_suggestion(suggestion).unwrap();
+                    let parser = f.searcher.ide.parser();
+                    let expr = "var.testFunction1";
+                    let new_parsed_input = input::Input::parse(parser, expr, Byte(expr.len()));
                     f.searcher.data.borrow_mut().input = new_parsed_input;
                 },
             ),
@@ -1835,9 +1805,8 @@ pub mod test {
                 &["my_var = 2 + 2", "operator1 = my_var.testFunction1"],
                 true,
                 |f| {
-                    f.searcher
-                        .use_suggestion(action::Suggestion::FromDatabase(f.test_function_1.clone()))
-                        .unwrap();
+                    let suggestion = action::Suggestion::FromDatabase(f.test_function_1.clone());
+                    f.searcher.use_suggestion(suggestion).unwrap();
                 },
             ),
             // Variable names unusable (subpatterns are not yet supported).
@@ -1847,9 +1816,8 @@ pub mod test {
                 &["[x,y] = 2 + 2", "testfunction11 = testFunction1"],
                 true,
                 |f| {
-                    f.searcher
-                        .use_suggestion(action::Suggestion::FromDatabase(f.test_function_1.clone()))
-                        .unwrap();
+                    let suggestion = action::Suggestion::FromDatabase(f.test_function_1.clone());
+                    f.searcher.use_suggestion(suggestion).unwrap();
                 },
             ),
         ];
@@ -1919,7 +1887,7 @@ pub mod test {
 
     #[test]
     fn committing_node() {
-        let Fixture { test: _test, mut searcher, test_method_3: entry4, .. } =
+        let Fixture { test: _test, mut searcher, test_method_3, .. } =
             Fixture::new_custom(|data, _client| {
                 data.change_main_body(&["2 + 2", "Nothing"]); // The last node will be used as
                                                               // searcher target.
@@ -1931,7 +1899,7 @@ pub mod test {
         // Setup searcher.
         let parser = Parser::new();
         let picked_method = PickedSuggestion {
-            entry:         action::Suggestion::FromDatabase(entry4.clone_ref()),
+            entry:         action::Suggestion::FromDatabase(test_method_3.clone_ref()),
             inserted_code: String::from("Test.test_method"),
         };
         with(searcher.data.borrow_mut(), |mut data| {
@@ -2014,8 +1982,7 @@ pub mod test {
                     assert_eq!(
                         metadata.edit_status,
                         Some(NodeEditStatus::Edited {
-                            previous_expression:      node.info.expression().to_string(),
-                            previous_intended_method: None,
+                            previous_expression: node.info.expression().to_string(),
                         })
                     );
                 }),

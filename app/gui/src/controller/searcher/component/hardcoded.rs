@@ -29,7 +29,7 @@ thread_local! {
         Snippet::new("text input", "\"\"", IconId::TextInput)
             .with_return_types(["Standard.Base.Data.Text.Text"])
             .with_documentation(
-                "A text input node.\n\n\
+                "A text input node.<br/><br/>
                 An empty text. The value can be edited and used as an input for other nodes.",
             )
             .into(),
@@ -40,7 +40,7 @@ thread_local! {
                 "Standard.Base.Data.Numbers.Integer",
             ])
             .with_documentation(
-                "A number input node.\n\n\
+                "A number input node.<br/><br/>
                  A zero number. The value can be edited and used as an input for other nodes.",
             )
             .into(),
@@ -86,12 +86,9 @@ impl Snippet {
         self
     }
 
-    /// Returns a modified suggestion with [`Snippet::documentation_html`] field set. This method
-    /// is only intended to be used when defining hardcoded suggestions and panics if a
-    /// documentation parser cannot be created or the argument fails to parse as valid
-    /// documentation.
+    /// Returns a modified suggestion with [`Snippet::documentation_html`] field set. No validation
+    /// or modification of the `documentation` string is performed.
     fn with_documentation(mut self, documentation: &str) -> Self {
-        // TODO: we need the Scala parser in searcher tests only for HTML documentation.
         self.documentation_html = Some(documentation.to_string());
         self
     }

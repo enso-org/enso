@@ -1013,14 +1013,8 @@ impl Handle {
 ///
 /// It just applies the information from the metadata.
 impl span_tree::generate::Context for Handle {
-    fn call_info(&self, id: node::Id, name: Option<&str>) -> Option<CalledMethodInfo> {
-        let db = &self.suggestion_db;
-        let metadata = self.module.node_metadata(id).ok()?;
-        let db_entry = db.lookup_method(metadata.intended_method?)?;
-        // If the name is different than intended method than apparently it is not intended anymore
-        // and should be ignored.
-        let matching = if let Some(name) = name { name == db_entry.name } else { true };
-        matching.then(|| db_entry.invocation_info())
+    fn call_info(&self, _id: node::Id, _name: Option<&str>) -> Option<CalledMethodInfo> {
+        None
     }
 }
 
@@ -1245,13 +1239,7 @@ main =
             let nodes = graph.nodes().unwrap();
             assert_eq!(nodes.len(), 1);
             let id = nodes[0].info.id();
-            graph
-                .module
-                .set_node_metadata(id, NodeMetadata {
-                    intended_method: entry.method_id(),
-                    ..default()
-                })
-                .unwrap();
+            graph.module.set_node_metadata(id, default()).unwrap();
 
             let get_invocation_info = || {
                 let node = &graph.nodes().unwrap()[0];

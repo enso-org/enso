@@ -376,7 +376,6 @@ pub mod tests {
     use super::*;
 
     use crate::model::execution_context::ExpressionId;
-    use crate::model::module::NodeMetadata;
     use crate::test;
 
     use engine_protocol::language_server::types::test::value_update_with_method_ptr;
@@ -483,12 +482,7 @@ pub mod tests {
         assert!(get_invocation_info().is_none());
 
         // Check that if we set metadata, executed graph can see this info.
-        module
-            .set_node_metadata(id, NodeMetadata {
-                intended_method: entry1.method_id(),
-                ..default()
-            })
-            .unwrap();
+        module.set_node_metadata(id, default()).unwrap();
         let info = get_invocation_info().unwrap();
         assert_call_info(info, &entry1);
 
