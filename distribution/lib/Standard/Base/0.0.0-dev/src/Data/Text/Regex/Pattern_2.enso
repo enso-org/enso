@@ -10,6 +10,7 @@ import project.Data.Text.Regex.Match_2.Match_2
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.IO
+import project.Nothing.Nothing
 
 type Pattern_2
     ## internal_regex_object : RegexObject (Truffle)
@@ -26,16 +27,16 @@ type Pattern_2
 
     match_all : Text -> Vector Match_2
     match_all self input =
+        builder = Vector.new_builder
         it = Match_Iterator.new self input
+        IO.println it.to_text_debug
         go it = case it.next of
-            Match_Iterator_Value.Next filler match next_it ->
-                IO.println ("filler [" + filler.text + "]")
-                IO.println ("match [" + (match.span 0).text + "]")
-                #IO.println match
+            Match_Iterator_Value.Next _ match next_it ->
+                builder.append match
                 go next_it
-            Match_Iterator_Value.Last filler ->
-                IO.println ("last filler [" + filler.text + "]")
+            Match_Iterator_Value.Last _ -> Nothing
         go it
+        builder.to_vector
 
 type Match_Iterator
     new : Pattern_2 -> Text -> Match_Iterator
@@ -60,6 +61,19 @@ type Match_Iterator
                 next_cursor = match.end 0
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
+
+    to_text_debug : Nothing
+    to_text_debug self =
+        vb = Vector.new_builder
+        go it = case it.next of
+            Match_Iterator_Value.Next filler match next_it ->
+                vb.append ('\"' + filler.text + '\"')
+                vb.append ("/" + (match.span 0).text + "/")
+                go next_it
+            Match_Iterator_Value.Last filler ->
+                vb.append ('\"' + filler.text + '\"')
+        go self
+        vb.to_vector
 
 type Match_Iterator_Value
   Next (filler : Span) (match : Match_2) (next_iterator : Match_Iterator)

@@ -11,7 +11,8 @@ main =
   mt = p.matches "ab"
   IO.println mt
 
-  p.match_all "heyabyeahab yo abc no cab ab abab ye "
+  matches = p.match_all "heyabyeahab yo abc no cab ab abab ye "
+  IO.println matches
 
   ##
 
