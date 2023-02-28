@@ -448,7 +448,7 @@ spec =
             r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
 
             r6 = df.order_by (['mixed_dates'])
-            r6 . should_fail_with Incomparable_Values
+            r6 . should_fail_with Incomparable_Values.Errors
 
     Test.group "Sorting Columns" <|
         Test.specify 'should sort columns with specified ordering and missing placement' <|

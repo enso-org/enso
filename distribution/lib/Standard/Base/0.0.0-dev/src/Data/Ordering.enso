@@ -201,7 +201,7 @@ type Ordering
         if x < y then Ordering.Less else
             if x == y then Ordering.Equal else
                 if x > y then Ordering.Greater else
-                    Error.throw Incomparable_Values
+                    Error.throw (Incomparable_Values.Error x y)
 
     ## Converts the ordering to the signed notion of ordering based on integers.
 
