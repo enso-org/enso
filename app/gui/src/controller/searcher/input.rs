@@ -3,8 +3,10 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::action;
+use crate::controller::searcher::RequiredImport;
 
 use ast::HasTokens;
+use double_representation::name::QualifiedName;
 use enso_text as text;
 use parser::Parser;
 
@@ -322,12 +324,14 @@ impl Input {
         })
     }
 
-    /// The range of the text which shall be replaced by applied suggestion.
-    pub fn replaced_range(&self) -> text::Range<text::Byte> {
-        match &self.edited_ast.edited_name {
-            Some(name) => name.range,
-            None => (self.cursor_position..self.cursor_position).into(),
-        }
+    /// The range of the text which contains the currently edited name, if any.
+    pub fn edited_name_range(&self) -> Option<text::Range<text::Byte>> {
+        self.edited_ast.edited_name.as_ref().map(|name| name.range)
+    }
+
+    /// The range of the text which contains the currently edited accessor chain, if any.
+    pub fn accessor_chain_range(&self) -> Option<text::Range<text::Byte>> {
+        self.edited_ast.edited_accessor_chain.as_ref().map(|chain| chain.range)
     }
 
     /// The input as AST node. Returns [`None`] if the input is not a valid AST.
@@ -345,7 +349,10 @@ impl Input {
 }
 
 
+
+// ============================
 // === Inserting Suggestion ===
+// ============================
 
 /// The description of the results of inserting suggestion.
 #[derive(Clone, Debug)]
@@ -360,6 +367,8 @@ pub struct InsertedSuggestion {
     /// The range of the entire inserted text in the new input. It contains code and all additional
     /// spaces.
     pub inserted_text: text::Range<text::Byte>,
+    /// An import that needs to be added when applying the suggestion.
+    pub import:        RequiredImport,
 }
 
 
@@ -371,16 +380,117 @@ impl InsertedSuggestion {
     }
 }
 
+
+// === Insert Context ===
+
+/// A helper abstraction responsible for generating proper code for the suggestion.
+///
+/// If the context contains a qualified name, we want to reuse it in the generated code sample.
+/// For example, if the user types `Foo.Bar.` and accepts a method `Foo.Bar.baz` we insert
+/// `Foo.Bar.baz` with `Foo` import instead of inserting `Bar.baz` with `Bar` import.
+struct InsertContext<'a> {
+    suggestion: &'a action::Suggestion,
+    context:    Option<ast::opr::Chain>,
+}
+
+impl InsertContext<'_> {
+    /// Whether the context of the edited expression contains a qualified name. Qualified name is a
+    /// infix chain of `ACCESS` operators with identifiers.
+    fn has_qualified_name(&self) -> bool {
+        if let Some(ref context) = self.context {
+            let every_operand_is_name = context
+                .enumerate_operands()
+                .flatten()
+                .all(|opr| matches!(opr.item.arg.shape(), ast::Shape::Cons(_)));
+            let every_operator_is_access = context
+                .enumerate_operators()
+                .all(|opr| opr.item.ast().repr() == ast::opr::predefined::ACCESS);
+            every_operand_is_name && every_operator_is_access
+        } else {
+            false
+        }
+    }
+
+    /// All the segments of the qualified name already written by the user.
+    fn qualified_name_segments(&self) -> Option<Vec<ImString>> {
+        if self.has_qualified_name() {
+            // Unwrap is safe here, because `has_qualified_name` would not return true in case of no
+            // context.
+            let context = self.context.as_ref().unwrap();
+            let name_segments = context
+                .enumerate_operands()
+                .flatten()
+                .filter_map(|opr| ast::identifier::name(&opr.item.arg).map(ImString::new))
+                .collect_vec();
+            Some(name_segments)
+        } else {
+            None
+        }
+    }
+
+    /// A list of name segments to replace the user input, and also a required import for the
+    /// final expression. The returned list of segments contains both the segments already entered
+    /// by the user and the segments that need to be added.
+    fn segments_to_replace(&self) -> Option<(Vec<ImString>, RequiredImport)> {
+        if let Some(existing_segments) = self.qualified_name_segments() {
+            if let action::Suggestion::FromDatabase(entry) = self.suggestion {
+                let name = entry.qualified_name();
+                let all_segments = name.path();
+                let pos = all_segments
+                    .windows(existing_segments.len())
+                    .position(|w| w == existing_segments)?;
+                let name_segments = all_segments.get(pos..).unwrap_or(&[]).to_vec();
+                let import_segments = all_segments.get(..=pos).unwrap_or(&[]).to_vec();
+                let project = name.project();
+                let all_import_segments = project.segments().chain(import_segments.iter());
+                if let Ok(import) = QualifiedName::from_all_segments(all_import_segments) {
+                    Some((name_segments, RequiredImport::Name(import)))
+                } else {
+                    error!("Invalid import formed in `segments_to_replace`: {import_segments:?}.");
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn code_to_insert(&self) -> (Cow<str>, RequiredImport) {
+        match self.suggestion {
+            action::Suggestion::FromDatabase(entry) => {
+                if let Some((segments, import)) = self.segments_to_replace() {
+                    (Cow::from(segments.iter().join(ast::opr::predefined::ACCESS)), import)
+                } else {
+                    let code = entry.code_to_insert(true);
+                    let import = RequiredImport::Entry(entry.clone_ref());
+                    (code, import)
+                }
+            }
+            action::Suggestion::Hardcoded(snippet) =>
+                (Cow::from(snippet.code.as_str()), RequiredImport::None),
+        }
+    }
+}
+
+// === Input ===
+
 impl Input {
     /// Return an information about input change after inserting given suggestion.
     pub fn after_inserting_suggestion(
         &self,
         suggestion: &action::Suggestion,
-        has_this: bool,
     ) -> FallibleResult<InsertedSuggestion> {
-        let replaced = self.replaced_range();
-        let generate_this = self.context().is_none() && !has_this;
-        let code_to_insert = suggestion.code_to_insert(generate_this);
+        let context = self.context();
+        let context = InsertContext { suggestion, context };
+        let default_range = (self.cursor_position..self.cursor_position).into();
+        let replaced = if context.has_qualified_name() {
+            self.accessor_chain_range().unwrap_or(default_range)
+        } else {
+            self.edited_name_range().unwrap_or(default_range)
+        };
+        let (code_to_insert, import) = context.code_to_insert();
         debug!("Code to insert: \"{code_to_insert}\"");
         let end_of_inserted_code = replaced.start + text::Bytes(code_to_insert.len());
         let end_of_inserted_text = end_of_inserted_code + text::Bytes(1);
@@ -395,6 +505,7 @@ impl Input {
             replaced,
             inserted_code: (replaced.start..end_of_inserted_code).into(),
             inserted_text: (replaced.start..end_of_inserted_text).into(),
+            import,
         })
     }
 

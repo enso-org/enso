@@ -2,10 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::model::SuggestionDatabase;
-
 use double_representation::module::MethodId;
-use double_representation::name::QualifiedNameRef;
 
 
 // ==============
@@ -35,17 +32,6 @@ impl Suggestion {
         match self {
             Suggestion::FromDatabase(s) => s.code_to_insert(generate_this),
             Suggestion::Hardcoded(s) => s.code.as_str().into(),
-        }
-    }
-
-    pub(crate) fn required_imports(
-        &self,
-        db: &SuggestionDatabase,
-        current_module: QualifiedNameRef,
-    ) -> impl IntoIterator<Item = model::suggestion_database::entry::Import> {
-        match self {
-            Suggestion::FromDatabase(s) => s.required_imports(db, current_module),
-            Suggestion::Hardcoded(_) => default(),
         }
     }
 
