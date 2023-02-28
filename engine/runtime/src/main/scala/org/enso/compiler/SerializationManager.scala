@@ -2,7 +2,6 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.ImportExportCacheJava
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
@@ -175,9 +174,9 @@ class SerializationManager(compiler: Compiler) {
       s"Running serialization for bindings [$libraryName]."
     )
     startSerializing(libraryName.toQualifiedName)
-    val bindingsCache = new ImportExportCacheJava.CachedBindings(
+    val bindingsCache = new ImportExportCache.CachedBindings(
       libraryName,
-      new ImportExportCacheJava.MapToBindings(
+      new ImportExportCache.MapToBindings(
         compiler.packageRepository
           .getModulesForLibrary(libraryName)
           .map { module =>
@@ -196,7 +195,7 @@ class SerializationManager(compiler: Compiler) {
         .map(_.listSourcesJava())
     )
     try {
-      new ImportExportCacheJava(libraryName)
+      new ImportExportCache(libraryName)
         .save(bindingsCache, compiler.context, useGlobalCacheLocations)
         .isPresent()
     } catch {
@@ -221,7 +220,7 @@ class SerializationManager(compiler: Compiler) {
 
   def deserializeLibraryBindings(
     library: LibraryName
-  ): Option[ImportExportCacheJava.CachedBindings] = {
+  ): Option[ImportExportCache.CachedBindings] = {
     if (isWaitingForSerialization(library)) {
       abort(library)
       None
@@ -229,8 +228,9 @@ class SerializationManager(compiler: Compiler) {
       while (isSerializingLibrary(library)) {
         Thread.sleep(100)
       }
-      new ImportExportCacheJava(library).load(compiler.context).toScala match {
-        case result @ Some(_: ImportExportCacheJava.CachedBindings) =>
+      new ImportExportCache(library).load(compiler.context).toScala match {
+        case result @ Some(_: ImportExportCache.CachedBindings) =>
+          logger.log(Level.FINEST, s"Deserialized library bindings [$library].")
           result
         case _ =>
           logger.log(
@@ -443,7 +443,7 @@ class SerializationManager(compiler: Compiler) {
     * @return the task that serialies the provided `ir`
     */
   private def doSerializeModule(
-    cache: ModuleCacheJava,
+    cache: ModuleCache,
     ir: IR.Module,
     stage: Module.CompilationStage,
     name: QualifiedName,
@@ -462,7 +462,7 @@ class SerializationManager(compiler: Compiler) {
         } else stage
       cache
         .save(
-          new ModuleCacheJava.CachedModule(ir, fixedStage, source),
+          new ModuleCache.CachedModule(ir, fixedStage, source),
           compiler.context,
           useGlobalCacheLocations
         )

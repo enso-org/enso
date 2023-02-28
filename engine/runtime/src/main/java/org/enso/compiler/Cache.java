@@ -29,7 +29,7 @@ import java.util.logging.Level;
  * @param <T> type of the cached data
  * @param <M> type of the metadata associated with the data
  */
-public abstract class CacheJava<T, M extends CacheJava.Metadata> {
+public abstract class Cache<T, M extends Cache.Metadata> {
 
   /** Returns a default level of logging for this Cache. */
   protected Level logLevel;
@@ -76,7 +76,7 @@ public abstract class CacheJava<T, M extends CacheJava.Metadata> {
   }
 
   /**
-   * Attempts to save cache data at a specified location
+   * Attempts to save cache data at a specified location.
    *
    * @param cacheRoot parent directory where cache data should be stored
    * @param entry cache data to save

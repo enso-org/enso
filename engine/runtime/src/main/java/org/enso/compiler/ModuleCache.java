@@ -18,11 +18,11 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.logging.Level;
 
-public class ModuleCacheJava extends CacheJava<ModuleCacheJava.CachedModule, ModuleCacheJava.Metadata>{
+public class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
 
     private final Module module;
 
-    public ModuleCacheJava(Module module) {
+    public ModuleCache(Module module) {
         this.module = module;
         this.logLevel = Level.WARNING;
         this.stringRepr = module.getName().toString();
@@ -56,7 +56,7 @@ public class ModuleCacheJava extends CacheJava<ModuleCacheJava.CachedModule, Mod
 
     @Override
     protected Optional<Metadata> metadataFromBytes(byte[] bytes) {
-        var maybeJsonString = new String(bytes, CacheJava.metadataCharset);
+        var maybeJsonString = new String(bytes, Cache.metadataCharset);
         var mapper = new ObjectMapper();
         try {
             return Optional.of(mapper.readValue(maybeJsonString, Metadata.class));
@@ -95,7 +95,7 @@ public class ModuleCacheJava extends CacheJava<ModuleCacheJava.CachedModule, Mod
     }
 
     @Override
-    protected Optional<CacheJava.Roots> getCacheRoots(EnsoContext context) {
+    protected Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
         if (module != context.getBuiltins().getModule()) {
             return context.getPackageOf(module.getSourceFile()).map(pkg -> {
                 var irCacheRoot    = pkg.getIrCacheRootForPackage(Info.ensoVersion());
@@ -116,7 +116,7 @@ public class ModuleCacheJava extends CacheJava<ModuleCacheJava.CachedModule, Mod
                         .resolve(pathSegments.mkString("/"));
                 var globalCacheRoot = context.getTruffleFile(path.toFile());
 
-                return new CacheJava.Roots(localCacheRoot, globalCacheRoot);
+                return new Cache.Roots(localCacheRoot, globalCacheRoot);
             });
         } else {
             var distribution = context.getDistributionManager();
@@ -133,7 +133,7 @@ public class ModuleCacheJava extends CacheJava<ModuleCacheJava.CachedModule, Mod
                     .resolve(pathSegments.mkString("/"));
             var globalCacheRoot = context.getTruffleFile(path.toFile());
 
-            return Optional.of(new CacheJava.Roots(globalCacheRoot, globalCacheRoot));
+            return Optional.of(new Cache.Roots(globalCacheRoot, globalCacheRoot));
         }
     }
 
@@ -168,7 +168,7 @@ public class ModuleCacheJava extends CacheJava<ModuleCacheJava.CachedModule, Mod
     public record Metadata(
             @JsonProperty("source_hash") String sourceHash,
             @JsonProperty("blob_hash") String blobHash,
-            @JsonProperty("compilation_stage") String compilationStage) implements CacheJava.Metadata {}
+            @JsonProperty("compilation_stage") String compilationStage) implements Cache.Metadata {}
 
     private final static String irCacheDataExtension = ".ir";
     private final static String irCacheMetadataExtension = ".meta";

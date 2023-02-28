@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
-import org.enso.compiler.ModuleCacheJava;
+import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
@@ -94,7 +94,7 @@ public final class Module implements TruffleObject {
   private boolean isIndexed = false;
   private IR.Module ir;
   private QualifiedName name;
-  private final ModuleCacheJava cache;
+  private final ModuleCache cache;
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
   private boolean synthetic;
@@ -112,7 +112,7 @@ public final class Module implements TruffleObject {
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCacheJava(this);
+    this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.synthetic = false;
@@ -130,7 +130,7 @@ public final class Module implements TruffleObject {
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCacheJava(this);
+    this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
@@ -149,7 +149,7 @@ public final class Module implements TruffleObject {
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCacheJava(this);
+    this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
@@ -175,7 +175,7 @@ public final class Module implements TruffleObject {
     this.scope = new ModuleScope(this, context);
     this.pkg = pkg;
     this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
-    this.cache = new ModuleCacheJava(this);
+    this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.synthetic = synthetic;
@@ -494,7 +494,7 @@ public final class Module implements TruffleObject {
   }
 
   /** @return the cache for this module */
-  public ModuleCacheJava getCache() {
+  public ModuleCache getCache() {
     return cache;
   }
 

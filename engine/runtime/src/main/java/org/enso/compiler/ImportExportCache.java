@@ -23,13 +23,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 
-public class ImportExportCacheJava extends CacheJava<ImportExportCacheJava.CachedBindings, ImportExportCacheJava.Metadata> {
+public class ImportExportCache extends Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
     private final LibraryName libraryName;
 
-    public ImportExportCacheJava(LibraryName libraryName) {
+    public ImportExportCache(LibraryName libraryName) {
         this.libraryName = libraryName;
-        this.logLevel = Level.WARNING;
+        this.logLevel = Level.FINEST;
         this.stringRepr = libraryName.toString();
         this.entryName = libraryName.name();
         this.dataSuffix = bindingsCacheDataExtension;
@@ -57,10 +57,10 @@ public class ImportExportCacheJava extends CacheJava<ImportExportCacheJava.Cache
 
     @Override
     protected Optional<Metadata> metadataFromBytes(byte[] bytes) {
-        var maybeJsonString = new String(bytes, CacheJava.metadataCharset);
+        var maybeJsonString = new String(bytes, Cache.metadataCharset);
         var mapper = new ObjectMapper();
         try {
-            return Optional.of(mapper.readValue(maybeJsonString, ImportExportCacheJava.Metadata.class));
+            return Optional.of(mapper.readValue(maybeJsonString, ImportExportCache.Metadata.class));
         } catch (JsonProcessingException e) {
             return Optional.empty();
         }
@@ -97,7 +97,7 @@ public class ImportExportCacheJava extends CacheJava<ImportExportCacheJava.Cache
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Optional<CacheJava.Roots> getCacheRoots(EnsoContext context) {
+    protected Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
         return context.getPackageRepository().getPackageForLibraryJava(libraryName).map(pkg -> {
             var bindingsCacheRoot =
                     pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
@@ -113,7 +113,7 @@ public class ImportExportCacheJava extends CacheJava<ImportExportCacheJava.Cache
             var path = distribution.LocallyInstalledDirectories().irCacheDirectory()
                     .resolve(pathSegments.mkString("/"));
             var globalCacheRoot = context.getTruffleFile(path.toFile());
-            return new CacheJava.Roots(localCacheRoot, globalCacheRoot);
+            return new Cache.Roots(localCacheRoot, globalCacheRoot);
         });
     }
 
@@ -159,7 +159,7 @@ public class ImportExportCacheJava extends CacheJava<ImportExportCacheJava.Cache
 
     public record Metadata(
             @JsonProperty("source_hash") String sourceHash,
-            @JsonProperty("blob_hash") String blobHash) implements CacheJava.Metadata {}
+            @JsonProperty("blob_hash") String blobHash) implements Cache.Metadata {}
 
     private static final String bindingsCacheDataExtension = ".bindings";
     private static final String bindingsCacheMetadataExtension =".bindings.meta";
