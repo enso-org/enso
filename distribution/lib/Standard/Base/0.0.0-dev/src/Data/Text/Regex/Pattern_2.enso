@@ -78,26 +78,3 @@ type Match_Iterator
 type Match_Iterator_Value
   Next (filler : Span) (match : Match_2) (next_iterator : Match_Iterator)
   Last (filler : Span)
-
-##
-    type Pattern_Iterator_Next_Value
-        ## match : RegexResult (Truffle)
-           (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
-        Value (filler : Span) (match : Object)
-
-    type Pattern_Iterator
-        Value (pattern : Pattern_2) (input : Text) (search_start : Integer) (done : Boolean)
-
-        new : Pattern_2 -> Pattern_Iterator
-        new pattern = Pattern_Iterator.Value pattern 0 false
-
-        next : Pattern_Iterator_Next_Value
-        next self =
-            m = self.pattern.internal_regex_object.exec self.input self.search_start
-            case m.isMatch of
-                True ->
-                    filler_start = self.search_start
-                    filler_end = m.getStart 0
-                    filler_range = Range.new filler_start filler_end
-                    filler = Span.Value filler_range input
-                    next_search_start = m.getEnd 0
