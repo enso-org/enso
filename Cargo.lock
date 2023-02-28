@@ -1860,6 +1860,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-bitmap"
+version = "0.1.0"
+
+[[package]]
 name = "enso-build"
 version = "0.1.0"
 dependencies = [
@@ -2696,6 +2700,7 @@ dependencies = [
 name = "ensogl-dynamic-assets"
 version = "0.1.0"
 dependencies = [
+ "enso-bitmap",
  "enso-prelude",
  "enso-shapely",
  "ensogl-core",
@@ -3052,11 +3057,14 @@ dependencies = [
 name = "ensogl-pack"
 version = "0.1.0"
 dependencies = [
+ "enso-bitmap",
  "enso-prelude",
  "fs_extra",
  "ide-ci",
  "manifest-dir-macros",
  "regex",
+ "serde",
+ "serde_json",
  "tempfile",
  "tokio",
  "walkdir",
@@ -3137,6 +3145,7 @@ version = "0.1.0"
 dependencies = [
  "bincode 2.0.0-rc.2",
  "const_format",
+ "enso-bitmap",
  "enso-frp",
  "enso-prelude",
  "enso-shapely",
@@ -3183,6 +3192,7 @@ dependencies = [
 name = "ensogl-text-msdf"
 version = "0.1.0"
 dependencies = [
+ "enso-bitmap",
  "enso-build-utilities",
  "enso-prelude",
  "enso-profiler",

@@ -1,5 +1,4 @@
 #![cfg(target_arch = "wasm32")]
-
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -23,7 +22,9 @@
 use enso_prelude::*;
 use enso_shapely::before_main;
 use ensogl_core::system::js;
-use ensogl_core::system::web::{Closure, JsValue, Map};
+use ensogl_core::system::web::Closure;
+use ensogl_core::system::web::JsValue;
+use ensogl_core::system::web::Map;
 
 mod fonts;
 

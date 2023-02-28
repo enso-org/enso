@@ -1,5 +1,7 @@
 use ensogl_core::system::web::JsCast;
-use ensogl_core::system::web::{JsValue, Map, Reflect};
+use ensogl_core::system::web::JsValue;
+use ensogl_core::system::web::Map;
+use ensogl_core::system::web::Reflect;
 
 
 
@@ -32,7 +34,7 @@ pub fn set_atlas(name: String, data: JsValue) {
 
 #[derive(Debug)]
 pub struct Atlas {
-    atlas: js_sys::ArrayBuffer,
+    atlas:    js_sys::ArrayBuffer,
     metadata: String,
 }
 
@@ -88,11 +90,14 @@ fn build_atlas(name: &str) -> Atlas {
 
 
 
-// ===================================
-// === Loading Atlases at Run-Time ===
-// ===================================
+// =========================================
+// === Loading Atlases at Early Run-Time ===
+// =========================================
 
 /// Attach the given MSDF data to a font to enable efficient rendering.
 fn load_atlas(name: String, data: Atlas) {
-    todo!()
+    let atlas = js_sys::Uint8Array::new(&data.atlas).to_vec();
+    let glyphs = data.metadata;
+    let snapshot = ensogl_text::font::CacheSnapshot { atlas, glyphs };
+    //let fonts = scene.extension::<font::Registry>();
 }

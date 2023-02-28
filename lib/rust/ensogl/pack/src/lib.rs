@@ -110,6 +110,7 @@
 
 use ide_ci::prelude::*;
 
+use enso_prelude::anyhow;
 use enso_prelude::calculate_hash;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::shaderc::Glslc;
@@ -118,9 +119,12 @@ use ide_ci::programs::spirv_cross::SpirvCross;
 use ide_ci::programs::wasm_pack::WasmPackCommand;
 use manifest_dir_macros::path;
 use std::env;
+use std::hash::Hasher;
+use std::io::ErrorKind;
 use std::path::Path;
 use std::path::PathBuf;
 use walkdir::WalkDir;
+
 
 
 // ==============
@@ -323,6 +327,7 @@ pub async fn workspace_dir() -> Result<PathBuf> {
 }
 
 
+
 // =============
 // === Build ===
 // =============
@@ -466,6 +471,217 @@ async fn extract_assets(paths: &Paths) -> Result<()> {
         .await
 }
 
+/// Build the dynamic assets.
+async fn build_assets(paths: &Paths) -> Result<()> {
+    info!("Building dynamic assets.");
+    let sources = survey_asset_sources(paths)?;
+    let assets = update_assets(paths, &sources)?;
+    let manifest = serde_json::to_string(&assets)?;
+    std::fs::write(&paths.target.ensogl_pack.dist.assets.manifest, manifest)?;
+    gc_assets(&paths.target.ensogl_pack.dist.assets.root, &assets)?;
+    Ok(())
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum Builder {
+    Font,
+}
+
+impl Builder {
+    fn dir_name<'a>(self) -> &'a str {
+        self.into()
+    }
+
+    fn build_asset(
+        self,
+        input_dir: &Path,
+        input_files: &[String],
+        output_dir: &Path,
+    ) -> Result<()> {
+        match self {
+            Builder::Font => build_font(input_dir, input_files, output_dir),
+        }
+    }
+}
+impl TryFrom<&str> for Builder {
+    type Error = anyhow::Error;
+    fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
+        match value {
+            "font" => Ok(Builder::Font),
+            other => Err(anyhow::Error::msg(format!("Unknown builder: {other:?}"))),
+        }
+    }
+}
+impl From<Builder> for &'static str {
+    fn from(value: Builder) -> Self {
+        match value {
+            Builder::Font => "font",
+        }
+    }
+}
+
+struct AssetSources {
+    asset_key:   String,
+    input_files: Vec<String>,
+    inputs_hash: u64,
+}
+
+impl AssetSources {
+    fn dir_name(&self) -> String {
+        let key = &self.asset_key;
+        let hash = self.inputs_hash;
+        format!("{key}-{hash:x}")
+    }
+}
+
+#[derive(Serialize)]
+struct Asset {
+    asset_dir: String,
+    files:     Vec<String>,
+}
+
+/// Scan the sources found in the asset sources directory.
+fn survey_asset_sources(paths: &Paths) -> Result<HashMap<Builder, Vec<AssetSources>>> {
+    let dir = ide_ci::fs::read_dir(&paths.target.ensogl_pack.assets)?;
+    let mut asset_sources: HashMap<_, Vec<_>> = HashMap::new();
+    let mut buf = Vec::new();
+    for entry in dir {
+        let entry = entry?;
+        let builder = Builder::try_from(entry.file_name().to_string_lossy().as_ref())?;
+        let builder_dir = ide_ci::fs::read_dir(entry.path())?;
+        let builder_sources = asset_sources.entry(builder).or_default();
+        for entry in builder_dir {
+            let entry = entry?;
+            let asset_key = entry.file_name().to_string_lossy().to_string();
+            let asset_dir = ide_ci::fs::read_dir(entry.path())?;
+            let mut file_hashes = BTreeMap::new();
+            for entry in asset_dir {
+                let entry = entry?;
+                let file_name = entry.file_name().to_string_lossy().to_string();
+                let path = entry.path();
+                buf.clear();
+                ide_ci::fs::open(path)?.read_to_end(&mut buf)?;
+                let mut file_hasher = std::collections::hash_map::DefaultHasher::new();
+                buf.hash(&mut file_hasher);
+                file_hashes.insert(file_name, file_hasher.finish());
+            }
+            let mut asset_hasher = std::collections::hash_map::DefaultHasher::new();
+            file_hashes.hash(&mut asset_hasher);
+            let inputs_hash = asset_hasher.finish();
+            let input_files = file_hashes.into_keys().collect();
+            builder_sources.push(AssetSources { asset_key, input_files, inputs_hash });
+        }
+    }
+    Ok(asset_sources)
+}
+
+type AssetManifest = BTreeMap<Builder, BTreeMap<String, Asset>>;
+
+/// Generate any assets not found up-to-date in the cache.
+fn update_assets(
+    paths: &Paths,
+    sources: &HashMap<Builder, Vec<AssetSources>>,
+) -> Result<AssetManifest> {
+    let out = &paths.target.ensogl_pack.dist.assets;
+    ide_ci::fs::create_dir_if_missing(out)?;
+    let mut assets: AssetManifest = BTreeMap::new();
+    for (&builder, builder_sources) in sources {
+        let out = out.join(builder.dir_name());
+        ide_ci::fs::create_dir_if_missing(&out)?;
+        let builder_assets = assets.entry(builder).or_default();
+        for source_specification in builder_sources {
+            let out = out.join(source_specification.dir_name());
+            let asset = match std::fs::create_dir(&out) {
+                Ok(()) => {
+                    info!("Rebuilding asset: `{}`.", out.display());
+                    build_asset(paths, builder, source_specification)?
+                }
+                Err(e) if e.kind() == ErrorKind::AlreadyExists => {
+                    info!("Skipping clean asset: `{}`.", out.display());
+                    survey_asset(paths, builder, source_specification)?
+                }
+                Err(e) => return Err(e.into()),
+            };
+            builder_assets.insert(source_specification.asset_key.clone(), asset);
+        }
+    }
+    Ok(assets)
+}
+
+fn build_font(input_dir: &Path, input_files: &[String], output_dir: &Path) -> Result<()> {
+    for file_name in input_files {
+        ide_ci::fs::copy(input_dir.join(file_name), output_dir.join(file_name))?;
+    }
+    Ok(())
+}
+
+/// Generate an asset from the given sources.
+fn build_asset(
+    paths: &Paths,
+    builder: Builder,
+    source_specification: &AssetSources,
+) -> Result<Asset> {
+    let input_dir = paths
+        .target
+        .ensogl_pack
+        .assets
+        .join(builder.dir_name())
+        .join(&source_specification.asset_key);
+    let output_dir = paths
+        .target
+        .ensogl_pack
+        .dist
+        .assets
+        .join(builder.dir_name())
+        .join(source_specification.dir_name());
+    // TODO: Build the asset in a temporary directory and atomically move it into place when
+    //  complete, to prevent an interrupted build from leaving corrupted assets in the store.
+    builder.build_asset(&input_dir, &source_specification.input_files, &output_dir)?;
+    survey_asset(paths, builder, source_specification)
+}
+
+/// Identify the files present in an asset directory.
+fn survey_asset(
+    paths: &Paths,
+    builder: Builder,
+    source_specification: &AssetSources,
+) -> Result<Asset> {
+    let asset_dir = source_specification.dir_name();
+    let dir = paths.target.ensogl_pack.dist.assets.join(builder.dir_name()).join(&asset_dir);
+    let mut files = Vec::new();
+    for entry in ide_ci::fs::read_dir(&dir)? {
+        files.push(entry?.file_name().to_string_lossy().to_string());
+    }
+    Ok(Asset { asset_dir, files })
+}
+
+/// Remove any assets not present in the manifest.
+fn gc_assets(dir: &Path, assets: &AssetManifest) -> Result<()> {
+    for entry in dir.read_dir()? {
+        let entry = entry?;
+        let dir = entry.path();
+        let builder = Builder::try_from(entry.file_name().to_string_lossy().as_ref()).ok();
+        let assets = builder.and_then(|builder| assets.get(&builder));
+        match assets {
+            Some(assets) =>
+                for entry in dir.read_dir()? {
+                    let entry = entry?;
+                    let dir = entry.path();
+                    if !assets.contains_key(entry.file_name().to_string_lossy().as_ref()) {
+                        info!("Cleaning unused asset at `{}`.", dir.display());
+                        ide_ci::fs::remove_dir_if_exists(dir)?;
+                    }
+                },
+            _ => {
+                info!("Cleaning unused builder at `{}`.", dir.display());
+                ide_ci::fs::remove_dir_if_exists(dir)?;
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Optimize the extracted shaders by using `glslc`, `spirv-opt` and `spirv-cross`.
 async fn optimize_shaders(paths: &Paths) -> Result<()> {
     info!("Optimizing extracted shaders.");
@@ -558,6 +774,7 @@ pub async fn build(
     extract_shaders(&paths).await?;
     extract_assets(&paths).await?;
     optimize_shaders(&paths).await?;
+    build_assets(&paths).await?;
     let out_dir = Path::new(&outputs.out_dir);
     ide_ci::fs::copy(&paths.target.ensogl_pack.dist, out_dir)?;
     ide_ci::fs::remove_symlink_dir_if_exists(&paths.target.ensogl_pack.linked_dist)?;

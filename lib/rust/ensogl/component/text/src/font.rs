@@ -653,6 +653,7 @@ impl<F: Family> FontTemplate<F> {
         face: &Face,
     ) -> GlyphRenderInfo {
         #[derive(Debug)]
+        #[allow(dead_code)]
         struct GlyphCacheMiss<'a, T> {
             face:       &'a str,
             variations: &'a T,
@@ -711,20 +712,19 @@ impl<F: Family> FontTemplate<F> {
 
 // === Cache Snapshots ===
 
-pub mod image {
-    pub struct Ppm(pub Vec<u8>);
-    pub struct Raw(pub Vec<u8>);
-}
-
-pub struct CacheSnapshot<T> {
-    pub atlas:  T,
+/// Cached rendering information for a font.
+#[derive(Debug)]
+pub struct CacheSnapshot {
+    /// The MSDF atlas pixel data.
+    pub atlas:  enso_bitmap::Image,
+    /// Index of glyphs found in [`atlas`].
     pub glyphs: String,
 }
 
 impl FontTemplate<NonVariableFamily> {
     /// Return the current glyph cache data.
-    pub fn cache_snapshot(&self) -> CacheSnapshot<image::Ppm> {
-        let atlas = image::Ppm(self.atlas.serialize_ppm());
+    pub fn cache_snapshot(&self) -> CacheSnapshot {
+        let atlas = self.atlas.to_image();
         let cache: HashMap<String, _> = self
             .cache
             .borrow()
@@ -748,7 +748,7 @@ impl FontTemplate<NonVariableFamily> {
                     Style::Oblique => "Oblique",
                 };
                 let variation = format!("{width}-{weight}-{style}");
-                let mut glyphs: HashMap<String, GlyphRenderInfo> =
+                let glyphs: HashMap<String, GlyphRenderInfo> =
                     info.glyphs.iter().map(|(id, data)| (id.0.to_string(), *data)).collect();
                 (variation, glyphs)
             })
@@ -757,8 +757,9 @@ impl FontTemplate<NonVariableFamily> {
         CacheSnapshot { atlas, glyphs }
     }
 
-    pub fn load_cache(&self, snapshot: CacheSnapshot<image::Raw>) {
-        self.atlas.load_bytes(snapshot.atlas.0);
+    /// Populate the cache with the given data.
+    pub fn load_cache(&self, snapshot: CacheSnapshot) {
+        self.atlas.set_data(snapshot.atlas);
         let cache: HashMap<(String, String, String), HashMap<u16, GlyphRenderInfo>> =
             serde_json::from_str(&snapshot.glyphs).unwrap();
         *self.cache.borrow_mut() = cache
@@ -849,7 +850,6 @@ fn get_texture(_context: &Context) -> AtlasTexture {
     0.0
 }
 
-use crate::font::glyph::Glyph;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::display::world::Context;
 
@@ -973,7 +973,7 @@ impl Default for Hinting {
 // =========================
 
 /// A registry of font data built-in to the application.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Embedded {
     definitions: HashMap<Name, family::Definition>,
     data:        HashMap<&'static str, &'static [u8]>,

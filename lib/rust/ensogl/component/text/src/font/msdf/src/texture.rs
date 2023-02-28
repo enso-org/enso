@@ -73,18 +73,19 @@ impl Texture {
         clamped_to_byte as u8
     }
 
-    pub fn serialize_ppm(&self) -> Vec<u8> {
-        let mut out = vec![];
-        let rows = self.rows();
-        let header = format!("P6\n32 {rows}\n255\n");
-        out.extend(header.bytes());
-        out.extend(&*self.data.borrow());
-        out
+    /// Get the raw pixel data.
+    pub fn to_image(&self) -> enso_bitmap::Image {
+        let width = Self::WIDTH;
+        let height = self.rows();
+        let data = self.data.borrow().clone();
+        enso_bitmap::Image { width, height, data }
     }
 
+    /// Set the raw pixel data.
     #[profile(Debug)]
-    pub fn load_bytes(&self, bytes: Vec<u8>) {
-        *self.data.borrow_mut() = bytes;
+    pub fn set_data(&self, image: enso_bitmap::Image) {
+        debug_assert_eq!(image.width, Self::WIDTH);
+        *self.data.borrow_mut() = image.data;
     }
 }
 
