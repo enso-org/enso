@@ -162,13 +162,19 @@ case class Package[F](
     *
     * @return the list of all source files in this package, together with their qualified names.
     */
-  def listSources: List[SourceFile[F]] = {
-    val sources = sourceDir.walk
+  def listSources(): List[SourceFile[F]] = {
+    listSourcesJava().asScala.toList
+  }
+
+  /** Lists the source files in this package.
+    *
+    * @return the list of all source files in this package, together with their qualified names.
+    */
+  def listSourcesJava(): java.util.List[SourceFile[F]] = {
+    sourceDir.walk
       .filter(f => f.isRegularFile && f.getName.endsWith(".enso"))
-      .iterator
-      .asScala
-      .toList
-    sources.map { path => SourceFile(moduleNameForFile(path), path) }
+      .map(path => SourceFile(moduleNameForFile(path), path))
+      .collect(java.util.stream.Collectors.toList[SourceFile[F]])
   }
 
   /** Lists contents of the polyglot extensions directory for a given language.

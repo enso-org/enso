@@ -2,7 +2,7 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
-import org.enso
+import org.enso.compiler.ImportExportCacheJava
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
@@ -21,6 +21,7 @@ import java.util.concurrent.{
 }
 import java.util.logging.Level
 import scala.collection.mutable
+import scala.jdk.OptionConverters.RichOptional
 
 class SerializationManager(compiler: Compiler) {
   import SerializationManager._
@@ -139,7 +140,7 @@ class SerializationManager(compiler: Compiler) {
   ): Future[Boolean] = {
     logger.log(
       Level.INFO,
-      s"Requesting serialization for library [$library}] bindings."
+      s"Requesting serialization for library [$library] bindings."
     )
 
     val task: Callable[Boolean] =
@@ -174,9 +175,9 @@ class SerializationManager(compiler: Compiler) {
       s"Running serialization for bindings [$libraryName]."
     )
     startSerializing(libraryName.toQualifiedName)
-    val bindingsCache = ImportExportCache.CacheBindings(
+    val bindingsCache = new ImportExportCacheJava.CachedBindings(
       libraryName,
-      ImportExportCache.FileToBindings(
+      new ImportExportCacheJava.MapToBindings(
         compiler.packageRepository
           .getModulesForLibrary(libraryName)
           .map { module =>
@@ -191,13 +192,13 @@ class SerializationManager(compiler: Compiler) {
           .toMap
       ),
       compiler.packageRepository
-        .getPackageForLibrary(libraryName)
-        .map(_.listSources)
+        .getPackageForLibraryJava(libraryName)
+        .map(_.listSourcesJava())
     )
     try {
-      new enso.compiler.ImportExportCache(libraryName)
+      new ImportExportCacheJava(libraryName)
         .save(bindingsCache, compiler.context, useGlobalCacheLocations)
-        .isDefined
+        .isPresent()
     } catch {
       case e: NotSerializableException =>
         logger.log(
@@ -220,7 +221,7 @@ class SerializationManager(compiler: Compiler) {
 
   def deserializeLibraryBindings(
     library: LibraryName
-  ): Option[ImportExportCache.CacheBindings] = {
+  ): Option[ImportExportCacheJava.CachedBindings] = {
     if (isWaitingForSerialization(library)) {
       abort(library)
       None
@@ -228,8 +229,8 @@ class SerializationManager(compiler: Compiler) {
       while (isSerializingLibrary(library)) {
         Thread.sleep(100)
       }
-      new ImportExportCache(library).load(compiler.context) match {
-        case result @ Some(_: ImportExportCache.CacheBindings) =>
+      new ImportExportCacheJava(library).load(compiler.context).toScala match {
+        case result @ Some(_: ImportExportCacheJava.CachedBindings) =>
           result
         case _ =>
           logger.log(
@@ -263,16 +264,19 @@ class SerializationManager(compiler: Compiler) {
         Thread.sleep(100)
       }
 
-      module.getCache.load(compiler.context) match {
-        case Some(ModuleCache.CachedModule(ir, stage, _)) =>
+      module.getCache.load(compiler.context).toScala match {
+        case Some(loadedCache) =>
           val relinkedIrChecks =
-            ir.preorder.map(_.passData.restoreFromSerialization(this.compiler))
-          module.unsafeSetIr(ir)
-          module.unsafeSetCompilationStage(stage)
+            loadedCache
+              .moduleIR()
+              .preorder
+              .map(_.passData.restoreFromSerialization(this.compiler))
+          module.unsafeSetIr(loadedCache.moduleIR())
+          module.unsafeSetCompilationStage(loadedCache.compilationStage())
           module.setLoadedFromCache(true)
           logger.log(
             debugLogLevel,
-            s"Restored IR from cache for module [${module.getName}] at stage [$stage]."
+            s"Restored IR from cache for module [${module.getName}] at stage [${loadedCache.compilationStage()}]."
           )
 
           if (!relinkedIrChecks.contains(false)) {
@@ -439,7 +443,7 @@ class SerializationManager(compiler: Compiler) {
     * @return the task that serialies the provided `ir`
     */
   private def doSerializeModule(
-    cache: ModuleCache,
+    cache: ModuleCacheJava,
     ir: IR.Module,
     stage: Module.CompilationStage,
     name: QualifiedName,
@@ -458,12 +462,12 @@ class SerializationManager(compiler: Compiler) {
         } else stage
       cache
         .save(
-          ModuleCache.CachedModule(ir, fixedStage, source),
+          new ModuleCacheJava.CachedModule(ir, fixedStage, source),
           compiler.context,
           useGlobalCacheLocations
         )
         .map(_ => true)
-        .getOrElse(false)
+        .orElse(false)
     } catch {
       case e: NotSerializableException =>
         logger.log(

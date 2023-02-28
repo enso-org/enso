@@ -29,7 +29,7 @@ class ImportExportCache(library: LibraryName)
     context: EnsoContext
   ): Option[String] = {
     context.getPackageRepository.getPackageForLibrary(library).map { pkg =>
-      computeDigestOfLibrarySources(pkg.listSources)
+      computeDigestOfLibrarySources(pkg.listSources())
     }
   }
 
@@ -81,7 +81,7 @@ class ImportExportCache(library: LibraryName)
     meta: M
   ): Try[CacheBindings] =
     obj match {
-      case bindings: FileToBindings =>
+      case bindings: MapToBindings =>
         Success(ImportExportCache.CacheBindings(library, bindings, None))
       case other =>
         Failure(
@@ -133,13 +133,13 @@ object ImportExportCache {
 
   case class CacheBindings(
     libraryName: LibraryName,
-    bindings: FileToBindings,
+    bindings: MapToBindings,
     sources: Option[List[SourceFile[TruffleFile]]]
   )
 
   // Wrapper around map of bindings to avoid warnings about erasure
   // when matching the deserialized object
-  case class FileToBindings(entries: Map[QualifiedName, BindingsMap])
+  case class MapToBindings(entries: Map[QualifiedName, BindingsMap])
 
   private object NameOrdering extends Ordering[QualifiedName] {
     override def compare(x: QualifiedName, y: QualifiedName): Int = {

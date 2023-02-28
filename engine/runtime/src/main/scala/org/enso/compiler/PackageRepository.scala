@@ -2,6 +2,7 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
+import org.enso.compiler.ImportExportCacheJava
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
@@ -31,6 +32,7 @@ import org.enso.text.buffer.Rope
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
+import scala.jdk.OptionConverters.RichOption
 import scala.util.{Failure, Try, Using}
 
 /** Manages loaded packages and modules. */
@@ -118,6 +120,12 @@ trait PackageRepository {
   /** Returns a package directory corresponding to the requested library */
   def getPackageForLibrary(lib: LibraryName): Option[Package[TruffleFile]]
 
+  /** Returns a package directory corresponding to the requested library */
+  def getPackageForLibraryJava(
+    lib: LibraryName
+  ): java.util.Optional[Package[TruffleFile]] =
+    getPackageForLibrary(lib).toJava
+
   /** Returns all loaded modules of the requested library */
   def getModulesForLibrary(libraryName: LibraryName): List[Module]
 
@@ -125,7 +133,7 @@ trait PackageRepository {
   def getLibraryBindings(
     libraryName: LibraryName,
     serializationManager: SerializationManager
-  ): Option[ImportExportCache.CacheBindings]
+  ): Option[ImportExportCacheJava.CachedBindings]
 
 }
 
@@ -228,8 +236,10 @@ object PackageRepository {
     }
 
     /** The mapping between the library and its cached bindings, if already laoded. */
-    private val loadedLibraryBindings
-      : collection.mutable.Map[LibraryName, ImportExportCache.CacheBindings] =
+    private val loadedLibraryBindings: collection.mutable.Map[
+      LibraryName,
+      ImportExportCacheJava.CachedBindings
+    ] =
       collection.mutable.LinkedHashMap()
 
     private def getComponentModules: ListSet[Module] = {
@@ -312,13 +322,15 @@ object PackageRepository {
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
 
-      val (regularModules, syntheticModulesMetadata) = pkg.listSources.map {
-        srcFile =>
+      val (regularModules, syntheticModulesMetadata) = pkg
+        .listSources()
+        .map(srcFile =>
           (
             new Module(srcFile.qualifiedName, pkg, srcFile.file),
             inferSyntheticModules(srcFile)
           )
-      }.unzip
+        )
+        .unzip
 
       regularModules.foreach(registerModule)
 
@@ -673,7 +685,7 @@ object PackageRepository {
     override def getLibraryBindings(
       libraryName: LibraryName,
       serializationManager: SerializationManager
-    ): Option[ImportExportCache.CacheBindings] = {
+    ): Option[ImportExportCacheJava.CachedBindings] = {
       ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
         if (!loadedLibraryBindings.contains(libraryName)) {
           loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
