@@ -12,4 +12,7 @@ public @interface BuiltinType {
 
   /** Fully qualified name as available in stdlib */
   String name() default "";
+
+  /** Underlying type name of the builtin */
+  String underlyingTypeName() default "";
 }

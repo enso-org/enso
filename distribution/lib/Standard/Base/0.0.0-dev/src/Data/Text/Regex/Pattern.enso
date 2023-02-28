@@ -64,7 +64,7 @@ type Pattern
        Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
-       - input: The text to splut based on the pattern described by `self`.
+       - input: The text to split based on the pattern described by `self`.
        - mode: The splitting mode to use. This must default to `Regex_Mode.All`.
 
        This method will _always_ return a vector. If no splits take place, the

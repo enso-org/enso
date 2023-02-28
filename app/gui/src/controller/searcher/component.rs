@@ -6,6 +6,7 @@ use crate::prelude::*;
 
 use crate::model::suggestion_database;
 
+use controller::searcher::action::MatchKind;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
@@ -21,6 +22,16 @@ pub mod group;
 pub mod hardcoded;
 
 pub use group::Group;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// A factor to multiply a component's alias match score by. It is intended to reduce the importance
+/// of alias matches compared to label matches.
+const ALIAS_MATCH_ATTENUATION_FACTOR: f32 = 0.75;
 
 
 
@@ -115,7 +126,12 @@ impl Component {
 
     /// The label which should be displayed in the Component Browser.
     pub fn label(&self) -> String {
-        self.to_string()
+        match &*self.match_info.borrow() {
+            MatchInfo::Matches { kind: MatchKind::Alias(alias), .. } => {
+                format!("{alias} ({self})")
+            }
+            _ => self.to_string(),
+        }
     }
 
     /// The name of the component.
@@ -153,12 +169,14 @@ impl Component {
     /// It should be called each time the filtering pattern changes.
     pub fn update_matching_info(&self, pattern: impl Str) {
         // Match the input pattern to the component label.
-        let label = self.label();
+        let label = self.to_string();
         let label_matches = fuzzly::matches(&label, pattern.as_ref());
         let label_subsequence = label_matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
             fuzzly::find_best_subsequence(label, pattern.as_ref(), metric)
         });
+        let label_match_info = label_subsequence
+            .map(|subsequence| MatchInfo::Matches { subsequence, kind: MatchKind::Label });
 
         // Match the input pattern to the code to be inserted.
         let code = match &self.data {
@@ -170,22 +188,34 @@ impl Component {
             let metric = fuzzly::metric::default();
             fuzzly::find_best_subsequence(code, pattern.as_ref(), metric)
         });
+        let code_match_info = code_subsequence.map(|subsequence| {
+            let subsequence = fuzzly::Subsequence { indices: Vec::new(), ..subsequence };
+            MatchInfo::Matches { subsequence, kind: MatchKind::Code }
+        });
 
-        // Pick the best match score of the two, use only the character indices matching the label.
-        let subsequence = match (label_subsequence, code_subsequence) {
-            (Some(label), Some(code)) => {
-                let score = label.score.max(code.score);
-                Some(fuzzly::Subsequence { score, ..label })
+        // Match the input pattern to an entry's aliases and select the best alias match.
+        let alias_matches = self.aliases().filter_map(|alias| {
+            if fuzzly::matches(alias, pattern.as_ref()) {
+                let metric = fuzzly::metric::default();
+                let subsequence = fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric);
+                subsequence.map(|subsequence| (subsequence, alias))
+            } else {
+                None
             }
-            (None, Some(code)) => Some(fuzzly::Subsequence { indices: Vec::new(), ..code }),
-            (Some(label), None) => Some(label),
-            (None, None) => None,
-        };
+        });
+        let alias_match = alias_matches.max_by(|(lhs, _), (rhs, _)| lhs.compare_scores(rhs));
+        let alias_match_info = alias_match.map(|(subsequence, alias)| {
+            let subsequence = fuzzly::Subsequence {
+                score: subsequence.score * ALIAS_MATCH_ATTENUATION_FACTOR,
+                ..subsequence
+            };
+            MatchInfo::Matches { subsequence, kind: MatchKind::Alias(alias.to_im_string()) }
+        });
 
-        *self.match_info.borrow_mut() = match subsequence {
-            Some(subsequence) => MatchInfo::Matches { subsequence },
-            None => MatchInfo::DoesNotMatch,
-        };
+        // Select the best match of the available label-, code- and alias matches.
+        let match_info_iter = [alias_match_info, code_match_info, label_match_info].into_iter();
+        let best_match_info = match_info_iter.flatten().max_by(|lhs, rhs| lhs.cmp(rhs));
+        *self.match_info.borrow_mut() = best_match_info.unwrap_or(MatchInfo::DoesNotMatch);
     }
 
     /// Check whether the component contains the "PRIVATE" tag.
@@ -198,6 +228,24 @@ impl Component {
             }),
             _ => false,
         }
+    }
+
+    /// Return an iterator over the component's aliases from the "ALIAS" tags in the entry's
+    /// documentation.
+    pub fn aliases(&self) -> impl Iterator<Item = &str> {
+        let aliases = match &self.data {
+            Data::FromDatabase { entry, .. } => {
+                let aliases = entry.documentation.iter().filter_map(|doc| match doc {
+                    DocSection::Tag { name, body }
+                        if name == ast::constants::ALIAS_DOC_SECTION_TAG_NAME =>
+                        Some(body.as_str().split(',').map(|s| s.trim())),
+                    _ => None,
+                });
+                Some(aliases.flatten())
+            }
+            _ => None,
+        };
+        aliases.into_iter().flatten()
     }
 }
 
