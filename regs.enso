@@ -29,3 +29,8 @@ main =
     m3b = p3b.match "ABC"
     IO.println m3a
     IO.println m3b
+
+    IO.println ("abcdab".match "ab")
+    IO.println ("ab".match "ab")
+    IO.println ("abcdab".find "ab")
+    IO.println ("abcdab".find_all "ab")

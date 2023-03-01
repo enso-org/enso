@@ -13,6 +13,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex
+import project.Data.Text.Regex_2
 import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Regex_Matcher.Regex_Matcher
@@ -230,7 +231,7 @@ Text.characters self =
 Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Compile_Error
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    Regex.compile pattern case_insensitive=case_insensitive . match self Matching_Mode.First
+    Regex_2.compile_2 pattern case_insensitive=case_insensitive . match self
 
 ## Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
@@ -252,9 +253,7 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Compile_Error
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    case Regex.compile pattern case_insensitive=case_insensitive . match self Regex_Mode.All of
-        Nothing -> []
-        matches -> matches
+    Regex_2.compile_2 pattern case_insensitive=case_insensitive . match_all self
 
 ## ALIAS Check Matches
 
@@ -279,7 +278,7 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 Text.match : Text -> Case_Sensitivity -> Boolean ! Compile_Error
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
+    compiled_pattern = Regex_2.compile_2 pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
 
 ## ALIAS Split Text
