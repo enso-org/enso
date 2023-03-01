@@ -8,17 +8,14 @@ from project.Error.Common import Compile_Error, Syntax_Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Panic.Panic
 
-polyglot java import com.ibm.icu.impl.UnicodeRegex
-
 compile_2 : Text -> Pattern_2 ! (Compile_Error | Illegal_Argument | Syntax_Error)
 compile_2 self expression  =
     #all_options = options + self.engine_opts
     #options_bitmask = from_enso_options all_options
     options_string = ""
-    unicode_regex = UnicodeRegex.new
 
     maybe_regex_object = Panic.recover Any <|
-        Prim_Text_Helper.compile_regex (unicode_regex.transform expression) options_string
+        Prim_Text_Helper.compile_regex expression options_string
 
     internal_regex_object = maybe_regex_object.map_error case _ of
         # err : PatternSyntaxException -> Syntax_Error.Error ("The regex could not be compiled: " + err.getMessage)
