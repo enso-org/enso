@@ -7,7 +7,8 @@ import * as app from "../components/app";
 import * as listen from "./listen";
 import * as loggerProvider from "../providers/logger";
 import * as cognito from "./cognito";
-import * as config from "./config";
+import * as authConfig from "./config";
+import * as config from "../config";
 
 
 
@@ -15,10 +16,10 @@ import * as config from "./config";
 // === Constants ===
 // =================
 
-const BASE_AMPLIFY_CONFIG: Partial<config.AmplifyConfig> = {
-  region: config.AWS_REGION,
-  scope: config.OAUTH_SCOPES,
-  responseType: config.OAUTH_RESPONSE_TYPE,
+const BASE_AMPLIFY_CONFIG: Partial<authConfig.AmplifyConfig> = {
+  region: authConfig.AWS_REGION,
+  scope: authConfig.OAUTH_SCOPES,
+  responseType: authConfig.OAUTH_RESPONSE_TYPE,
 };
 
 /** Collection of configuration details for Amplify user pools, sorted by deployment environment. */
@@ -124,7 +125,7 @@ const loadAmplifyConfig = (
   logger: loggerProvider.Logger,
   runningOnDesktop: boolean,
   navigate: (url: string) => void
-): config.AmplifyConfig => {
+): authConfig.AmplifyConfig => {
   // Load the environment-specific Amplify configuration.
   const baseConfig = AMPLIFY_CONFIGS.production;
 
@@ -146,13 +147,13 @@ const loadAmplifyConfig = (
 
   // Set the redirect URLs for the OAuth flows, depending on our environment.
   baseConfig.redirectSignIn = runningOnDesktop
-    ? config.DESKTOP_REDIRECT
-    : config.PRODUCTION_CLOUD_REDIRECT;
+    ? authConfig.DESKTOP_REDIRECT
+    : config.ACTIVE_CONFIG.cloudRedirect;
   baseConfig.redirectSignOut = runningOnDesktop
-    ? config.DESKTOP_REDIRECT
-    : config.PRODUCTION_CLOUD_REDIRECT;
+    ? authConfig.DESKTOP_REDIRECT
+    : config.ACTIVE_CONFIG.cloudRedirect;
 
-  return baseConfig as config.AmplifyConfig;
+  return baseConfig as authConfig.AmplifyConfig;
 };
 
 const openUrlWithExternalBrowser = (url: string) => {

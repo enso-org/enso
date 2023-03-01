@@ -151,10 +151,10 @@ export class Backend {
   }
 
   /** Returns a {@link RequestBuilder} for an HTTP GET request to the given path. */
-  get = (path: string) => this.client.get(`${config.API_URL}/${path}`);
+  get = (path: string) => this.client.get(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
 
   /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
-  post = (path: string) => this.client.post(`${config.API_URL}/${path}`);
+  post = (path: string) => this.client.post(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
 
   /** Logs the error that occurred and throws a new one with a more user-friendly message. */
   errorHandler = (message: string) => (error: Error) => {
