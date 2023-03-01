@@ -108,14 +108,20 @@ spec =
 
                 Process.run "chmod" ["0444", f.absolute.path] . should_equal Exit_Code.Success
                 f.posix_permissions.owner . should_equal [Permission.Read]
-                r2 = "FOO".write f
+                
+                r2 = "FOO".write f on_existing_file=Existing_File_Behavior.Append
                 r2.should_fail_with File_Error.IO_Error
                 f.read . should_equal "foobar"
-
-                r3 = f.delete
+                
+                r3 = "FOO".write f on_existing_file=Existing_File_Behavior.Overwrite
                 r3.should_fail_with File_Error.IO_Error
+                f.read . should_equal "foobar"
+                
+                #r4 = "FOO".write f on_existing_file=Existing_File_Behavior.Backup
+                #r4.should_fail_with File_Error.IO_Error
+                #f.read . should_equal "foobar"
 
-                Process.run "chmod" ["0777", f.absolute.path] . should_equal Exit_Code.Success
+                Process.run "chmod" ["0744", f.absolute.path] . should_equal Exit_Code.Success
                 f.delete
 
     Test.group "read_bytes" <|
@@ -285,8 +291,8 @@ spec =
         Test.specify "should allow appending text to a file" <|
             f = transient / "work.txt"
             f.delete_if_exists
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
+            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
             f.read_text.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
