@@ -4,8 +4,14 @@ import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
+polyglot java import org.enso.base_test_helpers.FileSystemHelper
+
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
+
+set_writable file writable =
+    path = file.absolute.path
+    FileSystemHelper.setWritable path writable
 
 spec =
     sample_file = enso_project.data / "sample.txt"
@@ -89,6 +95,7 @@ spec =
                 Process.run "chmod" ["0421", f.absolute.path] . should_equal Exit_Code.Success
                 f.posix_permissions . should_equal <|
                     File_Permissions.Value [Permission.Read] [Permission.Write] [Permission.Execute]
+                f.is_writable.should_be_false
 
                 f.delete
 
@@ -105,21 +112,6 @@ spec =
                 r1.should_fail_with File_Error.IO_Error
                 r1.catch.file . should_equal f
                 r1.catch.message.contains "You do not have permission" . should_be_true
-
-                Process.run "chmod" ["0444", f.absolute.path] . should_equal Exit_Code.Success
-                f.posix_permissions.owner . should_equal [Permission.Read]
-                
-                r2 = "FOO".write f on_existing_file=Existing_File_Behavior.Append
-                r2.should_fail_with File_Error.IO_Error
-                f.read . should_equal "foobar"
-                
-                r3 = "FOO".write f on_existing_file=Existing_File_Behavior.Overwrite
-                r3.should_fail_with File_Error.IO_Error
-                f.read . should_equal "foobar"
-                
-                r4 = "FOO".write f on_existing_file=Existing_File_Behavior.Backup
-                r4.should_fail_with File_Error.IO_Error
-                f.read . should_equal "foobar"
 
                 Process.run "chmod" ["0744", f.absolute.path] . should_equal Exit_Code.Success
                 f.delete
@@ -414,6 +406,32 @@ spec =
                 Test.fail "If the operation failed, we shouldn't have even created the backup."
             if new_file.exists then
                 Test.fail "The temporary file should have been cleaned up."
+            f.delete
+
+        Test.specify "should respect file access permissions and fail with an error if denied, in all modes" <|
+            f = transient / "permissions3.txt"
+            f.delete_if_exists
+
+            "foobar".write f on_existing_file=Existing_File_Behavior.Overwrite
+
+            f.is_writable.should_be_true
+            set_writable f False
+            f.is_writable.should_be_false
+
+            r2 = "FOO".write f on_existing_file=Existing_File_Behavior.Append
+            r2.should_fail_with File_Error.IO_Error
+            f.read . should_equal "foobar"
+
+            r3 = "FOO".write f on_existing_file=Existing_File_Behavior.Overwrite
+            r3.should_fail_with File_Error.IO_Error
+            f.read . should_equal "foobar"
+
+            r4 = "FOO".write f on_existing_file=Existing_File_Behavior.Backup
+            r4.should_fail_with File_Error.IO_Error
+            f.read . should_equal "foobar"
+
+            f.is_writable.should_be_false
+
             f.delete
 
     Test.group "folder operations" <|
