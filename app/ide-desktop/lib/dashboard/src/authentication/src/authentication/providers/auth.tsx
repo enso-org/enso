@@ -1,18 +1,18 @@
 /** @file Module for authenticating users with AWS Cognito.
- * 
+ *
  * Provides an `AuthProvider` component that wraps the entire application, and a `useAuth` hook that
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc. */
-import react from 'react';
-import * as router from 'react-router-dom';
-import toast from "react-hot-toast"
+import react from "react";
+import * as router from "react-router-dom";
+import toast from "react-hot-toast";
 
-import * as backendService from '../../dashboard/service';
-import * as authService from '../service';
-import * as app from '../../components/app';
-import * as loggerProvider from '../../providers/logger';
-import * as sessionProvider from './session';
-import * as error from '../../error';
+import * as backendService from "../../dashboard/service";
+import * as authService from "../service";
+import * as app from "../../components/app";
+import * as loggerProvider from "../../providers/logger";
+import * as sessionProvider from "./session";
+import * as error from "../../error";
 
 
 
@@ -29,7 +29,7 @@ const MESSAGES = {
   resetPasswordSuccess: "Successfully reset password!",
   signOutSuccess: "Successfully logged out!",
   pleaseWait: "Please wait...",
-}
+};
 
 
 
@@ -37,18 +37,15 @@ const MESSAGES = {
 // === Types ===
 // =============
 
-
 // === UserSession ===
 
-export type UserSession =
-  | FullUserSession
-  | PartialUserSession;
+export type UserSession = FullUserSession | PartialUserSession;
 
 /** Object containing the currently signed-in user's session data. */
 export interface FullUserSession {
   /** A type-hint for TypeScript to be able to disambiguate between this interface and other
    * `UserSession` variants. */
-  state: "full",
+  state: "full";
   /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
   accessToken: string;
   /** User's email address. */
@@ -66,7 +63,7 @@ export interface FullUserSession {
 export interface PartialUserSession {
   /** A type-hint for TypeScript to be able to disambiguate between this interface and other
    * `UserSession` variants. */
-  state: "partial",
+  state: "partial";
   /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
   accessToken: string;
   /** User's email address. */
@@ -84,52 +81,57 @@ export interface PartialUserSession {
  * Contains the currently authenticated user's session data, as well as methods for signing in,
  * signing out, etc. All interactions with the authentication API should be done through this
  * interface.
- * 
+ *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
-    signUp: (email: string, password: string) => Promise<void>;
-    confirmSignUp: (email: string, code: string) => Promise<void>;
-    setUsername: (accessToken: string, username: string, email: string) => Promise<void>;
-    signInWithGoogle: () => Promise<null>
-    signInWithGitHub: () => Promise<null>;
-    signInWithPassword: (email: string, password: string) => Promise<void>;
-    forgotPassword: (email: string) => Promise<void>;
-    resetPassword: (email: string, code: string, password: string) => Promise<void>;
-    signOut: () => Promise<void>;
-    /** Session containing the currently authenticated user's authentication information.
-     *
-     * If the user has not signed in, the session will be `undefined`. */
-    session: UserSession | undefined;
+  signUp: (email: string, password: string) => Promise<void>;
+  confirmSignUp: (email: string, code: string) => Promise<void>;
+  setUsername: (
+    accessToken: string,
+    username: string,
+    email: string
+  ) => Promise<void>;
+  signInWithGoogle: () => Promise<null>;
+  signInWithGitHub: () => Promise<null>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (
+    email: string,
+    code: string,
+    password: string
+  ) => Promise<void>;
+  signOut: () => Promise<void>;
+  /** Session containing the currently authenticated user's authentication information.
+   *
+   * If the user has not signed in, the session will be `undefined`. */
+  session: UserSession | undefined;
 }
 
 /** Create a global instance of the `AuthContextType`, that will be re-used between all React
  * components that use the `useAuth` hook.
- * 
+ *
  * # Safety of Context Initialization
  *
  * An `as ...` cast is unsafe. We use this cast when creating the context. So it appears that the
  * `AuthContextType` can be unsafely (i.e., only partially) initialized as a result of this.
- * 
+ *
  * So it appears that we should remove the cast and initialize the context as `undefined` instead.
- * 
+ *
  * **However**, initializing a context the existing way is the recommended way to initialize a
  * context in React.  It is safe, for non-obvious reasons. It is safe because the `AuthContext` is
  * only accessible through the `useAuth` hook.
- * 
+ *
  * 1. If the `useAuth` hook is called in a component that is a child of an `AuthProvider`, then the
  * context is guaranteed to be initialized, because the `AuthProvider` constructor is what
  * initializes it. So the cast is safe.
  * 2. If the `useAuth` hook is called in a component that is not a child of an `AuthProvider`, then
  * the hook will throw an error regardless, because React does not support using hooks outside of
  * their supporting providers.
- * 
+ *
  * So changing the cast would provide no safety guarantees, and would require us to introduce null
  * checks everywhere we use the context. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const AuthContext = react.createContext<AuthContextType>(
-    {} as AuthContextType
-);
-
+const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 
 
 
@@ -138,22 +140,24 @@ const AuthContext = react.createContext<AuthContextType>(
 // ====================
 
 export interface AuthProviderProps {
-    authService: authService.AuthService,
-    /** Callback to execute once the user has authenticated successfully. */
-    onAuthenticated: () => void;
-    children: react.ReactNode;
+  authService: authService.AuthService;
+  /** Callback to execute once the user has authenticated successfully. */
+  onAuthenticated: () => void;
+  children: react.ReactNode;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps) => {
-  const { authService, children } = props
-  const { cognito } = authService
+  const { authService, children } = props;
+  const { cognito } = authService;
   const { session } = sessionProvider.useSession();
   const logger = loggerProvider.useLogger();
-  const onAuthenticated = react.useCallback(props.onAuthenticated, [])
+  const onAuthenticated = react.useCallback(props.onAuthenticated, []);
   const navigate = router.useNavigate();
   const [initialized, setInitialized] = react.useState(false);
-  const [userSession, setUserSession] = react.useState<UserSession | undefined>(undefined);
+  const [userSession, setUserSession] = react.useState<UserSession | undefined>(
+    undefined
+  );
 
   // Fetch the JWT access token from the session via the AWS Amplify library.
   //
@@ -162,144 +166,145 @@ export const AuthProvider = (props: AuthProviderProps) => {
   // `undefined`.  If the token has expired, automatically refreshes the token and returns the new
   // token.
   react.useEffect(() => {
-      const fetchSession = async () => {
-        if (session.none) {
-          setInitialized(true);
-          setUserSession(undefined);
-          return;
-        }
-        const { accessToken, email } = session.val;
-
-        const backend = backendService.createBackend(accessToken, logger);
-
-        // Request the user's organization information from the Cloud backend.
-        const organization = await backend.getUser();
-
-        let userSession: UserSession;
-
-        if (!organization) {
-          userSession = {
-            state: "partial",
-            email,
-            accessToken,
-          }
-        } else {
-          userSession = {
-            state: "full",
-            email,
-            accessToken,
-            organization
-          }
-
-          // Execute the callback that should inform the Electron app that the user has logged in.
-          // This is done to transition the app from the authentication/dashboard view to the IDE.
-          onAuthenticated()
-        }
-
-        setUserSession(userSession)
-        setInitialized(true)
-      };
-
-      fetchSession()
-        .catch((error) => {
-          if (isUserFacingError(error)) {
-            toast.error(error.message);
-          } else {
-            logger.error(error)
-          }
-        });
-  }, [session])
-
-  const withLoadingToast = <T extends any[]>(action: (...args: T) => Promise<void>) => async (...args: T) => {
-    const loadingToast = toast.loading(MESSAGES.pleaseWait)
-    try {
-      await action(...args)
-    } finally {
-      toast.dismiss(loadingToast)
-    }
-  }
-
-  const signUp = (username: string, password: string) => cognito
-    .signUp(username, password)
-    .then(result => {
-      if (result.ok) {
-        toast.success(MESSAGES.signUpSuccess)
-      } else {
-        toast.error(result.val.message)
+    const fetchSession = async () => {
+      if (session.none) {
+        setInitialized(true);
+        setUserSession(undefined);
+        return;
       }
-    })
+      const { accessToken, email } = session.val;
 
-  const confirmSignUp = async (email: string, code: string) => cognito 
-    .confirmSignUp(email, code)
-    .then(result => {
+      const backend = backendService.createBackend(accessToken, logger);
+
+      // Request the user's organization information from the Cloud backend.
+      const organization = await backend.getUser();
+
+      let userSession: UserSession;
+
+      if (!organization) {
+        userSession = {
+          state: "partial",
+          email,
+          accessToken,
+        };
+      } else {
+        userSession = {
+          state: "full",
+          email,
+          accessToken,
+          organization,
+        };
+
+        // Execute the callback that should inform the Electron app that the user has logged in.
+        // This is done to transition the app from the authentication/dashboard view to the IDE.
+        onAuthenticated();
+      }
+
+      setUserSession(userSession);
+      setInitialized(true);
+    };
+
+    fetchSession().catch((error) => {
+      if (isUserFacingError(error)) {
+        toast.error(error.message);
+      } else {
+        logger.error(error);
+      }
+    });
+  }, [session]);
+
+  const withLoadingToast =
+    <T extends any[]>(action: (...args: T) => Promise<void>) =>
+    async (...args: T) => {
+      const loadingToast = toast.loading(MESSAGES.pleaseWait);
+      try {
+        await action(...args);
+      } finally {
+        toast.dismiss(loadingToast);
+      }
+    };
+
+  const signUp = (username: string, password: string) =>
+    cognito.signUp(username, password).then((result) => {
+      if (result.ok) {
+        toast.success(MESSAGES.signUpSuccess);
+      } else {
+        toast.error(result.val.message);
+      }
+    });
+
+  const confirmSignUp = async (email: string, code: string) =>
+    cognito.confirmSignUp(email, code).then((result) => {
       if (result.err) {
         switch (result.val.kind) {
           case "UserAlreadyConfirmed":
             break;
           default:
-            throw new error.UnreachableCaseError(result.val.kind)
+            throw new error.UnreachableCaseError(result.val.kind);
         }
       }
 
-      toast.success(MESSAGES.confirmSignUpSuccess)
-      navigate(app.LOGIN_PATH)
-    })
+      toast.success(MESSAGES.confirmSignUpSuccess);
+      navigate(app.LOGIN_PATH);
+    });
 
-  const setUsername = async (accessToken: string, username: string, email: string) => {
-      const body: backendService.SetUsernameRequestBody = { userName: username, userEmail: email };
+  const setUsername = async (
+    accessToken: string,
+    username: string,
+    email: string
+  ) => {
+    const body: backendService.SetUsernameRequestBody = {
+      userName: username,
+      userEmail: email,
+    };
 
-      // FIXME [NP2]: don't create a new API client here, reuse the one from the context.
-      const backend = backendService.createBackend(accessToken, logger);
+    // FIXME [NP2]: don't create a new API client here, reuse the one from the context.
+    const backend = backendService.createBackend(accessToken, logger);
 
-      await backend.setUsername(body);
-      navigate(app.DASHBOARD_PATH);
-      toast.success(MESSAGES.setUsernameSuccess);
+    await backend.setUsername(body);
+    navigate(app.DASHBOARD_PATH);
+    toast.success(MESSAGES.setUsernameSuccess);
   };
 
-  const signInWithPassword = async (
-    email: string,
-    password: string,
-  ) => cognito
-    .signInWithPassword(email, password)
-    .then(result => {
+  const signInWithPassword = async (email: string, password: string) =>
+    cognito.signInWithPassword(email, password).then((result) => {
       if (result.ok) {
-        toast.success(MESSAGES.signInWithPasswordSuccess)
+        toast.success(MESSAGES.signInWithPasswordSuccess);
         return;
       }
 
       if (result.val.kind === "UserNotFound") {
-        navigate(app.REGISTRATION_PATH)
+        navigate(app.REGISTRATION_PATH);
       }
 
-      toast.error(result.val.message)
-    })
+      toast.error(result.val.message);
+    });
 
-  const forgotPassword = async (email: string) => cognito
-    .forgotPassword(email)
-    .then(result => {
+  const forgotPassword = async (email: string) =>
+    cognito.forgotPassword(email).then((result) => {
       if (result.ok) {
-        toast.success(MESSAGES.forgotPasswordSuccess)
-        navigate(app.RESET_PASSWORD_PATH)
+        toast.success(MESSAGES.forgotPasswordSuccess);
+        navigate(app.RESET_PASSWORD_PATH);
       } else {
-        toast.error(result.val.message)
+        toast.error(result.val.message);
       }
-    })
+    });
 
-  const resetPassword = async (email: string, code: string, password: string) => cognito
-    .forgotPasswordSubmit(email, code, password)
-    .then(result => {
+  const resetPassword = async (email: string, code: string, password: string) =>
+    cognito.forgotPasswordSubmit(email, code, password).then((result) => {
       if (result.ok) {
-        toast.success(MESSAGES.resetPasswordSuccess)
-        navigate(app.LOGIN_PATH)
+        toast.success(MESSAGES.resetPasswordSuccess);
+        navigate(app.LOGIN_PATH);
       } else {
-        toast.error(result.val.message)
+        toast.error(result.val.message);
       }
-    })
+    });
 
-  const signOut = () => cognito
-    .signOut()
-    .then(() => toast.success(MESSAGES.signOutSuccess))
-    .then(() => {});
+  const signOut = () =>
+    cognito
+      .signOut()
+      .then(() => toast.success(MESSAGES.signOutSuccess))
+      .then(() => {});
 
   const value = {
     signUp: withLoadingToast(signUp),
@@ -316,14 +321,14 @@ export const AuthProvider = (props: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider value={value}>
-        {/* Only render the underlying app after we assert for the presence of a current user. */}
-        {initialized && children}
+      {/* Only render the underlying app after we assert for the presence of a current user. */}
+      {initialized && children}
     </AuthContext.Provider>
-  )
+  );
 };
 
 /** Type of an error containing a `string`-typed `message` field.
- * 
+ *
  * Many types of errors fall into this category. We use this type to check if an error can be safely
  * displayed to the user. */
 interface UserFacingError {
@@ -334,7 +339,7 @@ interface UserFacingError {
 /** Returns `true` if the value is a {@link UserFacingError}. */
 const isUserFacingError = (value: unknown): value is UserFacingError => {
   return typeof value === "object" && value !== null && "message" in value;
-}
+};
 
 
 
@@ -362,8 +367,8 @@ export const ProtectedLayout = () => {
     return <router.Navigate to={app.LOGIN_PATH} />;
   }
 
-  return <router.Outlet context={ session } />;
-}
+  return <router.Outlet context={session} />;
+};
 
 
 
@@ -384,7 +389,7 @@ export const GuestLayout = () => {
   }
 
   return <router.Outlet />;
-}
+};
 
 
 
@@ -394,7 +399,7 @@ export const GuestLayout = () => {
 
 export const usePartialUserSession = () => {
   return router.useOutletContext<PartialUserSession>();
-}
+};
 
 
 
@@ -404,4 +409,4 @@ export const usePartialUserSession = () => {
 
 export const useFullUserSession = () => {
   return router.useOutletContext<FullUserSession>();
-}
+};

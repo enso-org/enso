@@ -3,7 +3,7 @@ module.exports = {
         'eslint:recommended',
         'plugin:@typescript-eslint/recommended',
         'plugin:@typescript-eslint/recommended-requiring-type-checking',
-        'plugin:@typescript-eslint/strict'
+        'plugin:@typescript-eslint/strict',
     ],
     parser: '@typescript-eslint/parser',
     plugins: ['jsdoc', '@typescript-eslint'],
@@ -16,17 +16,20 @@ module.exports = {
         '@typescript-eslint/no-empty-function': 'off',
         '@typescript-eslint/naming-convention': 'error',
         '@typescript-eslint/no-unnecessary-condition': 'error',
-        '@typescript-eslint/restrict-template-expressions': ['error', {
-            'allowAny': true,
-            'allowBoolean': true,
-        }],
+        '@typescript-eslint/restrict-template-expressions': [
+            'error',
+            {
+                allowAny: true,
+                allowBoolean: true,
+            },
+        ],
         // React 17 and later supports async functions as event handlers, so we need to disable this
         // rule to avoid false positives.
         //
         // See: https://github.com/typescript-eslint/typescript-eslint/pull/4623
         '@typescript-eslint/no-misused-promises': [
             'error',
-            { "checksVoidReturn": { "attributes": false } }
+            { checksVoidReturn: { attributes: false } },
         ],
         'jsdoc/check-access': 'warn',
         'jsdoc/check-alignment': 'warn',
@@ -67,14 +70,14 @@ module.exports = {
         'jsdoc/require-yields': 'warn',
         'jsdoc/require-yields-check': 'warn',
         'jsdoc/tag-lines': 'warn',
-        'jsdoc/valid-types': 'warn'
+        'jsdoc/valid-types': 'warn',
     },
     overrides: [
         {
             files: ['*.ts', '*.tsx'],
             parserOptions: {
-                project: ['./tsconfig.json']
+                project: ['./tsconfig.json'],
             },
-        }
+        },
     ],
-};
+}

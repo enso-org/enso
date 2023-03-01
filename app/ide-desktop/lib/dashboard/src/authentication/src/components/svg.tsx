@@ -16,9 +16,11 @@ export const PATHS = {
   /** Path data for the "right arrow" icon SVG. */
   rightArrow: "M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z",
   /** Path data for the "create account" icon SVG. */
-  createAccount: "M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z",
+  createAccount:
+    "M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z",
   /** Path data for the "go back" icon SVG. */
-  goBack: "M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1",
+  goBack:
+    "M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1",
 };
 
 
@@ -37,7 +39,7 @@ interface Props {
  * @param props - Extra props for the SVG path. The `props.data` field in particular contains the
  * SVG path data. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const Svg = (props: Props) =>
+export const Svg = (props: Props) => (
   <svg
     className="h-6 w-6"
     fill="none"
@@ -48,4 +50,5 @@ export const Svg = (props: Props) =>
     stroke="currentColor"
   >
     <path d={props.data} />
-  </svg>;
+  </svg>
+);
