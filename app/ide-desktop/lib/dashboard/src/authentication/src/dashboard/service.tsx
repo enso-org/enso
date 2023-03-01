@@ -2,9 +2,9 @@
  * 
  * Each exported function in the {@link Backend} in this module corresponds to an API endpoint. The
  * functions are asynchronous and return a `Promise` that resolves to the response from the API. */
-import { Client } from '../http';
-import { API_URL } from "../config";
-import { Logger } from '../providers/logger';
+import * as http from '../http';
+import * as config from "../config";
+import * as loggerProvider from '../providers/logger';
 
 
 
@@ -130,13 +130,13 @@ export interface OpenProjectRequestBody {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class Backend {
-    private client: Client;
-    private logger: Logger;
+    private client: http.Client;
+    private logger: loggerProvider.Logger;
 
     /** Creates a new instance of the {@link Backend} API client.
      * 
      * @throws An error if the `Authorization` header is not set on the given `client`. */
-    constructor(client: Client, logger: Logger) {
+    constructor(client: http.Client, logger: loggerProvider.Logger) {
         this.client = client;        
         this.logger = logger;
 
@@ -148,10 +148,10 @@ export class Backend {
     }
 
     /** Returns a {@link RequestBuilder} for an HTTP GET request to the given path. */
-    get = (path: string) => this.client.get(`${API_URL}/${path}`)
+    get = (path: string) => this.client.get(`${config.API_URL}/${path}`)
 
     /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
-    post = (path: string) => this.client.post(`${API_URL}/${path}`)
+    post = (path: string) => this.client.post(`${config.API_URL}/${path}`)
 
     /** Logs the error that occurred and throws a new one with a more user-friendly message. */
     errorHandler = (message: string) => (error: Error) => {
@@ -260,9 +260,9 @@ export class Backend {
 // FIXME [NP2]: this is a hack to quickly create the backend in the format we want, until we get the
 // provider working. This should be removed entirely in favour of creating the backend once and
 // using it from the context.
-export const createBackend = (accessToken: string, logger: Logger): Backend => {
+export const createBackend = (accessToken: string, logger: loggerProvider.Logger): Backend => {
     const headers = new Headers();
     headers.append("Authorization", `Bearer ${accessToken}`)
-    const client = Client.builder().defaultHeaders(headers).build();
+    const client = http.Client.builder().defaultHeaders(headers).build();
     return new Backend(client, logger);
 }

@@ -1,11 +1,11 @@
 /** @file Container responsible for rendering and interactions in setting username flow, after
  * registration. */
-import * as React from 'react'
+import * as react from 'react'
 
-import { useAuth, usePartialUserSession } from '../providers/auth';
+import * as auth from '../providers/auth';
 import withRouter from '../../navigation'
-import { useInput } from '../../hooks'
-import { handleEvent } from '../../utils';
+import * as hooks from '../../hooks'
+import * as utils from '../../utils';
 import * as Icons from '../../components/svg';
 
 
@@ -15,10 +15,10 @@ import * as Icons from '../../components/svg';
 // ============================
 
 const setUsernameContainer = () => {
-    const { setUsername } = useAuth();
-    const { accessToken, email } = usePartialUserSession();
+    const { setUsername } = auth.useAuth();
+    const { accessToken, email } = auth.usePartialUserSession();
 
-    const { value: username, bind: bindUsername } = useInput('');
+    const { value: username, bind: bindUsername } = hooks.useInput('');
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -27,7 +27,7 @@ const setUsernameContainer = () => {
             Set your username
           </div>
           <div className="mt-10">
-            <form onSubmit={handleEvent(() => setUsername(accessToken, username, email))}>
+            <form onSubmit={utils.handleEvent(() => setUsername(accessToken, username, email))}>
               <div className="flex flex-col mb-6">
                 <div className="relative">
                   <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">

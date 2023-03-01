@@ -1,10 +1,11 @@
-import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { LOGIN_PATH } from "../../components/app";
-import withRouter from "../../navigation";
-import { useAuth } from "../providers/auth";
+import * as react from "react";
+import * as router from "react-router-dom";
 import toast from "react-hot-toast";
-import { useLogger } from "../../providers/logger";
+
+import * as app from "../../components/app";
+import withRouter from "../../navigation";
+import * as auth from "../providers/auth";
+import * as loggerProvider from "../../providers/logger";
 
 
 
@@ -12,8 +13,10 @@ import { useLogger } from "../../providers/logger";
 // === Constants ===
 // =================
 
-export const VERIFICATION_CODE_QUERY_PARAM = "verification_code";
-export const EMAIL_QUERY_PARAM = "email";
+const REGISTRATION_QUERY_PARAMS = {
+  verificationCode: "verification_code",
+  email: "email",
+}
 
 
 
@@ -22,25 +25,25 @@ export const EMAIL_QUERY_PARAM = "email";
 // ====================================
 
 const confirmRegistrationContainer = () => {
-  const logger = useLogger();
-  const { confirmSignUp } = useAuth();
-  const { search } = useLocation();
-  const navigate = useNavigate();
+  const logger = loggerProvider.useLogger();
+  const { confirmSignUp } = auth.useAuth();
+  const { search } = router.useLocation();
+  const navigate = router.useNavigate();
 
   const { verificationCode, email } = parseUrlSearchParams(search);
 
-  useEffect(() => {
+  react.useEffect(() => {
     if (!email || !verificationCode) {
-      navigate(LOGIN_PATH);
+      navigate(app.LOGIN_PATH);
       return;
     }
 
     confirmSignUp(email, verificationCode)
-      .then(() => navigate(LOGIN_PATH + search.toString()))
+      .then(() => navigate(app.LOGIN_PATH + search.toString()))
       .catch((error) => {
         logger.error("Error while confirming sign-up", error)
         toast.error("Something went wrong! Please try again or contact the administrators.");
-        navigate(LOGIN_PATH);
+        navigate(app.LOGIN_PATH);
       })
   }, [])
  
@@ -49,8 +52,8 @@ const confirmRegistrationContainer = () => {
 
 const parseUrlSearchParams = (search: string) => {
   const query = new URLSearchParams(search);
-  const verificationCode = query.get(VERIFICATION_CODE_QUERY_PARAM);
-  const email = query.get(EMAIL_QUERY_PARAM);
+  const verificationCode = query.get(REGISTRATION_QUERY_PARAMS.verificationCode);
+  const email = query.get(REGISTRATION_QUERY_PARAMS.email);
   return { verificationCode, email }
 }
 

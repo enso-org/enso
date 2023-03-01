@@ -1,11 +1,11 @@
 /** @file Provider for the {@link SessionContextType}, which contains information about the currently
  * authenticated user's session. */
-import { ReactNode, createContext, useContext, useState, useEffect } from "react";
-import { None, Option } from "ts-results";
+import react from "react";
+import * as results from "ts-results";
 
-import { useAsyncEffect } from "../../hooks";
-import { UserSession } from "../cognito";
-import { ListenerCallback } from "../listen";
+import * as hooks from "../../hooks";
+import * as cognito from "../cognito";
+import * as listen from "../listen";
 
 
 
@@ -32,12 +32,12 @@ const INITIAL_REFRESH_COUNT = 0;
 // ======================
 
 interface SessionContextType {
-    session: Option<UserSession>;
+    session: results.Option<cognito.UserSession>;
 }
 
 /** See {@link AuthContext} for safety details. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const SessionContext = createContext<SessionContextType>({} as SessionContextType)
+const SessionContext = react.createContext<SessionContextType>({} as SessionContextType)
 
 
 
@@ -46,9 +46,9 @@ const SessionContext = createContext<SessionContextType>({} as SessionContextTyp
 // =======================
 
 interface SessionProviderProps {
-    registerAuthEventListener: (callback: ListenerCallback) => void;
-    userSession: () => Promise<Option<UserSession>>;
-    children: ReactNode;
+    registerAuthEventListener: (callback: listen.ListenerCallback) => void;
+    userSession: () => Promise<results.Option<cognito.UserSession>>;
+    children: react.ReactNode;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -57,12 +57,12 @@ export const SessionProvider = (props: SessionProviderProps) => {
 
     // Flag used to avoid rendering child components until we've fetched the user's session at least
     // once. Avoids flash of the login screen when the user is already logged in.
-    const [initialized, setInitialized] = useState(false);
+    const [initialized, setInitialized] = react.useState(false);
 
     // State that, when incremented, forces a refresh of the user session. This is useful when a
     // user has just logged in (so their cached credentials are out of date). Should be used via the
     // `refreshSession` function.
-    const [refresh, setRefresh] = useState(INITIAL_REFRESH_COUNT);
+    const [refresh, setRefresh] = react.useState(INITIAL_REFRESH_COUNT);
 
     // Function that forces a refresh of the user session.
     //
@@ -74,7 +74,7 @@ export const SessionProvider = (props: SessionProviderProps) => {
     // Register an async effect that will fetch the user's session whenever the `refresh` state is
     // incremented. This is useful when a user has just logged in (as their cached credentials are
     // out of date, so this will update them).
-    const [session] = useAsyncEffect(None, async () => {
+    const [session] = hooks.useAsyncEffect(results.None, async () => {
       const session = await userSession();
       setInitialized(true);
       return session;
@@ -85,8 +85,8 @@ export const SessionProvider = (props: SessionProviderProps) => {
     //
     // For example, if a user clicks the signout button, this will clear the user's session, which
     // means we want the login screen to render (which is a child of this provider).
-    useEffect(() => {
-      const listener: ListenerCallback = (event) => {
+    react.useEffect(() => {
+      const listener: listen.ListenerCallback = (event) => {
         if (event === "signIn") {
             refreshSession();
         } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
@@ -130,4 +130,4 @@ export const SessionProvider = (props: SessionProviderProps) => {
 // === useSession ===
 // ==================
 
-export const useSession = () => useContext(SessionContext);
+export const useSession = () => react.useContext(SessionContext);

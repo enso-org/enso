@@ -5,18 +5,16 @@
 /** @file Main dashboard container responsible for listing user's projects as well as other
  * interactive components. */
 
-import * as React from 'react'
-import { useEffect, useState } from 'react'
-import {unstable_batchedUpdates as batchedUpdate} from "react-dom";
+import * as react from 'react'
+import reactDom from "react-dom";
+import * as projectManager from "enso-studio-content/src/project_manager";
 
-import { useAuth, useFullUserSession } from '../../authentication/providers/auth';
-
+import * as auth from '../../authentication/providers/auth';
 import withRouter from '../../navigation'
-import {createBackend, Project, ProjectState} from "../service";
-import {Templates} from "./templates";
-import {ProjectActionButton} from "./projectActionButton";
-import {ProjectManager} from "enso-studio-content/src/project_manager";
-import { useLogger } from '../../providers/logger';
+import * as backend from "../service";
+import Templates from "./templates";
+import ProjectActionButton from "./projectActionButton";
+import * as loggerProvider from '../../providers/logger';
 
 
 
@@ -26,7 +24,7 @@ import { useLogger } from '../../providers/logger';
 
 export interface DashboardProps {
     runningOnDesktop: boolean;
-    projectManager: ProjectManager | undefined;
+    projectManager: projectManager.ProjectManager | undefined;
 }
 
 const columns = [
@@ -52,12 +50,12 @@ const tableHeaders = columns.map((columnName, index) => {
 });
 
 const dashboardContainer = (props: DashboardProps) => {
-    const { signOut } = useAuth();
-    const { accessToken, organization } = useFullUserSession();
-    const logger = useLogger();
-    const backend = createBackend(accessToken, logger);
+    const { signOut } = auth.useAuth();
+    const { accessToken, organization } = auth.useFullUserSession();
+    const logger = loggerProvider.useLogger();
+    const backendService = backend.createBackend(accessToken, logger);
     const { runningOnDesktop, projectManager } = props;
-    const [projectsList, setProjectsList] = useState<Project[]>([]);
+    const [projectsList, setProjectsList] = react.useState<backend.Project[]>([]);
 
     const getNewProjectName = (templateName: string | undefined): string => {
         const projectNameTemplateStart = templateName ? `${templateName}_` : "New_Project_";
@@ -86,7 +84,7 @@ const dashboardContainer = (props: DashboardProps) => {
         const newProjectName = getNewProjectName(templateName);
 
         if (!runningOnDesktop) {
-            const newProject = await backend.createProject({
+            const newProject = await backendService.createProject({
                 projectName: newProjectName,
                 projectTemplateName: templateName?.toLowerCase()
             });
@@ -103,17 +101,17 @@ const dashboardContainer = (props: DashboardProps) => {
                 ami: null,
                 ideVersion: null,
                 engineVersion: null
-            } as Project
+            } as backend.Project
             setProjectsList([...projectsList, ...[newProject]]);
         }
     };
 
-    useEffect(() => {
+    react.useEffect(() => {
         void (async (): Promise<void> => {
-            let newProjectsList: Project[] = [];
+            let newProjectsList: backend.Project[] = [];
 
             if (!runningOnDesktop) {
-                newProjectsList = await backend.listProjects();
+                newProjectsList = await backendService.listProjects();
             } else {
                 const localProjects: any[] = (await projectManager!.listProjects()).result.projects
                 for (const item of localProjects) {
@@ -127,10 +125,10 @@ const dashboardContainer = (props: DashboardProps) => {
                         ami: null,
                         ideVersion: null,
                         engineVersion: null
-                    } as Project)
+                    } as backend.Project)
                 }
             }
-            batchedUpdate(() => {
+            reactDom.unstable_batchedUpdates(() => {
                 setProjectsList(newProjectsList);
             });
         })();
@@ -149,21 +147,21 @@ const dashboardContainer = (props: DashboardProps) => {
             setProjectsList((currProjectList) => {
                 const newProjectList = [...currProjectList];
                 newProjectList[projectItemIndex]!.state.type =
-                    ProjectState.openInProgress;
+                    backend.ProjectState.openInProgress;
                 return newProjectList;
             });
         };
         const setProjectOpen = (projectItemIndex: number): void => {
             setProjectsList((currProjectList) => {
                 const newProjectList = [...currProjectList];
-                newProjectList[projectItemIndex]!.state.type = ProjectState.opened;
+                newProjectList[projectItemIndex]!.state.type = backend.ProjectState.opened;
                 return newProjectList;
             });
         };
         const setProjectClosed = (projectItemIndex: number): void => {
             setProjectsList((currProjectList) => {
                 const newProjectList = [...currProjectList];
-                newProjectList[projectItemIndex]!.state.type = ProjectState.closed;
+                newProjectList[projectItemIndex]!.state.type = backend.ProjectState.closed;
                 return newProjectList;
             });
         };

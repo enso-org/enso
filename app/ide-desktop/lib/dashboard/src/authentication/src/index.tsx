@@ -1,7 +1,3 @@
-// FIXME [NP]: Find all locations where we use `{ ...  }` style in props and update them to use a variable that we deconstruct later: https://github.com/enso-org/enso/pull/5716/files#r1113049785
-// FIXME [NP]: Find all locations where we create a named variable just to return it and remove them: https://github.com/enso-org/enso/pull/5716/files#r1113053192
-// FIXME [NP]: Group all constants: https://github.com/enso-org/enso/pull/5716/files#r1113064368
-// FIXME [NP]: Replace all imports with `import * as ... from ...` instead of `import { ... } from ...`: https://github.com/enso-org/enso/pull/5716/files#r1113059306
 // FIXME [NP]: Rename this to `enso-cloud-dashboard` and move it to `app/ide-desktop/lib/dashboard`
 // FIXME [NP]: Remove the `app/ide-desktop/.eslintrc.cjs` file
 // FIXME [NP]: Remove the `@typescript-eslint/eslint-plugin` dependency from parent `package.json`
@@ -17,8 +13,8 @@
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
 
-import * as React from 'react'
-import * as ReactDOM from 'react-dom/client'
+import * as react from 'react'
+import * as reactDOM from 'react-dom/client'
 
 import App from './components/app'
 import * as app from './components/app'
@@ -48,7 +44,7 @@ export const run = (props: AppProps) => {
     // we can disable the `no-non-null-assertion` on this line.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const root: HTMLElement = document.getElementById(rootElementId)!
-    ReactDOM.createRoot(root).render(<App {...props} />);
+    reactDOM.createRoot(root).render(<App {...props} />);
 }
 
 export type AppProps = app.AppProps

@@ -28,7 +28,7 @@ export const PATHS = {
 // ===========
 
 /** Props for the `Svg` component. */
-type Props = {
+interface Props {
   data: string;
 }
 

@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useContext } from "react";
+import * as react from "react";
 
 
 
@@ -26,7 +26,7 @@ export interface Logger {
 type LoggerContextType = Logger;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const LoggerContext = createContext<LoggerContextType>({} as LoggerContextType)
+const LoggerContext = react.createContext<LoggerContextType>({} as LoggerContextType)
 
 
 
@@ -35,7 +35,7 @@ const LoggerContext = createContext<LoggerContextType>({} as LoggerContextType)
 // ======================
 
 interface LoggerProviderProps {
-    children: ReactNode;
+    children: react.ReactNode;
     logger: Logger;
 }
 
@@ -56,4 +56,4 @@ export const LoggerProvider = (props: LoggerProviderProps) => {
 // === useLogger ===
 // =================
 
-export const useLogger = () => useContext(LoggerContext);
+export const useLogger = () => react.useContext(LoggerContext);

@@ -1,15 +1,14 @@
 /** @file Login container responsible for rendering and interactions in sign in flow. */
+import * as react from 'react'
+import * as router from 'react-router-dom';
+import * as fontawesome from '@fortawesome/react-fontawesome';
+import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import * as React from 'react'
-import { Link, useLocation } from 'react-router-dom';
-import { faGoogle, faGithub } from '@fortawesome/free-brands-svg-icons';
-
-import { useAuth } from '../providers/auth';
-import { useInput } from '../../hooks';
+import * as auth from '../providers/auth';
+import * as hooks from '../../hooks';
 import withRouter from '../../navigation'
-import { handleEvent } from '../../utils';
-import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '../../components/app';
+import * as utils from '../../utils';
+import * as app from '../../components/app';
 import * as Icons from '../../components/svg';
 
 
@@ -18,7 +17,9 @@ import * as Icons from '../../components/svg';
 // === Constants ===
 // =================
 
-const EMAIL_QUERY_PARAM = "email";
+const LOGIN_QUERY_PARAMS = {
+    email: "email",
+}
 
 
 
@@ -27,13 +28,13 @@ const EMAIL_QUERY_PARAM = "email";
 // ======================
 
 const loginContainer = () => {
-    const { search } = useLocation();
-    const { signInWithGoogle, signInWithGitHub, signInWithPassword } = useAuth();
+    const { search } = router.useLocation();
+    const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth();
 
     const initialEmail = parseUrlSearchParams(search);
 
-    const { value: email, bind: bindEmail } = useInput(initialEmail ?? "")
-    const { value: password, bind: bindPassword } = useInput("")
+    const { value: email, bind: bindEmail } = hooks.useInput(initialEmail ?? "")
+    const { value: password, bind: bindPassword } = hooks.useInput("")
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -42,20 +43,20 @@ const loginContainer = () => {
             Login To Your Account
           </div>
           <button
-            onClick={handleEvent(signInWithGoogle)}
+            onClick={utils.handleEvent(signInWithGoogle)}
             className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
           >
             <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
-              <FontAwesomeIcon icon={faGoogle} />
+              <fontawesome.FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
             </span>
             <span>Login with Google</span>
           </button>
           <button
-            onClick={handleEvent(signInWithGitHub)}
+            onClick={utils.handleEvent(signInWithGitHub)}
             className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
           >
             <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
-              <FontAwesomeIcon icon={faGithub} />
+              <fontawesome.FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
             </span>
             <span>Login with Github</span>
           </button>
@@ -67,7 +68,7 @@ const loginContainer = () => {
             </div>
           </div>
           <div className="mt-10">
-            <form onSubmit={handleEvent(async () => signInWithPassword(email, password))}>
+            <form onSubmit={utils.handleEvent(async () => signInWithPassword(email, password))}>
               <div className="flex flex-col mb-6">
                 <label
                   htmlFor="email"
@@ -117,12 +118,12 @@ const loginContainer = () => {
 
               <div className="flex items-center mb-6 -mt-4">
                 <div className="flex ml-auto">
-                  <Link
-                    to={FORGOT_PASSWORD_PATH}
+                  <router.Link
+                    to={app.FORGOT_PASSWORD_PATH}
                     className="inline-flex text-xs sm:text-sm text-blue-500 hover:text-blue-700"
                   >
                     Forgot Your Password?
-                  </Link>
+                  </router.Link>
                 </div>
               </div>
 
@@ -138,13 +139,13 @@ const loginContainer = () => {
             </form>
           </div>
           <div className="flex justify-center items-center mt-6">
-            <Link
-              to={REGISTRATION_PATH}
+            <router.Link
+              to={app.REGISTRATION_PATH}
               className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
             >
               <span><Icons.Svg data={Icons.PATHS.createAccount} /></span>
               <span className="ml-2">You don&apos;t have an account?</span>
-            </Link>
+            </router.Link>
           </div>
         </div>
       </div>
@@ -153,7 +154,7 @@ const loginContainer = () => {
 
 const parseUrlSearchParams = (search: string) => {
   const query = new URLSearchParams(search);
-  const email = query.get(EMAIL_QUERY_PARAM);
+  const email = query.get(LOGIN_QUERY_PARAMS.email);
   return email
 }
 

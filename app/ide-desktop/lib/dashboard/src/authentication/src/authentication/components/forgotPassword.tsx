@@ -1,14 +1,14 @@
 /** @file Container responsible for rendering and interactions in first half of forgot password
  * flow. */
-import * as React from 'react'
-import { Link } from 'react-router-dom';
+import * as react from 'react'
+import * as router from 'react-router-dom';
 
-import { useAuth } from '../providers/auth';
+import * as auth from '../providers/auth';
 import withRouter from '../../navigation'
-import { useInput } from '../../hooks'
-import { handleEvent } from '../../utils';
-import { LOGIN_PATH } from '../../components/app';
-import * as Icons from '../../components/svg';
+import * as hooks from '../../hooks'
+import * as utils from '../../utils';
+import * as app from '../../components/app';
+import * as icons from '../../components/svg';
 
 
 
@@ -17,9 +17,9 @@ import * as Icons from '../../components/svg';
 // ===============================
 
 const forgotPasswordContainer = () => {
-    const { forgotPassword } = useAuth();
+    const { forgotPassword } = auth.useAuth();
 
-    const { value: email, bind: bindEmail } = useInput("")
+    const { value: email, bind: bindEmail } = hooks.useInput("")
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -28,7 +28,7 @@ const forgotPasswordContainer = () => {
             Forgot Your Password?
           </div>
           <div className="mt-10">
-            <form onSubmit={handleEvent(async () => await forgotPassword(email))}>
+            <form onSubmit={utils.handleEvent(async () => await forgotPassword(email))}>
               <div className="flex flex-col mb-6">
                 <label
                   htmlFor="email"
@@ -38,7 +38,7 @@ const forgotPasswordContainer = () => {
                 </label>
                 <div className="relative">
                   <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                    <Icons.Svg data={Icons.PATHS.at} />
+                    <icons.Svg data={icons.PATHS.at} />
                   </div>
 
                   <input
@@ -57,19 +57,19 @@ const forgotPasswordContainer = () => {
                   className="flex items-center justify-center focus:outline-none text-white text-sm sm:text-base bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in"
                 >
                   <span className="mr-2 uppercase">Send link</span>
-                  <span><Icons.Svg data={Icons.PATHS.rightArrow} /></span>
+                  <span><icons.Svg data={icons.PATHS.rightArrow} /></span>
                 </button>
               </div>
             </form>
           </div>
           <div className="flex justify-center items-center mt-6">
-            <Link
-              to={LOGIN_PATH}
+            <router.Link
+              to={app.LOGIN_PATH}
               className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
             >
-              <span><Icons.Svg data={Icons.PATHS.goBack} /></span>
+              <span><icons.Svg data={icons.PATHS.goBack} /></span>
               <span className="ml-2">Go back to login</span>
-            </Link>
+            </router.Link>
           </div>
         </div>
       </div>

@@ -3,11 +3,12 @@
  * All of the functions used for authentication are provided by the AWS Amplify library, but we
  * provide a thin wrapper around them to make them easier to use. Mainly, we perform some error
  * handling and conditional logic to vary behaviour between desktop & cloud. */
-import { Auth, CognitoHostedUIIdentityProvider, SignUpParams } from "@aws-amplify/auth";
-import { CognitoUserSession } from "amazon-cognito-identity-js";
-import { Result, Option } from "ts-results";
-import { Logger } from "../providers/logger";
-import { AmplifyConfig, toNestedAmplifyConfig } from "./config";
+import * as amplify from "@aws-amplify/auth";
+import * as cognito from "amazon-cognito-identity-js";
+import * as results from "ts-results";
+
+import * as loggerProvider from "../providers/logger";
+import * as config from "./config";
 
 
 // =================
@@ -101,21 +102,21 @@ export interface Cognito {
      *
      * @returns `UserSession` if the user is logged in, `None` otherwise.
      * @throws An error if failed due to an unknown error. */
-    userSession: () => Promise<Option<UserSession>>;
+    userSession: () => Promise<results.Option<UserSession>>;
     /** Sign up with the given parameters (i.e., username and password).
      * 
      * Does not rely on external identity providers (e.g., Google or GitHub).
      *
      * @returns A promise that resolves to either success or known error.
      * @throws An error if failed due to an unknown error. */
-    signUp: (username: string, password: string) => Promise<Result<null, SignUpError>>;
+    signUp: (username: string, password: string) => Promise<results.Result<null, SignUpError>>;
     /** Sends the verification code to confirm the user's email address.
      *
      * @param email - User's email address.
      * @param code - Verification code that was sent to the user's email address.
      * @returns A promise that resolves to either success or known error.
      * @throws An error if failed due to an unknown error. */
-    confirmSignUp: (email: string, code: string) => Promise<Result<null, ConfirmSignUpError>>;
+    confirmSignUp: (email: string, code: string) => Promise<results.Result<null, ConfirmSignUpError>>;
     /** Signs in via the Google federated identity provider.
      * 
      * This function will open the Google authentication page in the user's browser. The user will
@@ -136,7 +137,7 @@ export interface Cognito {
      * @param password - Password of the user to sign in.
      * @returns A promise that resolves to either success or known error.
      * @throws An error if failed due to an unknown error. */
-    signInWithPassword: (username: string, password: string) => Promise<Result<null, SignInWithPasswordError>>;
+    signInWithPassword: (username: string, password: string) => Promise<results.Result<null, SignInWithPasswordError>>;
     /** Sends a password reset email to the given email address.
      * 
      * The user will be able to reset their password by following the link in the email, which takes
@@ -146,7 +147,7 @@ export interface Cognito {
      * @param email - Email address to send the password reset email to.
      * @returns A promise that resolves to either success or known error.
      * @throws An error if failed due to an unknown error. */
-    forgotPassword: (username: string) => Promise<Result<null, ForgotPasswordError>>;
+    forgotPassword: (username: string) => Promise<results.Result<null, ForgotPasswordError>>;
     /** Submits a new password for the given email address.
      * 
      * The user will have received a verification code in an email, which they will have entered on
@@ -158,7 +159,7 @@ export interface Cognito {
      * @param password - New password to set.
      * @returns A promise that resolves to either success or known error.
      * @throws An error if failed due to an unknown error. */
-    forgotPasswordSubmit: (username: string, code: string, newPassword: string) => Promise<Result<null, ForgotPasswordSubmitError>>;
+    forgotPasswordSubmit: (username: string, code: string, newPassword: string) => Promise<results.Result<null, ForgotPasswordSubmitError>>;
     /** Signs out the current user.
      * 
      * @returns A promise that resolves if successful. */
@@ -172,13 +173,13 @@ export interface Cognito {
 // ===================
 
 export class CognitoImpl implements Cognito {
-    private readonly logger: Logger;
+    private readonly logger: loggerProvider.Logger;
     private readonly fromDesktop: boolean;
 
     constructor(
-        logger: Logger,
+        logger: loggerProvider.Logger,
         fromDesktop: boolean,
-        amplifyConfig: AmplifyConfig,
+        amplifyConfig: config.AmplifyConfig,
     ) {
         this.logger = logger;
         this.fromDesktop = fromDesktop;
@@ -187,8 +188,8 @@ export class CognitoImpl implements Cognito {
         // By wrapping all the `Auth` methods we care about and returning an `Cognito` API object
         // containing them, we ensure that `Auth.configure` is called before any other `Auth`
         // methods are called.
-        const config = toNestedAmplifyConfig(amplifyConfig);
-        Auth.configure(config)
+        const nestedAmplifyConfig = config.toNestedAmplifyConfig(amplifyConfig);
+        amplify.Auth.configure(nestedAmplifyConfig);
     }
 
 
@@ -283,12 +284,12 @@ const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind =>
  *
  * @returns `CognitoUserSession` if the user is logged in, `CurrentSessionErrorKind`
  * otherwise. */
-const getAmplifyCurrentSession = () => Result
-    .wrapAsync(() => Auth.currentSession())
+const getAmplifyCurrentSession = () => results.Result
+    .wrapAsync(() => amplify.Auth.currentSession())
     .then(result => result.mapErr(intoCurrentSessionErrorKind));
 
 /** Parses a `CognitoUserSession` into a `UserSession`. */
-const parseUserSession = (session: CognitoUserSession): UserSession => {
+const parseUserSession = (session: cognito.CognitoUserSession): UserSession => {
     const payload = session.getIdToken().payload;
     // The `email` field is mandatory, so we assert that it exists and is a string.
     assertString(payload.email, "Payload does not have an email field.")
@@ -304,17 +305,17 @@ const parseUserSession = (session: CognitoUserSession): UserSession => {
 // === SignUp ===
 // ==============
 
-const signUp = (username: string, password: string, fromDesktop: boolean) => Result
+const signUp = (username: string, password: string, fromDesktop: boolean) => results.Result
     .wrapAsync(() => {
         const params = intoSignUpParams(username, password, fromDesktop);
-        return Auth.signUp(params)
+        return amplify.Auth.signUp(params)
     })
     // We don't care about the details in the success case, just that it happened.
     .then(result => result.map(() => null))
     .then(result => result.mapErr(intoAmplifyErrorOrThrow))
     .then(result => result.mapErr(intoSignUpErrorOrThrow))
 
-const intoSignUpParams = (username: string, password: string, fromDesktop: boolean): SignUpParams => ({
+const intoSignUpParams = (username: string, password: string, fromDesktop: boolean): amplify.SignUpParams => ({
     username,
     password,
     attributes: {
@@ -364,8 +365,8 @@ const intoSignUpErrorOrThrow = (error: AmplifyError): SignUpError => {
 // === ConfirmSignUp ===
 // =====================
 
-const confirmSignUp = async (email: string, code: string) => Result
-    .wrapAsync(() => Auth.confirmSignUp(email, code))
+const confirmSignUp = async (email: string, code: string) => results.Result
+    .wrapAsync(() => amplify.Auth.confirmSignUp(email, code))
     // We don't care about the details in the success case, just that it happened.
     .then(result => result.map(() => null))
     .then(result => result.mapErr(intoAmplifyErrorOrThrow))
@@ -400,9 +401,9 @@ const intoConfirmSignUpErrorOrThrow = (error: AmplifyError): ConfirmSignUpError 
 // === SignInWithGoogle ===
 // ========================
 
-const signInWithGoogle = async (customState?: string) => Auth
+const signInWithGoogle = async (customState?: string) => amplify.Auth
     .federatedSignIn({
-        provider: CognitoHostedUIIdentityProvider.Google,
+        provider: amplify.CognitoHostedUIIdentityProvider.Google,
         customState,
     })
     // We don't care about the details in the success case, just that it happened.
@@ -414,7 +415,7 @@ const signInWithGoogle = async (customState?: string) => Auth
 // === SignInWithGoogle ===
 // ========================
 
-const signInWithGitHub = async () => Auth
+const signInWithGitHub = async () => amplify.Auth
     .federatedSignIn({
         customProvider: GITHUB_PROVIDER,
     })
@@ -427,8 +428,8 @@ const signInWithGitHub = async () => Auth
 // === SignInWithPassword ===
 // ==========================
 
-const signInWithPassword = async (username: string, password: string) => Result
-    .wrapAsync(() => Auth.signIn(username, password))
+const signInWithPassword = async (username: string, password: string) => results.Result
+    .wrapAsync(() => amplify.Auth.signIn(username, password))
     // We don't care about the details in the success case, just that it happened.
     .then(result => result.map(() => null))
     .then(result => result.mapErr(intoAmplifyErrorOrThrow))
@@ -472,8 +473,8 @@ const intoSignInWithPasswordErrorOrThrow = (error: AmplifyError): SignInWithPass
 // === ForgotPassword ===
 // ======================
 
-const forgotPassword = async (email: string) => Result
-    .wrapAsync(() => Auth.forgotPassword(email))
+const forgotPassword = async (email: string) => results.Result
+    .wrapAsync(() => amplify.Auth.forgotPassword(email))
     // We don't care about the details in the success case, just that it happened.
     .then(result => result.map(() => null))
     .then(result => result.mapErr(intoAmplifyErrorOrThrow))
@@ -512,8 +513,8 @@ const intoForgotPasswordErrorOrThrow = (error: AmplifyError): ForgotPasswordErro
 // === ForgotPasswordSubmit ===
 // ============================
 
-const forgotPasswordSubmit = async (email: string, code: string, password: string) => Result
-    .wrapAsync(() => Auth.forgotPasswordSubmit(email, code, password))
+const forgotPasswordSubmit = async (email: string, code: string, password: string) => results.Result
+    .wrapAsync(() => amplify.Auth.forgotPasswordSubmit(email, code, password))
     // We don't care about the details in the success case, just that it happened.
     .then(result => result.map(() => null))
     .then(result => result.mapErr(intoForgotPasswordSubmitErrorOrThrow))
@@ -549,7 +550,7 @@ const intoForgotPasswordSubmitErrorOrThrow = (error: unknown): ForgotPasswordSub
 // === SignOut ===
 // ===============
 
-const signOut = async (logger: Logger) => {
+const signOut = async (logger: loggerProvider.Logger) => {
     // FIXME [NP2]: For some reason, the redirect back to the IDE from the browser doesn't work
     // correctly so this `await` throws a timeout error. As a workaround, we catch this error and
     // force a refresh of the session manually by running the `signOut` again. This works because
@@ -559,10 +560,10 @@ const signOut = async (logger: Logger) => {
     // shouldn't be catching. This also has the unintended consequence of delaying the sign out
     // process by a few seconds (until the timeout occurs).
     try {
-        await Auth.signOut();
+        await amplify.Auth.signOut();
     } catch(error) {
         logger.error("Sign out failed", error);
     } finally {
-        await Auth.signOut();
+        await amplify.Auth.signOut();
     }
 }

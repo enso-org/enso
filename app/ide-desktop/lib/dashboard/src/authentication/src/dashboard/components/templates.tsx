@@ -1,5 +1,5 @@
 /** @file Renders the list of templates that can be used to create a project from. */
-import * as React from "react";
+import * as react from "react";
 
 const templates = [
     {title: "New empty project", templateName: undefined},
@@ -15,7 +15,7 @@ interface Props {
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const Templates = (props: Props) => {
+const Templates = (props: Props) => {
     const { onChange } = props;
 
     return (
@@ -56,3 +56,5 @@ export const Templates = (props: Props) => {
         </div>
     );
 };
+
+export default Templates;

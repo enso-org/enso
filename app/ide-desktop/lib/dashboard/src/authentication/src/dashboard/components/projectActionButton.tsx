@@ -1,40 +1,34 @@
 /** @file Renders an interactive button displaying the status of a project. */
-import * as React from "react";
-import {useState} from "react";
+import * as react from "react";
+import * as heroicons from "@heroicons/react/24/outline";
+import * as reactDom from "react-dom";
 
-import {
-    PlayCircleIcon,
-    StopCircleIcon,
-    ArrowRightIcon,
-} from "@heroicons/react/24/outline";
-
-import {unstable_batchedUpdates as batchedUpdates} from "react-dom";
-import {useFullUserSession} from "../../authentication/providers/auth";
-import {ProjectState, Project, createBackend} from "../service";
-import { useLogger } from "../../providers/logger";
+import * as auth from "../../authentication/providers/auth";
+import * as backend from "../service";
+import * as loggerProvider from "../../providers/logger";
 
 const STATUS_CHECK_INTERVAL = 10000;
 
 interface Props {
-    project: Project;
+    project: backend.Project;
     onOpen: () => void;
     onOpenStart: () => void;
     onClose: () => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const ProjectActionButton = (props: Props) => {
-    const { accessToken } = useFullUserSession();
-    const logger = useLogger();
-    const backend = createBackend(accessToken, logger);
+const ProjectActionButton = (props: Props) => {
+    const { accessToken } = auth.useFullUserSession();
+    const logger = loggerProvider.useLogger();
+    const backendService = backend.createBackend(accessToken, logger);
     const {project, onOpen, onOpenStart, onClose} = props;
-    const [checkStatusInterval, setCheckStatusInterval] = useState<number | undefined>(undefined);
-    const [hasProjectOpened, setHasProjectOpened] = useState(false);
+    const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | undefined>(undefined);
+    const [hasProjectOpened, setHasProjectOpened] = react.useState(false);
 
     const handleCloseProject = async () => {
-        await backend.closeProject(project.projectId);
+        await backendService.closeProject(project.projectId);
 
-        batchedUpdates(() => {
+        reactDom.unstable_batchedUpdates(() => {
             setCheckStatusInterval(undefined);
             clearInterval(checkStatusInterval);
             onClose();
@@ -42,12 +36,12 @@ export const ProjectActionButton = (props: Props) => {
     };
 
     const handleOpenProject = async () => {
-        await backend.openProject(project.projectId);
+        await backendService.openProject(project.projectId);
 
         const checkProjectStatus = async () => {
-            const response = await backend.getProject(project.projectId);
+            const response = await backendService.getProject(project.projectId);
 
-            if (response.state.type === ProjectState.opened) {
+            if (response.state.type === backend.ProjectState.opened) {
                 setHasProjectOpened(true);
                 setCheckStatusInterval(undefined);
                 clearInterval(checkStatusInterval);
@@ -60,29 +54,29 @@ export const ProjectActionButton = (props: Props) => {
             STATUS_CHECK_INTERVAL
         );
 
-        batchedUpdates(() => {
+        reactDom.unstable_batchedUpdates(() => {
             setCheckStatusInterval(newCheckStatusInterval);
             onOpenStart();
         });
     };
 
     switch (project.state.type) {
-        case ProjectState.created:
-        case ProjectState.new:
-        case ProjectState.closed:
+        case backend.ProjectState.created:
+        case backend.ProjectState.new:
+        case backend.ProjectState.closed:
             return (
                 <>
                     <button onClick={handleOpenProject}>
-                        <PlayCircleIcon className="h-10 w-10 text-grey-500"/>
+                        <heroicons.PlayCircleIcon className="h-10 w-10 text-grey-500"/>
                     </button>
                 </>
             );
-        case ProjectState.openInProgress:
+        case backend.ProjectState.openInProgress:
             if (!checkStatusInterval && accessToken) {
                 const checkProjectStatus = async () => {
-                    const response = await backend.getProject(project.projectId);
+                    const response = await backendService.getProject(project.projectId);
 
-                    if (response.state.type === ProjectState.opened) {
+                    if (response.state.type === backend.ProjectState.opened) {
                         setHasProjectOpened(true);
                         setCheckStatusInterval(undefined);
                         clearInterval(checkStatusInterval);
@@ -95,7 +89,7 @@ export const ProjectActionButton = (props: Props) => {
                     STATUS_CHECK_INTERVAL
                 );
 
-                batchedUpdates(() => {
+                reactDom.unstable_batchedUpdates(() => {
                     setCheckStatusInterval(newCheckStatusInterval);
                     onOpenStart();
                 });
@@ -121,23 +115,26 @@ export const ProjectActionButton = (props: Props) => {
                     </svg>
 
                     <button onClick={handleCloseProject}>
-                        <StopCircleIcon className="h-10 w-10 text-grey-500"/>
+                        <heroicons.StopCircleIcon className="h-10 w-10 text-grey-500"/>
                     </button>
                 </>
             );
         // FIXME [NP3]: Figure out why this is necessary.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        case ProjectState.opened || hasProjectOpened:
+        case backend.ProjectState.opened || hasProjectOpened:
             return (
                 <>
                     <button onClick={handleCloseProject}>
-                        <StopCircleIcon className="h-10 w-10 text-grey-500"/>
+                        <heroicons.StopCircleIcon className="h-10 w-10 text-grey-500"/>
                     </button>
 
                     <a href={`ide/${project.projectId}`}>
-                        <ArrowRightIcon className="h-10 w-10 text-grey-500"/>
+                        <heroicons.ArrowRightIcon className="h-10 w-10 text-grey-500"/>
                     </a>
                 </>
             );
     }
 };
+
+
+export default ProjectActionButton

@@ -3,16 +3,16 @@
  * Provides an `AuthProvider` component that wraps the entire application, and a `useAuth` hook that
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc. */
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
-import { Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
-import { toast } from "react-hot-toast"
+import react from 'react';
+import * as router from 'react-router-dom';
+import toast from "react-hot-toast"
 
-import { createBackend, Organization, SetUsernameRequestBody } from '../../dashboard/service';
-import { AuthService } from '../service';
-import { DASHBOARD_PATH, LOGIN_PATH, REGISTRATION_PATH, RESET_PASSWORD_PATH, SET_USERNAME_PATH } from '../../components/app';
-import { useLogger } from '../../providers/logger';
-import { useSession } from './session';
-import { UnreachableCaseError } from '../../error';
+import * as backendService from '../../dashboard/service';
+import * as authService from '../service';
+import * as app from '../../components/app';
+import * as loggerProvider from '../../providers/logger';
+import * as sessionProvider from './session';
+import * as error from '../../error';
 
 
 
@@ -54,7 +54,7 @@ export interface FullUserSession {
   /** User's email address. */
   email: string;
   /** User's organization information. */
-  organization: Organization;
+  organization: backendService.Organization;
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -126,7 +126,7 @@ interface AuthContextType {
  * So changing the cast would provide no safety guarantees, and would require us to introduce null
  * checks everywhere we use the context. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const AuthContext = createContext<AuthContextType>(
+const AuthContext = react.createContext<AuthContextType>(
     {} as AuthContextType
 );
 
@@ -138,22 +138,22 @@ const AuthContext = createContext<AuthContextType>(
 // ====================
 
 export interface AuthProviderProps {
-    authService: AuthService,
+    authService: authService.AuthService,
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void;
-    children: ReactNode;
+    children: react.ReactNode;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps) => {
   const { authService, children } = props
   const { cognito } = authService
-  const { session } = useSession();
-  const logger = useLogger();
-  const onAuthenticated = useCallback(props.onAuthenticated, [])
-  const navigate = useNavigate();
-  const [initialized, setInitialized] = useState(false);
-  const [userSession, setUserSession] = useState<UserSession | undefined>(undefined);
+  const { session } = sessionProvider.useSession();
+  const logger = loggerProvider.useLogger();
+  const onAuthenticated = react.useCallback(props.onAuthenticated, [])
+  const navigate = router.useNavigate();
+  const [initialized, setInitialized] = react.useState(false);
+  const [userSession, setUserSession] = react.useState<UserSession | undefined>(undefined);
 
   // Fetch the JWT access token from the session via the AWS Amplify library.
   //
@@ -161,7 +161,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
   // Amplify was configured (e.g. local storage). If the token is not available, returns
   // `undefined`.  If the token has expired, automatically refreshes the token and returns the new
   // token.
-  useEffect(() => {
+  react.useEffect(() => {
       const fetchSession = async () => {
         if (session.none) {
           setInitialized(true);
@@ -170,7 +170,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
         }
         const { accessToken, email } = session.val;
 
-        const backend = createBackend(accessToken, logger);
+        const backend = backendService.createBackend(accessToken, logger);
 
         // Request the user's organization information from the Cloud backend.
         const organization = await backend.getUser();
@@ -237,22 +237,22 @@ export const AuthProvider = (props: AuthProviderProps) => {
           case "UserAlreadyConfirmed":
             break;
           default:
-            throw new UnreachableCaseError(result.val.kind)
+            throw new error.UnreachableCaseError(result.val.kind)
         }
       }
 
       toast.success(MESSAGES.confirmSignUpSuccess)
-      navigate(LOGIN_PATH)
+      navigate(app.LOGIN_PATH)
     })
 
   const setUsername = async (accessToken: string, username: string, email: string) => {
-      const body: SetUsernameRequestBody = { userName: username, userEmail: email };
+      const body: backendService.SetUsernameRequestBody = { userName: username, userEmail: email };
 
       // FIXME [NP2]: don't create a new API client here, reuse the one from the context.
-      const backend = createBackend(accessToken, logger);
+      const backend = backendService.createBackend(accessToken, logger);
 
       await backend.setUsername(body);
-      navigate(DASHBOARD_PATH);
+      navigate(app.DASHBOARD_PATH);
       toast.success(MESSAGES.setUsernameSuccess);
   };
 
@@ -268,7 +268,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
       }
 
       if (result.val.kind === "UserNotFound") {
-        navigate(REGISTRATION_PATH)
+        navigate(app.REGISTRATION_PATH)
       }
 
       toast.error(result.val.message)
@@ -279,7 +279,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
     .then(result => {
       if (result.ok) {
         toast.success(MESSAGES.forgotPasswordSuccess)
-        navigate(RESET_PASSWORD_PATH)
+        navigate(app.RESET_PASSWORD_PATH)
       } else {
         toast.error(result.val.message)
       }
@@ -290,7 +290,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
     .then(result => {
       if (result.ok) {
         toast.success(MESSAGES.resetPasswordSuccess)
-        navigate(LOGIN_PATH)
+        navigate(app.LOGIN_PATH)
       } else {
         toast.error(result.val.message)
       }
@@ -346,7 +346,7 @@ const isUserFacingError = (value: unknown): value is UserFacingError => {
  *
  * Only the hook is exported, and not the context, because we only want to use the hook directly
  * and never the context component. */
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => react.useContext(AuthContext);
 
 
 
@@ -359,10 +359,10 @@ export const ProtectedLayout = () => {
   const { session } = useAuth();
 
   if (!session) {
-    return <Navigate to={LOGIN_PATH} />;
+    return <router.Navigate to={app.LOGIN_PATH} />;
   }
 
-  return <Outlet context={ session } />;
+  return <router.Outlet context={ session } />;
 }
 
 
@@ -376,14 +376,14 @@ export const GuestLayout = () => {
   const { session } = useAuth();
 
   if (session?.state == "partial") {
-    return <Navigate to={SET_USERNAME_PATH} />;
+    return <router.Navigate to={app.SET_USERNAME_PATH} />;
   }
 
   if (session?.state == "full") {
-    return <Navigate to={DASHBOARD_PATH} />;
+    return <router.Navigate to={app.DASHBOARD_PATH} />;
   }
 
-  return <Outlet />;
+  return <router.Outlet />;
 }
 
 
@@ -393,7 +393,7 @@ export const GuestLayout = () => {
 // =============================
 
 export const usePartialUserSession = () => {
-  return useOutletContext<PartialUserSession>();
+  return router.useOutletContext<PartialUserSession>();
 }
 
 
@@ -403,5 +403,5 @@ export const usePartialUserSession = () => {
 // ==========================
 
 export const useFullUserSession = () => {
-  return useOutletContext<FullUserSession>();
+  return router.useOutletContext<FullUserSession>();
 }

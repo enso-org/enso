@@ -1,4 +1,4 @@
-import { Hub, HubCallback } from "@aws-amplify/core";
+import * as amplify from "@aws-amplify/core";
 
 
 
@@ -42,7 +42,7 @@ const isAuthEvent = (value: string): value is AuthEvent => Object.values(AuthEve
 /** Type of the callback called in response to authentication state changes.
  * 
  * @see {@link Api["listen"]} */
-type ListenerCallback = (event: AuthEvent, data?: any) => void;
+export type ListenerCallback = (event: AuthEvent, data?: any) => void;
 
 /** Function that unsubscribes the {@link ListenerCallback} from authentication state changes.
  * 
@@ -58,13 +58,10 @@ type UnsubscribeFunction = () => void;
  * The returned function, when called, returns an {@link UnsubscribeFunction} that can be used to
  * unsubscribe from {@link AuthEvent}s. Ensure that you call this function before re-subscribing to
  * avoid memory leaks or duplicate event handlers. */
-type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction;
+export type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction;
 
-const registerAuthEventListener: ListenFunction = (listener) => {
-    const callback: HubCallback = (data) => isAuthEvent(data.payload.event) && listener(data.payload.event, data.payload.data);
-    const cancel = Hub.listen(AUTHENTICATION_HUB, callback);
-    return cancel
+export const registerAuthEventListener: ListenFunction = (listener) => {
+    const callback: amplify.HubCallback = (data) =>
+        isAuthEvent(data.payload.event) && listener(data.payload.event, data.payload.data);
+    return amplify.Hub.listen(AUTHENTICATION_HUB, callback);
 }
-
-export { ListenerCallback, ListenFunction }
-export default registerAuthEventListener;

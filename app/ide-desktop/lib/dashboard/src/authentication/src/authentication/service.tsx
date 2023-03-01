@@ -1,12 +1,13 @@
 /** @file Provides an {@link AuthService} which consists of an underyling {@link Cognito} API
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron. */
-import { Auth } from "@aws-amplify/auth";
-import { CONFIRM_REGISTRATION_PATH, DASHBOARD_PATH, LOGIN_PATH, RESET_PASSWORD_PATH } from "../components/app";
-import registerAuthEventListener, { ListenFunction } from "./listen";
-import { Logger } from "../providers/logger";
-import { Cognito, CognitoImpl } from "./cognito";
-import { AmplifyConfig, AWS_REGION, CLOUD_REDIRECT, DESKTOP_REDIRECT, OAUTH_RESPONSE_TYPE, OAUTH_SCOPES } from "./config";
+import * as amplify from "@aws-amplify/auth";
+import * as app from "../components/app";
+
+import * as listen from "./listen";
+import * as loggerProvider from "../providers/logger";
+import * as cognito from "./cognito";
+import * as config from "./config";
 
 
 
@@ -14,10 +15,10 @@ import { AmplifyConfig, AWS_REGION, CLOUD_REDIRECT, DESKTOP_REDIRECT, OAUTH_RESP
 // === Constants ===
 // =================
 
-const BASE_AMPLIFY_CONFIG: Partial<AmplifyConfig> = {
-    region: AWS_REGION,
-    scope: OAUTH_SCOPES,
-    responseType: OAUTH_RESPONSE_TYPE,
+const BASE_AMPLIFY_CONFIG: Partial<config.AmplifyConfig> = {
+    region: config.AWS_REGION,
+    scope: config.OAUTH_SCOPES,
+    responseType: config.OAUTH_RESPONSE_TYPE,
 }
 
 /** Collection of configuration details for Amplify user pools, sorted by deployment environment. */
@@ -60,13 +61,10 @@ interface LoginApi {
 // === AuthConfig ===
 // ==================
 
-
-// === AuthConfig ===
-
 /** Configuration for the authentication service. */
 export interface AuthConfig {
     /** Logger for the authentication service. */
-    logger: Logger;
+    logger: loggerProvider.Logger;
     /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
     runningOnDesktop: boolean;
     /** Function to navigate to a given (relative) URL.
@@ -85,9 +83,9 @@ export interface AuthConfig {
 /** API for the authentication service. */
 export interface AuthService {
     /** @see {@link Cognito} */
-    cognito: Cognito,
-    /** @see {@link ListenFunction} */
-    registerAuthEventListener: ListenFunction;
+    cognito: cognito.Cognito,
+    /** @see {@link listen.ListenFunction} */
+    registerAuthEventListener: listen.ListenFunction;
 }
 
 /** Creates an instance of the authentication service.
@@ -99,19 +97,23 @@ export interface AuthService {
  * 
  * @param authConfig - Configuration for the authentication service.
  * @returns An instance of the authentication service. */
-const authService = (authConfig: AuthConfig): AuthService => {
+export const initAuthService = (authConfig: AuthConfig): AuthService => {
     const { logger, runningOnDesktop, navigate } = authConfig;
 
     const amplifyConfig = loadAmplifyConfig(logger, runningOnDesktop, navigate);
-    const cognito = new CognitoImpl(logger, runningOnDesktop, amplifyConfig);
+    const cognitoClient = new cognito.CognitoImpl(logger, runningOnDesktop, amplifyConfig);
 
     return {
-        cognito,
-        registerAuthEventListener,
+        cognito: cognitoClient,
+        registerAuthEventListener: listen.registerAuthEventListener,
     }
 }
 
-const loadAmplifyConfig = (logger: Logger, runningOnDesktop: boolean, navigate: (url: string) => void): AmplifyConfig => {
+const loadAmplifyConfig = (
+    logger: loggerProvider.Logger,
+    runningOnDesktop: boolean,
+    navigate: (url: string) => void,
+): config.AmplifyConfig => {
     // Load the environment-specific Amplify configuration.
     const baseConfig = AMPLIFY_CONFIGS.pbuchu;
 
@@ -132,10 +134,10 @@ const loadAmplifyConfig = (logger: Logger, runningOnDesktop: boolean, navigate: 
     }
 
     // Set the redirect URLs for the OAuth flows, depending on our environment.
-    baseConfig.redirectSignIn = runningOnDesktop ? DESKTOP_REDIRECT : CLOUD_REDIRECT;
-    baseConfig.redirectSignOut = runningOnDesktop ? DESKTOP_REDIRECT : CLOUD_REDIRECT;
+    baseConfig.redirectSignIn = runningOnDesktop ? config.DESKTOP_REDIRECT : config.CLOUD_REDIRECT;
+    baseConfig.redirectSignOut = runningOnDesktop ? config.DESKTOP_REDIRECT : config.CLOUD_REDIRECT;
 
-    return baseConfig as AmplifyConfig
+    return baseConfig as config.AmplifyConfig
 }
 
 const openUrlWithExternalBrowser = (url: string) => {
@@ -157,7 +159,7 @@ const openUrlWithExternalBrowser = (url: string) => {
  * handle the redirect for us. On the desktop however, we need to handle the redirect ourselves,
  * because it's a deep link into the app, and Amplify doesn't handle deep links. */
 const registerOpenAuthenticationUrlCallback = (
-    logger: Logger,
+    logger: loggerProvider.Logger,
     navigate: (url: string) => void,
 ) => {
     const openAuthenticationUrlCallback = (url: string) => {
@@ -165,10 +167,10 @@ const registerOpenAuthenticationUrlCallback = (
 
         if (isConfirmRegistrationRedirect(parsedUrl)) {
             // Navigate to a relative URL to handle the confirmation link.
-            const redirectUrl = `${CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`
+            const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`
             navigate(redirectUrl)
         } else if (isSignOutRedirect(parsedUrl)) {
-            navigate(LOGIN_PATH)
+            navigate(app.LOGIN_PATH)
         } else if (isSignInRedirect(parsedUrl)) {
             handleAuthResponse(url)
         // If the user is being redirected from a password reset email, then we need to navigate to
@@ -176,7 +178,7 @@ const registerOpenAuthenticationUrlCallback = (
         // can be filled in automatically.
         } else if (isResetPasswordRedirect(parsedUrl)) {
             // Navigate to a relative URL to handle the password reset.
-            const redirectUrl = `${RESET_PASSWORD_PATH}${parsedUrl.search}`
+            const redirectUrl = `${app.RESET_PASSWORD_PATH}${parsedUrl.search}`
             navigate(redirectUrl)
         }
     }
@@ -190,19 +192,19 @@ const registerOpenAuthenticationUrlCallback = (
 
 /** If the user is being redirected after clicking the registration confirmation link in their
  * email, then the URL will be for the confirmation page path. */
-const isConfirmRegistrationRedirect = (url: URL) => url.pathname === CONFIRM_REGISTRATION_PATH
+const isConfirmRegistrationRedirect = (url: URL) => url.pathname === app.CONFIRM_REGISTRATION_PATH
 
 /** If the user is being redirected after a sign-out, then no query args will be present. */
 // FIXME [NP2]: don't use `enso://auth` for both authentication redirect & signout redirect so we
 // don't have to disambiguate between the two on the `DASHBOARD_PATH`.
-const isSignOutRedirect = (url: URL) => url.pathname === DASHBOARD_PATH && url.search === ""
+const isSignOutRedirect = (url: URL) => url.pathname === app.DASHBOARD_PATH && url.search === ""
 
 /** If the user is being redirected after a sign-out, then query args will be present. */
-const isSignInRedirect = (url: URL) => url.pathname === DASHBOARD_PATH && url.search !== ""
+const isSignInRedirect = (url: URL) => url.pathname === app.DASHBOARD_PATH && url.search !== ""
 
 /** If the user is being redirected after clicking the reset password confirmation link in their
  * email, then the URL will be for the confirm password reset path. */
-const isResetPasswordRedirect = (url: URL) => url.pathname === RESET_PASSWORD_PATH
+const isResetPasswordRedirect = (url: URL) => url.pathname === app.RESET_PASSWORD_PATH
 
 /** When the user is being redirected from a federated identity provider, then we need to pass the
  * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */
@@ -235,14 +237,10 @@ const handleAuthResponse = (url: string) => {
             // this to the TypeScript compiler, because these methods are intentionally not part of
             // the public AWS Amplify API.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-            await (Auth as any)._handleAuthResponse(url)
+            await (amplify.Auth as any)._handleAuthResponse(url)
         } finally {
             // Restore the original `window.location.replaceState` function.
             window.history.replaceState = replaceState;
         }
     })()
 }
-
-
-
-export default authService

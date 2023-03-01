@@ -1,5 +1,5 @@
-import { DependencyList, useEffect, useState } from "react";
-import { useLogger } from "./providers/logger";
+import * as react from "react";
+import * as loggerProvider from "./providers/logger";
 
 
 
@@ -15,7 +15,7 @@ import { useLogger } from "./providers/logger";
  * use the `value` prop and the `onChange` event handler. However, this can be tedious to do for
  * every input field, so we can use a custom hook to handle this for us. */
 export const useInput = (initialValue: string) => {
-    const [value, setValue] = useState(initialValue);
+    const [value, setValue] = react.useState(initialValue);
     const onChange = (event: React.ChangeEvent<HTMLInputElement>) => setValue(event.target.value);
     const bind = {
         value,
@@ -49,18 +49,22 @@ export const useInput = (initialValue: string) => {
  * @param fetch - The asynchronous function used to load the state controlled by this hook.
  * @param deps - The list of dependencies that, when updated, trigger the asynchronous fetch.
  * @returns value - The current value of the state controlled by this hook. */
-export function useAsyncEffect<T>(initialValue: T, fetch: () => Promise<T>, deps?: DependencyList): [T] {
-    const logger = useLogger();
-    const [value, setValue] = useState<T>(initialValue);
+export function useAsyncEffect<T>(
+    initialValue: T,
+    fetch: () => Promise<T>,
+    deps?: react.DependencyList,
+): [T] {
+    const logger = loggerProvider.useLogger();
+    const [value, setValue] = react.useState<T>(initialValue);
 
-    useEffect(() => {
+    react.useEffect(() => {
         let active = true;
 
         // Declare the async data fetching function.
         const load = async () => {
             const result = await fetch();
 
-            // Set state with the result if `active` is true.
+            // Set state with the result if `active` is true. This is what prevents race conditions.
             if (!active) return;
             setValue(result);
         }

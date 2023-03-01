@@ -1,14 +1,13 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import * as React from 'react'
-import { FC } from 'react'
-import { Link } from 'react-router-dom';
+import * as react from 'react'
+import * as router from 'react-router-dom';
 import toast from "react-hot-toast";
 
-import { useAuth } from '../providers/auth';
+import * as auth from '../providers/auth';
 import withRouter from '../../navigation'
-import { useInput } from '../../hooks'
-import { handleEvent } from '../../utils';
-import { LOGIN_PATH } from '../../components/app';
+import * as hooks from '../../hooks'
+import * as utils from '../../utils';
+import * as app from '../../components/app';
 import * as Icons from '../../components/svg';
 
 
@@ -18,10 +17,10 @@ import * as Icons from '../../components/svg';
 // =============================
 
 const registrationContainer = () => {
-    const { signUp } = useAuth();
-    const { value: email, bind: bindEmail } = useInput("")
-    const { value: password, bind: bindPassword } = useInput("")
-    const { value: confirmPassword, bind: bindConfirmPassword } = useInput("")
+    const { signUp } = auth.useAuth();
+    const { value: email, bind: bindEmail } = hooks.useInput("")
+    const { value: password, bind: bindPassword } = hooks.useInput("")
+    const { value: confirmPassword, bind: bindConfirmPassword } = hooks.useInput("")
 
     const handleSubmit = () => {
       // The password & confirm password fields must match.
@@ -40,7 +39,7 @@ const registrationContainer = () => {
             Create new account
           </div>
 
-          <form onSubmit={handleEvent(handleSubmit)}>
+          <form onSubmit={utils.handleEvent(handleSubmit)}>
             <div className="flex flex-col mb-4">
               <label
                 htmlFor="email"
@@ -126,15 +125,15 @@ const registrationContainer = () => {
           </form>
         </div>
         <div className="flex justify-center items-center mt-6">
-          <Link
-            to={LOGIN_PATH}
+          <router.Link
+            to={app.LOGIN_PATH}
             className="inline-flex items-center font-bold text-indigo-500 hover:text-indigo-700 text-sm text-center"
           >
             <span>
               <Icons.Svg data={Icons.PATHS.goBack} />
             </span>
             <span className="ml-2">Already have an account?</span>
-          </Link>
+          </router.Link>
         </div>
       </div>
     );

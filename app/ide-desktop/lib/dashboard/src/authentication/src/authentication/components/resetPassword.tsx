@@ -1,16 +1,26 @@
 /** @file Container responsible for rendering and interactions in second half of forgot password
  * flow. */
-import * as React from 'react'
-import { Link, useLocation } from 'react-router-dom';
+import * as react from 'react'
+import * as router from 'react-router-dom';
 import toast from "react-hot-toast";
 
-import { useAuth } from '../providers/auth';
+import * as auth from '../providers/auth';
 import withRouter from '../../navigation'
-import { useInput } from '../../hooks'
-import { handleEvent } from '../../utils';
-import { LOGIN_PATH } from '../../components/app';
+import * as hooks from '../../hooks'
+import * as utils from '../../utils';
+import * as app from '../../components/app';
 import * as Icons from '../../components/svg';
-import { EMAIL_QUERY_PARAM, VERIFICATION_CODE_QUERY_PARAM } from './confirmRegistration';
+
+
+
+// =================
+// === Constants ===
+// =================
+
+const RESET_PASSWORD_QUERY_PARAMS = {
+    email: "email",
+    verificationCode: "verification_code",
+}
 
 
 
@@ -19,15 +29,15 @@ import { EMAIL_QUERY_PARAM, VERIFICATION_CODE_QUERY_PARAM } from './confirmRegis
 // ==============================
 
 const resetPasswordContainer = () => {
-    const { resetPassword } = useAuth();
-    const { search } = useLocation();
+    const { resetPassword } = auth.useAuth();
+    const { search } = router.useLocation();
 
     const { verificationCode: initialCode, email: initialEmail } = parseUrlSearchParams(search);
 
-    const { value: email, bind: bindEmail } = useInput(initialEmail ?? "")
-    const { value: code, bind: bindCode } = useInput(initialCode ?? "");
-    const { value: newPassword, bind: bindNewPassword } = useInput("");
-    const { value: newPasswordConfirm, bind: bindNewPasswordConfirm } = useInput("");
+    const { value: email, bind: bindEmail } = hooks.useInput(initialEmail ?? "")
+    const { value: code, bind: bindCode } = hooks.useInput(initialCode ?? "");
+    const { value: newPassword, bind: bindNewPassword } = hooks.useInput("");
+    const { value: newPasswordConfirm, bind: bindNewPasswordConfirm } = hooks.useInput("");
 
     const handleSubmit = () => {
         if (newPassword !== newPasswordConfirm) {
@@ -45,7 +55,7 @@ const resetPasswordContainer = () => {
             Reset Your Password
           </div>
           <div className="mt-10">
-            <form onSubmit={handleEvent(handleSubmit)}>
+            <form onSubmit={utils.handleEvent(handleSubmit)}>
               <div className="flex flex-col mb-6">
                 <label
                   htmlFor="email"
@@ -146,13 +156,13 @@ const resetPasswordContainer = () => {
             </form>
           </div>
           <div className="flex justify-center items-center mt-6">
-            <Link
-              to={LOGIN_PATH}
+            <router.Link
+              to={app.LOGIN_PATH}
               className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
             >
               <span><Icons.Svg data={Icons.PATHS.goBack} /></span>
               <span className="ml-2">Go back to login</span>
-            </Link>
+            </router.Link>
           </div>
         </div>
       </div>
@@ -161,8 +171,8 @@ const resetPasswordContainer = () => {
 
 const parseUrlSearchParams = (search: string) => {
     const query = new URLSearchParams(search);
-    const verificationCode = query.get(VERIFICATION_CODE_QUERY_PARAM);
-    const email = query.get(EMAIL_QUERY_PARAM);
+    const verificationCode = query.get(RESET_PASSWORD_QUERY_PARAMS.verificationCode);
+    const email = query.get(RESET_PASSWORD_QUERY_PARAMS.email);
     return { verificationCode, email }
 }
 

@@ -1,9 +1,11 @@
 /** @file Main App module responsible for rendering virtual router. */
 
-import * as React from 'react'
-import { Routes, Route, BrowserRouter, MemoryRouter, useNavigate } from 'react-router-dom'
+import * as react from 'react'
+import * as toast from 'react-hot-toast';
+import * as router from 'react-router-dom'
+import * as projectManager from "enso-studio-content/src/project_manager";
 
-import { AuthProvider, GuestLayout, ProtectedLayout } from '../authentication/providers/auth';
+import * as authProvider from '../authentication/providers/auth';
 import DashboardContainer from "../dashboard/components/dashboard";
 import ForgotPasswordContainer from "../authentication/components/forgotPassword";
 import ResetPasswordContainer from "../authentication/components/resetPassword";
@@ -11,13 +13,10 @@ import LoginContainer from "../authentication/components/login";
 import RegistrationContainer from "../authentication/components/registration";
 import ConfirmRegistrationContainer from "../authentication/components/confirmRegistration";
 import SetUsernameContainer from "../authentication/components/setUsername";
-import { Toaster } from 'react-hot-toast';
-import { Fragment, useMemo } from 'react';
-import authService from '../authentication/service';
+import * as authService from '../authentication/service';
 import withRouter from '../navigation';
-import {ProjectManager} from "enso-studio-content/src/project_manager";
-import { Logger, LoggerProvider } from '../providers/logger';
-import { SessionProvider } from '../authentication/providers/session';
+import * as loggerProvider from '../providers/logger';
+import * as session from '../authentication/providers/session';
 
 
 
@@ -49,11 +48,11 @@ export const SET_USERNAME_PATH = "/set-username";
 /** Global configuration for the `App` component. */
 export interface AppProps {
   /** Logger to use for logging. */
-  logger: Logger;
+  logger: loggerProvider.Logger;
   /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
   runningOnDesktop: boolean;
   onAuthenticated: () => void;
-  projectManager?: ProjectManager;
+  projectManager?: projectManager.ProjectManager;
 }
 
 /** Functional component called by the parent module, returning the root React component for this package.
@@ -64,13 +63,13 @@ export interface AppProps {
 const App = (props: AppProps) => {
   const { runningOnDesktop } = props;
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const Router = runningOnDesktop ? MemoryRouter : BrowserRouter;
+  const Router = runningOnDesktop ? router.MemoryRouter : router.BrowserRouter;
 
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
     <>
-      <Toaster position="top-center" reverseOrder={false} />
+      <toast.Toaster position="top-center" reverseOrder={false} />
       <Router>
         <AppRouterWithHistory {...props} />
       </Router>
@@ -88,36 +87,39 @@ const App = (props: AppProps) => {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter = (props: AppProps) => {
   const { logger, onAuthenticated, runningOnDesktop, projectManager } = props;
-  const navigate = useNavigate();
+  const navigate = router.useNavigate();
   const authConfig = { navigate, ...props }
-  const auth = useMemo(() => authService(authConfig), []);
+  const memoizedAuthService = react.useMemo(() => authService.initAuthService(authConfig), []);
+
+  const userSession = memoizedAuthService.cognito.userSession;
+  const registerAuthEventListener = memoizedAuthService.registerAuthEventListener;
 
   return (
-    <LoggerProvider logger={logger}>
-      <SessionProvider userSession={auth.cognito.userSession} registerAuthEventListener={auth.registerAuthEventListener}>
-        <AuthProvider authService={auth} onAuthenticated={onAuthenticated} >
-          <Routes>
-            <Fragment>
+    <loggerProvider.LoggerProvider logger={logger}>
+      <session.SessionProvider userSession={userSession} registerAuthEventListener={registerAuthEventListener}>
+        <authProvider.AuthProvider authService={memoizedAuthService} onAuthenticated={onAuthenticated} >
+          <router.Routes>
+            <react.Fragment>
               {/* Login & registration pages are visible to unauthenticated users. */}
-              <Route element={<GuestLayout />}>
-                <Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
-                <Route path={LOGIN_PATH} element={<LoginContainer />} /> 
-              </Route>
+              <router.Route element={<authProvider.GuestLayout />}>
+                <router.Route path={REGISTRATION_PATH} element={<RegistrationContainer />} /> 
+                <router.Route path={LOGIN_PATH} element={<LoginContainer />} /> 
+              </router.Route>
               {/* Protected pages are visible to authenticated users. */}
-              <Route element={<ProtectedLayout />}>
-                <Route index element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
-                <Route path={DASHBOARD_PATH} element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
-                <Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
-              </Route>
+              <router.Route element={<authProvider.ProtectedLayout />}>
+                <router.Route index element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
+                <router.Route path={DASHBOARD_PATH} element={<DashboardContainer runningOnDesktop={runningOnDesktop} projectManager={projectManager} />} />
+                <router.Route path={SET_USERNAME_PATH} element={<SetUsernameContainer />} /> 
+              </router.Route>
               {/* Other pages are visible to unauthenticated and authenticated users. */}
-              <Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
-              <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
-              <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
-            </Fragment>
-          </Routes>
-        </AuthProvider>
-      </SessionProvider>
-    </LoggerProvider>
+              <router.Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistrationContainer />} />
+              <router.Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordContainer />} />
+              <router.Route path={RESET_PASSWORD_PATH} element={<ResetPasswordContainer />} />
+            </react.Fragment>
+          </router.Routes>
+        </authProvider.AuthProvider>
+      </session.SessionProvider>
+    </loggerProvider.LoggerProvider>
   )
 }
 
