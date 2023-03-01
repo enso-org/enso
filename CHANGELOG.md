@@ -105,6 +105,7 @@
   filter and sort component browser entries.
 - [The Component Browser icons are cached on texture][5779] improving its
   performance on slower machines.
+- [Fixed missing result preview when editing nodes.][5757]
 
 #### EnsoGL (rendering engine)
 
@@ -503,6 +504,7 @@
 [5719]: https://github.com/enso-org/enso/pull/5719
 [5721]: https://github.com/enso-org/enso/pull/5721
 [5779]: https://github.com/enso-org/enso/pull/5779
+[5757]: https://github.com/enso-org/enso/pull/5757
 
 #### Enso Compiler
 
@@ -598,6 +600,7 @@
 - [Engine can now recover from serialization failures][5591]
 - [Use sbt runEngineDistribution][5609]
 - [Update to GraalVM 22.3.1][5602]
+- [Cache library bindings to optimize import/export resolution][5700]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -694,6 +697,7 @@
 [5591]: https://github.com/enso-org/enso/pull/5591
 [5609]: https://github.com/enso-org/enso/pull/5609
 [5602]: https://github.com/enso-org/enso/pull/5602
+[5700]: https://github.com/enso-org/enso/pull/5700
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -757,11 +757,12 @@ public abstract class EqualsNode extends Node {
     return equalsNode.execute(selfFuncStrRepr, otherFuncStrRepr);
   }
 
-  @Specialization(guards = "fallbackGuard(left, right, interop)")
+  @Specialization(guards = "fallbackGuard(left, right, interop, warningsLib)")
   @TruffleBoundary
   boolean equalsGeneric(Object left, Object right,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") TypesLibrary typesLib) {
+      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @CachedLibrary(limit = "10") WarningsLibrary warningsLib) {
       return left == right
           || interop.isIdentical(left, right, interop)
           || left.equals(right)
@@ -771,7 +772,7 @@ public abstract class EqualsNode extends Node {
   // We have to manually specify negation of guards of other specializations, because
   // we cannot use @Fallback here. Note that this guard is not precisely the negation of
   // all the other guards on purpose.
-  boolean fallbackGuard(Object left, Object right, InteropLibrary interop) {
+  boolean fallbackGuard(Object left, Object right, InteropLibrary interop, WarningsLibrary warnings) {
     if (isPrimitive(left) && isPrimitive(right)) {
       return false;
     }
@@ -815,6 +816,9 @@ public abstract class EqualsNode extends Node {
       return false;
     }
     if (interop.isDuration(left) && interop.isDuration(right)) {
+      return false;
+    }
+    if (warnings.hasWarnings(left) || warnings.hasWarnings(right)) {
       return false;
     }
     // For all other cases, fall through to the generic specialization

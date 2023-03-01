@@ -33,67 +33,103 @@ class ImportResolver(compiler: Compiler) {
   /** Runs the import mapping logic.
     *
     * @param module the entry-point module.
-    * @return a list of all modules that need to be compiled in order to run
-    *         the program.
+    * @return a tuple containing a list of all modules that need to go through the full compilation pipeline and
+    *         a list of all modules which have been inferred from bindings cache and could potentially be compiled lazilly
     */
-  def mapImports(module: Module): List[Module] = {
+  def mapImports(
+    module: Module,
+    bindingsCachingEnabled: Boolean
+  ): (List[Module], List[Module]) = {
+
+    def analyzeModule(current: Module): List[Module] = {
+      val ir = current.getIr
+      val currentLocal = ir.unsafeGetMetadata(
+        BindingAnalysis,
+        "Non-parsed module used in ImportResolver"
+      )
+      // put the list of resolved imports in the module metadata
+      if (
+        current.getCompilationStage
+          .isBefore(
+            Module.CompilationStage.AFTER_IMPORT_RESOLUTION
+          ) || !current.hasCrossModuleLinks
+      ) {
+        val importedModules: List[
+          (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport])
+        ] =
+          ir.imports.map {
+            case imp: IR.Module.Scope.Import.Module =>
+              tryResolveImport(ir, imp)
+            case other => (other, None)
+          }
+        currentLocal.resolvedImports = importedModules.flatMap(_._2)
+        val newIr = ir.copy(imports = importedModules.map(_._1))
+        current.unsafeSetIr(newIr)
+        if (!current.wasLoadedFromCache()) {
+          current.unsafeSetCompilationStage(
+            Module.CompilationStage.AFTER_IMPORT_RESOLUTION
+          )
+        }
+      }
+      currentLocal.resolvedImports
+        .map(_.target.module.unsafeAsModule())
+        .distinct
+    }
+
     @scala.annotation.tailrec
     def go(
       stack: mutable.Stack[Module],
-      seen: mutable.Set[Module]
-    ): List[Module] = {
+      seen: mutable.Set[Module],
+      required: mutable.Set[Module]
+    ): (List[Module], List[Module]) = {
       if (stack.isEmpty) {
-        seen.toList
+        (required.toList, seen.toList diff required.toList)
       } else {
         val current = stack.pop()
         if (seen.contains(current)) {
-          go(stack, seen)
+          go(stack, seen, required)
         } else {
-          // get module metadata
-          compiler.ensureParsed(current)
-          val ir = current.getIr
-          val currentLocal = ir.unsafeGetMetadata(
-            BindingAnalysis,
-            "Non-parsed module used in ImportResolver"
-          )
-          // put the list of resolved imports in the module metadata
-          if (
-            current.getCompilationStage
-              .isBefore(
-                Module.CompilationStage.AFTER_IMPORT_RESOLUTION
-              ) || !current.hasCrossModuleLinks
-          ) {
-            val importedModules: List[
-              (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport])
-            ] =
-              ir.imports.map {
-                case imp: IR.Module.Scope.Import.Module =>
-                  tryResolveImport(ir, imp)
-                case other => (other, None)
-              }
-            currentLocal.resolvedImports = importedModules.flatMap(_._2)
-            val newIr = ir.copy(imports = importedModules.map(_._1))
-            current.unsafeSetIr(newIr)
-            if (!current.wasLoadedFromCache()) {
-              current.unsafeSetCompilationStage(
-                Module.CompilationStage.AFTER_IMPORT_RESOLUTION
-              )
+          val (next, isRequired) = if (bindingsCachingEnabled) {
+            // Do we have bindings available for this modules' library?
+            // - yes - extract the resolved imports but don't add them to the import/export resolution
+            // - no - ensure they are parsed (load them from cache) and add them to the import/export resolution
+            compiler.importExportBindings(current) match {
+              case Some(bindings) =>
+                val converted = bindings
+                  .toConcrete(compiler.packageRepository.getModuleMap)
+                  .map { concreteBindings =>
+                    concreteBindings
+                  }
+                (
+                  converted
+                    .map(
+                      _.resolvedImports
+                        .map(_.target.module.unsafeAsModule())
+                        .distinct
+                    )
+                    .getOrElse(Nil),
+                  false
+                )
+              case None =>
+                compiler.ensureParsed(current)
+                (analyzeModule(current), true)
             }
+          } else {
+            compiler.ensureParsed(current)
+            (analyzeModule(current), true)
           }
           // continue with updated stack
           go(
-            stack.pushAll(
-              currentLocal.resolvedImports
-                .map(_.target.module.unsafeAsModule())
-                .distinct
-            ),
-            seen += current
+            stack.pushAll(next),
+            seen += current,
+            if (isRequired) { required += current }
+            else required
           )
         }
       }
     }
 
-    go(mutable.Stack(module), mutable.Set())
+    go(mutable.Stack(module), mutable.Set(), mutable.Set())
   }
 
   private def tryResolveAsType(
