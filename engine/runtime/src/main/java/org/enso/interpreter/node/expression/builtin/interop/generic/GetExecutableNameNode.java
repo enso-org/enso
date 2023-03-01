@@ -28,6 +28,7 @@ public class GetExecutableNameNode extends Node {
     try {
       var name = functionsLibrary.getExecutableName(function);
       if (name == null || !stringsLibrary.isString(name)) {
+        CompilerDirectives.transferToInterpreter();
         throw CompilerDirectives.shouldNotReachHere("name: " + name + " for " + function);
       }
       return Text.create(stringsLibrary.asString(name));
