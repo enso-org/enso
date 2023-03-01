@@ -40,7 +40,11 @@ class ProjectManager {
     }
 
     /** * Create an new project. */
-    public createProject(name: string, template?: string, action = MISSING_COMPONENT_ACTION_INSTALL): any {
+    public createProject(
+        name: string,
+        template?: string,
+        action = MISSING_COMPONENT_ACTION_INSTALL
+    ): any {
         const params = {
             name: name,
             missingComponentAction: action,

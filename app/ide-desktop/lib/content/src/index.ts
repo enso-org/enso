@@ -9,7 +9,7 @@ import * as semver from 'semver'
 import { Version, options } from 'enso-content-config'
 import * as authentication from 'enso-studio-authentication'
 import { AppProps } from 'enso-studio-authentication'
-import {ProjectManager} from "./project_manager";
+import { ProjectManager } from './project_manager'
 
 const logger = app.log.logger
 
@@ -108,7 +108,6 @@ class Main {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-
                     options.options.authentication.value
                     // FIXME [PB]: No such option in config entry, ask Wojciech?
                     //options.options.authentication.value &&
@@ -130,9 +129,8 @@ class Main {
                         projectManager: ProjectManager.default(),
                         onAuthenticated: () => {
                             // appInstance.config.email.value = user.email
-
-//                             appInstance.run()
-                        }
+                            // appInstance.run()
+                        },
                     }
                     authentication.run(props)
                 } else {

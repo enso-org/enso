@@ -14,7 +14,7 @@ export const channel = {
     quit: 'quit-ide',
     /**
      * Channel for requesting that a URL by opened by the system browser.
-     * 
+     *
      * Events on this channel are emitted by our `enso-cloud-authentication` package. These events
      * are intended to send the user to the system browser to complete sensitive flows such as
      * signup and signin. These flows should not be done in the app as the user cannot be expected
@@ -23,7 +23,7 @@ export const channel = {
     openExternalUrl: 'open-external-url',
     /**
      * Channel for the `enso-cloud-authentication` module to **set** (not **use**!) a callback.
-     * 
+     *
      * The callback is the complement of the `openExternalUrl` channel above, and is intended for
      * opening URLs in the app, rather than in the system browser. The callback is called by the
      * Electron app when a user is sent back to the app from their system browser via a deep link.
@@ -41,7 +41,7 @@ export const channel = {
     setOpenAuthenticationUrlCallback: 'set-open-authentication-url-callback',
     /**
      * Channel for requesting that a URL by opened by the Electron app.
-     * 
+     *
      * This is the channel referred to in the `setOpenAuthenticationUrlCallback` channel above. When
      * the Electron app receives a deep link, it sends the URL to this channel. This channel will in
      * turn forward it to the callback set earlier by the `setOpenAuthenticationUrlCallback`

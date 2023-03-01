@@ -23,8 +23,6 @@ import opener from 'opener'
 import { DEEP_LINK_PROTOCOL } from '../shared'
 const logger = content.logger
 
-
-
 // ===========
 // === App ===
 // ===========
@@ -49,7 +47,7 @@ class App {
         // **before** (or in this case, **during**) our `ready` listener. We also need to make sure
         // to use `app.on("ready")` and not `app.whenReady()` because the latter fires earlier than
         // `app.on("open-url")` even if we register it last.
-        electron.app.on("ready", () => this.main(windowSize))
+        electron.app.on('ready', () => this.main(windowSize))
         this.registerShortcuts()
     }
 
@@ -259,9 +257,9 @@ class App {
             // doing here is effectively normalizing the URLs to always start with a known value (in
             // this case) `http://localhost:8080` instead. This is a hack, and should be fixed by
             // making the authentication flows send consistent URLs in the first place.
-            const port = this.serverPort();
-            const pathname = parsedUrl.pathname;
-            const search = parsedUrl.search;
+            const port = this.serverPort()
+            const pathname = parsedUrl.pathname
+            const search = parsedUrl.search
             const normalizedUrl = new URL(`http://localhost:${port}${pathname}${search}`)
             this.window?.webContents.send(ipc.channel.openAuthenticationUrl, normalizedUrl.href)
         })

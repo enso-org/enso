@@ -81,9 +81,7 @@ const config: Configuration = {
     // registers this protocol with the OS, so that the app is opened when a deep link is clicked,
     // **even if the app was not already running**. We could not do this if the app itself was
     // responsible for registering the protocol.
-    protocols: [
-        { name: `${PRODUCT_NAME} url`, schemes: [DEEP_LINK_PROTOCOL], role: 'Editor' },
-    ],
+    protocols: [{ name: `${PRODUCT_NAME} url`, schemes: [DEEP_LINK_PROTOCOL], role: 'Editor' }],
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         //target: (args.target as MacOsTargetName) ?? 'dmg',

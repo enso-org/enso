@@ -62,4 +62,4 @@ contextBridge.exposeInMainWorld('loginApi', {
     // whatever flow was in progress when the link was opened (e.g., an OAuth registration flow).
     setOpenAuthenticationUrlCallback: (callback: (url: string) => void) =>
         ipcRenderer.on(ipc.channel.openAuthenticationUrl, (_event, url) => callback(url)),
-});
+})
