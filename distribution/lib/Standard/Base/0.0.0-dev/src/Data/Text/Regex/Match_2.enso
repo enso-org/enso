@@ -5,7 +5,7 @@ import project.Data.Text.Span.Span
 type Match_2
     ## internal_regex_result : RegexResult (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
-    Value (internal_regex_result : Object) (input : Text)
+    Value (internal_regex_result : Any) (input : Text)
 
     start : Integer -> Integer
     start self n = self.internal_regex_result.getStart n
