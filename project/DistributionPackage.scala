@@ -180,6 +180,51 @@ object DistributionPackage {
       graalVersion = graalVersion,
       javaVersion  = javaVersion
     )
+
+    indexStdLib(
+      stdLibVersion = targetStdlibVersion,
+      ensoVersion = ensoVersion,
+      stdLibRoot = distributionRoot / "lib",
+      ensoExecutable =
+        distributionRoot / "bin" / "enso",
+      cacheFactory = cacheFactory.sub("stdlib"),
+      log = log
+    )
+  }
+
+  def indexStdLib(
+                   stdLibVersion: String,
+                   ensoVersion: String,
+                   stdLibRoot: File,
+                   ensoExecutable: File,
+                   cacheFactory: CacheStoreFactory,
+                   log: Logger
+                 ): Unit = {
+    for {
+      libMajor <- stdLibRoot.listFiles()
+      libName <- (stdLibRoot / libMajor.getName).listFiles()
+    } yield {
+      val cache = cacheFactory.make(s"$libName.$ensoVersion")
+      val path = (libName / ensoVersion)
+      Tracked.diffInputs(cache, FileInfo.lastModified)(path.globRecursive("*.enso").get().toSet) { diff =>
+        if (diff.modified.nonEmpty) {
+          println(s"Generating index for ${libName} ")
+          val command = Seq(
+            Platform.executableFileName(ensoExecutable.toString),
+            "--no-compile-dependencies",
+            "--compile",
+            path.toString
+          )
+          log.info(command.mkString(" "))
+          val exitCode = command.!
+          if (exitCode != 0) {
+            throw new RuntimeException(s"Cannot compile $libMajor.$libName.")
+          }
+        } else {
+          println(s"No modified files. Not generating index for ${libName} ")
+        }
+      }
+    }
   }
 
   def runEnginePackage(

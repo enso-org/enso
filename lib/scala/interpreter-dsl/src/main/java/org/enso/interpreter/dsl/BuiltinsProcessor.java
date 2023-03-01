@@ -41,7 +41,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
   private record Specialized(String owner, String methodName) {}
 
-  private Map<Specialized, List<ExecutableElement>> specializedMethods = new HashMap<>();
+  private final Map<Specialized, List<ExecutableElement>> specializedMethods = new HashMap<>();
 
   @Override
   public final boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -91,11 +91,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
         processingEnv.getFiler().createSourceFile(builtinType.fullyQualifiedName());
     Optional<String> stdLibName =
         annotation.stdlibName().isEmpty() ? Optional.empty() : Optional.of(annotation.stdlibName());
-    generateBuiltinType(gen, builtinType, stdLibName);
+    generateBuiltinType(gen, builtinType, stdLibName, elt.getSimpleName().toString());
   }
 
   private void generateBuiltinType(
-      JavaFileObject gen, ClassName builtinType, Optional<String> stdLibName) throws IOException {
+      JavaFileObject gen, ClassName builtinType, Optional<String> stdLibName, String underlyingTypeName) throws IOException {
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
       out.println("package " + builtinType.pkg() + ";");
       out.println();
@@ -103,8 +103,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
         out.println("import " + importPkg + ";");
       }
       out.println();
-      String stdLib = stdLibName.map(n -> "(name = \"" + n + "\")").orElse("");
-      out.println("@BuiltinType" + stdLib);
+      String builtinTypeAnnotation = "@BuiltinType(" + stdLibName.map(n -> "name = \"" + n + "\", ").orElse("") + "underlyingTypeName = \"" + underlyingTypeName + "\")";
+      out.println(builtinTypeAnnotation);
       out.println("public class " + builtinType.name() + " extends Builtin {");
       out.println("""
         @Override
@@ -238,11 +238,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 annotation.description(),
                 method.getSimpleName().toString(),
                 annotation.autoRegister());
-          } else {
-            return;
           }
         } else {
-
           MethodNodeClassGenerator classGenerator =
               new NoSpecializationClassGenerator(
                   method, builtinMethodNode, ownerClass, stdLibOwnerClass);
