@@ -170,6 +170,10 @@ spec =
             problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
 
+            # Check that it defaults to warning.
+            Problems.expect_only_warning Encoding_Error <|
+                windows_file.read_text Encoding.ascii
+
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
             Data.read_text "does_not_exist.txt" . should_fail_with File_Error.Not_Found

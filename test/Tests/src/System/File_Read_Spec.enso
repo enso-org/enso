@@ -48,4 +48,8 @@ spec =
             problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
 
+            # Check that it defaults to warning.
+            Problems.expect_only_warning Encoding_Error <|
+                windows_log.read (Plain_Text Encoding.ascii)
+
 main = Test_Suite.run_main spec
