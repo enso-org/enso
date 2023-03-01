@@ -1,3 +1,5 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body { color: #3E515F; font-family: "M PLUS 1"; font-weight: 500; }

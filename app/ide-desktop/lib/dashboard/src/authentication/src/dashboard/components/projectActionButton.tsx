@@ -69,7 +69,10 @@ const ProjectActionButton = (props: Props) => {
       return (
         <>
           <button onClick={handleOpenProject}>
-            <heroicons.PlayCircleIcon className="h-10 w-10 text-grey-500" />
+            <svg width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="m10.04 7.34 6 3.85a1 1 0 0 1 0 1.68l-6 3.85a1 1 0 0 1-1.54-.84v-7.7a1 1 0 0 1 1.54-.84Z" fill="#3E515F" fill-opacity=".8"/>
+              <rect x="1.5" y="1.5" width="21" height="21" rx="10.5" stroke="#3E515F"/>
+            </svg>
           </button>
         </>
       );

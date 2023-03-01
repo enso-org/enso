@@ -14,41 +14,20 @@ import * as backend from "../service";
 import Templates from "./templates";
 import ProjectActionButton from "./projectActionButton";
 import * as loggerProvider from "../../providers/logger";
+import Table from "./table";
 
 
 
-// ==========================
-// === dashboardContainer ===
-// ==========================
+// =================
+// === Dashboard ===
+// =================
 
-export interface DashboardProps {
+export interface Props {
   runningOnDesktop: boolean;
   projectManager: projectManager.ProjectManager | undefined;
 }
 
-const columns = [
-  "Projects",
-  "Last modified",
-  "Shared with",
-  "Labels",
-  "Data access",
-  "Usage plan",
-  "Engine",
-  "IDE",
-];
-
-const tableHeaders = columns.map((columnName, index) => {
-  return (
-    <th
-      key={index}
-      className="px-6 align-middle border border-solid py-3 text-xs border-l-0 border-r-1 border-t-0 border-b-0 whitespace-nowrap font-semibold text-left"
-    >
-      {columnName}
-    </th>
-  );
-});
-
-const Dashboard = (props: DashboardProps) => {
+const Dashboard = (props: Props) => {
   const { signOut } = auth.useAuth();
   const { accessToken, organization } = auth.useFullUserSession();
   const logger = loggerProvider.useLogger();
@@ -133,92 +112,40 @@ const Dashboard = (props: DashboardProps) => {
     })();
   }, [accessToken]);
 
-  let itemsTable: any = (
-    <tr>
-      <td colSpan={columns.length}>
-        You have no project yet. Go ahead and create one using the form above.
-      </td>
-    </tr>
-  );
-
-  if (projectsList.length > 0) {
-    const setProjectOpening = (projectItemIndex: number): void => {
-      setProjectsList((currProjectList) => {
-        const newProjectList = [...currProjectList];
-        newProjectList[projectItemIndex]!.state.type =
-          backend.ProjectState.openInProgress;
-        return newProjectList;
-      });
-    };
-    const setProjectOpen = (projectItemIndex: number): void => {
-      setProjectsList((currProjectList) => {
-        const newProjectList = [...currProjectList];
-        newProjectList[projectItemIndex]!.state.type =
-          backend.ProjectState.opened;
-        return newProjectList;
-      });
-    };
-    const setProjectClosed = (projectItemIndex: number): void => {
-      setProjectsList((currProjectList) => {
-        const newProjectList = [...currProjectList];
-        newProjectList[projectItemIndex]!.state.type =
-          backend.ProjectState.closed;
-        return newProjectList;
-      });
-    };
-
-    itemsTable = projectsList.map((item, index) => {
-      return (
-        <tr
-          key={item.projectId}
-          className="transition duration-300 ease-in-out hover:bg-gray-100"
-        >
-          <td className="px-6 text-left flex items-center align-middle whitespace-nowrap border border-solid border-l-0 border-r-1 border-t-0 border-b-0">
-            <ProjectActionButton
-              project={item}
-              onOpen={() => {
-                setProjectOpen(index);
-              }}
-              onOpenStart={() => {
-                setProjectOpening(index);
-              }}
-              onClose={() => {
-                setProjectClosed(index);
-              }}
-            />
-            {item.name}
-          </td>
-          <td className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0">
-            2022-08-10, 13:30
-          </td>
-          <td className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0">
-            aa
-          </td>
-          <td className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0">
-            aa
-          </td>
-          <td className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0">
-            aa
-          </td>
-          <td className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0">
-            aa
-          </td>
-          <td className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0"></td>
-          <td className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0"></td>
-        </tr>
-      );
+  const setProjectState = (projectItemIndex: number, state: backend.ProjectState): void => {
+    setProjectsList((currProjectList) => {
+      const newProjectList = [...currProjectList];
+      newProjectList[projectItemIndex]!.state.type = state;
+      return newProjectList;
     });
-  }
+  };
 
   return (
     <>
       <Templates onChange={handleCreateProject} />
-      <table className="items-center w-full bg-transparent border-collapse">
-        <thead>
-          <tr>{tableHeaders}</tr>
-        </thead>
-        <tbody>{itemsTable}</tbody>
-      </table>
+      <Table<backend.ListedProject>
+        items={projectsList}
+        getKey={proj => proj.projectId}
+        placeholder={<span>You have no project yet. Go ahead and create one using the form above.</span>}
+        columns={[
+          ["Projects", (item, index) => <div className="flex text-left items-center align-middle whitespace-nowrap">
+            <ProjectActionButton
+              project={item}
+              onOpen={() => setProjectState(index, backend.ProjectState.opened)}
+              onOpenStart={() => setProjectState(index, backend.ProjectState.openInProgress)}
+              onClose={() => setProjectState(index, backend.ProjectState.closed)}
+            />
+            {item.name}
+          </div>],
+          ["Last modified", () => <span>aa</span>],
+          ["Shared with", () => <span>aa</span>],
+          ["Labels", () => <span>aa</span>],
+          ["Data access", () => <span>aa</span>],
+          ["Usage plan", () => <span>aa</span>],
+          ["Engine", () => <span>aa</span>],
+          ["IDE", () => <span>aa</span>],
+        ]}
+      />
       <button onClick={signOut}>Log out</button>
     </>
   );
