@@ -22,14 +22,12 @@ type Pattern_2
     matches : Text -> Boolean
     matches self input =
         m = self.internal_regex_object.exec input 0
-        IO.println m
         m . isMatch && m.getEnd 0 == input.length
 
     match_all : Text -> Vector Match_2
     match_all self input =
         builder = Vector.new_builder
         it = Match_Iterator.new self input
-        IO.println it.to_text_debug
         go it = case it.next of
             Match_Iterator_Value.Next _ match next_it ->
                 builder.append match
@@ -37,6 +35,13 @@ type Pattern_2
             Match_Iterator_Value.Last _ -> Nothing
         go it
         builder.to_vector
+
+    match : Text -> Match_2 | Nothing
+    match self input =
+        it = Match_Iterator.new self input
+        case it.next of
+            Match_Iterator_Value.Next _ match _ -> match
+            Match_Iterator_Value.Last _ -> Nothing
 
 type Match_Iterator
     new : Pattern_2 -> Text -> Match_Iterator
