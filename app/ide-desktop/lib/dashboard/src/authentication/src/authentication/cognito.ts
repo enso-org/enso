@@ -564,14 +564,15 @@ const intoForgotPasswordSubmitErrorOrThrow = (error: unknown): ForgotPasswordSub
 // ===============
 
 const signOut = async (logger: loggerProvider.Logger) => {
-    // FIXME [NP2]: For some reason, the redirect back to the IDE from the browser doesn't work
-    // correctly so this `await` throws a timeout error. As a workaround, we catch this error and
-    // force a refresh of the session manually by running the `signOut` again. This works because
-    // Amplify will see that we've already signed out and clear the cache accordingly.  Ideally we
-    // should figure out how to fix the redirect and remove this `catch`. This has the unintended
-    // consequence of catching any other errors that might occur during sign out, that we really
-    // shouldn't be catching. This also has the unintended consequence of delaying the sign out
-    // process by a few seconds (until the timeout occurs).
+    // TODO [NP]: https://github.com/enso-org/cloud-v2/issues/341
+    // For some reason, the redirect back to the IDE from the browser doesn't work correctly so this
+    // `await` throws a timeout error. As a workaround, we catch this error and force a refresh of
+    // the session manually by running the `signOut` again. This works because Amplify will see that
+    // we've already signed out and clear the cache accordingly.  Ideally we should figure out how
+    // to fix the redirect and remove this `catch`. This has the unintended consequence of catching
+    // any other errors that might occur during sign out, that we really shouldn't be catching. This
+    // also has the unintended consequence of delaying the sign out process by a few seconds (until
+    // the timeout occurs).
     try {
         await amplify.Auth.signOut()
     } catch (error) {

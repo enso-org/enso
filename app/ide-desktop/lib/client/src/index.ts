@@ -40,13 +40,6 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
         electron.app.on('before-quit', () => (this.isQuitting = true))
-        // FIXME [NP2]: either change this back to whenReady or rewrite the docs.
-        // See: https://github.com/enso-org/enso/pull/5716/files#r1113030328
-        //
-        // In order to ensure that our `open-url` listener is registered on time, we **must** put it
-        // **before** (or in this case, **during**) our `ready` listener. We also need to make sure
-        // to use `app.on("ready")` and not `app.whenReady()` because the latter fires earlier than
-        // `app.on("open-url")` even if we register it last.
         electron.app.on('ready', () => this.main(windowSize))
         this.registerShortcuts()
     }
@@ -251,8 +244,9 @@ class App {
             // URL handler over the IPC channel. This URL handler should have been registered by the
             // `preload` module, and is responsible for opening the URL in the system browser.
             //
-            // FIXME [NP2]: The reason we parse and re-create the URL here at all is because some of
-            // the URLs sent by our authentication flows are malformed. That is, some take the form
+            // TODO [NP]: https://github.com/enso-org/cloud-v2/issues/339
+            // The reason we parse and re-create the URL here at all is because some of the URLs
+            // sent by our authentication flows are malformed. That is, some take the form
             // `enso://localhost:8080/auth` and others take the form `enso://auth`. What we are
             // doing here is effectively normalizing the URLs to always start with a known value (in
             // this case) `http://localhost:8080` instead. This is a hack, and should be fixed by

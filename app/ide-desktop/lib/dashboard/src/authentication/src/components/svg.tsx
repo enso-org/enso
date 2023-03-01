@@ -1,5 +1,6 @@
-// FIXME [NP2]: these should all be regular `.svg` files rather than React components, but React
-// doesn't include the `svg` files when building for Electron. How do we solve this?
+// TODO [NP]: https://github.com/enso-org/cloud-v2/issues/342
+// These should all be regular `.svg` files rather than React components, but React doesn't include
+// the `svg` files when building for Electron. How do we solve this?
 
 
 

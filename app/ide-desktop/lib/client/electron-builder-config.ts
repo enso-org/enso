@@ -84,10 +84,7 @@ const config: Configuration = {
     protocols: [{ name: `${PRODUCT_NAME} url`, schemes: [DEEP_LINK_PROTOCOL], role: 'Editor' }],
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        //target: (args.target as MacOsTargetName) ?? 'dmg',
-        // FIXME [NP2]: This is a temporary workaround to avoid repackaging during rebuilds, which
-        //   provides faster development. Revert this once the PR is undrafted.
-        target: 'dir',
+        target: (args.target as MacOsTargetName) ?? 'dmg',
         icon: `${args.iconsDist}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
@@ -105,10 +102,7 @@ const config: Configuration = {
     },
     win: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        //target: args.target ?? 'nsis',
-        // FIXME [NP2]: This is a temporary workaround to avoid repackaging during rebuilds, which
-        //   provides faster development. Revert this once the PR is undrafted.
-        target: 'dir',
+        target: args.target ?? 'nsis',
         icon: `${args.iconsDist}/icon.ico`,
     },
     linux: {

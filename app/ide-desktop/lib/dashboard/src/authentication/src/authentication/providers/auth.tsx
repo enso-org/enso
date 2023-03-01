@@ -258,7 +258,8 @@ export const AuthProvider = (props: AuthProviderProps) => {
       userEmail: email,
     };
 
-    // FIXME [NP2]: don't create a new API client here, reuse the one from the context.
+    // TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
+    // Don't create a new API client here, reuse the one from the context.
     const backend = backendService.createBackend(accessToken, logger);
 
     await backend.setUsername(body);

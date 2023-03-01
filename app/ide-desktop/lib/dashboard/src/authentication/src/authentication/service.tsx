@@ -30,6 +30,13 @@ const AMPLIFY_CONFIGS = {
     domain: "pb-enso-domain.auth.eu-west-1.amazoncognito.com",
     ...BASE_AMPLIFY_CONFIG,
   },
+  /** Configuration for the production Cognito user pool. */
+  production: {
+    userPoolId: "eu-west-1_9Kycu2SbD",
+    userPoolWebClientId: "4j9bfs8e7415erf82l129v0qhe",
+    domain: "production-enso-domain.auth.eu-west-1.amazoncognito.com",
+    ...BASE_AMPLIFY_CONFIG,
+  },
 };
 
 
@@ -119,7 +126,7 @@ const loadAmplifyConfig = (
   navigate: (url: string) => void
 ): config.AmplifyConfig => {
   // Load the environment-specific Amplify configuration.
-  const baseConfig = AMPLIFY_CONFIGS.pbuchu;
+  const baseConfig = AMPLIFY_CONFIGS.production;
 
   if (runningOnDesktop) {
     // If we're running on the desktop, we want to override the default URL opener for OAuth
@@ -140,10 +147,10 @@ const loadAmplifyConfig = (
   // Set the redirect URLs for the OAuth flows, depending on our environment.
   baseConfig.redirectSignIn = runningOnDesktop
     ? config.DESKTOP_REDIRECT
-    : config.CLOUD_REDIRECT;
+    : config.PRODUCTION_CLOUD_REDIRECT;
   baseConfig.redirectSignOut = runningOnDesktop
     ? config.DESKTOP_REDIRECT
-    : config.CLOUD_REDIRECT;
+    : config.PRODUCTION_CLOUD_REDIRECT;
 
   return baseConfig as config.AmplifyConfig;
 };
@@ -204,8 +211,9 @@ const isConfirmRegistrationRedirect = (url: URL) =>
   url.pathname === app.CONFIRM_REGISTRATION_PATH;
 
 /** If the user is being redirected after a sign-out, then no query args will be present. */
-// FIXME [NP2]: don't use `enso://auth` for both authentication redirect & signout redirect so we
-// don't have to disambiguate between the two on the `DASHBOARD_PATH`.
+// TODO [NP]: https://github.com/enso-org/cloud-v2/issues/339
+// Don't use `enso://auth` for both authentication redirect & signout redirect so we don't have to
+// disambiguate between the two on the `DASHBOARD_PATH`.
 const isSignOutRedirect = (url: URL) =>
   url.pathname === app.DASHBOARD_PATH && url.search === "";
 
