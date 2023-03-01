@@ -121,7 +121,6 @@ const ProjectActionButton = (props: Props) => {
           </button>
         </>
       );
-    // FIXME [NP3]: Figure out why this is necessary.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     case backend.ProjectState.opened || hasProjectOpened:
       return (
