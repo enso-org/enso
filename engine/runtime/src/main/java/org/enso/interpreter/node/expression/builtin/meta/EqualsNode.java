@@ -47,7 +47,6 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.polyglot.MethodNames;
-import scala.tools.nsc.doc.html.HtmlTags.P;
 
 @BuiltinMethod(
     type = "Comparable",

@@ -159,7 +159,7 @@ type Default_Unordered_Comparator
     equals : Any -> Any -> (Boolean|Nothing)
     equals x y = Comparable.equals_builtin x y
 
-    hash : Any -> (Integer|Nothing)
+    hash : Any -> Integer
     hash object = Comparable.hash_builtin object
 
 

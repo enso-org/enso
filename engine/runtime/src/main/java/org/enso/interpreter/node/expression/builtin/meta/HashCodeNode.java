@@ -74,10 +74,7 @@ public abstract class HashCodeNode extends Node {
     return HashCodeNodeGen.create();
   }
 
-  /**
-   * @return Either integer or Nothing for objects that are incomparable.
-   */
-  public abstract Object execute(@AcceptsError Object object);
+  public abstract long execute(@AcceptsError Object object);
 
   /** Specializations for primitive values * */
   @Specialization
@@ -91,13 +88,13 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization
-  Object hashCodeForLong(long l) {
+  long hashCodeForLong(long l) {
     // By casting long to double, we lose some precision on purpose
     return hashCodeForDouble((double) l);
   }
 
   @Specialization
-  Object hashCodeForInt(int i) {
+  long hashCodeForInt(int i) {
     return hashCodeForLong(i);
   }
 
@@ -107,9 +104,10 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization
-  Object hashCodeForDouble(double d) {
+  long hashCodeForDouble(double d) {
     if (Double.isNaN(d)) {
-      return nothing();
+      // NaN is Incomparable, just return a "random" constant
+      return 456879;
     } else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
       return Double.hashCode(d);
     } else {
@@ -140,15 +138,11 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization
   @TruffleBoundary
-  Object hashCodeForUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
+  long hashCodeForUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
       @Cached HashCodeNode hashCodeNode) {
-    Object nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
-    Object scopeHash = hashCodeNode.execute(unresolvedSymbol.getScope());
-    if (isNothing(nameHash) || isNothing(scopeHash)) {
-      return nothing();
-    } else {
-      return Objects.hashCode(nameHash, scopeHash);
-    }
+    long nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
+    long scopeHash = hashCodeNode.execute(unresolvedSymbol.getScope());
+    return Objects.hashCode(nameHash, scopeHash);
   }
 
   @Specialization
@@ -183,7 +177,7 @@ public abstract class HashCodeNode extends Node {
    * {@link Type}.
    */
   @Specialization
-  Object hashCodeForType(Type type,
+  long hashCodeForType(Type type,
       @Cached HashCodeNode hashCodeNode) {
     if (EnsoContext.get(this).getNothing() == type) {
       // Nothing should be equal to `null`
@@ -268,7 +262,7 @@ public abstract class HashCodeNode extends Node {
   @Specialization(
       guards = {"warnLib.hasWarnings(selfWithWarning)"},
       limit = "3")
-  Object hashCodeForWarning(
+  long hashCodeForWarning(
       Object selfWithWarning,
       @CachedLibrary("selfWithWarning") WarningsLibrary warnLib,
       @Cached HashCodeNode hashCodeNode) {
@@ -475,8 +469,8 @@ public abstract class HashCodeNode extends Node {
         Object key = interop.readArrayElement(entry, 0);
         Object value = interop.readArrayElement(entry, 1);
         // We don't care about the order of keys and values, so we just sum all their hash codes.
-        keysHashCode += (int) hashCodeNode.execute(key);
-        valuesHashCode += (int) hashCodeNode.execute(value);
+        keysHashCode += hashCodeNode.execute(key);
+        valuesHashCode += hashCodeNode.execute(value);
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       throw new IllegalStateException(e);
@@ -507,10 +501,10 @@ public abstract class HashCodeNode extends Node {
       int hashCodesIdx = 0;
       for (int i = 0; i < size; i++) {
         String memberName = interop.asString(interop.readArrayElement(members, i));
-        hashCodes[hashCodesIdx++] = (int) hashCodeNode.execute(memberName);
+        hashCodes[hashCodesIdx++] = hashCodeNode.execute(memberName);
         if (interop.isMemberReadable(objectWithMembers, memberName)) {
           Object member = interop.readMember(objectWithMembers, memberName);
-          hashCodes[hashCodesIdx++] = (int) hashCodeNode.execute(member);
+          hashCodes[hashCodesIdx++] = hashCodeNode.execute(member);
         } else {
           hashCodes[hashCodesIdx++] = 0;
         }
@@ -556,7 +550,7 @@ public abstract class HashCodeNode extends Node {
   long hashCodeForHostFunction(Object hostFunction,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached HashCodeNode hashCodeNode) {
-    return (long) hashCodeNode.execute(interop.toDisplayString(hostFunction));
+    return hashCodeNode.execute(interop.toDisplayString(hostFunction));
   }
 
   static boolean isAtom(Object object) {
@@ -571,13 +565,5 @@ public abstract class HashCodeNode extends Node {
   @TruffleBoundary
   boolean isHostFunction(Object object) {
     return EnsoContext.get(this).getEnvironment().isHostFunction(object);
-  }
-
-  private Object nothing() {
-    return EnsoContext.get(this).getNothing();
-  }
-
-  private boolean isNothing(Object object) {
-    return nothing() == object;
   }
 }
