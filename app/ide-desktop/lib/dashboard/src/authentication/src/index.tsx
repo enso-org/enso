@@ -1,4 +1,3 @@
-// FIXME [NP]: find and resolve all typescript/eslint errors (including silenced ones)
 /** @file Authentication module used by Enso IDE & Cloud.
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
