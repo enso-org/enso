@@ -6,8 +6,8 @@ import Standard.Base.Data.Text.Regex.Pattern_2.Pattern_2
 main =
     p = Regex_2.compile_2 "ab"
 
-    matches = p.match_all "qqq"
-    IO.println matches
+    matches_no = p.match "qqq"
+    IO.println matches_no
 
     matches = p.match_all "heyabyeahab yo abc no cab ab abab ye "
     IO.println matches
@@ -15,3 +15,10 @@ main =
     match = p.match "heyabyeahab yo abc no cab ab abab ye "
     IO.println match
     IO.println (match.span 0 . text)
+
+    p2 = Regex_2.compile_2 "a(b(cd))"
+    m2 = p2.match "ajeavabcdwri"
+    IO.println p2.to_text_debug
+    IO.println (m2.span 0 . text)
+    IO.println (m2.span 1 . text)
+    IO.println (m2.span 2 . text)

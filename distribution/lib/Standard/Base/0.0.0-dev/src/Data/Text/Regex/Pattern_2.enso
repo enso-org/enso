@@ -43,6 +43,10 @@ type Pattern_2
             Match_Iterator_Value.Next _ match _ -> match
             Match_Iterator_Value.Last _ -> Nothing
 
+    to_text_debug : Text -> Vector Text
+    to_text_debug self input =
+        Match_Iterator.new self input . to_text_debug
+
 type Match_Iterator
     new : Pattern_2 -> Text -> Match_Iterator
     new pattern input = Match_Iterator.Value pattern input 0
@@ -67,7 +71,7 @@ type Match_Iterator
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
 
-    to_text_debug : Nothing
+    to_text_debug : Vector Text
     to_text_debug self =
         vb = Vector.new_builder
         go it = case it.next of
