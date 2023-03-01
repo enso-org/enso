@@ -57,7 +57,9 @@ type Manual
      - Note that currently the regex-based operations may not handle the edge
        cases described above too well.
 spec =
-    check_span match span = match.span 0 . should_equal span
+    check_span match span =
+        match . should_not_equal Nothing
+        match.span 0 . should_equal span
     check_span_all match spans = match . map (m-> (m.span 0)) . should_equal spans
 
     Test.group "Text" <|
