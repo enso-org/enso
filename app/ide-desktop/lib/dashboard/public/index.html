@@ -1,7 +1,7 @@
 <!--
-  FIXME [NP2]: Unify this with the `index.html` in `lib/content`. The same HTML should be used in
-  both places, and we should be launching the IDE the same way in both places. Currently we do not
-  do this.
+  TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+  Unify this with the `index.html` in `lib/content`. The same HTML should be used in both places,
+  and we should be launching the IDE the same way in both places. Currently we do not do this.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -21,9 +21,10 @@
     -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <!--
-      FIXME [NP2]: Ask @mwu how to get TailwindCSS to play nice with the fact that
-      `lib/authentication` is a dependency of `lib/content` and `lib/cloud` and not its own
-      standalone package, so that we can use `@tailwind` directives in the `index.html` file.
+      TODO [NP]: https://github.com/enso-org/cloud-v2/issues/344
+      Ask @mwu how to get TailwindCSS to play nice with the fact that `lib/authentication` is a
+      dependency of `lib/content` and `lib/cloud` and not its own standalone package, so that we can
+      use `@tailwind` directives in the `index.html` file.
     -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!--
@@ -38,22 +39,16 @@
     <title>React App</title>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div class="titlebar"></div>
     <!--
       This `div` is used to render the authentication/dashboard app. It is kept separate from the
       `root` `div`, which used used to render the IDE. This is done to ensure the two do not
       interfere with each other.
     -->
     <div id="authentication"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    <div id="root"></div>
+    <noscript>
+      This page requires JavaScript to run. Please enable it in your browser.
+    </noscript>
   </body>
 </html>
