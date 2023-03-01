@@ -11,6 +11,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.compiler.context.SimpleUpdate;
@@ -59,8 +60,9 @@ public class ExecutionService {
   private final NotificationHandler.Forwarder notificationForwarder;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
   private final ConnectedLockManager connectedLockManager;
-  private final CallTarget execute = new ExecuteCallRootNode().getCallTarget();
-  private final CallTarget invoke = new InvokeMemberRootNode().getCallTarget();
+  private final ExecuteRootNode execute = new ExecuteRootNode();
+  private final CallRootNode call = new CallRootNode();
+  private final InvokeMemberRootNode invoke = new InvokeMemberRootNode();
 
   private final Timer timer;
 
@@ -176,7 +178,7 @@ public class ExecutionService {
                     onExceptionalCallback));
     Object p = context.getThreadManager().enter();
     try {
-      execute.call(call);
+      execute.getCallTarget().call(call);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -242,7 +244,7 @@ public class ExecutionService {
           UnsupportedTypeException {
     Object p = context.getThreadManager().enter();
     try {
-      return invoke.call(module, expression);
+      return invoke.getCallTarget().call(module, expression);
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -275,7 +277,7 @@ public class ExecutionService {
       throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     Object p = context.getThreadManager().enter();
     try {
-      return execute.call(fn, new Object[] { argument });
+      return call.getCallTarget().call(fn, new Object[] { argument });
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -323,7 +325,7 @@ public class ExecutionService {
                     onExceptionalCallback));
     Object p = context.getThreadManager().enter();
     try {
-      return execute.call(function, arguments);
+      return call.getCallTarget().call(function, arguments);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -460,11 +462,32 @@ public class ExecutionService {
     throw (E) ex;
   }
 
-  private static final class ExecuteCallRootNode extends RootNode {
-    @Child
+  private static final class ExecuteRootNode extends RootNode {
+    @Node.Child
     private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
 
-    public ExecuteCallRootNode() {
+    ExecuteRootNode() {
+      super(null);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+      try {
+        if (frame.getArguments()[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
+          return iop.execute(call);
+        }
+        throw ArityException.create(1, 1, frame.getArguments().length);
+      } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
+        throw raise(RuntimeException.class, ex);
+      }
+    }
+  }
+
+  private static final class CallRootNode extends RootNode {
+    @Node.Child
+    private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
+
+    CallRootNode() {
       super(null);
     }
 
@@ -472,22 +495,19 @@ public class ExecutionService {
     public Object execute(VirtualFrame frame) {
       try {
         var self = frame.getArguments()[0];
-        if (self instanceof FunctionCallInstrumentationNode.FunctionCall call) {
-          return iop.execute(call);
-        } else {
-          var args = (Object[]) frame.getArguments()[1];
-          return iop.execute(self, args);
-        }
+        var args = (Object[]) frame.getArguments()[1];
+        return iop.execute(self, args);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
     }
   }
+
   private static final class InvokeMemberRootNode extends RootNode {
-    @Child
+    @Node.Child
     private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
 
-    public InvokeMemberRootNode() {
+    InvokeMemberRootNode() {
       super(null);
     }
 
@@ -501,6 +521,5 @@ public class ExecutionService {
         throw raise(RuntimeException.class, ex);
       }
     }
-
   }
 }
