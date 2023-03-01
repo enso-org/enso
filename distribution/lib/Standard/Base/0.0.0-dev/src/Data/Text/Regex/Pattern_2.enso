@@ -63,7 +63,6 @@ type Match_Iterator
                 Match_Iterator_Value.Last filler_span
             True ->
                 match_start = regex_result.getStart 0
-                #match_end = regex_result.getEnd 0
                 filler_range = Range.new self.cursor match_start
                 filler_span = Span.Value filler_range self.input
                 match = Match_2.Value regex_result self.input
