@@ -2,7 +2,9 @@
 /** @file Authentication module used by Enso IDE & Cloud.
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
-
+// This import is unused, but React doesn't work without it in Electron. This is probably because it
+// gets tree-shaken out of the bundle, so we need to explicitly import it.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as react from 'react'
 import * as reactDOM from 'react-dom/client'
 
