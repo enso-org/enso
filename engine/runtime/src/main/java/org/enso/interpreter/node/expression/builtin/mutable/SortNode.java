@@ -50,7 +50,8 @@ public abstract class SortNode extends Node {
     try {
       return getComparatorAndSort(state, newArr, comparator, context);
     } catch (CompareException e) {
-      return DataflowError.withoutTrace(incomparableValuesError(e.leftOperand, e.rightOperand), this);
+      return DataflowError.withoutTrace(
+          incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
 
@@ -76,7 +77,8 @@ public abstract class SortNode extends Node {
     try {
       return getComparatorAndSort(state, newArray, comparator, EnsoContext.get(this));
     } catch (CompareException e) {
-      return DataflowError.withoutTrace(incomparableValuesError(e.leftOperand, e.rightOperand), this);
+      return DataflowError.withoutTrace(
+          incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
 
