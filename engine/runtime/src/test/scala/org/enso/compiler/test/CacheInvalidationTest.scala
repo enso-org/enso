@@ -14,10 +14,10 @@ class CacheInvalidationTest extends ModifiedTest {
     val outLines2 = consumeOut
     outLines2(0) shouldEqual "hmm..."
 
-    the[InterpreterException] thrownBy (evalTestProjectIteration(
+    the[InterpreterException] thrownBy evalTestProjectIteration(
       "Test_Caching_Invalidation",
       iteration = 3
-    )) should have message "Compilation aborted due to errors."
+    ) should have message "Compilation aborted due to errors."
     val outLines3 = consumeOut
     outLines3(2) should endWith("The name `foo` could not be found.")
   }
