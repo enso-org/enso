@@ -1,3 +1,4 @@
+/** @file Module containing common custom React hooks used throughout out Dashboard. */
 import * as react from "react";
 import * as loggerProvider from "./providers/logger";
 

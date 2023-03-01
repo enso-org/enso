@@ -1,4 +1,5 @@
 /** @file Renders the list of templates that can be used to create a project from. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as react from "react";
 
 const templates = [

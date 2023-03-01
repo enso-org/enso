@@ -1,3 +1,9 @@
+/** @file HTTP client definition that includes default HTTP headers for all sent requests.
+ * 
+ * Used to build authenticated clients for external APIs, like our Cloud backend API. */
+
+
+
 // ==================
 // === HttpMethod ===
 // ==================

@@ -1,3 +1,7 @@
+/** @file Configuration definition for the Dashboard. */
+
+
+
 // ===========
 // === Api ===
 // ===========

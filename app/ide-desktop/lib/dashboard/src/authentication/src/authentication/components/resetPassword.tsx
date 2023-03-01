@@ -1,5 +1,6 @@
 /** @file Container responsible for rendering and interactions in second half of forgot password
  * flow. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as react from "react";
 import * as router from "react-router-dom";
 import toast from "react-hot-toast";

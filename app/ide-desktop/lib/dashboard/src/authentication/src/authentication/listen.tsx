@@ -1,3 +1,8 @@
+/** @file Module for listening to authentication events emitted by Amplify.
+ * 
+ * Listening to authentication events is necessary to update the authentication state of the
+ * application. For example, if the user signs out, we want to clear the authentication state so
+ * that the login screen is rendered. */
 import * as amplify from "@aws-amplify/core";
 
 

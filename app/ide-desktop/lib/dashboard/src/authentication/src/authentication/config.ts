@@ -1,3 +1,7 @@
+/** @file Configuration for the authentication module of the Dashboard. */
+
+
+
 // =================
 // === Constants ===
 // =================

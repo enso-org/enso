@@ -1,3 +1,6 @@
+/** @file Registration confirmation page for when a user clicks the confirmation link set to their
+ * email address. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as react from "react";
 import * as router from "react-router-dom";
 import toast from "react-hot-toast";

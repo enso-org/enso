@@ -1,4 +1,5 @@
 /** @file Login container responsible for rendering and interactions in sign in flow. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as react from "react";
 import * as router from "react-router-dom";
 import * as fontawesome from "@fortawesome/react-fontawesome";
