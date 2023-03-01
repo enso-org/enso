@@ -1,6 +1,8 @@
 import project.Data.Text.Text
 import project.Error.Error
+import project.Nothing.Nothing
 import project.Panic.Panic
+import project.System.File.File
 
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
@@ -46,10 +48,16 @@ type File_Error
             File_Error.wrap_io_exception file caught_panic.payload
 
     ## PRIVATE
+       Raises an error indicating that the user does not have permission to
+       access the file in a given way.
+    access_denied : File -> Nothing ! File_Error
+    access_denied file = Error.throw (File_Error.IO_Error file "You do not have permission to access the file")
+
+    ## PRIVATE
 
        Converts a Java `IOException` into its Enso counterpart.
     wrap_io_exception file io_exception = case io_exception of
         _ : NoSuchFileException -> Error.throw (File_Error.Not_Found file)
         _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists file)
-        _ : AccessDeniedException -> Error.throw (File_Error.IO_Error file "You do not have permission to access the file")
+        _ : AccessDeniedException -> File_Error.access_denied file
         _ -> Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)

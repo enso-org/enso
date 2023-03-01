@@ -432,6 +432,7 @@ spec =
 
             f.is_writable.should_be_false
 
+            set_writable f True
             f.delete
 
     Test.group "folder operations" <|
