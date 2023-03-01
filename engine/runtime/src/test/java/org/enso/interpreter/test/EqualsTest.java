@@ -11,7 +11,9 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -28,19 +30,21 @@ public class EqualsTest extends TestBase {
   private static Context context;
   private static EqualsNode equalsNode;
   private static TestRootNode testRootNode;
+  private static HostValueToEnsoNode hostValueToEnsoNode;
 
   @BeforeClass
   public static void initContextAndData() {
     context = createDefaultContext();
-    unwrappedValues = fetchAllUnwrappedValues();
     executeInContext(
         context,
         () -> {
           testRootNode = new TestRootNode();
           equalsNode = EqualsNode.build();
-          testRootNode.insertChildren(equalsNode);
+          hostValueToEnsoNode = HostValueToEnsoNode.build();
+          testRootNode.insertChildren(equalsNode, hostValueToEnsoNode);
           return null;
         });
+    unwrappedValues = fetchAllUnwrappedValues();
   }
 
   @AfterClass
@@ -74,6 +78,7 @@ public class EqualsTest extends TestBase {
     try {
       return values.stream()
           .map(value -> unwrapValue(context, value))
+          .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
           .collect(Collectors.toList())
           .toArray(new Object[] {});
     } catch (Exception e) {
@@ -101,6 +106,21 @@ public class EqualsTest extends TestBase {
           boolean firstResult = equalsNode.execute(value, value);
           boolean secondResult = equalsNode.execute(value, value);
           assertEquals("equals should be consistent", firstResult, secondResult);
+          return null;
+        });
+  }
+
+  @Theory
+  public void equalsNodeCachedIsConsistentWithUncached(Object firstVal, Object secondVal) {
+    executeInContext(
+        context,
+        () -> {
+          boolean uncachedRes = EqualsNodeGen.getUncached().execute(firstVal, secondVal);
+          boolean cachedRes = equalsNode.execute(firstVal, secondVal);
+          assertEquals(
+              "Result from uncached EqualsNode should be the same as result from its cached variant",
+              uncachedRes,
+              cachedRes);
           return null;
         });
   }

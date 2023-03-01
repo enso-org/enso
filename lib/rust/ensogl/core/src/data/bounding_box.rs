@@ -27,7 +27,7 @@ use nalgebra::clamp;
 /// ┄+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄▶
 ///  ┆
 /// ```
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct BoundingBox {
     top:    f32,
     bottom: f32,

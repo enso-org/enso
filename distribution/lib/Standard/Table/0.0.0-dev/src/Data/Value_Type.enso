@@ -3,6 +3,7 @@
    revisited when proper type support is implemented.
 
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from project.Errors import Invalid_Value_Type
 
@@ -98,10 +99,10 @@ type Value_Type
        UNSTABLE
        Checks if the provided value type is a textual type (with any settings)
        and runs the following action or reports a type error.
-    expect_text : Value_Type -> Any -> Any ! Invalid_Value_Type
-    expect_text value_type ~action = case value_type of
+    expect_text : Value_Type -> Any -> Text -> Any ! Invalid_Value_Type
+    expect_text value_type ~action related_column=Nothing = case value_type of
         Value_Type.Char _ _ -> action
-        _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Char value_type)
+        _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Char value_type related_column)
 
     ## ADVANCED
        UNSTABLE
@@ -117,6 +118,13 @@ type Value_Type
     is_floating_point : Boolean
     is_floating_point self = case self of
         Value_Type.Float _ -> True
+        _ -> False
+
+    ## UNSTABLE
+       Checks if the `Value_Type` represents a text type.
+    is_text : Boolean
+    is_text self = case self of
+        Value_Type.Char _ _ -> True
         _ -> False
 
     ## PRIVATE
@@ -185,3 +193,25 @@ type Value_Type
             # Double check if Mixed was really allowed to come out.
             if types.contains Value_Type.Mixed then Value_Type.Mixed else
                 Nothing
+
+## The type representing inferring the column type automatically based on values
+   present in the column.
+
+   The most specific type which is valid for all values in a column is chosen:
+   - if all values are integers, `Integer` is chosen,
+   - if all values are decimals or integers, `Decimal` is chosen,
+   - if the values are all the same time type (a date, a time or a date-time),
+     the corresponding type is chosen, `Date`, `Time_Of_Day` or `Date_Time`,
+     respectively,
+   - if all values are booleans, `Boolean` is chosen,
+   - otherwise, `Text` is chosen as a fallback and the column is kept as-is
+     without parsing.
+type Auto
+
+## PRIVATE
+   Checks if the given type is a valid target type for parsing.
+
+   This will be replaced once we change parse to rely on `Value_Type` instead.
+ensure_valid_parse_target type ~action =
+    expected_types = [Auto, Integer, Decimal, Date, Date_Time, Time_Of_Day, Boolean]
+    if expected_types.contains type . not then Error.throw (Illegal_Argument.Error "Unsupported target type "+type.to_text+".") else action

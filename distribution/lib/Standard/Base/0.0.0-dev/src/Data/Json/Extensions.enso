@@ -16,6 +16,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
+import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -74,7 +75,8 @@ Nothing.to_js_object self = self
    For atoms and maps, the object is converted to a JS_Object.
 Array.to_js_object : Vector
 Array.to_js_object self =
-    proxy = Array_Proxy.new self.length i-> self.at i . to_js_object
+    stripped = Warning.clear self
+    proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
 ## Converts the given value to a JSON serializable object.
@@ -83,7 +85,8 @@ Array.to_js_object self =
    For atoms, the object is converted to a JS_Object.
 Vector.to_js_object : Vector
 Vector.to_js_object self =
-    proxy = Array_Proxy.new self.length i-> self.at i . to_js_object
+    stripped = Warning.clear self
+    proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
 ## Converts the given value to a JSON serializable object.
@@ -135,3 +138,12 @@ Locale.to_js_object self =
     b.append ["country", self.country]
     b.append ["variant", self.variant]
     JS_Object.from_pairs b.to_vector
+
+## Converts the given value to a JSON serializable object.
+   For Map, this is serialized as a Vector of Key-Value pairs.
+   
+   Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS Objects because there only strings are accepted as keys.
+Map.to_js_object : JS_Object
+Map.to_js_object self =
+    map_vector = self.to_vector
+    map_vector.map p-> [p.first.to_js_object, p.second.to_js_object]

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -72,6 +73,32 @@ class ValuesGenerator {
       }
     }
     return v;
+  }
+
+  /**
+   * Converts expressions into values of type described by {@code typeDefs} by concatenating
+   * everything into a single source.
+   *
+   * This method exists so that there are no multiple definitions of a single type.
+   *
+   * @param typeDefs Type definitions.
+   * @param expressions List of expressions - every expression will be converted to a {@link Value}.
+   * @return List of values converted from the given expressions.
+   */
+  private List<Value> createValuesOfCustomType(String typeDefs, List<String> expressions) {
+    var sb = new StringBuilder();
+    sb.append(typeDefs);
+    sb.append("\n");
+    for (int i = 0; i < expressions.size(); i++) {
+      sb.append("var_").append(i).append(" = ").append(expressions.get(i)).append("\n");
+    }
+    Value module = ctx.eval("enso", sb.toString());
+    List<Value> values = new ArrayList<>(expressions.size());
+    for (int i = 0; i < expressions.size(); i++) {
+      Value val = module.invokeMember(Module.EVAL_EXPRESSION, "var_" + i);
+      values.add(val);
+    }
+    return values;
   }
 
   public Value typeAny() {
@@ -521,7 +548,7 @@ class ValuesGenerator {
               Nil
               Value value
           """;
-      for (var expr : List.of(
+      var exprs = List.of(
           "Node.C2 Node.Nil (Node.Value 42)",
           "Node.C2 (Node.Value 42) Node.Nil",
           "Node.Nil",
@@ -536,9 +563,8 @@ class ValuesGenerator {
           "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 (Node.C1 Node.Nil))) (Node.C2 (Node.C3 (Node.Nil) (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
           "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
           "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Nil) (Node.Value 22)) (Node.C2 (Node.Value 22) (Node.Nil)))"
-      )) {
-        collect.add(v(null, nodeTypeDef, expr).type());
-      }
+      );
+      collect.addAll(createValuesOfCustomType(nodeTypeDef, exprs));
     }
     return collect;
   }

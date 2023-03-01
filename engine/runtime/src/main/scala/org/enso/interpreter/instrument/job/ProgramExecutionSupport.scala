@@ -234,7 +234,7 @@ object ProgramExecutionSupport {
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
-    val reason          = Option(error.getMessage).getOrElse(error.getClass.toString)
+    val reason          = VisualizationResult.findExceptionMessage(error)
     val message = error match {
       case _: ThreadInterruptedException =>
         val message = s"Execution of function $itemName interrupted."
@@ -271,7 +271,7 @@ object ProgramExecutionSupport {
       val section = Option(ctx.executionService.getSourceLocation(ex))
       val source  = section.flatMap(sec => Option(sec.getSource))
       Api.ExecutionResult.Diagnostic.error(
-        ex.getMessage,
+        VisualizationResult.findExceptionMessage(ex),
         source.flatMap(src => findFileByModuleName(src.getName)),
         section.map(LocationResolver.sectionToRange),
         section

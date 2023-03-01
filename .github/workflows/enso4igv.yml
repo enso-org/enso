@@ -39,3 +39,9 @@ jobs:
         with:
           name: Enso IGV Plugin
           path: tools/enso4igv/target/*.nbm
+
+      - name: Install Node.js modules
+        run: mvn -B -Pvsix npm:install --file tools/enso4igv/pom.xml
+
+      - name: Build VSCode Extension
+        run: mvn -B -Pvsix npm:run@vsix --file tools/enso4igv/pom.xml

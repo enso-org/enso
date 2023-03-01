@@ -50,6 +50,14 @@ prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
         _ : Array ->
             prepare_visualization (Vector.from_polyglot_array x) max_rows
 
+        # Serialize Maps
+        _ : Map ->
+            map_vector = Warning.clear (x.to_vector.take max_rows)
+            header = ["header", ["key", "value"]]
+            data = ["data", [map_vector.map .first, map_vector.map .second]]
+            all_rows = ["all_rows_count", x.size]
+            JS_Object.from_pairs [header, data, all_rows] . to_text
+
         # Anything else will be visualized with the JSON or matrix visualization
         _ ->
             JS_Object.from_pairs [["json", x]] . to_text

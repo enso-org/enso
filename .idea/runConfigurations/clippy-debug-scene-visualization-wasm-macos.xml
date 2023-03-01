@@ -5,7 +5,7 @@
     name="clippy/debug-scene-visualization [wasm, macos]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚥 GUI            view/debug_scene/visualization"
+    folderName="🚥 GUI            view/examples/visualization"
   >
     <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target aarch64-apple-darwin --target-dir dist/intellij_wasm_macos --package debug-scene-visualization" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.google.common.base.Objects;
 import com.ibm.icu.text.Normalizer2;
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -14,6 +15,7 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
@@ -103,7 +105,10 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization
   long hashCodeForDouble(double d) {
-    if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
+    if (Double.isNaN(d)) {
+      // NaN is Incomparable, just return a "random" constant
+      return 456879;
+    } else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
       return Double.hashCode(d);
     } else {
       return bigDoubleHash(d);
@@ -127,6 +132,7 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization
   long hashCodeForAtomConstructor(AtomConstructor atomConstructor) {
+    // AtomConstructors are singletons, we take system hash code explicitly.
     return System.identityHashCode(atomConstructor);
   }
 
@@ -181,23 +187,23 @@ public abstract class HashCodeNode extends Node {
     }
   }
 
-  /** How many {@link HashCodeNode} nodes should be created for fields in atoms. */
-  static final int hashCodeNodeCountForFields = 10;
-
   static HashCodeNode[] createHashCodeNodes(int size) {
     HashCodeNode[] nodes = new HashCodeNode[size];
     Arrays.fill(nodes, HashCodeNode.build());
     return nodes;
   }
 
-  @Specialization
+  @Specialization(guards = {
+      "atomCtorCached == atom.getConstructor()"
+  }, limit = "5")
+  @ExplodeLoop
   long hashCodeForAtom(
       Atom atom,
-      @Cached(value = "createHashCodeNodes(hashCodeNodeCountForFields)", allowUncached = true)
+      @Cached("atom.getConstructor()") AtomConstructor atomCtorCached,
+      @Cached("atomCtorCached.getFields().length") int fieldsLenCached,
+      @Cached(value = "createHashCodeNodes(fieldsLenCached)", allowUncached = true)
           HashCodeNode[] fieldHashCodeNodes,
       @Cached ConditionProfile isHashCodeCached,
-      @Cached ConditionProfile enoughHashCodeNodesForFields,
-      @Cached LoopConditionProfile loopProfile,
       @CachedLibrary(limit = "10") StructsLibrary structs,
       @Cached HasCustomComparatorNode hasCustomComparatorNode,
       @Cached HashCallbackNode hashCallbackNode) {
@@ -208,22 +214,18 @@ public abstract class HashCodeNode extends Node {
     Object[] fields = structs.getFields(atom);
     int fieldsCount = fields.length;
 
+    CompilerAsserts.partialEvaluationConstant(fieldsLenCached);
     // hashes stores hash codes for all fields, and for constructor.
     int[] hashes = new int[fieldsCount + 1];
-    if (enoughHashCodeNodesForFields.profile(fieldsCount <= hashCodeNodeCountForFields)) {
-      loopProfile.profileCounted(fieldsCount);
-      for (int i = 0; loopProfile.inject(i < fieldsCount); i++) {
-        if (fields[i] instanceof Atom atomField && hasCustomComparatorNode.execute(atomField)) {
-          hashes[i] = (int) hashCallbackNode.execute(atomField);
-        } else {
-          hashes[i] = (int) fieldHashCodeNodes[i].execute(fields[i]);
-        }
+    for (int i = 0; i < fieldsLenCached; i++) {
+      if (fields[i] instanceof Atom atomField && hasCustomComparatorNode.execute(atomField)) {
+        hashes[i] = (int) hashCallbackNode.execute(atomField);
+      } else {
+        hashes[i] = (int) fieldHashCodeNodes[i].execute(fields[i]);
       }
-    } else {
-      hashCodeForAtomFieldsUncached(fields, hashes);
     }
 
-    int ctorHashCode = System.identityHashCode(atom.getConstructor());
+    int ctorHashCode = (int) hashCodeForAtomConstructor(atom.getConstructor());
     hashes[hashes.length - 1] = ctorHashCode;
 
     int atomHashCode = Arrays.hashCode(hashes);
@@ -232,15 +234,29 @@ public abstract class HashCodeNode extends Node {
   }
 
   @TruffleBoundary
-  private void hashCodeForAtomFieldsUncached(Object[] fields, int[] fieldHashes) {
+  @Specialization(replaces = "hashCodeForAtom")
+  long hashCodeForAtomUncached(Atom atom) {
+    if (atom.getHashCode() != null) {
+      return atom.getHashCode();
+    }
+
+    Object[] fields = StructsLibrary.getUncached().getFields(atom);
+    int[] hashes = new int[fields.length + 1];
     for (int i = 0; i < fields.length; i++) {
       if (fields[i] instanceof Atom atomField
           && HasCustomComparatorNode.getUncached().execute(atomField)) {
-        fieldHashes[i] = (int) HashCallbackNode.getUncached().execute(atomField);
+        hashes[i] = (int) HashCallbackNode.getUncached().execute(atomField);
       } else {
-        fieldHashes[i] = (int) HashCodeNodeGen.getUncached().execute(fields[i]);
+        hashes[i] = (int) HashCodeNodeGen.getUncached().execute(fields[i]);
       }
     }
+
+    int ctorHashCode = (int) hashCodeForAtomConstructor(atom.getConstructor());
+    hashes[hashes.length - 1] = ctorHashCode;
+
+    int atomHashCode = Arrays.hashCode(hashes);
+    atom.setHashCode(atomHashCode);
+    return atomHashCode;
   }
 
   @Specialization(
@@ -434,7 +450,10 @@ public abstract class HashCodeNode extends Node {
    * Two maps are considered equal, if they have the same entries. Note that we do not care about
    * ordering.
    */
-  @Specialization(guards = "interop.hasHashEntries(selfMap)")
+  @Specialization(guards = {
+      "interop.hasHashEntries(selfMap)",
+      "!interop.hasArrayElements(selfMap)",
+  })
   long hashCodeForMap(
       Object selfMap,
       @CachedLibrary(limit = "5") InteropLibrary interop,

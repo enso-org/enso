@@ -201,6 +201,27 @@ spec setup =
 
             rows.map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"], [3, 7, "C"], [4, 8, "D"]]
 
+        Test.specify "should let you get the first row" <|
+            first_row = table.first_row
+            first_row . length . should_equal 3
+            first_row.at "X" . should_equal 1
+            first_row.at "Y" . should_equal 5
+            first_row.at "Z" . should_equal "A"
+
+        Test.specify "should let you get the second row" <|
+            second_row = table.second_row
+            second_row . length . should_equal 3
+            second_row.at "X" . should_equal 2
+            second_row.at "Y" . should_equal 6
+            second_row.at "Z" . should_equal "B"
+
+        Test.specify "should let you get the last row" <|
+            last_row = table.last_row
+            last_row . length . should_equal 3
+            last_row.at "X" . should_equal 4
+            last_row.at "Y" . should_equal 8
+            last_row.at "Z" . should_equal "D"
+
         Test.specify "should fetch rows up to the specified limit" <|
             table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
 
