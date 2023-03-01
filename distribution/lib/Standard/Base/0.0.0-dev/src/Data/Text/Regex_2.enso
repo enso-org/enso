@@ -1,18 +1,20 @@
 import project.Any.Any
-import project.Data.Boolean.Boolean
+from project.Data.Boolean import Boolean, True, False
 import project.Data.Numbers.Integer
 import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Pattern_2.Pattern_2
 import project.Data.Text.Text
 from project.Error.Common import Compile_Error, Syntax_Error
 import project.Error.Illegal_Argument.Illegal_Argument
+import project.IO
+import project.Nothing.Nothing
 import project.Panic.Panic
 
-compile_2 : Text -> Pattern_2 ! (Compile_Error | Illegal_Argument | Syntax_Error)
-compile_2 self expression  =
+compile_2 : Text -> Boolean | Nothing -> Pattern_2 ! (Compile_Error | Illegal_Argument | Syntax_Error)
+compile_2 self expression case_insensitive=Nothing =
     #all_options = options + self.engine_opts
     #options_bitmask = from_enso_options all_options
-    options_string = ""
+    options_string = if case_insensitive == True then "usgi" else "usg"
 
     maybe_regex_object = Panic.recover Any <|
         Prim_Text_Helper.compile_regex expression options_string

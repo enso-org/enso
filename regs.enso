@@ -22,3 +22,10 @@ main =
     IO.println (m2.span 0 . text)
     IO.println (m2.span 1 . text)
     IO.println (m2.span 2 . text)
+
+    p3a = Regex_2.compile_2 "abc"
+    p3b = Regex_2.compile_2 "abc" case_insensitive=True
+    m3a = p3a.match "ABC"
+    m3b = p3b.match "ABC"
+    IO.println m3a
+    IO.println m3b
