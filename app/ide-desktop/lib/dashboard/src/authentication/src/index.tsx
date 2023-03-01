@@ -1,14 +1,4 @@
-// FIXME [NP]: Rename this to `enso-cloud-dashboard` and move it to `app/ide-desktop/lib/dashboard`
-// FIXME [NP]: Remove the `app/ide-desktop/.eslintrc.cjs` file
-// FIXME [NP]: Remove the `@typescript-eslint/eslint-plugin` dependency from parent `package.json`
-// FIXME [NP]: Remove the `@typescript-eslint/parser` dependency from parent `package.json`
-// FIXME [NP]: Remove the `eslint` dependency from parent `package.json`
-// FIXME [NP]: Remove the `eslint-plugin-jsdoc` dependency from parent `package.json`
-// FIXME [NP]: Rebuild the parent `package.json` file and commit the reverted `package-lock.json` file
-// FIXME [NP]: Move this back to lib/authentication once we figure out how to remove the create-react-app restriction on TypeScript sources outside of src/
 // FIXME [NP]: find and resolve all typescript/eslint errors (including silenced ones)
-// FIXME [NP]: Remove the "strictNullChecks" rule from the parent `tsconfig.json` file
-// FIXME [NP]: Remove the `../tsconfig.json` file.
 /** @file Authentication module used by Enso IDE & Cloud.
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
