@@ -231,8 +231,9 @@ impl Input {
         if let Some(edited) = &self.edited_ast.edited_name {
             let cursor_position_in_name = self.cursor_position - edited.range.start;
             let name = ast::identifier::name(&edited.ast);
-            name.map_or("", |n| {
-                &n[text::Range::new(text::Byte(0), text::Byte(0) + cursor_position_in_name)]
+            name.map_or("", |name| {
+                let range = ..cursor_position_in_name.value as usize;
+                name.get(range).unwrap_or_default()
             })
         } else {
             ""
@@ -319,8 +320,8 @@ impl Input {
         })
     }
 
-    /// Return `true` if the `index` is on a char boundary inside `string` and can be used as a
-    /// range boundary. Otherwise, return `false` and report an error.
+    /// Check if the `index` is at a char boundary inside `string` and can be used as a range
+    /// boundary. Otherwise, return an error.
     fn ensure_on_char_boundary(string: &str, index: usize) -> FallibleResult<()> {
         if !string.is_char_boundary(index) {
             Err(NotACharBoundary { index, string: string.into() }.into())

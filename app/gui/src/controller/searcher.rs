@@ -725,10 +725,10 @@ impl Searcher {
 
         let node_id = self.mode.node_id();
         let expression = self.get_expression(self.data.borrow().input.ast());
-        self.graph.graph().set_expression(node_id, expression)?;
         let graph = self.graph.graph();
+        graph.set_expression(node_id, expression)?;
         if let Mode::NewNode { .. } = *self.mode {
-            self.graph.graph().introduce_name_on(node_id)?;
+            graph.introduce_name_on(node_id)?;
         }
         if let Some(this) = self.this_arg.deref().as_ref() {
             this.introduce_pattern(graph.clone_ref())?;
