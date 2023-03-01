@@ -75,6 +75,7 @@ impl GlyphRenderInfo {
 
     /// Load new [`GlyphRenderInfo`] from msdf_sys font handle. This also extends the atlas with
     /// MSDF generated for this character.
+    #[profile(Debug)]
     pub fn load(handle: &msdf_sys::OwnedFace, glyph_id: GlyphId, atlas: &msdf::Texture) -> Self {
         let params = Self::MSDF_PARAMS;
         let msdf = Msdf::generate_by_index(handle, glyph_id.0 as usize, &params);

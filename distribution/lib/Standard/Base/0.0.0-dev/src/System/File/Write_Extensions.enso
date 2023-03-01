@@ -35,12 +35,15 @@ polyglot java import org.enso.base.Array_Builder
    If another error occurs, such as access denied, an `File_Error.IO_Error` is
    raised.
    Otherwise, the file is created with the encoded text written to it.
-Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument | File_Error
+
+   The method returns a `File` object for the written file.
+Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> File ! Encoding_Error | Illegal_Argument | File_Error
 Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Problem_Behavior.Report_Warning =
     bytes = self.bytes encoding on_problems
     file = File.new path
-    on_existing_file.write file stream->
+    r = on_existing_file.write file stream->
         stream.write_bytes bytes
+    r.if_not_error file
 
 ## Writes (or appends) the Vector of bytes into the specified file. The behavior
    specified in the `existing_file` parameter will be used if the file exists.
@@ -58,24 +61,28 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
    raised.
    Otherwise, the file is created with the encoded text written to it.
 
+   The method returns a `File` object for the written file.
+
    > Example
      Write the UTF-8 bytes of the text "$£§€¢" to a file.
 
          import Standard.Examples
 
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file
+
    > Example
      Append the UTF-8 bytes of the text "$£§€¢" to a file.
 
          import Standard.Examples
 
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
-Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument | File_Error
+Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> File ! Illegal_Argument | File_Error
 Vector.write_bytes self path on_existing_file=Existing_File_Behavior.Backup =
     Panic.catch Unsupported_Argument_Types.Error handler=(_ -> Error.throw (Illegal_Argument.Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.
         byte_array = Array_Builder.ensureByteArray self.to_array
 
         file = File.new path
-        on_existing_file.write file stream->
+        r = on_existing_file.write file stream->
             stream.write_bytes (Vector.from_polyglot_array byte_array)
+        r.if_not_error file

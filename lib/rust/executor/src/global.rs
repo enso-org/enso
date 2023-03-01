@@ -80,6 +80,7 @@ pub fn set_spawner(spawner_to_set: impl LocalSpawn + 'static) {
 pub fn spawn(f: impl Future<Output = ()> + 'static) {
     SPAWNER.with(|s| s.spawn(f));
 }
+
 /// Process stream elements while object under `weak` handle exists.
 ///
 /// Like [`utils::channel::process_stream_with_handle`] but automatically spawns the processor.

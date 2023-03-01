@@ -626,7 +626,7 @@ spec =
             texts1 = ["texts1", ["foo", "bar", "baz"]]
             texts2 = ["texts2", ["baz", "quux", "spam"]]
             table = Table.new [bools, texts1, texts2]
-            actual = table.replace_text (Column_Selector.By_Name ["texts1", "texts2"]) "a" "o"
+            actual = table.replace_text ["texts1", "texts2"] "a" "o"
             actual.at "bools"  . to_vector . should_equal [False, False, True]
             actual.at "texts1" . to_vector . should_equal ["foo", "bor", "boz"]
             actual.at "texts2" . to_vector . should_equal ["boz", "quux", "spom"]
@@ -702,7 +702,7 @@ spec =
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = Table.new [a, b, c]
 
-            r2 = t.distinct (Column_Selector.By_Name ["A", "B"]) on_problems=Report_Error
+            r2 = t.distinct ["A", "B"] on_problems=Report_Error
             r2.at "A" . to_vector . should_equal ["a", "a"]
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
@@ -711,7 +711,7 @@ spec =
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = Table.new [a, b]
-            r = t.distinct (Column_Selector.By_Name ["A"]) on_problems=Report_Error
+            r = t.distinct ["A"] on_problems=Report_Error
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
 
@@ -723,11 +723,11 @@ spec =
             x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
             y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
             t1 = Table.new [x, y]
-            d1 = t1.distinct (Column_Selector.By_Name ["X"]) on_problems=Report_Error
+            d1 = t1.distinct ["X"] on_problems=Report_Error
             d1.at "X" . to_vector . should_equal ['A', 'a', 'enso', 'śledź', 'Enso']
             d1.at "Y" . to_vector . should_equal [1, 2, 3, 4, 5]
 
-            d2 = t1.distinct (Column_Selector.By_Name ["X"]) case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
+            d2 = t1.distinct ["X"] case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
             d2.at "X" . to_vector . should_equal ['A', 'enso', 'śledź']
             d2.at "Y" . to_vector . should_equal [1, 3, 4]
 
