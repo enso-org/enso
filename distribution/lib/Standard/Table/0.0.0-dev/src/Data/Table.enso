@@ -684,7 +684,7 @@ type Table
             directions = columns_for_ordering.map c->
                 c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument.handle_java_exception <|
+            java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
                 self.java_table.orderBy java_columns.to_array directions.to_array comparator
             Table.Value java_table
 
