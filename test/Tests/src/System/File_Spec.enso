@@ -92,6 +92,26 @@ spec =
 
                 f.delete
 
+            Test.specify "should gracefully handle permission errors" <|
+                f = enso_project.data / "transient" / "permissions2.txt"
+                f.delete_if_exists
+                "foobar".write f
+
+                Process.run "chmod" ["0000", f.absolute.path] . should_equal Exit_Code.Success
+                f.posix_permissions . should_equal <|
+                    File_Permissions.Value [] [] []
+
+                r1 = f.read
+                r1.should_fail_with File_Error.IO_Error
+                r1.catch.file . should_equal f
+                r1.catch.message.contains "You do not have permission" . should_be_true
+
+                "FOO".write f . should_fail_with File_Error.IO_Error
+                f.delete . should_fail_with File_Error.IO_Error
+
+                Process.run "chmod" ["0777", f.absolute.path] . should_equal Exit_Code.Success
+                f.delete
+
     Test.group "read_bytes" <|
         Test.specify "should allow reading a file to byte vector" <|
             contents = sample_file.read_bytes
