@@ -6,7 +6,8 @@ import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Expression
-import org.enso.compiler.data.CompilerConfig
+
+import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
@@ -27,6 +28,13 @@ import org.enso.syntax.text.{AST, Parser}
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
+import java.util.concurrent.{
+  CompletableFuture,
+  ExecutorService,
+  LinkedBlockingDeque,
+  ThreadPoolExecutor,
+  TimeUnit
+}
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
@@ -60,6 +68,20 @@ class Compiler(
       new PrintStream(config.outputRedirect.get)
     else context.getOut
   private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler()
+
+  /** The thread pool that handles parsing of modules. */
+  private val pool: ExecutorService = if (config.parallelParsing) {
+    new ThreadPoolExecutor(
+      Compiler.startingThreadCount,
+      Compiler.maximumThreadCount,
+      Compiler.threadKeepalive,
+      TimeUnit.SECONDS,
+      new LinkedBlockingDeque[Runnable](),
+      (runnable: Runnable) => {
+        context.getEnvironment.createThread(runnable)
+      }
+    )
+  } else null
 
   /** Duplicates this compiler with a different config.
     * @param newConfig Configuration to be used in the duplicated Compiler.
@@ -107,25 +129,11 @@ class Compiler(
       }
 
       if (irCachingEnabled && !builtins.getModule.wasLoadedFromCache()) {
-        serializationManager.serialize(
+        serializationManager.serializeModule(
           builtins.getModule,
           useGlobalCacheLocations = true // Builtins can't have a local cache.
         )
       }
-    }
-  }
-
-  /** Runs the import resolver on the given module.
-    *
-    * @param module the entry module for import resolution
-    * @return the list of modules imported by `module`
-    */
-  def runImportsResolution(module: Module): List[Module] = {
-    initialize()
-    try {
-      importResolver.mapImports(module)
-    } catch {
-      case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
     }
   }
 
@@ -187,6 +195,10 @@ class Compiler(
               generateCode = false,
               shouldCompileDependencies
             )
+            serializationManager.serializeLibraryBindings(
+              pkg.libraryName,
+              useGlobalCacheLocations = true
+            )
         }
     }
   }
@@ -241,10 +253,11 @@ class Compiler(
     modules.foreach(m => parseModule(m))
 
     var requiredModules = modules.flatMap { module =>
-      val modules = runImportsAndExportsResolution(module)
+      val modules = runImportsAndExportsResolution(module, generateCode)
       if (
         module
-          .wasLoadedFromCache() && modules.exists(!_.wasLoadedFromCache())
+          .wasLoadedFromCache() && modules
+          .exists(m => !m.wasLoadedFromCache() && !m.isSynthetic)
       ) {
         logger.log(
           Compiler.defaultLogLevel,
@@ -252,7 +265,7 @@ class Compiler(
         )
         module.getCache.invalidate(context)
         parseModule(module)
-        runImportsAndExportsResolution(module)
+        runImportsAndExportsResolution(module, generateCode)
       } else {
         modules
       }
@@ -290,7 +303,8 @@ class Compiler(
         s"export resolution."
       )
 
-      requiredModules = modules.flatMap(runImportsAndExportsResolution)
+      requiredModules =
+        modules.flatMap(runImportsAndExportsResolution(_, generateCode))
     }
 
     requiredModules.foreach { module =>
@@ -368,7 +382,10 @@ class Compiler(
           val shouldStoreCache =
             irCachingEnabled && !module.wasLoadedFromCache()
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
-            serializationManager.serialize(module, useGlobalCacheLocations)
+            serializationManager.serializeModule(
+              module,
+              useGlobalCacheLocations
+            )
           }
         } else {
           logger.log(
@@ -389,10 +406,13 @@ class Compiler(
     } else false
   }
 
-  private def runImportsAndExportsResolution(module: Module): List[Module] = {
-    val importedModules =
+  private def runImportsAndExportsResolution(
+    module: Module,
+    bindingsCachingEnabled: Boolean
+  ): List[Module] = {
+    val (importedModules, modulesImportedWithCachedBindings) =
       try {
-        importResolver.mapImports(module)
+        importResolver.mapImports(module, bindingsCachingEnabled)
       } catch {
         case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
       }
@@ -401,7 +421,30 @@ class Compiler(
       try { new ExportsResolution().run(importedModules) }
       catch { case e: ExportCycleException => reportCycle(e) }
 
-    requiredModules
+    val parsingTasks: List[CompletableFuture[Unit]] =
+      modulesImportedWithCachedBindings.map { module =>
+        if (config.parallelParsing) {
+          CompletableFuture.supplyAsync(() => ensureParsed(module), pool)
+        } else {
+          CompletableFuture.completedFuture(ensureParsed(module))
+        }
+      }
+
+    joinAllFutures(parsingTasks).get()
+
+    // ** Order matters for codegen **
+    // Consider a case when an exported symbol is referenced but the module that defines the symbol
+    // has not yet registered the method in its scope. This will result in No_Such_Method method during runtime;
+    // the symbol brought to the scope has not been properly resolved yet.
+    val sortedCachedModules =
+      new ExportsResolution().runSort(modulesImportedWithCachedBindings)
+    sortedCachedModules ++ requiredModules
+  }
+
+  private def joinAllFutures[T](
+    futures: List[CompletableFuture[T]]
+  ): CompletableFuture[List[T]] = {
+    CompletableFuture.allOf(futures: _*).thenApply(_ => futures.map(_.join()))
   }
 
   /** Runs the initial passes of the compiler to gather the import statements,
@@ -449,6 +492,20 @@ class Compiler(
     }
 
     uncachedParseModule(module, isGenDocs)
+  }
+
+  /** Retrieve module bindings from cache, if available.
+    *
+    * @param module module which is conssidered
+    * @return module's bindings, if available in libraries' bindings cache
+    */
+  def importExportBindings(module: Module): Option[BindingsMap] = {
+    if (irCachingEnabled && !module.isInteractive) {
+      val libraryName = Option(module.getPackage).map(_.libraryName)
+      libraryName
+        .flatMap(packageRepository.getLibraryBindings(_, serializationManager))
+        .flatMap(_.bindings.entries.get(module.getName))
+    } else None
   }
 
   private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
@@ -1009,6 +1066,28 @@ class Compiler(
     */
   def shutdown(waitForPendingJobCompletion: Boolean): Unit = {
     serializationManager.shutdown(waitForPendingJobCompletion)
+    shutdownParsingPool(waitForPendingJobCompletion)
+  }
+
+  private def shutdownParsingPool(waitForPendingCompilation: Boolean): Unit = {
+    if (pool != null) {
+      if (waitForPendingCompilation) {
+        pool.shutdown()
+
+        // Bound the waiting loop
+        val maxCount = 10
+        var counter  = 0
+        while (!pool.isTerminated && counter < maxCount) {
+          counter += 1
+          pool.awaitTermination((50 * counter).toLong, TimeUnit.MILLISECONDS)
+        }
+
+        pool.shutdownNow()
+        Thread.sleep(100)
+      } else {
+        pool.shutdownNow()
+      }
+    }
   }
 
   /** Updates the metadata in a copy of the IR when updating that metadata
@@ -1034,4 +1113,13 @@ object Compiler {
 
   /** The default logging level for the compiler. */
   private val defaultLogLevel: Level = Level.FINE
+
+  /** The maximum number of parsing threads allowed. */
+  val maximumThreadCount: Integer = 10
+
+  /** The number of threads at compiler start. */
+  val startingThreadCount: Integer = 2
+
+  /** The thread keep-alive time in seconds. */
+  val threadKeepalive: Long = 2
 }

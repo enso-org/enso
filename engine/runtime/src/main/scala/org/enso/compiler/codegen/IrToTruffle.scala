@@ -818,6 +818,10 @@ class IrToTruffle(
               val fun = actualModule.getScope.getMethods
                 .get(actualModule.getScope.getAssociatedType)
                 .get(method.name)
+              assert(
+                fun != null,
+                s"exported symbol `${method.name}` needs to be registered first in the module "
+              )
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
                 name,
