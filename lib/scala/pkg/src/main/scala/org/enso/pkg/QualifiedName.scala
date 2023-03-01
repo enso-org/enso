@@ -11,9 +11,13 @@ import scala.jdk.CollectionConverters._
   * @param item the name of the item
   */
 case class QualifiedName(path: List[String], item: String) {
+
+  lazy val qualifiedNameString: String =
+    (path :+ item).mkString(QualifiedName.separator)
+
   @CompilerDirectives.TruffleBoundary
   override def toString: String =
-    (path :+ item).mkString(QualifiedName.separator)
+    qualifiedNameString
 
   /** Get the parent of this qualified name.
     *
