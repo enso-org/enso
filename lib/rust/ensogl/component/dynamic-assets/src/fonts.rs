@@ -1,7 +1,25 @@
+use enso_prelude::*;
 use ensogl_core::system::web::JsCast;
 use ensogl_core::system::web::JsValue;
 use ensogl_core::system::web::Map;
-use ensogl_core::system::web::Reflect;
+use ensogl_text::font;
+use ensogl_text::font::Font;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The printable characters in the ASCII subset of Unicode. This is the same as the set of keys
+/// on a US-ANSI keyboard.
+const ASCII_PRINTABLE_CHARS: &str = concat!(
+    " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    "[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+);
+
+/// The glyphs to include in the pre-built atlas loaded at application startup.
+const PRELOAD_GLYPHS: [&str] = [ASCII_PRINTABLE_CHARS];
 
 
 
@@ -11,7 +29,7 @@ use ensogl_core::system::web::Reflect;
 
 /// Build atlas sources, and return as JavaScript data.
 pub fn build_atlases() -> JsValue {
-    let fonts_to_build = &[ensogl_text::font::DEFAULT_FONT_MONO];
+    let fonts_to_build = &[font::DEFAULT_FONT_MONO, font::DEFAULT_FONT];
     let fonts = Map::new();
     for font_name in fonts_to_build {
         let font = build_atlas(font_name);
@@ -21,9 +39,10 @@ pub fn build_atlases() -> JsValue {
 }
 
 /// Load an atlas from JavaScript data.
-pub fn set_atlas(name: String, data: JsValue) {
-    let atlas = Atlas::try_from(data).unwrap();
-    load_atlas(name, atlas);
+pub fn set_atlas(font: String, mut data: HashMap<String, Vec<u8>>) {
+    let atlas = data.remove(ATLAS_FILE).unwrap();
+    let metadata = String::from_utf8(data.remove(METADATA_FILE).unwrap()).unwrap();
+    load_atlas(font, atlas, metadata);
 }
 
 
@@ -70,8 +89,6 @@ impl TryFrom<JsValue> for Atlas {
 
 /// Generate MSDF data for a font.
 fn build_atlas(name: &str) -> Atlas {
-    use ensogl_text::font;
-    use ensogl_text::font::Font;
     let fonts = font::Embedded::new();
     let font = fonts.load_font(name.into());
     let font = font.unwrap();
@@ -79,11 +96,17 @@ fn build_atlas(name: &str) -> Atlas {
         Font::NonVariable(font) => font,
         Font::Variable(_) => panic!(),
     };
-    for i in 0..100 {
-        let _ = font.glyph_info(&Default::default(), font::GlyphId(i));
+    let normal = font::NonVariableFaceHeader::default();
+    let mut bold = normal;
+    bold.weight = font::Weight::Bold;
+    for variation in &[normal, bold] {
+        for glyphs in &PRELOAD_GLYPHS {
+            font.prepare_glyphs(variation, glyphs);
+        }
     }
     let cache = font.cache_snapshot();
-    let atlas = js_sys::Uint8Array::from(&cache.atlas.0[..]).buffer();
+    let atlas = cache.atlas.encode_ppm();
+    let atlas = js_sys::Uint8Array::from(&atlas[..]).buffer();
     let metadata = cache.glyphs;
     Atlas { atlas, metadata }
 }
@@ -95,9 +118,9 @@ fn build_atlas(name: &str) -> Atlas {
 // =========================================
 
 /// Attach the given MSDF data to a font to enable efficient rendering.
-fn load_atlas(name: String, data: Atlas) {
-    let atlas = js_sys::Uint8Array::new(&data.atlas).to_vec();
-    let glyphs = data.metadata;
-    let snapshot = ensogl_text::font::CacheSnapshot { atlas, glyphs };
-    //let fonts = scene.extension::<font::Registry>();
+fn load_atlas(font: String, atlas: Vec<u8>, glyphs: String) {
+    let atlas = enso_bitmap::Image::decode_ppm(&atlas).unwrap();
+    let snapshot = font::CacheSnapshot { atlas, glyphs };
+    let name = ensogl_text::font::Name::from(font);
+    font::PREBUILT_ATLASES.with_borrow_mut(|atlases| atlases.insert(name, snapshot));
 }

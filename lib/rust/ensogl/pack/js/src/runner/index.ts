@@ -126,6 +126,50 @@ class Shader<T> {
     }
 }
 
+class AssetDefinition {
+    dir: string
+    files: string[]
+
+    constructor(dir: string, files: string[]) {
+        this.dir = dir
+        this.files = files
+    }
+}
+
+class Assets<T> {
+    assets: Asset<T>[]
+
+    constructor(assets: Asset<T>[]) {
+        this.assets = assets
+    }
+
+    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Assets<S>> {
+        const assets = await Promise.all(this.assets.map(asset => asset.mapAndAwaitAll(f)))
+        return new Assets(assets)
+    }
+}
+
+class Asset<T> {
+    type: string
+    key: string
+    data: Map<string, T>
+
+    constructor(type: string, key: string, data: Map<string, T>) {
+        this.type = type
+        this.key = key
+        this.data = data
+    }
+
+    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Asset<S>> {
+        const mapValue: ([k, v]: [string, T]) => Promise<[string, S]> = async ([k, v]) => [
+            k,
+            await f(v),
+        ]
+        const data = new Map(await Promise.all(Array.from(this.data, mapValue)))
+        return new Asset(this.type, this.key, data)
+    }
+}
+
 // ===========
 // === App ===
 // ===========
@@ -198,6 +242,7 @@ export class App {
     wasm: any = null
     loader: wasm.Loader | null = null
     shaders: Shaders<string> | null = null
+    assets: Assets<ArrayBuffer> | null = null
     wasmFunctions: string[] = []
     beforeMainEntryPoints = new Map<string, wasm.BeforeMainEntryPoint>()
     mainEntryPoints = new Map<string, wasm.EntryPoint>()
@@ -339,6 +384,31 @@ export class App {
             }
         )
 
+        const assetsUrl = this.config.groups.loader.options.assetsUrl.value
+        const manifest = await log.Task.asyncRunCollapsed(
+            'Downloading assets manifest.',
+            async () => {
+                const manifestResponse = await fetch(`${assetsUrl}/manifest.json`)
+                const manifest: Record<string, Record<string, AssetDefinition>> = await manifestResponse.json()
+                return manifest
+            }
+        )
+        logger.warn(`Got manifest:`, manifest)
+        const assetsUrls = new Assets<string>([])
+        for (const [type, typeAssets] of Object.entries(manifest)) {
+            for (const [key, asset] of Object.entries(typeAssets)) {
+                const toUrl = (name: string) => `${assetsUrl}/${type}/${asset.dir}/${name}`
+                const urls = new Map(asset.files.map(name => [name, toUrl(name)]))
+                assetsUrls.assets.push(new Asset<string>(type, key, urls))
+            }
+        }
+        const assetsResponses = await assetsUrls.mapAndAwaitAll(fetch)
+        const assets = await assetsResponses.mapAndAwaitAll(response => response.blob().then(blob => blob.arrayBuffer()))
+        for (const asset of assets.assets) {
+            logger.warn(`Got asset: ${asset.type} / ${asset.key}.`)
+        }
+        this.assets = assets
+
         const files = new Files(
             this.config.groups.loader.options.jsUrl.value,
             this.config.groups.loader.options.wasmUrl.value
@@ -441,6 +511,11 @@ export class App {
         if (entryPoint) {
             await this.runBeforeMainEntryPoints()
             if (this.shaders) this.setShaders(this.shaders.map)
+            if (this.assets) {
+                for (const asset of this.assets.assets) {
+                    this.setAsset(asset.type, asset.key, asset.data)
+                }
+            }
             if (this.loader) this.loader.destroy()
             logger.log(`Running the main entry point '${entryPoint.displayName()}'.`)
             const fn = this.wasm[entryPoint.name()]
@@ -661,4 +736,9 @@ function registerSetDynamicAssetRustFn(fn: SetAssetFn) {
     rustSetAssetFn = fn
 }
 
-host.exportGlobal({ registerGetShadersRustFn, registerSetShadersRustFn, registerGetDynamicAssetsSourcesRustFn, registerSetDynamicAssetRustFn })
+host.exportGlobal({
+    registerGetShadersRustFn,
+    registerSetShadersRustFn,
+    registerGetDynamicAssetsSourcesRustFn,
+    registerSetDynamicAssetRustFn,
+})

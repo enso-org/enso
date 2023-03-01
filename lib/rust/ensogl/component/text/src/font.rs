@@ -710,7 +710,15 @@ impl<F: Family> FontTemplate<F> {
 }
 
 
-// === Cache Snapshots ===
+
+// ===============
+// === Caching ===
+// ===============
+
+thread_local! {
+    /// Atlases loaded at application startup.
+    pub static PREBUILT_ATLASES: RefCell<HashMap<Name, Rc<CacheSnapshot>>> = default();
+}
 
 /// Cached rendering information for a font.
 #[derive(Debug)]
@@ -758,14 +766,15 @@ impl FontTemplate<NonVariableFamily> {
     }
 
     /// Populate the cache with the given data.
-    pub fn load_cache(&self, snapshot: CacheSnapshot) {
-        self.atlas.set_data(snapshot.atlas);
-        let cache: HashMap<(String, String, String), HashMap<u16, GlyphRenderInfo>> =
+    pub fn load_cache(&self, snapshot: &CacheSnapshot) {
+        self.atlas.set_data(snapshot.atlas.clone());
+        let cache: HashMap<String, HashMap<String, GlyphRenderInfo>> =
             serde_json::from_str(&snapshot.glyphs).unwrap();
         *self.cache.borrow_mut() = cache
             .into_iter()
             .map(|(variation, info)| {
-                let width = match variation.0.as_ref() {
+                let mut variation = variation.splitn(3, '-');
+                let width = match variation.next().unwrap() {
                     "UltraCondensed" => Width::UltraCondensed,
                     "ExtraCondensed" => Width::ExtraCondensed,
                     "Condensed" => Width::Condensed,
@@ -777,8 +786,8 @@ impl FontTemplate<NonVariableFamily> {
                     "UltraExpanded" => Width::UltraExpanded,
                     _ => panic!(),
                 };
-                let weight = Weight::from(variation.1.parse::<u16>().unwrap());
-                let style = match variation.2.as_ref() {
+                let weight = Weight::from(variation.next().unwrap().parse::<u16>().unwrap());
+                let style = match variation.next().unwrap() {
                     "Normal" => Style::Normal,
                     "Italic" => Style::Italic,
                     "Oblique" => Style::Oblique,
@@ -786,10 +795,31 @@ impl FontTemplate<NonVariableFamily> {
                 };
                 let variation = NonVariableFaceHeader { width, weight, style };
                 let kerning = default();
-                let glyphs = info.into_iter().map(|(id, data)| (GlyphId(id), data)).collect();
+                let glyphs = info
+                    .into_iter()
+                    .map(|(id, data)| (GlyphId(id.parse().unwrap()), data))
+                    .collect();
                 (variation, FontDataCache { kerning, glyphs })
             })
             .collect();
+    }
+
+    /// Load the glyphs for the given text into the cache.
+    pub fn prepare_glyphs(&self, variations: &NonVariableFaceHeader, glyphs: &str) {
+        self.family.with_borrowed_face(variations, |face| {
+            let ttf_face = face.ttf.as_face_ref();
+            // This is safe. Unwrap should be removed after rustybuzz is fixed:
+            // https://github.com/RazrFalcon/rustybuzz/issues/52
+            let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
+            let mut buffer = rustybuzz::UnicodeBuffer::new();
+            buffer.push_str(glyphs);
+            let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
+            for info in shaped.glyph_infos() {
+                let id = GlyphId(info.glyph_id as u16);
+                // Load it into the cache.
+                let _ = self.glyph_info(variations, id);
+            }
+        });
     }
 }
 
@@ -993,7 +1023,12 @@ impl Embedded {
             family::Definition::NonVariable(definition) => {
                 let family = NonVariableFamily::from(definition);
                 family.load_all_faces(self);
-                NonVariableFont::new(name, family).into()
+                let cache = PREBUILT_ATLASES.with_borrow_mut(|atlases| atlases.get(&name).cloned());
+                let font = NonVariableFont::new(name, family);
+                if let Some(cache) = cache {
+                    font.load_cache(&cache);
+                }
+                font.into()
             }
             family::Definition::Variable(definition) => {
                 let family = VariableFamily::from(definition);

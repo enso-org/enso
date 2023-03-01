@@ -26,7 +26,7 @@
 // ======================
 
 /// Raw image data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Image {
     /// Number of pixels.
     pub width:  usize,

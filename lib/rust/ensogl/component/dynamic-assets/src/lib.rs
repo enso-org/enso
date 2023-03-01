@@ -1,3 +1,4 @@
+#![feature(local_key_cell_methods)]
 #![cfg(target_arch = "wasm32")]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -23,6 +24,7 @@ use enso_prelude::*;
 use enso_shapely::before_main;
 use ensogl_core::system::js;
 use ensogl_core::system::web::Closure;
+use ensogl_core::system::web::JsCast;
 use ensogl_core::system::web::JsValue;
 use ensogl_core::system::web::Map;
 
@@ -54,8 +56,14 @@ fn get_dynamic_assets_sources() -> JsValue {
 fn set_dynamic_asset(builder: JsValue, key: JsValue, asset: JsValue) {
     let builder = builder.as_string().unwrap();
     let key = key.as_string().unwrap();
+    let asset: Map = asset.dyn_into().unwrap();
+    warn!("set_dynamic_asset: {builder} / {key}");
+    let mut asset_ = HashMap::new();
+    asset.for_each(&mut |value: JsValue, key: JsValue| {
+        asset_.insert(key.as_string().unwrap(), js_sys::Uint8Array::new(&value).to_vec());
+    });
     match builder.as_ref() {
-        "font" => fonts::set_atlas(key, asset),
+        "font" => fonts::set_atlas(key, asset_),
         _ => panic!(),
     }
 }

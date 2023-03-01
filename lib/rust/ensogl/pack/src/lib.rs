@@ -220,13 +220,13 @@ pub mod paths {
         }
 
         TargetEnsoglPack {
-            wasm_pack:    TargetEnsoglPackWasmPack,
-            shaders:      TargetEnsoglPackShaders,
-            assets:       PathBuf,
-            shaders_hash: PathBuf,
-            runtime_libs: TargetEnsoglPackRuntimeLibs,
-            dist:         TargetEnsoglPackDist,
-            linked_dist:  PathBuf,
+            wasm_pack:      TargetEnsoglPackWasmPack,
+            shaders:        TargetEnsoglPackShaders,
+            dynamic_assets: PathBuf,
+            shaders_hash:   PathBuf,
+            runtime_libs:   TargetEnsoglPackRuntimeLibs,
+            dist:           TargetEnsoglPackDist,
+            linked_dist:    PathBuf,
         }
 
         TargetEnsoglPackShaders {
@@ -251,14 +251,14 @@ pub mod paths {
             pkg_js:           PathBuf,
             main_wasm:        PathBuf,
             shaders:          TargetEnsoglPackDistShaders,
-            assets:           TargetEnsoglPackDistAssets,
+            dynamic_assets:   TargetEnsoglPackDistDynamicAssets,
         }
 
         TargetEnsoglPackDistShaders {
             list: PathBuf,
         }
 
-        TargetEnsoglPackDistAssets {
+        TargetEnsoglPackDistDynamicAssets {
             manifest: PathBuf,
         }
     }
@@ -289,7 +289,7 @@ impl Paths {
         p.target.ensogl_pack.shaders.root = p.target.ensogl_pack.join("shaders");
         p.target.ensogl_pack.shaders.list = p.target.ensogl_pack.shaders.join("list.txt");
         p.target.ensogl_pack.shaders_hash = p.target.ensogl_pack.join("shaders-hash");
-        p.target.ensogl_pack.assets = p.target.ensogl_pack.join("assets");
+        p.target.ensogl_pack.dynamic_assets = p.target.ensogl_pack.join("dynamic-assets");
         p.target.ensogl_pack.runtime_libs.root = p.target.ensogl_pack.join("runtime-libs");
         p.target.ensogl_pack.runtime_libs.runtime_libs =
             p.target.ensogl_pack.runtime_libs.join("runtime-libs.js");
@@ -304,9 +304,10 @@ impl Paths {
         p.target.ensogl_pack.dist.main_wasm = p.target.ensogl_pack.dist.join("pkg.wasm");
         p.target.ensogl_pack.dist.shaders.root = p.target.ensogl_pack.dist.join("shaders");
         p.target.ensogl_pack.dist.shaders.list = p.target.ensogl_pack.dist.shaders.join("list.txt");
-        p.target.ensogl_pack.dist.assets.root = p.target.ensogl_pack.dist.join("assets");
-        p.target.ensogl_pack.dist.assets.manifest =
-            p.target.ensogl_pack.dist.assets.join("manifest.json");
+        p.target.ensogl_pack.dist.dynamic_assets.root =
+            p.target.ensogl_pack.dist.join("dynamic-assets");
+        p.target.ensogl_pack.dist.dynamic_assets.manifest =
+            p.target.ensogl_pack.dist.dynamic_assets.join("manifest.json");
         Ok(p)
     }
 }
@@ -466,7 +467,7 @@ async fn extract_assets(paths: &Paths) -> Result<()> {
         .cmd()?
         .arg(&paths.target.ensogl_pack.dist.asset_extractor)
         .arg("--out-dir")
-        .arg(&paths.target.ensogl_pack.assets)
+        .arg(&paths.target.ensogl_pack.dynamic_assets)
         .run_ok()
         .await
 }
@@ -477,8 +478,8 @@ async fn build_assets(paths: &Paths) -> Result<()> {
     let sources = survey_asset_sources(paths)?;
     let assets = update_assets(paths, &sources)?;
     let manifest = serde_json::to_string(&assets)?;
-    std::fs::write(&paths.target.ensogl_pack.dist.assets.manifest, manifest)?;
-    gc_assets(&paths.target.ensogl_pack.dist.assets.root, &assets)?;
+    std::fs::write(&paths.target.ensogl_pack.dist.dynamic_assets.manifest, manifest)?;
+    gc_assets(paths, &assets)?;
     Ok(())
 }
 
@@ -537,13 +538,13 @@ impl AssetSources {
 
 #[derive(Serialize)]
 struct Asset {
-    asset_dir: String,
-    files:     Vec<String>,
+    dir:   String,
+    files: Vec<String>,
 }
 
 /// Scan the sources found in the asset sources directory.
 fn survey_asset_sources(paths: &Paths) -> Result<HashMap<Builder, Vec<AssetSources>>> {
-    let dir = ide_ci::fs::read_dir(&paths.target.ensogl_pack.assets)?;
+    let dir = ide_ci::fs::read_dir(&paths.target.ensogl_pack.dynamic_assets)?;
     let mut asset_sources: HashMap<_, Vec<_>> = HashMap::new();
     let mut buf = Vec::new();
     for entry in dir {
@@ -554,9 +555,9 @@ fn survey_asset_sources(paths: &Paths) -> Result<HashMap<Builder, Vec<AssetSourc
         for entry in builder_dir {
             let entry = entry?;
             let asset_key = entry.file_name().to_string_lossy().to_string();
-            let asset_dir = ide_ci::fs::read_dir(entry.path())?;
+            let dir = ide_ci::fs::read_dir(entry.path())?;
             let mut file_hashes = BTreeMap::new();
-            for entry in asset_dir {
+            for entry in dir {
                 let entry = entry?;
                 let file_name = entry.file_name().to_string_lossy().to_string();
                 let path = entry.path();
@@ -583,7 +584,7 @@ fn update_assets(
     paths: &Paths,
     sources: &HashMap<Builder, Vec<AssetSources>>,
 ) -> Result<AssetManifest> {
-    let out = &paths.target.ensogl_pack.dist.assets;
+    let out = &paths.target.ensogl_pack.dist.dynamic_assets;
     ide_ci::fs::create_dir_if_missing(out)?;
     let mut assets: AssetManifest = BTreeMap::new();
     for (&builder, builder_sources) in sources {
@@ -625,14 +626,14 @@ fn build_asset(
     let input_dir = paths
         .target
         .ensogl_pack
-        .assets
+        .dynamic_assets
         .join(builder.dir_name())
         .join(&source_specification.asset_key);
     let output_dir = paths
         .target
         .ensogl_pack
         .dist
-        .assets
+        .dynamic_assets
         .join(builder.dir_name())
         .join(source_specification.dir_name());
     // TODO: Build the asset in a temporary directory and atomically move it into place when
@@ -647,35 +648,43 @@ fn survey_asset(
     builder: Builder,
     source_specification: &AssetSources,
 ) -> Result<Asset> {
-    let asset_dir = source_specification.dir_name();
-    let dir = paths.target.ensogl_pack.dist.assets.join(builder.dir_name()).join(&asset_dir);
+    let dir = source_specification.dir_name();
+    let path = paths.target.ensogl_pack.dist.dynamic_assets.join(builder.dir_name()).join(&dir);
     let mut files = Vec::new();
-    for entry in ide_ci::fs::read_dir(&dir)? {
+    for entry in ide_ci::fs::read_dir(&path)? {
         files.push(entry?.file_name().to_string_lossy().to_string());
     }
-    Ok(Asset { asset_dir, files })
+    Ok(Asset { dir, files })
 }
 
 /// Remove any assets not present in the manifest.
-fn gc_assets(dir: &Path, assets: &AssetManifest) -> Result<()> {
-    for entry in dir.read_dir()? {
+fn gc_assets(paths: &Paths, assets: &AssetManifest) -> Result<()> {
+    let is_not_manifest = |entry: &std::io::Result<std::fs::DirEntry>| {
+        entry
+            .as_ref()
+            .map(|entry| entry.path() != paths.target.ensogl_pack.dist.dynamic_assets.manifest)
+            .unwrap_or(true)
+    };
+    for entry in paths.target.ensogl_pack.dist.dynamic_assets.read_dir()?.filter(is_not_manifest) {
         let entry = entry?;
-        let dir = entry.path();
+        let path = entry.path();
         let builder = Builder::try_from(entry.file_name().to_string_lossy().as_ref()).ok();
         let assets = builder.and_then(|builder| assets.get(&builder));
         match assets {
-            Some(assets) =>
-                for entry in dir.read_dir()? {
+            Some(assets) => {
+                let assets: HashSet<_> = assets.values().map(|asset| asset.dir.as_ref()).collect();
+                for entry in path.read_dir()? {
                     let entry = entry?;
-                    let dir = entry.path();
-                    if !assets.contains_key(entry.file_name().to_string_lossy().as_ref()) {
-                        info!("Cleaning unused asset at `{}`.", dir.display());
-                        ide_ci::fs::remove_dir_if_exists(dir)?;
+                    let path = entry.path();
+                    if !assets.contains(entry.file_name().to_string_lossy().as_ref()) {
+                        info!("Cleaning unused asset at `{}`.", path.display());
+                        ide_ci::fs::remove_if_exists(path)?;
                     }
-                },
+                }
+            }
             _ => {
-                info!("Cleaning unused builder at `{}`.", dir.display());
-                ide_ci::fs::remove_dir_if_exists(dir)?;
+                info!("Cleaning unused builder at `{}`.", path.display());
+                ide_ci::fs::remove_if_exists(path)?;
             }
         }
     }
