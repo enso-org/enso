@@ -1,5 +1,6 @@
 ## Internal text utilities for inspecting text primitives.
 
+import project.Any.Any
 import project.Data.Text.Text
 
 ## PRIVATE
@@ -8,4 +9,5 @@ import project.Data.Text.Text
 optimize : Text
 optimize text = @Builtin_Method "Prim_Text_Helper.optimize"
 
+compile_regex : Text -> Text -> Any
 compile_regex pattern options = @Builtin_Method "Prim_Text_Helper.compile_regex"

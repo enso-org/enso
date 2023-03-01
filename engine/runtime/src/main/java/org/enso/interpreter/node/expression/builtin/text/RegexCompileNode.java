@@ -25,25 +25,25 @@ public abstract class RegexCompileNode extends Node {
 
   @Specialization(limit = "3", guards = {
     "pattern.toString().equals(cachedPattern)",
-    "options == cachedOptions"
+    "options.toString().equals(cachedOptions)"
   })
-  Object parseRegexPattern(Object self, Text pattern, long options,
+  Object parseRegexPattern(Object self, Text pattern, Text options,
     @Cached("pattern.toString()") String cachedPattern,
-    @Cached("options") long cachedOptions,
+    @Cached("options.toString()") String cachedOptions,
     @Cached("compile(cachedPattern, cachedOptions)") Object regex
   ) {
     return regex;
   }
 
   @Specialization
-  Object alwaysCompile(Object self, Text pattern, long options) {
-    return compile(pattern.toString(), options);
+  Object alwaysCompile(Object self, Text pattern, Text options) {
+    return compile(pattern.toString(), options.toString());
   }
 
-  Object compile(String pattern, long options) {
+  Object compile(String pattern, String options) {
     var ctx = EnsoContext.get(this);
     var env = ctx.getEnvironment();
-    var s = "Flavor=ECMAScript/" + pattern + "/"; // + options;
+    var s = "Flavor=ECMAScript/" + pattern + "/" + options;
     var src =
         Source.newBuilder("regex", s, "myRegex")
             .mimeType("application/tregex")
