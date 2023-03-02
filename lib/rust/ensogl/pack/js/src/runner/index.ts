@@ -35,10 +35,13 @@ class Files<T> {
     pkgJs: T
     /** Main WASM file that contains the compiled WASM code. */
     pkgWasm: T
+    /** Dynamic assets. */
+    assets: T[]
 
-    constructor(pkgJs: T, pkgWasm: T) {
+    constructor(pkgJs: T, pkgWasm: T, assets: T[]) {
         this.pkgJs = pkgJs
         this.pkgWasm = pkgWasm
+        this.assets = assets
     }
 
     async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Files<S>> {
@@ -53,15 +56,15 @@ class Files<T> {
 
     /** Converts the structure fields to an array. */
     toArray(): T[] {
-        return [this.pkgJs, this.pkgWasm]
+        return [this.pkgJs, this.pkgWasm, ...this.assets]
     }
 
     /** Assign array values to the structure fields. The elements order should be the same as the
      * output of the `toArray` function. */
     fromArray<S>(array: S[]): Files<S> | null {
-        const [pkgJs, pkgWasm] = array
+        const [pkgJs, pkgWasm, ...assets] = array
         if (pkgJs != null && pkgWasm != null) {
-            return new Files<S>(pkgJs, pkgWasm)
+            return new Files<S>(pkgJs, pkgWasm, assets)
         } else {
             return null
         }
@@ -312,32 +315,39 @@ export class App {
                 return manifest
             }
         )
-        const assetsUrls = new Assets<string>([])
+        const assetsUrls: string[] = []
+        const assetsInfo: Asset<number>[] = []
         for (const [type, typeAssets] of Object.entries(manifest)) {
             for (const [key, asset] of Object.entries(typeAssets)) {
-                const toUrl = (name: string) => `${assetsUrl}/${type}/${asset.dir}/${name}`
+                const toUrl = (name: string) => {
+                    const index = assetsUrls.length
+                    assetsUrls.push(`${assetsUrl}/${type}/${asset.dir}/${name}`)
+                    return index
+                }
                 const urls = new Map(asset.files.map(name => [name, toUrl(name)]))
-                assetsUrls.assets.push(new Asset<string>(type, key, urls))
+                assetsInfo.push(new Asset<number>(type, key, urls))
             }
         }
-        const assetsResponses = await assetsUrls.mapAndAwaitAll(url => loader.fetch(url))
-        const assets = await assetsResponses.mapAndAwaitAll(response => response.blob().then(blob => blob.arrayBuffer()))
-        this.assets = assets
-
         const files = new Files(
             this.config.groups.loader.options.jsUrl.value,
-            this.config.groups.loader.options.wasmUrl.value
+            this.config.groups.loader.options.wasmUrl.value,
+            assetsUrls
         )
 
-        const responses = await files.mapAndAwaitAll(url => loader.fetch(url))
+        const responses = await files.mapAndAwaitAll(url => fetch(url))
         const downloadSize = loader.showTotalBytes()
         const task = log.Task.startCollapsed(`Downloading application files (${downloadSize}).`)
 
         void loader.done.then(() => task.end())
+        loader.load(responses.toArray())
+        const assetsResponses = responses.assets
+        const assetsBlobs = await Promise.all(assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer())))
+        const assets = assetsInfo.map((info) => new Asset(info.type, info.key, new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))))
 
         const pkgJs = await responses.pkgJs.text()
         this.loader = loader
         this.wasm = await this.compileAndRunWasm(pkgJs, responses.pkgWasm)
+        this.assets = new Assets(assets)
     }
 
     /** Loads the WASM binary and its dependencies. After the files are fetched, the WASM module is
