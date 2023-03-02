@@ -102,13 +102,14 @@ type SQL_Type
        Returns the SQL type that is the result of applying an arithmetic
        operation to the two given types.
     arithmetic_type : SQL_Type -> SQL_Type -> SQL_Type ! Illegal_Argument
-    arithmetic_type left right = if right == SQL_Type.null then left else
-        if left == SQL_Type.null then right else
-            if left == right then left else
-                case left.is_definitely_numeric && right.is_definitely_numeric of
-                    False -> Error.throw (Illegal_Argument.Error "Unsupported types for arithmetic operation.")
-                    True -> if left.is_definitely_integer && right.is_definitely_integer then SQL_Type.integer else
-                        SQL_Type.double
+    arithmetic_type left right =
+        if left == right then left else
+            if left != SQL_Type.null && right == SQL_Type.null then left else
+                if left == SQL_Type.null && right != SQL_Type.null then right else
+                    case left.is_definitely_numeric && right.is_definitely_numeric of
+                        False -> Error.throw (Illegal_Argument.Error "Unsupported types for arithmetic operation.")
+                        True -> if left.is_definitely_integer && right.is_definitely_integer then SQL_Type.integer else
+                            SQL_Type.double
 
     ## PRIVATE
 
