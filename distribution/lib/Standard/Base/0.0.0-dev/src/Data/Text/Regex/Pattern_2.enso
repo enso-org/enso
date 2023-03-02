@@ -6,11 +6,13 @@ import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Span.Span
+import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Regex.Match_2.Match_2
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.IO
 import project.Nothing.Nothing
+polyglot java import org.enso.base.Text_Utils
 
 type Pattern_2
     ## internal_regex_object : RegexObject (Truffle)
@@ -58,13 +60,13 @@ type Match_Iterator
         regex_result = self.pattern.internal_regex_object.exec self.input self.cursor
         case regex_result.isMatch of
             False ->
-                filler_range = Range.new self.cursor (self.input.length)
-                filler_span = Span.Value filler_range self.input
+                filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
+                filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
                 Match_Iterator_Value.Last filler_span
             True ->
                 match_start = regex_result.getStart 0
                 filler_range = Range.new self.cursor match_start
-                filler_span = Span.Value filler_range self.input
+                filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
                 match = Match_2.Value regex_result self.input
                 next_cursor = match.end 0
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor

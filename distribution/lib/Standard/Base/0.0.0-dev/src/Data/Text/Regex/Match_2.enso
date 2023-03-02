@@ -1,6 +1,7 @@
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Span.Span
+import project.Data.Text.Span.Utf_16_Span
 
 type Match_2
     ## internal_regex_result : RegexResult (Truffle)
@@ -16,4 +17,4 @@ type Match_2
     span : Integer -> Span
     span self n =
         range = Range.new (self.start n) (self.end n)
-        Span.Value range self.input
+        (Utf_16_Span.Value range self.input).to_grapheme_span
