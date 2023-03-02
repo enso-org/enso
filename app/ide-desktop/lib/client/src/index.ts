@@ -22,7 +22,6 @@ import * as server from 'bin/server'
 import * as process from 'process'
 const logger = content.logger
 
-
 // ===========
 // === App ===
 // ===========
