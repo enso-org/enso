@@ -6,6 +6,7 @@ import Standard.Test.Extensions
 polyglot java import java.nio.file.Path as JavaPath
 polyglot java import java.util.Random as Java_Random
 polyglot java import java.lang.Integer
+polyglot java import java.lang.Double
 
 type CustomEqType
     C1 f1
