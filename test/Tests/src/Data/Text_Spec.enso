@@ -1189,7 +1189,12 @@ spec =
             ## Regex matching does not do case folding
             "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
 
-            ## But it should handle the Unicode normalization
+        Test.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
+            ## This test passed for the builtin Java regex library, using
+               Pattern.CANON_EQ, but since that option is buggy and rarely use,
+               we won't attempt to recreate it with Truffle regex. Instead,
+               expose normalization methods to allow developers to do it
+               themselves.
             accents = 'a\u{301}e\u{301}o\u{301}'
             check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
 
