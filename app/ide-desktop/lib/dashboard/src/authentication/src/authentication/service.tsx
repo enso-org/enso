@@ -185,7 +185,7 @@ const registerOpenAuthenticationUrlCallback = (
             // Navigate to a relative URL to handle the confirmation link.
             const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
             navigate(redirectUrl);
-        } else if (isSignOutRedirect(parsedUrl)) {
+        } else if (isSignOutRedirect(parsedUrl) || isLoginRedirect(parsedUrl)) {
             navigate(app.LOGIN_PATH);
         } else if (isSignInRedirect(parsedUrl)) {
             handleAuthResponse(url);
@@ -226,6 +226,11 @@ const isSignInRedirect = (url: URL) =>
  * email, then the URL will be for the confirm password reset path. */
 const isResetPasswordRedirect = (url: URL) =>
     url.pathname === app.RESET_PASSWORD_PATH;
+
+/** If the user is being redirected after finishing the password reset flow,
+ * then the URL will be for the login page. */
+const isLoginRedirect = (url: URL) =>
+    url.pathname === app.LOGIN_PATH;
 
 /** When the user is being redirected from a federated identity provider, then we need to pass the
  * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */

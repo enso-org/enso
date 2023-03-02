@@ -17,12 +17,11 @@ import withRouter from "../../navigation";
 
 const dashboardContainer = () => {
     const { signOut } = auth.useAuth();
-    const { accessToken, organization } = auth.useFullUserSession();
+    const { accessToken } = auth.useFullUserSession();
 
     return (
         <>
             <h1>Hello dummy cloud dashboard</h1>
-            <p>Organization: {organization.id}</p>
             <p>Access token: {accessToken}</p>
             <button onClick={signOut}>Log out</button>
         </>
