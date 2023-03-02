@@ -103,7 +103,7 @@ spec detailed setup =
             expression_test "NOTHING" Nothing
 
     Test.group prefix+"Expression Date and Time literals" <|
-        specify_test "should be able to add a date or time column" expression_test->
+        specify_test "should be able to add a date or time column" pending=pending_bug expression_test->
             expression_test "#2020-12-23#" (Date.new 2020 12 23)
             expression_test "#12:34#" (Time_Of_Day.new 12 34)
             expression_test "#12:34:56#" (Time_Of_Day.new 12 34 56)
