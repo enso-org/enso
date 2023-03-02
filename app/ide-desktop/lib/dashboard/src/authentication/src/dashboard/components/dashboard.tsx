@@ -17,7 +17,6 @@ import Table from "./table";
 import PermissionDisplay, * as permissionDisplay from "./permissionDisplay";
 import Label, * as label from "./label";
 import * as loggerProvider from "../../providers/logger";
-import PermissionDisplay4Segment from "./permissionDisplay4Segment";
 
 
 
@@ -148,14 +147,13 @@ const Dashboard = (props: Props) => {
             <Label>do not change</Label>
           </>],
           ["Data access", () => <>
-            <PermissionDisplay permission={permissionDisplay.Permission.admin}>./user_data</PermissionDisplay>
-            <PermissionDisplay4Segment
-              permission1={permissionDisplay.Permission.none}
-              permission2={permissionDisplay.Permission.read}
-              permission3={permissionDisplay.Permission.none}
-              permission4={permissionDisplay.Permission.none}>
+            <PermissionDisplay permissions={{ type: permissionDisplay.Permission.admin }}>./user_data</PermissionDisplay>
+            <PermissionDisplay permissions={{ type: permissionDisplay.Permission.regular, write: true, read: true, exec: true, docsWrite: true }}>
                 this folder
-            </PermissionDisplay4Segment>
+            </PermissionDisplay>
+            <PermissionDisplay permissions={{ type: permissionDisplay.Permission.regular, write: false, read: false, exec: false, docsWrite: false }}>
+                no access
+            </PermissionDisplay>
           </>],
           ["Usage plan", () => <>aa</>],
           ["Engine", () => <>aa</>],
