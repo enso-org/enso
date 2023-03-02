@@ -18,15 +18,23 @@
   "workspaces": [
     "lib/client",
     "lib/content",
+    "lib/dashboard",
+    "lib/dashboard/src/authentication",
     "lib/content-config",
     "lib/copy-plugin",
     "lib/icons",
     "lib/server"
   ],
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.47.1",
+    "@typescript-eslint/parser": "^5.47.1",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.30.0",
+    "eslint-plugin-jsdoc": "^39.6.4",
     "patch-package": "^6.4.7"
   },
   "scripts": {
+    "dev": "PORT=8081 npm exec --workspace enso-studio-dashboard -- react-scripts start",
     "watch": "npm run watch --workspace enso-studio-content",
     "postinstall": "patch-package"
   }

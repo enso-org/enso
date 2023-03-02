@@ -15,7 +15,8 @@
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "ES2019"
+    "target": "ES2019",
+    "jsx": "react-jsx"
   },
   "ts-node": {
     "esm": true

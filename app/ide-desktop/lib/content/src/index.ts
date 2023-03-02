@@ -7,6 +7,8 @@ import globalConfig from '../../../../gui/config.yaml'
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
 import * as semver from 'semver'
 import { Version, options } from 'enso-content-config'
+import * as authentication from 'enso-studio-authentication'
+import { AppProps } from 'enso-studio-authentication'
 
 const logger = app.log.logger
 
@@ -105,13 +107,25 @@ class Main {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    options.options.authentication.value &&
-                    options.groups.startup.options.entry.value !=
-                        options.groups.startup.options.entry.default
+                    options.options.authentication.value
                 ) {
-                    // TODO: authentication here
-                    // appInstance.config.email.value = user.email
-                    appInstance.run()
+                    const hideAuth = () => {
+                       const auth = document.getElementById('authentication')
+                       const root = document.getElementById('root')
+                       if (auth) auth.style.display = 'none'
+                       if (root) root.style.display = 'block'
+                    }
+                    const props: AppProps = {
+                        logger,
+                        // This package is an Electron desktop app (i.e., not in the Cloud), so
+                        // we're running on the desktop.
+                        runningOnDesktop: true,
+                        onAuthenticated: () => {
+                            hideAuth()
+                            appInstance.run()
+                        },
+                    }
+                    authentication.run(props)
                 } else {
                     appInstance.run()
                 }

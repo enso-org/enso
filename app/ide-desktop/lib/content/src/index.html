@@ -33,6 +33,12 @@
     <script type="module" src="/run.js" defer></script>
   </head>
   <body>
+    <!--
+      This `#authentication` `div` is used to render the authentication/dashboard app.
+      It is kept separate from the `#root` `div`, which used used to render the IDE.
+      This is done to ensure the logical separation between these 2 applications.
+    -->
+    <div id="authentication"></div>
     <div id="root"></div>
     <noscript>
       This page requires JavaScript to run. Please enable it in your browser.
