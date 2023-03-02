@@ -227,7 +227,7 @@ spec =
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb->
                 r1 = Data.read (enso_project.data / "mismatched_quote.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems=pb
                 r1.should_fail_with File_Error.Corrupted_Format
-                r1.catch.to_display_text.should_contain "mismatched quote"
+                r1.catch.to_display_text.should_contain "quote has been opened but never closed"
 
                 r2 = Data.read (enso_project.data / "mismatched_quote2.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems=pb
                 r2.should_fail_with File_Error.Corrupted_Format

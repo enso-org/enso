@@ -164,7 +164,7 @@ type Additional_Invalid_Rows
 type Mismatched_Quote
    to_display_text : Text
    to_display_text self =
-       "A quote inside of a Delimited file has been opened but never closed, so the file cannot be interpreted properly."
+       "A quote has been opened but never closed inside of a Delimited file, so it cannot be interpreted properly."
 
 ## Indicates an unexpected parser error.
 type Parser_Error

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.No_Such_Method
 
 import project.Test_Result.Test_Result
 from project.Test import Test
@@ -162,30 +163,6 @@ Any.should_start_with self that frames_to_skip=0 = case self of
     _ : Text -> if self.starts_with that then Test_Result.Success else
         loc = Meta.get_source_location 3+frames_to_skip
         msg = self.to_text + " does not start with " + that.to_text + " (at " + loc + ")."
-        Test.fail msg
-    _ ->
-        loc = Meta.get_source_location 2+frames_to_skip
-        msg = self.to_text + " is not a `Text` value (at " + loc + ")."
-        Test.fail msg
-
-## Asserts that `self` value is a Text value and contains `that`.
-
-   Arguments:
-   - that: The value to check `self` contains.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
-
-   > Example
-     Assert that one value should contain another.
-
-         from Standard.Test import Test
-
-         example_should_start_with = "Hello World!" . should_contain "World"
-Any.should_contain : Text -> Integer -> Test_Result
-Any.should_contain self that frames_to_skip=0 = case self of
-    _ : Text -> if self.contains that then Test_Result.Success else
-        loc = Meta.get_source_location 3+frames_to_skip
-        msg = self.to_text + " does not contain " + that.to_text + " (at " + loc + ")."
         Test.fail msg
     _ ->
         loc = Meta.get_source_location 2+frames_to_skip
@@ -467,5 +444,5 @@ Any.should_contain self element frames_to_skip=0 =
 
          example_should_equal = "foobar".should_contain "foo"
 Error.should_contain : Any -> Integer -> Test_Result
-Error.should_contain self element frames_to_skip=0 =
+Error.should_contain self _ frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
