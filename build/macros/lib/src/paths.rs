@@ -1,15 +1,7 @@
 use crate::prelude::*;
 
-use anyhow::Context;
-use convert_case::Case;
-use convert_case::Casing;
-use proc_macro2::Ident;
-use proc_macro2::Span;
-use proc_macro2::TokenStream;
-use quote::quote;
 use regex::Regex;
 use std::cell::OnceCell;
-use std::collections::BTreeSet;
 use std::iter::zip;
 
 
@@ -194,7 +186,7 @@ impl<'a> Generator<'a> {
             let ty_name = struct_ident(nodes.iter().cloned());
             let vars = node.own_parameter_vars();
             segment_names.push(quote! {
-                #ty_name::segment_name(#(#vars),*)
+                #ty_name::segment_name(#(&#vars),*)
             });
         }
 
@@ -258,7 +250,7 @@ impl<'a> Generator<'a> {
                }
 
                pub fn new_under(parent: impl AsRef<std::path::Path> #(, #parameter_vars: impl AsRef<std::path::Path>)*) -> Self {
-                   let path = parent.as_ref().join(Self::segment_name(#(#own_parameter_vars),*));
+                   let path = parent.as_ref().join(Self::segment_name(#(&#own_parameter_vars),*));
                    Self::new_root(path, #(#child_parameter_vars),*)
                }
 
@@ -522,23 +514,20 @@ pub fn convert(value: &serde_yaml::Value) -> Result<Vec<Node>> {
 }
 
 /// Generate Rust code for handling known paths that are defined in a given YAML input.  
-pub fn process(yaml_input: impl Read) -> Result<String> {
+pub fn process(yaml_input: impl Read) -> Result<TokenStream> {
     let yaml = serde_yaml::from_reader(yaml_input)?;
     let forest = convert(&yaml)?;
-    let out = generate(forest)?;
-    Ok(out.to_string())
+    generate(forest)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::log::setup_logging;
 
     #[test]
     #[ignore]
     fn generate() -> Result {
-        setup_logging()?;
-        let yaml_contents = include_bytes!("../../build/paths.yaml");
+        let yaml_contents = include_bytes!("../../../build/paths.yaml");
         let code = process(yaml_contents.as_slice())?;
         debug!("{}", code);
         Ok(())

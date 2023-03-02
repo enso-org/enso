@@ -30,12 +30,5 @@ mod prelude {
 
 use prelude::*;
 
-#[proc_macro_derive(Arg, attributes(arg))]
-pub fn derive_answer_fn(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = syn::parse_macro_input!(item as DeriveInput);
-    program_args::arg(input)
-        .unwrap_or_else(|err| panic!("Failed to derive program argument: {err:?}"))
-        .into()
-}
-
-mod program_args;
+pub mod paths;
+pub mod program_args;
