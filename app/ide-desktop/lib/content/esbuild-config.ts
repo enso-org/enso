@@ -125,8 +125,9 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
         sourcemap: true,
         minify: true,
         metafile: true,
+        format: 'esm',
         publicPath: '/assets',
-        platform: 'node',
+        platform: 'browser',
         incremental: true,
         color: true,
         logOverride: {
@@ -174,7 +175,12 @@ export function bundleOptions() {
  * Bundles the package.
  */
 export async function bundle() {
-    return esbuild.build(bundleOptions())
+    try {
+        return esbuild.build(bundleOptions())
+    } catch (error) {
+        console.error(error)
+        throw error
+    }
 }
 
 export default { watchOptions, bundle, bundleOptions }

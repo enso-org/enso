@@ -5,7 +5,7 @@
     name="doc-test/enso-debug-scene [native]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚥 GUI            view/debug_scene"
+    folderName="🚥 GUI            view/examples"
   >
     <option name="command" value="test --doc  --target-dir dist/intellij_native --package enso-debug-scene" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

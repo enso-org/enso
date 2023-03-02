@@ -862,6 +862,7 @@ lazy val `logging-service` = project
   .in(file("lib/scala/logging-service"))
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
@@ -1511,7 +1512,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(graph)
   .dependsOn(pkg)
   .dependsOn(`edition-updater`)
-  .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(syntax.jvm)
   .dependsOn(`syntax-rust-definition`)

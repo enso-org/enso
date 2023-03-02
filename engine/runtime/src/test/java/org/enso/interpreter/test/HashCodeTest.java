@@ -7,8 +7,10 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNodeGen;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -26,20 +28,22 @@ public class HashCodeTest extends TestBase {
 
   private static HashCodeNode hashCodeNode;
   private static EqualsNode equalsNode;
+  private static HostValueToEnsoNode hostValueToEnsoNode;
   private static TestRootNode testRootNode;
 
   @BeforeClass
   public static void initContextAndData() {
     context = createDefaultContext();
-    // Initialize datapoints here, to make sure that it is initialized just once.
-    unwrappedValues = fetchAllUnwrappedValues();
     executeInContext(context, () -> {
       hashCodeNode = HashCodeNode.build();
       equalsNode = EqualsNode.build();
+      hostValueToEnsoNode = HostValueToEnsoNode.build();
       testRootNode = new TestRootNode();
-      testRootNode.insertChildren(hashCodeNode, equalsNode);
+      testRootNode.insertChildren(hashCodeNode, equalsNode, hostValueToEnsoNode);
       return null;
     });
+    // Initialize datapoints here, to make sure that it is initialized just once.
+    unwrappedValues = fetchAllUnwrappedValues();
   }
 
   @AfterClass
@@ -79,6 +83,7 @@ public class HashCodeTest extends TestBase {
       return values
           .stream()
           .map(value -> unwrapValue(context, value))
+          .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
           .collect(Collectors.toList())
           .toArray(new Object[]{});
     } catch (Exception e) {
@@ -128,6 +133,20 @@ public class HashCodeTest extends TestBase {
           "Hash code of an object should be consistent",
           firstHash,
           secondHash
+      );
+      return null;
+    });
+  }
+
+  @Theory
+  public void hashCodeCachedNodeIsConsistentWithUncached(Object value) {
+    executeInContext(context, () -> {
+      long uncachedRes = HashCodeNodeGen.getUncached().execute(value);
+      long cachedRes = hashCodeNode.execute(value);
+      assertEquals(
+          "Result from cached HashCodeNode should be the same as from its uncached variant",
+          uncachedRes,
+          cachedRes
       );
       return null;
     });

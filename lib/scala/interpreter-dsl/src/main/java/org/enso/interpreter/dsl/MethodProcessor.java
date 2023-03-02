@@ -423,7 +423,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
   private void generateCheckedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = "TypesGen.expect" + capitalize(arg.getTypeName());
+    String builtinName = capitalize(arg.getTypeName());
+    String castName = "TypesGen.expect" + builtinName;
     String varName = mkArgumentInternalVarName(arg);
     out.println("    " + arg.getTypeName() + " " + varName + ";");
     out.println("    try {");
@@ -432,16 +433,20 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     out.println("    } catch (UnexpectedResultException e) {");
     out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
     out.println("      var builtins = EnsoContext.get(this).getBuiltins();");
-    out.println(
-        "      var expected = builtins.fromTypeSystem(TypesGen.getName(arguments[arg"
-            + arg.getPosition()
-            + "Idx]));");
-    out.println(
-        "      var error = builtins.error().makeTypeError(expected, arguments[arg"
-            + arg.getPosition()
-            + "Idx], \""
-            + varName
-            + "\");");
+    out.println("      var ensoTypeName = org.enso.interpreter.runtime.type.ConstantsGen.getEnsoTypeName(\"" + builtinName + "\");");
+    out.println("      var error = (ensoTypeName != null)");
+    out.println("        ? builtins.error().makeTypeError(builtins.fromTypeSystem(ensoTypeName), arguments[arg"
+                      + arg.getPosition()
+                      + "Idx], \""
+                      + varName
+                      + "\")");
+    out.println("        : builtins.error().makeUnsupportedArgumentsError(new Object[] { arguments[arg"
+                      + arg.getPosition()
+                      + "Idx] }, \"Unsupported argument for "
+                      + varName
+                      + " expected a "
+                      + builtinName
+                      + "\");");
     out.println("      throw new PanicException(error,this);");
     out.println("    }");
   }
@@ -559,7 +564,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   protected MethodMetadataEntry toMetadataEntry(String line) {
     String[] elements = line.split(":");
     if (elements.length != 4) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    return new MethodMetadataEntry(elements[0], elements[1], Boolean.valueOf(elements[2]), Boolean.valueOf(elements[3]));
+    return new MethodMetadataEntry(elements[0], elements[1], Boolean.parseBoolean(elements[2]), Boolean.parseBoolean(elements[3]));
   }
 
   private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";

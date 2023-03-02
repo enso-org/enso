@@ -184,6 +184,7 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
                 await signArchivesMacOs({
                     appOutDir: appOutDir,
                     productFilename: appName,
+                    // @ts-ignore
                     entitlements: context.packager.config.mac.entitlements,
                     identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
                 })
@@ -192,7 +193,9 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
                 await notarize({
                     appBundleId: packager.platformSpecificBuildOptions.appId,
                     appPath: `${appOutDir}/${appName}.app`,
+                    // @ts-ignore
                     appleId: process.env.APPLEID,
+                    // @ts-ignore
                     appleIdPassword: process.env.APPLEIDPASS,
                 })
             }

@@ -47,7 +47,7 @@ export function bundlerOptions(
     return {
         bundle: true,
         outdir,
-        entryPoints: ['src/index.js', 'src/preload.cjs'],
+        entryPoints: ['src/index.ts', 'src/preload.ts'],
         outbase: 'src',
         format: 'cjs',
         outExtension: { '.js': '.cjs' },

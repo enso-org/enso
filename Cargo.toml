@@ -1,8 +1,11 @@
 [workspace]
 resolver = "2"
 # Listing only the "root" crates of each app/library. All path dependencies are included in the workspace automatically.
-# If you want to add sub crate (like `app/gui/config` or `lib/rust/ensogl/example`), just add it as a path dependency
+# If you want to add sub crate (like `app/gui/config` or `lib/rust/ensogl/examples`), just add it as a path dependency
 # where plausible.
+# Any GUI functionality that is not used by the main entry point should be defined somewhere with `examples` in the
+# path, e.g. `lib/rust/ensogl/examples`, or `app/gui/view/examples`; this is used to optimize the application for
+# loading the IDE.
 members = [
   "app/gui",
   "app/gui/language/parser",

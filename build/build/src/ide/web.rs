@@ -6,6 +6,7 @@ use crate::project::gui::BuildInfo;
 use crate::project::wasm;
 use crate::project::ProcessWrapper;
 
+use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
@@ -153,9 +154,9 @@ pub enum Command {
 /// Things that are common to `watch` and `build`.
 #[derive(Debug)]
 pub struct ContentEnvironment<Assets, Output> {
-    asset_dir:   Assets,
-    wasm:        wasm::Artifact,
-    output_path: Output,
+    pub asset_dir:   Assets,
+    pub wasm:        wasm::Artifact,
+    pub output_path: Output,
 }
 
 impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
@@ -172,6 +173,7 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
             google_font::download_google_font(&ide.cache, &ide.octocrab, "mplus1", &asset_dir);
         let (wasm, _, _, _) =
             try_join4(wasm, installation, assets_download, fonts_download).await?;
+        wasm.symlink_ensogl_dist(&ide.linked_dist)?;
         ide.write_build_info(build_info)?;
         Ok(ContentEnvironment { asset_dir, wasm, output_path })
     }
@@ -246,6 +248,7 @@ pub struct IdeDesktop {
     #[derivative(Debug = "ignore")]
     pub octocrab:    Octocrab,
     pub cache:       ide_ci::cache::Cache,
+    pub linked_dist: RepoRootTargetEnsoglPackLinkedDist,
 }
 
 impl IdeDesktop {
@@ -259,6 +262,7 @@ impl IdeDesktop {
             package_dir: repo_root.app.ide_desktop.clone(),
             octocrab,
             cache,
+            linked_dist: repo_root.target.ensogl_pack.linked_dist.clone(),
         }
     }
 
@@ -296,14 +300,26 @@ impl IdeDesktop {
         dest = %output_path.as_ref().display(),
         build_info,
         err))]
-    pub async fn build_content(
+    pub async fn build_content<P: AsRef<Path>>(
         &self,
         wasm: impl Future<Output = Result<wasm::Artifact>>,
         build_info: &BuildInfo,
-        output_path: impl AsRef<Path>,
-    ) -> Result {
+        output_path: P,
+    ) -> Result<ContentEnvironment<TempDir, P>> {
         let env = ContentEnvironment::new(self, wasm, build_info, output_path).await?;
         //env.apply();
+        self.npm()?
+            .try_applying(&env)?
+            .workspace(Workspaces::Content)
+            .run("lint", EMPTY_ARGS)
+            .run_ok()
+            .await?;
+        self.npm()?
+            .try_applying(&env)?
+            .workspace(Workspaces::Content)
+            .run("typecheck", EMPTY_ARGS)
+            .run_ok()
+            .await?;
         self.npm()?
             .try_applying(&env)?
             .workspace(Workspaces::Content)
@@ -311,9 +327,7 @@ impl IdeDesktop {
             .run_ok()
             .await?;
 
-        debug!(assets=?env.asset_dir, "Still kept");
-        drop(env); // does this extend the lifetime?
-        Ok(())
+        Ok(env)
     }
 
 

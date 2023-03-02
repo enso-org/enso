@@ -84,7 +84,7 @@ class LibraryUploadTest
             .loadPackage(installedRoot.location.toFile)
             .get
           pkg.name shouldEqual libraryName.name
-          val sources = pkg.listSources
+          val sources = pkg.listSources()
           sources should have size 1
           sources.head.file.getName shouldEqual "Main.enso"
         }

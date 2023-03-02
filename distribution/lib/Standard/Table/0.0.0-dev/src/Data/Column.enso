@@ -7,7 +7,6 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
-import project.Data.Column_Type_Selection.Auto
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Storage.Storage
 import project.Data.Table.Table
@@ -17,6 +16,7 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
+from project.Data.Value_Type import Auto, ensure_valid_parse_target
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
@@ -922,14 +922,27 @@ type Column
     ## Parses a text column into values
 
        Arguments:
-       - type: Target type to parse the value to.
-         If `Auto`, will attempt to deduce the type automatically.
-       - format: For date/time types, the format to parse the value with.
-         For boolean types, two values that represent true and false separated
-         by `|`.
-       - on_problems: What to do if the value cannot be parsed.
-         By default, an `Invalid_Format` warning is attached and the value is
-         set to `Nothing`.
+       - type: The type to parse the column to. Defaults to `Auto` meaning that
+         the type will be inferred from the data.
+       - format: The formatting settings to use when parsing the column.
+         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
+         can be used. For `Boolean`, it should be two values that represent true
+         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+         passed to provide complete customisation of the formatting.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If the column is not a text column, an `Invalid_Value_Type` error is
+           raised.
+         - If some values in the column did not match the expected datatype
+           format, an `Invalid_Format` problem is reported. The problematic
+           cells are replaced with `Nothing`.
+         - If parsing a numeric column and the selected format does not allow
+           leading zeros (the default) and such cells are found, a
+           `Leading_Zeros` problem is reported. These cells are replaced with
+           `Nothing`.
 
        > Example
          Parse dates in a column in the format `yyyy-MM-dd` (the default format).
@@ -952,22 +965,13 @@ type Column
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
-    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Nothing -> Problem_Behavior -> Column
-    parse self type=Auto format=Nothing on_problems=Report_Warning =
-        ensure_type ~fn = if [Auto, Integer, Decimal, Date, Date_Time, Time_Of_Day, Boolean].index_of type == Nothing then Error.throw (Illegal_Argument.Error "Unsupported target type "+type.to_text+".") else fn
-
-        Value_Type.expect_text self.value_type <| ensure_type <|
-            formatter = if format.is_nothing then Data_Formatter.Value else case type of
-                Auto -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Auto`.")
-                Integer -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Integer`.")
-                Decimal -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Decimal`.")
-                Date -> Data_Formatter.Value.with_datetime_formats date_formats=[format]
-                Date_Time -> Data_Formatter.Value.with_datetime_formats datetime_formats=[format]
-                Time_Of_Day -> Data_Formatter.Value.with_datetime_formats time_formats=[format]
-                Boolean ->
-                    formats = format.split "|"
-                    if formats.length != 2 then Error.throw (Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`, for example: 'Yes|No'.") else
-                        Data_Formatter.Value.with_boolean_values true_values=[formats.at 0] false_values=[formats.at 1]
+    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
+        Value_Type.expect_text self.value_type related_column=self.name <| ensure_valid_parse_target type <|
+            formatter = case format of
+                _ : Text ->
+                    Data_Formatter.Value.with_format type format
+                _ -> format
 
             parser = if type == Auto then formatter.make_auto_parser else formatter.make_datatype_parser type
             storage = self.java_column.getStorage

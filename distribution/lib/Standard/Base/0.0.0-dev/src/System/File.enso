@@ -389,7 +389,7 @@ type File
              import Standard.Examples
 
              example_parent = Examples.csv.parent
-    parent : File
+    parent : File | Nothing
     parent self = @Builtin_Method "File.parent"
 
     ## Returns the path of this file.

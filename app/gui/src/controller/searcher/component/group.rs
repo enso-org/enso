@@ -218,8 +218,10 @@ impl Group {
             (MatchInfo::DoesNotMatch, MatchInfo::DoesNotMatch) => cmp::Ordering::Equal,
             (MatchInfo::DoesNotMatch, MatchInfo::Matches { .. }) => cmp::Ordering::Greater,
             (MatchInfo::Matches { .. }, MatchInfo::DoesNotMatch) => cmp::Ordering::Less,
-            (MatchInfo::Matches { subsequence: lhs }, MatchInfo::Matches { subsequence: rhs }) =>
-                lhs.compare_scores(rhs),
+            (
+                MatchInfo::Matches { subsequence: lhs, .. },
+                MatchInfo::Matches { subsequence: rhs, .. },
+            ) => lhs.compare_scores(rhs),
         }
     }
 

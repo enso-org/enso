@@ -2051,6 +2051,7 @@ name = "enso-config"
 version = "0.1.0"
 dependencies = [
  "config-reader",
+ "enso-json-to-struct",
  "enso-prelude",
  "ensogl",
  "semver 1.0.16",
@@ -2210,6 +2211,16 @@ dependencies = [
  "ensogl",
  "wasm-bindgen",
  "wasm-bindgen-test",
+]
+
+[[package]]
+name = "enso-json-to-struct"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "proc-macro2",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2617,11 +2628,13 @@ dependencies = [
  "ensogl-text-embedded-fonts",
  "enum_dispatch",
  "failure",
+ "futures 0.3.26",
  "itertools",
  "js-sys",
  "nalgebra",
  "num-traits",
  "num_enum",
+ "ordered-float",
  "rustc-hash",
  "semver 1.0.16",
  "serde",
@@ -4167,6 +4180,7 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
+ "ensogl-derive-theme",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
