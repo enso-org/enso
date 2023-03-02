@@ -332,6 +332,7 @@ export class App {
         const responses = await files.mapAndAwaitAll(url => loader.fetch(url))
         const downloadSize = loader.showTotalBytes()
         const task = log.Task.startCollapsed(`Downloading application files (${downloadSize}).`)
+
         void loader.done.then(() => task.end())
 
         const pkgJs = await responses.pkgJs.text()
@@ -412,7 +413,7 @@ export class App {
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             await this.runBeforeMainEntryPoints()
-            log.Task.runCollapsed(`Sending dynamic asset to Rust.`, () => {
+            log.Task.runCollapsed(`Sending dynamic assets to Rust.`, () => {
                 if (this.assets) {
                     for (const asset of this.assets.assets) {
                         this.setAsset(asset.type, asset.key, asset.data)
@@ -569,7 +570,6 @@ export class App {
             logger.error('The Rust asset injection function was not registered.')
         } else {
             const key = name.unmangle(keyMangled)
-            logger.log(`Setting asset definition for {key}.`)
             rustSetAssetFn(builder, key, data)
         }
     }
@@ -584,17 +584,3 @@ type SetAssetFn = (builder: string, key: string, data: Map<string, ArrayBuffer>)
 
 let rustGetAssetsSourcesFn: null | GetAssetsSourcesFn = null
 let rustSetAssetFn: null | SetAssetFn = null
-
-/** Registers the Rust function that extracts asset source files. */
-function registerGetDynamicAssetsSourcesRustFn(fn: GetAssetsSourcesFn) {
-    logger.log(`Registering 'getAssetsSourcesFn'.`)
-    rustGetAssetsSourcesFn = fn
-}
-
-/** Registers the Rust function that injects dynamic assets. */
-function registerSetDynamicAssetRustFn(fn: SetAssetFn) {
-    logger.log(`Registering 'setAssetFn'.`)
-    rustSetAssetFn = fn
-}
-
-host.exportGlobal({ registerGetDynamicAssetsSourcesRustFn, registerSetDynamicAssetRustFn })
