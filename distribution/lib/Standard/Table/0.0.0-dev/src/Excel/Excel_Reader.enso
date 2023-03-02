@@ -83,7 +83,7 @@ read_file file section headers on_problems xls_format=False =
    is opened.
 handle_bad_format file ~action =
     bad_format caught_panic =
-        Error.throw (File_Error.Corrupted_Format file caught_panic.payload.getMessage)
+        Error.throw (File_Error.Corrupted_Format file caught_panic.payload.getMessage caught_panic.payload)
     Panic.catch UnsupportedFileFormatException handler=bad_format <|
         Panic.catch NotOLE2FileException handler=bad_format <|
             action
