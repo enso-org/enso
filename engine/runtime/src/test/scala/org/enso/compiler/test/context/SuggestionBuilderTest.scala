@@ -2125,10 +2125,160 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
-    "build module with overloaded functions" in {
+    "build module with overloaded functions and two constructors" in {
       val code =
         """type A
           |    Mk_A
+          |    Mk_A_Plus a
+          |
+          |    quux : A -> A
+          |    quux self x = x
+          |
+          |quux : A -> A
+          |quux x = x
+          |
+          |main =
+          |    quux A
+          |    A.quux A""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              params        = List(),
+              returnType    = "Unnamed.Test.A",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Mk_A",
+              arguments     = List(),
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              None,
+              "Unnamed.Test",
+              "Mk_A_Plus",
+              List(
+                Suggestion.Argument(
+                  "a",
+                  "Standard.Base.Any.Any",
+                  false,
+                  false,
+                  None,
+                  None
+                )
+              ),
+              "Unnamed.Test.A",
+              None,
+              None,
+              None,
+              None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              None,
+              "Unnamed.Test",
+              "a",
+              Vector(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.A", false, false, None, None)
+              ),
+              "Unnamed.Test.A",
+              "Standard.Base.Any.Any",
+              false,
+              None,
+              None,
+              None,
+              None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              None,
+              "Unnamed.Test",
+              "quux",
+              Vector(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.A", false, false, None),
+                Suggestion.Argument(
+                  "x",
+                  "Unnamed.Test.A",
+                  false,
+                  false,
+                  None,
+                  Some(List("Unnamed.Test.Mk_A", "Unnamed.Test.Mk_A_Plus"))
+                )
+              ),
+              selfType      = "Unnamed.Test.A",
+              returnType    = "Unnamed.Test.A",
+              isStatic      = false,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "quux",
+              arguments = Vector(
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
+                Suggestion.Argument(
+                  "x",
+                  "Unnamed.Test.A",
+                  false,
+                  false,
+                  None,
+                  Some(List("Unnamed.Test.Mk_A", "Unnamed.Test.Mk_A_Plus"))
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Unnamed.Test.A",
+              isStatic      = true,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = List(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "single constructor isn't suggested" in {
+      val code =
+        """type A
+          |    Mk_A
+          |
           |    quux : A -> A
           |    quux self x = x
           |
@@ -2180,7 +2330,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(List("Unnamed.Test.Mk_A"))
+                  None
                 )
               ),
               selfType      = "Unnamed.Test.A",
@@ -2203,7 +2353,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(List("Unnamed.Test.Mk_A"))
+                  None
                 )
               ),
               selfType      = "Unnamed.Test",

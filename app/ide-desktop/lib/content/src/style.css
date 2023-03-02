@@ -90,17 +90,6 @@ body {
   overflow: hidden;
 }
 
-.titlebar {
-  width: 100vw;
-  height: 36px;
-  margin: 0;
-  position: absolute;
-  z-index: 10;
-  cursor: none;
-  -webkit-app-region: drag;
-  -webkit-user-select: none;
-}
-
 .visualization {
   z-index: 2;
   border-radius: 14px;

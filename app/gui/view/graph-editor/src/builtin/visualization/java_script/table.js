@@ -216,7 +216,7 @@ class TableVisualization extends Visualization {
             parsedData.header.forEach(addHeader)
             result += '</tr>'
             let rows = 0
-            if (parsedData.data.length > 0) {
+            if (parsedData.data && parsedData.data.length > 0) {
                 rows = parsedData.data[0].length
             } else if (parsedData.indices && parsedData.indices.length > 0) {
                 rows = parsedData.indices[0].length

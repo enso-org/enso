@@ -6,6 +6,7 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
+use ensogl_core::data::color;
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
@@ -24,8 +25,8 @@ mod icon1 {
     use super::*;
     ensogl_core::cached_shape! { 32 x 32;
         (_style: Style) {
-            let shape = Circle(16.px()).fill(color::Rgba::green());
-            shape.into()
+            let shape = Circle(16.px()).fill(color::Rgba::red());
+            shape.recolorize(color::Rgba::green(), color::Rgba::red(), color::Rgba::blue()).into()
         }
     }
 }
@@ -87,9 +88,12 @@ pub mod data_input {
 mod shape {
     use super::*;
     ensogl_core::shape! {
-        (_style: Style, shape: cached::AnyCachedShape) {
+        (_style: Style, shape: cached::AnyCachedShape, color: Vector4) {
             let bg = Rect((100.px(), 100.px())).fill(color::Rgba::white());
-            let with_bg = &bg + &shape;
+            let vivid_color: Var<color::Rgba> = color.into();
+            let dull_color = vivid_color.clone().multiply_alpha(&Var::Static(0.5));
+            let colored = shape.recolorize(vivid_color, dull_color, color::Rgba::default());
+            let with_bg = &bg + &colored;
             with_bg.into()
         }
     }
@@ -174,18 +178,27 @@ pub fn main() {
     world.default_scene.add_child(&texture_preview);
     world.default_scene.layers.main.add(&texture_preview);
 
-    let shapes = [shape::View::new(), shape::View::new(), shape::View::new()];
-    for shape in &shapes {
-        shape.set_size(Vector2(100.0, 100.0));
+    let shapes = [
+        shape::View::new(),
+        shape::View::new(),
+        shape::View::new(),
+        shape::View::new(),
+        shape::View::new(),
+    ];
+    for (index, shape) in shapes.iter().enumerate() {
+        shape.set_x(-100.0 + 50.0 * index as f32);
+        shape.set_size(Vector2(40.0, 40.0));
+        shape.color.set(color::Rgba::black().into());
         world.default_scene.add_child(shape);
         world.default_scene.layers.main.add(shape);
     }
-    shapes[0].set_xy((-60.0, 0.0));
     shapes[0].shape.set(icon1::Shape::any_cached_shape_parameter());
-    shapes[1].set_xy((60.0, 0.0));
     shapes[1].shape.set(icon2::Shape::any_cached_shape_parameter());
-    shapes[2].set_xy((180.0, 0.0));
     shapes[2].shape.set(data_input::Shape::any_cached_shape_parameter());
+    shapes[3].shape.set(data_input::Shape::any_cached_shape_parameter());
+    shapes[3].color.set(color::Rgb::from_base_255(43.0, 117.0, 239.0).with_alpha(1.0).into());
+    shapes[4].shape.set(data_input::Shape::any_cached_shape_parameter());
+    shapes[4].color.set(color::Rgb::from_base_255(134.0, 135.0, 43.0).with_alpha(1.0).into());
 
     let icon1 = icon1::View::new();
     icon1.set_size(Vector2(100.0, 100.0));

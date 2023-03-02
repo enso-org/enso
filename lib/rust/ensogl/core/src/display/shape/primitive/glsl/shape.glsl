@@ -403,10 +403,30 @@ Shape intersection_no_blend (Shape s1, Shape s2) {
 }
 
 Shape set_color(Shape shape, Rgba t) {
+    // The [`alpha`] field is applied on [`color`] only if we are not in
+    // `DISPLAY_MODE_CACHED_SHAPES_TEXTURE`. See [`color`] docs for explanation.
     if (input_display_mode != DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
         t.raw.a *= shape.alpha;
     }
     shape.color = premultiply(Color(t));
+    return shape;
+}
+
+/// Change the shape color depending on RGB components.
+///
+/// See documentation of [`ShapeOps::colorize`] for detailed explanation and
+/// usage examples.
+Shape recolorize(Shape shape, Rgba r, Rgba g, Rgba b) {
+    PremultipliedColor r_prem = premultiply(Color(r));
+    PremultipliedColor g_prem = premultiply(Color(g));
+    PremultipliedColor b_prem = premultiply(Color(b));
+    vec4 r_component = premultiply(Color(r)).repr.raw * shape.color.repr.raw.r;
+    vec4 g_component = premultiply(Color(g)).repr.raw * shape.color.repr.raw.g;
+    vec4 b_component = premultiply(Color(b)).repr.raw * shape.color.repr.raw.b;
+    Rgba new = rgba(r_component + g_component + b_component);
+    // The original shape's color components had the [`alpha`] field already applied, so we don't need to apply it
+    // again here.
+    shape.color = PremultipliedColor(new);
     return shape;
 }
 

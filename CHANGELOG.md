@@ -103,6 +103,7 @@
 - [The component browser suggestions take into account entry aliases][5678]. The
   searcher input is now matched to entry aliases too. The alias match is used to
   filter and sort component browser entries.
+- [Fixed missing result preview when editing nodes.][5757]
 
 #### EnsoGL (rendering engine)
 
@@ -323,6 +324,8 @@
 - [`File.parent` may return `Nothing`.][5699]
 - [Removed non-regex functionality from `is_match`, `match`, and `match_all`,
   and renamed them to `match`, `find`, `find_all` (respectively).][5721]
+- [Updated `rename_columns` to new API. Added `first_row`, `second_row` and
+  `last_row` to Table types][5719]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -493,10 +496,12 @@
 [5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
 [5656]: https://github.com/enso-org/enso/pull/5656
+[5678]: https://github.com/enso-org/enso/pull/5678
 [5679]: https://github.com/enso-org/enso/pull/5679
 [5699]: https://github.com/enso-org/enso/pull/5699
-[5678]: https://github.com/enso-org/enso/pull/5678
+[5719]: https://github.com/enso-org/enso/pull/5719
 [5721]: https://github.com/enso-org/enso/pull/5721
+[5757]: https://github.com/enso-org/enso/pull/5757
 
 #### Enso Compiler
 
@@ -592,6 +597,7 @@
 - [Engine can now recover from serialization failures][5591]
 - [Use sbt runEngineDistribution][5609]
 - [Update to GraalVM 22.3.1][5602]
+- [Cache library bindings to optimize import/export resolution][5700]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -688,6 +694,7 @@
 [5591]: https://github.com/enso-org/enso/pull/5591
 [5609]: https://github.com/enso-org/enso/pull/5609
 [5602]: https://github.com/enso-org/enso/pull/5602
+[5700]: https://github.com/enso-org/enso/pull/5700
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

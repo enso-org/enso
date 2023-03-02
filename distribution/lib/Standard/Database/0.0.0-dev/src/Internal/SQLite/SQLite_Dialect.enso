@@ -110,6 +110,13 @@ type SQLite_Dialect
         new_context = Context.for_subquery setup.subquery . set_groups distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
+    ## PRIVATE
+       A heuristic used by `Connection.query` to determine if a given text looks
+       like a SQL query for the given dialect or is rather a table name.
+    is_probably_a_query : Text -> Boolean
+    is_probably_a_query self text =
+        (text.contains "SELECT ") || (text.contains "EXEC ")
+
 ## PRIVATE
 make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops
