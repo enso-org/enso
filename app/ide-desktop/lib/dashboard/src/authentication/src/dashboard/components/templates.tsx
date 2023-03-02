@@ -98,7 +98,7 @@ const TemplateRender: React.FC<TemplateRenderProps> = ({ template, onChange }) =
 interface TemplatesProps {
     onChange(name?: string): void
 }
-export const Templates: React.FC<TemplatesProps> = ({ onChange }) => {
+const Templates: React.FC<TemplatesProps> = ({ onChange }) => {
     return (
         <div className="bg-white">
             <div className="mx-auto py-2 px-4 sm:py-4 sm:px-6 lg:px-8">
@@ -115,3 +115,4 @@ export const Templates: React.FC<TemplatesProps> = ({ onChange }) => {
         </div>
     )
 }
+export default Templates
