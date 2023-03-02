@@ -19,6 +19,8 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
+import opener from 'opener'
+import { DEEP_LINK_PROTOCOL } from '../shared'
 import * as process from 'process'
 const logger = content.logger
 
@@ -50,7 +52,7 @@ class App {
             this.setChromeOptions(chromeOptions)
             security.enableAll()
             electron.app.on('before-quit', () => (this.isQuitting = true))
-            electron.app.whenReady().then(() => this.main(windowSize))
+            electron.app.on('ready', () => this.main(windowSize))
             this.registerShortcuts()
         }
     }
@@ -102,6 +104,7 @@ class App {
                 await this.startContentServerIfEnabled()
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
+                this.initOpenUrlListener()
                 this.loadWindowContent()
             })
         } catch (err) {
@@ -213,6 +216,55 @@ class App {
             })
         }
         electron.ipcMain.on(ipc.channel.quit, () => electron.app.quit())
+        // Register an IPC listener for the `openExternalUrl` event. This event is emitted by the
+        // authentication package when it needs to open a URL in the user's default (i.e., system)
+        // browser. This is used because we don't want to run the OAuth flow in the app, because
+        // users don't trust Electron apps to handle their credentials.
+        electron.ipcMain.on(ipc.channel.openExternalUrl, (_event, url) => opener(url))
+    }
+
+    /**
+     * Initialize the listener for `open-url` events.
+     *
+     * This listener is used to open a page in *this* application window, when the user is
+     * redirected to a URL with a protocol supported by this application.
+     *
+     * For example, when the user completes an OAuth sign in flow (e.g., through Google), they are
+     * redirected to a URL like `enso://auth?code=...`. This listener will intercept that URL
+     * and open the page `auth?code=...` in the application window.
+     */
+    initOpenUrlListener() {
+        electron.app.on('open-url', (event, url) => {
+            // We only want to handle URLs that are both deep links and that are meant for this
+            // application. We can tell if it is by checking the protocol. Any non-matching URLs are
+            // ignored by this handler (and passed to the default handler). Any matchin URLs are
+            // handled **only** by this handler.
+            const parsedUrl = new URL(url)
+            const isDeepLink = parsedUrl.protocol === `${DEEP_LINK_PROTOCOL}:`
+            if (!isDeepLink) {
+                return
+            }
+
+            // Don't open the deep link URL in the window, we want the system browser to handle it.
+            event.preventDefault()
+
+            // Parse the relevant details from the URL, and pass it to the designated authentication
+            // URL handler over the IPC channel. This URL handler should have been registered by the
+            // `preload` module, and is responsible for opening the URL in the system browser.
+            //
+            // TODO [NP]: https://github.com/enso-org/cloud-v2/issues/339
+            // The reason we parse and re-create the URL here at all is because some of the URLs
+            // sent by our authentication flows are malformed. That is, some take the form
+            // `enso://localhost:8080/auth` and others take the form `enso://auth`. What we are
+            // doing here is effectively normalizing the URLs to always start with a known value (in
+            // this case) `http://localhost:8080` instead. This is a hack, and should be fixed by
+            // making the authentication flows send consistent URLs in the first place.
+            const port = this.serverPort()
+            const pathname = parsedUrl.pathname
+            const search = parsedUrl.search
+            const normalizedUrl = new URL(`http://localhost:${port}${pathname}${search}`)
+            this.window?.webContents.send(ipc.channel.openAuthenticationUrl, normalizedUrl.href)
+        })
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration

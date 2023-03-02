@@ -17,7 +17,7 @@ import builder from 'electron-builder'
 import { notarize } from 'electron-notarize'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 
-import { project_manager_bundle } from './paths.js'
+import { DEEP_LINK_PROTOCOL, PRODUCT_NAME, project_manager_bundle } from './shared.js'
 import build from '../../build.json' assert { type: 'json' }
 import yargs from 'yargs'
 import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
@@ -64,12 +64,25 @@ const args = await yargs(process.argv.slice(2))
 
 const config: Configuration = {
     appId: 'org.enso',
-    productName: 'Enso',
+    productName: PRODUCT_NAME,
     extraMetadata: {
         version: build.version,
     },
     copyright: 'Copyright © 2022 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
+    // Define a new protocol to enable redirects back to the IDE from external sources. This allows
+    // us to send the user to the browser to authenticate, and then redirect back to the IDE. This
+    // also allows us to intercept users clicking on signup verification links in their emails, also
+    // redirecting them back to the IDE.
+    //
+    // For details on how this works,
+    // see: https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app
+    //
+    // This is defined in Electron builder rather than anywhere else because Electron builder
+    // registers this protocol with the OS, so that the app is opened when a deep link is clicked,
+    // **even if the app was not already running**. We could not do this if the app itself was
+    // responsible for registering the protocol.
+    protocols: [{ name: `${PRODUCT_NAME} url`, schemes: [DEEP_LINK_PROTOCOL], role: 'Editor' }],
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: (args.target as MacOsTargetName) ?? 'dmg',

@@ -1,7 +1,7 @@
 /** @file File system paths used by the application. */
 
 import path from 'node:path'
-import { project_manager_bundle } from '../paths'
+import { project_manager_bundle } from '../shared'
 import Electron from 'electron'
 
 // =============
