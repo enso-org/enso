@@ -6,7 +6,8 @@ public class FileSystemHelper {
   public static void setWritable(String path, boolean writable) {
     File file = new File(path);
     if (!file.setWritable(writable)) {
-      throw new UnsupportedOperationException("Failed to set file " + file + " writable: " + writable);
+      throw new UnsupportedOperationException(
+          "Failed to set file " + file + " writable: " + writable);
     }
   }
 }

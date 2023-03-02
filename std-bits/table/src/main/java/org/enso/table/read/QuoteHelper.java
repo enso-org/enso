@@ -50,7 +50,8 @@ public class QuoteHelper {
     }
 
     boolean hasLeadingQuote = text.charAt(0) == quoteCharacter;
-    boolean hasTrailingQuote = text.length() >= 2 && text.charAt(text.length() - 1) == quoteCharacter;
+    boolean hasTrailingQuote =
+        text.length() >= 2 && text.charAt(text.length() - 1) == quoteCharacter;
 
     return hasLeadingQuote != hasTrailingQuote;
   }
