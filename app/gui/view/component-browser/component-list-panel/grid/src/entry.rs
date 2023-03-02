@@ -63,7 +63,7 @@ pub mod background {
     // See https://www.pivotaltracker.com/story/show/182593513
 
     ensogl_core::shape! {
-        below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape];
+        below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape, icon::any];
         pointer_events = false;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
             let color = Var::<color::Rgba>::from(color);
@@ -209,59 +209,6 @@ pub struct Params {
 // === Data ===
 // ============
 
-// === CurrentIcon ===
-
-/// The structure keeping a currently displayed icon in Component Group Entry [`View`], remembering
-/// the position, id, and colors.
-#[derive(Debug)]
-struct CurrentIcon {
-    display_object: display::object::Instance,
-    color:          color::Lcha,
-    shape:          Option<icon::Any>,
-    id:             Option<icon::Id>,
-}
-
-impl Default for CurrentIcon {
-    fn default() -> Self {
-        Self {
-            display_object: display::object::Instance::new(),
-            color:          default(),
-            shape:          default(),
-            id:             default(),
-        }
-    }
-}
-
-impl CurrentIcon {
-    fn update(&mut self, new_icon: Option<icon::Id>) {
-        if self.id != new_icon {
-            self.id = new_icon;
-            if let Some(icon_id) = new_icon {
-                let shape = icon_id.create_shape(Vector2(icon::SIZE, icon::SIZE));
-                shape.set_color(color::Rgba::from(self.color).into());
-                self.display_object.add_child(&shape);
-                self.shape = Some(shape);
-            } else {
-                self.shape = None;
-            }
-        }
-    }
-
-    fn set_color(&mut self, color: color::Lcha) {
-        self.color = color;
-        if let Some(shape) = &self.shape {
-            shape.set_color(color::Rgba::from(color).into());
-        }
-    }
-}
-
-impl display::Object for CurrentIcon {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-
 // === Data ===
 
 /// The data of Component Browser Entry [`View`], passed to its FRP nodes.
@@ -270,7 +217,7 @@ pub struct Data {
     display_object: display::object::Instance,
     label:          text::Text,
     background:     background::View,
-    icon:           Rc<RefCell<CurrentIcon>>,
+    icon:           icon::any::View,
     style:          StyleWatchFrp,
 }
 
@@ -279,16 +226,17 @@ impl Data {
         let display_object = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
         let background = background::View::new();
-        let icon = CurrentIcon::default();
+        let icon = icon::any::View::new();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         display_object.add_child(&background);
         display_object.add_child(&icon);
         display_object.add_child(&label);
+        icon.set_size((icon::SIZE, icon::SIZE));
         label.set_long_text_truncation_mode(true);
         if let Some(layer) = text_layer {
             label.add_to_scene_layer(layer);
         }
-        Self { display_object, label, background, icon: Rc::new(RefCell::new(icon)), style }
+        Self { display_object, label, background, icon, style }
     }
 
     fn update_layout(
@@ -328,7 +276,7 @@ impl Data {
         let left = -width / 2.0 + style.padding;
         let icon_x = left + style.icon_size / 2.0;
         let icon_y = local_scope_offset;
-        self.icon.borrow().set_xy(Vector2(icon_x, icon_y));
+        self.icon.set_xy(Vector2(icon_x, icon_y));
         let text_y_offset = match kind {
             Kind::Header => style.text_y_offset_header,
             _ => style.text_y_offset,
@@ -464,7 +412,7 @@ impl grid_view::Entry for View {
             let colors = ResolvedColors::from_main_color(network, &data.style, &color, &colors, &is_dimmed);
             eval colors.background ((c) data.background.color.set(color::Rgba::from(c).into()));
             data.label.set_property_default <+ colors.text.ref_into_some();
-            eval colors.icon ((c) data.icon.borrow_mut().set_color(*c));
+            eval colors.icon ((c) data.icon.r_component.set(color::Rgba::from(*c).into()));
             out.hover_highlight_color <+ colors.hover_highlight;
             // We want to animate only when params changed (the different section is highlighted).
             // Other case, where entry receives new model with new section means it is reused
@@ -502,7 +450,7 @@ impl grid_view::Entry for View {
                 ((..).into(), Some(text::Weight::Medium.into()))
             });
             data.label.set_property_default <+ style.map(|s| text::Size::new(s.text_size)).cloned_into_some();
-            eval icon ((&icon) data.icon.borrow_mut().update(icon));
+            eval icon ((&icon) data.icon.icon.set(icon.map_or(default(), |icon| icon.any_cached_shape_location())));
             data.label.set_font <+ style.map(|s| s.font.clone_ref()).on_change();
         }
         Self { frp, data }
