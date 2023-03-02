@@ -3,12 +3,7 @@ package org.enso.compiler
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
-import org.enso.compiler.context.{
-  FreshNameSupply,
-  InlineContext,
-  ModuleContext,
-  SuggestionBuilder
-}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Expression
 
@@ -68,10 +63,6 @@ class Compiler(
   )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val suggestionsSerializationManager: SuggestionsSerializationManager =
-    new SuggestionsSerializationManager(
-      context.getLogger(classOf[SuggestionsSerializationManager])
-    )
   private val logger: TruffleLogger = context.getLogger(getClass)
   private val output: PrintStream =
     if (config.outputRedirect.isDefined)
@@ -200,25 +191,16 @@ class Compiler(
                 mod
             }.toList
 
-            val compilerResult =
-              runInternal(
-                packageModules,
-                generateCode = false,
-                shouldCompileDependencies
-              )
+            runInternal(
+              packageModules,
+              generateCode = false,
+              shouldCompileDependencies
+            )
 
-            serializationManager.serializeLibraryBindings(
+            serializationManager.serializeLibrary(
               pkg.libraryName,
               useGlobalCacheLocations = true
             )
-            val suggestions =
-              compilerResult.compiledModules
-                .flatMap { module =>
-                  SuggestionBuilder(module)
-                    .build(module.getName, module.getIr)
-                    .toVector
-                }
-            suggestionsSerializationManager.serialize(suggestions, pkg)
         }
     }
   }

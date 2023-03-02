@@ -2,13 +2,16 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.context.SuggestionBuilder
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.Suggestion
 
 import java.io.NotSerializableException
+import java.util
 import java.util.concurrent.{
   Callable,
   CompletableFuture,
@@ -19,6 +22,7 @@ import java.util.concurrent.{
   TimeUnit
 }
 import java.util.logging.Level
+
 import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptional
 
@@ -133,13 +137,13 @@ class SerializationManager(compiler: Compiler) {
     }
   }
 
-  def serializeLibraryBindings(
+  def serializeLibrary(
     libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
   ): Future[Boolean] = {
     logger.log(
       Level.INFO,
-      s"Requesting serialization for library [$libraryName] bindings."
+      s"Requesting serialization for library [$libraryName]."
     )
 
     val task: Callable[Boolean] =
@@ -157,7 +161,7 @@ class SerializationManager(compiler: Compiler) {
         case e: Throwable =>
           logger.log(
             debugLogLevel,
-            s"Serialization task failed for library [${libraryName}].",
+            s"Serialization task failed for library [$libraryName].",
             e
           )
           CompletableFuture.completedFuture(false)
@@ -165,7 +169,7 @@ class SerializationManager(compiler: Compiler) {
     }
   }
 
-  def doSerializeLibrary(
+  private def doSerializeLibrary(
     libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
   ): Callable[Boolean] = () => {
@@ -195,24 +199,64 @@ class SerializationManager(compiler: Compiler) {
         .map(_.listSourcesJava())
     )
     try {
-      new ImportExportCache(libraryName)
-        .save(bindingsCache, compiler.context, useGlobalCacheLocations)
-        .isPresent()
-    } catch {
-      case e: NotSerializableException =>
-        logger.log(
-          Level.SEVERE,
-          s"Could not serialize bindings [$libraryName].",
-          e
-        )
-        throw e
-      case e: Throwable =>
-        logger.log(
-          Level.SEVERE,
-          s"Serialization of bindings `$libraryName` failed: ${e.getMessage}`",
-          e
-        )
-        throw e
+      val result =
+        try {
+          new ImportExportCache(libraryName)
+            .save(bindingsCache, compiler.context, useGlobalCacheLocations)
+            .isPresent
+        } catch {
+          case e: NotSerializableException =>
+            logger.log(
+              Level.SEVERE,
+              s"Could not serialize bindings [$libraryName].",
+              e
+            )
+            throw e
+          case e: Throwable =>
+            logger.log(
+              Level.SEVERE,
+              s"Serialization of bindings `$libraryName` failed: ${e.getMessage}`",
+              e
+            )
+            throw e
+        }
+
+      try {
+        val suggestions = new util.ArrayList[Suggestion]()
+        compiler.packageRepository
+          .getModulesForLibrary(libraryName)
+          .flatMap { module =>
+            SuggestionBuilder(module)
+              .build(module.getName, module.getIr)
+              .toVector
+          }
+          .foreach(suggestions.add)
+        val cachedSuggestions =
+          new SuggestionsCache.CachedSuggestions(
+            libraryName,
+            new SuggestionsCache.Suggestions(suggestions)
+          )
+        new SuggestionsCache(libraryName)
+          .save(cachedSuggestions, compiler.context, false)
+          .isPresent
+      } catch {
+        case e: NotSerializableException =>
+          logger.log(
+            Level.SEVERE,
+            s"Could not serialize suggestions [$libraryName].",
+            e
+          )
+          throw e
+        case e: Throwable =>
+          logger.log(
+            Level.SEVERE,
+            s"Serialization of suggestions `$libraryName` failed: ${e.getMessage}`",
+            e
+          )
+          throw e
+      }
+
+      result
     } finally {
       finishSerializing(libraryName.toQualifiedName)
     }
