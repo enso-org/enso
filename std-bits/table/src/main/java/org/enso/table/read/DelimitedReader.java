@@ -212,6 +212,13 @@ public class DelimitedReader {
   }
 
   private void reportInvalidRow(long source_row, Long table_index, String[] row, long expected_length) {
+    // Mismatched quote error takes precedence over invalid row.
+    for (int i = 0; i < row.length; i++) {
+      if (row[i] != null && QuoteHelper.hasMismatchedQuotes(quoteCharacter, row[i])) {
+        reportMismatchedQuote();
+      }
+    }
+
     if (invalidRowsCount < invalidRowsLimit) {
       reportProblem(new InvalidRow(source_row, table_index, row, expected_length));
     }
