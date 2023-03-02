@@ -44,6 +44,7 @@ public abstract class RegexCompileNode extends Node {
     var ctx = EnsoContext.get(this);
     var env = ctx.getEnvironment();
     var s = "Flavor=ECMAScript/" + pattern + "/" + options;
+    System.out.println("HAHA " + s);
     var src =
         Source.newBuilder("regex", s, "myRegex")
             .mimeType("application/tregex")

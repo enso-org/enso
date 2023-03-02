@@ -4,33 +4,50 @@ import Standard.Base.Data.Text.Regex_2
 import Standard.Base.Data.Text.Regex.Pattern_2.Pattern_2
 
 main =
-    p = Regex_2.compile_2 "ab"
+    # 0301 == 0xc1
+    # 0xe9 = 0351
+    ## result:
+        Nothing
+        (Match_2.Value TRegexResult[0, 1] 'é')
+    #accent_1 = '\u00E9'
+    ## result:
+        (Match_2.Value TRegexResult[1, 2] 'áéó')
+        (Match_2.Value TRegexResult[0, 1] '́') # This is an unmoored accent between two single quotes, fml
+    accent_1 = '\u{301}'
+    accents = 'a\u{301}e\u{301}o\u{301}'
+    IO.println (accents.find accent_1)
+    IO.println (accent_1.find accent_1)
+    IO.println (accents.find accent_1 case_sensitivity=Case_Sensitivity.Sensitive)
+    IO.println (accent_1.find accent_1 case_sensitivity=Case_Sensitivity.Sensitive)
 
-    matches_no = p.match "qqq"
-    IO.println matches_no
+    ##
+        p = Regex_2.compile_2 "ab"
 
-    matches = p.match_all "heyabyeahab yo abc no cab ab abab ye "
-    IO.println matches
-    IO.println (matches.map m-> m.span 0 . text)
-    match = p.match "heyabyeahab yo abc no cab ab abab ye "
-    IO.println match
-    IO.println (match.span 0 . text)
+        matches_no = p.match "qqq"
+        IO.println matches_no
 
-    p2 = Regex_2.compile_2 "a(b(cd))"
-    m2 = p2.match "ajeavabcdwri"
-    IO.println p2.to_text_debug
-    IO.println (m2.span 0 . text)
-    IO.println (m2.span 1 . text)
-    IO.println (m2.span 2 . text)
+        matches = p.match_all "heyabyeahab yo abc no cab ab abab ye "
+        IO.println matches
+        IO.println (matches.map m-> m.span 0 . text)
+        match = p.match "heyabyeahab yo abc no cab ab abab ye "
+        IO.println match
+        IO.println (match.span 0 . text)
 
-    p3a = Regex_2.compile_2 "abc"
-    p3b = Regex_2.compile_2 "abc" case_insensitive=True
-    m3a = p3a.match "ABC"
-    m3b = p3b.match "ABC"
-    IO.println m3a
-    IO.println m3b
+        p2 = Regex_2.compile_2 "a(b(cd))"
+        m2 = p2.match "ajeavabcdwri"
+        IO.println p2.to_text_debug
+        IO.println (m2.span 0 . text)
+        IO.println (m2.span 1 . text)
+        IO.println (m2.span 2 . text)
 
-    IO.println ("abcdab".match "ab")
-    IO.println ("ab".match "ab")
-    IO.println ("abcdab".find "ab")
-    IO.println ("abcdab".find_all "ab")
+        p3a = Regex_2.compile_2 "abc"
+        p3b = Regex_2.compile_2 "abc" case_insensitive=True
+        m3a = p3a.match "ABC"
+        m3b = p3b.match "ABC"
+        IO.println m3a
+        IO.println m3b
+
+        IO.println ("abcdab".match "ab")
+        IO.println ("ab".match "ab")
+        IO.println ("abcdab".find "ab")
+        IO.println ("abcdab".find_all "ab")
