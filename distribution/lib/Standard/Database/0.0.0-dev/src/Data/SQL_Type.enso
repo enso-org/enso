@@ -93,7 +93,7 @@ type SQL_Type
         _ : Decimal -> SQL_Type.double
         _ : Text -> SQL_Type.varchar
         _ : Date -> SQL_Type.date
-        _ : Time_Of_Day -> SQL_Type.time_of_day
+        _ : Time_Of_Day -> SQL_Type.time
         _ : Date_Time -> SQL_Type.date_time
         Nothing -> SQL_Type.null
         _ -> Error.throw (Illegal_Argument.Error "Unsupported type.")

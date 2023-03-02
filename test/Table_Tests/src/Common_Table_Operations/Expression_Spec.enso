@@ -28,7 +28,7 @@ spec detailed setup =
     ## TODO Expressions were not being tested on Database backends before and
        many tests are failing. Disabling the tests until this is fixed, tracked
        by issue: https://www.pivotaltracker.com/story/show/183933832
-    pending_bug = if prefix.contains "In-Memory" then Nothing else "Some of these tests are not working in Database. See: https://www.pivotaltracker.com/story/show/183933832"
+    pending_bug = if prefix.contains "In-Memory" then Nothing else "Date and Time support for In-Database backends is not fully implemented. https://github.com/enso-org/enso/issues/5268"
 
     epsilon=0.0000000001
 
@@ -102,15 +102,19 @@ spec detailed setup =
             expression_test "Nothing" Nothing
             expression_test "NOTHING" Nothing
 
-    Test.group prefix+"Expression Date and Time literals" pending=pending_bug <|
+    Test.group prefix+"Expression Date and Time literals" <|
         specify_test "should be able to add a date or time column" expression_test->
             expression_test "#2020-12-23#" (Date.new 2020 12 23)
             expression_test "#12:34#" (Time_Of_Day.new 12 34)
             expression_test "#12:34:56#" (Time_Of_Day.new 12 34 56)
             expression_test "#2020-12-23 12:34#" (Date_Time.new 2020 12 23 12 34)
             expression_test "#2020-12-23 12:34:56#" (Date_Time.new 2020 12 23 12 34 56)
+
+        specify_test "should be able to add a time column with sub-millisecond accuracy" pending=pending_bug expression_test->
             expression_test "#12:34:56.789#" (Time_Of_Day.new 12 34 56 789)
             expression_test "#12:34:56.789000123#" (Time_Of_Day.new 12 34 56 789 0 123)
+
+        specify_test "should be able to add a date time column with timezone" pending=pending_bug expression_test->
             expression_test "#2020-12-23 12:34:56Z[UTC]#" (Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc)
             expression_test "#2020-12-23 12:34:56+02:30[UTC]#" (Date_Time.new 2020 12 23 10 04 56 zone=Time_Zone.utc)
             expression_test "#2020-12-23 12:34:56.157+01[UTC]#" (Date_Time.new 2020 12 23 11 34 56 157 zone=Time_Zone.utc)
@@ -262,12 +266,12 @@ spec detailed setup =
             expression_test "Not False" True
             expression_test "NOT [Bad]] Name]" [False, True, False, True, False]
 
-        specify_test "should be able to use IF" pending=pending_bug expression_test->
+        specify_test "should be able to use IF" expression_test->
             expression_test "IF True THEN 1 ELSE 0" 1
             expression_test "IF False THEN 'A' ELSE 'B' END" 'B'
             expression_test "IF [Bad]] Name] THEN [A] ELSE [B] ENDIF" [1, 1.5, 3, 4, 5]
 
-    Test.group prefix+"Function invocation" pending=pending_bug <|
+    Test.group prefix+"Function invocation" <|
         specify_test "should be able to call a function with arguments" expression_test->
             expression_test "Not(True)" False
             expression_test "not(False)" True
@@ -278,7 +282,7 @@ spec detailed setup =
             expression_test "min(10, 3, 8)" 3
             expression_test "max([A], [B], 3)" [3, 3, 3, 4, 6]
 
-    Test.group prefix+"Expression Errors should be handled" pending=pending_bug <|
+    Test.group prefix+"Expression Errors should be handled" <|
         error_tester expression fail_type =
             test_table.set expression new_name="NEW_COL" . should_fail_with fail_type
 

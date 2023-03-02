@@ -3,6 +3,8 @@ package org.enso.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.ZonedDateTime;
 import java.util.Properties;
 
 /**
@@ -36,5 +38,15 @@ public class JDBCProxy {
    */
   public static Connection getConnection(String url, Properties properties) throws SQLException {
     return DriverManager.getConnection(url, properties);
+  }
+
+  /**
+   * Converts a ZonedDateTime to a Timestamp (note loses the timezone).
+   *
+   * @param zonedDateTime the ZonedDateTime to convert
+   * @return the converted Timestamp
+   */
+  public static Timestamp getTimestamp(ZonedDateTime zonedDateTime) {
+    return Timestamp.from(zonedDateTime.toInstant());
   }
 }
