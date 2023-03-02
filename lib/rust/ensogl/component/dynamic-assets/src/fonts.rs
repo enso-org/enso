@@ -19,7 +19,7 @@ const ASCII_PRINTABLE_CHARS: &str = concat!(
 );
 
 /// The glyphs to include in the pre-built atlas loaded at application startup.
-const PRELOAD_GLYPHS: [&str] = [ASCII_PRINTABLE_CHARS];
+const PRELOAD_GLYPHS: &[&str] = &[ASCII_PRINTABLE_CHARS];
 
 
 
@@ -100,7 +100,7 @@ fn build_atlas(name: &str) -> Atlas {
     let mut bold = normal;
     bold.weight = font::Weight::Bold;
     for variation in &[normal, bold] {
-        for glyphs in &PRELOAD_GLYPHS {
+        for glyphs in PRELOAD_GLYPHS {
             font.prepare_glyphs(variation, glyphs);
         }
     }
@@ -120,7 +120,7 @@ fn build_atlas(name: &str) -> Atlas {
 /// Attach the given MSDF data to a font to enable efficient rendering.
 fn load_atlas(font: String, atlas: Vec<u8>, glyphs: String) {
     let atlas = enso_bitmap::Image::decode_ppm(&atlas).unwrap();
-    let snapshot = font::CacheSnapshot { atlas, glyphs };
+    let snapshot = Rc::new(font::CacheSnapshot { atlas, glyphs });
     let name = ensogl_text::font::Name::from(font);
     font::PREBUILT_ATLASES.with_borrow_mut(|atlases| atlases.insert(name, snapshot));
 }

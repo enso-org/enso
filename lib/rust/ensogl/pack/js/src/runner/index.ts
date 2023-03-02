@@ -393,7 +393,7 @@ export class App {
                 return manifest
             }
         )
-        logger.warn(`Got manifest:`, manifest)
+
         const assetsUrls = new Assets<string>([])
         for (const [type, typeAssets] of Object.entries(manifest)) {
             for (const [key, asset] of Object.entries(typeAssets)) {
@@ -402,11 +402,8 @@ export class App {
                 assetsUrls.assets.push(new Asset<string>(type, key, urls))
             }
         }
-        const assetsResponses = await assetsUrls.mapAndAwaitAll(fetch)
+        const assetsResponses = await assetsUrls.mapAndAwaitAll(url => loader.fetch(url))
         const assets = await assetsResponses.mapAndAwaitAll(response => response.blob().then(blob => blob.arrayBuffer()))
-        for (const asset of assets.assets) {
-            logger.warn(`Got asset: ${asset.type} / ${asset.key}.`)
-        }
         this.assets = assets
 
         const files = new Files(
@@ -420,16 +417,10 @@ export class App {
             files.shaders.map.set(unmangledName, new Shader(vertexUrl, fragmentUrl))
         }
 
-        const responses = await files.mapAndAwaitAll(url => fetch(url))
-        const responsesArray = responses.toArray()
-        loader.load(responsesArray)
+        const responses = await files.mapAndAwaitAll(url => loader.fetch(url))
         const downloadSize = loader.showTotalBytes()
         const task = log.Task.startCollapsed(`Downloading application files (${downloadSize}).`)
         void loader.done.then(() => task.end())
-
-        for (const file of files.toArray()) {
-            logger.log(`Downloading '${file}'.`)
-        }
 
         const pkgJs = await responses.pkgJs.text()
         this.loader = loader

@@ -330,34 +330,31 @@ export class Loader {
         })
     }
 
-    /** Load the provided resources. */
-    load(resources: Response[]) {
+    /** Load the provided resource. */
+    async fetch(resource: string): Promise<Response> {
         const loaderError = (msg: string) => console.error(`Loader error. ${msg}`)
-        let missingContentLength = false
-        for (const resource of resources) {
-            const contentLength = resource.headers.get('content-length')
-            if (contentLength) {
-                this.totalBytes += parseInt(contentLength)
-            } else {
-                missingContentLength = true
+        const response = await fetch(resource)
+        const contentLength = response.headers.get('content-length')
+        if (contentLength === null) {
+            if (!isNaN(this.totalBytes)) {
+                loaderError("Server is not configured to send the 'Content-Length' metadata.")
             }
-            const body = resource.clone().body
-            if (body) {
-                body.pipeTo(this.inputStream()).catch(err => logger.error(err))
-            } else {
-                loaderError('Cannot read the response body.')
-            }
+            this.totalBytes = NaN
+        } else {
+            this.totalBytes += parseInt(contentLength)
         }
-
-        if (missingContentLength || Number.isNaN(this.totalBytes)) {
-            loaderError("Server is not configured to send the 'Content-Length' metadata.")
-            this.totalBytes = 0
+        const body = response.clone().body
+        if (body) {
+            body.pipeTo(this.inputStream()).catch(err => logger.error(err))
+        } else {
+            loaderError('Cannot read the response body.')
         }
+        return response
     }
 
     /** The current loading progress [0..1]. */
     value() {
-        if (this.totalBytes == 0) {
+        if (isNaN(this.totalBytes)) {
             return 0
         } else {
             return this.receivedBytes / this.totalBytes
