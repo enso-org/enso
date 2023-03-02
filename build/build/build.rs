@@ -3,17 +3,15 @@
 
 use ide_ci::prelude::*;
 
-use ide_ci::env::expect_var;
-
 
 
 fn main() -> Result {
     println!("cargo:rerun-if-changed=paths.yaml");
     let yaml_contents = include_bytes!("paths.yaml");
-    let code = ide_ci::paths::process(yaml_contents.as_slice())?;
-    let out_dir = expect_var("OUT_DIR")?.parse2::<PathBuf>()?;
+    let code = enso_build_macros_lib::paths::process(yaml_contents.as_slice())?;
+    let out_dir = ide_ci::programs::cargo::build_env::OUT_DIR.get()?;
     let out_path = out_dir.join("paths.rs");
-    ide_ci::fs::write(&out_path, code)?;
+    ide_ci::fs::write(&out_path, code.to_string())?;
     std::process::Command::new("rustfmt").arg(&out_path).status()?.exit_ok()?;
     Ok(())
 }
