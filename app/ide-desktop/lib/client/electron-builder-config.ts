@@ -27,7 +27,7 @@ import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
  * @see `args` definition below for fields description.
  * */
 export interface Arguments {
-    target: string
+    target?: string
     iconsDist: string
     guiDist: string
     ideDist: string
