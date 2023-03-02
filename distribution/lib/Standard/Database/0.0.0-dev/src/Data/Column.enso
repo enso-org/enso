@@ -546,8 +546,15 @@ type Column
            common type.
         left_type = get_approximate_type when_true self.sql_type
         right_type = get_approximate_type when_false self.sql_type
-        if left_type != right_type then Error.throw (Illegal_Argument.Error "when_true and when_false types do not match") else
-            self.make_op "IIF" [when_true, when_false] new_type=left_type
+
+        new_type = if left_type == right_type then left_type else
+            if left_type != SQL_Type.null && right_type == SQL_Type.null then left_type else
+                if left_type == SQL_Type.null && right_type != SQL_Type.null then right_type else
+                    if left_type.is_definitely_numeric && right_type.is_definitely_numeric then SQL_Type.arithmetic_type left_type right_type else
+                        Nothing
+
+        if new_type == Nothing then Error.throw (Illegal_Argument.Error "when_true and when_false types do not match") else
+            self.make_op "IIF" [when_true, when_false] new_type=new_type
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
