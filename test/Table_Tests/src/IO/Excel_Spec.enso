@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Match_Columns, Column_Name_Mapping, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Excel_Workbook
+from Standard.Table import Table, Match_Columns, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Excel_Workbook
 
 from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
 
@@ -115,7 +115,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             table.write out (Excel (Worksheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "NoHeaders"))
-            written.should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
+            written.should_equal (table.rename_columns ['A', 'B', 'C', 'D', 'E', 'F'])
             out.delete_if_exists
 
         Test.specify 'should create new sheets at the start if index is 0' <|
@@ -193,7 +193,7 @@ spec_write suffix test_sheet_name =
             written = out.read
             written.sheet_count . should_equal 1
             written.sheet_names . should_equal ['Sheet1']
-            written.read 'Sheet1' . should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
+            written.read 'Sheet1' . should_equal (table.rename_columns ['A', 'B', 'C', 'D', 'E', 'F'])
             out.delete_if_exists
 
         Test.specify 'should be able to append to a sheet by name' <|

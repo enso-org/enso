@@ -2,6 +2,8 @@ package org.enso.pkg
 
 import com.oracle.truffle.api.CompilerDirectives
 
+import scala.jdk.CollectionConverters._
+
 /** Represents a qualified name of a source item.
   *
   * @param path the names of the package and directories the item is
@@ -37,6 +39,14 @@ case class QualifiedName(path: List[String], item: String) {
   def renameProject(newName: String): QualifiedName = {
     val namespace = path.head
     this.copy(path = namespace :: newName :: path.drop(2))
+  }
+
+  /** Gets the path portion of the qualified name as a Java list.
+    *
+    * @return a Java list representation of the path portion of the qualified name.
+    */
+  def pathAsJava(): java.util.List[String] = {
+    path.asJava
   }
 
   /** Checks if this name is a child of `other` name.

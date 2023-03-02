@@ -1,0 +1,482 @@
+package org.enso.compiler;
+
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLogger;
+import org.bouncycastle.jcajce.provider.digest.SHA3;
+import org.bouncycastle.util.encoders.Hex;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.logger.masking.MaskedPath;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.util.Optional;
+import java.util.logging.Level;
+
+/**
+ * Cache encapsulates a common functionality needed to serialize and de-serialize objects, while
+ * maintaining its integrity in the process.
+ *
+ * @param <T> type of the cached data
+ * @param <M> type of the metadata associated with the data
+ */
+public abstract class Cache<T, M extends Cache.Metadata> {
+
+  /** Returns a default level of logging for this Cache. */
+  protected Level logLevel;
+
+  /**
+   * Saves data to a cache file.
+   *
+   * @param entry data to save
+   * @param context the language context in which loading is taking place
+   * @param useGlobalCacheLocations if true, will use global cache location, local one otherwise
+   * @return if non-empty, returns the location of the successfully saved location of the cached
+   *     data
+   */
+  public Optional<TruffleFile> save(T entry, EnsoContext context, boolean useGlobalCacheLocations) {
+    TruffleLogger logger = context.getLogger(this.getClass());
+    return getCacheRoots(context)
+        .flatMap(
+            roots -> {
+              try {
+                if (useGlobalCacheLocations) {
+                  if (saveCacheTo(roots.globalCacheRoot, entry, logger)) {
+                    return Optional.of(roots.globalCacheRoot);
+                  }
+                } else {
+                  logger.log(
+                      logLevel, "Skipping use of global cache locations for " + stringRepr + ".");
+                }
+
+                if (saveCacheTo(roots.localCacheRoot, entry, logger)) {
+                  return Optional.of(roots.localCacheRoot);
+                }
+
+                logger.log(logLevel, "Unable to write cache data for " + stringRepr + ".");
+                return Optional.empty();
+              } catch (CacheException e) {
+                logger.log(
+                    Level.SEVERE, "Failed to save cache for " + stringRepr + ": " + e.getMessage());
+                return Optional.empty();
+              } catch (IOException ioe) {
+                logger.log(Level.SEVERE, "Failed to save cache for " + stringRepr + ".", ioe);
+                return Optional.empty();
+              }
+            });
+  }
+
+  /**
+   * Attempts to save cache data at a specified location.
+   *
+   * @param cacheRoot parent directory where cache data should be stored
+   * @param entry cache data to save
+   * @param logger internal logger
+   * @return true, if successful, false otherwise
+   * @throws IOException IOException encountered while writing data to files
+   */
+  private boolean saveCacheTo(TruffleFile cacheRoot, T entry, TruffleLogger logger)
+      throws IOException, CacheException {
+    if (ensureRoot(cacheRoot)) {
+      var byteStream = new ByteArrayOutputStream();
+      byte[] bytesToWrite;
+      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
+        stream.writeObject(extractObjectToSerialize(entry));
+        bytesToWrite = byteStream.toByteArray();
+      }
+
+      String blobDigest = computeDigestFromBytes(bytesToWrite);
+      String sourceDigest = computeDigest(entry, logger).get();
+      if (sourceDigest == null) {
+        throw new CacheException("unable to compute digest");
+      }
+      ;
+      byte[] metadataBytes = metadata(sourceDigest, blobDigest, entry);
+
+      TruffleFile cacheDataFile = getCacheDataPath(cacheRoot);
+      TruffleFile metadataFile = getCacheMetadataPath(cacheRoot);
+      TruffleFile parentPath = cacheDataFile.getParent();
+
+      if (writeBytesTo(cacheDataFile, bytesToWrite) && writeBytesTo(metadataFile, metadataBytes)) {
+        logger.log(
+            logLevel,
+            "Written cache data ["
+                + stringRepr
+                + "] to ["
+                + toMaskedPath(parentPath).applyMasking()
+                + "].");
+        return true;
+      } else {
+        // Clean up after ourselves if it fails.
+        cacheDataFile.delete();
+      }
+    }
+    return false;
+  }
+
+  private boolean ensureRoot(TruffleFile cacheRoot) {
+    try {
+      if (cacheRoot.exists() && cacheRoot.isDirectory()) {
+        return cacheRoot.isWritable();
+      } else {
+        cacheRoot.createDirectories();
+        return cacheRoot.isWritable();
+      }
+    } catch (Throwable e) {
+      return false;
+    }
+  }
+
+  /**
+   * Return serialized representation of data's metadata.
+   *
+   * @param sourceDigest digest of data's source
+   * @param blobDigest digest of serialized data
+   * @param entry data to serialize
+   * @return raw bytes representing serialized metadata
+   */
+  protected abstract byte[] metadata(String sourceDigest, String blobDigest, T entry);
+
+  /**
+   * Loads cache for this data, if possible.
+   *
+   * @param context the language context in which loading is taking place
+   * @return the cached data if possible, and [[None]] if it could not load a valid cache
+   */
+  public Optional<T> load(EnsoContext context) {
+    synchronized (this) {
+      TruffleLogger logger = context.getLogger(this.getClass());
+      return getCacheRoots(context)
+          .flatMap(
+              roots -> {
+                try {
+                  Optional<T> loadedCache;
+                  // Load from the global root as a priority.
+                  loadedCache = loadCacheFrom(roots.globalCacheRoot(), context, logger);
+                  if (loadedCache.isPresent()) {
+                    logger.log(
+                        logLevel,
+                        "Using cache for ["
+                            + stringRepr
+                            + " at location ["
+                            + toMaskedPath(roots.globalCacheRoot()).applyMasking()
+                            + "].");
+                    return loadedCache;
+                  }
+
+                  loadedCache = loadCacheFrom(roots.localCacheRoot(), context, logger);
+                  if (loadedCache.isPresent()) {
+                    logger.log(
+                        logLevel,
+                        "Using cache for ["
+                            + stringRepr
+                            + " at location ["
+                            + toMaskedPath(roots.localCacheRoot()).applyMasking()
+                            + "].");
+                    return loadedCache;
+                  }
+
+                  logger.log(logLevel, "Unable to load a cache for module [" + stringRepr + "]");
+                } catch (IOException e) {
+                  logger.log(
+                      Level.WARNING, "Unable to load a cache for module [" + stringRepr + "]", e);
+                }
+                return Optional.empty();
+              });
+    }
+  }
+
+  /**
+   * Loads the cache from the provided `cacheRoot`, invalidating the cache if the loading fails for
+   * any reason.
+   *
+   * @param cacheRoot the root at which to find the cache for this cache entry
+   * @param context the language context in which loading is taking place
+   * @param logger a logger
+   * @return the cached data if available, otherwise an empty [[Optional]].
+   */
+  private Optional<T> loadCacheFrom(
+      TruffleFile cacheRoot, EnsoContext context, TruffleLogger logger) throws IOException {
+    TruffleFile metadataPath = getCacheMetadataPath(cacheRoot);
+    TruffleFile dataPath = getCacheDataPath(cacheRoot);
+
+    Optional<M> optMeta = loadCacheMetadata(metadataPath);
+    if (optMeta.isPresent()) {
+      M meta = optMeta.get();
+      boolean sourceDigestValid =
+          computeDigestFromSource(context, logger)
+              .map(digest -> digest.equals(meta.sourceHash()))
+              .orElseGet(() -> false);
+      byte[] blobBytes = dataPath.readAllBytes();
+      boolean blobDigestValid = computeDigestFromBytes(blobBytes).equals(meta.blobHash());
+
+      if (sourceDigestValid && blobDigestValid) {
+        Object readObject;
+        try (ObjectInputStream stream =
+            new ObjectInputStream(new ByteArrayInputStream(blobBytes))) {
+          readObject = stream.readObject();
+        } catch (IOException ioe) {
+          logger.log(
+              logLevel,
+              "`" + stringRepr + "` failed to load (caused by: " + ioe.getMessage() + ").");
+          invalidateCache(cacheRoot, logger);
+          return Optional.empty();
+        } catch (ClassNotFoundException e) {
+          logger.log(Level.WARNING, stringRepr + " appears to be corrupted", e);
+          return Optional.empty();
+        }
+
+        T cachedObject = null;
+        try {
+          cachedObject = validateReadObject(readObject, meta, logger);
+          if (cachedObject != null) {
+            return Optional.of(cachedObject);
+          } else {
+            logger.log(logLevel, "`" + stringRepr + "` was corrupt on disk.");
+            invalidateCache(cacheRoot, logger);
+            return Optional.empty();
+          }
+        } catch (CacheException e) {
+          logger.log(logLevel, "`" + stringRepr + "` was corrupt on disk: " + e.getMessage());
+          return Optional.empty();
+        }
+      } else {
+        logger.log(
+            logLevel, "One or more digests did not match for the cache for [" + stringRepr + "].");
+        invalidateCache(cacheRoot, logger);
+        return Optional.empty();
+      }
+
+    } else {
+      logger.log(
+          logLevel,
+          "Could not load the cache metadata at ["
+              + toMaskedPath(metadataPath).applyMasking()
+              + "].");
+      invalidateCache(cacheRoot, logger);
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Validates the deserialized data by returning the expected cached entry, or [[null]].
+   *
+   * @param obj deserialized object
+   * @param meta metadata corresponding to the `obj`
+   * @param logger Truffle's logger
+   * @return an `obj` transformed to a cached entry
+   * @throws CacheException exception thrown on unexpected deserialized data
+   */
+  protected abstract T validateReadObject(Object obj, M meta, TruffleLogger logger)
+      throws CacheException;
+
+  /**
+   * Read metadata representation from the provided location
+   *
+   * @param path location of the serialized metadata
+   * @return deserialized metadata, or [[None]] if invalid
+   */
+  private Optional<M> loadCacheMetadata(TruffleFile path) throws IOException {
+    if (path.isReadable()) {
+      return metadataFromBytes(path.readAllBytes());
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * De-serializes raw bytes to data's metadata.
+   *
+   * @param bytes raw bytes representing metadata
+   * @return non-empty metadata, if de-serialization was successful
+   */
+  protected abstract Optional<M> metadataFromBytes(byte[] bytes);
+
+  /**
+   * Compute digest of cache's data
+   *
+   * @param entry data for which digest should be computed
+   * @param logger Truffle's logger
+   * @return non-empty digest, if successful
+   */
+  protected abstract Optional<String> computeDigest(T entry, TruffleLogger logger);
+
+  /**
+   * Compute digest of data's source
+   *
+   * @param context the language context in which loading is taking place
+   * @param logger Truffle's logger
+   * @return non-empty digest, if successful
+   */
+  protected abstract Optional<String> computeDigestFromSource(
+      EnsoContext context, TruffleLogger logger);
+
+  /**
+   * Computes digest from an array of bytes using a default hashing algorithm.
+   *
+   * @param bytes bytes for which hash will be computed
+   * @return string representation of bytes' hash
+   */
+  protected String computeDigestFromBytes(byte[] bytes) {
+    return Hex.toHexString(messageDigest().digest(bytes));
+  }
+
+  /**
+   * Returns a default hashing algorithm used for Enso caches.
+   *
+   * @return digest used for computing hashes
+   */
+  protected MessageDigest messageDigest() {
+    return new SHA3.Digest224();
+  }
+
+  /**
+   * Returns locations where caches can be located
+   *
+   * @param context the language context in which loading is taking place
+   * @return non-empty if the locations have been inferred successfully, empty otherwise
+   */
+  protected abstract Optional<Roots> getCacheRoots(EnsoContext context);
+
+  /** Returns the exact data to be serialized */
+  protected abstract Object extractObjectToSerialize(T entry);
+
+  protected String stringRepr;
+
+  protected String entryName;
+
+  /** Suffix to be used */
+  protected String dataSuffix;
+
+  protected String metadataSuffix;
+
+  /**
+   * Gets the path to the cache data within the `cacheRoot`.
+   *
+   * @param cacheRoot the root of the cache for this entry
+   * @return the name of the data file for this entry's cache
+   */
+  private TruffleFile getCacheDataPath(TruffleFile cacheRoot) {
+    return cacheRoot.resolve(cacheFileName(dataSuffix));
+  }
+
+  private TruffleFile getCacheMetadataPath(TruffleFile cacheRoot) {
+    return cacheRoot.resolve(cacheFileName(metadataSuffix));
+  }
+
+  /**
+   * Computes the cache file name for a given extension.
+   *
+   * @param suffix the extension
+   * @return the cache file name with the provided `ext`
+   */
+  private String cacheFileName(String suffix) {
+    return entryName + suffix;
+  }
+
+  /**
+   * Deletes the cache for this data in the provided `cacheRoot`.
+   *
+   * @param cacheRoot the root of the cache to delete
+   * @param logger a logger
+   */
+  private void invalidateCache(TruffleFile cacheRoot, TruffleLogger logger) {
+    TruffleFile metadataFile = getCacheMetadataPath(cacheRoot);
+    TruffleFile dataFile = getCacheDataPath(cacheRoot);
+
+    doDeleteAt(cacheRoot, metadataFile, logger);
+    doDeleteAt(cacheRoot, dataFile, logger);
+  }
+
+  private void doDeleteAt(TruffleFile cacheRoot, TruffleFile file, TruffleLogger logger) {
+    try {
+      if (file.exists()) {
+        if (file.isWritable()) {
+          file.delete();
+          logger.log(
+              logLevel, "Invalidated the cache at [" + toMaskedPath(file).applyMasking() + "].");
+        } else {
+          logger.log(
+              logLevel,
+              "Cannot invalidate the cache at ["
+                  + toMaskedPath(file).applyMasking()
+                  + "]. "
+                  + "Cache location not writable.");
+        }
+      }
+    } catch (NoSuchFileException nsfe) {
+      // If it doesn't exist, our work has already been done for us!
+    } catch (IOException | SecurityException e) {
+      logger.log(
+          logLevel,
+          "Unable to delete the cache at [" + toMaskedPath(cacheRoot).applyMasking() + "].");
+    }
+  }
+
+  /**
+   * Invalidates all caches associated with this cache.
+   *
+   * @param context the langage context in which loading is taking place
+   */
+  public void invalidate(EnsoContext context) {
+    synchronized (this) {
+      TruffleLogger logger = context.getLogger(this.getClass());
+      getCacheRoots(context)
+          .ifPresent(
+              roots -> {
+                invalidateCache(roots.globalCacheRoot, logger);
+                invalidateCache(roots.localCacheRoot, logger);
+              });
+    }
+  }
+
+  protected static final Charset metadataCharset = StandardCharsets.UTF_8;
+
+  /**
+   * Roots encapsulates two possible locations where caches can be stored.
+   *
+   * @param localCacheRoot project's local location of the cache
+   * @param globalCacheRoot system's global location of the cache
+   */
+  record Roots(TruffleFile localCacheRoot, TruffleFile globalCacheRoot) {}
+
+  private static boolean writeBytesTo(TruffleFile file, byte[] bytes) {
+    try (OutputStream stream =
+        file.newOutputStream(
+            StandardOpenOption.WRITE,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING)) {
+      stream.write(bytes);
+    } catch (IOException ioe) {
+      return false;
+    } catch (SecurityException se) {
+      return false;
+    }
+    return true;
+  }
+
+  private static MaskedPath toMaskedPath(TruffleFile truffleFile) {
+    return new MaskedPath(Path.of(truffleFile.getPath()));
+  }
+
+  interface Metadata {
+    String sourceHash();
+
+    String blobHash();
+  }
+
+  public static class CacheException extends Exception {
+    public CacheException(String errorMessage) {
+      super(errorMessage);
+    }
+  }
+}

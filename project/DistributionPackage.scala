@@ -173,26 +173,26 @@ object DistributionPackage {
 
     indexStdLib(
       stdLibVersion = targetStdlibVersion,
-      ensoVersion   = ensoVersion,
-      stdLibRoot    = distributionRoot / "lib",
+      ensoVersion = ensoVersion,
+      stdLibRoot = distributionRoot / "lib",
       ensoExecutable =
-        distributionRoot / "bin" / Platform.executableFileName("enso"),
+        distributionRoot / "bin" / "enso",
       cacheFactory = cacheFactory.sub("stdlib"),
       log = log
     )
   }
 
   def indexStdLib(
-    stdLibVersion: String,
-    ensoVersion: String,
-    stdLibRoot: File,
-    ensoExecutable: File,
-    cacheFactory: CacheStoreFactory,
-    log: Logger
-  ): Unit = {
+                   stdLibVersion: String,
+                   ensoVersion: String,
+                   stdLibRoot: File,
+                   ensoExecutable: File,
+                   cacheFactory: CacheStoreFactory,
+                   log: Logger
+                 ): Unit = {
     for {
       libMajor <- stdLibRoot.listFiles()
-      libName  <- (stdLibRoot / libMajor.getName).listFiles()
+      libName <- (stdLibRoot / libMajor.getName).listFiles()
     } yield {
       val cache = cacheFactory.make(s"$libName.$ensoVersion")
       val path = (libName / ensoVersion)
@@ -200,7 +200,7 @@ object DistributionPackage {
         if (diff.modified.nonEmpty) {
           println(s"Generating index for ${libName} ")
           val command = Seq(
-            ensoExecutable.toString,
+            Platform.executableFileName(ensoExecutable.toString),
             "--no-compile-dependencies",
             "--compile",
             path.toString

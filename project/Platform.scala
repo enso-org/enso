@@ -35,6 +35,7 @@ object Platform {
     * @return the file name of provided executable on the current platform
     */
   def executableFileName(name: String): String = {
-    if (isWindows) s"$name.exe" else name
+    if (isWindows) s".\\$name.bat" else name
   }
+
 }

@@ -37,7 +37,7 @@ class CompilerBasedDependencyExtractor(logLevel: LogLevel)
       importedLibraries.toSet
     }
 
-    val sourcesImports = pkg.listSources.toSet.flatMap(findImportedLibraries)
+    val sourcesImports = pkg.listSources().toSet.flatMap(findImportedLibraries)
     val itself         = pkg.libraryName
 
     // Builtins need to be removed from the set of the dependencies, because

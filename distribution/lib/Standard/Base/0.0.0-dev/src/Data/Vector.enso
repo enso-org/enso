@@ -1034,12 +1034,13 @@ type Builder
              builder = Vector.new_builder
              builder . append_vector_range [20, 30, 40, 50] 1 3 . to_vector == [30, 40]
     append_vector_range : Vector Any ! Error -> Integer -> Integer -> Builder ! Error
-    append_vector_range self vector start end =
+    append_vector_range self vector start=0 end=vector.length =
         subrange = vector.slice start end
         ## This workaround is needed because
            `self.java_builder.addAll subrange.to_array` fails with
            `Unsupported argument types: [Array]`.
-        self.java_builder.appendTo subrange.to_array
+        append_result = self.java_builder.appendTo subrange.to_array
+        append_result.if_not_error self
 
     ## PRIVATE
        Appends a new element into this builder.

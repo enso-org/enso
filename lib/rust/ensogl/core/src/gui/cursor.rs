@@ -152,7 +152,7 @@ pub mod shape {
             let width             = &width  - &press_diff * 2.0 - &sides_padding;
             let height            = &height - &press_diff * 2.0 - &sides_padding;
             let cursor            = Rect((width,height)).corners_radius(radius);
-            let cursor            = cursor.fill("srgba(input_color)");
+            let cursor            = cursor.fill(color);
             cursor.into()
         }
     }
