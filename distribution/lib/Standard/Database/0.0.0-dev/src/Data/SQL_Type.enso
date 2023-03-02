@@ -184,5 +184,6 @@ merge_number_type left right = if left.is_definitely_integer then merge_number_t
     numeric_types = [Types.NUMERIC, Types.DECIMAL, Types.FLOAT, Types.REAL, Types.DOUBLE]
     left_index = numeric_types.index_of left.typeid
     right_index = numeric_types.index_of right.typeid
-    new_index = left_index.max right_index
-    [SQL_Type.numeric, SQL_Type.decimal, SQL_Type.real, SQL_Type.real, SQL_Type.double].at new_index
+    if right_index.is_nothing then left else
+        new_index = left_index.max right_index
+        [SQL_Type.numeric, SQL_Type.decimal, SQL_Type.real, SQL_Type.real, SQL_Type.double].at new_index
