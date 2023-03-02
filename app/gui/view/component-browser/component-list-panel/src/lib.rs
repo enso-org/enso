@@ -176,7 +176,12 @@ pub mod background {
     use super::*;
 
     ensogl_core::shape! {
-        below = [grid::entry::background, grid_view::entry::overlay, grid_view::selectable::highlight::shape];
+        below = [
+            grid::entry::background,
+            grid::entry::icon::any,
+            grid_view::entry::overlay,
+            grid_view::selectable::highlight::shape
+        ];
         (style:Style,bg_color:Vector4) {
             let alpha = Var::<f32>::from(format!("({bg_color}.w)"));
             let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
@@ -241,6 +246,7 @@ pub struct Model {
 impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
 
         let background = background::View::new();
@@ -255,6 +261,12 @@ impl Model {
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
+
+        shapes_order_dependencies! {
+            scene => {
+                grid_view::selectable::highlight::shape -> grid::entry::icon::any;
+            }
+        }
 
         Self { display_object, background, grid, section_navigator, breadcrumbs }
     }
