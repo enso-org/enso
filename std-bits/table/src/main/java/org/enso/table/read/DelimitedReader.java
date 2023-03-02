@@ -208,7 +208,7 @@ public class DelimitedReader {
   }
 
   private void reportMismatchedQuote() {
-    reportProblem(new MismatchedQuote());
+    throw new MismatchedQuote();
   }
 
   private void reportInvalidRow(long source_row, Long table_index, String[] row, long expected_length) {
