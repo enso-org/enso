@@ -2,4 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-body { color: #3E515F; font-family: "M PLUS 1"; font-weight: 500; }
+@layer components {
+  .permission-top-left {
+    clip-path: polygon(0 0, calc(50% - 2px) 0, calc(50% - 2px) calc(50% - 2px), 0 calc(50% - 2px));
+  }
+
+  .permission-top-right {
+    clip-path: polygon(calc(50% + 2px) 0, 100% 0, 100% calc(50% - 2px), calc(50% + 2px) calc(50% - 2px));
+  }
+
+  .permission-bottom-left {
+    clip-path: polygon(0 calc(50% + 2px), calc(50% - 2px) calc(50% + 2px), calc(50% - 2px) 100%, 0 100%);
+  }
+
+  .permission-bottom-right {
+    clip-path: polygon(calc(50% + 2px) calc(50% + 2px), 100% calc(50% + 2px), 100% 100%, calc(50% + 2px) 100%);
+  }
+}
+
+body {
+  color: #3E515F;
+  font-family: "M PLUS 1";
+  font-weight: 500;
+}
+
+/* Not sure why these don't work when inside a layer. */
+.status-none {
+  background: #3e515f14;
+}
+
+.status-warning {
+  color: #ffffff;
+  background: #eab120;
+}
+
+.status-severe-warning {
+  color: #ffffff;
+  background: #e06740;
+}

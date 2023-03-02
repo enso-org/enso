@@ -13,8 +13,11 @@ import withRouter from "../../navigation";
 import * as backend from "../service";
 import Templates from "./templates";
 import ProjectActionButton from "./projectActionButton";
-import * as loggerProvider from "../../providers/logger";
 import Table from "./table";
+import PermissionDisplay, * as permissionDisplay from "./permissionDisplay";
+import Label, * as label from "./label";
+import * as loggerProvider from "../../providers/logger";
+import PermissionDisplay4Segment from "./permissionDisplay4Segment";
 
 
 
@@ -126,7 +129,7 @@ const Dashboard = (props: Props) => {
       <Table<backend.ListedProject>
         items={projectsList}
         getKey={proj => proj.projectId}
-        placeholder={<span>You have no project yet. Go ahead and create one using the form above.</span>}
+        placeholder={<>You have no project yet. Go ahead and create one using the form above.</>}
         columns={[
           ["Projects", (item, index) => <div className="flex text-left items-center align-middle whitespace-nowrap">
             <ProjectActionButton
@@ -135,15 +138,28 @@ const Dashboard = (props: Props) => {
               onOpenStart={() => setProjectState(index, backend.ProjectState.openInProgress)}
               onClose={() => setProjectState(index, backend.ProjectState.closed)}
             />
-            {item.name}
+            <span className="px-4">{item.name}</span>
           </div>],
-          ["Last modified", () => <span>aa</span>],
-          ["Shared with", () => <span>aa</span>],
-          ["Labels", () => <span>aa</span>],
-          ["Data access", () => <span>aa</span>],
-          ["Usage plan", () => <span>aa</span>],
-          ["Engine", () => <span>aa</span>],
-          ["IDE", () => <span>aa</span>],
+          ["Last modified", () => <>aa</>],
+          ["Shared with", () => <>aa</>],
+          ["Labels", () => <>
+            <Label status={label.Status.warning}>outdated version</Label>
+            <Label status={label.Status.severeWarning}>low resources</Label>
+            <Label>do not change</Label>
+          </>],
+          ["Data access", () => <>
+            <PermissionDisplay permission={permissionDisplay.Permission.admin}>./user_data</PermissionDisplay>
+            <PermissionDisplay4Segment
+              permission1={permissionDisplay.Permission.none}
+              permission2={permissionDisplay.Permission.read}
+              permission3={permissionDisplay.Permission.none}
+              permission4={permissionDisplay.Permission.none}>
+                this folder
+            </PermissionDisplay4Segment>
+          </>],
+          ["Usage plan", () => <>aa</>],
+          ["Engine", () => <>aa</>],
+          ["IDE", () => <>aa</>],
         ]}
       />
       <button onClick={signOut}>Log out</button>

@@ -23,13 +23,13 @@ const Table = <T,>({ columns, items, getKey, placeholder }: Props<T>) => {
   const itemRows =
     items.length === 0
       ? <tr><td colSpan={columns.length}>{placeholder}</td></tr>
-      : items.map((item) => (
+      : items.map((item, index) => (
           <tr
             key={getKey(item)}
             className="transition duration-300 ease-in-out hover:bg-gray-100"
           >
-            {columns.map(([, createElement], index) => (
-              <td className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0">
+            {columns.map(([, createElement], index2) => (
+              <td key={index2} className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0">
                 {createElement(item, index)}
               </td>
             ))}
