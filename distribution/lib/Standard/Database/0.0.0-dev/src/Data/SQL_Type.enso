@@ -53,12 +53,6 @@ type SQL_Type
     numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
 
     ## The SQL type representing one of the supported textual types.
-    varchar : SQL_Type
-    varchar = SQL_Type.Value Types.VARCHAR "VARCHAR"
-
-    ## UNSTABLE
-       The SQL type representing one of the supported textual types.
-
        It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
     text : SQL_Type
     text = SQL_Type.Value Types.VARCHAR "VARCHAR"
@@ -91,7 +85,7 @@ type SQL_Type
         _ : Boolean -> SQL_Type.boolean
         _ : Integer -> SQL_Type.integer
         _ : Decimal -> SQL_Type.double
-        _ : Text -> SQL_Type.varchar
+        _ : Text -> SQL_Type.text
         _ : Date -> SQL_Type.date
         _ : Time_Of_Day -> SQL_Type.time
         _ : Date_Time -> SQL_Type.date_time
@@ -99,17 +93,17 @@ type SQL_Type
         _ -> Error.throw (Illegal_Argument.Error "Unsupported type.")
 
     ## PRIVATE
-       Returns the SQL type that is the result of applying an arithmetic
-       operation to the two given types.
-    arithmetic_type : SQL_Type -> SQL_Type -> SQL_Type ! Illegal_Argument
-    arithmetic_type left right =
+       Returns the SQL type that is the result of applying an  operation to the
+       two given types.
+    merge_type : SQL_Type -> SQL_Type -> SQL_Type ! Illegal_Argument
+    merge_type left right =
         if left == right then left else
             if left != SQL_Type.null && right == SQL_Type.null then left else
                 if left == SQL_Type.null && right != SQL_Type.null then right else
                     case left.is_definitely_numeric && right.is_definitely_numeric of
-                        False -> Error.throw (Illegal_Argument.Error "Unsupported types for arithmetic operation.")
-                        True -> if left.is_definitely_integer && right.is_definitely_integer then SQL_Type.integer else
-                            SQL_Type.double
+                        False -> Error.throw (Illegal_Argument.Error "Unmatched types for operation.")
+                        True -> if left.is_definitely_integer && right.is_definitely_integer then merge_integer_type left right else
+                            merge_numeric_type left right
 
     ## PRIVATE
 
@@ -162,3 +156,32 @@ type SQL_Type
     is_likely_text : Boolean
     is_likely_text self =
        self.is_definitely_text || self.name.contains "text" Case_Sensitivity.Insensitive
+
+## PRIVATE
+merge_integer_type : SQL_Type -> SQL_Type -> SQL_Type
+merge_integer_type left right = case left.typeid of
+    Types.SMALLINT -> case right.typeid of
+        Types.SMALLINT -> SQL_Type.smallint
+        Types.INTEGER -> SQL_Type.integer
+        Types.BIGINT -> SQL_Type.bigint
+    Types.INTEGER -> case right.typeid of
+        Types.BIGINT -> SQL_Type.bigint
+        _ -> SQL_Type.integer
+    Types.BIGINT -> SQL_Type.bigint
+
+## PRIVATE
+merge_numeric_type :  SQL_Type -> SQL_Type -> SQL_Type
+merge_numeric_type left right = case left.typeid of
+    Types.REAL -> case right.typeid of
+        Types.DOUBLE -> SQL_Type.double
+        _ -> SQL_Type.real
+    Types.DOUBLE -> SQL_Type.double
+    Types.DECIMAL -> case right.typeid of
+        Types.REAL -> SQL_Type.real
+        Types.DOUBLE -> SQL_Type.double
+        _ -> SQL_Type.decimal
+    Types.NUMERIC -> case right.typeid of
+        Types.REAL -> SQL_Type.real
+        Types.DOUBLE -> SQL_Type.double
+        Types.DECIMAL -> SQL_Type.decimal
+        _ -> SQL_Type.numeric

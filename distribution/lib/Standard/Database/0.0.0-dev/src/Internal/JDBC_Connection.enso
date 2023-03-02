@@ -180,7 +180,7 @@ set_statement_values stmt holes =
         position = ix + 1
         case obj.first of
             Nothing ->
-                sql_type = if obj.second == SQL_Type.null then SQL_Type.varchar else obj.second
+                sql_type = if obj.second == SQL_Type.null then SQL_Type.text else obj.second
                 stmt.setNull position sql_type.typeid
             _ : Date_Time -> stmt.setTimestamp position (JDBCProxy.getTimestamp obj.first)
             _ -> stmt.setObject position obj.first

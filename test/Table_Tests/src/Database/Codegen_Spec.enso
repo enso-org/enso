@@ -19,7 +19,7 @@ import project.Database.Helpers.Fake_Test_Connection
 spec =
     int = SQL_Type.integer
     bool = SQL_Type.boolean
-    str = SQL_Type.varchar
+    str = SQL_Type.text
     test_connection =
         table1 = ["T1", [["A", int], ["B", str], ["C", bool]]]
         table2 = ["T2", [["D", int], ["E", int], ["F", bool]]]
