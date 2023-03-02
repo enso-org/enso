@@ -284,7 +284,6 @@ pub async fn upload_gui_to_cloud(
     let files_to_upload = [
         assets.pkg_opt_wasm.as_path(),
         assets.style_css.as_path(),
-        assets.shaders.as_path(),
         assets.dynamic_assets.as_path(),
     ];
     let files_to_upload_gzipped = [assets.index_js.as_path(), assets.pkg_js.as_path()];

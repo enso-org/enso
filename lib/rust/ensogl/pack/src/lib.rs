@@ -111,7 +111,6 @@
 use ide_ci::prelude::*;
 
 use enso_prelude::anyhow;
-use enso_prelude::calculate_hash;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::shaderc::Glslc;
 use ide_ci::programs::shaderc::SpirvOpt;
@@ -221,16 +220,10 @@ pub mod paths {
 
         TargetEnsoglPack {
             wasm_pack:      TargetEnsoglPackWasmPack,
-            shaders:        TargetEnsoglPackShaders,
             dynamic_assets: PathBuf,
-            shaders_hash:   PathBuf,
             runtime_libs:   TargetEnsoglPackRuntimeLibs,
             dist:           TargetEnsoglPackDist,
             linked_dist:    PathBuf,
-        }
-
-        TargetEnsoglPackShaders {
-            list: PathBuf,
         }
 
         TargetEnsoglPackRuntimeLibs {
@@ -247,15 +240,9 @@ pub mod paths {
         TargetEnsoglPackDist {
             app:              PathBuf,
             asset_extractor:  PathBuf,
-            shader_extractor: PathBuf,
             pkg_js:           PathBuf,
             main_wasm:        PathBuf,
-            shaders:          TargetEnsoglPackDistShaders,
             dynamic_assets:   TargetEnsoglPackDistDynamicAssets,
-        }
-
-        TargetEnsoglPackDistShaders {
-            list: PathBuf,
         }
 
         TargetEnsoglPackDistDynamicAssets {
@@ -286,9 +273,6 @@ impl Paths {
         p.target.ensogl_pack.wasm_pack.pkg_js = p.target.ensogl_pack.wasm_pack.join(pkg_js);
         p.target.ensogl_pack.wasm_pack.runtime_libs =
             p.target.ensogl_pack.wasm_pack.join("runtime-libs.js");
-        p.target.ensogl_pack.shaders.root = p.target.ensogl_pack.join("shaders");
-        p.target.ensogl_pack.shaders.list = p.target.ensogl_pack.shaders.join("list.txt");
-        p.target.ensogl_pack.shaders_hash = p.target.ensogl_pack.join("shaders-hash");
         p.target.ensogl_pack.dynamic_assets = p.target.ensogl_pack.join("dynamic-assets");
         p.target.ensogl_pack.runtime_libs.root = p.target.ensogl_pack.join("runtime-libs");
         p.target.ensogl_pack.runtime_libs.runtime_libs =
@@ -298,12 +282,8 @@ impl Paths {
         p.target.ensogl_pack.dist.app = p.target.ensogl_pack.dist.join("index.js");
         p.target.ensogl_pack.dist.asset_extractor =
             p.target.ensogl_pack.dist.join("asset-extractor.js");
-        p.target.ensogl_pack.dist.shader_extractor =
-            p.target.ensogl_pack.dist.join("shader-extractor.js");
         p.target.ensogl_pack.dist.pkg_js = p.target.ensogl_pack.dist.join("pkg.js");
         p.target.ensogl_pack.dist.main_wasm = p.target.ensogl_pack.dist.join("pkg.wasm");
-        p.target.ensogl_pack.dist.shaders.root = p.target.ensogl_pack.dist.join("shaders");
-        p.target.ensogl_pack.dist.shaders.list = p.target.ensogl_pack.dist.shaders.join("list.txt");
         p.target.ensogl_pack.dist.dynamic_assets.root =
             p.target.ensogl_pack.dist.join("dynamic-assets");
         p.target.ensogl_pack.dist.dynamic_assets.manifest =
@@ -385,8 +365,6 @@ async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
         let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
         run_script("build", &args).await?;
         let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
-        run_script("build-shader-extractor", &args).await?;
-        let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
         run_script("build-asset-extractor", &args).await?;
         println!("BUILD build-runtime-libs");
         let args = ["--", &format!("--outdir={}", paths.target.ensogl_pack.runtime_libs.display())];
@@ -448,18 +426,6 @@ async fn compile_wasm_pack_artifacts(pwd: &Path, pkg_js: &Path, out: &Path) -> R
         .await
 }
 
-/// Extract non-optimized shaders from the WASM artifact.
-async fn extract_shaders(paths: &Paths) -> Result<()> {
-    info!("Extracting shaders from generated WASM file.");
-    ide_ci::programs::Node
-        .cmd()?
-        .arg(&paths.target.ensogl_pack.dist.shader_extractor)
-        .arg("--out-dir")
-        .arg(&paths.target.ensogl_pack.shaders)
-        .run_ok()
-        .await
-}
-
 /// Extract asset sources from the WASM artifact.
 async fn extract_assets(paths: &Paths) -> Result<()> {
     info!("Extracting asset sources from generated WASM file.");
@@ -476,7 +442,7 @@ async fn extract_assets(paths: &Paths) -> Result<()> {
 async fn build_assets(paths: &Paths) -> Result<()> {
     info!("Building dynamic assets.");
     let sources = survey_asset_sources(paths)?;
-    let assets = update_assets(paths, &sources)?;
+    let assets = update_assets(paths, &sources).await?;
     let manifest = serde_json::to_string(&assets)?;
     std::fs::write(&paths.target.ensogl_pack.dist.dynamic_assets.manifest, manifest)?;
     gc_assets(paths, &assets)?;
@@ -487,6 +453,7 @@ async fn build_assets(paths: &Paths) -> Result<()> {
 #[serde(rename_all = "lowercase")]
 enum Builder {
     Font,
+    Shader,
 }
 
 impl Builder {
@@ -494,14 +461,15 @@ impl Builder {
         self.into()
     }
 
-    fn build_asset(
+    async fn build_asset(
         self,
         input_dir: &Path,
         input_files: &[String],
         output_dir: &Path,
     ) -> Result<()> {
         match self {
-            Builder::Font => build_font(input_dir, input_files, output_dir),
+            Builder::Font => build_font(input_dir, input_files, output_dir).await,
+            Builder::Shader => build_shader(input_dir, input_files, output_dir).await,
         }
     }
 }
@@ -510,6 +478,7 @@ impl TryFrom<&str> for Builder {
     fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
         match value {
             "font" => Ok(Builder::Font),
+            "shader" => Ok(Builder::Shader),
             other => Err(anyhow::Error::msg(format!("Unknown builder: {other:?}"))),
         }
     }
@@ -518,6 +487,7 @@ impl From<Builder> for &'static str {
     fn from(value: Builder) -> Self {
         match value {
             Builder::Font => "font",
+            Builder::Shader => "shader",
         }
     }
 }
@@ -580,7 +550,7 @@ fn survey_asset_sources(paths: &Paths) -> Result<HashMap<Builder, Vec<AssetSourc
 type AssetManifest = BTreeMap<Builder, BTreeMap<String, Asset>>;
 
 /// Generate any assets not found up-to-date in the cache.
-fn update_assets(
+async fn update_assets(
     paths: &Paths,
     sources: &HashMap<Builder, Vec<AssetSources>>,
 ) -> Result<AssetManifest> {
@@ -596,7 +566,7 @@ fn update_assets(
             let asset = match std::fs::create_dir(&out) {
                 Ok(()) => {
                     info!("Rebuilding asset: `{}`.", out.display());
-                    build_asset(paths, builder, source_specification)?
+                    build_asset(paths, builder, source_specification).await?
                 }
                 Err(e) if e.kind() == ErrorKind::AlreadyExists => {
                     info!("Skipping clean asset: `{}`.", out.display());
@@ -610,7 +580,7 @@ fn update_assets(
     Ok(assets)
 }
 
-fn build_font(input_dir: &Path, input_files: &[String], output_dir: &Path) -> Result<()> {
+async fn build_font(input_dir: &Path, input_files: &[String], output_dir: &Path) -> Result<()> {
     for file_name in input_files {
         ide_ci::fs::copy(input_dir.join(file_name), output_dir.join(file_name))?;
     }
@@ -618,7 +588,7 @@ fn build_font(input_dir: &Path, input_files: &[String], output_dir: &Path) -> Re
 }
 
 /// Generate an asset from the given sources.
-fn build_asset(
+async fn build_asset(
     paths: &Paths,
     builder: Builder,
     source_specification: &AssetSources,
@@ -638,7 +608,7 @@ fn build_asset(
         .join(source_specification.dir_name());
     // TODO: Build the asset in a temporary directory and atomically move it into place when
     //  complete, to prevent an interrupted build from leaving corrupted assets in the store.
-    builder.build_asset(&input_dir, &source_specification.input_files, &output_dir)?;
+    builder.build_asset(&input_dir, &source_specification.input_files, &output_dir).await?;
     survey_asset(paths, builder, source_specification)
 }
 
@@ -691,56 +661,33 @@ fn gc_assets(paths: &Paths, assets: &AssetManifest) -> Result<()> {
     Ok(())
 }
 
-/// Optimize the extracted shaders by using `glslc`, `spirv-opt` and `spirv-cross`.
-async fn optimize_shaders(paths: &Paths) -> Result<()> {
-    info!("Optimizing extracted shaders.");
-    ide_ci::fs::create_dir_if_missing(&paths.target.ensogl_pack.dist.shaders)?;
+/// Build optimized shaders by using `glslc`, `spirv-opt` and `spirv-cross`.
+async fn build_shader(input_dir: &Path, input_files: &[String], output_dir: &Path) -> Result<()> {
+    info!("Optimizing `{}`.", input_dir.file_name().unwrap().to_string_lossy());
+    for glsl_file_name in input_files {
+        let glsl_path = input_dir.join(glsl_file_name);
+        let stage_path = glsl_path.with_extension("");
+        let stage = stage_path.file_name().unwrap().to_string_lossy();
+        let spv_path = stage_path.with_appended_extension("spv");
+        let spv_opt_path = stage_path.with_appended_extension("opt.spv");
+        let glsl_opt_path = stage_path.with_appended_extension("opt.glsl");
+        let glsl_opt_dist_path = output_dir.join(&glsl_file_name);
+        let spv_path = spv_path.as_str();
+        let glsl_path = glsl_path.as_str();
+        let shader_stage = &format!("-fshader-stage={stage}");
+        let glslc_args = ["--target-env=opengl", shader_stage, "-o", spv_path, glsl_path];
+        let spirv_opt_args = ["-O", "-o", spv_opt_path.as_str(), spv_path.as_str()];
+        let spirv_cross_args = ["--output", glsl_opt_path.as_str(), spv_opt_path.as_str()];
+        Glslc.cmd()?.args(glslc_args).run_ok().await?;
+        SpirvOpt.cmd()?.args(spirv_opt_args).run_ok().await?;
+        SpirvCross.cmd()?.args(spirv_cross_args).run_ok().await?;
 
-    let stages = ["vertex", "fragment"];
-    let shaders_list = ide_ci::fs::read_to_string(&paths.target.ensogl_pack.shaders.list)?;
-    let shaders_prefixes: Vec<_> = shaders_list.lines().collect();
-    for shader_prefix in shaders_prefixes {
-        info!("Optimizing '{shader_prefix}'.");
-        for stage in stages {
-            let base_path = paths.target.ensogl_pack.shaders.join(shader_prefix);
-            let base_path = base_path.display();
-            let stage_path = format!("{base_path}.{stage}");
-            let glsl_path = stage_path.with_appended_extension("glsl");
-            let spv_path = stage_path.with_appended_extension("spv");
-            let spv_opt_path = stage_path.with_appended_extension("opt.spv");
-            let glsl_opt_path = stage_path.with_appended_extension("opt.glsl");
-            let glsl_file_name = format!("{shader_prefix}.{stage}.glsl");
-            let hash_file_name = format!("{shader_prefix}.{stage}.hash");
-            let glsl_opt_dist_path = paths.target.ensogl_pack.dist.shaders.join(&glsl_file_name);
-            let hash_path = paths.target.ensogl_pack.shaders_hash.join(&hash_file_name);
-            let content = ide_ci::fs::read_to_string(&glsl_path)?;
-            let old_hash = ide_ci::fs::read_to_string(&hash_path).ok();
-            let hash = calculate_hash(&content).to_string();
-            if let Some(old_hash) = old_hash {
-                if old_hash == hash {
-                    info!("Skipping '{shader_prefix}.{stage}' because it has not changed.");
-                    continue;
-                }
-            }
-            ide_ci::fs::write(&hash_path, hash)?;
-
-            let spv_path = spv_path.as_str();
-            let glsl_path = glsl_path.as_str();
-            let shader_stage = &format!("-fshader-stage={stage}");
-            let glslc_args = ["--target-env=opengl", shader_stage, "-o", spv_path, glsl_path];
-            let spirv_opt_args = ["-O", "-o", spv_opt_path.as_str(), spv_path.as_str()];
-            let spirv_cross_args = ["--output", glsl_opt_path.as_str(), spv_opt_path.as_str()];
-            Glslc.cmd()?.args(glslc_args).run_ok().await?;
-            SpirvOpt.cmd()?.args(spirv_opt_args).run_ok().await?;
-            SpirvCross.cmd()?.args(spirv_cross_args).run_ok().await?;
-
-            let content = ide_ci::fs::read_to_string(&glsl_opt_path)?.replace("\r\n", "\n");
-            let extract_err = || format!("Failed to process shader '{}'.", glsl_opt_path.as_str());
-            let code = extract_main_shader_code(&content).with_context(extract_err)?;
-            ide_ci::fs::write(&glsl_opt_dist_path, code)?;
-        }
+        let content = ide_ci::fs::read_to_string(&glsl_opt_path)?.replace("\r\n", "\n");
+        let extract_err = || format!("Failed to process shader '{}'.", glsl_opt_path.as_str());
+        let code = extract_main_shader_code(&content).with_context(extract_err)?;
+        ide_ci::fs::write(&glsl_opt_dist_path, code)?;
     }
-    ide_ci::fs::write(&paths.target.ensogl_pack.dist.shaders.list, &shaders_list)
+    Ok(())
 }
 
 /// Read the optimized shader code, extract the main function body and preserve all top-level
@@ -780,9 +727,7 @@ pub async fn build(
     let paths = Paths::new().await?;
     compile_this_crate_ts_sources(&paths).await?;
     run_wasm_pack(&paths, provider).await?;
-    extract_shaders(&paths).await?;
     extract_assets(&paths).await?;
-    optimize_shaders(&paths).await?;
     build_assets(&paths).await?;
     let out_dir = Path::new(&outputs.out_dir);
     ide_ci::fs::copy(&paths.target.ensogl_pack.dist, out_dir)?;

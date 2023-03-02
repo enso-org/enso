@@ -1,4 +1,5 @@
 #![feature(local_key_cell_methods)]
+#![feature(let_chains)]
 #![cfg(target_arch = "wasm32")]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -29,6 +30,7 @@ use ensogl_core::system::web::JsValue;
 use ensogl_core::system::web::Map;
 
 mod fonts;
+mod shaders;
 
 
 
@@ -50,6 +52,7 @@ pub fn register_dynamic_assets_fns() {
 fn get_dynamic_assets_sources() -> JsValue {
     let builders = Map::new();
     builders.set(&"font".to_string().into(), &fonts::build_atlases());
+    builders.set(&"shader".to_string().into(), &shaders::gather());
     builders.into()
 }
 
@@ -64,6 +67,7 @@ fn set_dynamic_asset(builder: JsValue, key: JsValue, asset: JsValue) {
     });
     match builder.as_ref() {
         "font" => fonts::set_atlas(key, asset_),
+        "shader" => shaders::set(key, asset_),
         _ => panic!(),
     }
 }

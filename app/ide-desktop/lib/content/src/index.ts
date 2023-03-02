@@ -82,7 +82,6 @@ class Main {
             loader: {
                 wasmUrl: 'pkg-opt.wasm',
                 jsUrl: 'pkg.js',
-                shadersUrl: 'shaders',
                 assetsUrl: 'dynamic-assets',
             },
         }

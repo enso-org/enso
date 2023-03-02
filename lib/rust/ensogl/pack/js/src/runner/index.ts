@@ -35,8 +35,6 @@ class Files<T> {
     pkgJs: T
     /** Main WASM file that contains the compiled WASM code. */
     pkgWasm: T
-    /** Precompiled shaders files. */
-    shaders = new Shaders<T>()
 
     constructor(pkgJs: T, pkgWasm: T) {
         this.pkgJs = pkgJs
@@ -55,74 +53,18 @@ class Files<T> {
 
     /** Converts the structure fields to an array. */
     toArray(): T[] {
-        return [this.pkgJs, this.pkgWasm, ...this.shaders.toArray()]
+        return [this.pkgJs, this.pkgWasm]
     }
 
     /** Assign array values to the structure fields. The elements order should be the same as the
      * output of the `toArray` function. */
     fromArray<S>(array: S[]): Files<S> | null {
-        const [pkgJs, pkgWasm, ...shaders] = array
+        const [pkgJs, pkgWasm] = array
         if (pkgJs != null && pkgWasm != null) {
-            const files = new Files<S>(pkgJs, pkgWasm)
-            files.shaders = this.shaders.fromArray(shaders) ?? new Shaders()
-            return files
+            return new Files<S>(pkgJs, pkgWasm)
         } else {
             return null
         }
-    }
-}
-
-/** Mapping between a shader identifier and precompiled shader sources. */
-class Shaders<T> {
-    map = new Map<string, Shader<T>>()
-
-    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Shaders<S>> {
-        const mapped = await Promise.all(this.toArray().map(f))
-        const out = this.fromArray(mapped)
-        if (out != null) {
-            return out
-        } else {
-            log.panic()
-        }
-    }
-
-    /** Converts the structure fields to an array. The shader names are not preserved. */
-    toArray(): T[] {
-        return Array.from(this.map.values()).flatMap(shader => shader.toArray())
-    }
-
-    /** Assign array values to the structure fields. The elements order should be the same as the
-     * output of the `toArray` function. The shader names will be preserved and assigned to the
-     * input values in order. */
-    fromArray<S>(arr: S[]): Shaders<S> | null {
-        const shaders = new Shaders<S>()
-        const keys = Array.from(this.map.keys())
-        const tuples = array.arrayIntoTuples(arr)
-        if (tuples == null) {
-            log.panic()
-        } else {
-            for (const [key, [vertex, fragment]] of array.zip(keys, tuples)) {
-                const shader = new Shader(vertex, fragment)
-                shaders.map.set(key, shader)
-            }
-            return shaders
-        }
-    }
-}
-
-/** Precompiled shader sources */
-class Shader<T> {
-    vertex: T
-    fragment: T
-
-    constructor(vertex: T, fragment: T) {
-        this.vertex = vertex
-        this.fragment = fragment
-    }
-
-    /** Converts the structure fields to an array. The shader names are not preserved. */
-    toArray(): T[] {
-        return [this.vertex, this.fragment]
     }
 }
 
@@ -241,7 +183,6 @@ export class App {
     config: config.Options
     wasm: any = null
     loader: wasm.Loader | null = null
-    shaders: Shaders<string> | null = null
     assets: Assets<ArrayBuffer> | null = null
     wasmFunctions: string[] = []
     beforeMainEntryPoints = new Map<string, wasm.BeforeMainEntryPoint>()
@@ -273,18 +214,6 @@ export class App {
         }
         // Export the app to a global variable, so Rust can access it.
         host.exportGlobal({ ensoglApp: this })
-    }
-
-    /** Registers the Rust function that extracts the shader definitions. */
-    registerGetShadersRustFn(fn: GetShadersFn) {
-        logger.log(`Registering 'getShadersFn'.`)
-        rustGetShadersFn = fn
-    }
-
-    /** Registers the Rust function that injects the shader definitions. */
-    registerSetShadersRustFn(fn: SetShadersFn) {
-        logger.log(`Registering 'setShadersFn'.`)
-        rustSetShadersFn = fn
     }
 
     /** Registers the Rust function that extracts asset source files. */
@@ -374,16 +303,6 @@ export class App {
     async loadWasm() {
         const loader = new wasm.Loader(this.config)
 
-        const shadersUrl = this.config.groups.loader.options.shadersUrl.value
-        const shadersNames = await log.Task.asyncRunCollapsed(
-            'Downloading shaders list.',
-            async () => {
-                const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
-                const shadersList = await shadersListResponse.text()
-                return shadersList.split('\n').filter(line => line.length > 0)
-            }
-        )
-
         const assetsUrl = this.config.groups.loader.options.assetsUrl.value
         const manifest = await log.Task.asyncRunCollapsed(
             'Downloading assets manifest.',
@@ -393,7 +312,6 @@ export class App {
                 return manifest
             }
         )
-
         const assetsUrls = new Assets<string>([])
         for (const [type, typeAssets] of Object.entries(manifest)) {
             for (const [key, asset] of Object.entries(typeAssets)) {
@@ -410,12 +328,6 @@ export class App {
             this.config.groups.loader.options.jsUrl.value,
             this.config.groups.loader.options.wasmUrl.value
         )
-        for (const mangledName of shadersNames) {
-            const unmangledName = name.unmangle(mangledName)
-            const vertexUrl = `${shadersUrl}/${mangledName}.vertex.glsl`
-            const fragmentUrl = `${shadersUrl}/${mangledName}.fragment.glsl`
-            files.shaders.map.set(unmangledName, new Shader(vertexUrl, fragmentUrl))
-        }
 
         const responses = await files.mapAndAwaitAll(url => loader.fetch(url))
         const downloadSize = loader.showTotalBytes()
@@ -425,7 +337,6 @@ export class App {
         const pkgJs = await responses.pkgJs.text()
         this.loader = loader
         this.wasm = await this.compileAndRunWasm(pkgJs, responses.pkgWasm)
-        this.shaders = await responses.shaders.mapAndAwaitAll(t => t.text())
     }
 
     /** Loads the WASM binary and its dependencies. After the files are fetched, the WASM module is
@@ -501,12 +412,13 @@ export class App {
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             await this.runBeforeMainEntryPoints()
-            if (this.shaders) this.setShaders(this.shaders.map)
-            if (this.assets) {
-                for (const asset of this.assets.assets) {
-                    this.setAsset(asset.type, asset.key, asset.data)
+            log.Task.runCollapsed(`Sending dynamic asset to Rust.`, () => {
+                if (this.assets) {
+                    for (const asset of this.assets.assets) {
+                        this.setAsset(asset.type, asset.key, asset.data)
+                    }
                 }
-            }
+            })
             if (this.loader) this.loader.destroy()
             logger.log(`Running the main entry point '${entryPoint.displayName()}'.`)
             const fn = this.wasm[entryPoint.name()]
@@ -636,54 +548,30 @@ export class App {
         console.log('%c' + msg2, msgCSS)
     }
 
-    /* Get not optimized shaders from WASM. */
-    getShaders(): Map<string, { vertex: string; fragment: string }> | null {
-        return log.Task.run('Getting shaders from Rust.', () => {
-            if (!rustGetShadersFn) {
-                logger.error('The Rust shader extraction function was not registered.')
-                return null
-            } else {
-                const result = rustGetShadersFn()
-                logger.log(`Got ${result.size} shader definitions.`)
-                return result
-            }
-        })
-    }
-
-    /* Set optimized shaders in WASM. */
-    setShaders(map: Map<string, { vertex: string; fragment: string }>) {
-        log.Task.runCollapsed(`Sending ${map.size} shaders to Rust.`, () => {
-            if (!rustSetShadersFn) {
-                logger.error('The Rust shader injection function was not registered.')
-            } else {
-                logger.log(`Setting ${map.size} shader definitions.`)
-                rustSetShadersFn(map)
-            }
-        })
-    }
-
     getAssetSources(): Map<string, Map<string, Map<string, ArrayBuffer>>> | null {
         return log.Task.run('Getting dynamic asset sources from Rust.', () => {
             if (!rustGetAssetsSourcesFn) {
                 logger.error('The Rust dynamic asset sources function was not registered.')
                 return null
             } else {
-                const result = rustGetAssetsSourcesFn()
+                const resultUnmangled = rustGetAssetsSourcesFn()
+                const mangleKeys = <T,>(map: Map<string, T>) => new Map(Array.from(map, ([key, value]) => [name.mangle(key), value]))
+                const result = new Map(Array.from(resultUnmangled,
+                    ([key, value]) => [key, mangleKeys(value)]))
                 logger.log(`Got ${result.size} asset definitions.`)
                 return result
             }
         })
     }
 
-    setAsset(builder: string, key: string, data: Map<string, ArrayBuffer>) {
-        log.Task.runCollapsed(`Sending dynamic asset to Rust.`, () => {
-            if (!rustSetAssetFn) {
-                logger.error('The Rust asset injection function was not registered.')
-            } else {
-                logger.log(`Setting asset definition.`)
-                rustSetAssetFn(builder, key, data)
-            }
-        })
+    setAsset(builder: string, keyMangled: string, data: Map<string, ArrayBuffer>) {
+        if (!rustSetAssetFn) {
+            logger.error('The Rust asset injection function was not registered.')
+        } else {
+            const key = name.unmangle(keyMangled)
+            logger.log(`Setting asset definition for {key}.`)
+            rustSetAssetFn(builder, key, data)
+        }
     }
 }
 
@@ -691,29 +579,11 @@ export class App {
 // === App Initialization ===
 // ==========================
 
-type GetShadersFn = () => Map<string, { vertex: string; fragment: string }>
-type SetShadersFn = (map: Map<string, { vertex: string; fragment: string }>) => void
-
-let rustGetShadersFn: null | GetShadersFn = null
-let rustSetShadersFn: null | SetShadersFn = null
-
 type GetAssetsSourcesFn = () => Map<string, Map<string, Map<string, ArrayBuffer>>>
 type SetAssetFn = (builder: string, key: string, data: Map<string, ArrayBuffer>) => void
 
 let rustGetAssetsSourcesFn: null | GetAssetsSourcesFn = null
 let rustSetAssetFn: null | SetAssetFn = null
-
-/** Registers the Rust function that extracts the shader definitions. */
-function registerGetShadersRustFn(fn: GetShadersFn) {
-    logger.log(`Registering 'getShadersFn'.`)
-    rustGetShadersFn = fn
-}
-
-/** Registers the Rust function that injects the shader definitions. */
-function registerSetShadersRustFn(fn: SetShadersFn) {
-    logger.log(`Registering 'setShadersFn'.`)
-    rustSetShadersFn = fn
-}
 
 /** Registers the Rust function that extracts asset source files. */
 function registerGetDynamicAssetsSourcesRustFn(fn: GetAssetsSourcesFn) {
@@ -727,9 +597,4 @@ function registerSetDynamicAssetRustFn(fn: SetAssetFn) {
     rustSetAssetFn = fn
 }
 
-host.exportGlobal({
-    registerGetShadersRustFn,
-    registerSetShadersRustFn,
-    registerGetDynamicAssetsSourcesRustFn,
-    registerSetDynamicAssetRustFn,
-})
+host.exportGlobal({ registerGetDynamicAssetsSourcesRustFn, registerSetDynamicAssetRustFn })
