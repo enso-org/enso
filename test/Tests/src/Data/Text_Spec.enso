@@ -1203,7 +1203,7 @@ spec =
             accents.find 'h' . span 0 . text . should_equal 'h'
             accents.find 'e\u{301}' . span 0 . text . should_equal 'e\u{301}'
 
-        Test.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
+        Test.specify "should handle the Unicode normalization" pending="TODO: Rewrite this to use normalization methods explicitly" <|
             ## This test passed for the builtin Java regex library, using
                Pattern.CANON_EQ, but since that option is buggy and rarely use,
                we won't attempt to recreate it with Truffle regex. Instead,
