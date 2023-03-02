@@ -8,6 +8,7 @@ edition = "2021"
 crate-type = ["rlib"]
 
 [dependencies]
+futures = { version = "0.3" }
 ide-ci = { path = "../../../../build/ci_utils" }
 manifest-dir-macros = "0.1.16"
 regex = { workspace = true }

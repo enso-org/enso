@@ -3060,6 +3060,7 @@ dependencies = [
  "enso-bitmap",
  "enso-prelude",
  "fs_extra",
+ "futures 0.3.26",
  "ide-ci",
  "manifest-dir-macros",
  "regex",

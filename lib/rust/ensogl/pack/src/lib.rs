@@ -466,10 +466,11 @@ impl Builder {
         input_dir: &Path,
         input_files: &[String],
         output_dir: &Path,
+        tmp: &Path,
     ) -> Result<()> {
         match self {
             Builder::Font => build_font(input_dir, input_files, output_dir).await,
-            Builder::Shader => build_shader(input_dir, input_files, output_dir).await,
+            Builder::Shader => build_shader(input_dir, input_files, output_dir, tmp).await,
         }
     }
 }
@@ -557,25 +558,34 @@ async fn update_assets(
     let out = &paths.target.ensogl_pack.dist.dynamic_assets;
     ide_ci::fs::create_dir_if_missing(out)?;
     let mut assets: AssetManifest = BTreeMap::new();
+    let mut deferred_assets: BTreeMap<Builder, Vec<_>> = BTreeMap::new();
     for (&builder, builder_sources) in sources {
         let out = out.join(builder.dir_name());
         ide_ci::fs::create_dir_if_missing(&out)?;
-        let builder_assets = assets.entry(builder).or_default();
         for source_specification in builder_sources {
             let out = out.join(source_specification.dir_name());
-            let asset = match std::fs::create_dir(&out) {
+            let key = source_specification.asset_key.clone();
+            match std::fs::create_dir(&out) {
                 Ok(()) => {
                     info!("Rebuilding asset: `{}`.", out.display());
-                    build_asset(paths, builder, source_specification).await?
+                    let builder_assets = deferred_assets.entry(builder).or_default();
+                    let build = build_asset(paths, builder, source_specification);
+                    builder_assets.push(async move { Ok((key, build.await?)) });
                 }
                 Err(e) if e.kind() == ErrorKind::AlreadyExists => {
                     info!("Skipping clean asset: `{}`.", out.display());
-                    survey_asset(paths, builder, source_specification)?
+                    let builder_assets = assets.entry(builder).or_default();
+                    let asset = survey_asset(paths, builder, source_specification)?;
+                    builder_assets.insert(key, asset);
                 }
                 Err(e) => return Err(e.into()),
             };
-            builder_assets.insert(source_specification.asset_key.clone(), asset);
         }
+    }
+    for (builder, deferred_assets) in deferred_assets.into_iter() {
+        let deferred_assets = futures::future::join_all(deferred_assets).await;
+        let deferred_assets: Result<Vec<_>> = deferred_assets.into_iter().collect();
+        assets.entry(builder).or_default().extend(deferred_assets?);
     }
     Ok(assets)
 }
@@ -606,9 +616,17 @@ async fn build_asset(
         .dynamic_assets
         .join(builder.dir_name())
         .join(source_specification.dir_name());
+    let tmp_path = paths
+        .target
+        .ensogl_pack
+        .dynamic_assets
+        .join(builder.dir_name())
+        .join(format!("{}.work", source_specification.asset_key));
     // TODO: Build the asset in a temporary directory and atomically move it into place when
     //  complete, to prevent an interrupted build from leaving corrupted assets in the store.
-    builder.build_asset(&input_dir, &source_specification.input_files, &output_dir).await?;
+    builder
+        .build_asset(&input_dir, &source_specification.input_files, &output_dir, &tmp_path)
+        .await?;
     survey_asset(paths, builder, source_specification)
 }
 
@@ -662,11 +680,18 @@ fn gc_assets(paths: &Paths, assets: &AssetManifest) -> Result<()> {
 }
 
 /// Build optimized shaders by using `glslc`, `spirv-opt` and `spirv-cross`.
-async fn build_shader(input_dir: &Path, input_files: &[String], output_dir: &Path) -> Result<()> {
+async fn build_shader(
+    input_dir: &Path,
+    input_files: &[String],
+    output_dir: &Path,
+    work_dir: &Path,
+) -> Result<()> {
+    ide_ci::fs::create_dir_if_missing(work_dir)?;
     info!("Optimizing `{}`.", input_dir.file_name().unwrap().to_string_lossy());
     for glsl_file_name in input_files {
         let glsl_path = input_dir.join(glsl_file_name);
-        let stage_path = glsl_path.with_extension("");
+        let work_path = work_dir.join(glsl_file_name);
+        let stage_path = work_path.with_extension("");
         let stage = stage_path.file_name().unwrap().to_string_lossy();
         let spv_path = stage_path.with_appended_extension("spv");
         let spv_opt_path = stage_path.with_appended_extension("opt.spv");
