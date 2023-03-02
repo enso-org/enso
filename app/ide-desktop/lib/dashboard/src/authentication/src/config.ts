@@ -20,7 +20,7 @@ const CLOUD_REDIRECTS = {
 /** All possible API URLs, sorted by environment. */
 const API_URLS = {
     pbuchu: "https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com" as ApiUrl,
-    production: "https://cloud.enso.org" as ApiUrl,
+    production: "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com" as ApiUrl,
 }
 
 /** All possible configuration options, sorted by environment. */
