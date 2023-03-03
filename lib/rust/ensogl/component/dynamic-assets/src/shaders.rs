@@ -1,6 +1,8 @@
+//! Offline optimization of runtime-generated shader programs.
+
 use enso_prelude::*;
-use ensogl_core::system::web::Map;
 use ensogl_core::system::web::JsValue;
+use ensogl_core::system::web::Map;
 
 
 
@@ -24,10 +26,19 @@ pub fn gather() -> JsValue {
 }
 
 /// Set optimized shader code (at early runtime).
-pub fn set(key: String, mut value: HashMap<String, Vec<u8>>) {
-    let vertex = String::from_utf8(value.remove(VERTEX_FILE).unwrap()).unwrap();
-    let fragment = String::from_utf8(value.remove(FRAGMENT_FILE).unwrap()).unwrap();
+pub fn set(key: String, value: HashMap<String, Vec<u8>>) {
+    try_set(key, value).unwrap_or_else(|e| error!("Failed to load shader: {e}."));
+}
+
+fn try_set(key: String, mut value: HashMap<String, Vec<u8>>) -> anyhow::Result<()> {
+    let vertex = String::from_utf8(
+        value.remove(VERTEX_FILE).ok_or_else(|| anyhow!("Missing vertex file."))?,
+    )?;
+    let fragment = String::from_utf8(
+        value.remove(FRAGMENT_FILE).ok_or_else(|| anyhow!("Missing fragment file."))?,
+    )?;
     ensogl_core::display::world::set_shader_code(key, vertex, fragment);
+    Ok(())
 }
 
 const VERTEX_FILE: &'static str = "vertex.glsl";

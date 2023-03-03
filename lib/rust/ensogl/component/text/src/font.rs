@@ -652,19 +652,11 @@ impl<F: Family> FontTemplate<F> {
         glyph_id: GlyphId,
         face: &Face,
     ) -> GlyphRenderInfo {
-        #[derive(Debug)]
-        #[allow(dead_code)]
-        struct GlyphCacheMiss<'a, T> {
-            face:       &'a str,
-            variations: &'a T,
-            glyph_id:   GlyphId,
-        }
-        profiler::metadata_logger!("GlyphCacheMiss", log_miss(String));
-        log_miss(format!("{:?}", GlyphCacheMiss {
-            face: &self.name.normalized,
-            variations,
-            glyph_id,
-        }));
+        log_miss(GlyphCacheMiss {
+            face:       self.name.normalized.clone(),
+            variations: format!("{variations:?}"),
+            glyph_id:   glyph_id.0,
+        });
         self.family.update_msdfgen_variations(variations);
         let render_info = GlyphRenderInfo::load(&face.msdf, glyph_id, &self.atlas);
         if !self.cache.borrow().contains_key(variations) {
@@ -738,90 +730,126 @@ impl FontTemplate<NonVariableFamily> {
             .borrow()
             .iter()
             .map(|(variation, info)| {
-                let width = match variation.width {
-                    Width::UltraCondensed => "UltraCondensed",
-                    Width::ExtraCondensed => "ExtraCondensed",
-                    Width::Condensed => "Condensed",
-                    Width::SemiCondensed => "SemiCondensed",
-                    Width::Normal => "Normal",
-                    Width::SemiExpanded => "SemiExpanded",
-                    Width::Expanded => "Expanded",
-                    Width::ExtraExpanded => "ExtraExpanded",
-                    Width::UltraExpanded => "UltraExpanded",
-                };
-                let weight = variation.weight.to_number().to_string();
-                let style = match variation.style {
-                    Style::Normal => "Normal",
-                    Style::Italic => "Italic",
-                    Style::Oblique => "Oblique",
-                };
-                let variation = format!("{width}-{weight}-{style}");
                 let glyphs: HashMap<String, GlyphRenderInfo> =
                     info.glyphs.iter().map(|(id, data)| (id.0.to_string(), *data)).collect();
-                (variation, glyphs)
+                (serialize_variation(variation), glyphs)
             })
             .collect();
-        let glyphs = serde_json::to_string(&cache).unwrap();
+        let glyphs = serde_json::to_string(&cache);
+        // Serialization can only fail if the types are not serializable to JSON, so this will
+        // either succeed consistently or fail consistently. [`unwrap`] it so if it gets broken,
+        // we'll catch it.
+        let glyphs = glyphs.unwrap();
         CacheSnapshot { atlas, glyphs }
     }
 
     /// Populate the cache with the given data.
-    pub fn load_cache(&self, snapshot: &CacheSnapshot) {
+    pub fn load_cache(&self, snapshot: &CacheSnapshot) -> anyhow::Result<()> {
         self.atlas.set_data(snapshot.atlas.clone());
         let cache: HashMap<String, HashMap<String, GlyphRenderInfo>> =
-            serde_json::from_str(&snapshot.glyphs).unwrap();
+            serde_json::from_str(&snapshot.glyphs)?;
         *self.cache.borrow_mut() = cache
             .into_iter()
             .map(|(variation, info)| {
-                let mut variation = variation.splitn(3, '-');
-                let width = match variation.next().unwrap() {
-                    "UltraCondensed" => Width::UltraCondensed,
-                    "ExtraCondensed" => Width::ExtraCondensed,
-                    "Condensed" => Width::Condensed,
-                    "SemiCondensed" => Width::SemiCondensed,
-                    "Normal" => Width::Normal,
-                    "SemiExpanded" => Width::SemiExpanded,
-                    "Expanded" => Width::Expanded,
-                    "ExtraExpanded" => Width::ExtraExpanded,
-                    "UltraExpanded" => Width::UltraExpanded,
-                    _ => panic!(),
-                };
-                let weight = Weight::from(variation.next().unwrap().parse::<u16>().unwrap());
-                let style = match variation.next().unwrap() {
-                    "Normal" => Style::Normal,
-                    "Italic" => Style::Italic,
-                    "Oblique" => Style::Oblique,
-                    _ => panic!(),
-                };
-                let variation = NonVariableFaceHeader { width, weight, style };
                 let kerning = default();
                 let glyphs = info
                     .into_iter()
-                    .map(|(id, data)| (GlyphId(id.parse().unwrap()), data))
-                    .collect();
-                (variation, FontDataCache { kerning, glyphs })
+                    .map(|(id, data)| Ok((GlyphId(id.parse()?), data)))
+                    .collect::<anyhow::Result<_>>()?;
+                Ok((deserialize_variation(&variation)?, FontDataCache { kerning, glyphs }))
             })
-            .collect();
+            .collect::<anyhow::Result<_>>()?;
+        Ok(())
     }
 
     /// Load the glyphs for the given text into the cache.
-    pub fn prepare_glyphs(&self, variations: &NonVariableFaceHeader, glyphs: &str) {
-        self.family.with_borrowed_face(variations, |face| {
-            let ttf_face = face.ttf.as_face_ref();
-            // This is safe. Unwrap should be removed after rustybuzz is fixed:
-            // https://github.com/RazrFalcon/rustybuzz/issues/52
-            let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
-            let mut buffer = rustybuzz::UnicodeBuffer::new();
-            buffer.push_str(glyphs);
-            let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
-            for info in shaped.glyph_infos() {
-                let id = GlyphId(info.glyph_id as u16);
-                // Load it into the cache.
-                let _ = self.glyph_info(variations, id);
-            }
-        });
+    pub fn prepare_glyphs(
+        &self,
+        variations: &NonVariableFaceHeader,
+        glyphs: &str,
+    ) -> anyhow::Result<()> {
+        let faces = self.family.faces.borrow();
+        let face = faces
+            .get(variations)
+            .ok_or_else(|| anyhow!("No face found for variations: {variations:?}."))?;
+        let ttf_face = face.ttf.as_face_ref();
+        // This is safe. Unwrap should be removed after rustybuzz is fixed:
+        // https://github.com/RazrFalcon/rustybuzz/issues/52
+        let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
+        let mut buffer = rustybuzz::UnicodeBuffer::new();
+        buffer.push_str(glyphs);
+        let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
+        for info in shaped.glyph_infos() {
+            let id = GlyphId(info.glyph_id as u16);
+            // Load it into the cache.
+            let _ = self.glyph_info(variations, id);
+        }
+        Ok(())
     }
 }
+
+
+// === Serialization Helpers, Because `ttf_parser` Doesn't `derive` Them ===
+
+fn serialize_variation(variation: &NonVariableFaceHeader) -> String {
+    let width = match variation.width {
+        Width::UltraCondensed => "UltraCondensed",
+        Width::ExtraCondensed => "ExtraCondensed",
+        Width::Condensed => "Condensed",
+        Width::SemiCondensed => "SemiCondensed",
+        Width::Normal => "Normal",
+        Width::SemiExpanded => "SemiExpanded",
+        Width::Expanded => "Expanded",
+        Width::ExtraExpanded => "ExtraExpanded",
+        Width::UltraExpanded => "UltraExpanded",
+    };
+    let weight = variation.weight.to_number().to_string();
+    let style = match variation.style {
+        Style::Normal => "Normal",
+        Style::Italic => "Italic",
+        Style::Oblique => "Oblique",
+    };
+    format!("{width}-{weight}-{style}")
+}
+
+fn deserialize_variation(variation: &str) -> anyhow::Result<NonVariableFaceHeader> {
+    let mut parts = variation.splitn(3, '-');
+    let bad_variation = || anyhow!("Malformed variation specifier: {variation}");
+    let width = match parts.next().ok_or_else(bad_variation)? {
+        "UltraCondensed" => Width::UltraCondensed,
+        "ExtraCondensed" => Width::ExtraCondensed,
+        "Condensed" => Width::Condensed,
+        "SemiCondensed" => Width::SemiCondensed,
+        "Normal" => Width::Normal,
+        "SemiExpanded" => Width::SemiExpanded,
+        "Expanded" => Width::Expanded,
+        "ExtraExpanded" => Width::ExtraExpanded,
+        "UltraExpanded" => Width::UltraExpanded,
+        width => anyhow::bail!("Unexpected font width: `{width}`."),
+    };
+    let weight = Weight::from(parts.next().ok_or_else(bad_variation)?.parse::<u16>()?);
+    let style = match parts.next().ok_or_else(bad_variation)? {
+        "Normal" => Style::Normal,
+        "Italic" => Style::Italic,
+        "Oblique" => Style::Oblique,
+        style => anyhow::bail!("Unexpected font style: `{style}`."),
+    };
+    Ok(NonVariableFaceHeader { width, weight, style })
+}
+
+
+// === Cache Logging ===
+
+/// A glyph that was not found in the MSDF data cache.
+#[derive(Debug, serde::Serialize)]
+#[allow(dead_code)]
+pub struct GlyphCacheMiss {
+    face:       String,
+    variations: String,
+    glyph_id:   u16,
+}
+
+profiler::metadata_logger!("GlyphCacheMiss", log_miss(GlyphCacheMiss));
 
 
 
@@ -1026,7 +1054,8 @@ impl Embedded {
                 let cache = PREBUILT_ATLASES.with_borrow_mut(|atlases| atlases.get(&name).cloned());
                 let font = NonVariableFont::new(name, family);
                 if let Some(cache) = cache {
-                    font.load_cache(&cache);
+                    font.load_cache(&cache)
+                        .unwrap_or_else(|e| error!("Failed to load cached font data: {e}."));
                 }
                 font.into()
             }

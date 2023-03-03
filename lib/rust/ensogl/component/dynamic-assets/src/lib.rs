@@ -1,3 +1,18 @@
+//! *Dynamic assets* are assets that the application itself is used to build. This enables certain
+//! types of performance optimization:
+//!
+//! # Cache pre-seeding
+//!
+//! When the application uses a cache for an expensive computation, in some cases it is possible to
+//! serialize the result of the work, and load it at startup to reduce work done at runtime. Dynamic
+//! assets make this process simple to apply to any type of cache.
+//!
+//! # Offline shader optimization
+//!
+//! The application generates many shader programs; these programs can be optimized by external
+//! tools. However, the programs are generated at runtime, so build-time optimization requires
+//! dynamic analysis. Dynamic asset extraction fills this role.
+
 #![feature(local_key_cell_methods)]
 #![feature(let_chains)]
 #![cfg(target_arch = "wasm32")]
@@ -38,6 +53,7 @@ mod shaders;
 // === Dynamic Assets ===
 // ======================
 
+/// Register the functions to get and set dynamic assets, to be invoked from JavaScript.
 #[before_main]
 pub fn register_dynamic_assets_fns() {
     let js_app = js::app_or_panic();
@@ -57,6 +73,11 @@ fn get_dynamic_assets_sources() -> JsValue {
 }
 
 fn set_dynamic_asset(builder: JsValue, key: JsValue, asset: JsValue) {
+    try_set_dynamic_asset(builder, key, asset)
+        .unwrap_or_else(|e| error!("Setting dynamic asset: {e}"));
+}
+
+fn try_set_dynamic_asset(builder: JsValue, key: JsValue, asset: JsValue) -> anyhow::Result<()> {
     let builder = builder.as_string().unwrap();
     let key = key.as_string().unwrap();
     let asset: Map = asset.dyn_into().unwrap();
@@ -68,6 +89,7 @@ fn set_dynamic_asset(builder: JsValue, key: JsValue, asset: JsValue) {
     match builder.as_ref() {
         "font" => fonts::set_atlas(key, asset_),
         "shader" => shaders::set(key, asset_),
-        _ => panic!(),
+        _ => anyhow::bail!("Unknown builder."),
     }
+    Ok(())
 }

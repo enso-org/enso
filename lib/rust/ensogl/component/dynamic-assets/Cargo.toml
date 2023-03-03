@@ -5,6 +5,7 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
+anyhow = { workspace = true }
 enso-bitmap = { path = "../../../bitmap" }
 enso-prelude = { path = "../../../prelude" }
 enso-shapely = { path = "../../../shapely" }

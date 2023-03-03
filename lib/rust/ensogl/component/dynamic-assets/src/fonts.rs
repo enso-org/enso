@@ -1,3 +1,5 @@
+//! Pre-seed the cache of MSDF data for fast font rendering.
+
 use enso_prelude::*;
 use ensogl_core::system::web::JsCast;
 use ensogl_core::system::web::JsValue;
@@ -32,17 +34,27 @@ pub fn build_atlases() -> JsValue {
     let fonts_to_build = &[font::DEFAULT_FONT_MONO, font::DEFAULT_FONT];
     let fonts = Map::new();
     for font_name in fonts_to_build {
-        let font = build_atlas(font_name);
-        fonts.set(&font_name.to_string().into(), &font.into());
+        match build_atlas(font_name) {
+            Ok(font) => {
+                fonts.set(&font_name.to_string().into(), &font.into());
+            }
+            Err(e) => error!("Failed to build atlas for font: {e}"),
+        }
     }
     fonts.into()
 }
 
 /// Load an atlas from JavaScript data.
-pub fn set_atlas(font: String, mut data: HashMap<String, Vec<u8>>) {
-    let atlas = data.remove(ATLAS_FILE).unwrap();
-    let metadata = String::from_utf8(data.remove(METADATA_FILE).unwrap()).unwrap();
-    load_atlas(font, atlas, metadata);
+pub fn set_atlas(font: String, data: HashMap<String, Vec<u8>>) {
+    try_set_atlas(font, data).unwrap_or_else(|e| error!("Failed to load font atlas: {e}"));
+}
+
+fn try_set_atlas(font: String, mut data: HashMap<String, Vec<u8>>) -> anyhow::Result<()> {
+    let atlas = data.remove(ATLAS_FILE).ok_or_else(|| anyhow!("Atlas file not found."))?;
+    let metadata = String::from_utf8(
+        data.remove(METADATA_FILE).ok_or_else(|| anyhow!("Metadata file not found."))?,
+    )?;
+    load_atlas(font, atlas, metadata)
 }
 
 
@@ -70,8 +82,8 @@ impl From<Atlas> for JsValue {
 }
 
 impl TryFrom<JsValue> for Atlas {
-    type Error = ();
-    fn try_from(value: JsValue) -> Result<Self, Self::Error> {
+    type Error = anyhow::Error;
+    fn try_from(value: JsValue) -> anyhow::Result<Self> {
         let map = Map::from(value);
         let atlas = map.get(&ATLAS_FILE.into());
         let metadata = map.get(&METADATA_FILE.into());
@@ -88,27 +100,28 @@ impl TryFrom<JsValue> for Atlas {
 // =======================================
 
 /// Generate MSDF data for a font.
-fn build_atlas(name: &str) -> Atlas {
+fn build_atlas(name: &str) -> anyhow::Result<Atlas> {
     let fonts = font::Embedded::new();
-    let font = fonts.load_font(name.into());
-    let font = font.unwrap();
+    let font = fonts.load_font(name.into()).ok_or_else(|| anyhow!("Failed to load font."))?;
     let font = match font {
         Font::NonVariable(font) => font,
-        Font::Variable(_) => panic!(),
+        Font::Variable(_) =>
+            return Err(anyhow!("Atlas cache pre-seeding for variable fonts is not supported.",)),
     };
     let normal = font::NonVariableFaceHeader::default();
     let mut bold = normal;
     bold.weight = font::Weight::Bold;
     for variation in &[normal, bold] {
         for glyphs in PRELOAD_GLYPHS {
-            font.prepare_glyphs(variation, glyphs);
+            font.prepare_glyphs(variation, glyphs)
+                .unwrap_or_else(|e| error!("Failed to populate cache for font variation: {e}."));
         }
     }
     let cache = font.cache_snapshot();
     let atlas = cache.atlas.encode_ppm();
     let atlas = js_sys::Uint8Array::from(&atlas[..]).buffer();
     let metadata = cache.glyphs;
-    Atlas { atlas, metadata }
+    Ok(Atlas { atlas, metadata })
 }
 
 
@@ -118,9 +131,10 @@ fn build_atlas(name: &str) -> Atlas {
 // =========================================
 
 /// Attach the given MSDF data to a font to enable efficient rendering.
-fn load_atlas(font: String, atlas: Vec<u8>, glyphs: String) {
-    let atlas = enso_bitmap::Image::decode_ppm(&atlas).unwrap();
+fn load_atlas(font: String, atlas: Vec<u8>, glyphs: String) -> anyhow::Result<()> {
+    let atlas = enso_bitmap::Image::decode_ppm(&atlas)?;
     let snapshot = Rc::new(font::CacheSnapshot { atlas, glyphs });
     let name = ensogl_text::font::Name::from(font);
     font::PREBUILT_ATLASES.with_borrow_mut(|atlases| atlases.insert(name, snapshot));
+    Ok(())
 }

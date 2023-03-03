@@ -1862,6 +1862,9 @@ dependencies = [
 [[package]]
 name = "enso-bitmap"
 version = "0.1.0"
+dependencies = [
+ "thiserror",
+]
 
 [[package]]
 name = "enso-build"
@@ -2700,6 +2703,7 @@ dependencies = [
 name = "ensogl-dynamic-assets"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "enso-bitmap",
  "enso-prelude",
  "enso-shapely",

@@ -7,3 +7,4 @@ edition = "2021"
 [features]
 
 [dependencies]
+thiserror = "1"

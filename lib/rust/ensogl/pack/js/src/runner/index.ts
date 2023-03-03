@@ -335,11 +335,11 @@ export class App {
         )
 
         const responses = await files.mapAndAwaitAll(url => fetch(url))
+        loader.load(responses.toArray())
         const downloadSize = loader.showTotalBytes()
         const task = log.Task.startCollapsed(`Downloading application files (${downloadSize}).`)
 
         void loader.done.then(() => task.end())
-        loader.load(responses.toArray())
         const assetsResponses = responses.assets
         const assetsBlobs = await Promise.all(assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer())))
         const assets = assetsInfo.map((info) => new Asset(info.type, info.key, new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))))

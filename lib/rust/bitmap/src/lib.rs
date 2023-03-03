@@ -19,6 +19,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use thiserror::Error;
+
 
 
 // ======================
@@ -41,6 +43,11 @@ pub struct Image {
 // ==================
 // === PPM Format ===
 // ==================
+
+/// If this is `false`, pixel data will be stored be encoded and decoded more efficiently, but
+/// non-standardly. Other programs will be able to display the files, though the values will be
+/// inverted.
+const CONFORMANT_PPM: bool = false;
 
 impl Image {
     /// Encode in the PPM format.
@@ -82,17 +89,24 @@ impl Image {
 
 /// Map a channel value to or from PPM encoding, which is inverted from most formats.
 fn ppm_value(x: &u8) -> u8 {
-    255 - x
+    if CONFORMANT_PPM {
+        255 - x
+    } else {
+        *x
+    }
 }
 
 /// Encoding/decoding errors.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Error, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Error {
     /// The file does not appear to be in the expected format.
+    #[error("The file does not appear to be in the expected format.")]
     WrongFormat,
     /// The file is invalid or uses unsupported features.
+    #[error("The file is invalid or uses unsupported features.")]
     Invalid,
     /// The file is invalid or may be truncated.
+    #[error("The file is invalid or may be truncated.")]
     Truncated,
 }
 
