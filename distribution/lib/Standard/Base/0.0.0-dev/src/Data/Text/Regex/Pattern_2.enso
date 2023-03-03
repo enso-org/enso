@@ -10,7 +10,6 @@ import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Regex.Match_2.Match_2
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.IO
 import project.Nothing.Nothing
 polyglot java import org.enso.base.Text_Utils
 
