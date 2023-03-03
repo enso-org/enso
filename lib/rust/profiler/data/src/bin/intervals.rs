@@ -33,7 +33,6 @@ use enso_prelude::*;
 
 use enso_profiler::format::AnyMetadata;
 use enso_profiler_data as data;
-use std::collections;
 
 
 
@@ -90,10 +89,10 @@ struct FuncCollector {
 
 impl FuncCollector {
     /// Aggregate all intervals created by a particular profiler.
-    fn run(root: &data::aggregate::Frame) -> collections::HashMap<Label, FuncTimings> {
+    fn run(root: &data::aggregate::Frame) -> HashMap<Label, FuncTimings> {
         let mut collector = FuncCollector::default();
         for (label, frame) in &root.children {
-            collector.visit(label, frame, INCLUDE_ONLY_SUBTREES_MATCHING_PREFIX.is_none());
+            collector.visit(label, frame, default());
         }
         let FuncCollector { funcs, .. } = collector;
         funcs
@@ -102,11 +101,10 @@ impl FuncCollector {
 
 impl FuncCollector {
     /// Add time spent in an interval to the running sums; recurse into children.
-    fn visit(&mut self, label: &Label, frame: &data::aggregate::Frame, mut enable: bool) {
-        if let Some(prefix) = INCLUDE_ONLY_SUBTREES_MATCHING_PREFIX
-                && label.starts_with(prefix) {
-            enable = true;
-        }
+    fn visit(&mut self, label: &Label, frame: &data::aggregate::Frame, enable: bool) {
+        let enable = enable
+            || INCLUDE_ONLY_SUBTREES_MATCHING_PREFIX
+                .map_or(true, |prefix| label.starts_with(prefix));
         if enable {
             let func = self.funcs.entry(label.clone()).or_default();
             func.self_duration += frame.self_duration();

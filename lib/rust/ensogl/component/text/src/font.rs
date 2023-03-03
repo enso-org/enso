@@ -885,6 +885,8 @@ pub struct Hinting {
 impl Hinting {
     fn for_font(font_name: &str) -> Self {
         let platform = platform::current();
+        // The optimal hinting values must be found by testing. The [`text_are`] debug scene
+        // supports trying different values at runtime.
         match (platform, font_name) {
             (Some(platform::Platform::MacOS), "mplus1p") =>
                 Self { opacity_increase: 0.4, opacity_exponent: 4.0 },
