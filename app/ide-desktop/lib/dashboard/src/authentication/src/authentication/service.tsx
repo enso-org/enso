@@ -9,6 +9,7 @@ import * as loggerProvider from "../providers/logger";
 import * as cognito from "./cognito";
 import * as authConfig from "./config";
 import * as config from "../config";
+import {ENVIRONMENT} from "../config";
 
 
 
@@ -127,7 +128,7 @@ const loadAmplifyConfig = (
   navigate: (url: string) => void
 ): authConfig.AmplifyConfig => {
   // Load the environment-specific Amplify configuration.
-  const baseConfig = AMPLIFY_CONFIGS.production;
+  const baseConfig = AMPLIFY_CONFIGS[ENVIRONMENT];
 
   if (runningOnDesktop) {
     // If we're running on the desktop, we want to override the default URL opener for OAuth
