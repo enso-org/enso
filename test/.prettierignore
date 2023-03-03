@@ -1,3 +1,0 @@
-# The files in the `data` directory of our tests may have specific structure or
-# even be malformed on purpose, so we do not want to run prettier on them.
-**/data/
