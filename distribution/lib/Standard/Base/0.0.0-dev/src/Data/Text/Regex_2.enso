@@ -46,3 +46,19 @@ compile self expression case_insensitive=Nothing =
              engine.escape literal_string
 escape : Text -> Text
 escape self expression = Java_Pattern.quote expression
+
+## An error that is emitted when there is no such group in the match for the
+   provided `id`.
+
+   Arguments:
+   - id: The identifier of the group that was asked for but does not exist.
+type No_Such_Group
+    Error (id : Text | Integer)
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the `No_Such_Group`.
+    to_display_text : Text
+    to_display_text self = case self.id of
+        _ : Integer -> "No group exists with the index " + self.id.to_text + "."
+        _ : Text -> "No group exists with the name " + self.id + "."

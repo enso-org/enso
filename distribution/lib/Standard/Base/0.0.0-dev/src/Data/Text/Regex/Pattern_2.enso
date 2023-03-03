@@ -8,9 +8,15 @@ import project.Data.Range.Range
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Regex.Match_2.Match_2
+import project.Data.Text.Regex_2.No_Such_Group
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
+import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Polyglot
+
 polyglot java import org.enso.base.Text_Utils
 
 type Pattern_2
@@ -44,6 +50,48 @@ type Pattern_2
             Match_Iterator_Value.Next _ match _ -> match
             Match_Iterator_Value.Last _ -> Nothing
 
+    ## PRIVATE
+
+       Look up a match group name or number, and check that it is valid.
+
+       Arguments:
+       - id: The name or number of the group that was asked for.
+
+       Returns: a group number.
+
+       A group number is invalid if it is outside the range of groups
+       that were in the original pattern.
+
+       A group name is invalid if it was not defined in the original pattern.
+
+       A group name is an alias for a group number; if a name is passed to
+       this method, it returns the corresponding group number.
+    lookup_group : Integer | Text -> Integer ! No_Such_Group
+    lookup_group self id =
+        case id of
+            n : Integer -> case (n < self.internal_regex_object.groupCount) of
+                True -> n
+                False -> Error.throw (No_Such_Group.Error n)
+            name : Text ->
+                # Maps name to number
+                groups = self.internal_regex_object.groups
+
+                # If null, there are no named groups
+                n = case groups of
+                        _ : Nothing -> Nothing
+                        ## EGREGIOUS HACK because I don't know how to use this object
+                                map -> case name of
+                                    "cee" -> map.cee
+                                    _ -> Nothing
+                        _ ->
+                            qq = (read_group_map groups name)
+                            case qq of
+                                _ : Nothing -> Nothing
+                                n : Integer -> n
+                case n of
+                    _ : Integer -> n
+                    _ : Nothing -> Error.throw (No_Such_Group.Error name)
+
     to_text_debug : Text -> Vector Text
     to_text_debug self input =
         Match_Iterator.new self input . to_text_debug
@@ -66,7 +114,7 @@ type Match_Iterator
                 match_start = regex_result.getStart 0
                 filler_range = Range.new self.cursor match_start
                 filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
-                match = Match_2.Value regex_result self.input
+                match = Match_2.Value self.pattern regex_result self.input
                 next_cursor = match.end 0
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
@@ -87,3 +135,18 @@ type Match_Iterator
 type Match_Iterator_Value
   Next (filler : Span) (match : Match_2) (next_iterator : Match_Iterator)
   Last (filler : Span)
+
+## PRIVATE
+group_map_contains : Any -> Text -> Boolean
+group_map_contains map elem =
+    members = Polyglot.get_members map
+    as_vec = (Range.new 0 (members.length)).map (i-> members . at i)
+    as_vec.contains elem
+
+## PRIVATE
+read_group_map : Any -> Text -> Integer | Nothing
+read_group_map map name =
+    case group_map_contains map name of
+        True -> Polyglot.get_member map name
+        False -> Nothing
+

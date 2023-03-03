@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Regex_2.No_Such_Group
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
@@ -1241,6 +1242,18 @@ spec =
 
         Test.specify "should allow access to match groups by number" <|
             "abcddd".find("ab(c(d+))").group 0 . text . should_equal "abcddd"
+            "abcddd".find("ab(c(d+))").group 1 . text . should_equal "cddd"
+            "abcddd".find("ab(c(d+))").group 2 . text . should_equal "ddd"
+
+        Test.specify "should allow access to match groups by name" <|
+            "abcddd".find("ab(?<cee>c(d+))").group "cee" . text . should_equal "cddd"
+
+        Test.specify "should throw No_Such_Group for an out-of-range group number" <|
+            "abcddd".find("ab(c(d+))").group 3 . text . should_fail_with No_Such_Group.Error
+            "abcddd".find("ab(c(d+))").group 12 . text . should_fail_with No_Such_Group.Error
+
+        Test.specify "should throw No_Such_Group for an invalid group name" <|
+            "abcddd".find("ab(?<cee>c(d+))").group "dee" . text . should_fail_with No_Such_Group.Error
 
         Test.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'

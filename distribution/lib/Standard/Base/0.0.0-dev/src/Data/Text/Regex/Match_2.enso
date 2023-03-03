@@ -2,11 +2,13 @@ import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
+import project.Data.Text.Text
 
 type Match_2
-    ## internal_regex_result : RegexResult (Truffle)
+    ##
+       internal_regex_result : RegexResult (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
-    Value (internal_regex_result : Any) (input : Text)
+    Value (pattern : Pattern_2) (internal_regex_result : Any) (input : Text)
 
     start : Integer -> Integer
     start self n = self.internal_regex_result.getStart n
@@ -14,7 +16,8 @@ type Match_2
     end : Integer -> Integer
     end self n = self.internal_regex_result.getEnd n
 
-    group : Integer -> Span
-    group self n =
+    group : Integer | Text -> Span
+    group self id =
+        n = self.pattern.lookup_group id
         range = Range.new (self.start n) (self.end n)
         (Utf_16_Span.Value range self.input).to_grapheme_span
