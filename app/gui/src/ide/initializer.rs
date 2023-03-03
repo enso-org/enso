@@ -1,7 +1,6 @@
 //! A module containing the whole IDE initialization.
 
 use crate::prelude::*;
-use std::time::Duration;
 
 use crate::config;
 use crate::ide::Ide;
@@ -12,7 +11,9 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
 use enso_web::sleep;
 use ensogl::application::Application;
+use std::time::Duration;
 use uuid::Uuid;
+
 
 
 // =================
