@@ -162,9 +162,13 @@ type Additional_Invalid_Rows
 ## Indicates that a quote inside of a delimited file cell has been opened but
    never closed.
 type Mismatched_Quote
-   to_display_text : Text
-   to_display_text self =
-       "A quote has been opened but never closed inside of a Delimited file, so it cannot be interpreted properly."
+    Error (cell_text : Text)
+
+    to_display_text : Text
+    to_display_text self =
+        max_length = 50
+        short_cell_text = if self.cell_text.length > max_length then self.cell_text.take max_length + "..." else self.cell_text
+        "A quote has been opened but never closed inside of a Delimited file, so it cannot be interpreted properly. Inside cell: ["+short_cell_text+"]."
 
 ## Indicates an unexpected parser error.
 type Parser_Error

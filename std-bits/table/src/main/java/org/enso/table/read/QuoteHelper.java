@@ -1,5 +1,7 @@
 package org.enso.table.read;
 
+import java.util.function.Consumer;
+
 /**
  * A helper class providing functionality of parsing optionally quoted strings and detecting
  * mismatched quotes.
@@ -19,7 +21,7 @@ public class QuoteHelper {
    * report the issue.
    */
   public static String stripQuotes(
-      char quoteCharacter, Runnable mismatchedQuoteCallback, String text) {
+      char quoteCharacter, Consumer<String> mismatchedQuoteCallback, String text) {
     int last = text.length() - 1;
     if (text.isEmpty()
         || (text.charAt(0) != quoteCharacter && text.charAt(last) != quoteCharacter)) {
@@ -39,7 +41,7 @@ public class QuoteHelper {
       assert hasLeadingQuote || hasTrailingQuote;
       // If only leading or only trailing quote is left, it means we have a mismatched quote and
       // need to report it.
-      mismatchedQuoteCallback.run();
+      mismatchedQuoteCallback.accept(text);
       return text;
     }
   }

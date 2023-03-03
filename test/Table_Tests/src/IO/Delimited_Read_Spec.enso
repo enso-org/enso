@@ -232,6 +232,7 @@ spec =
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Corrupted_Format
                 r1.catch.to_display_text.should_contain "quote has been opened but never closed"
+                r1.catch.to_display_text.should_contain '["\n7,8,9\n]'
 
                 r2 = Data.read (enso_project.data / "mismatched_quote2.csv") format on_problems=pb
                 r2.should_fail_with File_Error
@@ -248,13 +249,19 @@ spec =
                 r5.should_fail_with File_Error.Corrupted_Format
 
         Test.specify "should handle quotes if they are opened in the middle of an unquoted cell in a sane way" <|
-            t1 = Data.read (enso_project.data / "weird_quoting_stuff.csv") (Delimited "," headers=True value_formatter=Nothing)
-            t1.column_names . should_equal ["A", "B", "C", "D", "E"]
-            t1.at 'A' . to_vector . should_equal ['Te,s"t', 'Te,s"t']
-            t1.at 'B' . to_vector . should_equal ['An " other', 'An " other"']
-            t1.at 'C' . to_vector . should_equal ['He\nllo', 'He\nllo']
-            t1.at 'D' . to_vector . should_equal ['This is an escaped quote\\"', 'This is an escaped quote\\"']
-            t1.at 'E' . to_vector . should_equal ['Excel escapes "" with 8 quotes """"""', 'Excel escapes "" with 8 quotes """"""']
+            t1 = Data.read (enso_project.data / "mismatched_quote_at_end.csv") (Delimited "," headers=True value_formatter=Nothing)
+            t1.column_names . should_equal ["a", "b", "c"]
+            t1.at 'a' . to_vector . should_equal ['1', '\tabc', '7']
+            t1.at 'b' . to_vector . should_equal ['2', 'def', '8']
+            t1.at 'c' . to_vector . should_equal ['3', 'g h i"', '9']
+
+            t2 = Data.read (enso_project.data / "weird_quoting_stuff.csv") (Delimited "," headers=True value_formatter=Nothing)
+            t2.column_names . should_equal ["A", "B", "C", "D", "E"]
+            t2.at 'A' . to_vector . should_equal ['Te,s"t', 'Te,s"t']
+            t2.at 'B' . to_vector . should_equal ['An " other', 'An " other"']
+            t2.at 'C' . to_vector . should_equal ['He\nllo', 'He\nllo']
+            t2.at 'D' . to_vector . should_equal ['This is an escaped quote\\"', 'This is an escaped quote\\"']
+            t2.at 'E' . to_vector . should_equal ['Excel escapes "" with 8 quotes """"""', 'Excel escapes "" with 8 quotes """"""']
 
         Test.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =
