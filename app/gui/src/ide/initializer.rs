@@ -104,7 +104,7 @@ impl Initializer {
                     error!("{message}");
                     match retry_after.next() {
                         Some(time) => {
-                            info!("Retrying after {} seconds", time.as_secs_f32());
+                            error!("Retrying after {} seconds", time.as_secs_f32());
                             sleep(*time).await;
                         }
                         None => {
