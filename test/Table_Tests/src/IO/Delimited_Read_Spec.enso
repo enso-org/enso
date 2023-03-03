@@ -263,6 +263,11 @@ spec =
             t2.at 'D' . to_vector . should_equal ['This is an escaped quote \\"', 'This is an escaped quote \\"']
             t2.at 'E' . to_vector . should_equal ['Excel escapes "" with 8 quotes """"""', 'Excel escapes "" with 8 quotes """"""']
 
+            t3 = Data.read (enso_project.data / "weird_quoting_stuff2.csv") (Delimited "," headers=True value_formatter=Nothing)
+            IO.println t3
+            t3.print
+
+
         Test.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =
                 Data.read (enso_project.data / "varying_rows.csv") (Delimited "," headers=True keep_invalid_rows=keep_invalid_rows value_formatter=Nothing) on_problems=on_problems
