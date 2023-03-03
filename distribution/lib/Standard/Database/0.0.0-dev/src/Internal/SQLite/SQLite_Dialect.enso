@@ -122,7 +122,7 @@ make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
-    arith_extensions = [decimal_div]
+    arith_extensions = [decimal_div, mod_op]
 
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool
@@ -260,3 +260,7 @@ bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "/" x-> y->
     code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
+
+## PRIVATE
+mod_op = Base_Generator.lift_binary_op "mod" x-> y->
+    x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y

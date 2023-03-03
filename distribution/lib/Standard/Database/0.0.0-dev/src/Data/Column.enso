@@ -360,7 +360,9 @@ type Column
         op = case other of
             _ : Column -> if self.sql_type.is_definitely_numeric || other.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
             _ -> if self.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
-        self.make_binary_op op other
+        new_type = if op == 'ADD_TEXT' then self.sql_type else
+            SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
+        self.make_binary_op op other new_type=new_type
 
     ## UNSTABLE
 
@@ -373,7 +375,9 @@ type Column
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
-    - self other = self.make_binary_op "-" other
+    - self other =
+        new_type = SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
+        self.make_binary_op "-" other new_type=new_type
 
     ## UNSTABLE
 
@@ -386,7 +390,9 @@ type Column
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
     * : Column | Any -> Column
-    * self other = self.make_binary_op "*" other
+    * self other =
+        new_type = SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
+        self.make_binary_op "*" other new_type=new_type
 
     ## ALIAS Divide Columns
 
@@ -452,7 +458,9 @@ type Column
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
     % self other =
-        self.make_binary_op "%" other
+        new_type = SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
+        op = if new_type == SQL_Type.integer then "%" else "mod"
+        self.make_binary_op op other new_type=new_type
 
     ## ALIAS Power
 
@@ -480,7 +488,8 @@ type Column
 
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ : Column | Any -> Column
-    ^ self other = self.make_binary_op '^' other
+    ^ self other =
+        self.make_binary_op '^' other new_type=SQL_Type.double
 
     ## UNSTABLE
 
@@ -494,7 +503,7 @@ type Column
        operation is performed pairwise between corresponding elements of `self`
        and `other`.
     && : Column | Any -> Column
-    && self other = self.make_binary_op "AND" other
+    && self other = self.make_binary_op "AND" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -508,7 +517,7 @@ type Column
        operation is performed pairwise between corresponding elements of `self`
        and `other`.
     || : Column | Any -> Column
-    || self other = self.make_binary_op "OR" other
+    || self other = self.make_binary_op "OR" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -537,8 +546,10 @@ type Column
            common type.
         left_type = get_approximate_type when_true self.sql_type
         right_type = get_approximate_type when_false self.sql_type
-        if left_type != right_type then Error.throw (Illegal_Argument.Error "when_true and when_false types do not match") else
-            self.make_op "IIF" [when_true, when_false] new_type=left_type
+        new_type = SQL_Type.merge_type left_type right_type
+
+        if new_type.is_error then Error.throw (Illegal_Argument.Error "when_true and when_false types do not match") else
+            self.make_op "IIF" [when_true, when_false] new_type=new_type
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -555,8 +566,9 @@ type Column
     coalesce : (Any | Vector Any) -> Column
     coalesce self values = case values of
         _ : Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
-                self.make_op "COALESCE" values new_type=self.sql_type
+            fold_type = values.fold self.sql_type c->v-> SQL_Type.merge_type c (get_approximate_type v self.sql_type)
+            if fold_type.is_error then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
+                self.make_op "COALESCE" values new_type=fold_type
         _ : Array -> self.coalesce (Vector.from_polyglot_array values)
         _ -> self.coalesce [values]
 
@@ -574,8 +586,9 @@ type Column
     min : (Any | Vector Any) -> Column
     min self values = case values of
         _ : Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
-                self.make_op "ROW_MIN" values new_type=self.sql_type
+            fold_type = values.fold self.sql_type c->v-> SQL_Type.merge_type c (get_approximate_type v self.sql_type)
+            if fold_type.is_error then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
+                self.make_op "ROW_MIN" values new_type=fold_type
         _ : Array -> self.min (Vector.from_polyglot_array values)
         _ -> self.min [values]
 
@@ -593,8 +606,9 @@ type Column
     max : (Any | Vector Any) -> Column
     max self values = case values of
         _ : Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
-                self.make_op "ROW_MAX" values new_type=self.sql_type
+            fold_type = values.fold self.sql_type c->v-> SQL_Type.merge_type c (get_approximate_type v self.sql_type)
+            if fold_type.is_error then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
+                self.make_op "ROW_MAX" values new_type=fold_type
         _ : Array -> self.max (Vector.from_polyglot_array values)
         _ -> self.max [values]
 
@@ -662,7 +676,7 @@ type Column
        Arguments:
        - new_name: The name to rename `self` column to.
     rename : Text -> Column ! Unsupported_Name
-    rename self new_name = Helpers.ensure_name_is_sane new_name <|
+    rename self new_name =
         Column.Value new_name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
