@@ -39,9 +39,10 @@ public class QuoteHelper {
       return text.substring(1, text.length() - 1);
     } else {
       assert hasLeadingQuote || hasTrailingQuote;
-      // If only leading or only trailing quote is left, it means we have a mismatched quote and
-      // need to report it.
-      mismatchedQuoteCallback.accept(text);
+      // We report mismatched quotes only at the beginning, if it is at the end it is treated as literal quote character.
+      if (hasLeadingQuote && !hasTrailingQuote) {
+        mismatchedQuoteCallback.accept(text);
+      }
       return text;
     }
   }
@@ -55,6 +56,6 @@ public class QuoteHelper {
     boolean hasTrailingQuote =
         text.length() >= 2 && text.charAt(text.length() - 1) == quoteCharacter;
 
-    return hasLeadingQuote != hasTrailingQuote;
+    return hasLeadingQuote && !hasTrailingQuote;
   }
 }
