@@ -53,13 +53,13 @@ pub enum Command {
         #[clap(long, allow_hyphen_values = true, enso_env())]
         ide_option: Vec<String>,
     },
-    /// Builds Project Manager and runs it in the background. Builds GUI and runs it using
-    /// GUI dev server.
     Watch {
         #[clap(flatten)]
         gui:             WatchJob<Gui>,
         #[clap(flatten)]
         project_manager: Source<Backend>,
+        #[clap(long, allow_hyphen_values = true, enso_env())]
+        ide_option:      Vec<String>,
     },
     /// Runs integration tests. This involves building and spawning Project Manager, unless
     /// requested otherwise.

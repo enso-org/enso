@@ -1,8 +1,10 @@
 /** @file Start the file watch service. */
 import bundler from './esbuild-config.js'
 import * as server from 'enso-gui-server'
+import esbuild from 'esbuild'
 
-await bundler.bundle()
-const root = bundler.output_path
+const opts = bundler.bundleOptions()
+const root = opts.outdir
 const assets = root
+await esbuild.build(opts)
 await server.start({ root, assets })
