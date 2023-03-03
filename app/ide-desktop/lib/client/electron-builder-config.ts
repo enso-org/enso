@@ -1,13 +1,10 @@
-/**
- * This module defines a TS script that is responsible for invoking the Electron Builder process to
- * bundle the entire IDE distribution.
+/** @file This module defines a TS script that is responsible for invoking the Electron Builder
+ * process to bundle the entire IDE distribution.
  *
  * There are two areas to this:
  * - Parsing CLI options as per our needs.
- * - The default configuration of the build process.
- *
- * @module
- */
+ * - The default configuration of the build process. */
+/** @module */
 
 import path from 'node:path'
 import child_process from 'node:child_process'
@@ -17,7 +14,8 @@ import builder from 'electron-builder'
 import { notarize } from 'electron-notarize'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 
-import { DEEP_LINK_PROTOCOL, PRODUCT_NAME, project_manager_bundle } from './shared.js'
+import * as shared from './shared.js'
+import * as authentication from 'authentication'
 import build from '../../build.json' assert { type: 'json' }
 import yargs from 'yargs'
 import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
@@ -64,25 +62,27 @@ const args = await yargs(process.argv.slice(2))
 
 const config: Configuration = {
     appId: 'org.enso',
-    productName: PRODUCT_NAME,
+    productName: shared.PRODUCT_NAME,
     extraMetadata: {
         version: build.version,
     },
     copyright: 'Copyright © 2022 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
-    // Define a new protocol to enable redirects back to the IDE from external sources. This allows
-    // us to send the user to the browser to authenticate, and then redirect back to the IDE. This
-    // also allows us to intercept users clicking on signup verification links in their emails, also
-    // redirecting them back to the IDE.
-    //
-    // For details on how this works,
-    // see: https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app
-    //
-    // This is defined in Electron builder rather than anywhere else because Electron builder
-    // registers this protocol with the OS, so that the app is opened when a deep link is clicked,
-    // **even if the app was not already running**. We could not do this if the app itself was
-    // responsible for registering the protocol.
-    protocols: [{ name: `${PRODUCT_NAME} url`, schemes: [DEEP_LINK_PROTOCOL], role: 'Editor' }],
+    /** Definitions of URL {@link builder.Protocol} schemes used by the IDE.
+     *
+     * Electron will register all URL protocol schemes defined here with the OS. Once a URL protocol
+     * scheme is registered with the OS, any links using that scheme will function as "deep links".
+     * Deep links are used to redirect the user from external sources (e.g., system web browser,
+     * email client) to the IDE.
+     * 
+     * Clicking a deep link will:
+     * - open the IDE (if it is not already open),
+     * - focus the IDE, and
+     * - navigate to the location specified by the URL of the deep link.
+     *
+     * For details on how this works, see:
+     * https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app */
+    protocols: [authentication.DEEP_LINK_PROTOCOL],
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: (args.target as MacOsTargetName) ?? 'dmg',
@@ -120,7 +120,7 @@ const config: Configuration = {
     extraResources: [
         {
             from: `${args.projectManagerDist}/`,
-            to: project_manager_bundle,
+            to: shared.PROJECT_MANAGER_BUNDLE,
             filter: ['!**.tar.gz', '!**.zip'],
         },
     ],

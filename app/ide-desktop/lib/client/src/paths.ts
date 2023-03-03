@@ -1,7 +1,7 @@
 /** @file File system paths used by the application. */
 
 import path from 'node:path'
-import { project_manager_bundle } from '../shared'
+import * as shared from '../shared'
 import Electron from 'electron'
 
 // =============
@@ -20,7 +20,7 @@ export const resources = path.join(app, '..')
 /** Project manager binary path. */
 export const projectManager = path.join(
     resources,
-    project_manager_bundle,
+    shared.PROJECT_MANAGER_BUNDLE,
     // @ts-ignore
     // Placeholder for a bundler-provided define.
     PROJECT_MANAGER_IN_BUNDLE_PATH

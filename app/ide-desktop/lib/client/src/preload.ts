@@ -5,6 +5,9 @@
 
 const { contextBridge, ipcRenderer } = require('electron')
 import * as ipc from 'ipc'
+import * as authentication from 'authentication'
+
+
 
 // ======================
 // === Profiling APIs ===
@@ -51,15 +54,10 @@ contextBridge.exposeInMainWorld('enso_console', {
     error: (data: any) => ipcRenderer.send('error', data),
 })
 
-// Access to the login API for the purpose of opening OAuth flows in the system browser.
-contextBridge.exposeInMainWorld('loginApi', {
-    // Open a URL in the system browser (rather than in the app).
-    openExternalUrl: (url: string) => ipcRenderer.send(ipc.channel.openExternalUrl, url),
-    // Set the callback that will be called when an authenticated-related URL is opened.
-    //
-    // The callback is intended to handle links like `enso://auth?code=...&state=...` from external
-    // sources like the user's system browser or email client. Handling the links involves resuming
-    // whatever flow was in progress when the link was opened (e.g., an OAuth registration flow).
-    setOpenAuthenticationUrlCallback: (callback: (url: string) => void) =>
-        ipcRenderer.on(ipc.channel.openAuthenticationUrl, (_event, url) => callback(url)),
-})
+
+
+// =================================
+// === Expose Authentication API ===
+// =================================
+
+authentication.exposeAuthenticationApi()
