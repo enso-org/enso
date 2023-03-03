@@ -248,6 +248,14 @@ spec =
                 r5 = Data.read (enso_project.data / "mismatched_quote5.csv") format on_problems=pb
                 r5.should_fail_with File_Error.Corrupted_Format
 
+                f6 = enso_project.data / "transient" / "mismatched_quote3.csv"
+                # There is no trailing newline compared to regular `mismatched_quote3.csv`.
+                contents = 'a,b,c\n1,2,3\nabc,def,"g h i\\"'
+                contents.write f6 on_existing_file=Existing_File_Behavior.Overwrite
+                r6 = Data.read f6 format3 on_problems=pb
+                r6.should_fail_with File_Error.Corrupted_Format
+                f6.delete
+
         Test.specify "should handle quotes if they are opened in the middle of an unquoted cell in a sane way" <|
             t1 = Data.read (enso_project.data / "mismatched_quote_at_end.csv") (Delimited "," headers=True value_formatter=Nothing)
             t1.column_names . should_equal ["a", "b", "c"]
@@ -265,8 +273,8 @@ spec =
 
             t3 = Data.read (enso_project.data / "weird_quoting_stuff2.csv") (Delimited "," headers=True value_formatter=Nothing)
             IO.println t3
+            t3.column_names.should_equal ["A", "B", "C"]
             t3.print
-
 
         Test.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =
