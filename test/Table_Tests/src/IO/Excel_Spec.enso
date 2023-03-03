@@ -79,8 +79,8 @@ spec_write suffix test_sheet_name =
             table.write out on_problems=Report_Error . should_succeed . should_equal out
             written = out.read
             written.sheet_count . should_equal 1
-            written.sheet_names . should_equal ['Sheet1']
-            written.read 'Sheet1' . should_equal table
+            written.sheet_names . should_equal ['EnsoSheet']
+            written.read 'EnsoSheet' . should_equal table
             out.delete_if_exists
 
         Test.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
@@ -88,18 +88,18 @@ spec_write suffix test_sheet_name =
             table.write out on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read
             written.sheet_count . should_equal 1
-            written.sheet_names . should_equal ['Sheet1']
-            written.read 'Sheet1' . should_equal table
+            written.sheet_names . should_equal ['EnsoSheet']
+            written.read 'EnsoSheet' . should_equal table
             out.delete_if_exists
 
-        Test.specify 'should write a table to existing file as a new sheet with headers' <|
+        Test.specify 'should write a table to existing file overriding EnsoSheet' <|
             out.delete_if_exists
             table.write out on_problems=Report_Error . should_succeed
             table.write out on_problems=Report_Error . should_succeed
             written = out.read
-            written.sheet_count . should_equal 2
-            written.sheet_names . should_equal ['Sheet1', 'Sheet2']
-            written.read 'Sheet2' . should_equal table
+            written.sheet_count . should_equal 1
+            written.sheet_names . should_equal ['EnsoSheet']
+            written.read 'EnsoSheet' . should_equal table
             out.delete_if_exists
 
         Test.specify 'should write a table to existing file in overwrite mode as a new sheet with headers' <|

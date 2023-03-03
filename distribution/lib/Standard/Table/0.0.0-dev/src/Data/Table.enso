@@ -1136,8 +1136,7 @@ type Table
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        new_name = Expression.to_column_name expression
-        result = new_column.rename new_name
+        result = new_column.rename expression
         on_problems.attach_problems_before problems <|
             Warning.set result []
 

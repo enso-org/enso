@@ -24,6 +24,7 @@ polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
 
 polyglot java import org.enso.database.JDBCProxy
+polyglot java import org.enso.database.JDBCUtils
 
 type JDBC_Connection
     ## PRIVATE
@@ -179,7 +180,11 @@ set_statement_values stmt holes =
     holes.map_with_index ix-> obj->
         position = ix + 1
         case obj.first of
-            Nothing -> stmt.setNull position obj.second.typeid
+            Nothing ->
+                ## If we really don't have a clue what this should be, we choose a varchar for a blank column.
+                sql_type = if obj.second == SQL_Type.null then SQL_Type.text else obj.second
+                stmt.setNull position sql_type.typeid
+            _ : Date_Time -> stmt.setTimestamp position (JDBCUtils.getTimestamp obj.first)
             _ -> stmt.setObject position obj.first
 
 ## PRIVATE
