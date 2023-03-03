@@ -17,7 +17,7 @@ object MethodCalls extends IRPass {
   override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] =
-    Seq(BindingAnalysis)
+    Seq(BindingAnalysis, GlobalNames)
   override val invalidatedPasses: Seq[IRPass] = Seq()
 
   override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
@@ -36,9 +36,7 @@ object MethodCalls extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    ir.mapExpressions(
-      doExpression(ir.unsafeGetMetadata(BindingAnalysis, ""), _)
-    )
+    ir.mapExpressions(doExpression)
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -54,18 +52,14 @@ object MethodCalls extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    doExpression(
-      inlineContext.module.getIr.unsafeGetMetadata(BindingAnalysis, ""),
-      ir
-    )
+    doExpression(ir)
   }
 
   private def doExpression(
-    bindingsMap: BindingsMap,
     expr: IR.Expression
   ): IR.Expression = {
     expr.transformExpressions { case app: IR.Application.Prefix =>
-      def fallback = app.mapExpressions(doExpression(bindingsMap, _))
+      def fallback = app.mapExpressions(doExpression(_))
       app.function match {
         case name: IR.Name if name.isMethod =>
           app.arguments match {
@@ -91,7 +85,7 @@ object MethodCalls extends IRPass {
                         name.updateMetadata(this -->> Resolution(resolution))
                       val newArgs =
                         app.arguments.map(
-                          _.mapExpressions(doExpression(bindingsMap, _))
+                          _.mapExpressions(doExpression(_))
                         )
                       app.copy(function = newName, arguments = newArgs)
                     case _ => fallback

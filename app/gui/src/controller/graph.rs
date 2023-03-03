@@ -873,6 +873,7 @@ impl Handle {
         expression_text: impl Str,
         context: &impl SpanTreeContext,
     ) -> FallibleResult {
+        info!("Setting Expression Span {crumbs:?} node {id}  to \"{}\".", expression_text.as_ref());
         let node_ast = self.node_info(id)?.expression();
         let node_span_tree: SpanTree = SpanTree::new(&node_ast, context)?;
         let port = node_span_tree.get_node(crumbs)?;

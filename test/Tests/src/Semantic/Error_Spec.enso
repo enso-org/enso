@@ -129,11 +129,11 @@ spec =
 
         Test.specify "should provide access to Java stack traces" <|
             stack_1 = Panic.recover Any (do_a_parse "foo") . stack_trace
-            stack_1.at 2 . name . should_equal "Error_Spec.do_a_parse"
+            stack_1.at 0 . name . should_equal "Error_Spec.do_a_parse"
 
             stack_2 = Panic.catch Any (do_a_parse "foo") caught_panic->
                 caught_panic.stack_trace
-            stack_2.at 2 . name . should_equal "Error_Spec.do_a_parse"
+            stack_2.at 0 . name . should_equal "Error_Spec.do_a_parse"
 
         Test.specify "should be able to be rethrown without changing the stack trace" <|
             caught_panic = Panic.catch Any throw_a_bar_panicking x->x
@@ -189,7 +189,7 @@ spec =
                     Panic.throw caught_panic.payload
             message_1.get . should_equal 'For input string: "foo"'
             caught_1.catch . should_be_a JException
-            caught_1.stack_trace.at 2 . name . should_equal "Error_Spec.do_a_parse"
+            caught_1.stack_trace.at 0 . name . should_equal "Error_Spec.do_a_parse"
 
             message_2 = Ref.new ""
             caught_2 = Panic.recover Any <|

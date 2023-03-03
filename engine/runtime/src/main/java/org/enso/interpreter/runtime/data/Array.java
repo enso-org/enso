@@ -118,12 +118,12 @@ public final class Array implements TruffleObject {
   }
 
   public long length() {
-    return this.getItems().length;
+    return items.length;
   }
 
   /** @return an empty array */
   @Builtin.Method(description = "Creates an empty Array", autoRegister = false)
-  public static Object empty() {
+  public static Array empty() {
     return allocate(0);
   }
 

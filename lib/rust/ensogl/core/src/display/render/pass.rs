@@ -40,19 +40,26 @@ clone_boxed!(Definition);
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Instance {
-    pub variables: UniformScope,
-    pub context:   Context,
-    pub width:     i32,
-    pub height:    i32,
+    pub variables:   UniformScope,
+    pub context:     Context,
+    pub width:       i32,
+    pub height:      i32,
+    pub pixel_ratio: i32,
 }
 
 impl Instance {
     /// Constructor
     #[allow(clippy::borrowed_box)]
-    pub fn new(context: &Context, variables: &UniformScope, width: i32, height: i32) -> Self {
+    pub fn new(
+        context: &Context,
+        variables: &UniformScope,
+        width: i32,
+        height: i32,
+        pixel_ratio: i32,
+    ) -> Self {
         let variables = variables.clone_ref();
         let context = context.clone();
-        Self { variables, context, width, height }
+        Self { variables, context, width, height, pixel_ratio }
     }
 
     /// Create a new texture covering the whole screen and register it in the global uniform scope
