@@ -106,6 +106,8 @@
 - [The Component Browser icons are cached on texture][5779] improving its
   performance on slower machines.
 - [Fixed missing result preview when editing nodes.][5757]
+- [Application retries its initialization after failures][5802], allowing a
+  reconnecting after connectivity problems.
 
 #### EnsoGL (rendering engine)
 
@@ -505,6 +507,7 @@
 [5721]: https://github.com/enso-org/enso/pull/5721
 [5779]: https://github.com/enso-org/enso/pull/5779
 [5757]: https://github.com/enso-org/enso/pull/5757
+[5802]: https://github.com/enso-org/enso/pull/5802
 
 #### Enso Compiler
 
