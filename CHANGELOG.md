@@ -106,6 +106,9 @@
 - [The Component Browser icons are cached on texture][5779] improving its
   performance on slower machines.
 - [Fixed missing result preview when editing nodes.][5757]
+- [A new table visualisation is added.][5806] It has a new visual design and
+  loads data lazily from the backend, which allows it to handle larger datasets
+  without freezing the IDE.
 
 #### EnsoGL (rendering engine)
 
@@ -505,6 +508,7 @@
 [5721]: https://github.com/enso-org/enso/pull/5721
 [5779]: https://github.com/enso-org/enso/pull/5779
 [5757]: https://github.com/enso-org/enso/pull/5757
+[5806]: https://github.com/enso-org/enso/pull/5806
 
 #### Enso Compiler
 
