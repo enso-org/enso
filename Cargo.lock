@@ -4322,6 +4322,7 @@ dependencies = [
  "span-tree",
  "uuid 0.8.2",
  "wasm-bindgen",
+ "wasm-bindgen-test",
  "web-sys",
 ]
 

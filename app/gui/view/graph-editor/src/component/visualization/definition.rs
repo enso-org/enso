@@ -87,6 +87,14 @@ impl Definition {
     }
 }
 
+impl PartialEq for Definition {
+    fn eq(&self, other: &Self) -> bool {
+        self.signature == other.signature && Rc::ptr_eq(&self.constructor, &other.constructor)
+    }
+}
+
+impl Eq for Definition {}
+
 
 // === Result ===
 
