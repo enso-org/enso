@@ -59,14 +59,15 @@ type Manual
 spec =
     check_span match span =
         match . should_not_equal Nothing
-        match.span 0 . should_equal span
-    check_span_all match spans = match . map (m-> (m.span 0)) . should_equal spans
+        match.group 0 . should_equal span
+    check_span_all match spans = match . map (m-> (m.group 0)) . should_equal spans
+
+    accent_1 = '\u00E9'
+    accent_2 = '\u0065\u{301}'
 
     Test.group "Text" <|
         kshi = '\u0915\u094D\u0937\u093F'
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
-        accent_1 = '\u00E9'
-        accent_2 = '\u0065\u{301}'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
         utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
         sentences = '''
@@ -1178,39 +1179,6 @@ spec =
             abc.locate "" case_sensitivity=case_insensitive mode=Matching_Mode.Last . should_equal (Span.Value (3.up_to 3) abc)
             abc.locate_all "" case_sensitivity=case_insensitive . should_equal [Span.Value (0.up_to 0) abc, Span.Value (1.up_to 1) abc, Span.Value (2.up_to 2) abc, Span.Value (3.up_to 3) abc]
 
-        Test.specify "should allow regexes in match" <|
-            hello = "Hello World!"
-
-            check_span (hello.find ".o" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 5) "Hello World!")
-            check_span_all (hello.find_all ".o") [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
-
-            check_span ("foobar".find "BAR" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 6) "foobar")
-
-            ## Regex matching does not do case folding
-            "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
-
-        Test.specify "should handle accents and other multi-point graphemes" <|
-            accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
-
-            # Check spans
-            check_span ((accents).find 'h') (Span.Value (3.up_to 4) accents)
-            check_span ((accents).find 'e\u{301}') (Span.Value (1.up_to 2) accents)
-            check_span_all ((accents).find_all 'h') [Span.Value (3.up_to 4) accents, Span.Value (5.up_to 6) accents]
-            check_span_all ((accents).find_all 'e\u{301}') [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
-
-            # Check contents to make sure the spans' ranges are ok
-            accents.find 'h' . span 0 . text . should_equal 'h'
-            accents.find 'e\u{301}' . span 0 . text . should_equal 'e\u{301}'
-
-        Test.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
-            ## This test passed for the builtin Java regex library, using
-               Pattern.CANON_EQ, but since that option is buggy and rarely use,
-               we won't attempt to recreate it with Truffle regex. Instead,
-               expose normalization methods to allow developers to do it
-               themselves.
-            accents = 'a\u{301}e\u{301}o\u{301}'
-            check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
-
         Test.specify "should correctly handle regex edge cases in locate" pending="Figure out how to make Regex correctly handle empty patterns." <|
             regex = Regex_Matcher.Value
             "".match "foo" matcher=regex . should_equal Nothing
@@ -1229,12 +1197,6 @@ spec =
 
             "aaa aaa".locate "aa" mode=Matching_Mode.Last case_sensitivity=Case_Sensitivity.Sensitive . should_equal (Span.Value (5.up_to 7) "aaa aaa")
 
-        Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
-            check_span_all ("abacadae".find_all "a[bc]") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
-            check_span_all ("abacadae".find_all "a.") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
-            check_span_all ("abacadae".find_all "a.*") [Span.Value (0.up_to 8) "abacadae"]
-            check_span_all ("abacadae".find_all "a.+?") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
-
         Test.specify "should default to exact matching for locate but regex for match" <|
             txt = "aba[bc]adacae"
             "ab".locate "ab" . should_equal (Span.Value (0.up_to 2) "ab")
@@ -1251,7 +1213,7 @@ spec =
             check_span (txt.find "a[bc]") (Span.Value (0.up_to 2) "aba[bc]adacae")
             check_span_all (txt.find_all "a[bc]") [Span.Value (0.up_to 2) "aba[bc]adacae", Span.Value (9.up_to 11) "aba[bc]adacae"]
 
-    Test.group "Regex matching" <|
+    Test.group "Regex: find and find_all" <|
         Test.specify "should be possible on text" <|
             match = "My Text: Goes Here".find "^My Text: (.+)$"
             check_span match (Span.Value (0.up_to 18) "My Text: Goes Here")
@@ -1265,6 +1227,48 @@ spec =
         Test.specify "should be possible in case-insensitive mode" <|
             match = "MY".find "my" Case_Sensitivity.Insensitive
             check_span match (Span.Value (0.up_to 2) "MY")
+
+        Test.specify "should allow regexes in match" <|
+            hello = "Hello World!"
+
+            check_span (hello.find ".o" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 5) "Hello World!")
+            check_span_all (hello.find_all ".o") [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
+
+            check_span ("foobar".find "BAR" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 6) "foobar")
+
+            ## Regex matching does not do case folding
+            "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
+
+        Test.specify "should allow access to match groups by number" <|
+            "abcddd".find("ab(c(d+))").group 0 . text . should_equal "abcddd"
+
+        Test.specify "should handle accents and other multi-point graphemes" <|
+            accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
+
+            # Check spans
+            check_span ((accents).find 'h') (Span.Value (3.up_to 4) accents)
+            check_span ((accents).find 'e\u{301}') (Span.Value (1.up_to 2) accents)
+            check_span_all ((accents).find_all 'h') [Span.Value (3.up_to 4) accents, Span.Value (5.up_to 6) accents]
+            check_span_all ((accents).find_all 'e\u{301}') [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
+
+            # Check contents to make sure the spans' ranges are ok
+            accents.find 'h' . group 0 . text . should_equal 'h'
+            accents.find 'e\u{301}' . group 0 . text . should_equal 'e\u{301}'
+
+        Test.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
+            ## This test passed for the builtin Java regex library, using
+               Pattern.CANON_EQ, but since that option is buggy and rarely use,
+               we won't attempt to recreate it with Truffle regex. Instead,
+               expose normalization methods to allow developers to do it
+               themselves.
+            accents = 'a\u{301}e\u{301}o\u{301}'
+            check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
+
+        Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
+            check_span_all ("abacadae".find_all "a[bc]") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
+            check_span_all ("abacadae".find_all "a.") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
+            check_span_all ("abacadae".find_all "a.*") [Span.Value (0.up_to 8) "abacadae"]
+            check_span_all ("abacadae".find_all "a.+?") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
 
     Test.group "Text.match" <|
         Test.specify "should default to regex" <|

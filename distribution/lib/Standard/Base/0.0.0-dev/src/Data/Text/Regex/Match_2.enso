@@ -14,7 +14,7 @@ type Match_2
     end : Integer -> Integer
     end self n = self.internal_regex_result.getEnd n
 
-    span : Integer -> Span
-    span self n =
+    group : Integer -> Span
+    group self n =
         range = Range.new (self.start n) (self.end n)
         (Utf_16_Span.Value range self.input).to_grapheme_span
