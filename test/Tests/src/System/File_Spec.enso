@@ -435,6 +435,18 @@ spec =
             set_writable f True
             f.delete
 
+        Test.specify "should fail if the parent directory does not exist" <|
+            parent = transient / "nonexistent"
+            parent.exists.should_be_false
+
+            f = parent / "foo.txt"
+            r1 = "txt".write f
+            r1.should_fail_with File_Error.Not_Found
+            IO.println r1
+            r1.catch.file . should_equal parent
+
+            [65, 67].write_bytes f . should_fail_with File_Error.Not_Found
+
     Test.group "folder operations" <|
         resolve files =
             base = enso_project.data

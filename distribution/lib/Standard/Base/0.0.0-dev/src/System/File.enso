@@ -564,7 +564,18 @@ type File
         opts = open_options . map (_.to_java) . to_array
         stream = File_Error.handle_java_exceptions self <|
             self.output_stream opts
-        resource = Managed_Resource.register stream close_stream
+        ## We re-wrap the File Not Found error to return the parent directory
+           instead of the file itself - because the file that is being written
+           may not exist and it will not be an error, it is the parent directory
+           that does not exist is what prevents the write operation from
+           succeeding.
+        ## Until #5792 properly fixes catch, we cannot catch
+           `File_Error.Not_Found` specifically, so instead we catch all
+           `File_Error`s and match the needed one.
+        stream_2 = stream.catch File_Error error-> case error of
+            File_Error.Not_Found file_path -> Error.throw (File_Error.Not_Found file_path.parent)
+            _ -> stream
+        resource = Managed_Resource.register stream_2 close_stream
         Output_Stream.Value self resource
 
     ## PRIVATE
