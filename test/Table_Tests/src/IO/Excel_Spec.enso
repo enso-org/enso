@@ -404,6 +404,14 @@ spec_write suffix test_sheet_name =
             r1 = t1.write f (Excel (Worksheet "Another"))
             r1.should_fail_with File_Error.Not_Found
 
+        Test.specify "should allow to write and read-back Unicode characters" <|
+            encodings = enso_project.data / "transient" / "encodings."+suffix
+            t1 = Table.new [["A", ["A", "B", "😊", "D"]], ["B", [1, 2, 3, 4]]]
+            t1.write encodings (Excel (Worksheet "Another"))
+            t2 = encodings.read (Excel (Worksheet "Another"))
+            t2.at "A" . to_vector . should_equal ["A", "B", "😊", "D"]
+            encodings.delete
+
         out.delete_if_exists
         out_bak.delete_if_exists
 
