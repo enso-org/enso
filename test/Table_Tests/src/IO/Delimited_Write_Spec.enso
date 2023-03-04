@@ -569,7 +569,7 @@ spec =
             parent = enso_project.data / "transient" / "nonexistent"
             parent.exists.should_be_false
 
-            f = parent / "foo.txt"
+            f = parent / "foo.csv"
             t1 = Table.new [["X", [1, 2, 3]]]
             r1 = t1.write f (Delimited ',')
             r1.should_fail_with File_Error.Not_Found
