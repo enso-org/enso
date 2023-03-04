@@ -38,6 +38,10 @@ spec prefix connection =
             original = Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
             table = upload "Big" original
             table.read.row_count . should_equal n
+        Test.specify "should allow weird column names in uploaded tables" <|
+            # TODO
+            names = ['whitespace and \t others', 'foo "the bar" baz', "a 'X' c", "emoji? 😎 yep", 'SELECT 'A',\"B\" FROM t;--', '"', "'"]
+            Nothing
 
     Test.group prefix+"Table.query" <|
         name = t1.name

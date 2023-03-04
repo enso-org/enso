@@ -46,6 +46,8 @@ spec detailed setup =
                 _ -> e == v
             if match.not then values.should_equal expected
 
+        new_column.name . should_equal expression
+
     specify_test label action expression_test=tester pending=Nothing = case pending of
         Nothing ->
             case detailed of

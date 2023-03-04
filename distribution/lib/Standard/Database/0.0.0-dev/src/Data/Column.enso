@@ -145,6 +145,7 @@ type Column
 
         actual_new_type = new_type.if_nothing self.sql_type
         new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)
+        # TODO new name logic?
         Column.Value self.name self.connection actual_new_type new_expr self.context
 
     ## PRIVATE
