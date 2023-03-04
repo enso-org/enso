@@ -574,4 +574,30 @@ spec =
             r1 = t1.write f (Delimited ',')
             r1.should_fail_with File_Error.Not_Found
 
+        Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
+            f = enso_project.data / "transient" / "encoding-errors.csv"
+
+            format = Delimited "," encoding=Encoding.ascii headers=True
+            t = Table.new [["X", ["A", "B", "😊", "D"]]]
+            do_write pb =
+                f.delete_if_exists
+                t.write f format on_problems=pb
+            tester write_result =
+                write_result . should_equal f
+                read_table = write_result.read format
+                read_table.column_names . should_equal ["X"]
+                read_table.at "X" . to_vector . should_equal ["A", "B", "?", "D"]
+            problems = [Encoding_Error.Error "Encoding issues at codepoint 6."]
+            Problems.test_problem_handling do_write problems tester
+
+            # And should not overwrite the original contents when working in backup mode.
+            f.delete_if_exists
+            "Initial Content".write f on_existing_file=Existing_File_Behavior.Overwrite
+            big_table = Table.new [["X", 0.up_to 5000 . to_vector + ["😊"]]]
+            r2 = big_table.write f format on_problems=Problem_Behavior.Report_Error
+            r2.should_fail_with Encoding_Error
+            r2.catch.to_display_text . should_contain "Encoding issues"
+            f.read Plain_Text . should_equal "Initial Content"
+            f.delete
+
 main = Test_Suite.run_main spec

@@ -221,7 +221,7 @@ spec =
             f.delete_if_exists
             f_bak.delete_if_exists
 
-        Test.specify "should allow to overwriting a file with new bytes" <|
+        Test.specify "should allow overwriting a file with new bytes" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
@@ -446,6 +446,29 @@ spec =
             r1.catch.file . should_equal parent
 
             [65, 67].write_bytes f . should_fail_with File_Error.Not_Found
+
+        Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
+            f = transient / "encoding-errors.txt"
+
+            encoding = Encoding.ascii
+            input_content = "Hello! 😊"
+            do_write pb =
+                f.delete_if_exists
+                input_content.write f encoding on_problems=pb
+                f.read . should_equal "Hello! ?"
+            tester write_result =
+                write_result . should_equal f
+            problems = [Encoding_Error.Error "Encoding issues at 7."]
+            Problems.test_problem_handling do_write problems tester
+
+            # And should not overwrite the original contents when working in backup mode.
+            f.delete_if_exists
+            "Initial Content".write f on_existing_file=Existing_File_Behavior.Overwrite
+            big_content = "Hello " * 2000 + input_content
+            r2 = big_content.write f encoding on_problems=Problem_Behavior.Report_Error
+            r2.should_fail_with Encoding_Error
+            f.read . should_equal "Initial Content"
+            f.delete
 
     Test.group "folder operations" <|
         resolve files =
