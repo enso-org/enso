@@ -455,9 +455,9 @@ spec =
             do_write pb =
                 f.delete_if_exists
                 input_content.write f encoding on_problems=pb
-                f.read . should_equal "Hello! ?"
             tester write_result =
                 write_result . should_equal f
+                write_result.read . should_equal "Hello! ?"
             problems = [Encoding_Error.Error "Encoding issues at 7."]
             Problems.test_problem_handling do_write problems tester
 
