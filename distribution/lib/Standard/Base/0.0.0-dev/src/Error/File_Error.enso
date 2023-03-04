@@ -20,6 +20,10 @@ type File_Error
     ## Indicates that a destination file already exists.
     Already_Exists (file : File)
 
+    ## Indicates that the user did not have the permission to complete the
+       requested operation on the given file.
+    Access_Denied (file : File)
+
     ## A generic IO error.
 
        Arguments:
@@ -42,6 +46,7 @@ type File_Error
         File_Error.Not_Found  file -> "The file at " + file.path + " does not exist."
         File_Error.IO_Error file msg -> msg + " (" + file.path + ")."
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
+        File_Error.Access_Denied file -> "Insufficient permissions to perform the desired operation on the file at "+file.path+"."
         File_Error.Unsupported_Type file -> "The "+file.path+" has a type that is not supported."
         File_Error.Corrupted_Format file msg _ -> "The file at " + file.path + " is corrupted: " + msg
 
@@ -56,7 +61,7 @@ type File_Error
        Raises an error indicating that the user does not have permission to
        access the file in a given way.
     access_denied : File -> Nothing ! File_Error
-    access_denied file = Error.throw (File_Error.IO_Error file "You do not have permission to access the file")
+    access_denied file = Error.throw (File_Error.Access_Denied file)
 
     ## PRIVATE
 

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Encoding_Error.Encoding_Error
+import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Match_Columns, Delimited
@@ -546,5 +547,31 @@ spec =
             result . should_fail_with Illegal_Argument.Error
             result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
             file.delete
+
+        Test.specify "should fail if the target file is read-only" <|
+            f = enso_project.data / "transient" / "permission.csv"
+            f.delete_if_exists
+
+            initial_data = "MY DATA"
+            initial_data.write f
+            set_writable f False
+
+            t1 = Table.new [["X", [1, 2, 3]]]
+            [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior->
+                r1 = t1.write f (Delimited ',') on_existing_file=behavior
+                r1.should_fail_with File_Error.Access_Denied
+                f.read Plain_Text . should_equal initial_data
+
+            set_writable f True
+            f.delete
+
+        Test.specify "should fail if the parent directory does not exist" <|
+            parent = enso_project.data / "transient" / "nonexistent"
+            parent.exists.should_be_false
+
+            f = parent / "foo.txt"
+            t1 = Table.new [["X", [1, 2, 3]]]
+            r1 = t1.write f (Delimited ',')
+            r1.should_fail_with File_Error.Not_Found
 
 main = Test_Suite.run_main spec
