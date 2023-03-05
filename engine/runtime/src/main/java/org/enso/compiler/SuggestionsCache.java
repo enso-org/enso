@@ -69,7 +69,7 @@ public final class SuggestionsCache
   @Override
   protected Optional<String> computeDigest(CachedSuggestions entry, TruffleLogger logger) {
     var digest = messageDigest();
-    entry.getSuggestions().getSuggestions().forEach(suggestion -> {
+    entry.getSuggestions().forEach(suggestion -> {
       ByteBuffer bytes = ByteBuffer.allocate(Integer.BYTES).putInt(suggestion.hashCode());
       digest.update(bytes);
     });
@@ -107,7 +107,7 @@ public final class SuggestionsCache
 
   @Override
   protected Object extractObjectToSerialize(CachedSuggestions entry) {
-    return entry.getSuggestions();
+    return entry.getSuggestionsObjectToSerialize();
   }
 
   // Suggestions class is not a record because of a Frgaal bug leading to invalid compilation error.
@@ -125,7 +125,7 @@ public final class SuggestionsCache
   }
 
   // CachedSuggestions class is not a record because of a Frgaal bug leading to invalid compilation error.
-  final static class CachedSuggestions {
+  public final static class CachedSuggestions {
 
     private final LibraryName libraryName;
     private final Suggestions suggestions;
@@ -139,8 +139,12 @@ public final class SuggestionsCache
       return libraryName;
     }
 
-    public Suggestions getSuggestions() {
+    public Suggestions getSuggestionsObjectToSerialize() {
       return suggestions;
+    }
+
+    public List<Suggestion> getSuggestions() {
+      return suggestions.getSuggestions();
     }
   }
 

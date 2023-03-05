@@ -138,6 +138,10 @@ class Compiler(
     }
   }
 
+  /** @return the serialization manager instance. */
+  def getSerializationManager: SerializationManager =
+    serializationManager
+
   /** Processes the provided language sources, registering any bindings in the
     * given scope.
     *

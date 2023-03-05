@@ -111,6 +111,10 @@ final class SuggestionsHandler(
       .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseModuleUpdateNotification])
+    context.system.eventStream.subscribe(
+      self,
+      classOf[Api.SuggestionsDatabaseSuggestionsLoadedNotification]
+    )
     context.system.eventStream
       .subscribe(self, classOf[Api.LibraryLoaded])
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
@@ -203,6 +207,9 @@ final class SuggestionsHandler(
       context.become(
         initialized(projectName, graph, clients - client.clientId, state)
       )
+
+    case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification =>
+      applyLoadedSuggestions(msg.suggestions)
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification
         if state.isSuggestionUpdatesRunning =>
@@ -514,6 +521,48 @@ final class SuggestionsHandler(
     isVersionChanged.flatMap { isChanged =>
       if (isChanged) applyDatabaseUpdates(msg).map(Some(_))
       else Future.successful(None)
+    }
+  }
+
+  /** Handle the suggestions of the loaded library.
+    *
+    * Adds the new suggestions to the suggestions database and sends the
+    * appropriate notification to the client.
+    *
+    * @param suggestions the loaded suggestions
+    * @return the API suggestions database update notification
+    */
+  private def applyLoadedSuggestions(
+    suggestions: Vector[Suggestion]
+  ): Future[SuggestionsDatabaseUpdateNotification] = {
+    for {
+      treeResults <- suggestionsRepo.applyTree(
+        suggestions.map(Api.SuggestionUpdate(_, Api.SuggestionAction.Add()))
+      )
+      version <- suggestionsRepo.currentVersion
+    } yield {
+      val treeUpdates = treeResults.flatMap {
+        case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
+          val verb = action.getClass.getSimpleName
+          action match {
+            case Api.SuggestionAction.Add() =>
+              if (ids.isEmpty) {
+                logger.error("Cannot {} [{}].", verb, suggestion)
+              }
+              ids.map(
+                SuggestionsDatabaseUpdate.Add(
+                  _,
+                  generateDocumentation(suggestion)
+                )
+              )
+            case action =>
+              logger.error(
+                s"Invalid action during suggestions loading [$action]."
+              )
+              Seq()
+          }
+      }
+      SuggestionsDatabaseUpdateNotification(version, treeUpdates)
     }
   }
 

@@ -262,6 +262,33 @@ class SerializationManager(compiler: Compiler) {
     }
   }
 
+  def deserializeSuggestions(
+    libraryName: LibraryName
+  ): Option[SuggestionsCache.CachedSuggestions] = {
+    if (isWaitingForSerialization(libraryName)) {
+      abort(libraryName)
+      None
+    } else {
+      while (isSerializingLibrary(libraryName)) {
+        Thread.sleep(100)
+      }
+      new SuggestionsCache(libraryName).load(compiler.context).toScala match {
+        case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
+          logger.log(
+            Level.FINE,
+            s"Restored suggestions for library [$libraryName]."
+          )
+          result
+        case _ =>
+          logger.log(
+            Level.FINEST,
+            s"Unable to load suggestions for library [$libraryName]."
+          )
+          None
+      }
+    }
+  }
+
   def deserializeLibraryBindings(
     libraryName: LibraryName
   ): Option[ImportExportCache.CachedBindings] = {

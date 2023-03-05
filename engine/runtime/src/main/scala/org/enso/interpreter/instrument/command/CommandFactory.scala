@@ -59,6 +59,9 @@ object CommandFactory {
       case _: Api.GetTypeGraphRequest =>
         new GetTypeGraphCommand(request.requestId)
 
+      case payload: Api.DeserializeLibrarySuggestions =>
+        new DeserializeLibrarySuggestionsCmd(request.requestId, payload)
+
       case Api.ShutDownRuntimeServer() =>
         throw new IllegalArgumentException(
           "ShutDownRuntimeServer request is not convertible to command object"
