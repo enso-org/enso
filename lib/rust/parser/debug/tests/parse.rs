@@ -748,8 +748,19 @@ fn minus_unary() {
     test!("x=-x", (Assignment (Ident x) "=" (UnaryOprApp "-" (Ident x))));
     test!("-x+x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "+") (Ident x)));
     test!("-x*x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "*") (Ident x)));
+}
+
+#[test]
+fn minus_unary_decimal() {
     test!("-2.1", (UnaryOprApp "-" (Number () "2" ("." "1"))));
-    //test!("-1.x", (OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident x)));
+}
+
+#[test]
+fn minus_unary_in_method_app() {
+    test!("-1.x", (OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident x)));
+    test!("-1.up_to 100",
+        (App (OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident up_to))
+             (Number () "100" ())));
 }
 
 

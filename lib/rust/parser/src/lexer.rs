@@ -619,22 +619,38 @@ impl<'s> Lexer<'s> {
             }
         });
         if let Some(token) = token {
-            if token.code == "+-" {
-                let (left, right) = token.split_at_(Bytes(1));
-                let lhs = analyze_operator(&left.code);
-                self.submit_token(left.with_variant(token::Variant::operator(lhs)));
-                let rhs = analyze_operator(&right.code);
-                self.submit_token(right.with_variant(token::Variant::operator(rhs)));
-                return;
+            match token.code.as_ref() {
+                // Special-case: Split into multiple operators.
+                "+-" => {
+                    let (left, right) = token.split_at_(Bytes(1));
+                    let lhs = analyze_operator(&left.code);
+                    self.submit_token(left.with_variant(token::Variant::operator(lhs)));
+                    let rhs = analyze_operator(&right.code);
+                    self.submit_token(right.with_variant(token::Variant::operator(rhs)));
+                }
+                // Composed of operator characters, but not an operator node.
+                "..." => {
+                    let token = token.with_variant(token::Variant::auto_scope());
+                    self.submit_token(token);
+                }
+                // Decimal vs. method-application must be distinguished before parsing because they
+                // have different precedences; this is a special case here because the distinction
+                // requires lookahead.
+                "." if self.last_spaces_visible_offset.width_in_spaces == 0
+                        && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    let opr = token::OperatorProperties::new()
+                        .with_binary_infix_precedence(81)
+                        .as_decimal();
+                    let token = token.with_variant(token::Variant::operator(opr));
+                    self.submit_token(token);
+                }
+                // Normally-structured operator.
+                _ => {
+                    let tp = token::Variant::operator(analyze_operator(&token.code));
+                    let token = token.with_variant(tp);
+                    self.submit_token(token);
+                }
             }
-            if token.code == "..." {
-                let token = token.with_variant(token::Variant::auto_scope());
-                self.submit_token(token);
-                return;
-            }
-            let tp = token::Variant::operator(analyze_operator(&token.code));
-            let token = token.with_variant(tp);
-            self.submit_token(token);
         }
     }
 }
@@ -703,8 +719,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_compile_time_operation()
                 .as_special()
                 .as_sequence(),
-        "." =>
-            return operator.with_binary_infix_precedence(80).with_decimal_interpretation().as_dot(),
+        "." => return operator.with_binary_infix_precedence(80).as_dot(),
         _ => (),
     }
     // "The precedence of all other operators is determined by the operator's Precedence Character:"

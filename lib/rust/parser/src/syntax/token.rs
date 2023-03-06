@@ -334,7 +334,7 @@ pub struct OperatorProperties {
     is_compile_time_operation: bool,
     is_right_associative:      bool,
     // Unique operators
-    can_be_decimal_operator:   bool,
+    is_decimal:                bool,
     is_type_annotation:        bool,
     is_assignment:             bool,
     is_arrow:                  bool,
@@ -421,9 +421,9 @@ impl OperatorProperties {
         Self { is_dot: true, ..self }
     }
 
-    /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
-    pub fn with_decimal_interpretation(self) -> Self {
-        Self { can_be_decimal_operator: true, ..self }
+    /// Return a copy of this operator, modified to be interpreted as a decimal point.
+    pub fn as_decimal(self) -> Self {
+        Self { is_decimal: true, ..self }
     }
 
     /// Return this operator's binary infix precedence, if it has one.
@@ -494,9 +494,9 @@ impl OperatorProperties {
         }
     }
 
-    /// Return whether this operator can be interpreted as a decimal point.
-    pub fn can_be_decimal_operator(&self) -> bool {
-        self.can_be_decimal_operator
+    /// Return whether this operator is a decimal point.
+    pub fn is_decimal(&self) -> bool {
+        self.is_decimal
     }
 }
 
@@ -531,7 +531,7 @@ impl Precedence {
 
     /// Return the precedence of unary minus.
     pub fn unary_minus() -> Self {
-        Precedence { value: 79 }
+        Precedence { value: 80 }
     }
 }
 
