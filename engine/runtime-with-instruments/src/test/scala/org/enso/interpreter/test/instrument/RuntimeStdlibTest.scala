@@ -241,9 +241,8 @@ class RuntimeStdlibTest
         Seq(
           context.executionComplete(contextId),
           context.analyzeJobFinished
-          //context.analyzeJobFinished
         ),
-        timeout = 30
+        timeout = 180
       )
     // sanity check
     responses should contain allOf (

@@ -329,7 +329,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param bytes bytes for which hash will be computed
    * @return string representation of bytes' hash
    */
-  protected String computeDigestFromBytes(byte[] bytes) {
+  protected final String computeDigestFromBytes(byte[] bytes) {
     return Hex.toHexString(messageDigest().digest(bytes));
   }
 
@@ -340,7 +340,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param logger the truffle logger
    * @return string representation of bytes' hash
    */
-  protected String computeDigestOfLibrarySources(
+  protected final String computeDigestOfLibrarySources(
       List<SourceFile<TruffleFile>> pkgSources, TruffleLogger logger) {
     pkgSources.sort(Comparator.comparing(o -> o.qualifiedName().toString()));
 
