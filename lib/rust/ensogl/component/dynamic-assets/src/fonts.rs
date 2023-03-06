@@ -31,7 +31,7 @@ const PRELOAD_GLYPHS: &[&str] = &[ASCII_PRINTABLE_CHARS];
 
 /// Build atlas sources, and return as JavaScript data.
 pub fn build_atlases() -> JsValue {
-    let fonts_to_build = &[font::DEFAULT_FONT_MONO, font::DEFAULT_FONT];
+    let fonts_to_build = &[font::DEFAULT_FONT_MONO, font::DEFAULT_FONT, "mplus1p"];
     let fonts = Map::new();
     for font_name in fonts_to_build {
         match build_atlas(font_name) {
@@ -109,13 +109,20 @@ fn build_atlas(name: &str) -> anyhow::Result<Atlas> {
             return Err(anyhow!("Atlas cache pre-seeding for variable fonts is not supported.",)),
     };
     let normal = font::NonVariableFaceHeader::default();
+    let mut medium = normal;
+    medium.weight = font::Weight::Medium;
     let mut bold = normal;
     bold.weight = font::Weight::Bold;
-    for variation in &[normal, bold] {
+    let mut extra_bold = normal;
+    extra_bold.weight = font::Weight::ExtraBold;
+    let preload_variations = &[normal, medium, bold, extra_bold];
+    for variation in preload_variations {
         for glyphs in PRELOAD_GLYPHS {
-            font.prepare_glyphs(variation, glyphs)
+            font.prepare_glyphs_for_text(variation, glyphs)
                 .unwrap_or_else(|e| error!("Failed to populate cache for font variation: {e}."));
         }
+        let unknown_glyph = font::GlyphId::default();
+        font.prepare_glyph_by_id(variation, unknown_glyph);
     }
     let cache = font.cache_snapshot();
     let atlas = cache.atlas.encode_ppm();

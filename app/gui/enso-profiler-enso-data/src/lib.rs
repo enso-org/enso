@@ -45,6 +45,9 @@ pub enum Metadata {
     BackendMessage(backend::Message),
     /// Performance stats gathered from the EnsoGL rendering engine.
     RenderStats(ensogl_core::debug::StatsData),
+    /// Other data.
+    #[serde(other)]
+    Other,
 }
 
 impl Display for Metadata {
@@ -54,6 +57,7 @@ impl Display for Metadata {
             Metadata::RpcRequest(method) => f.collect_str(&method.to_string()),
             Metadata::BackendMessage(backend::Message { endpoint, .. }) => f.collect_str(endpoint),
             Metadata::RenderStats(stats) => f.collect_str(&format!("{stats:#?}")),
+            Metadata::Other => f.collect_str("<value>"),
         }
     }
 }

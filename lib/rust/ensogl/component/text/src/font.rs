@@ -763,7 +763,7 @@ impl FontTemplate<NonVariableFamily> {
     }
 
     /// Load the glyphs for the given text into the cache.
-    pub fn prepare_glyphs(
+    pub fn prepare_glyphs_for_text(
         &self,
         variations: &NonVariableFaceHeader,
         glyphs: &str,
@@ -785,6 +785,12 @@ impl FontTemplate<NonVariableFamily> {
             let _ = self.glyph_info(variations, id);
         }
         Ok(())
+    }
+
+    /// Load the glyph with the given ID into the cache.
+    pub fn prepare_glyph_by_id(&self, variations: &NonVariableFaceHeader, id: GlyphId) {
+        // Load it into the cache.
+        let _ = self.glyph_info(variations, id);
     }
 }
 
