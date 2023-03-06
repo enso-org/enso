@@ -102,8 +102,7 @@ class BufferRegistry(
   override def preStart(): Unit = {
     logger.info("Starting initialization.")
     context.system.eventStream
-      .subscribe(self, InitializedEvent.
-          VersionsRepoInitialized.getClass)
+      .subscribe(self, InitializedEvent.VersionsRepoInitialized.getClass)
   }
 
   override def receive: Receive = initializing
