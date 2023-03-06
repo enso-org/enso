@@ -34,16 +34,14 @@
  *
  * ## Redirect To System Web Browser
  *
- * `openExternalUrl` IPC events are used to open URLs in the user's system browser.
- *
  * The user must use the system browser to complete sensitive flows such as signup and signin. These
  * flows should not be done in the app as the user cannot be expected to trust the app with their
  * credentials.
  *
  * To redirect the user from the IDE to an external source:
  * 1. Call the {@link initIpc} function to register a listener for
- * {@link ipc.channel.openExternalUrl} IPC events.
- * 2. Emit an {@link ipc.channel.openExternalUrl} event. The listener registered in the
+ * {@link ipc.channel.openUrlInSystemBrowser} IPC events.
+ * 2. Emit an {@link ipc.channel.openUrlInSystemBrowser} event. The listener registered in the
  * {@link initIpc} function will use the {@link opener} library to open the event's {@link URL}
  * argument in the system web browser, in a cross-platform way.
  *
@@ -53,16 +51,26 @@
  * sensitive flow such as signup or signin. The user may also be redirected to the IDE from an
  * external source such as an email client after verifying their email address.
  *
- * To redirect the user from external sources to the IDE:
- * 1. The authentication API section of `preload.ts` registers a listener for
- * {@link ipc.channel.openAuthenticationUrl} IPC events.
- * 2. Define a URL protocol scheme in `electron-builder-config.ts`. Electron will register it with
- * the OS.
- * 3. Use this URL protocol scheme in links to create deep links.
- * 4. When the user clicks on a deep link, the OS will redirect the user to IDE.
- * 5. The IDE will receive a {@link ipc.channel.openAuthenticationUrl} event. The listener
- * registered in `preload.ts` will parse the URL from the event's {@link URL} argument, and use it
- * to redirect the user to the correct page in the IDE. */
+ * To handle these redirects, we use deep links. Deep links are URLs that are used to redirect the
+ * user to a specific page in the application. To handle deep links, we use a custom URL protocol
+ * scheme.
+ *
+ * To prepare the application to handle deep links:
+ * - Register a custom URL protocol scheme with the OS (c.f., `electron-builder-config.ts`).
+ * - Define a listener for Electron {@link OPEN_URL_EVENT}s (c.f., {@link initOpenUrlListener}).
+ * - Define a listener for {@link ipc.channel.openDeepLink} events (c.f., `preload.ts`).
+ *
+ * Then when the user clicks on a deep link from an external source to the IDE:
+ * - The OS redirects the user to the application.
+ * - The application emits an Electron {@link OPEN_URL_EVENT}.
+ * - The {@link OPEN_URL_EVENT} listener checks if the {@link URL} is a deep link.
+ * - If the {@link URL} is a deep link, the {@link OPEN_URL_EVENT} listener prevents Electron from
+ * handling the event.
+ * - The {@link OPEN_URL_EVENT} listener then emits an {@link ipc.channel.openDeepLink} event.
+ * - The {@link ipc.channel.openDeepLink} listener registered by the dashboard receives the event.
+ * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
+ * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
+ * `pathname`. */
 import * as electron from 'electron'
 import * as ipc from 'ipc'
 import * as shared from '../shared'
@@ -74,28 +82,9 @@ import opener from 'opener'
 // === Constants ===
 // =================
 
-/** Base URL path that all URLs handled by the {@link initOpenUrlListener} function must be prefixed
- * with.
- *
- * Note the double leading slash on the pathname. This is because we use a custom URL protocol
- * scheme for these URLs. When parsing strings as URLs, the `url.pathname` is prefixed with an extra
- * slash. For example, `new URL('enso://authentication/register').pathname` results in
- * `//authentication/register`. */
-const AUTHENTICATION_PATHNAME_BASE = "//authentication"
-
-export const IPC_CHANNELS = {
-    /** Channel for requesting that a URL by opened by the system browser. */
-    openExternalUrl: 'open-external-url',
-    /** Channel for setting a callback to handle deep links to this application */
-    setOpenAuthenticationUrlCallback: 'set-open-authentication-url-callback',
-    /** Channel for requesting that a URL by opened by the Electron app. */
-    openAuthenticationUrl: 'open-authentication-url',
-}
-
 /** Name of the Electron event that is emitted when a URL is opened in Electron (e.g., when the user
  * clicks a link in the dashboard). */
 const OPEN_URL_EVENT = 'open-url'
-
 
 
 
@@ -115,29 +104,24 @@ export const initAuthenticationModule = (
 /** Registers an Inter-Process Communication (IPC) channel between the Electron application and the
  * served website.
  *
- * This channel listens for `openExternalUrl` events. When an `openExternalEvent` is fired, this
- * listener will assume that the first and only argument of the event is a URL. This listener will
- * then attempt to open the URL in a cross-platform way. The intent is to open the URL in the system
- * browser.
+ * This channel listens for {@link ipc.channel.openUrlInSystemBrowser} events. When this kind of
+ * event is fired, this listener will assume that the first and only argument of the event is a URL.
+ * This listener will then attempt to open the URL in a cross-platform way. The intent is to open
+ * the URL in the system browser.
  *
  * This functionality is necessary because we don't want to run the OAuth flow in the app. Users
  * don't trust Electron apps to handle their credentials. */
 const initIpc = () => {
-    electron.ipcMain.on(ipc.channel.openExternalUrl, (_event, url) => opener(url))
+    electron.ipcMain.on(ipc.channel.openUrlInSystemBrowser, (_event, url) => opener(url))
 }
 
-/** Initialize the listener for `open-url` events.
+/** Registers a listener that fires a callback for `open-url` events, when the URL is a deep link.
  *
  * This listener is used to open a page in *this* application window, when the user is
  * redirected to a URL with a protocol supported by this application.
  *
- * For example, when the user completes an OAuth sign in flow (e.g., through Google), they are
- * redirected to a URL like `enso://authentication/register?code=...`. This listener will intercept
- * that URL and open the page `register?code=...` in the application window.
- *
  * All URLs that aren't deep links (i.e., URLs that don't use the {@link shared.DEEP_LINK_SCHEME}
- * protocol) will be ignored by this handler. All URLs that don't have a pathname that starts with
- * {@link AUTHENTICATION_PATHNAME_BASE} will be ignored by this handler. */
+ * protocol) will be ignored by this handler. */
 const initOpenUrlListener = (
     window: () => electron.BrowserWindow | null,
 ) => {
@@ -148,16 +132,9 @@ const initOpenUrlListener = (
             return
         }
 
-        if (!parsedUrl.pathname.startsWith(AUTHENTICATION_PATHNAME_BASE)) {
-            return
-        }
-
         /** Don't open the deep link URL in the window, we want the system browser to handle it. */
         event.preventDefault()
 
-        const pathname = parsedUrl.pathname
-        const search = parsedUrl.search
-        const href = `${pathname}${search}`
-        window()?.webContents.send(ipc.channel.openAuthenticationUrl, href)
+        window()?.webContents.send(ipc.channel.openDeepLink, url)
     })
 }
