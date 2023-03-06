@@ -18,6 +18,7 @@ use super::GridWindow;
 use enso_prelude::serde_reexports::Deserialize;
 
 
+
 /// Width of a divider (e.g., space between columns) in the table in characters.
 const DIVIDER_WIDTH_IN_CHARS: usize = 3;
 
@@ -53,6 +54,9 @@ type RowIndex = usize;
 
 /// Specification of a table layout. Contains the column and row widths, as well as the column and
 /// row names. Provides methods for updating the specification and for accessing layout properties.
+/// We allow for a table specification to be partially specified, i.e., some of the information may
+/// be `None`. This is used to allow for lazy initialisation of the layout and incremental updates
+/// as the table is updated.
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct TableSpecification {
     /// The width of each column in characters.
@@ -144,25 +148,25 @@ pub enum TableContentItem {
     Empty,
 }
 
+/// Insert the given values ath the corresponding index into the target vector, resizing the target
+/// vector if necessary.
+fn resize_and_insert<T: Clone>(values: &[(usize, T)], target: &mut Vec<Option<T>>) {
+    let max_index = values.iter().map(|(index, _)| *index).max();
+    if let Some(max_index) = max_index {
+        target.resize(max_index + 1, None);
+        for (index, value) in values.iter() {
+            target[*index] = Some(value.clone());
+        }
+    }
+}
+
 impl TableSpecification {
     /// Update the specification with the given update.
     fn update(&mut self, update: &TableSpecificationUpdate) {
-        for (index, width) in update.column_widths.iter() {
-            self.columns.resize(*index + 1, None);
-            self.columns[*index] = Some(*width);
-        }
-        for (index, height) in update.row_heights.iter() {
-            self.rows.resize(*index + 1, None);
-            self.rows[*index] = Some(*height);
-        }
-        for (index, name) in update.column_names.iter() {
-            self.column_names.resize(*index + 1, None);
-            self.column_names[*index] = Some(name.clone());
-        }
-        for (index, name) in update.row_names.iter() {
-            self.row_names.resize(*index + 1, None);
-            self.row_names[*index] = Some(name.clone());
-        }
+        resize_and_insert(&update.column_widths, &mut self.columns);
+        resize_and_insert(&update.row_heights, &mut self.rows);
+        resize_and_insert(&update.column_names, &mut self.column_names);
+        resize_and_insert(&update.row_names, &mut self.row_names);
     }
 
     /// Return whether the given line of the GridView should be a divider.
@@ -252,7 +256,6 @@ impl TableSpecification {
             + chunk.x as usize;
         let chunk_y =
             self.rows.iter().take(row).fold(0, |acc, x| acc + x.unwrap_or(0)) + chunk.y as usize;
-        // error!("Converting {table_position:?} to {chunk_x} {chunk_y}");
         GridPosition::new(chunk_x as i32, chunk_y as i32)
     }
 
@@ -940,18 +943,6 @@ impl TryFrom<visualization::Data> for LazyGridDataUpdate {
     }
 }
 
-impl TryFrom<serde_json::Value> for LazyGridData {
-    type Error = visualization::DataError;
-
-    fn try_from(data: serde_json::Value) -> Result<Self, Self::Error> {
-        Ok(serde_json::from_value(data.clone()).unwrap_or_else(|_| {
-            let data_str = serde_json::to_string_pretty(&data);
-            let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {e}.>"));
-            data_str.into()
-        }))
-    }
-}
-
 impl From<String> for LazyGridData {
     fn from(content: String) -> Self {
         let lines = content.lines();
@@ -990,6 +981,7 @@ fn fill_emtpy_chunks(chunks: Vec<Chunk>) -> Vec<Chunk> {
         })
         .collect()
 }
+
 
 // =========================
 // === Table Data Update ===
@@ -1041,10 +1033,10 @@ impl TryFrom<visualization::Data> for TableDataUpdate {
     }
 }
 
+
 // =============
 // === Tests ===
 // =============
-
 
 #[cfg(test)]
 mod tests {

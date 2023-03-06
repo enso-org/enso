@@ -71,6 +71,7 @@ pub const CHARS_PER_CHUNK: usize = 20;
 const CACHE_PADDING: u32 = 15;
 const PADDING_TEXT: f32 = 5.0;
 
+/// Space to be used between cells in the grid. Measured in characters/lines.
 const TEXT_PADDING: f32 = 1.5;
 
 
@@ -91,17 +92,17 @@ pub struct TablePosition {
     /// Position of the cell in the table in columns and rows.
     pub cell:  GridPosition,
     /// Position of the chunk in the cell in chunk index and lines.
-    pub chunk: GridPosition,
+    pub chunk: ChunkCoordinate,
 }
 
 impl TablePosition {
     /// Create a new table position.
-    pub fn new(cell: GridPosition, chunk: GridPosition) -> Self {
+    pub fn new(cell: GridPosition, chunk: ChunkCoordinate) -> Self {
         Self { cell, chunk }
     }
 }
 
-/// Position and size of a sub-grid within a grid.
+/// Position and size of a sub-grid within a grid. Defined by the a grid position and a grid size.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct GridWindow {
     position: GridPosition,
@@ -116,7 +117,8 @@ impl GridWindow {
     }
 }
 
-/// Position and size of a sub-grid within a grid.
+/// Position and size of a sub-window within a table. Defined by a table position and a size in
+/// cunks/lines.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TableWindow {
     position: TablePosition,
@@ -389,10 +391,8 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                     let font_name = font_name.clone();
                     let font_size = *font_size;
                     let parent = Some(dom_entry_root.clone_ref());
-
-                    dom_entry_root.set_style_or_warn("font-family", font_name.clone());
+                    dom_entry_root.set_style_or_warn("font-family", &font_name);
                     dom_entry_root.set_style_or_warn("font-size", format!("{}px", font_size as u32));
-
                     grid_view_entry::Params { parent, font_name, font_size }
                 })
             );
@@ -675,6 +675,11 @@ pub fn text_visualisation() -> visualization::Definition {
     )
 }
 
+// IMPORTANT: When updating this, also update the test in
+// test/Visualization_Tests/src/Default_Visualizations_Spec.enso:15 as this verifies that the
+// type names do not go out of sync. Should be removed once
+// https://github.com/enso-org/enso/issues/5195 is implemented.
+const TABLE_TYPE_NAME: &str = "Standard.Table.Data.Table.Table";
 
 /// Return definition of a lazy text visualisation.
 pub fn lazy_table_visualisation() -> visualization::Definition {
@@ -682,7 +687,7 @@ pub fn lazy_table_visualisation() -> visualization::Definition {
     visualization::Definition::new(
         visualization::Signature::new(
             path,
-            "Standard.Table.Data.Table.Table",
+            TABLE_TYPE_NAME.to_string(),
             visualization::Format::Json,
         ),
         |app| {

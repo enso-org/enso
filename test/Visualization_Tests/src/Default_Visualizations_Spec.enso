@@ -14,8 +14,10 @@ spec =
 
     Test.group "Type Names of Visualisation Defaults" <|
         """ IMPORTANT: When updating this, also update the default values in
-             app/gui/view/graph-editor/src/builtin/visualization/java_script/table.js:18 as this
-             verifies that the type names do not go out of sync. Should be removed once
+             app/gui/view/graph-editor/src/builtin/visualization/java_script/table.js:18 and
+             app/gui/view/graph-editor/src/builtin/visualization/native/text_visualization.rs:682
+             and all other references to the type names in the codebase.
+             This verifies that the type names do not go out of sync. Should be removed once
              https://github.com/enso-org/enso/issues/5195 is implemented.
         Test.specify "Type names should match table visualization expectations" <|
             expect_type_representation [1,2] "Standard.Base.Data.Vector.Vector"

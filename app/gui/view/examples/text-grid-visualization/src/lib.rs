@@ -30,6 +30,7 @@ use ide_view::graph_editor::builtin::visualization::native::text_visualization::
 use ide_view::graph_editor::builtin::visualization::native::text_visualization::CHARS_PER_CHUNK;
 
 
+
 fn sample_text() -> String {
     let mut text = String::new();
     for n in (0..1001).rev() {

@@ -19,14 +19,12 @@ use std::fmt::Write;
 // === Model ===
 // =============
 
-
-/// Model that contains the data that is required to populate the data in an `Entry`.
+/// Model that contains the data that is required to create and render an `Entry`.
 #[derive(Clone, Debug, Default)]
 pub struct Model {
     pub content:  Content,
     pub bg_color: color::Rgba,
 }
-
 
 impl From<String> for Model {
     fn from(content: String) -> Self {
@@ -36,7 +34,7 @@ impl From<String> for Model {
     }
 }
 
-/// Model that contains the data that is required to populate the data in an `Entry`.
+/// Content that is shown in an `Entry`.
 #[derive(Clone, Debug)]
 pub enum Content {
     Text { content: String },
@@ -129,7 +127,7 @@ impl Entry {
         self.content.set_attribute_or_warn("style", style);
 
         // Properly hide zero sized elements.
-        if width == 1 {
+        if size.x <= 0.0 {
             self.content.set_style_or_warn("display", "none");
         } else {
             self.content.set_style_or_warn("display", "block");
