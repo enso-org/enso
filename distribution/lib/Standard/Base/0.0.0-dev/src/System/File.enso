@@ -381,6 +381,14 @@ type File
     is_regular_file : Boolean
     is_regular_file self = @Builtin_Method "File.is_regular_file"
 
+    ## Checks whether it the file can be written to.
+
+       ? Read-only Files
+         If a file is read-only, it may still be possible to move or delete it,
+         depending on the permissions associated with its parent directory.
+    is_writable : Boolean
+    is_writable self = @Builtin_Method "File.is_writable"
+
     ## Resolves the parent filesystem node of this file.
 
        > Example
