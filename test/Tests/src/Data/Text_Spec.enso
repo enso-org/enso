@@ -13,8 +13,6 @@ from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-#polyglot java import com.oracle.truffle.regex.RegexSyntaxException
-
 type Auto
     Value a
 
@@ -1294,10 +1292,8 @@ spec =
             "abcddd".find("ab(c(d+))").group "dee" . text . should_fail_with No_Such_Group.Error
 
         Test.specify "should throw ??? for a regex with incorrect syntax" <|
-             # RegexSyntaxException
-            Panic.catch Any ("abcddd".find("ab(c(((((((").group 0 . text . should_fail_with No_Such_Group.Error) cp->
-                a = 1
-                Nothing
+            # RegexSyntaxException
+            "abcddd".find("ab(c(((((((").group 0 . text . should_fail_with No_Such_Group.Error
 
         Test.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
