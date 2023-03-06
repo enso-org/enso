@@ -5,6 +5,7 @@ import java.util.concurrent.Executors
 import akka.actor.{Actor, ActorRef, Props, Stash, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.docs.sections.DocSectionsBuilder
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired,

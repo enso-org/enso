@@ -5,6 +5,7 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.context.SuggestionBuilder
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.docs.sections.DocSectionsBuilder
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
@@ -26,7 +27,11 @@ import java.util.logging.Level
 import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptional
 
-class SerializationManager(compiler: Compiler) {
+final class SerializationManager(
+  compiler: Compiler,
+  docSectionsBuilder: DocSectionsBuilder = DocSectionsBuilder()
+) {
+
   import SerializationManager._
 
   /** The debug logging level. */
@@ -230,6 +235,7 @@ class SerializationManager(compiler: Compiler) {
               .build(module.getName, module.getIr)
               .toVector
           }
+          .map(generateDocumentation)
           .foreach(suggestions.add)
         val cachedSuggestions =
           new SuggestionsCache.CachedSuggestions(
@@ -595,7 +601,45 @@ class SerializationManager(compiler: Compiler) {
       )
       .asScala
   }
+
+  /** Generate the documentation for the given suggestion.
+    *
+    * @param suggestion the initial suggestion
+    * @return the suggestion with documentation fields set
+    */
+  private def generateDocumentation(suggestion: Suggestion): Suggestion =
+    suggestion match {
+      case module: Suggestion.Module =>
+        val docSections = module.documentation.map(docSectionsBuilder.build)
+        module.copy(documentationSections = docSections)
+
+      case constructor: Suggestion.Constructor =>
+        val docSections =
+          constructor.documentation.map(docSectionsBuilder.build)
+        constructor.copy(documentationSections = docSections)
+
+      case tpe: Suggestion.Type =>
+        val docSections = tpe.documentation.map(docSectionsBuilder.build)
+        tpe.copy(documentationSections = docSections)
+
+      case method: Suggestion.Method =>
+        val docSections = method.documentation.map(docSectionsBuilder.build)
+        method.copy(documentationSections = docSections)
+
+      case conversion: Suggestion.Conversion =>
+        val docSections = conversion.documentation.map(docSectionsBuilder.build)
+        conversion.copy(documentationSections = docSections)
+
+      case function: Suggestion.Function =>
+        val docSections = function.documentation.map(docSectionsBuilder.build)
+        function.copy(documentationSections = docSections)
+
+      case local: Suggestion.Local =>
+        val docSections = local.documentation.map(docSectionsBuilder.build)
+        local.copy(documentationSections = docSections)
+    }
 }
+
 object SerializationManager {
 
   /** The maximum number of serialization threads allowed. */

@@ -643,6 +643,7 @@ lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(syntax.jvm)
   .dependsOn(cli)
   .dependsOn(`version-output`)
+  .dependsOn(`polyglot-api`)
   .configs(Benchmark)
   .settings(
     frgaalJavaCompilerSetting,
