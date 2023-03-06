@@ -37,7 +37,7 @@ type File_Error
 
     ## Indicates that the given type cannot be serialized to the provided file
        format.
-    Unsupported_Output_Type (format : File_Format | File) (type : Any)
+    Unsupported_Output_Type (format : File_Format | File) (data_type : Any)
 
     ## Indicates that the given file is corrupted, i.e. the data it contains
        is not in the expected format.
@@ -53,11 +53,11 @@ type File_Error
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
         File_Error.Access_Denied file -> "Insufficient permissions to perform the desired operation on the file at "+file.path+"."
         File_Error.Unsupported_Type file -> "The "+file.path+" has a type that is not supported."
-        File_Error.Unsupported_Output_Type format type ->
+        File_Error.Unsupported_Output_Type format data_type ->
             format_name = case format of
                 file : File -> file.name
                 _ -> (Meta.meta format).constructor.name
-            "Values of type "+type.to_text+" cannot be written as format "+format_name.to_text+"."
+            "Values of type "+data_type.to_text+" cannot be written as format "+format_name.to_text+"."
         File_Error.Corrupted_Format file msg _ -> "The file at " + file.path + " is corrupted: " + msg
 
     ## PRIVATE
