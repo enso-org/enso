@@ -1078,35 +1078,6 @@ mod tests {
     }
 
     #[test]
-    fn text_backend_message_for_table_parsing() {
-        let sample_message = r#"{"chunks":[[[[0,0],[0,0]],"A0"],[[[1,0],[0,0]],"B0"],[[[0,1],[0,0]],"A1"],[[[1,1],[0,0]],"B1"]],"table_specification_update":{"row_heights":{"0":1,"1":1},"column_widths":{"0":2,"1":2}}}"#;
-        let json =
-            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
-        let result: Result<TableDataUpdate, _> = serde_json::from_value(json);
-        assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
-    }
-
-    #[test]
-    fn text_backend_message_for_table_parsing_2() {
-        let sample_message = "{\"chunks\":[[[[0,0],[0,0]],\"123456789\"],\"table_specification_update\":{\"column_names\":[[0,\"foo\"],[1,\"bar\"],[2,\"Baz\"],[3,\"foo_1\"],[4,\"foo_2\"],[5,\"ab.+123\"],[6,\"abcd123\"]],\"column_widths\":[[0,9],[1,1],[2,1],[3,2],[4,2],[5,2],[6,23]],\"constructor\":\"Value\",\"row_heights\":[[0,1],[1,1],[2,1]],\"row_names\":[],\"type\":\"TableSpecificationUpdate\"}}";
-        let json =
-            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
-        let result: Result<TableDataUpdate, _> = serde_json::from_value(json);
-        assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
-        let table_data = result.unwrap();
-        assert_eq!(table_data.chunks.len(), 4);
-    }
-
-    #[test]
-    fn text_backend_message_for_table_processing() {
-        let sample_message = r#"{"chunks":[[[[0,0],[0,0]],"A0"],[[[1,0],[0,0]],"B0"],[[[0,1],[0,0]],"A1"],[[[1,1],[0,0]],"B1"]],"table_specification_update":{"row_heights":{"0":1,"1":1},"column_widths":{"0":2,"1":2}}}"#;
-        let json =
-            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
-        let result: Result<TableDataUpdate, _> = serde_json::from_value(json);
-        assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
-    }
-
-    #[test]
     fn test_table_specification_updates() {
         let mut specification = TableSpecification::default();
         let update1 = TableSpecificationUpdate {
@@ -1263,9 +1234,7 @@ mod tests {
         assert!(specification.is_row_divider(1));
         assert!(!specification.is_row_divider(2));
         assert!(!specification.is_row_divider(3));
-        assert!(specification.is_row_divider(4));
-        assert!(!specification.is_row_divider(5));
-        assert!(specification.is_row_divider(6));
+        assert!(!specification.is_row_divider(4));
     }
 
     #[test]
@@ -1306,7 +1275,7 @@ mod tests {
         assert_item(6, 0, ColumnHeading { column_index: 1, chunk_index: 0, line_index: 0 });
         assert_item(7, 0, Divider { bottom: true, top: true, left: false, right: false });
 
-        // First Row (divider under the column headings)
+        // Second Row (divider under the column headings)
         assert_item(0, 1, Divider { bottom: false, top: false, left: true, right: true });
         assert_item(1, 1, Divider { bottom: true, top: true, left: true, right: true });
         assert_item(2, 1, Divider { bottom: false, top: false, left: true, right: true });
@@ -1316,7 +1285,7 @@ mod tests {
         assert_item(6, 1, Divider { bottom: false, top: false, left: true, right: true });
         assert_item(7, 1, Divider { bottom: true, top: true, left: true, right: false });
 
-        // Second Row (First line of first content row)
+        // Third Row (First line of first content row)
         assert_item(0, 2, RowHeading { row_index: 0, chunk_index: 0, line_index: 0 });
         assert_item(1, 2, Divider { bottom: true, top: true, left: false, right: false });
         assert_item(2, 2, Content { content_index: GridPosition::new(0, 0) });
@@ -1326,7 +1295,7 @@ mod tests {
         assert_item(6, 2, Content { content_index: GridPosition::new(3, 0) });
         assert_item(7, 2, Divider { bottom: true, top: true, left: false, right: false });
 
-        // Third Row (Second line of first content row)
+        // Fourth Row (Second line of first content row)
         assert_item(0, 3, RowHeading { row_index: 0, chunk_index: 0, line_index: 1 });
         assert_item(1, 3, Divider { bottom: true, top: true, left: false, right: false });
         assert_item(2, 3, Content { content_index: GridPosition::new(0, 1) });
@@ -1336,33 +1305,22 @@ mod tests {
         assert_item(6, 3, Content { content_index: GridPosition::new(3, 1) });
         assert_item(7, 3, Divider { bottom: true, top: true, left: false, right: false });
 
-        // Fourth Row (divider)
-        assert_item(0, 4, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(1, 4, Divider { bottom: true, top: true, left: true, right: true });
-        assert_item(2, 4, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(3, 4, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(4, 4, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(5, 4, Divider { bottom: true, top: true, left: true, right: true });
-        assert_item(6, 4, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(7, 4, Divider { bottom: true, top: true, left: true, right: false });
 
         // Fifth Row (First line of second content row)
-        assert_item(0, 5, RowHeading { row_index: 1, chunk_index: 0, line_index: 0 });
-        assert_item(1, 5, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(2, 5, Content { content_index: GridPosition::new(0, 2) });
-        assert_item(3, 5, Content { content_index: GridPosition::new(1, 2) });
-        assert_item(4, 5, Content { content_index: GridPosition::new(2, 2) });
-        assert_item(5, 5, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(6, 5, Content { content_index: GridPosition::new(3, 2) });
-        assert_item(7, 5, Divider { bottom: true, top: true, left: false, right: false });
+        assert_item(0, 4, RowHeading { row_index: 1, chunk_index: 0, line_index: 0 });
+        assert_item(1, 4, Divider { bottom: true, top: true, left: false, right: false });
+        assert_item(2, 4, Content { content_index: GridPosition::new(0, 2) });
+        assert_item(3, 4, Content { content_index: GridPosition::new(1, 2) });
+        assert_item(4, 4, Content { content_index: GridPosition::new(2, 2) });
+        assert_item(5, 4, Divider { bottom: true, top: true, left: false, right: false });
+        assert_item(6, 4, Content { content_index: GridPosition::new(3, 2) });
+        assert_item(7, 4, Divider { bottom: true, top: true, left: false, right: false });
     }
 
     #[test]
     fn test_overlong_column_name() {
         //   | A_ | B |
-        //  -|----+---+
         //  1| _  | _ |
-        //  -|----+---+
         let spec = TableSpecification {
             rows:         vec![Some(1)],
             columns:      vec![Some(CHARS_PER_CHUNK), Some(CHARS_PER_CHUNK)],
