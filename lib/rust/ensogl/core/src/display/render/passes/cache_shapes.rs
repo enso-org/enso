@@ -35,23 +35,24 @@ use crate::gui::component::AnyShapeView;
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct CacheShapesPass {
-    scene:            Scene,
-    framebuffer:      Option<pass::Framebuffer>,
+    scene:               Scene,
+    framebuffer:         Option<pass::Framebuffer>,
     #[derivative(Debug = "ignore")]
-    shapes_to_render: Vec<Rc<dyn AnyShapeView>>,
-    texture_size:     Vector2<i32>,
-    layer:            Layer,
+    shapes_to_render:    Vec<Rc<dyn AnyShapeView>>,
+    /// Texture size in device pixels.
+    texture_size_device: Vector2<i32>,
+    layer:               Layer,
 }
 
 impl CacheShapesPass {
     /// Constructor.
     pub fn new(scene: &Scene) -> Self {
         Self {
-            framebuffer:      default(),
-            shapes_to_render: default(),
-            layer:            Layer::new("Cached Shapes"),
-            scene:            scene.clone_ref(),
-            texture_size:     default(),
+            framebuffer:         default(),
+            shapes_to_render:    default(),
+            layer:               Layer::new("Cached Shapes"),
+            scene:               scene.clone_ref(),
+            texture_size_device: default(),
         }
     }
 }
@@ -66,7 +67,7 @@ impl pass::Definition for CacheShapesPass {
                 shapes.iter().map(|def| (def.for_texture_constructor)().into()).collect()
         });
         let texture_size = display::shape::primitive::system::cached::texture_size();
-        self.texture_size = texture_size;
+        self.texture_size_device = texture_size * instance.pixel_ratio;
 
         for shape in &self.shapes_to_render {
             self.scene.add_child(&**shape);
@@ -83,7 +84,8 @@ impl pass::Definition for CacheShapesPass {
         self.layer.update();
 
         let output = pass::OutputDefinition::new_rgba("cached_shapes");
-        let texture = instance.new_texture(&output, self.texture_size.x, self.texture_size.y);
+        let texture =
+            instance.new_texture(&output, self.texture_size_device.x, self.texture_size_device.y);
         self.framebuffer = Some(instance.new_framebuffer(&[&texture]));
     }
 
@@ -94,14 +96,18 @@ impl pass::Definition for CacheShapesPass {
         if ready_to_render.peek().is_some() {
             if let Some(framebuffer) = self.framebuffer.as_ref() {
                 framebuffer.with_bound(|| {
-                    instance.with_viewport(self.texture_size.x, self.texture_size.y, || {
-                        with_display_mode(DisplayModes::CachedShapesTexture, || {
-                            with_context(|ctx| ctx.set_camera(&self.layer.camera()));
-                            for shape in ready_to_render {
-                                shape.sprite().symbol.render();
-                            }
-                        })
-                    });
+                    instance.with_viewport(
+                        self.texture_size_device.x,
+                        self.texture_size_device.y,
+                        || {
+                            with_display_mode(DisplayModes::CachedShapesTexture, || {
+                                with_context(|ctx| ctx.set_camera(&self.layer.camera()));
+                                for shape in ready_to_render {
+                                    shape.sprite().symbol.render();
+                                }
+                            })
+                        },
+                    );
                 });
             } else {
                 reportable_error!("Impossible happened: The CacheShapesPass was run without initialized framebuffer.");

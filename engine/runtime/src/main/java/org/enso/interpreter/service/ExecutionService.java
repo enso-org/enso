@@ -3,15 +3,16 @@ package org.enso.interpreter.service;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
-import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
-import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
@@ -57,9 +58,11 @@ public class ExecutionService {
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
-  private final InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
   private final ConnectedLockManager connectedLockManager;
+  private final ExecuteRootNode execute = new ExecuteRootNode();
+  private final CallRootNode call = new CallRootNode();
+  private final InvokeMemberRootNode invoke = new InvokeMemberRootNode();
 
   private final Timer timer;
 
@@ -175,7 +178,7 @@ public class ExecutionService {
                     onExceptionalCallback));
     Object p = context.getThreadManager().enter();
     try {
-      interopLibrary.execute(call);
+      execute.getCallTarget().call(call);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -233,7 +236,7 @@ public class ExecutionService {
    * Evaluates an expression in the scope of the provided module.
    *
    * @param module the module providing a scope for the expression
-   * @param expression the expression to evluated
+   * @param expression the expression to evaluated
    * @return a result of evaluation
    */
   public Object evaluateExpression(Module module, String expression)
@@ -241,7 +244,7 @@ public class ExecutionService {
           UnsupportedTypeException {
     Object p = context.getThreadManager().enter();
     try {
-      return interopLibrary.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
+      return invoke.getCallTarget().call(module, expression);
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -255,7 +258,8 @@ public class ExecutionService {
    */
   public String toDisplayString(Object receiver) {
     try {
-      return interopLibrary.asString(interopLibrary.toDisplayString(receiver));
+      var iop = InteropLibrary.getUncached();
+      return iop.asString(iop.toDisplayString(receiver));
     } catch (UnsupportedMessageException ignored) {
       CompilerDirectives.shouldNotReachHere("Message support already checked.");
     }
@@ -273,7 +277,7 @@ public class ExecutionService {
       throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     Object p = context.getThreadManager().enter();
     try {
-      return interopLibrary.execute(fn, argument);
+      return call.getCallTarget().call(fn, new Object[] { argument });
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -321,7 +325,7 @@ public class ExecutionService {
                     onExceptionalCallback));
     Object p = context.getThreadManager().enter();
     try {
-      return interopLibrary.execute(function, arguments);
+      return call.getCallTarget().call(function, arguments);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -392,9 +396,10 @@ public class ExecutionService {
    * @return the associated language, or {@code null} if it doesn't exist
    */
   public String getLanguage(Object o) {
-    if (interopLibrary.hasSourceLocation(o)) {
+    var iop = InteropLibrary.getUncached(o);
+    if (iop.hasSourceLocation(o)) {
       try {
-        var sourceSection = interopLibrary.getSourceLocation(o);
+        var sourceSection = iop.getSourceLocation(o);
         var source = sourceSection.getSource();
         if (source != null) {
           return source.getLanguage();
@@ -413,9 +418,10 @@ public class ExecutionService {
    * @return the associated source section, or {@code null} if it doesn't exist
    */
   public SourceSection getSourceLocation(Object o) {
-    if (interopLibrary.hasSourceLocation(o)) {
+    var iop = InteropLibrary.getUncached(o);
+    if (iop.hasSourceLocation(o)) {
       try {
-        return interopLibrary.getSourceLocation(o);
+        return iop.getSourceLocation(o);
       } catch (UnsupportedMessageException ignored) {
         CompilerDirectives.shouldNotReachHere("Message support already checked.");
       }
@@ -430,23 +436,90 @@ public class ExecutionService {
    * @return a human-readable version of its contents.
    */
   public String getExceptionMessage(PanicException panic) {
-    Object p = context.getThreadManager().enter();
+    var iop = InteropLibrary.getUncached();
+    var p = context.getThreadManager().enter();
     try {
-      return interopLibrary.asString(
-          interopLibrary.invokeMember(panic.getPayload(), "to_display_text"));
+      return iop.asString(
+          iop.invokeMember(panic.getPayload(), "to_display_text"));
     } catch (UnsupportedMessageException
         | ArityException
         | UnknownIdentifierException
         | UnsupportedTypeException e) {
       return TypeToDisplayTextNodeGen.getUncached().execute(panic.getPayload());
     } catch (Throwable e) {
-      if (interopLibrary.isException(e)) {
+      if (iop.isException(e)) {
         return TypeToDisplayTextNodeGen.getUncached().execute(panic.getPayload());
       } else {
         throw e;
       }
     } finally {
       context.getThreadManager().leave(p);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Exception> E raise(Class<E> type, Exception ex) throws E {
+    throw (E) ex;
+  }
+
+  private static final class ExecuteRootNode extends RootNode {
+    @Node.Child
+    private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
+
+    ExecuteRootNode() {
+      super(null);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+      try {
+        if (frame.getArguments()[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
+          return iop.execute(call);
+        }
+        throw ArityException.create(1, 1, frame.getArguments().length);
+      } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
+        throw raise(RuntimeException.class, ex);
+      }
+    }
+  }
+
+  private static final class CallRootNode extends RootNode {
+    @Node.Child
+    private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
+
+    CallRootNode() {
+      super(null);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+      try {
+        var self = frame.getArguments()[0];
+        var args = (Object[]) frame.getArguments()[1];
+        return iop.execute(self, args);
+      } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
+        throw raise(RuntimeException.class, ex);
+      }
+    }
+  }
+
+  private static final class InvokeMemberRootNode extends RootNode {
+    @Node.Child
+    private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
+
+    InvokeMemberRootNode() {
+      super(null);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+      var module = frame.getArguments()[0];
+      var expression = frame.getArguments()[1];
+      try {
+        return iop.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
+      } catch (UnknownIdentifierException | UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
+        throw raise(RuntimeException.class, ex);
+      }
     }
   }
 }

@@ -40,6 +40,8 @@ object ErrorResolver {
       x.getEncapsulatingSourceSection match {
         case null if x.getRootNode == null =>
           None
+        case null if x.getRootNode.isInternal =>
+          None
         case null =>
           Some(Api.StackTraceElement(x.getRootNode.getName, None, None, None))
         case section =>

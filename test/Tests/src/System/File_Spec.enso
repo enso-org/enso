@@ -4,8 +4,14 @@ import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
+polyglot java import org.enso.base_test_helpers.FileSystemHelper
+
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
+
+set_writable file writable =
+    path = file.absolute.path
+    FileSystemHelper.setWritable path writable
 
 spec =
     sample_file = enso_project.data / "sample.txt"
@@ -89,7 +95,25 @@ spec =
                 Process.run "chmod" ["0421", f.absolute.path] . should_equal Exit_Code.Success
                 f.posix_permissions . should_equal <|
                     File_Permissions.Value [Permission.Read] [Permission.Write] [Permission.Execute]
+                f.is_writable.should_be_false
 
+                f.delete
+
+            Test.specify "should gracefully handle permission errors" <|
+                f = enso_project.data / "transient" / "permissions2.txt"
+                f.delete_if_exists
+                "foobar".write f
+
+                Process.run "chmod" ["0000", f.absolute.path] . should_equal Exit_Code.Success
+                f.posix_permissions . should_equal <|
+                    File_Permissions.Value [] [] []
+
+                r1 = f.read
+                r1.should_fail_with File_Error.IO_Error
+                r1.catch.file . should_equal f
+                r1.catch.message.contains "You do not have permission" . should_be_true
+
+                Process.run "chmod" ["0744", f.absolute.path] . should_equal Exit_Code.Success
                 f.delete
 
     Test.group "read_bytes" <|
@@ -149,6 +173,10 @@ spec =
             tester result = result.should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
             problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
+
+            # Check that it defaults to warning.
+            Problems.expect_only_warning Encoding_Error <|
+                windows_file.read_text Encoding.ascii
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
@@ -255,8 +283,8 @@ spec =
         Test.specify "should allow appending text to a file" <|
             f = transient / "work.txt"
             f.delete_if_exists
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
+            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
             f.read_text.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
@@ -380,6 +408,33 @@ spec =
                 Test.fail "The temporary file should have been cleaned up."
             f.delete
 
+        Test.specify "should respect file access permissions and fail with an error if denied, in all modes" <|
+            f = transient / "permissions3.txt"
+            f.delete_if_exists
+
+            "foobar".write f on_existing_file=Existing_File_Behavior.Overwrite
+
+            f.is_writable.should_be_true
+            set_writable f False
+            f.is_writable.should_be_false
+
+            r2 = "FOO".write f on_existing_file=Existing_File_Behavior.Append
+            r2.should_fail_with File_Error.IO_Error
+            f.read . should_equal "foobar"
+
+            r3 = "FOO".write f on_existing_file=Existing_File_Behavior.Overwrite
+            r3.should_fail_with File_Error.IO_Error
+            f.read . should_equal "foobar"
+
+            r4 = "FOO".write f on_existing_file=Existing_File_Behavior.Backup
+            r4.should_fail_with File_Error.IO_Error
+            f.read . should_equal "foobar"
+
+            f.is_writable.should_be_false
+
+            set_writable f True
+            f.delete
+
     Test.group "folder operations" <|
         resolve files =
             base = enso_project.data
@@ -392,7 +447,7 @@ spec =
 
         Test.specify "should list files in a directory" <|
             immediate = enso_project.data.list . map .to_text
-            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt"])
+            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample-json.weird-extension", "sample-malformed.json", "sample.json", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt"])
 
             filtered1 = enso_project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
             filtered1.should_equal (resolve ["sample.txt"])
