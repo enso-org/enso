@@ -14,11 +14,11 @@ import builder from 'electron-builder'
 import { notarize } from 'electron-notarize'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 
+import { project_manager_bundle } from './paths.js'
 import * as shared from './shared.js'
 import build from '../../build.json' assert { type: 'json' }
 import yargs from 'yargs'
 import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
-import { project_manager_bundle } from './paths.js'
 
 /** The parts of the electron-builder configuration that we want to keep configurable.
  *

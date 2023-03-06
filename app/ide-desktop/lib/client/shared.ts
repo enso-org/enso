@@ -2,7 +2,7 @@
  * For example, it contains:
  * - the name of the product, and
  * - custom URL protocol scheme definitions.
- * 
+ *
  * This metadata is used in both the code building the client resources and the packaged code
  * itself. */
 
