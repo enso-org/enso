@@ -13,6 +13,8 @@ from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+#polyglot java import com.oracle.truffle.regex.RegexSyntaxException
+
 type Auto
     Value a
 
@@ -1201,8 +1203,8 @@ spec =
             check_span_all ((accents).find_all 'e\u{301}') [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
 
             # Check contents to make sure the spans' ranges are ok
-            accents.find 'h' . span 0 . text . should_equal 'h'
-            accents.find 'e\u{301}' . span 0 . text . should_equal 'e\u{301}'
+            accents.find 'h' . group 0 . text . should_equal 'h'
+            accents.find 'e\u{301}' . group 0 . text . should_equal 'e\u{301}'
 
         Test.specify "should handle the Unicode normalization" pending="TODO: Rewrite this to use normalization methods explicitly" <|
             ## This test passed for the builtin Java regex library, using
@@ -1272,21 +1274,30 @@ spec =
 
             ## Regex matching does not do case folding
             "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
+        ##
+            Test.specify "should allow access to match groups by number" <|
+                "abcddd".find("ab(c(d+))").group 0 . text . should_equal "abcddd"
+                "abcddd".find("ab(c(d+))").group 1 . text . should_equal "cddd"
+                "abcddd".find("ab(c(d+))").group 2 . text . should_equal "ddd"
 
-        Test.specify "should allow access to match groups by number" <|
-            "abcddd".find("ab(c(d+))").group 0 . text . should_equal "abcddd"
-            "abcddd".find("ab(c(d+))").group 1 . text . should_equal "cddd"
-            "abcddd".find("ab(c(d+))").group 2 . text . should_equal "ddd"
+            Test.specify "should allow access to match groups by name" <|
+                "abcddd".find("ab(?<cee>c(d+))").group "cee" . text . should_equal "cddd"
 
-        Test.specify "should allow access to match groups by name" <|
-            "abcddd".find("ab(?<cee>c(d+))").group "cee" . text . should_equal "cddd"
+            Test.specify "should throw No_Such_Group for an out-of-range group number" <|
+                "abcddd".find("ab(c(d+))").group 3 . text . should_fail_with No_Such_Group.Error
+                "abcddd".find("ab(c(d+))").group 12 . text . should_fail_with No_Such_Group.Error
 
-        Test.specify "should throw No_Such_Group for an out-of-range group number" <|
-            "abcddd".find("ab(c(d+))").group 3 . text . should_fail_with No_Such_Group.Error
-            "abcddd".find("ab(c(d+))").group 12 . text . should_fail_with No_Such_Group.Error
+            Test.specify "should throw No_Such_Group for an invalid group name" <|
+                "abcddd".find("ab(?<cee>c(d+))").group "dee" . text . should_fail_with No_Such_Group.Error
 
-        Test.specify "should throw No_Such_Group for an invalid group name" <|
-            "abcddd".find("ab(?<cee>c(d+))").group "dee" . text . should_fail_with No_Such_Group.Error
+        Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
+            "abcddd".find("ab(c(d+))").group "dee" . text . should_fail_with No_Such_Group.Error
+
+        Test.specify "should throw ??? for a regex with incorrect syntax" <|
+             # RegexSyntaxException
+            Panic.catch Any ("abcddd".find("ab(c(((((((").group 0 . text . should_fail_with No_Such_Group.Error) cp->
+                a = 1
+                Nothing
 
         Test.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
@@ -1300,6 +1311,9 @@ spec =
             # Check contents to make sure the spans' ranges are ok
             accents.find 'h' . group 0 . text . should_equal 'h'
             accents.find 'e\u{301}' . group 0 . text . should_equal 'e\u{301}'
+
+        Test.specify "should expand a partial-grapheme match to the whole grapheme" <|
+            'e\u{301}'.find '\u{301}' . group 0 . text . should_equal 'e\u{301}'
 
         Test.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
             ## This test passed for the builtin Java regex library, using

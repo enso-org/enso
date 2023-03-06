@@ -76,13 +76,9 @@ type Pattern_2
                 # Maps name to number
                 groups = self.internal_regex_object.groups
 
-                # If null, there are no named groups
                 n = case groups of
-                        _ : Nothing -> Nothing
-                        ## EGREGIOUS HACK because I don't know how to use this object
-                                map -> case name of
-                                    "cee" -> map.cee
-                                    _ -> Nothing
+                        # If Nothing, there are no named groups
+                        _ : Nothing -> Error.throw (No_Such_Group.Error name)
                         _ ->
                             qq = (read_group_map groups name)
                             case qq of
