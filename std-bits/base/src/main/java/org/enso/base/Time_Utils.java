@@ -7,7 +7,6 @@ import org.enso.base.time.Time_Of_Day_Utils;
 import org.graalvm.polyglot.Value;
 
 import java.time.DateTimeException;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -16,7 +15,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalField;
@@ -25,40 +23,14 @@ import java.util.Locale;
 
 /** Utils for standard library operations on Time. */
 public class Time_Utils {
-
-  /**
-   * The ISO-like date-time formatter that formats or parses a date-time with optional offset and
-   * zone, such as '2011-12-03T10:15:30+01:00[Europe/Paris]'.
-   */
-  public static final DateTimeFormatter TIME_FORMAT;
-
-  static {
-    TIME_FORMAT =
-        new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            .parseLenient()
-            .optionalStart()
-            .appendZoneOrOffsetId()
-            .optionalEnd()
-            .parseStrict()
-            .optionalStart()
-            .appendLiteral('[')
-            .parseCaseSensitive()
-            .appendZoneRegionId()
-            .appendLiteral(']')
-            .optionalEnd()
-            .toFormatter();
-  }
-
   public enum AdjustOp {
     PLUS,
     MINUS
   }
 
   /** @return default Time formatter. */
-  public static DateTimeFormatter default_time_formatter() {
-    return DateTimeFormatter.ISO_ZONED_DATE_TIME;
+  public static DateTimeFormatter default_date_time_formatter() {
+    return DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneId.systemDefault());
   }
 
   /** @return default Date formatter. */
@@ -73,10 +45,6 @@ public class Time_Utils {
 
   public static String local_date_format(LocalDate date, Object format) {
     return DateTimeFormatter.ofPattern(format.toString()).format(date);
-  }
-
-  public static ZonedDateTime date_with_time(LocalDate date, LocalTime time, ZoneId zone) {
-    return date.atTime(time).atZone(zone);
   }
 
   public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
@@ -117,54 +85,6 @@ public class Time_Utils {
     return WeekFields.of(locale).weekOfYear().getFrom(date);
   }
 
-  public static Duration duration_between(
-      ZonedDateTime start, ZonedDateTime end, boolean timezoneAware) {
-    return timezoneAware
-        ? Duration.between(start, end)
-        : Duration.between(start.toLocalDateTime(), end.toLocalDateTime());
-  }
-
-  public static int compare_to_localdate(LocalDate self, LocalDate that) {
-    return self.compareTo(that);
-  }
-
-  public static int compare_to_zoneddatetime(ZonedDateTime self, ZonedDateTime that) {
-    return self.compareTo(that);
-  }
-
-  public static int compare_to_localtime(LocalTime self, LocalTime that) {
-    return self.compareTo(that);
-  }
-
-  public static boolean equals_zone(ZoneId self, ZoneId that) {
-    return self.equals(that);
-  }
-
-  /**
-   * Obtains an instance of ZonedDateTime from a text string.
-   *
-   * <p>Accepts:
-   *
-   * <ul>
-   *   <li>Local date time, such as '2011-12-03T10:15:30' adding system dafault timezone.
-   *   <li>Offset date time, such as '2011-12-03T10:15:30+01:00' parsing offset as a timezone.
-   *   <li>Zoned date time, such as '2011-12-03T10:15:30+01:00[Europe/Paris]' with optional region
-   *       id in square brackets.
-   * </ul>
-   *
-   * @param text the string to parse.
-   * @return parsed ZonedDateTime instance.
-   */
-  public static ZonedDateTime parse_datetime(String text) {
-    TemporalAccessor time = TIME_FORMAT.parseBest(text, ZonedDateTime::from, LocalDateTime::from);
-    if (time instanceof ZonedDateTime) {
-      return (ZonedDateTime) time;
-    } else if (time instanceof LocalDateTime) {
-      return ((LocalDateTime) time).atZone(ZoneId.systemDefault());
-    }
-    throw new DateTimeException("Text '" + text + "' could not be parsed as Time.");
-  }
-
   /**
    * Obtains an instance of ZonedDateTime from text using custom format string.
    *
@@ -176,7 +96,7 @@ public class Time_Utils {
    * @param locale localization config to be uses in the formatter.
    * @return parsed ZonedDateTime instance.
    */
-  public static ZonedDateTime parse_datetime_format(String text, String pattern, Locale locale) {
+  public static ZonedDateTime parse_datetime(String text, String pattern, Locale locale) {
     TemporalAccessor time =
         DateTimeFormatter.ofPattern(pattern)
             .withLocale(locale)
@@ -207,7 +127,7 @@ public class Time_Utils {
    * types is not supported, so this is a workaround.
    *
    * <p>TODO once the related issue is fixed, this workaround may be replaced with pattern matching
-   * in Enso; the related Pivotal issue: https://www.pivotaltracker.com/story/show/183219169
+   * in Enso; <a href="https://www.pivotaltracker.com/story/show/183219169">Pivotal issue.</a>
    */
   public static TimeUtilsBase utils_for(Value value) {
     boolean isDate = value.isDate();
