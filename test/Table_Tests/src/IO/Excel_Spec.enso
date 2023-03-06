@@ -79,8 +79,8 @@ spec_write suffix test_sheet_name =
             table.write out on_problems=Report_Error . should_succeed . should_equal out
             written = out.read
             written.sheet_count . should_equal 1
-            written.sheet_names . should_equal ['Sheet1']
-            written.read 'Sheet1' . should_equal table
+            written.sheet_names . should_equal ['EnsoSheet']
+            written.read 'EnsoSheet' . should_equal table
             out.delete_if_exists
 
         Test.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
@@ -88,18 +88,18 @@ spec_write suffix test_sheet_name =
             table.write out on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read
             written.sheet_count . should_equal 1
-            written.sheet_names . should_equal ['Sheet1']
-            written.read 'Sheet1' . should_equal table
+            written.sheet_names . should_equal ['EnsoSheet']
+            written.read 'EnsoSheet' . should_equal table
             out.delete_if_exists
 
-        Test.specify 'should write a table to existing file as a new sheet with headers' <|
+        Test.specify 'should write a table to existing file overriding EnsoSheet' <|
             out.delete_if_exists
             table.write out on_problems=Report_Error . should_succeed
             table.write out on_problems=Report_Error . should_succeed
             written = out.read
-            written.sheet_count . should_equal 2
-            written.sheet_names . should_equal ['Sheet1', 'Sheet2']
-            written.read 'Sheet2' . should_equal table
+            written.sheet_count . should_equal 1
+            written.sheet_names . should_equal ['EnsoSheet']
+            written.read 'EnsoSheet' . should_equal table
             out.delete_if_exists
 
         Test.specify 'should write a table to existing file in overwrite mode as a new sheet with headers' <|
@@ -631,6 +631,23 @@ spec =
         Test.specify "should handle wrong xls_format gracefully" <|
             xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File_Error.IO_Error
             xls_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File_Error.IO_Error
+
+        Test.specify "should handle malformed XLS files gracefully" <|
+            bad_file = enso_project.data / "transient" / "malformed.xls"
+            "not really an XLS file contents...".write bad_file on_existing_file=Existing_File_Behavior.Overwrite
+
+            r1 = bad_file.read
+            r1.should_fail_with File_Error.Corrupted_Format
+            r1.catch.to_display_text.should_contain "is corrupted"
+
+            bad_file.read Excel . should_fail_with File_Error.Corrupted_Format
+            bad_file.read (Excel Sheet_Names) . should_fail_with File_Error.Corrupted_Format
+
+            r2 = bad_file.read (Excel (Cell_Range "Sheet1!A:C"))
+            r2.should_fail_with File_Error.Corrupted_Format
+            r2.catch.to_display_text.should_contain "is corrupted"
+
+            bad_file.delete
 
     spec_fmt 'XLSX reading' Examples.xlsx .read
 

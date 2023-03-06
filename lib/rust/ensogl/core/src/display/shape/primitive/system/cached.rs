@@ -59,15 +59,17 @@
 //!
 //! mod cached {
 //!     use super::*;
-//!     ensogl_core::cached_shape! { 32 x 32;
-//!        (_style: Style) { Circle(16.px()).into() }
+//!     ensogl_core::cached_shape! {
+//!         size = (32, 32);
+//!         (_style: Style) { Circle(16.px()).into() }
 //!     }
 //! }
 //!
 //! mod another_cached {
 //!     use super::*;
-//!     ensogl_core::cached_shape! { 32 x 32;
-//!        (_style: Style) { Circle(16.px()).into() }
+//!     ensogl_core::cached_shape! {
+//!         size = (32, 32);
+//!         (_style: Style) { Circle(16.px()).into() }
 //!     }
 //! }
 //!
@@ -280,11 +282,8 @@ pub mod mutable {
 /// # As Shape Parameter
 ///
 /// [`AnyCachedShape`] may be a valid parameter for a different shape defined with [`shape!`] macro.
-/// You can then set the concrete shape using [`CachedShape::any_cached_shape_parameter`] as in the
-/// following example:
-///
-///
-/// The parameter is passed to glsl as a single `vec4` describing the location of the cached shape
+/// You can then set the concrete shape using [`CachedShape::any_cached_shape_parameter`]. The
+/// parameter is passed to glsl as a single `vec4` describing the location of the cached shape
 /// in the texture.
 pub type AnyCachedShape = ShapeRef<mutable::AnyCachedShape>;
 
@@ -337,7 +336,6 @@ impl Parameter for AnyCachedShape {
 // === `cached_shape!` Macro ===
 // =============================
 
-
 /// Defines a new cached shape system.
 ///
 /// The outcome is the same as for [`shape!`] macro, but quickly after application start the shape
@@ -350,7 +348,7 @@ impl Parameter for AnyCachedShape {
 #[macro_export]
 macro_rules! cached_shape {
     (
-        $width:literal x $height:literal;
+        size=($width:expr, $height:expr);
         $(type SystemData = $system_data:ident;)?
         $(type ShapeData = $shape_data:ident;)?
         $(flavor = $flavor:path;)?
@@ -369,8 +367,12 @@ macro_rules! cached_shape {
             [$style] (){$($body)*}
         }
 
-        pub mod cached_shape_system_definition {
+        #[allow(unused_variables)]
+        #[allow(unused_qualifications)]
+        #[allow(unused_imports)]
+        mod cached_shape_system_definition {
             use $crate::prelude::*;
+            use super::*;
             use super::shape_system_definition::Shape;
             use $crate::display::shape::primitive::system::cached::CachedShape;
 
@@ -395,6 +397,8 @@ macro_rules! cached_shape {
                 register_cached_shape()
             }
 
+            /// Register cached shape, so it will be placed on the cached texture during [`World`]
+            /// initialization.
             pub fn register_cached_shape() {
                 $crate::display::world::CACHED_SHAPES_DEFINITIONS.with(|shapes| {
                     let mut shapes = shapes.borrow_mut();
@@ -406,6 +410,7 @@ macro_rules! cached_shape {
                 });
             }
         }
+        pub use cached_shape_system_definition::register_cached_shape;
     };
 }
 
@@ -422,8 +427,8 @@ mod tests {
     use crate::display::world::World;
 
     mod shape1 {
-        use super::*;
-        cached_shape! { 240 x 240;
+        cached_shape! {
+            size = (240, 240);
             (_style: Style) {
                 Plane().into()
             }
@@ -431,8 +436,8 @@ mod tests {
     }
 
     mod shape2 {
-        use super::*;
-        cached_shape! { 240 x 112;
+        cached_shape! {
+            size = (240, 112);
             (_style: Style) {
                 Plane().into()
             }
@@ -440,8 +445,8 @@ mod tests {
     }
 
     mod shape3 {
-        use super::*;
-        cached_shape! { 112 x 114;
+        cached_shape! {
+            size = (112, 114);
             (_style: Style) {
                 Plane().into()
             }
@@ -450,9 +455,9 @@ mod tests {
 
     #[test]
     fn cached_shapes_initialization_and_texture_location() {
-        shape1::cached_shape_system_definition::register_cached_shape();
-        shape2::cached_shape_system_definition::register_cached_shape();
-        shape3::cached_shape_system_definition::register_cached_shape();
+        shape1::register_cached_shape();
+        shape2::register_cached_shape();
+        shape3::register_cached_shape();
         let _world = World::new();
 
         // Those sizes includes margins for sdf. The margins are of [`CACHED_TEXTURE_MAX_DISTANCE`]

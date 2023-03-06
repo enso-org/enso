@@ -1,6 +1,7 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.Problem;
-
-/** A problem indicating that a quote has been opened and never closed. */
-public record MismatchedQuote() implements Problem {}
+/**
+ * Indicates that a Delimited file is corrupted because it contains a quote that was opened and
+ * never closed.
+ */
+public class MismatchedQuote extends RuntimeException {}

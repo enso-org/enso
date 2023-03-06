@@ -63,7 +63,6 @@ use enso_build::project::wasm::Wasm;
 use enso_build::project::IsTarget;
 use enso_build::project::IsWatchable;
 use enso_build::project::IsWatcher;
-use enso_build::project::ProcessWrapper;
 use enso_build::source::BuildTargetJob;
 use enso_build::source::CiRunSource;
 use enso_build::source::ExternalSource;
@@ -493,18 +492,14 @@ impl Processor {
                 }
                 .boxed()
             }
-            arg::ide::Command::Watch { project_manager, gui } => {
-                let gui_watcher = self.watch(gui);
-                let project_manager = self.spawn_project_manager(project_manager, None);
-
+            arg::ide::Command::Watch { gui, project_manager, ide_option: ide_watch } => {
+                let context = self.context();
+                let watch_gui_job = self.resolve_watch_job(gui);
+                let project_manager = self.get(project_manager);
                 async move {
-                    let mut project_manager = project_manager.await?;
-                    let mut gui_watcher = gui_watcher.await?;
-                    gui_watcher.wait_for_finish().await?;
-                    debug!("GUI watcher has finished, ending Project Manager process.");
-                    project_manager.stdin.take(); // dropping stdin handle should make PM finish
-                    project_manager.wait_ok().await?;
-                    Ok(())
+                    crate::project::Ide::default()
+                        .watch(&context, watch_gui_job.await?, project_manager, ide_watch)
+                        .await
                 }
                 .boxed()
             }
@@ -751,7 +746,7 @@ impl WatchResolvable for Gui {
         ctx: &Processor,
         from: <Self as IsWatchableSource>::WatchInput,
     ) -> Result<<Self as IsWatchable>::WatchInput> {
-        Ok(gui::WatchInput { wasm: Wasm::resolve_watch(ctx, from.wasm)?, shell: from.gui_shell })
+        Ok(gui::WatchInput { wasm: Wasm::resolve_watch(ctx, from.wasm)? })
     }
 }
 

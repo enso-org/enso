@@ -24,7 +24,7 @@ type Excel_Workbook
     new : File | Text -> Boolean -> Boolean | Infer -> Excel_Workbook
     new file xls_format=False headers=Infer =
         file_obj = File.new file . normalize
-        File_Error.handle_java_exceptions file_obj <|
+        File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <|
             file_obj.with_input_stream [File_Access.Read] stream->
                 stream.with_java_stream java_stream->
                     workbook = ExcelReader.readWorkbook java_stream xls_format

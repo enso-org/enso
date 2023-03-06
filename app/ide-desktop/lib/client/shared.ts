@@ -1,17 +1,13 @@
-/** @file This module defines resources that are common to the:
- * - code building the client package;
- * - and the packaged code itself.
+/** @file This module contains metadata about the product and distribution.
+ * For example, it contains:
+ * - the name of the product, and
+ * - custom URL protocol scheme definitions.
  *
- * The resources defined in this module are:
- * - paths within the client distribution's resources;
- * - and the name of the protocol used for deep links into the application.
- */
-
-/** Path to the Project Manager bundle. */
-export const project_manager_bundle = 'enso'
+ * This metadata is used in both the code building the client resources and the packaged code
+ * itself. */
 
 /** Name of the product. */
 export const PRODUCT_NAME = 'Enso'
 
-/** Name of the protocol used for deep links into the application. */
-export const DEEP_LINK_PROTOCOL = 'enso'
+/** URL protocol scheme for deep links to authentication flow pages. */
+export const DEEP_LINK_SCHEME = 'enso'
