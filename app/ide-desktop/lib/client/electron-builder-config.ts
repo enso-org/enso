@@ -83,7 +83,7 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
         artifactName: 'enso-${os}-${version}.${ext}',
         mac: {
             // We do not use compression as the build time is huge and file size saving is almost zero.
-            target: (args.target as MacOsTargetName) ?? 'dmg',
+            target: (args.target as MacOsTargetName | undefined) ?? 'dmg',
             icon: `${args.iconsDist}/icon.icns`,
             category: 'public.app-category.developer-tools',
             darkModeSupport: true,
@@ -170,7 +170,7 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
 
         afterSign: async context => {
             // Notarization for macOS.
-            if (args.platform === Platform.MAC && process.env['CSC_LINK']) {
+            if (args.platform === Platform.MAC && process.env.CSC_LINK) {
                 const { packager, appOutDir } = context
                 const appName = packager.appInfo.productFilename
 
@@ -179,18 +179,18 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
                 await signArchivesMacOs({
                     appOutDir: appOutDir,
                     productFilename: appName,
-                    // @ts-ignore
+                    // @ts-expect-error
                     entitlements: context.packager.config.mac.entitlements,
                     identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
                 })
 
                 console.log('  • Notarizing.')
                 await notarize({
-                    appBundleId: packager.platformSpecificBuildOptions.appId,
+                    appBundleId: (packager.platformSpecificBuildOptions as { appId: string }).appId,
                     appPath: `${appOutDir}/${appName}.app`,
-                    // @ts-ignore
+                    // @ts-expect-error
                     appleId: process.env.APPLEID,
-                    // @ts-ignore
+                    // @ts-expect-error
                     appleIdPassword: process.env.APPLEIDPASS,
                 })
             }

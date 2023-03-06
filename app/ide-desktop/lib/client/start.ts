@@ -1,17 +1,15 @@
-/** This script starts the IDE using the Electron executable. */
+/** @file This script starts the IDE using the Electron executable. */
 
-import { bundlerOptionsFromEnv, outdir } from './esbuild-config.js'
+import { bundlerOptionsFromEnv } from './esbuild-config.js'
 import esbuild from 'esbuild'
 import {
     getGuiDirectory,
     getIdeDirectory,
     getProjectManagerBundle,
-    getProjectManagerInBundlePath,
     project_manager_bundle,
 } from './paths.js'
 import path from 'node:path'
 import fs from 'node:fs/promises'
-import * as assert from 'assert'
 import child_process from 'node:child_process'
 
 const guiDist = path.resolve(getGuiDirectory())
@@ -48,4 +46,4 @@ const code = await new Promise((resolve, reject) => {
     electronProcess.on('close', resolve)
     electronProcess.on('error', reject)
 })
-console.log(`Electron process finished. Exit code: ${code}.`)
+console.log(`Electron process finished. Exit code: ${code as string}.`)

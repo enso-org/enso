@@ -12,8 +12,8 @@ import isDev from 'electron-is-dev'
 /** The root of the application bundle.
  *
  * This path is like:
- *  - for packaged application `…/resources/app.asar`;
- *  - for development `…` (just the directory with `index.js`).
+ * - for packaged application `…/resources/app.asar`;
+ * - for development `…` (just the directory with `index.js`).
  **/
 export const app = Electron.app.getAppPath()
 

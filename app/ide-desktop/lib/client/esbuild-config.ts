@@ -1,3 +1,4 @@
+/** @file esbuild config file */
 import path from 'node:path'
 import esbuild from 'esbuild'
 import { require_env, require_env_resolved_path } from '../../utils.js'
@@ -38,7 +39,7 @@ export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
     )
 }
 
-/// Get options without relying on the environment
+/** Get options without relying on the environment */
 export function bundlerOptions(
     outdir: string,
     projectManagerInBundlePath: string,
