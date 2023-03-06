@@ -632,6 +632,23 @@ spec =
             xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File_Error.IO_Error
             xls_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File_Error.IO_Error
 
+        Test.specify "should handle malformed XLS files gracefully" <|
+            bad_file = enso_project.data / "transient" / "malformed.xls"
+            "not really an XLS file contents...".write bad_file on_existing_file=Existing_File_Behavior.Overwrite
+
+            r1 = bad_file.read
+            r1.should_fail_with File_Error.Corrupted_Format
+            r1.catch.to_display_text.should_contain "is corrupted"
+
+            bad_file.read Excel . should_fail_with File_Error.Corrupted_Format
+            bad_file.read (Excel Sheet_Names) . should_fail_with File_Error.Corrupted_Format
+
+            r2 = bad_file.read (Excel (Cell_Range "Sheet1!A:C"))
+            r2.should_fail_with File_Error.Corrupted_Format
+            r2.catch.to_display_text.should_contain "is corrupted"
+
+            bad_file.delete
+
     spec_fmt 'XLSX reading' Examples.xlsx .read
 
     spec_fmt 'XLS reading' Examples.xls .read
