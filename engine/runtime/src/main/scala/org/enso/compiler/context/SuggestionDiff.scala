@@ -1,11 +1,8 @@
 package org.enso.compiler.context
+
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{These, Tree}
 import org.enso.polyglot.runtime.Runtime.Api
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.scala.ClassTagExtensions
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.fasterxml.jackson.databind.ObjectReader
 
 object SuggestionDiff {
 
@@ -31,30 +28,6 @@ object SuggestionDiff {
         case _ =>
           true
       }
-
-  case class SuggestionData(version: Int, suggestions: Iterable[Suggestion])
-
-  def deserialize(
-    json: String
-  ): Tree[Suggestion] = {
-    val mapper = new ObjectMapper() with ClassTagExtensions
-    mapper.registerModule(DefaultScalaModule)
-
-    val r: ObjectReader   = mapper.readerFor[SuggestionData]
-    val o: SuggestionData = r.readValue[SuggestionData](json)
-
-    import scala.collection.mutable
-    type TreeBuilder =
-      mutable.Builder[Tree.Node[Suggestion], Vector[Tree.Node[Suggestion]]]
-
-    val builder: TreeBuilder = Vector.newBuilder
-    for (s <- o.suggestions) {
-      val update = Tree.Node(s, Vector())
-      builder += update
-    }
-
-    Tree.Root(builder.result())
-  }
 
   /** Compare two suggestions for equality.
     *
