@@ -1516,9 +1516,11 @@ object Runtime {
 
     /** A notification about the suggestions of the loaded library.
       *
+      * @param libraryName the name of the loaded library
       * @param suggestions the loaded suggestions
       */
     final case class SuggestionsDatabaseSuggestionsLoadedNotification(
+      libraryName: LibraryName,
       suggestions: Vector[Suggestion]
     ) extends ApiNotification
         with ToLogString {
@@ -1526,6 +1528,7 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "SuggestionsDatabaseSuggestionsLoadedNotification(" +
+        s"libraryName=$libraryName," +
         s"suggestions=${suggestions.map(_.toLogString(shouldMask))}" +
         ")"
     }

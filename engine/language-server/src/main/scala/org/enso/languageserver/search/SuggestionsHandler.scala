@@ -210,7 +210,29 @@ final class SuggestionsHandler(
       )
 
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification =>
+      logger.debug(
+        "Starting loading suggestions for library [{}].",
+        msg.libraryName
+      )
       applyLoadedSuggestions(msg.suggestions)
+        .onComplete {
+          case Success(notification) =>
+            logger.debug(
+              "Complete loading suggestions for library [{}].",
+              msg.libraryName
+            )
+            if (notification.updates.nonEmpty) {
+              clients.foreach { clientId =>
+                sessionRouter ! DeliverToJsonController(clientId, notification)
+              }
+            }
+          case Failure(ex) =>
+            logger.error(
+              "Error applying suggestion updates for loaded library [{}] ({})",
+              msg.libraryName,
+              ex.getMessage
+            )
+        }
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification
         if state.isSuggestionUpdatesRunning =>

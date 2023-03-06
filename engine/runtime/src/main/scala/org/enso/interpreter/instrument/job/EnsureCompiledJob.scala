@@ -27,7 +27,6 @@ import org.enso.text.buffer.Rope
 import java.io.File
 import java.util.logging.Level
 
-import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -84,14 +83,8 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     compile(module)
     applyEdits(new File(module.getPath)).map { changeset =>
       compile(module)
-        .map { compilerResult =>
+        .map { _ =>
           invalidateCaches(module, changeset)
-          ctx.jobProcessor.runBackground(
-            AnalyzeModuleInScopeJob(
-              module.getName,
-              compilerResult.compiledModules
-            )
-          )
           ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
           runCompilationDiagnostics(module)
         }
@@ -439,15 +432,9 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   ): Iterable[Module] = {
     val packageRepository =
       ctx.executionService.getContext.getCompiler.packageRepository
-    val mainPackageName = packageRepository.getMainProjectPackage.map(pkg =>
-      QualifiedName.fromString(pkg.libraryName.qualifiedName)
-    )
-    packageRepository.getModuleMap
-    val modulesInScope =
-      ctx.executionService.getContext.getTopScope.getModules.asScala
-    modulesInScope.filter { module =>
-      mainPackageName.exists(module.getName.isChildOf)
-    }
+    packageRepository.getMainProjectPackage
+      .map(pkg => packageRepository.getModulesForLibrary(pkg.libraryName))
+      .getOrElse(Seq())
   }
 
   /** Check if stack belongs to the provided module.

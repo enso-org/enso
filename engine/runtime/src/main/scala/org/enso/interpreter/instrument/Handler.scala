@@ -52,7 +52,7 @@ class Endpoint(handler: Handler)
     * @param msg the message to send.
     */
   def sendToSelf(msg: Api.Request): Unit =
-    client.sendBinary(Api.serialize(msg))
+    handler.onMessage(msg)
 
   /** Sends a request to the connected client and expects a reply. */
   override def sendRequest(msg: ApiRequest): Future[ApiResponse] =

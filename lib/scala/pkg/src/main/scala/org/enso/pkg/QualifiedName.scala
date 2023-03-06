@@ -48,17 +48,6 @@ case class QualifiedName(path: List[String], item: String) {
   def pathAsJava(): java.util.List[String] = {
     path.asJava
   }
-
-  /** Checks if this name is a child of `other` name.
-    *
-    * @param other the parent qualified name
-    * @return `true` if this name is a child of `other` qualified name
-    */
-  def isChildOf(other: QualifiedName): Boolean = {
-    !other.path
-      .zip(path :+ item)
-      .forall(Function.tupled(_ == _))
-  }
 }
 
 object QualifiedName {

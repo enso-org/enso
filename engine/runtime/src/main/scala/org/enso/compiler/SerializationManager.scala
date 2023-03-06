@@ -240,7 +240,10 @@ final class SerializationManager(
         val cachedSuggestions =
           new SuggestionsCache.CachedSuggestions(
             libraryName,
-            new SuggestionsCache.Suggestions(suggestions)
+            new SuggestionsCache.Suggestions(suggestions),
+            compiler.packageRepository
+              .getPackageForLibraryJava(libraryName)
+              .map(_.listSourcesJava())
           )
         new SuggestionsCache(libraryName)
           .save(cachedSuggestions, compiler.context, false)

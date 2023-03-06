@@ -4,15 +4,15 @@ import buildinfo.Info;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
-import org.bouncycastle.util.encoders.Hex;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.pkg.SourceFile;
 import org.enso.polyglot.Suggestion;
 import scala.jdk.CollectionConverters;
 
 import java.io.Serializable;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -49,7 +49,7 @@ public final class SuggestionsCache
   protected CachedSuggestions validateReadObject(Object obj, Metadata meta, TruffleLogger logger)
       throws CacheException {
     if (obj instanceof Suggestions suggestions) {
-      return new CachedSuggestions(libraryName, suggestions);
+      return new CachedSuggestions(libraryName, suggestions, Optional.empty());
     } else {
       throw new CacheException("Expected SuggestionsCache.Suggestions, got " + obj.getClass());
     }
@@ -68,12 +68,7 @@ public final class SuggestionsCache
 
   @Override
   protected Optional<String> computeDigest(CachedSuggestions entry, TruffleLogger logger) {
-    var digest = messageDigest();
-    entry.getSuggestions().forEach(suggestion -> {
-      ByteBuffer bytes = ByteBuffer.allocate(Integer.BYTES).putInt(suggestion.hashCode());
-      digest.update(bytes);
-    });
-    return Optional.of(Hex.toHexString(digest.digest()));
+    return entry.getSources().map(sources -> computeDigestOfLibrarySources(sources, logger));
   }
 
   @Override
@@ -130,13 +125,20 @@ public final class SuggestionsCache
     private final LibraryName libraryName;
     private final Suggestions suggestions;
 
-    public CachedSuggestions(LibraryName libraryName, Suggestions suggestions) {
+    private final Optional<List<SourceFile<TruffleFile>>> sources;
+
+    public CachedSuggestions(LibraryName libraryName, Suggestions suggestions, Optional<List<SourceFile<TruffleFile>>> sources) {
       this.libraryName = libraryName;
       this.suggestions = suggestions;
+      this.sources = sources;
     }
 
     public LibraryName getLibraryName() {
       return libraryName;
+    }
+
+    public Optional<List<SourceFile<TruffleFile>>> getSources() {
+      return sources;
     }
 
     public Suggestions getSuggestionsObjectToSerialize() {
