@@ -64,7 +64,6 @@
  * registered in the {@link exposeAuthenticationApi} function will parse the URL from the event's
  * {@link URL} argument, and use it to redirect the user to the correct page in the IDE. */
 import * as electron from 'electron'
-import builder from 'electron-builder'
 import * as ipc from 'ipc'
 import * as shared from '../shared'
 import opener from 'opener'
@@ -83,16 +82,6 @@ import opener from 'opener'
  * slash. For example, `new URL('enso://authentication/register').pathname` results in
  * `//authentication/register`. */
 const AUTHENTICATION_PATHNAME_BASE = "//authentication"
-
-/** URL protocol scheme for deep links to authentication flow pages. */
-const DEEP_LINK_SCHEME = 'enso'
-
-/** Electron URL protocol scheme definition for deep links to authentication flow pages. */
-export const DEEP_LINK_PROTOCOL: builder.Protocol = {
-    name: `${shared.PRODUCT_NAME} url`,
-    schemes: [DEEP_LINK_SCHEME],
-    role: 'Editor',
-}
 
 export const IPC_CHANNELS = {
     /** Channel for requesting that a URL by opened by the system browser. */
@@ -174,8 +163,8 @@ const initIpc = () => {
  * redirected to a URL like `enso://authentication/register?code=...`. This listener will intercept
  * that URL and open the page `register?code=...` in the application window.
  * 
- * All URLs that aren't deep links (i.e., URLs that don't use the {@link DEEP_LINK_SCHEME} protocol)
- * will be ignored by this handler. All URLs that don't have a pathname that starts with
+ * All URLs that aren't deep links (i.e., URLs that don't use the {@link shared.DEEP_LINK_SCHEME}
+ * protocol) will be ignored by this handler. All URLs that don't have a pathname that starts with
  * {@link AUTHENTICATION_PATHNAME_BASE} will be ignored by this handler. */
 const initOpenUrlListener = (
     window: () => electron.BrowserWindow | null,
@@ -183,7 +172,7 @@ const initOpenUrlListener = (
     electron.app.on(OPEN_URL_EVENT, (event, url) => {
         const parsedUrl = new URL(url)
 
-        if (parsedUrl.protocol !== `${DEEP_LINK_SCHEME}:`) {
+        if (parsedUrl.protocol !== `${shared.DEEP_LINK_SCHEME}:`) {
             return
         }
 

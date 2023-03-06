@@ -15,7 +15,6 @@ import { notarize } from 'electron-notarize'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 
 import * as shared from './shared.js'
-import * as authentication from 'authentication'
 import build from '../../build.json' assert { type: 'json' }
 import yargs from 'yargs'
 import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
@@ -82,7 +81,14 @@ const config: Configuration = {
      *
      * For details on how this works, see:
      * https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app */
-    protocols: [authentication.DEEP_LINK_PROTOCOL],
+    protocols: [
+        /** Electron URL protocol scheme definition for deep links to authentication flow pages. */
+        {
+            name: `${shared.PRODUCT_NAME} url`,
+            schemes: [shared.DEEP_LINK_SCHEME],
+            role: 'Editor',
+        }
+    ],
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: (args.target as MacOsTargetName) ?? 'dmg',
