@@ -1,13 +1,13 @@
 //! A module with SpanTree structure definition.
 
 use crate::prelude::*;
-use crate::SpanTree;
 use enso_text::index::*;
 use enso_text::unit::*;
 
 use crate::iter::LeafIterator;
 use crate::iter::TreeFragment;
 use crate::ArgumentInfo;
+use crate::SpanTree;
 
 use enso_text as text;
 
@@ -384,7 +384,7 @@ impl<'a, T> Ref<'a, T> {
     }
 
     /// Iterator over all direct children producing `Ref`s.
-    pub fn children_iter(self) -> impl Iterator<Item = Ref<'a, T>> {
+    pub fn children_iter(self) -> impl DoubleEndedIterator<Item = Ref<'a, T>> {
         let children_count = self.node.children.len();
         (0..children_count).map(move |i| self.clone().child(i).unwrap())
     }
@@ -536,9 +536,22 @@ impl<'a, T> Ref<'a, T> {
     }
 
     /// Perform a full (traverse all nodes) depth-first-search algorithm on the `SpanTree`. Just
-    /// like `dfs`, but without data attached.
+    /// like `dfs_with_layer_data`, but without data attached.
     pub fn dfs(self, mut on_node: impl FnMut(&mut Self)) {
         self.partial_dfs_with_layer_data((), |t, _| (true, on_node(t)))
+    }
+
+    /// Perform a depth-first-search algorithm on the `SpanTree`. Stop searching after the first
+    /// node for which the predicate returns `true`.
+    pub fn find_node(self, mut predicate: impl FnMut(&Self) -> bool) -> Option<Self> {
+        let mut queue = vec![self];
+        loop {
+            match queue.pop() {
+                None => break None,
+                Some(node) if predicate(&node) => break Some(node),
+                Some(node) => queue.extend(node.children_iter().rev()),
+            }
+        }
     }
 }
 
@@ -759,7 +772,6 @@ mod test {
     use crate::builder::TreeBuilder;
     use crate::node;
     use crate::node::InsertionPoint;
-    use crate::node::InsertionPointType;
     use crate::Crumbs;
     use crate::SpanTree;
 
@@ -830,7 +842,6 @@ mod test {
 
         let tree: SpanTree = TreeBuilder::new(7)
             .add_leaf(0, 1, node::Kind::this(), vec![LeftOperand])
-            .add_empty_child(1, InsertionPointType::AfterTarget)
             .add_leaf(1, 1, node::Kind::Operation, vec![Operator])
             .add_child(2, 5, node::Kind::argument(), vec![RightOperand])
             .add_leaf(0, 3, node::Kind::Operation, vec![Func])

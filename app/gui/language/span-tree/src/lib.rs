@@ -94,6 +94,11 @@ impl ArgumentInfo {
         Self { name, tp, call_id, tag_values }
     }
 
+    /// Specialized constructor for "this" argument.
+    pub fn this(tp: Option<String>, call_id: Option<ast::Id>) -> Self {
+        Self::new(Some(node::Argument::THIS.into()), tp, call_id, default())
+    }
+
     /// Extend the argument info with the given call id.
     pub fn with_call_id(self, call_id: Option<ast::Id>) -> Self {
         Self { call_id, ..self }
@@ -134,7 +139,7 @@ impl<T> SpanTree<T> {
 
     /// Get a reference to the root node.
     pub fn root_ref(&self) -> node::Ref<T> {
-        node::Ref::root(&self)
+        node::Ref::root(self)
     }
 
     /// Get a mutable reference to the root node.

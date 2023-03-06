@@ -97,10 +97,7 @@ impl Kind {
 
     /// Match the value with `Kind::InsertionPoint(ExpectedArgument(_))`.
     pub fn is_expected_argument(&self) -> bool {
-        match self {
-            Self::InsertionPoint(t) => t.kind.is_expected_argument(),
-            _ => false,
-        }
+        matches!(self, Self::InsertionPoint(t) if t.kind.is_expected_argument())
     }
 
     /// Match any kind that can be a function parameter. This includes `This`, `Argument` and
@@ -370,11 +367,8 @@ pub struct InsertionPoint {
 
 #[allow(missing_docs)]
 impl InsertionPoint {
-    pub fn before_target() -> Self {
-        Self::default().with_kind(InsertionPointType::BeforeTarget)
-    }
-    pub fn after_target() -> Self {
-        Self::default().with_kind(InsertionPointType::AfterTarget)
+    pub fn before_argument(index: usize) -> Self {
+        Self::default().with_kind(InsertionPointType::BeforeArgument(index))
     }
     pub fn append() -> Self {
         Self::default().with_kind(InsertionPointType::Append)
@@ -415,12 +409,10 @@ impl From<InsertionPoint> for Kind {
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum InsertionPointType {
-    // FIXME: Why we need both before and after?
-    BeforeTarget,
-    AfterTarget,
+    BeforeArgument(usize),
     Append,
     // FIXME: When this insert type can be assigned to node without name?
-    /// Ast should be inserted as an argument at given index into the chain.
+    /// AST should be inserted as an argument at given index into the chain.
     /// Note that this is just argument index in the application, it may be not the same as the
     /// index of the function parameter, as `this` argument might be passed using the `this.func`
     /// notation.
@@ -433,15 +425,6 @@ pub enum InsertionPointType {
 // === Matchers ===
 #[allow(missing_docs)]
 impl InsertionPointType {
-    pub fn is_before_target(&self) -> bool {
-        matches!(self, Self::BeforeTarget { .. })
-    }
-    pub fn is_after_target(&self) -> bool {
-        matches!(self, Self::AfterTarget { .. })
-    }
-    pub fn is_append(&self) -> bool {
-        matches!(self, Self::Append { .. })
-    }
     pub fn is_expected_argument(&self) -> bool {
         matches!(self, Self::ExpectedArgument { .. })
     }

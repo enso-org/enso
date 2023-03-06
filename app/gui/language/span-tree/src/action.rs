@@ -5,7 +5,9 @@
 use crate::prelude::*;
 use ast::crumbs::*;
 
+use crate::generate::Context;
 use crate::node;
+use crate::SpanTree;
 
 use ast::opr::match_named_argument;
 use ast::opr::ArgWithOffset;
@@ -63,14 +65,14 @@ pub trait Actions {
     /// Erase element pointed by this node from operator or prefix chain.
     ///
     /// It returns new ast root with performed action.
-    fn erase(&self, root: &Ast) -> FallibleResult<Ast>;
+    fn erase(&self, root: &Ast, context: &impl Context) -> FallibleResult<(Ast, crate::Crumbs)>;
 }
 
 impl<T: Implementation> Actions for T {
     fn is_action_available(&self, action: Action) -> bool {
         match action {
             Action::Set => self.set_impl().is_some(),
-            Action::Erase => self.erase_impl().is_some(),
+            Action::Erase => self.erase_impl::<crate::generate::context::Empty>().is_some(),
         }
     }
 
@@ -80,10 +82,10 @@ impl<T: Implementation> Actions for T {
         action(root, to)
     }
 
-    fn erase(&self, root: &Ast) -> FallibleResult<Ast> {
+    fn erase(&self, root: &Ast, context: &impl Context) -> FallibleResult<(Ast, crate::Crumbs)> {
         let operation = Action::Erase;
         let action = self.erase_impl().ok_or(ActionNotAvailable { operation })?;
-        action(root)
+        action(root, context)
     }
 }
 
@@ -101,14 +103,15 @@ pub type SetOperation<'a> = Box<dyn FnOnce(&Ast, Ast) -> FallibleResult<Ast> + '
 
 /// A concrete function for "set" operations on specific SpanTree node. It takes root ast
 /// as argument and returns new root with action performed.
-pub type EraseOperation<'a> = Box<dyn FnOnce(&Ast) -> FallibleResult<Ast> + 'a>;
+pub type EraseOperation<'a, C> =
+    Box<dyn FnOnce(&Ast, &C) -> FallibleResult<(Ast, crate::Crumbs)> + 'a>;
 
 /// Implementation of actions - this is for keeping in one place checking of actions availability
 /// and the performing the action.
 #[allow(missing_docs)]
 pub trait Implementation {
     fn set_impl(&self) -> Option<SetOperation>;
-    fn erase_impl(&self) -> Option<EraseOperation>;
+    fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>>;
 }
 
 impl<'a, T> Implementation for node::Ref<'a, T> {
@@ -128,16 +131,14 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         let has_target = infix.target.is_some();
                         let has_arg = infix.args.last().unwrap().operand.is_some();
                         let last_elem = infix.args.last_mut().unwrap();
-                        let last_arg = &mut last_elem.operand;
                         last_elem.offset = DEFAULT_OFFSET;
                         match kind {
-                            BeforeTarget if has_target => infix.push_front_operand(item),
-                            AfterTarget if has_target => infix.insert_operand(1, item),
-                            BeforeTarget | AfterTarget => infix.target = Some(item),
+                            BeforeArgument(idx) if has_target => infix.insert_operand(*idx, item),
+                            BeforeArgument(_) => infix.target = Some(item),
                             Append if has_arg => infix.push_operand(item),
-                            Append => *last_arg = Some(item),
-                            ExpectedArgument { .. } => panic!(
-                                "Expected arguments should be filtered out befire this if block"
+                            Append => last_elem.operand = Some(item),
+                            ExpectedArgument { .. } => unreachable!(
+                                "Expected arguments should be filtered out before this if block"
                             ),
                         };
                         Ok(infix.into_ast())
@@ -145,8 +146,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         let mut prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
                         let item = ast::prefix::Argument::new(new, DEFAULT_OFFSET, None);
                         match kind {
-                            BeforeTarget => prefix.insert_arg(0, item),
-                            AfterTarget => prefix.insert_arg(1, item),
+                            BeforeArgument(idx) => prefix.insert_arg(*idx, item),
                             Append => prefix.args.push(item),
                             ExpectedArgument { index, named } => {
                                 let item = match self.node.name() {
@@ -163,7 +163,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     }
                 });
 
-                let mut modified_ast = root.set_traversing(&self.ast_crumbs, new_ast?)?;
+                let mut new_root = root.set_traversing(&self.ast_crumbs, new_ast?)?;
 
                 // when inserting a positional argument, some further named arguments might end up
                 // in their natural position. We can rewrite them to be positional. That way
@@ -200,7 +200,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                                     let expr_crumbs = &arg_expression.ast_crumbs;
                                     let arg_crumbs = &expr_crumbs[..expr_crumbs.len() - 1];
                                     let expr = root.get_traversing(expr_crumbs)?.clone();
-                                    modified_ast = modified_ast.set_traversing(arg_crumbs, expr)?;
+                                    new_root = new_root.set_traversing(arg_crumbs, expr)?;
                                     next_positional_index += 1;
                                 }
                             }
@@ -215,31 +215,34 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     }
                 }
 
-                Ok(modified_ast)
+                Ok(new_root)
             })),
             node::Kind::Token => None,
-            _ => match &self.ast_crumbs.last() {
-                // Operators should be treated in a special way - setting functions in place in
-                // a operator should replace Infix with Prefix with two applications.
-                // TODO[ao] Maybe some day...
-                Some(Crumb::Infix(InfixCrumb::Operator))
-                | Some(Crumb::SectionLeft(SectionLeftCrumb::Opr))
-                | Some(Crumb::SectionRight(SectionRightCrumb::Opr))
-                | Some(Crumb::SectionSides(SectionSidesCrumb)) => None,
-                _ => Some(Box::new(move |root, new| {
-                    modify_preserving_id(root, |root| root.set_traversing(&self.ast_crumbs, new))
-                })),
-            },
+            _ => {
+                match &self.ast_crumbs.last() {
+                    // Operators should be treated in a special way - setting functions in place in
+                    // a operator should replace Infix with Prefix with two applications.
+                    // TODO[ao] Maybe some day...
+                    Some(Crumb::Infix(InfixCrumb::Operator))
+                    | Some(Crumb::SectionLeft(SectionLeftCrumb::Opr))
+                    | Some(Crumb::SectionRight(SectionRightCrumb::Opr))
+                    | Some(Crumb::SectionSides(SectionSidesCrumb)) => None,
+                    _ => Some(Box::new(move |root, new| {
+                        modify_preserving_id(root, |root| {
+                            root.set_traversing(&self.ast_crumbs, new)
+                        })
+                    })),
+                }
+            }
         }
     }
 
 
-    fn erase_impl(&self) -> Option<EraseOperation> {
+    fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>> {
         if self.node.kind.removable() {
-            Some(Box::new(move |root| {
+            Some(Box::new(move |root, context| {
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
-
                 let mut ast = root.get_traversing(parent_crumbs)?;
                 let is_named_argument = match_named_argument(ast).is_some();
 
@@ -270,8 +273,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         Ok(prefix.into_ast())
                     }
                 });
-                let mut modified_ast = root.set_traversing(parent_crumbs, new_ast?)?;
-
+                let mut new_root = root.set_traversing(parent_crumbs, new_ast?)?;
 
                 if !is_named_argument {
                     // when erasing a positional argument, all further positional arguments will
@@ -295,10 +297,9 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                             Some(found) if found.node.is_argument() =>
                                 if let Some(arg_name) = found.node.kind.argument_name() {
                                     let arg_crumbs = &found.node.ast_crumbs;
-                                    let expression = modified_ast.get_traversing(&arg_crumbs)?;
+                                    let expression = new_root.get_traversing(arg_crumbs)?;
                                     let named_ast = Ast::named_argument(arg_name, expression);
-                                    modified_ast =
-                                        modified_ast.set_traversing(&arg_crumbs, named_ast)?;
+                                    new_root = new_root.set_traversing(arg_crumbs, named_ast)?;
                                 },
                             Some(found) if found.node.is_named_argument() => {
                                 // Found named argument. Continue searching for positional arguments
@@ -314,7 +315,52 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     }
                 }
 
-                Ok(modified_ast)
+                let new_span_tree = SpanTree::<()>::new(&new_root, context)?;
+
+                // For resolved arguments, the valid insertion point of this argument is its
+                // placeholder. The position of placeholder is not guaranteed to be in the same
+                // place as the removed argument, as it might have been out of order. To find
+                // the correct placeholder position, we need to search regenerated span-tree.
+                let reinsert_crumbs = self.kind.definition_index().and_then(|_| {
+                    let call_id = self.kind.call_id();
+                    let name = self.kind.argument_name();
+
+                    let found = new_span_tree.root_ref().find_node(|node| {
+                        node.kind.is_insertion_point()
+                            && node.kind.call_id() == call_id
+                            && node.kind.argument_name() == name
+                    });
+
+                    found.map(|found| found.crumbs)
+                });
+
+                // For non-resolved arguments, use the preceding insertion point. After the
+                // span-tree is regenerated, it will contain an insertion point before the next
+                // argument, or an append if there are no more arguments. Both are correct as
+                // reinsertion points. We can find them by scanning new span-tree for the insertion
+                // point at correct location.
+                let reinsert_crumbs = reinsert_crumbs.or_else(|| {
+                    let removed_offset = if is_named_argument {
+                        self.parent().ok()??.span_offset
+                    } else {
+                        self.span_offset
+                    };
+
+                    let found = new_span_tree.root_ref().find_node(|node| {
+                        node.kind.is_insertion_point() && node.span_offset == removed_offset
+                    });
+
+                    found.map(|found| found.crumbs)
+                });
+
+                // If all fails, use the root of the span-tree as reinsertion point as a fallback,
+                // and log it as an error.
+                let reinsert_crumbs = reinsert_crumbs.unwrap_or_else(|| {
+                    error!("Failed to find reinsertion point for erased argument. This is a bug.");
+                    new_span_tree.root_ref().crumbs
+                });
+
+                Ok((new_root, reinsert_crumbs))
             }))
         } else {
             None
@@ -370,9 +416,10 @@ mod test {
 
         impl Case {
             fn run(&self, parser: &Parser) {
+                let context = context::Empty;
                 let ast = parser.parse_line_ast(self.expr).unwrap();
                 let ast_id = ast.id;
-                let tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
+                let tree: SpanTree = ast.generate_tree(&context).unwrap();
                 let node = tree.root_ref().find_by_span(&self.span.clone().into());
                 let node = node.unwrap_or_else(|| {
                     panic!("Invalid case {:?}: no node with span {:?}", self, self.span)
@@ -381,7 +428,7 @@ mod test {
                 let case = format!("{self:?}");
                 let result = match &self.action {
                     Set => node.set(&ast, arg),
-                    Erase => node.erase(&ast),
+                    Erase => node.erase(&ast, &context).map(|(ast, _)| ast),
                 }
                 .expect(&case);
                 let result_repr = result.repr();

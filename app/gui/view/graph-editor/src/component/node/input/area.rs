@@ -384,6 +384,7 @@ impl Model {
                 || (node.is_root() && !node.children.is_empty())
                 || skip_opr
                 || node.is_token()
+                || node.is_named_argument()
                 || builder.parent_parensed;
 
             if let Some(id) = node.ast_id {

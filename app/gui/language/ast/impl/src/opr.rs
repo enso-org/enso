@@ -466,12 +466,6 @@ impl Chain {
         self.insert_operand(last_index, operand)
     }
 
-    /// Add operand at the front of the chain, actually making it a new target (see docs for
-    /// `insert_operand`.
-    pub fn push_front_operand(&mut self, operand: ArgWithOffset<Ast>) {
-        self.insert_operand(0, operand)
-    }
-
     /// Erase the current target from chain, and make the current first operand a new target.
     /// Panics if there is no operand besides target.
     pub fn erase_target(&mut self) {
