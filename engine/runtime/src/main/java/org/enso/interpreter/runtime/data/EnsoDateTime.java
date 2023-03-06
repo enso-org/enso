@@ -9,12 +9,10 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.time.DateTimeException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import org.enso.interpreter.dsl.Builtin;
@@ -72,13 +70,18 @@ public final class EnsoDateTime implements TruffleObject {
   @Builtin.WrapException(from = DateTimeParseException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime parse(String text) {
-    TemporalAccessor time = TIME_FORMAT.parseBest(text, ZonedDateTime::from, LocalDateTime::from);
-    if (time instanceof ZonedDateTime) {
-      return new EnsoDateTime((ZonedDateTime) time);
-    } else if (time instanceof LocalDateTime) {
-      return new EnsoDateTime(((LocalDateTime) time).atZone(ZoneId.systemDefault()));
+    try {
+      String iso = text;
+      if (text.charAt(10) == ' ') {
+        var array = text.toCharArray();
+        array[10] = 'T';
+        iso = new String(array);
+      }
+      TemporalAccessor time = DATE_TIME_FORMATTER.parse(iso);
+      return new EnsoDateTime(ZonedDateTime.from(time));
+    } catch (DateTimeParseException e) {
+      throw new DateTimeException("Text '" + text + "' could not be parsed as Date_Time (" + e.getMessage() + ").");
     }
-    throw new DateTimeException("Text '" + text + "' could not be parsed as Time.");
   }
 
   @Builtin.Method(
@@ -258,7 +261,7 @@ public final class EnsoDateTime implements TruffleObject {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  public final Object toDisplayString(boolean allowSideEffects) {
+  public Object toDisplayString(boolean allowSideEffects) {
     return DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime);
   }
 
@@ -267,20 +270,8 @@ public final class EnsoDateTime implements TruffleObject {
   private static final EnsoDateTime epochStart =
       EnsoDateTime.create(1582, 10, 15, 0, 0, 0, 0, EnsoTimeZone.parse("UTC"));
 
-  private static final DateTimeFormatter TIME_FORMAT =
-      new DateTimeFormatterBuilder()
-          .parseCaseInsensitive()
-          .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-          .parseLenient()
-          .optionalStart()
-          .appendZoneOrOffsetId()
-          .optionalEnd()
-          .parseStrict()
-          .optionalStart()
-          .appendLiteral('[')
-          .parseCaseSensitive()
-          .appendZoneRegionId()
-          .appendLiteral(']')
-          .optionalEnd()
-          .toFormatter();
+  private static final DateTimeFormatter DATE_TIME_FORMATTER;
+  static {
+    DATE_TIME_FORMATTER = DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneId.systemDefault());
+  }
 }

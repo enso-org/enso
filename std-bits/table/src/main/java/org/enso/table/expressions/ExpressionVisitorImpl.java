@@ -316,7 +316,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
-    var text = ctx.text.getText().replace(' ', 'T');
+    var text = ctx.text.getText();
+    if (text.charAt(10) == ' ') {
+      var array = text.toCharArray();
+      array[10] = 'T';
+      text = new String(array);
+    }
+
     var timezone = text.contains("[") ? text.substring(text.indexOf('[')) : "";
     text = text.substring(0, text.length() - timezone.length());
 
@@ -327,7 +333,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     try {
       var zonedDateTime =
-          ZonedDateTime.parse(text, DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(zoneId));
+          ZonedDateTime.parse(text, DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(zoneId));
       return Value.asValue(zonedDateTime);
     } catch (DateTimeParseException ignored) {
     }
