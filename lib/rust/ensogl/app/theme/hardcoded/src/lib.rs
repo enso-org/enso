@@ -590,6 +590,10 @@ define_themes! { [light:0, dark:1]
                 font_size = 12.0 , 12.0;
 
             }
+            table {
+                row_a_background = Lcha(1.0,0.0,0.0,0.0) , Lcha(1.0,0.0,0.0,0.0);
+                row_b_background = Lcha(0.95, 0.0, 0.0, 1.0) , Lcha(0.95, 0.0, 0.0, 1.0);
+            }
         }
         breadcrumbs {
             full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);

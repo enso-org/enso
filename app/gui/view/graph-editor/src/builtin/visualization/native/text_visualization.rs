@@ -37,8 +37,8 @@ use enso_prelude::serde_reexports::Deserialize;
 use enso_prelude::serde_reexports::Serialize;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
-use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::shape::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::prelude::FrpNetworkProvider;
 use ensogl::system::web;
@@ -300,12 +300,16 @@ impl<T: TextProvider> Model<T> {
             }
         };
 
+
+        let style_watch = StyleWatch::new(&self.app.display.default_scene.style_sheet);
+        use theme::graph_editor::visualization::table as table_theme;
+        let color_a = style_watch.get_color(table_theme::row_a_background);
+        let color_b = style_watch.get_color(table_theme::row_b_background);
+
         let bg_color = match table_spec.get_content_row_index(grid_row) {
-            Some(content_row_index) if content_row_index % 2 == 0 =>
-                color::Lcha::new(0.95, 0.0, 0.0, 1.0),
-            _ => color::Lcha::new(1.0, 0.0, 0.0, 0.0),
-        }
-        .into();
+            Some(content_row_index) if content_row_index % 2 == 0 => color_a,
+            _ => color_b,
+        };
 
 
         grid_view_entry::Model { content, bg_color }
