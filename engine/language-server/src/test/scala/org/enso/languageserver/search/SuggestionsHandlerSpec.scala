@@ -4,6 +4,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
 import org.enso.docs.generator.DocsGenerator
+import org.enso.docs.sections.DocSectionsBuilder
 import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
@@ -722,9 +723,9 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.GetSuggestionsDatabaseResult(0, Seq()))
     }
 
-    "get suggestions database" /*taggedAs Retry*/ in withDb {
+    "get suggestions database" taggedAs Retry in withDb {
       (_, repo, _, _, handler) =>
-        val r = Await.result(repo.insert(Suggestions.constructor), Timeout)
+        Await.ready(repo.insert(Suggestions.constructor), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabase
 
         expectMsg(
