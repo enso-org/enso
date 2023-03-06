@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 use crate::ide::web::IdeDesktop;
 use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
+use crate::project::perhaps_watch;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
@@ -11,7 +12,6 @@ use crate::project::PerhapsWatched;
 use crate::project::Wasm;
 use crate::source::BuildTargetJob;
 use crate::source::GetTargetJob;
-use crate::source::Source;
 use crate::source::WatchTargetJob;
 use crate::source::WithDestination;
 use crate::BoxFuture;
@@ -50,9 +50,7 @@ impl Artifact {
 #[derivative(Debug)]
 pub struct WatchInput {
     #[deref]
-    pub wasm:  <Wasm as IsWatchable>::WatchInput,
-    /// Rather than start web watcher, spawn an interactive shell.
-    pub shell: bool,
+    pub wasm: <Wasm as IsWatchable>::WatchInput,
 }
 
 #[derive(derivative::Derivative)]
@@ -64,6 +62,29 @@ pub struct BuildInput {
     #[derivative(Debug = "ignore")]
     pub build_info: BoxFuture<'static, Result<BuildInfo>>,
 }
+
+/// Watcher of the GUI (including WASM watcher).
+#[derive(Debug)]
+pub struct Watcher {
+    /// WASM watcher.
+    pub wasm: PerhapsWatched<Wasm>,
+    /// Watcher of the content project.
+    pub web:  crate::project::Watcher<Gui, crate::ide::web::Watcher>,
+}
+
+impl AsRef<Artifact> for Watcher {
+    fn as_ref(&self) -> &Artifact {
+        &self.web.artifact
+    }
+}
+
+impl IsWatcher<Gui> for Watcher {
+    fn wait_for_finish(&mut self) -> BoxFuture<Result> {
+        let Self { web, wasm } = self;
+        try_join(wasm.wait_ok(), IsWatcher::wait_for_finish(web)).void_ok().boxed()
+    }
+}
+
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Gui;
@@ -110,25 +131,6 @@ impl IsTarget for Gui {
     }
 }
 
-#[derive(Debug)]
-pub struct Watcher {
-    pub wasm: PerhapsWatched<Wasm>,
-    pub web:  crate::project::Watcher<Gui, crate::ide::web::Watcher>,
-}
-
-impl AsRef<Artifact> for Watcher {
-    fn as_ref(&self) -> &Artifact {
-        &self.web.artifact
-    }
-}
-
-impl IsWatcher<Gui> for Watcher {
-    fn wait_for_finish(&mut self) -> BoxFuture<Result> {
-        let Self { web, wasm } = self;
-        try_join(wasm.wait_ok(), IsWatcher::wait_for_finish(web)).void_ok().boxed()
-    }
-}
-
 impl IsWatchable for Gui {
     type Watcher = Watcher;
     type WatchInput = WatchInput;
@@ -161,8 +163,7 @@ impl IsWatchable for Gui {
         async move {
             let perhaps_watched_wasm = perhaps_watched_wasm.await?;
             let wasm_artifacts = ok_ready_boxed(perhaps_watched_wasm.as_ref().clone());
-            let watch_process =
-                ide.watch_content(wasm_artifacts, &build_info.await?, watch_input.shell).await?;
+            let watch_process = ide.watch_content(wasm_artifacts, &build_info.await?).await?;
             let artifact = Artifact::new(&destination);
             let web_watcher = crate::project::Watcher { watch_process, artifact };
             Ok(Self::Watcher { wasm: perhaps_watched_wasm, web: web_watcher })
@@ -171,28 +172,34 @@ impl IsWatchable for Gui {
     }
 }
 
-pub fn perhaps_watch<T: IsWatchable>(
-    target: T,
-    context: Context,
-    job: GetTargetJob<T>,
-    watch_input: T::WatchInput,
-) -> BoxFuture<'static, Result<PerhapsWatched<T>>> {
-    match job.inner {
-        Source::BuildLocally(local) => target
-            .watch(context, WatchTargetJob {
-                watch_input,
-                build: WithDestination { inner: local, destination: job.destination },
-            })
-            .map_ok(PerhapsWatched::Watched)
-            .boxed(),
-        Source::External(external) => target
-            .get_external(context, WithDestination {
-                inner:       external,
-                destination: job.destination,
-            })
-            .map_ok(PerhapsWatched::Static)
-            .boxed(),
+impl Gui {
+    /// Setup watcher for WASM.
+    ///
+    /// If the WASM is static (e.g. comes from a release), it will be just referenced.
+    pub fn perhaps_setup_wasm_watcher(
+        &self,
+        context: Context,
+        job: WatchTargetJob<Self>,
+    ) -> GuiBuildWithWatchedWasm {
+        let WatchTargetJob { watch_input, build: WithDestination { inner, destination } } = job;
+        let BuildInput { build_info, wasm } = inner;
+        let WatchInput { wasm: wasm_watch_input } = watch_input;
+        let perhaps_watched_wasm = perhaps_watch(Wasm, context, wasm, wasm_watch_input);
+        GuiBuildWithWatchedWasm { perhaps_watched_wasm, build_info, destination }
     }
+}
+
+/// Watch job for the `Gui` target with already created watcher for the `Wasm` target.
+// Futures cannot be sensibly printed and there is little else of interest here.
+#[allow(missing_debug_implementations)]
+pub struct GuiBuildWithWatchedWasm {
+    /// WASM artifacts provider.
+    pub perhaps_watched_wasm: BoxFuture<'static, Result<PerhapsWatched<Wasm>>>,
+    /// Information for GUI build.
+    pub build_info:           BoxFuture<'static, Result<BuildInfo>>,
+    /// Path to the directory where the GUI should be built. Might be ignored in some watching
+    /// scenarios.
+    pub destination:          PathBuf,
 }
 
 #[derive(Clone, Derivative, Serialize, Deserialize)]

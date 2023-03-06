@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -18,14 +19,28 @@ public class GetStackTraceNode extends Node {
     return stackTraceToArray(exception);
   }
 
+  @CompilerDirectives.TruffleBoundary
   public static Array stackTraceToArray(Throwable exception) {
     var elements = TruffleStackTrace.getStackTrace(exception);
-    if (elements == null) return new Array();
-    var ret = Array.allocate(elements.size());
+    if (elements == null) {
+      return Array.empty();
+    }
+    int count = 0;
     for (int i = 0; i < elements.size(); i++) {
       var element = elements.get(i);
-      ret.getItems()[i] = element.getGuestObject();
+      if (element.getTarget().getRootNode().isInternal()) {
+        continue;
+      }
+      count++;
     }
-    return ret;
+    var arr = new Object[count];
+    for (int i = 0, at = 0; i < elements.size(); i++) {
+      var element = elements.get(i);
+      if (element.getTarget().getRootNode().isInternal()) {
+        continue;
+      }
+      arr[at++] = element.getGuestObject();
+    }
+    return new Array(arr);
   }
 }

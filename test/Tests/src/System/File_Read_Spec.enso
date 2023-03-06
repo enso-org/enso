@@ -48,4 +48,28 @@ spec =
             problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
 
+            # Check that it defaults to warning.
+            Problems.expect_only_warning Encoding_Error <|
+                windows_log.read (Plain_Text Encoding.ascii)
+
+    Test.group "JSON_File" <|
+        Test.specify "should be able to read a file as Json" <|
+            f1 = enso_project.data / "sample.json"
+            j1 = f1.read
+            j1.at "arr" . should_equal [1, 2, 3]
+            j1.at "num" . should_equal 42.5
+            j1.at "not" . should_equal Nothing
+
+            f2 = enso_project.data / "sample-json.weird-extension"
+            j2 = f2.read JSON_File
+            j2.at 0 . at "foo" . should_equal "bar"
+            j2.at 1 . should_equal 42
+            j2.at 2 . should_equal Nothing
+            j2.at 3 . should_equal "baz"
+
+        Test.specify "should gracefully handle malformed files" <|
+            f1 = enso_project.data / "sample-malformed.json"
+            r1 = f1.read
+            r1.should_fail_with File_Error.Corrupted_Format
+
 main = Test_Suite.run_main spec

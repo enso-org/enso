@@ -13,7 +13,7 @@ import project.Delimited.Delimited_Reader
 import project.Delimited.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems
 
-from project.Errors import Mismatched_Quote, Column_Count_Mismatch, Column_Name_Mismatch
+from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import org.enso.table.write.DelimitedWriter
 polyglot java import org.enso.table.write.WriteQuoteBehavior
