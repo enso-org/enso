@@ -53,7 +53,12 @@ spec =
             ((Parent.Value (Ord.Value 1)) == (Parent.Value (Ord.Value 22))) . should_be_false
 
         Test.specify "should throw Incomparable_Values when comparing types with unordered comparator" <|
-            Ordering.compare (UPair.Value 1 2) (UPair.Value 2 1) . should_fail_with Incomparable_Values.Error
+            val1 = (UPair.Value 1 2)
+            val2 = (UPair.Value 2 1)
+            err = Ordering.compare val1 val2
+            err.catch.is_a Incomparable_Values.Error . should_be_true
+            Meta.is_same_object err.catch.left val1 . should_be_true
+            Meta.is_same_object err.catch.right val2 . should_be_true
 
         Test.specify "should throw Type_Error when comparing different types" <|
             Ordering.compare (UPair.Value 1 2) (Ord.Value 2) . should_fail_with Type_Error.Error

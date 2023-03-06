@@ -169,26 +169,6 @@ public abstract class LessThanNode extends Node {
     }
   }
 
-  @Specialization
-  Object lessTextBool(Text self, boolean other) {
-    return nothing();
-  }
-
-  @Specialization
-  Object lessBoolText(boolean self, Text other) {
-    return nothing();
-  }
-
-  @Specialization
-  Object lessTextLong(Text self, long other) {
-    return nothing();
-  }
-
-  @Specialization
-  Object lessLongText(long self, Text other) {
-    return nothing();
-  }
-
   @Specialization(
       guards = {
           "selfInterop.isString(selfStr)",

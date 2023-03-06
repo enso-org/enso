@@ -5,6 +5,7 @@ import project.Data.Numbers.Number
 import project.Error.Common.Incomparable_Values
 import project.Error.Common.Type_Error
 import project.Error.Error
+import project.Error.Illegal_State.Illegal_State
 import project.Error.Unimplemented.Unimplemented
 import project.Nothing.Nothing
 import project.Meta
@@ -15,7 +16,7 @@ from project.Data.Boolean import all
 ## Provides custom ordering, equality check and hash code for types that need it.
 
     The Enso runtime system offers default implementation of _equality_
-    as well as capability to _compute hash code_ (e.g., for use in `Map`) automatically.
+    as well as capability to _compute hash code_ (e.g. for use in `Map`) automatically.
     The default implementation is sufficient for most of the programming activities.
     Especially when defining new type and its constructors, they get sensible
     implementation of both functions.
@@ -184,7 +185,7 @@ type Default_Ordered_Comparator
                         case Comparable.less_than_builtin y x of
                             Nothing -> Nothing
                             True -> Ordering.Greater
-                            False -> Panic.throw "Unreachable"
+                            False -> Panic.throw (Illegal_State.Error "Unreachable")
 
     hash : Number -> Integer
     hash x = Comparable.hash_builtin x

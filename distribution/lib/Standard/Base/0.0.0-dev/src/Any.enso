@@ -121,8 +121,8 @@ type Any
                             True ->
                                 res = eq_self.compare self that
                                 case res of
-                                    Nothing -> False
-                                    _ -> Comparable.equals_builtin res Ordering.Equal
+                                    Ordering.Equal -> True
+                                    _ -> False
                             False ->
                                 res = eq_self.equals self that
                                 case res of
@@ -175,7 +175,7 @@ type Any
         assert_ordered_comparators self that <|
             case (Comparable.from self).compare self that of
                 Ordering.Greater -> True
-                Nothing -> Error.throw Incomparable_Values.Error
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
     ## ALIAS Greater Than or Equal
@@ -208,7 +208,7 @@ type Any
                 Ordering.Less -> False
                 Ordering.Equal -> True
                 Ordering.Greater -> True
-                Nothing -> Error.throw Incomparable_Values.Error
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
 
     ## ALIAS Less Than
 
@@ -233,7 +233,7 @@ type Any
         assert_ordered_comparators self that <|
             case (Comparable.from self).compare self that of
                 Ordering.Less -> True
-                Nothing -> Error.throw Incomparable_Values.Error
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
     ## ALIAS Less Than or Equal
@@ -266,7 +266,7 @@ type Any
                 Ordering.Less -> True
                 Ordering.Equal -> True
                 Ordering.Greater -> False
-                Nothing -> Error.throw Incomparable_Values.Error
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
 
     ## Checks if the type is an instance of `Nothing`.
 
