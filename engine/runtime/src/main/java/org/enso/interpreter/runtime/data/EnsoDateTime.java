@@ -9,12 +9,13 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.TemporalAccessor;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -70,18 +71,20 @@ public final class EnsoDateTime implements TruffleObject {
   @Builtin.WrapException(from = DateTimeParseException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime parse(String text) {
-    try {
-      String iso = text;
-      if (text.charAt(10) == ' ') {
-        var array = text.toCharArray();
-        array[10] = 'T';
-        iso = new String(array);
-      }
-      TemporalAccessor time = DATE_TIME_FORMATTER.parse(iso);
-      return new EnsoDateTime(ZonedDateTime.from(time));
-    } catch (DateTimeParseException e) {
-      throw new DateTimeException("Text '" + text + "' could not be parsed as Date_Time (" + e.getMessage() + ").");
+    String iso = text;
+    if (text != null && text.length() > 10 && text.charAt(10) == ' ') {
+      var array = text.toCharArray();
+      array[10] = 'T';
+      iso = new String(array);
     }
+
+    var datetime = DATE_TIME_FORMATTER.parseBest(iso, ZonedDateTime::from, LocalDateTime::from);
+    if (datetime instanceof ZonedDateTime zdt) {
+      return new EnsoDateTime(zdt);
+    } else if (datetime instanceof LocalDateTime ldt) {
+      return new EnsoDateTime(ldt.atZone(ZoneId.systemDefault()));
+    }
+    throw new DateTimeException("Text '" + text + "' could not be parsed as Time.");
   }
 
   @Builtin.Method(
@@ -271,7 +274,20 @@ public final class EnsoDateTime implements TruffleObject {
       EnsoDateTime.create(1582, 10, 15, 0, 0, 0, 0, EnsoTimeZone.parse("UTC"));
 
   private static final DateTimeFormatter DATE_TIME_FORMATTER;
+
   static {
-    DATE_TIME_FORMATTER = DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneId.systemDefault());
+    DATE_TIME_FORMATTER =
+        new DateTimeFormatterBuilder()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            .optionalStart()
+            .parseLenient()
+            .appendOffsetId()
+            .optionalEnd()
+            .optionalStart()
+            .appendLiteral('[')
+            .parseCaseSensitive()
+            .appendZoneRegionId()
+            .appendLiteral(']')
+            .toFormatter();
   }
 }

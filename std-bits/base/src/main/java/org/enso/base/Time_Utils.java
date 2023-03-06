@@ -15,6 +15,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalField;
@@ -29,8 +30,23 @@ public class Time_Utils {
   }
 
   /** @return default Time formatter. */
+  public static DateTimeFormatter default_zoned_date_time_formatter() {
+    return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            .optionalStart().parseLenient().appendOffsetId().optionalEnd()
+            .optionalStart().appendLiteral('[').parseCaseSensitive().appendZoneRegionId().appendLiteral(']')
+            .toFormatter().withZone(ZoneId.systemDefault());
+  }
+
+  /** @return default Time formatter. */
+  public static DateTimeFormatter default_offset_date_time_formatter() {
+    return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            .optionalStart().parseLenient().appendOffsetId().optionalEnd()
+            .toFormatter().withZone(ZoneId.systemDefault());
+  }
+
+  /** @return default Date formatter. */
   public static DateTimeFormatter default_date_time_formatter() {
-    return DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneId.systemDefault());
+    return DateTimeFormatter.ISO_LOCAL_DATE_TIME;
   }
 
   /** @return default Date formatter. */
