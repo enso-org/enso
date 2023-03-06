@@ -41,7 +41,9 @@ type Excel_Format
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
-    Excel (section:Excel_Section=Excel_Section.Workbook) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer)
+       - default_sheet: The default sheet to use if `section` is set to
+         `Excel_Section.Workbook`.
+    Excel (section:Excel_Section=Excel_Section.Workbook) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer) (default_sheet:Text="EnsoSheet")
 
     ## If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> Excel_Format | Nothing
@@ -90,12 +92,6 @@ type Excel_Format
             Excel_Section.Sheet_Names -> Error.throw (Illegal_Argument.Error "Sheet_Names cannot be used for `write`.")
             Excel_Section.Range_Names -> Error.throw (Illegal_Argument.Error "Range_Names cannot be used for `write`.")
             Excel_Section.Workbook ->
-                sheet_name = if file.exists.not then "Sheet1" else
-                    names = Excel_Reader.read_file file Excel_Section.Sheet_Names False on_problems format
-                    if names.length == 255 then Error.throw (Illegal_Argument.Error "Too many sheets in workbook.") else
-                        name_map = Map.from_vector (names.map n-> [n, 1])
-                        idx = 1.up_to 256 . find n-> (name_map.contains_key ("Sheet" + n.to_text) . not)
-                        "Sheet" + idx.to_text
-                Excel_Writer.write_file file table on_existing_file (Excel_Section.Worksheet sheet_name) True match_columns on_problems format
+                Excel_Writer.write_file file table on_existing_file (Excel_Section.Worksheet self.default_sheet) True match_columns on_problems format
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format
         r.if_not_error file

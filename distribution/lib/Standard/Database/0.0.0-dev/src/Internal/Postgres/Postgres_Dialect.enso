@@ -103,7 +103,7 @@ make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive]+concat_ops+cases
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
-    arith_extensions = [is_nan, decimal_div]
+    arith_extensions = [is_nan, decimal_div, mod_op,  ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -303,3 +303,7 @@ bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "/" x-> y->
     code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
+
+## PRIVATE
+mod_op = Base_Generator.lift_binary_op "mod" x-> y->
+    x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y

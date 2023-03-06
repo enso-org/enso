@@ -19,7 +19,7 @@ import project.Database.Helpers.Fake_Test_Connection
 spec =
     int = SQL_Type.integer
     bool = SQL_Type.boolean
-    str = SQL_Type.varchar
+    str = SQL_Type.text
     test_connection =
         table1 = ["T1", [["A", int], ["B", str], ["C", bool]]]
         table2 = ["T2", [["D", int], ["E", int], ["F", bool]]]
@@ -63,15 +63,16 @@ spec =
 
     Test.group "[Codegen] Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
-            a = t1.at "A"
-            b = t1.at "B"
-            c = t1.at "C"
-            arith = (a * 2) + 1
-            logic = (c || c.not) && True
-            cmp = (a * a >= b) && (a - b < a)
-            arith.to_sql.prepare . should_equal ['SELECT (("T1"."A" * ?) + ?) AS "A" FROM "T1" AS "T1"', [[2, int], [1, int]]]
-            logic.to_sql.prepare . should_equal ['SELECT (("T1"."C" OR (NOT "T1"."C")) AND ?) AS "C" FROM "T1" AS "T1"', [[True, bool]]]
-            cmp.to_sql.prepare . should_equal ['SELECT ((("T1"."A" * "T1"."A") >= "T1"."B") AND (("T1"."A" - "T1"."B") < "T1"."A")) AS "A" FROM "T1" AS "T1"', []]
+            t2 = test_connection.query (SQL_Query.Table_Name "T2")
+            d = t2.at "D"
+            e = t2.at "E"
+            f = t2.at "F"
+            arith = (d * 2) + 1
+            logic = (f || f.not) && True
+            cmp = (d * d >= e) && (d - e < d)
+            arith.to_sql.prepare . should_equal ['SELECT (("T2"."D" * ?) + ?) AS "D" FROM "T2" AS "T2"', [[2, int], [1, int]]]
+            logic.to_sql.prepare . should_equal ['SELECT (("T2"."F" OR (NOT "T2"."F")) AND ?) AS "F" FROM "T2" AS "T2"', [[True, bool]]]
+            cmp.to_sql.prepare . should_equal ['SELECT ((("T2"."D" * "T2"."D") >= "T2"."E") AND (("T2"."D" - "T2"."E") < "T2"."D")) AS "D" FROM "T2" AS "T2"', []]
 
         Test.specify "should support simple text operations" <|
             b = t1.at "B"

@@ -42,8 +42,9 @@
   "scripts": {
     "typecheck": "npx tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "start": "electron ../../../../dist/content -- ",
+    "start": "ts-node start.ts",
     "build": "ts-node bundle.ts",
-    "dist": "ts-node electron-builder-config.ts"
+    "dist": "ts-node dist.ts",
+    "watch": "ts-node watch.ts"
   }
 }
