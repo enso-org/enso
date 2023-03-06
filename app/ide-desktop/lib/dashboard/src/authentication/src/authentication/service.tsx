@@ -128,7 +128,7 @@ const loadAmplifyConfig = (
   navigate: (url: string) => void
 ): authConfig.AmplifyConfig => {
   // Load the environment-specific Amplify configuration.
-  const baseConfig = AMPLIFY_CONFIGS[ENVIRONMENT];
+  const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
 
   if (runningOnDesktop) {
     // If we're running on the desktop, we want to override the default URL opener for OAuth
