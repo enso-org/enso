@@ -3,7 +3,6 @@ package org.enso.table.parsing;
 import org.enso.base.Time_Utils;
 import org.enso.table.parsing.problems.ProblemAggregator;
 
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
@@ -23,15 +22,8 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
     formatters = new DateTimeFormatter[formats.length];
     replaceSpaces = new boolean[formats.length];
     for (int i = 0; i < formats.length; i++) {
-      formatters[i] = switch (formats[i]) {
-        case "ISO_ZONED_DATE_TIME" -> Time_Utils.default_zoned_date_time_formatter();
-        case "ISO_OFFSET_DATE_TIME" -> Time_Utils.default_offset_date_time_formatter();
-        case "ISO_LOCAL_DATE_TIME" -> Time_Utils.default_date_time_formatter();
-        case "ISO_LOCAL_DATE" -> Time_Utils.default_date_formatter();
-        case "ISO_LOCAL_TIME" -> Time_Utils.default_time_of_day_formatter();
-        default -> DateTimeFormatter.ofPattern(formats[i], locale).withZone(ZoneId.systemDefault());
-      };
-      replaceSpaces[i] = formats[i].startsWith("ISO_") && formats[i].endsWith("_DATE_TIME");
+      formatters[i] = Time_Utils.make_formatter(formats[i], locale);
+      replaceSpaces[i] = formats[i].endsWith("_DATE_TIME");
     }
   }
 

@@ -990,9 +990,8 @@ type Column
 
        Arguments:
        - function: The function to apply to each element of `self` column.
-       - skip_null: If `True`, `function` will not be applied to `Nothing`
-         values. The default value of `False` will pass `Nothing` values to
-         `function` and automatically append `Nothing` to the result table.
+       - skip_nothing: If `True`, `Nothing` values will be skipped. Otherwise,
+         `Nothing` values will be passed to the `function`.
 
        > Example
          Multiply each element of the column by itself.
@@ -1001,8 +1000,8 @@ type Column
 
              example_map = Examples.integer_column.map (x -> x * x)
     map : (Any -> Any) -> Boolean -> Column
-    map self function skip_null=False =
-        new_fn = if skip_null then (x-> if x.is_nothing then Nothing else function x) else function
+    map self function skip_nothing=True =
+        new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
         new_st = self.to_vector.map new_fn
         Column.from_vector "Result" new_st
 

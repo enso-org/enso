@@ -29,34 +29,30 @@ public class Time_Utils {
     MINUS
   }
 
-  /** @return default Time formatter. */
+  /**
+   * Creates a DateTimeFormatter from a format string, supporting building standard formats.
+   * @param format format string
+   * @param locale locale needed for custom formats
+   * @return DateTimeFormatter
+   */
+  public static DateTimeFormatter make_formatter(String format, Locale locale) {
+    return switch (format) {
+      case "ENSO_ZONED_DATE_TIME" -> Time_Utils.default_zoned_date_time_formatter();
+      case "ISO_ZONED_DATE_TIME" -> DateTimeFormatter.ISO_ZONED_DATE_TIME;
+      case "ISO_OFFSET_DATE_TIME" -> DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+      case "ISO_LOCAL_DATE_TIME" -> DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+      case "ISO_LOCAL_DATE" -> DateTimeFormatter.ISO_LOCAL_DATE;
+      case "ISO_LOCAL_TIME" -> DateTimeFormatter.ISO_LOCAL_TIME;
+      default -> DateTimeFormatter.ofPattern(format, locale).withZone(ZoneId.systemDefault());
+    };
+  }
+
+  /** @return default Date Time formatter. */
   public static DateTimeFormatter default_zoned_date_time_formatter() {
     return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             .optionalStart().parseLenient().appendOffsetId().optionalEnd()
             .optionalStart().appendLiteral('[').parseCaseSensitive().appendZoneRegionId().appendLiteral(']')
             .toFormatter().withZone(ZoneId.systemDefault());
-  }
-
-  /** @return default Time formatter. */
-  public static DateTimeFormatter default_offset_date_time_formatter() {
-    return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            .optionalStart().parseLenient().appendOffsetId().optionalEnd()
-            .toFormatter().withZone(ZoneId.systemDefault());
-  }
-
-  /** @return default Date formatter. */
-  public static DateTimeFormatter default_date_time_formatter() {
-    return DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-  }
-
-  /** @return default Date formatter. */
-  public static DateTimeFormatter default_date_formatter() {
-    return DateTimeFormatter.ISO_LOCAL_DATE;
-  }
-
-  /** @return default Time_Of_Day formatter. */
-  public static DateTimeFormatter default_time_of_day_formatter() {
-    return DateTimeFormatter.ISO_LOCAL_TIME;
   }
 
   public static String local_date_format(LocalDate date, Object format) {
