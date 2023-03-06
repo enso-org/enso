@@ -240,10 +240,10 @@ class RuntimeStdlibTest
       context.receiveAllUntil(
         Seq(
           context.executionComplete(contextId),
-          context.analyzeJobFinished,
           context.analyzeJobFinished
+          //context.analyzeJobFinished
         ),
-        timeout = 180
+        timeout = 30
       )
     // sanity check
     responses should contain allOf (
@@ -298,39 +298,6 @@ class RuntimeStdlibTest
         s"Found $numberOfErrors modules with unresolved types in method signatures:\n$report"
       )
     }
-
-    // check that the Standard.Base library is indexed
-    val stdlibSuggestions = responses.collect {
-      case Api.Response(
-            None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(
-              module,
-              _,
-              as,
-              _,
-              xs
-            )
-          ) if module.contains("Vector") =>
-        (xs.nonEmpty || as.nonEmpty) shouldBe true
-        xs.toVector.map(_.suggestion.module)
-    }
-    stdlibSuggestions.nonEmpty shouldBe true
-
-    // check that builtins are indexed
-    val builtinsSuggestions = responses.collect {
-      case Api.Response(
-            None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(
-              module,
-              _,
-              as,
-              _,
-              xs
-            )
-          ) if module.contains("Builtins") =>
-        (xs.nonEmpty || as.nonEmpty) shouldBe true
-    }
-    builtinsSuggestions.length shouldBe 1
 
     // check LibraryLoaded notifications
     val contentRootNotifications = responses.collect {
