@@ -1,6 +1,8 @@
 import project.Data.Text.Text
 import project.Error.Error
+import project.Nothing.Nothing
 import project.Panic.Panic
+import project.System.File.File
 
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
@@ -13,20 +15,24 @@ type File_Error
 
        Arguments:
        - file: The file that doesn't exist.
-    Not_Found file
+    Not_Found (file : File)
 
     ## Indicates that a destination file already exists.
-    Already_Exists file
+    Already_Exists (file : File)
 
     ## A generic IO error.
 
        Arguments:
        - file: The file that couldn't be read.
        - message: The message for the error.
-    IO_Error file message
+    IO_Error (file : File) (message : Text)
 
     ## Indicates that the given file's type is not supported.
-    Unsupported_Type file
+    Unsupported_Type (file : File)
+
+    ## Indicates that the given file is corrupted, i.e. the data it contains
+       is not in the expected format.
+    Corrupted_Format (file : File) (message : Text) (cause : Any | Nothing = Nothing)
 
     ## UNSTABLE
 
@@ -34,9 +40,10 @@ type File_Error
     to_display_text : Text
     to_display_text self = case self of
         File_Error.Not_Found  file -> "The file at " + file.path + " does not exist."
-        File_Error.IO_Error file msg -> msg.to_text + " (" + file.path + ")."
+        File_Error.IO_Error file msg -> msg + " (" + file.path + ")."
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
         File_Error.Unsupported_Type file -> "The "+file.path+" has a type that is not supported."
+        File_Error.Corrupted_Format file msg _ -> "The file at " + file.path + " is corrupted: " + msg
 
     ## PRIVATE
 
@@ -46,10 +53,16 @@ type File_Error
             File_Error.wrap_io_exception file caught_panic.payload
 
     ## PRIVATE
+       Raises an error indicating that the user does not have permission to
+       access the file in a given way.
+    access_denied : File -> Nothing ! File_Error
+    access_denied file = Error.throw (File_Error.IO_Error file "You do not have permission to access the file")
+
+    ## PRIVATE
 
        Converts a Java `IOException` into its Enso counterpart.
     wrap_io_exception file io_exception = case io_exception of
         _ : NoSuchFileException -> Error.throw (File_Error.Not_Found file)
         _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists file)
-        _ : AccessDeniedException -> Error.throw (File_Error.IO_Error file "You do not have permission to access the file")
+        _ : AccessDeniedException -> File_Error.access_denied file
         _ -> Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)

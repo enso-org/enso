@@ -16,16 +16,6 @@ publish = true
 crate-type = ["rlib"]
 
 [dependencies]
-proc-macro2 = "1.0"
-quote = "1.0"
-
-[dependencies.syn]
-version = "1.0"
-features = [
-  'extra-traits',
-  'full', # for syn::ItemStruct
-  'visit'
-]
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3.8"
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }

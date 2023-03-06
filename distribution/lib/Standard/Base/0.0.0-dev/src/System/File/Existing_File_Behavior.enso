@@ -104,7 +104,16 @@ write_file_backing_up_old_one file action = Panic.recover [File_Error.IO_Error, 
             Panic.catch File_Error.Not_Found handler=(_->Nothing) <|
                 Panic.rethrow <| file.move_to bak_file replace_existing=True
             Panic.rethrow <| new_file.move_to file
-    go 0
+    ## Here we manually check if the target file is writable. This is necessary,
+       because the `Backup` scenario would go around the original file not being
+       writable by moving it (which is permitted for read-only files too) and
+       then writing a new file and removing the old one (it is often possible to
+       delete a read-only file). So without this check, the `Backup` mode would
+       be able to replace contents of a read-only file, which is not desired.
+       Thus we add this additional check to ensure the operation will proceed
+       only if it is allowed. Other scenarios do not need this check, as they
+       write to the file directly and will fail if the file is not writable.
+    if file.is_writable then go 0 else File_Error.access_denied file
 
 type Internal_Write_Operation_Panicked
     ## PRIVATE

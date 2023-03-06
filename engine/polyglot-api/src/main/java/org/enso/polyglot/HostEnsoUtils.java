@@ -1,6 +1,5 @@
 package org.enso.polyglot;
 
-import com.oracle.truffle.api.exception.AbstractTruffleException;
 import org.graalvm.polyglot.PolyglotException;
 
 public final class HostEnsoUtils {

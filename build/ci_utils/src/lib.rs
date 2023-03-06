@@ -61,7 +61,6 @@ pub mod models;
 pub mod os;
 pub mod packaging;
 pub mod path;
-pub mod paths;
 pub mod platform;
 pub mod process;
 pub mod program;

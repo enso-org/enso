@@ -345,6 +345,12 @@ object ProgramExecutionSupport {
           Api.ExpressionUpdate.Payload.DataflowError(
             ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
           )
+        case panic: AbstractTruffleException =>
+          Api.ExpressionUpdate.Payload
+            .Panic(
+              VisualizationResult.findExceptionMessage(panic),
+              ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
+            )
         case withWarnings: WithWarnings =>
           val warningsCount = withWarnings.getWarningsCount
           val warning =

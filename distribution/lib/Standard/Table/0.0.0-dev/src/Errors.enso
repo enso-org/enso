@@ -138,11 +138,17 @@ type Additional_Warnings
    Only the first 10 rows are reported, any additional ones are aggregated into
    a single instance of `Additional_Invalid_Rows`.
 type Invalid_Row
-    Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text])
+    Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text]) (expected_columns : Integer)
 
     to_display_text : Text
     to_display_text self =
-        "Invalid row in file (index "+self.index.to_text+")."
+        table_loc = case self.index of
+            Nothing -> ""
+            _ -> ", table row "+self.index.to_text
+        loc = "(line "+self.source_file_line_number.to_text+table_loc+")"
+        got_columns = self.row.length
+        count_msg = if got_columns > self.expected_columns then "too many" else "too few"
+        "The row " + loc + " had " + count_msg + " columns (expected " + self.expected_columns.to_text + ", got " + got_columns.to_text + ")."
 
 
 ## Indicates how many additional `Invalid_Row` warnings have been suppressed.
@@ -156,6 +162,9 @@ type Additional_Invalid_Rows
 ## Indicates that a quote inside of a delimited file cell has been opened but
    never closed.
 type Mismatched_Quote
+   to_display_text : Text
+   to_display_text self =
+       "A quote has been opened but never closed inside of a Delimited file, so it cannot be interpreted properly."
 
 ## Indicates an unexpected parser error.
 type Parser_Error
