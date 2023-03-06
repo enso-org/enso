@@ -13,15 +13,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Function;
 import junit.framework.TestCase;
 import static junit.framework.TestCase.fail;
 import junit.framework.TestSuite;
-import org.enso.compiler.codegen.AstToIr;
-import org.enso.compiler.core.IR;
-import org.enso.syntax.text.AST.ASTOf;
-import org.enso.syntax.text.Parser;
-import org.enso.syntax.text.Shape;
 import org.junit.runner.RunWith;
 import org.junit.runners.AllTests;
 
@@ -114,21 +108,6 @@ public final class ParseStdLibTest extends TestCase {
   private void parseTest(Source src, boolean generate) throws IOException {
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);
-
-    var oldAst = new Parser().runWithIds(src.getCharacters().toString());
-    var oldIr = AstToIr.translate((ASTOf<Shape>) (Object) oldAst);
-
-    Function<IR, String> filter = (f) -> EnsoCompilerTest.simplifyIR(f, true, true, true);
-
-    var old = filter.apply(oldIr);
-    var now = filter.apply(ir);
-    if (!old.equals(now)) {
-      if (generate) {
-        dump.dump(where, old, now);
-      } else {
-        fail("IR for " + where.getName() + " shall be equal");
-      }
-    }
   }
 
   @Override
@@ -138,47 +117,7 @@ public final class ParseStdLibTest extends TestCase {
     }
     var code = Files.readString(where.toPath());
     var src = Source.newBuilder("enso", code, getName()).uri(where.toURI()).build();
-    if (isKnownToWork(getName())) {
-      parseTest(src, true);
-    } else {
-      try {
-        parseTest(src, false);
-      } catch (Exception | Error e) {
-        // OK
-        return;
-      }
-      fail("This test isn't known to work!");
-    }
-  }
-
-  private static final Set<String> SHOULD_FAIL;
-
-  static {
-    SHOULD_FAIL = new HashSet<>();
-    SHOULD_FAIL.addAll(
-        Arrays.asList(
-            // Files containing type expressions not supported by old parser.
-            "Data/Index_Sub_Range.enso",
-            "Data/Json.enso",
-            "Data/Json/Extensions.enso",
-            "Data/List.enso",
-            "Data/Pair.enso",
-            "Data/Range.enso",
-            "Data/Sort_Column_Selector.enso",
-            "Data/Text/Extensions.enso",
-            "Data/Text/Regex/Match_2.enso",
-            "Data/Text/Regex/Pattern_2.enso",
-            "Data/Text/Regex/Regex_Mode.enso",
-            "Data/Value_Type.enso",
-            "Data/Vector.enso",
-            "Data/Statistics.enso",
-            "Network/HTTP/HTTP_Status_Code.enso",
-            "Internal/Base_Generator.enso",
-            "System/File.enso"));
-  }
-
-  private static boolean isKnownToWork(String name) {
-    return !SHOULD_FAIL.contains(name);
+    parseTest(src, true);
   }
 
   private static final class Dump {

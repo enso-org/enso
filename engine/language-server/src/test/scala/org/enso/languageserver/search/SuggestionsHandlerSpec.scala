@@ -3,8 +3,6 @@ package org.enso.languageserver.search
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.docs.generator.DocsGenerator
-import org.enso.docs.sections.DocSectionsBuilder
 import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
@@ -369,15 +367,11 @@ class SuggestionsHandlerSpec
           name                  = "Foo",
           arguments             = Vector(),
           returnType            = moduleName,
-          documentation         = None,
-          documentationHtml     = None,
-          documentationSections = None
+          documentation         = None
         )
         val module = Suggestion.Module(
           module                = moduleName,
-          documentation         = None,
-          documentationHtml     = None,
-          documentationSections = None
+          documentation         = None
         )
 
         val tree = Tree.Root(
@@ -1149,11 +1143,6 @@ class SuggestionsHandlerSpec
 
   object TestSuggestion {
 
-    val htmlDocsGenerator: DocsGenerator =
-      DocsGenerator
-    val docSectionsBuilder: DocSectionsBuilder =
-      DocSectionsBuilder()
-
     val atom: Suggestion.Constructor =
       Suggestion.Constructor(
         externalId = None,
@@ -1164,9 +1153,7 @@ class SuggestionsHandlerSpec
           Suggestion.Argument("b", "Any", false, false, None)
         ),
         returnType            = "Pair",
-        documentation         = Some("Awesome"),
-        documentationHtml     = Some(htmlDocsGenerator.generate("Awesome", "Pair")),
-        documentationSections = Some(docSectionsBuilder.build("Awesome"))
+        documentation         = Some("Awesome")
       )
 
     val method: Suggestion.Method =
@@ -1178,9 +1165,7 @@ class SuggestionsHandlerSpec
         selfType              = "Test.Main",
         returnType            = "IO",
         isStatic              = true,
-        documentation         = None,
-        documentationHtml     = None,
-        documentationSections = None
+        documentation         = None
       )
   }
 

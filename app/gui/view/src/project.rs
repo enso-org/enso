@@ -10,7 +10,6 @@ use crate::component_browser::component_list_panel;
 use crate::debug_mode_popup;
 use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::documentation;
-use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
@@ -148,17 +147,11 @@ struct SearcherFrp {
 #[derive(Clone, CloneRef, Debug)]
 pub enum SearcherVariant {
     ComponentBrowser(component_browser::View),
-    /// We keep the old searcher in a Rc, as its memory size is much greater than the new one.
-    OldNodeSearcher(Rc<searcher::View>),
 }
 
 impl SearcherVariant {
     fn new(app: &Application) -> Self {
-        if ARGS.groups.feature_preview.options.new_component_browser.value {
-            Self::ComponentBrowser(app.new_view::<component_browser::View>())
-        } else {
-            Self::OldNodeSearcher(Rc::new(app.new_view::<searcher::View>()))
-        }
+        Self::ComponentBrowser(app.new_view::<component_browser::View>())
     }
 
     fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
@@ -177,39 +170,24 @@ impl SearcherVariant {
                     is_hovered: view.output.is_hovered.clone_ref().into(),
                 }
             }
-            SearcherVariant::OldNodeSearcher(view) => {
-                let documentation = view.documentation();
-                frp::extend! {project_view_network
-                    editing_committed <- view.editing_committed.constant(());
-                }
-                SearcherFrp {
-                    editing_committed,
-                    is_visible: view.output.is_visible.clone_ref().into(),
-                    is_empty: view.output.is_empty.clone_ref().into(),
-                    is_hovered: documentation.frp.is_hovered.clone_ref().into(),
-                }
-            }
         }
     }
 
     fn documentation(&self) -> &documentation::View {
         match self {
             SearcherVariant::ComponentBrowser(view) => &view.model().documentation,
-            SearcherVariant::OldNodeSearcher(view) => view.documentation(),
         }
     }
 
     fn show(&self) {
         match self {
             SearcherVariant::ComponentBrowser(view) => view.show(),
-            SearcherVariant::OldNodeSearcher(view) => view.show(),
         }
     }
 
     fn hide(&self) {
         match self {
             SearcherVariant::ComponentBrowser(view) => view.hide(),
-            SearcherVariant::OldNodeSearcher(view) => view.hide(),
         }
     }
 
@@ -221,16 +199,6 @@ impl SearcherVariant {
                     eval cb_position ((pos) view.set_xy(*pos));
                 }
             }
-            SearcherVariant::OldNodeSearcher(view) => {
-                frp::extend! {network
-                    searcher_pos <- all_with(anchor, &view.size, |anchor, size| {
-                        let x = anchor.x + size.x / 2.0;
-                        let y = anchor.y - node::HEIGHT / 2.0 - size.y / 2.0;
-                        Vector2(x, y)
-                    });
-                    eval searcher_pos ((pos) view.set_xy(*pos));
-                }
-            }
         }
     }
 }
@@ -239,7 +207,6 @@ impl display::Object for SearcherVariant {
     fn display_object(&self) -> &display::object::Instance {
         match self {
             SearcherVariant::ComponentBrowser(view) => view.display_object(),
-            SearcherVariant::OldNodeSearcher(view) => view.display_object(),
         }
     }
 }
@@ -562,13 +529,6 @@ impl View {
                     committed_in_browser <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
                     frp.source.editing_committed <+ committed_in_browser;
                     frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
-                }
-            }
-            SearcherVariant::OldNodeSearcher(searcher) => {
-                frp::extend! { network
-                    committed_in_searcher <- searcher.editing_committed.map2(&last_searcher, |&entry, &s| (s.input, entry));
-                    frp.source.editing_committed_old_searcher <+ committed_in_searcher;
-                    frp.source.editing_committed_old_searcher <+ finished_with_searcher.map(|id| (*id,None));
                 }
             }
         }

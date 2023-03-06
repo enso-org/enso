@@ -171,15 +171,11 @@ object Suggestion {
     *
     * @param module the fully qualified module name
     * @param documentation the documentation string
-    * @param documentationHtml the documentation rendered as HTML
-    * @param documentationSections the documentation parsed into sections
     * @param reexport the module re-exporting this module
     */
   case class Module(
     module: String,
     documentation: Option[String],
-    documentationHtml: Option[String]               = None,
-    documentationSections: Option[List[DocSection]] = None,
     reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
@@ -209,8 +205,6 @@ object Suggestion {
     * @param returnType the type of an atom
     * @param parentType qualified name of the parent type
     * @param documentation the documentation string
-    * @param documentationHtml the documentation rendered as HTML
-    * @param documentationSections the documentation parsed into sections
     * @param reexport the module re-exporting this atom
     */
   case class Type(
@@ -221,8 +215,6 @@ object Suggestion {
     returnType: String,
     parentType: Option[String],
     documentation: Option[String],
-    documentationHtml: Option[String]               = None,
-    documentationSections: Option[List[DocSection]] = None,
     reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
@@ -249,8 +241,6 @@ object Suggestion {
     * @param arguments the list of arguments
     * @param returnType the type of an atom
     * @param documentation the documentation string
-    * @param documentationHtml the documentation rendered as HTML
-    * @param documentationSections the documentation parsed into sections
     * @param reexport the module re-exporting this atom
     */
   case class Constructor(
@@ -260,8 +250,6 @@ object Suggestion {
     arguments: Seq[Argument],
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String]               = None,
-    documentationSections: Option[List[DocSection]] = None,
     reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
@@ -289,8 +277,6 @@ object Suggestion {
     * @param returnType the return type of a method
     * @param isStatic the flag indicating whether a method is static or instance
     * @param documentation the documentation string
-    * @param documentationHtml the documentation rendered as HTML
-    * @param documentationSections the documentation parsed into sections
     * @param reexport the module re-exporting this method
     */
   case class Method(
@@ -302,8 +288,6 @@ object Suggestion {
     returnType: String,
     isStatic: Boolean,
     documentation: Option[String],
-    documentationHtml: Option[String]               = None,
-    documentationSections: Option[List[DocSection]] = None,
     reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
@@ -330,8 +314,6 @@ object Suggestion {
     * @param sourceType the source type of a conversion
     * @param returnType the return type of a conversion
     * @param documentation the documentation string
-    * @param documentationHtml the documentation rendered as HTML
-    * @param documentationSections the documentation parsed into sections
     * @param reexport the module re-exporting this conversion
     */
   case class Conversion(
@@ -341,8 +323,6 @@ object Suggestion {
     sourceType: String,
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String]               = None,
-    documentationSections: Option[List[DocSection]] = None,
     reexport: Option[String]                        = None
   ) extends Suggestion {
 
@@ -371,8 +351,6 @@ object Suggestion {
     * @param returnType the return type of a function
     * @param scope the scope where the function is defined
     * @param documentation the documentation string
-    * @param documentationHtml the documentation rendered as HTML
-    * @param documentationSections the documentation parsed into sections
     */
   case class Function(
     externalId: Option[ExternalId],
@@ -382,8 +360,6 @@ object Suggestion {
     returnType: String,
     scope: Scope,
     documentation: Option[String],
-    documentationHtml: Option[String]               = None,
-    documentationSections: Option[List[DocSection]] = None
   ) extends Suggestion
       with ToLogString {
 
@@ -408,8 +384,6 @@ object Suggestion {
     * @param returnType the type of a local value
     * @param scope the scope where the value is defined
     * @param documentation the documentation string
-    * @param documentationHtml the documentation rendered as HTML
-    * @param documentationSections the documentation parsed into sections
     */
   case class Local(
     externalId: Option[ExternalId],
@@ -418,8 +392,6 @@ object Suggestion {
     returnType: String,
     scope: Scope,
     documentation: Option[String],
-    documentationHtml: Option[String]               = None,
-    documentationSections: Option[List[DocSection]] = None
   ) extends Suggestion {
 
     /** @inheritdoc */
