@@ -20,7 +20,7 @@ class DeserializeLibrarySuggestionsCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
-    ctx.jobProcessor.run(
+    ctx.jobProcessor.runBackground(
       new DeserializeLibrarySuggestionsJob(request.libraryName)
     )
 }
