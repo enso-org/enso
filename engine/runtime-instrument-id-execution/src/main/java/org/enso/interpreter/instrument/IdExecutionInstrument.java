@@ -245,8 +245,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       } else if (exception instanceof PanicException) {
         PanicException panicException = (PanicException) exception;
         onReturnValue(frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
-      } else if (exception instanceof PanicSentinel) {
-        onReturnValue(frame, exception);
       } else if (exception instanceof AbstractTruffleException) {
         onReturnValue(frame, exception);
       }
