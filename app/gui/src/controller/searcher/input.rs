@@ -24,6 +24,60 @@ pub struct NotACharBoundary {
 
 
 
+// ===============
+// === Literal ===
+// ===============
+
+/// A text or number literal.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Literal {
+    /// A literal of a number type.
+    Number(ast::known::Number),
+    /// A literal of a text type.
+    Text {
+        /// The string representation of the finished text literal. Includes the finishing
+        /// quotation mark even if the user didn't type it yet.
+        text:                   ImString,
+        /// The missing quotation mark if the user didn't type it yet.
+        missing_quotation_mark: Option<char>,
+    },
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Text { text, .. } => write!(f, "{text}"),
+            Self::Number(number) => write!(f, "{}", number.repr()),
+        }
+    }
+}
+
+impl Literal {
+    /// Construct a string literal. Returns `None` if the given string is not starting with a
+    /// quotation mark.
+    fn try_new_text(text: &str) -> Option<Self> {
+        if text.starts_with('"') || text.starts_with('\'') {
+            // Unwrap is safe here, because we know the first character exists.
+            let mark = text.chars().next().unwrap();
+            let quote_only = text.len() == 1;
+            let ends_with_quote = text.ends_with(mark);
+            let missing_quote = if ends_with_quote && !quote_only { None } else { Some(mark) };
+            let text = if let Some(mark) = missing_quote {
+                let mut text = text.to_owned();
+                text.push(mark);
+                text.into()
+            } else {
+                text.into()
+            };
+            Some(Literal::Text { text, missing_quotation_mark: missing_quote })
+        } else {
+            None
+        }
+    }
+}
+
+
+
 // ====================
 // === AstWithRange ===
 // ====================
@@ -95,6 +149,8 @@ pub struct EditedAst {
     pub edited_name:           Option<AstWithRange>,
     /// Accessor chain (like `Foo.Bar.buz`) which is currently edited.
     pub edited_accessor_chain: Option<AstWithRange<ast::opr::Chain>>,
+    /// The currently edited literal.
+    pub edited_literal:        Option<Literal>,
 }
 
 impl EditedAst {
@@ -114,15 +170,30 @@ impl EditedAst {
                 ast::Shape::Var(_) | ast::Shape::Cons(_) => Self {
                     edited_name:           Some(leaf),
                     edited_accessor_chain: leaf_parent.and_then(to_accessor_chain),
+                    edited_literal:        None,
                 },
                 ast::Shape::Opr(_) => Self {
                     edited_name:           None,
                     edited_accessor_chain: leaf_parent.and_then(to_accessor_chain),
+                    edited_literal:        None,
                 },
                 ast::Shape::Infix(_) => Self {
                     edited_name:           None,
                     edited_accessor_chain: to_accessor_chain(leaf),
+                    edited_literal:        None,
                 },
+                ast::Shape::Number(_) => {
+                    // Unwrapping is safe here, because we know that the shape is a number.
+                    let ast = ast::known::Number::try_from(leaf.ast).unwrap();
+                    Self { edited_literal: Some(Literal::Number(ast)), ..default() }
+                }
+                ast::Shape::Tree(tree) =>
+                    if let Some(text) = tree.leaf_info.as_ref() {
+                        let edited_literal = Literal::try_new_text(text);
+                        Self { edited_literal, ..default() }
+                    } else {
+                        default()
+                    },
                 _ => default(),
             }
         } else {
@@ -264,6 +335,11 @@ impl Input {
             InputAst::Invalid(_) => None,
         }
     }
+
+    /// Currently edited literal, if any.
+    pub fn edited_literal(&self) -> Option<&Literal> {
+        self.edited_ast.edited_literal.as_ref()
+    }
 }
 
 
@@ -340,6 +416,33 @@ impl Input {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn edited_literal() {
+        let parser = Parser::new();
+        let input = Input::parse(&parser, "name", text::Byte(4));
+        assert!(input.edited_literal().is_none());
+
+        let input = Input::parse(&parser, "123", text::Byte(3));
+        assert!(matches!(input.edited_literal(), Some(Literal::Number(n)) if n.repr() == "123"));
+
+        let input = Input::parse(&parser, "x = 123", text::Byte(7));
+        assert!(matches!(input.edited_literal(), Some(Literal::Number(n)) if n.repr() == "123"));
+
+        let input = Input::parse(&parser, "\"text", text::Byte(5));
+        let expected = Literal::Text {
+            text:                   "\"text\"".into(),
+            missing_quotation_mark: Some('"'),
+        };
+        assert_eq!(input.edited_literal(), Some(&expected));
+
+        let input = Input::parse(&parser, "x = \"text\"", text::Byte(10));
+        let expected = Literal::Text {
+            text:                   "\"text\"".into(),
+            missing_quotation_mark: None,
+        };
+        assert_eq!(input.edited_literal(), Some(&expected));
+    }
 
     #[test]
     fn parsing_input() {

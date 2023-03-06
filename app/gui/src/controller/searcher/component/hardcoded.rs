@@ -7,6 +7,8 @@
 
 use crate::prelude::*;
 
+use crate::controller::searcher::input;
+
 use double_representation::name::QualifiedName;
 use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
 
@@ -57,15 +59,15 @@ thread_local! {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Snippet {
     /// The name displayed in the [Component Browser](crate::controller::searcher).
-    pub name:               &'static str,
+    pub name:               ImString,
     /// The code inserted when picking the snippet.
-    pub code:               &'static str,
+    pub code:               ImString,
     /// A list of types that the return value of this snippet's code typechecks as. Used by the
     /// [Component Browser](crate::controller::searcher) to decide whether to display the
     /// snippet when filtering components by return type.
     pub return_types:       Vec<QualifiedName>,
     /// The documentation bound to the snippet.
-    pub documentation_html: Option<String>,
+    pub documentation_html: Option<ImString>,
     /// The ID of the icon bound to this snippet's entry in the [Component
     /// Browser](crate::controller::searcher).
     pub icon:               IconId,
@@ -73,8 +75,26 @@ pub struct Snippet {
 
 impl Snippet {
     /// Construct a hardcoded snippet with given name, code, and icon.
-    fn new(name: &'static str, code: &'static str, icon: IconId) -> Self {
-        Self { name, code, icon, ..default() }
+    fn new(name: &str, code: &str, icon: IconId) -> Self {
+        Self { name: name.into(), code: code.into(), icon, ..default() }
+    }
+
+    /// Construct a hardcoded snippet for a single literal.
+    pub fn from_literal(literal: &input::Literal) -> Self {
+        use input::Literal::*;
+        let text_repr = literal.to_string();
+        match literal {
+            Text { missing_quotation_mark, .. } => {
+                let missing_quote = missing_quotation_mark.as_ref();
+                let code = &missing_quote.map(ToString::to_string).unwrap_or_default();
+                let snippet = Self::new(&text_repr, code, IconId::TextInput);
+                snippet.with_documentation("A string literal.")
+            }
+            Number(_) => {
+                let snippet = Self::new(&text_repr, "", IconId::NumberInput);
+                snippet.with_documentation("A number literal.")
+            }
+        }
     }
 
     /// Returns a modified suggestion with [`Snippet::return_types`] field set. This method is only
@@ -89,7 +109,7 @@ impl Snippet {
     /// Returns a modified suggestion with [`Snippet::documentation_html`] field set. No validation
     /// or modification of the `documentation` string is performed.
     fn with_documentation(mut self, documentation: &str) -> Self {
-        self.documentation_html = Some(documentation.to_string());
+        self.documentation_html = Some(documentation.to_im_string());
         self
     }
 }

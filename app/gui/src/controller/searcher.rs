@@ -524,12 +524,15 @@ impl Searcher {
         debug!("Manually setting input to {new_input} with cursor position {cursor_position}");
         let parsed_input = input::Input::parse(self.ide.parser(), new_input, cursor_position);
         let new_context = parsed_input.context().map(|ctx| ctx.into_ast().repr());
+        let new_literal = parsed_input.edited_literal().cloned();
         let old_input = mem::replace(&mut self.data.borrow_mut().input, parsed_input);
         let old_context = old_input.context().map(|ctx| ctx.into_ast().repr());
+        let old_literal = old_input.edited_literal();
 
         self.invalidate_picked_suggestions();
         let context_changed = old_context != new_context;
-        if context_changed {
+        let literal_changed = old_literal != new_literal.as_ref();
+        if context_changed || literal_changed {
             debug!("Reloading list.");
             self.reload_list();
         } else {
@@ -880,9 +883,17 @@ impl Searcher {
     /// list - once it be retrieved, the new list will be set and notification will be emitted.
     #[profile(Debug)]
     pub fn reload_list(&self) {
-        let this_type = self.this_arg_type_for_next_completion();
-        self.gather_actions_from_engine(this_type, None);
-        self.data.borrow_mut().actions = Actions::Loading;
+        let edited_literal = self.data.borrow().input.edited_literal().cloned();
+        if let Some(literal) = edited_literal {
+            let components = component_list_for_literal(&literal);
+            let mut data = self.data.borrow_mut();
+            data.components = components;
+            data.actions = Actions::Loaded { list: default() };
+        } else {
+            let this_type = self.this_arg_type_for_next_completion();
+            self.gather_actions_from_engine(this_type, None);
+            self.data.borrow_mut().actions = Actions::Loading;
+        }
         executor::global::spawn(self.notifier.publish(Notification::NewActionList));
     }
 
@@ -1219,6 +1230,8 @@ impl Drop for EditGuard {
 }
 
 
+// === Helpers ===
+
 fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
     if let Ok(opr) = ast::known::Opr::try_from(ast) {
         let shape = ast::SectionLeft { arg: Ast::var(this_var), off: 1, opr: opr.into() };
@@ -1243,6 +1256,17 @@ fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
         };
         Ast::new(shape, None)
     }
+}
+
+/// Build a component list with a single component, representing the given literal. When used as a
+/// suggestion, a number literal will be inserted without changes, but a string literal will be
+/// surrounded by quotation marks.
+fn component_list_for_literal(literal: &input::Literal) -> component::List {
+    let mut builder = component::builder::List::default();
+    let project = project::QualifiedName::standard_base_library();
+    let snippet = component::hardcoded::Snippet::from_literal(literal).into();
+    builder.insert_virtual_components_in_favorites_group("Literals", project, vec![snippet]);
+    builder.build()
 }
 
 

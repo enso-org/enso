@@ -34,7 +34,7 @@ impl Suggestion {
     pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
         match self {
             Suggestion::FromDatabase(s) => s.code_to_insert(generate_this),
-            Suggestion::Hardcoded(s) => s.code.into(),
+            Suggestion::Hardcoded(s) => s.code.as_str().into(),
         }
     }
 
@@ -60,11 +60,10 @@ impl Suggestion {
 
     /// Return the documentation assigned to the suggestion.
     pub fn documentation_html(&self) -> Option<&str> {
-        let doc_html = match self {
-            Suggestion::FromDatabase(s) => &s.documentation_html,
-            Suggestion::Hardcoded(s) => &s.documentation_html,
-        };
-        doc_html.as_ref().map(AsRef::<str>::as_ref)
+        match self {
+            Suggestion::FromDatabase(s) => s.documentation_html.as_deref(),
+            Suggestion::Hardcoded(s) => s.documentation_html.as_deref(),
+        }
     }
 
     /// The Id of the method called by a suggestion, or [`None`] if the suggestion is not a method

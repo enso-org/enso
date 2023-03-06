@@ -138,7 +138,7 @@ impl Component {
     pub fn name(&self) -> &str {
         match &self.data {
             Data::FromDatabase { entry, .. } => entry.name.as_str(),
-            Data::Virtual { snippet } => snippet.name,
+            Data::Virtual { snippet } => snippet.name.as_str(),
         }
     }
 
