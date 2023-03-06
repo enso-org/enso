@@ -16,6 +16,15 @@ import * as config from "../config";
 // === Constants ===
 // =================
 
+/** Base URL path that all URLs handled by the {@link setDeepLinkHandler} function must be
+ * prefixed with.
+ *
+ * Note the double leading slash on the pathname. This is because we use a custom URL protocol
+ * scheme for these URLs. When parsing strings as URLs, the `url.pathname` is prefixed with an extra
+ * slash. For example, `new URL('enso://authentication/register').pathname` results in
+ * `//authentication/register`. */
+ const AUTHENTICATION_PATHNAME_BASE = "//authentication"
+
 const BASE_AMPLIFY_CONFIG: Partial<authConfig.AmplifyConfig> = {
     region: authConfig.AWS_REGION,
     scope: authConfig.OAUTH_SCOPES,
@@ -42,25 +51,25 @@ const AMPLIFY_CONFIGS = {
 
 
 
-// ================
-// === LoginApi ===
-// ================
+// ==========================
+// === Authentication API ===
+// ==========================
 
-/** `window.loginApi` is a context bridge to the main process, when we're running in an Electron
- * context.
+/** `window.authenticationApi` is a context bridge to the main process, when we're running in an
+ * Electron context.
  *
  * # Safety
  *
- * We're assuming that the main process has exposed the `loginApi` context bridge (see
+ * We're assuming that the main process has exposed the `authenticationApi` context bridge (see
  * `lib/client/src/preload.ts` for details), and that it contains the functions defined in this
  * interface. Our app can't function if these assumptions are not met, so we're disabling the
  * TypeScript checks for this interface when we use it. */
-interface LoginApi {
+interface AuthenticationApi {
     /** Open a URL in the system browser. */
-    openExternalUrl: (url: string) => void;
+    openUrlInSystemBrowser: (url: string) => void;
     /** Set the callback to be called when the system browser redirects back to a URL in the app,
-     * via a deep link. See {@link registerOpenAuthenticationUrlCallback} for details. */
-    setOpenAuthenticationUrlCallback: (callback: (url: string) => void) => void;
+     * via a deep link. See {@link setDeepLinkHandler} for details. */
+    setDeepLinkHandler: (callback: (url: string) => void) => void;
 }
 
 
@@ -142,7 +151,7 @@ const loadAmplifyConfig = (
 
         // To handle redirects back to the application from the system browser, we also need to
         // register a custom URL handler.
-        registerOpenAuthenticationUrlCallback(logger, navigate);
+        setDeepLinkHandler(logger, navigate);
     }
 
     // Set the redirect URLs for the OAuth flows, depending on our environment.
@@ -157,29 +166,40 @@ const loadAmplifyConfig = (
 };
 
 const openUrlWithExternalBrowser = (url: string) => {
-    /** See {@link LoginApi} for safety details. */
-        // @ts-expect-error
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const loginApi: LoginApi = window.loginApi;
-    loginApi.openExternalUrl(url);
+    /** See {@link AuthenticationApi} for safety details. */
+    // @ts-expect-error
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const authenticationApi: AuthenticationApi = window.authenticationApi;
+    authenticationApi.openUrlInSystemBrowser(url);
 };
 
-/** Register the callback that will be invoked when an `enso://` schema URL is opened in the app.
+/** Set the callback that will be invoked when a deep link to the application is opened.
  *
  * Typically this callback is invoked when the user is redirected back to the app after:
  *
  * 1. authenticating with a federated identity provider; or
  * 2. clicking a "reset password" link in a password reset email.
  *
+ * For example, when the user completes an OAuth sign in flow (e.g., through Google), they are
+ * redirected to a URL like `enso://authentication/register?code=...`. This listener will intercept
+ * that URL and open the page `register?code=...` in the application window.
+ *
  * This is only used when running on the desktop, as the browser version of the app lets Amplify
  * handle the redirect for us. On the desktop however, we need to handle the redirect ourselves,
- * because it's a deep link into the app, and Amplify doesn't handle deep links. */
-const registerOpenAuthenticationUrlCallback = (
+ * because it's a deep link into the app, and Amplify doesn't handle deep links.
+ *
+ * All URLs that don't have a pathname that starts with {@link AUTHENTICATION_PATHNAME_BASE} will be
+ * ignored by this handler. */
+const setDeepLinkHandler = (
     logger: loggerProvider.Logger,
     navigate: (url: string) => void
 ) => {
-    const openAuthenticationUrlCallback = (url: string) => {
+    const onDeepLink = (url: string) => {
         const parsedUrl = new URL(url);
+
+        if (!parsedUrl.pathname.startsWith(AUTHENTICATION_PATHNAME_BASE)) {
+            return
+        }
 
         if (isConfirmRegistrationRedirect(parsedUrl)) {
             // Navigate to a relative URL to handle the confirmation link.
@@ -199,11 +219,11 @@ const registerOpenAuthenticationUrlCallback = (
         }
     };
 
-    /** See {@link LoginApi} for safety details. */
-        // @ts-expect-error
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const loginApi: LoginApi = window.loginApi;
-    loginApi.setOpenAuthenticationUrlCallback(openAuthenticationUrlCallback);
+    /** See {@link AuthenticationApi} for safety details. */
+    // @ts-expect-error
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const authenticationApi: AuthenticationApi = window.authenticationApi;
+    authenticationApi.setDeepLinkHandler(onDeepLink);
 };
 
 /** If the user is being redirected after clicking the registration confirmation link in their
