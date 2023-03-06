@@ -15,7 +15,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -39,12 +38,12 @@ public abstract class HashCallbackNode extends Node {
    *
    * @param atom Atom, preferably with a custom comparator, for which we get the custom comparator
    *     and call {@code hash} method on the comparator.
-   * @return Hash code for the atom, or {@code Nothing}, as returned by the custom comparator.
+   * @return Hash code for the atom, as returned by the custom comparator.
    */
-  public abstract Object execute(Atom atom);
+  public abstract long execute(Atom atom);
 
   @Specialization
-  Object hashCallbackCached(
+  long hashCallbackCached(
       Atom atom,
       @Cached(value = "getHashCallbackFunction()", allowUncached = true) Function hashCallbackFunc,
       @Cached(value = "buildInvokeNodeWithAtomArgument()", allowUncached = true)
@@ -55,20 +54,12 @@ public abstract class HashCallbackNode extends Node {
     Object res =
         hashCallbackInvokeNode.execute(
             hashCallbackFunc, null, State.create(ctx), new Object[] {comparableType, atom});
-    assert isLongOrNothing(res);
-    return res;
-  }
-
-  private boolean isLongOrNothing(Object obj) {
-    var interop = InteropLibrary.getUncached();
-    var typesLib = TypesLibrary.getUncached();
-    if (interop.isNumber(obj) && interop.fitsInLong(obj)) {
-      return true;
+    try {
+      return interop.asLong(res);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(
+          "Return type from Comparable.hash_callback should be Long", e);
     }
-    if (typesLib.hasType(obj) && typesLib.getType(obj) == EnsoContext.get(this).getNothing()) {
-      return true;
-    }
-    return false;
   }
 
   /**

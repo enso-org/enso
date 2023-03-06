@@ -28,12 +28,12 @@ from project.Data.Boolean import all
     type Ordered_Comparator T
         is_ordered = True
         compare : T -> T -> (Ordering|Nothing)
-        hash : T -> (Integer|Nothing)
+        hash : T -> Integer
 
     type Unordered_Comparator T
         is_ordered = False
         equals : T -> T -> (Boolean|Nothing)
-        hash : T -> (Integer|Nothing)
+        hash : T -> Integer
     ```
 
     Or `Incomparable` in case that the type `T` should not be compared at all.
@@ -186,7 +186,7 @@ type Default_Ordered_Comparator
                             True -> Ordering.Greater
                             False -> Panic.throw "Unreachable"
 
-    hash : Number -> (Integer|Nothing)
+    hash : Number -> Integer
     hash x = Comparable.hash_builtin x
 
 
