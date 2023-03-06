@@ -446,7 +446,8 @@ Shape cached_shape(Id id, vec2 position, vec4 tex_bbox) {
     vec2 texture_bbox_center = (tex_bbox.xy + tex_bbox.zw) / 2.0;
     vec2 texture_position = texture_bbox_center + position;
     vec2 texture_uv_origin = vec2(0.5, 0.5);
-    vec2 texture_uv = (texture_position / vec2(textureSize(input_pass_cached_shapes, 0))) + texture_uv_origin;
+    vec2 texture_size = vec2(textureSize(input_pass_cached_shapes, 0)) / input_pixel_ratio;
+    vec2 texture_uv = (texture_position / vec2(texture_size)) + texture_uv_origin;
     Rgba color_and_distance;
     if (contains(texture_bbox, texture_position)) {
         color_and_distance = rgba(texture(input_pass_cached_shapes, texture_uv));

@@ -1,0 +1,17 @@
+[package]
+name = "enso-build-macros-lib"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+convert_case = { workspace = true }
+enso-build-base = { path = "../../base" }
+itertools = { workspace = true }
+lazy_static = { workspace = true }
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+regex = { workspace = true }
+serde_yaml = { workspace = true }
+syn = { workspace = true }
+derive_more = { workspace = true }
