@@ -109,9 +109,9 @@ spec =
                     File_Permissions.Value [] [] []
 
                 r1 = f.read
-                r1.should_fail_with File_Error.IO_Error
+                r1.should_fail_with File_Error.Access_Denied
                 r1.catch.file . should_equal f
-                r1.catch.message.contains "You do not have permission" . should_be_true
+                r1.catch.to_display_text.should_contain "Insufficient permissions"
 
                 Process.run "chmod" ["0744", f.absolute.path] . should_equal Exit_Code.Success
                 f.delete

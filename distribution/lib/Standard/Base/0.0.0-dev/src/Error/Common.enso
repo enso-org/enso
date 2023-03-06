@@ -111,6 +111,17 @@ type No_Such_Method
     method_name self =
         Meta.meta self.symbol . name
 
+@Builtin_Type
+type No_Such_Field
+    ## PRIVATE
+       The error thrown when the specified symbol does not exist as a field on
+       the value.
+
+       Arguments:
+       - target: The target on which the field was accessed.
+       - field_name: The name of the field that was being accessed.
+    Error value field_name
+
 ## An error that occurs when the enso_project function is called in a file
    that is not part of a project.
 @Builtin_Type
