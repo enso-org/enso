@@ -1313,6 +1313,74 @@ class RuntimeErrorsTest
     context.consumeOut shouldEqual List("3")
   }
 
+  it should "send updates when NPE is resolved in method" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(146, 3, "aaa")
+
+    val code =
+      """from Standard.Base import all
+        |polyglot java import java.lang.NullPointerException
+        |
+        |foo =
+        |    Panic.throw NullPointerException.new
+        |
+        |main =
+        |    x = foo
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(xId, code, "foo")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.panic(
+        contextId,
+        xId,
+        Api.MethodPointer(moduleName, moduleName, "foo"),
+        Api.ExpressionUpdate.Payload.Panic(
+          "java.lang.NullPointerException",
+          Seq(xId)
+        ),
+        None
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
+  }
+
   it should "send updates when dataflow error is resolved in method" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
