@@ -31,7 +31,10 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
   protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     for (int i = 0; i < formatters.length; i++) {
       try {
-        var replaced = replaceSpaces[i] && text.length() > 10 && text.charAt(10) == ' ' ? new StringBuilder(text).replace(10, 11, "T").toString() : text;
+        var replaced =
+            replaceSpaces[i] && text.length() > 10 && text.charAt(10) == ' '
+                ? new StringBuilder(text).replace(10, 11, "T").toString()
+                : text;
         return parseStrategy.parse(replaced, formatters[i]);
       } catch (DateTimeParseException ignored) {
       }

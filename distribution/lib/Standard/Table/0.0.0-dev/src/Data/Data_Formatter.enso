@@ -30,6 +30,11 @@ type Data_Formatter
     ## Specifies options for reading text data in a table to more specific types and
        serializing them back.
 
+       For date and time formats, a Java format string can be used or one of
+       `ENSO_ZONED_DATE_TIME`, `ISO_ZONED_DATE_TIME`, `ISO_LOCAL_DATE_TIME`,
+       `ISO_OFFSET_DATE_TIME`, `ISO_LOCAL_DATE`, `ISO_LOCAL_TIME` to use a
+       predefined format.
+
        Arguments:
        - trim_values: Trim whitespace before parsing.
        - allow_leading_zeros: Specifies how to treat numeric values starting with
@@ -96,6 +101,10 @@ type Data_Formatter
         self.clone decimal_point=decimal_point thousand_separator=thousand_separator allow_leading_zeros=allow_leading_zeros allow_exponential_notation=allow_exponential_notation
 
     ## Specify values for Date/Time parsing.
+
+       A Java format string can be used or one of `ENSO_ZONED_DATE_TIME`,
+       `ISO_ZONED_DATE_TIME`, `ISO_LOCAL_DATE_TIME`, `ISO_OFFSET_DATE_TIME`,
+       `ISO_LOCAL_DATE`, `ISO_LOCAL_TIME` to use a predefined format.
 
        Arguments:
        - datetime_formats: Expected datetime formats.
