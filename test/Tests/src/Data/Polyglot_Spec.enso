@@ -3,9 +3,12 @@ from Standard.Base import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import java.time.LocalDate
+polyglot java import java.lang.Double
+polyglot java import java.lang.Integer
 polyglot java import java.lang.String
+polyglot java import java.time.LocalDate
 polyglot java import java.util.function.Function
+polyglot java import org.enso.base_test_helpers.IntHolder
 
 spec = Test.group "Polyglot" <|
     Test.specify "should be able to invoke a polyglot method by name and pass arguments" <|
@@ -19,9 +22,32 @@ spec = Test.group "Polyglot" <|
         Polyglot.new String ["42"] . should_equal "42"
         Polyglot.new String ["42"].to_array . should_equal "42"
 
+    Test.specify "use Integer created by constructor" <|
+        Polyglot.new Integer [42] . should_equal 42
+
+    Test.specify "use Double created by constructor" <|
+        Polyglot.new Double [42] . should_equal 42
+
+    Test.specify "use Integer read from Polyglot object" <|
+        (Polyglot.get_member js_meaning "meaning") . should_equal 42
+
+    Test.specify "access Integer field from Polyglot object" <|
+        js_meaning.meaning . should_equal 42
+
+    Test.specify "use Integer obtained from a call" <|
+        Integer.parseInt "42" . should_equal 42
+
+    Test.specify "use Integer obtained from a read" <|
+        hold = IntHolder.new (6 * 7)
+        hold.value . should_equal 42
+        hold.boxed . should_equal 42
+
     Test.specify "should be able to execute a polyglot function object along with corresponding arguments" <|
         fun = Function.identity
         Polyglot.execute fun ["42"] . should_equal "42"
         Polyglot.execute fun ["42"].to_array . should_equal "42"
+
+foreign js js_meaning = """
+    return { meaning : 6 * 7 };
 
 main = Test_Suite.run_main spec
