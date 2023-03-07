@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.interop.generic;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
@@ -25,7 +26,12 @@ public class GetExecutableNameNode extends Node {
 
   Text execute(Object function) {
     try {
-      return Text.create(stringsLibrary.asString(functionsLibrary.getExecutableName(function)));
+      var name = functionsLibrary.getExecutableName(function);
+      if (name == null || !stringsLibrary.isString(name)) {
+        CompilerDirectives.transferToInterpreter();
+        throw CompilerDirectives.shouldNotReachHere("name: " + name + " for " + function);
+      }
+      return Text.create(stringsLibrary.asString(name));
     } catch (UnsupportedMessageException e) {
       err.enter();
       Builtins builtins = EnsoContext.get(this).getBuiltins();

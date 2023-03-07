@@ -150,7 +150,7 @@ impl<'a> EnumGenerator<'a> {
     }
 }
 
-pub fn arg(input: DeriveInput) -> Result<TokenStream> {
+pub fn derive(input: DeriveInput) -> Result<TokenStream> {
     let generator = Generator::new(&input);
     Ok(generator.generate())
 }

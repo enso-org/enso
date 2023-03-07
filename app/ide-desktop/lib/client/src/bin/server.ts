@@ -39,7 +39,7 @@ export class Config {
     dir: string
     port: number
     constructor(cfg: { dir: string; port: number }) {
-        this.dir = cfg.dir
+        this.dir = path.resolve(cfg.dir)
         this.port = cfg.port
     }
 }

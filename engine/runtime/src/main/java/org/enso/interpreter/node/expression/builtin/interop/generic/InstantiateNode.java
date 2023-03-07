@@ -20,8 +20,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Instantiates a polyglot constructor.",
     autoRegister = false)
 public abstract class InstantiateNode extends Node {
-  @Child
-  private HostValueToEnsoNode fromHost = HostValueToEnsoNode.build();
+  @Child private HostValueToEnsoNode fromHost = HostValueToEnsoNode.build();
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();

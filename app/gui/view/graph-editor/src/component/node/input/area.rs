@@ -527,8 +527,10 @@ impl Model {
                     builder.parent.add_child(&widget);
 
                     if port.is_argument() {
-                        let range = port.payload.range();
-                        let code = &expression.viz_code[range];
+                        let range = port.span();
+                        let code = &expression.code[range];
+                        debug!("Setting current value while range is {range:?}, code is \"{code}\" \
+                            and full expression is \"{}\".", expression.code);
                         widget.set_current_value(Some(code.into()));
                     } else {
                         widget.set_current_value(None);

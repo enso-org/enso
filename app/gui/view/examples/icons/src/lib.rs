@@ -78,9 +78,11 @@ pub fn entry_point_searcher_icons() {
 
     let mut x = -300.0;
     icon::Id::for_each(|id| {
-        let shape = id.create_shape(Vector2(SIZE, SIZE));
-        shape.set_color(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
+        let shape = ide_view_component_list_panel_icons::any::View::new();
+        shape.icon.set(id.any_cached_shape_location());
+        shape.r_component.set(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
         shape.set_x(x);
+        shape.set_size((SIZE, SIZE));
         x += 20.0;
         world.add_child(&shape);
         mem::forget(shape);

@@ -11,7 +11,7 @@ members = [
   "app/gui/language/parser",
   "app/gui/enso-profiler-enso-data",
   "build/cli",
-  "build/macros",
+  "build/macros/proc-macro",
   "build/ci-gen",
   "build/cli",
   "build/intellij-run-config-gen",
@@ -122,3 +122,12 @@ bytes = { version = "1.1.0" }
 matches = { version = "0.1" }
 console_error_panic_hook = { version = "0.1.6" }
 reqwest = { version = "0.11.5" }
+proc-macro2 = { version = "1.0.50" }
+syn = { version = "1.0", features = [
+  "full",
+  "extra-traits",
+  "printing",
+  "parsing",
+  "visit-mut",
+] }
+quote = { version = "1.0.23" }

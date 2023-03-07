@@ -393,3 +393,30 @@ pub trait IsWatchable: IsTarget {
         job: WatchTargetJob<Self>,
     ) -> BoxFuture<'static, Result<Self::Watcher>>;
 }
+
+/// Sets up a watcher, if a given target is built locally.
+///
+/// Otherwise, if static artifact is used, only its location will be referenced.
+pub fn perhaps_watch<T: IsWatchable>(
+    target: T,
+    context: Context,
+    job: GetTargetJob<T>,
+    watch_input: T::WatchInput,
+) -> BoxFuture<'static, Result<PerhapsWatched<T>>> {
+    match job.inner {
+        Source::BuildLocally(local) => target
+            .watch(context, WatchTargetJob {
+                watch_input,
+                build: WithDestination { inner: local, destination: job.destination },
+            })
+            .map_ok(PerhapsWatched::Watched)
+            .boxed(),
+        Source::External(external) => target
+            .get_external(context, WithDestination {
+                inner:       external,
+                destination: job.destination,
+            })
+            .map_ok(PerhapsWatched::Static)
+            .boxed(),
+    }
+}

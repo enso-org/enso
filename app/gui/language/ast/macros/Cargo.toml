@@ -11,8 +11,8 @@ proc-macro = true
 default = []
 
 [dependencies]
-proc-macro2 = "1.0"
-quote = "1.0"
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
 Inflector = "0.11.4"
 enso-macro-utils = { path = "../../../../../lib/rust/macro-utils" }
 

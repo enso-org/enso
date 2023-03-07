@@ -8,12 +8,10 @@ proc-macro = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-convert_case = { workspace = true }
-enso-build-base = { path = "../base" }
+enso-build-base = { path = "../../base" }
+enso-build-macros-lib = { path = "../lib" }
+syn = { workspace = true }
+
+[dev-dependencies]
 itertools = { workspace = true }
-proc-macro2 = "1.0"
-quote = "1.0"
-regex = { workspace = true }
-serde_yaml = { workspace = true }
-syn = "1.0"
-derive_more = { workspace = true }
+proc-macro2 = { workspace = true }

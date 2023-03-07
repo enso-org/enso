@@ -458,9 +458,9 @@ impl Renderer {
                 *Context::ONE_MINUS_SRC_ALPHA,
             );
 
-            let (width, height) = self.view_size();
+            let (width, height, pixel_ratio) = self.view_size();
             let pipeline = self.pipeline.get();
-            render::Composer::new(&pipeline, context, &self.variables, width, height)
+            render::Composer::new(&pipeline, context, &self.variables, width, height, pixel_ratio)
         });
         *self.composer.borrow_mut() = composer;
     }
@@ -481,18 +481,19 @@ impl Renderer {
     /// Reload the composer after scene shape change.
     fn resize_composer(&self) {
         if let Some(composer) = &mut *self.composer.borrow_mut() {
-            let (width, height) = self.view_size();
-            composer.resize(width, height);
+            let (width, height, pixel_ratio) = self.view_size();
+            composer.resize(width, height, pixel_ratio);
         }
     }
 
     // The width and height in device pixels should be integers. If they are not then this is due to
     // rounding errors. We round to the nearest integer to compensate for those errors.
-    fn view_size(&self) -> (i32, i32) {
+    fn view_size(&self) -> (i32, i32, i32) {
         let shape = self.dom.shape().device_pixels();
         let width = shape.width.round() as i32;
         let height = shape.height.round() as i32;
-        (width, height)
+        let pixel_ratio = shape.pixel_ratio.round() as i32;
+        (width, height, pixel_ratio)
     }
 
     /// Run the renderer.
