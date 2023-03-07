@@ -12,13 +12,15 @@ type Match_2
     Value (pattern : Pattern_2) (internal_regex_result : Any) (input : Text)
 
     ## PRIVATE
-       The start character of group n
+       Returns the start character of group n
+
+       Arguments:
+       - n: the integer group number
     start : Integer -> Integer
     start self n = self.internal_regex_result.getStart n
 
     ## PRIVATE
-       - n: the integer group number
-       The end character of group n
+       Returns the start character of group n
 
        Arguments:
        - n: the integer group number
