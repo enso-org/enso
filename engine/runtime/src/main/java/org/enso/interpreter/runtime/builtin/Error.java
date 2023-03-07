@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.*;
-import org.enso.interpreter.node.expression.builtin.error.NoSuchFieldError;
+import org.enso.interpreter.node.expression.builtin.error.NoSuchField;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
@@ -33,7 +33,7 @@ public class Error {
   private final ModuleDoesNotExist moduleDoesNotExistError;
   private final NotInvokable notInvokable;
   private final InvalidConversionTarget invalidConversionTarget;
-  private final NoSuchFieldError noSuchFieldError;
+  private final NoSuchField noSuchField;
   private final NumberParseError numberParseError;
   private final Panic panic;
   private final CaughtPanic caughtPanic;
@@ -65,7 +65,7 @@ public class Error {
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
     notInvokable = builtins.getBuiltinType(NotInvokable.class);
     invalidConversionTarget = builtins.getBuiltinType(InvalidConversionTarget.class);
-    noSuchFieldError = builtins.getBuiltinType(NoSuchFieldError.class);
+    noSuchField = builtins.getBuiltinType(NoSuchField.class);
     numberParseError = builtins.getBuiltinType(NumberParseError.class);
     panic = builtins.getBuiltinType(Panic.class);
     caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
@@ -105,7 +105,7 @@ public class Error {
   }
 
   /**
-   * Creates an instance of the runtime representation of a {@code No_Such_Method_Error}.
+   * Creates an instance of the runtime representation of a {@code No_Such_Method.Error}.
    *
    * @param target the method call target
    * @param symbol the method being called
@@ -115,8 +115,8 @@ public class Error {
     return noSuchMethod.newInstance(target, symbol);
   }
 
-  public NoSuchFieldError getNoSuchFieldError() {
-    return noSuchFieldError;
+  public NoSuchField getNoSuchFieldError() {
+    return noSuchField;
   }
 
   public Atom makeNoSuchConversion(Object target, Object that, UnresolvedConversion conversion) {
