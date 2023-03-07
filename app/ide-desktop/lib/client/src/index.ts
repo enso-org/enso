@@ -103,9 +103,12 @@ class App {
                 await this.startContentServerIfEnabled()
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
-                // The window instance is passed as lambda because at this point of runtime it is uninitialized.
-                // Passing it by variable will remain it as an unset.
-                authentication.initModule(() => this.window)
+                /** The non-null assertion on the following line is safe because the window
+                 * initialization is guarded by the `createWindowIfEnabled` method. The window is
+                 * not yet created at this point, but it will be created by the time the
+                 * authentication module uses the lambda providing the window. */
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                authentication.initModule(() => this.window!)
                 this.loadWindowContent()
             })
         } catch (err) {

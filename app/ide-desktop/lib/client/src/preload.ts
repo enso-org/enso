@@ -12,8 +12,15 @@ import * as ipc from 'ipc'
 // === Constants ===
 // =================
 
-/** Name of the object which is exposed on the electron main window and
- * contains proxy authentication functions that are used by the dashboard. */
+/** Name of the object which is exposed on the Electron main window and contains proxy functions
+ * that are used by the dashboard for authentication.
+ *
+ * Some functions (i.e., the functions to open URLs in the system browser) are not available in
+ * sandboxed processes (i.e., the dashboard). So the {@link contextBridge.exposeInMainWorld} API is
+ * used to expose these functions. The functions are exposed via an API object that is added to the
+ * main window. This variable is the name given to that object.
+ *
+ * For more details, see: https://www.electronjs.org/docs/latest/api/context-bridge#api-functions */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
 
 
