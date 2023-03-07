@@ -41,7 +41,7 @@ public class Column {
     }
     if (name.indexOf('\0') >= 0) {
       // TODO pretty?
-      throw new IllegalArgumentException("Column name "+name+" cannot contain the NUL characters.");
+      throw new IllegalArgumentException("Column name "+name+" must not contain the NUL character.");
     }
   }
 

@@ -4,7 +4,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
 ## PRIVATE
-   An utility module for validating and sanitizing column names.
+   An utility module for validating and generating column names.
 type Naming_Helpers
     ## PRIVATE
        Checks if the name is valid and runs the action, otherwise raises an error.
