@@ -375,6 +375,7 @@ type Column
        Returns a column containing the result of subtracting `other` from each
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
+       pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
     - self other =
         new_type = SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
@@ -685,7 +686,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column ! Illegal_Argument
-    rename self name = self.connection.dialect.get_naming_helpers.ensure_name_is_valid name <|
+    rename self name = self.naming_helpers.ensure_name_is_valid name <|
         Column.Value name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
@@ -867,9 +868,62 @@ type Column
         _ = [type, format, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
 
+    ## ALIAS Transform Column
+
+       Applies `function` to each item in this column and returns the column
+       of results.
+
+       Arguments:
+       - function: The function to apply to each element of `self` column.
+       - on_missing: The value to return for missing cells. Ideally it should be
+         replaced with a `skip_nulls` parameter like elsewhere, but currently
+         that is not possible due to a bug:
+         https://github.com/oracle/graal/issues/4741
+
+       > Example
+         Multiply each element of the column by itself.
+
+             import Standard.Examples
+
+             example_map = Examples.integer_column.map (x -> x * x)
+    map : (Any -> Any) -> Column
+    map self function on_missing=Nothing =
+        _ = [function, on_missing]
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.map` is not supported in the Database backends."
+
+    ## ALIAS Transform Columns
+
+       Applies `function` to consecutive pairs of elements of `self` and `that`
+       and returns a column of results.
+
+       Arguments:
+       - that: The column to zip with `self`.
+       - function: A binary function that is applied to corresponding pairs of
+         elements of `self` and `that` to produce a value.
+       - skip_missing: controls whether missing values should be passed to the
+         `function`. The default value of `True` will skip the rows for which
+         the value in either column is missing and automatically append
+         `Nothing` to the result table. If set to `False`, every pair of values
+         is passed to `function`.
+
+       > Example
+         Zip two columns together as pairs.
+
+             import Standard.Examples
+
+             example_zip =
+                Examples.integer_column.zip Examples.text_column_1 [_, _]
+    zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
+    zip self that function skip_missing=True =
+        _ = [that, function, skip_missing]
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.zip` is not supported in the Database backends."
+
     ## PRIVATE
     as_internal : Internal_Column
     as_internal self = Internal_Column.Value self.name self.sql_type self.expression
+
+    ## PRIVATE
+    naming_helpers self = self.connection.dialect.get_naming_helpers
 
     ## Provides a simplified text representation for display in the REPL and errors.
     to_text : Text
