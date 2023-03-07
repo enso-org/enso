@@ -273,10 +273,7 @@ public final class EnsoDateTime implements TruffleObject {
   private static final EnsoDateTime epochStart =
       EnsoDateTime.create(1582, 10, 15, 0, 0, 0, 0, EnsoTimeZone.parse("UTC"));
 
-  private static final DateTimeFormatter DATE_TIME_FORMATTER;
-
-  static {
-    DATE_TIME_FORMATTER =
+  private static final DateTimeFormatter DATE_TIME_FORMATTER =
         new DateTimeFormatterBuilder()
             .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             .optionalStart()
@@ -289,5 +286,4 @@ public final class EnsoDateTime implements TruffleObject {
             .appendZoneRegionId()
             .appendLiteral(']')
             .toFormatter();
-  }
 }
