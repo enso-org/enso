@@ -44,8 +44,8 @@ use ensogl_core::system::web::JsCast;
 use ensogl_core::system::web::JsValue;
 use ensogl_core::system::web::Map;
 
-mod fonts;
-mod shaders;
+pub mod fonts;
+pub mod shaders;
 
 
 
@@ -81,7 +81,7 @@ fn try_set_dynamic_asset(builder: JsValue, key: JsValue, asset: JsValue) -> anyh
     let builder = builder.as_string().unwrap();
     let key = key.as_string().unwrap();
     let asset: Map = asset.dyn_into().unwrap();
-    info!("set_dynamic_asset: {builder} / {key}");
+    info!("Loading a dynamic asset of type `{builder}`: `{key}`.");
     let mut asset_ = HashMap::new();
     asset.for_each(&mut |value: JsValue, key: JsValue| {
         asset_.insert(key.as_string().unwrap(), js_sys::Uint8Array::new(&value).to_vec());

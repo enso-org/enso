@@ -1,4 +1,9 @@
 //! Pre-seed the cache of MSDF data for fast font rendering.
+//!
+//! During build, while running the app for asset-extraction, we load the MSDF data cache with
+//! common glyphs. We serialize this data into two asset files for each font: An image containing
+//! the MSDF data itself, and a metadata file identifying the glyphs in the image, and providing
+//! MSDF parameters that are computed per-glyph.
 
 use enso_prelude::*;
 use ensogl_core::system::web::JsCast;
@@ -23,6 +28,34 @@ const ASCII_PRINTABLE_CHARS: &str = concat!(
 /// The glyphs to include in the pre-built atlas loaded at application startup.
 const PRELOAD_GLYPHS: &[&str] = &[ASCII_PRINTABLE_CHARS];
 
+/// The variations to be pre-built for each glyph, for each typeface.
+const PRELOAD_VARIATIONS: &[font::NonVariableFaceHeader] = &[
+    font::NonVariableFaceHeader::new(
+        font::Width::Normal,
+        font::Weight::Normal,
+        font::Style::Normal,
+    ),
+    font::NonVariableFaceHeader::new(
+        font::Width::Normal,
+        font::Weight::Medium,
+        font::Style::Normal,
+    ),
+    font::NonVariableFaceHeader::new(font::Width::Normal, font::Weight::Bold, font::Style::Normal),
+    font::NonVariableFaceHeader::new(
+        font::Width::Normal,
+        font::Weight::ExtraBold,
+        font::Style::Normal,
+    ),
+];
+
+/// The typefaces for which atlases should be pre-built.
+const PRELOAD_TYPEFACES: &[&str] = &[font::DEFAULT_FONT_MONO, font::DEFAULT_FONT, "mplus1p"];
+
+/// Path within the asset directory to store the glyph atlas image.
+const ATLAS_FILE: &str = "atlas.ppm";
+/// Path within the asset directory to store the glyph metadata.
+const METADATA_FILE: &str = "metadata.json";
+
 
 
 // =================
@@ -31,9 +64,8 @@ const PRELOAD_GLYPHS: &[&str] = &[ASCII_PRINTABLE_CHARS];
 
 /// Build atlas sources, and return as JavaScript data.
 pub fn build_atlases() -> JsValue {
-    let fonts_to_build = &[font::DEFAULT_FONT_MONO, font::DEFAULT_FONT, "mplus1p"];
     let fonts = Map::new();
-    for font_name in fonts_to_build {
+    for font_name in PRELOAD_TYPEFACES {
         match build_atlas(font_name) {
             Ok(font) => {
                 fonts.set(&font_name.to_string().into(), &font.into());
@@ -63,14 +95,12 @@ fn try_set_atlas(font: String, mut data: HashMap<String, Vec<u8>>) -> anyhow::Re
 // === Atlas Data ===
 // ==================
 
+/// MSDF data for a set of glyphs, ready to be rendered.
 #[derive(Debug)]
 pub struct Atlas {
     atlas:    js_sys::ArrayBuffer,
     metadata: String,
 }
-
-const ATLAS_FILE: &str = "atlas.ppm";
-const METADATA_FILE: &str = "metadata.json";
 
 impl From<Atlas> for JsValue {
     fn from(value: Atlas) -> Self {
@@ -108,15 +138,7 @@ fn build_atlas(name: &str) -> anyhow::Result<Atlas> {
         Font::Variable(_) =>
             return Err(anyhow!("Atlas cache pre-seeding for variable fonts is not supported.",)),
     };
-    let normal = font::NonVariableFaceHeader::default();
-    let mut medium = normal;
-    medium.weight = font::Weight::Medium;
-    let mut bold = normal;
-    bold.weight = font::Weight::Bold;
-    let mut extra_bold = normal;
-    extra_bold.weight = font::Weight::ExtraBold;
-    let preload_variations = &[normal, medium, bold, extra_bold];
-    for variation in preload_variations {
+    for variation in PRELOAD_VARIATIONS {
         for glyphs in PRELOAD_GLYPHS {
             font.prepare_glyphs_for_text(variation, glyphs)
                 .unwrap_or_else(|e| error!("Failed to populate cache for font variation: {e}."));

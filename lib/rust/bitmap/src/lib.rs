@@ -47,10 +47,16 @@ pub struct Image {
 /// If this is `false`, pixel data will be stored be encoded and decoded more efficiently, but
 /// non-standardly. Other programs will be able to display the files, though the values will be
 /// inverted.
+///
+/// PPM uses a 0=white convention for pixel data, which is somewhat expensive to convert to.
 const CONFORMANT_PPM: bool = false;
 
 impl Image {
-    /// Encode in the PPM format.
+    /// Encode in the PPM format. [PPM][1] is a particularly simple bitmap format, that is almost as
+    /// easy to read and write as serializing the raw pixel data; compared to just serializing, it
+    /// has the advantage that the files can be inspected with common tools.
+    ///
+    /// [1]: https://netpbm.sourceforge.net/doc/ppm.html
     pub fn encode_ppm(&self) -> Vec<u8> {
         debug_assert_eq!(self.height * self.width * CHANNELS, self.data.len());
         let mut out = Vec::new();

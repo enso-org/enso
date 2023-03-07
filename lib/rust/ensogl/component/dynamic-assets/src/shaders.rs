@@ -6,6 +6,17 @@ use ensogl_core::system::web::Map;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// Path within the asset directory to store the vertex shader.
+const VERTEX_FILE: &'static str = "vertex.glsl";
+/// Path within the asset directory to store the fragment shader.
+const FRAGMENT_FILE: &'static str = "fragment.glsl";
+
+
+
 // ===============
 // === Shaders ===
 // ===============
@@ -40,6 +51,3 @@ fn try_set(key: String, mut value: HashMap<String, Vec<u8>>) -> anyhow::Result<(
     ensogl_core::display::world::set_shader_code(key, vertex, fragment);
     Ok(())
 }
-
-const VERTEX_FILE: &'static str = "vertex.glsl";
-const FRAGMENT_FILE: &'static str = "fragment.glsl";

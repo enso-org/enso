@@ -24,11 +24,13 @@ class App extends runner.App {
 
     async extractAssets(outDir: string) {
         await log.Task.asyncRun('Extracting dynamic assets source code.', async () => {
+            // Clear the extracted-sources directory before getting new sources.
+            // If getting sources fails we leave the directory empty, not outdated.
+            await fs.rm(outDir, { recursive: true, force: true })
+            await fs.mkdir(outDir)
             const assetsMap = this.getAssetSources()
             if (assetsMap) {
                 await log.Task.asyncRun(`Writing assets to '${outDir}'.`, async () => {
-                    await fs.rm(outDir, { recursive: true, force: true })
-                    await fs.mkdir(outDir)
                     for (const [builder, asset] of assetsMap) {
                         for (const [key, files] of asset) {
                             const dirPath = path.join(outDir, builder, key)

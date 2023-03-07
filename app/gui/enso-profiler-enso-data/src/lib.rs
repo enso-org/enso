@@ -45,7 +45,14 @@ pub enum Metadata {
     BackendMessage(backend::Message),
     /// Performance stats gathered from the EnsoGL rendering engine.
     RenderStats(ensogl_core::debug::StatsData),
-    /// Other data.
+    /// Any other metadata type.
+    ///
+    /// The types defined above are handled specially by `enso-profiler-enso-data` tools: E.g. the
+    /// RPC events and `RenderStats` are displayed in different ways by the `profiling_run_graph`
+    /// entry point.
+    ///
+    /// Other types are logged purely so they they can be seen in the events logs, e.g. when
+    /// inspecting a log with the `measurements` tool.
     #[serde(other)]
     Other,
 }

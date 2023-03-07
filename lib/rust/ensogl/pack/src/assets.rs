@@ -1,3 +1,15 @@
+//! Building dynamic assets (assets which require the application to be run to generate their
+//! sources).
+//!
+//! The essential operation, producing a directory of outputs from a directory of inputs, is
+//! implemented by each builder (e.g. [`Builder::Shader`], [`Builder::Font`]).
+//!
+//! As builders can take some time to run, a caching mechanism is used to avoid unnecessary
+//! rebuilds. Caching is achieved by making populating-the-output-directory an idempotent process:
+//! Paths within the output directory are dependent on the *content* of the corresponding input
+//! files, so that if a calculated output path already exists, it is already up-to-date; otherwise,
+//! it must be built. This design may be familiar to users of the Nix or Guix package managers.
+
 use crate::Paths;
 use enso_prelude::anyhow;
 use ide_ci::prelude::*;
@@ -12,13 +24,21 @@ use std::hash::Hasher;
 // === Build ===
 // =============
 
-/// Build the dynamic assets.
+/// Bring the dynamic assets up-to-date, for the current asset sources. This consists of:
+/// - Scan the asset source directory tree, hashing the input files.
+/// - Update the assets:
+///   - For each asset-source directory, determine an output directory based on the inputs name and
+///     the hashes of its files.
+///   - If that output directory doesn't exist, run the builder (determined by the top-level
+///     directory the in which the asset was found, e.g. `shader`) and populate the directory.
+///   - Generate a manifest, identifying the current assets and paths to their sources.
 pub async fn build(paths: &Paths) -> Result<()> {
     info!("Building dynamic assets.");
     let sources = survey_asset_sources(paths)?;
     let assets = update_assets(paths, &sources).await?;
     let manifest = serde_json::to_string(&assets)?;
-    std::fs::write(&paths.target.ensogl_pack.dist.dynamic_assets.manifest, manifest)?;
+    ide_ci::fs::tokio::write(&paths.target.ensogl_pack.dist.dynamic_assets.manifest, manifest)
+        .await?;
     gc_assets(paths, &assets)?;
     Ok(())
 }
@@ -119,6 +139,10 @@ type AssetManifest = BTreeMap<Builder, BTreeMap<String, Asset>>;
 // ================
 
 /// Scan the sources found in the asset sources directory.
+///
+/// Returns, for each [`Builder`] (e.g. shader or font), for each asset directory found, an
+/// [`AssetSources`] object identifying the asset key (i.e. the name of its directory), its input
+/// files, and a hash covering all its input files.
 fn survey_asset_sources(paths: &Paths) -> Result<HashMap<Builder, Vec<AssetSources>>> {
     let dir = ide_ci::fs::read_dir(&paths.target.ensogl_pack.dynamic_assets)?;
     let mut asset_sources: HashMap<_, Vec<_>> = HashMap::new();
@@ -154,6 +178,14 @@ fn survey_asset_sources(paths: &Paths) -> Result<HashMap<Builder, Vec<AssetSourc
 }
 
 /// Generate any assets not found up-to-date in the cache.
+///
+/// If an output directory already exists, it can be assumed to be up-to-date (because output path
+/// is dependent on the input data), and is used as-is. Otherwise, [`build_asset`] runs the
+/// appropriate builder to generate the output directory. In either case, a summary of the files
+/// present in the output directory is produced; these summaries are assembled into an
+/// [`AssetManifest`].
+///
+/// When asset builders need to be invoked, they are all run in parallel.
 async fn update_assets(
     paths: &Paths,
     sources: &HashMap<Builder, Vec<AssetSources>>,
@@ -193,6 +225,13 @@ async fn update_assets(
 }
 
 /// Generate an asset from the given sources.
+///
+/// Set up paths (as described in the [`crate`] docs): run the appropriate [`Builder`]; move its
+/// output from a temporary path into its final location (note that outputs are not built directly
+/// in their final location, because directories found in the output tree are assumed to
+/// accurately represent the results of running the specified builder for the specified inputs;
+/// creating the output directory in its complete state ensures that if a build process is
+/// interrupted, incomplete artifacts are never used).
 async fn build_asset(
     paths: &Paths,
     builder: Builder,
@@ -211,7 +250,7 @@ async fn build_asset(
         .dynamic_assets
         .join(builder.dir_name())
         .join(&source_specification.asset_key);
-    std::fs::create_dir(&tmp_output_dir)?;
+    tokio::fs::create_dir(&tmp_output_dir).await?;
     let work_path = paths
         .target
         .ensogl_pack
@@ -228,7 +267,7 @@ async fn build_asset(
         .dynamic_assets
         .join(builder.dir_name())
         .join(source_specification.dir_name());
-    std::fs::rename(tmp_output_dir, output_dir)?;
+    tokio::fs::rename(tmp_output_dir, output_dir).await?;
     survey_asset(paths, builder, source_specification)
 }
 
@@ -307,7 +346,7 @@ async fn build_shader(
     output_dir: &Path,
     work_dir: &Path,
 ) -> Result<()> {
-    ide_ci::fs::create_dir_if_missing(work_dir)?;
+    ide_ci::fs::tokio::create_dir_if_missing(work_dir).await?;
     info!("Optimizing `{}`.", input_dir.file_name().unwrap_or_default().to_string_lossy());
     for glsl_file_name in input_files {
         let glsl_path = input_dir.join(glsl_file_name);
@@ -329,10 +368,11 @@ async fn build_shader(
         SpirvOpt.cmd()?.args(spirv_opt_args).run_ok().await?;
         SpirvCross.cmd()?.args(spirv_cross_args).run_ok().await?;
 
-        let content = ide_ci::fs::read_to_string(&glsl_opt_path)?.replace("\r\n", "\n");
+        let content =
+            ide_ci::fs::tokio::read_to_string(&glsl_opt_path).await?.replace("\r\n", "\n");
         let extract_err = || format!("Failed to process shader '{}'.", glsl_opt_path.as_str());
         let code = extract_main_shader_code(&content).with_context(extract_err)?;
-        ide_ci::fs::write(&glsl_opt_dist_path, code)?;
+        ide_ci::fs::tokio::write(&glsl_opt_dist_path, code).await?;
     }
     Ok(())
 }

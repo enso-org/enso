@@ -26,10 +26,14 @@
 //!       │  ╰─ snippets                 | Rust-extracted JS snippets.
 //!       │     ╰─ <name>.js             | A single Rust-extracted JS snippet.
 //!       ├─ dynamic-assets              | Dynamic asset sources extracted from WASM bundle.
-//!       │  ╰─ <type>                   | A subdirectory for each type of asset.
-//!       │     ├─ <key>                 | A subdirectory for each asset's sources.
-//!       │     ├─ <key>.work            | Intermediate files produced when building an asset.
-//!       │     ╰─ ...
+//!       │  ├─ shader                   | Pre-compiled shaders.
+//!       │  │  ├─ <key>                 | Asset sources (the GLSL file).
+//!       │  │  ├─ <key>.work            | Intermediate files produced by the shader compiler.
+//!       │  │  ╰─ ...
+//!       │  ├─ font                     | Pre-generated MSDF data.
+//!       │  │  ├─ <key>                 | Asset sources (the glyph atlas image, and metadata).
+//!       │  │  ╰─ ...
+//!       │  ╰─ <type>...
 //!       ├─ runtime-libs
 //!       │  ╰─ runtime-libs.js
 //!       ├─ linked-dist                 | Either symlink to dist or to the gui artifacts.
@@ -45,10 +49,13 @@
 //!        * ├─ pkg.wasm                 | The `pks_bg.wasm` artifact of wasm-pack.
 //!        * ╰─ dynamic-assets           | Built dynamic assets.
 //!             ├─ manifest.json         | An index of all the assets and their files.
-//!             ├─ <type>                | A subdirectory for each type of asset.
+//!             ├─ shader                | Pre-compiled shaders.
 //!             │  ├─ <key>              | A subdirectory for each asset.
 //!             │  ╰─ ...
-//!             ╰─ ...
+//!             ├─ font                  | Pre-generated MSDF data.
+//!             │  ├─ <key>              | A subdirectory for each asset.
+//!             │  ╰─ ...
+//!             ╰─ <type>...
 //! ```
 //!
 //! The high-level app compilation process is summarized below:
@@ -107,6 +114,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![warn(missing_docs)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
@@ -120,7 +128,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
-mod assets;
+pub mod assets;
 
 
 
@@ -197,6 +205,7 @@ macro_rules! define_paths {
     )*};
 }
 
+/// Paths used during build.
 pub mod paths {
     use super::*;
     define_paths! {
@@ -252,6 +261,7 @@ pub mod paths {
 const WASM_PACK_OUT_NAME: &str = "pkg";
 
 impl Paths {
+    /// Create a set of paths values.
     pub async fn new() -> Result<Self> {
         let mut p = Paths::default();
         let current_cargo_path = Path::new(path!("Cargo.toml"));
@@ -290,6 +300,7 @@ impl Paths {
     }
 }
 
+/// Returns the workspace directory (repo root).
 pub async fn workspace_dir() -> Result<PathBuf> {
     use ide_ci::programs::cargo;
     use ide_ci::programs::Cargo;
