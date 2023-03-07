@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table.Internal.Naming_Helpers
+import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 from Standard.Table import Aggregate_Column
 
 import project.Connection.Connection.Connection

@@ -29,7 +29,7 @@ import project.Data.Value_Type.Value_Type
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
-import project.Internal.Naming_Helpers
+import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers

@@ -4,7 +4,7 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
-import Standard.Table.Internal.Naming_Helpers
+import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 

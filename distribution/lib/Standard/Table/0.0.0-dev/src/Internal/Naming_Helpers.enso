@@ -4,15 +4,18 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
 ## PRIVATE
-   Checks if the name is valid and runs the action, otherwise raises an error.
-ensure_name_is_valid name ~action =
-    checked = Illegal_Argument.handle_java_exception <|
-        Java_Column.ensureNameIsValid name
-    checked.if_not_error action
+   An utility module for validating and sanitizing column names.
+type Naming_Helpers
+    ## PRIVATE
+       Checks if the name is valid and runs the action, otherwise raises an error.
+    ensure_name_is_valid name ~action =
+        checked = Illegal_Argument.handle_java_exception <|
+            Java_Column.ensureNameIsValid name
+        checked.if_not_error action
 
-## PRIVATE
-   Ensures that the name does not contain the null character.
-sanitize_name : Text -> Text
-sanitize_name name =
-    # Using the regex matcher due to the #5831 bug.
-    name.replace '\0' '\\\\0' matcher=Regex_Matcher.Value
+    ## PRIVATE
+       Ensures that the name does not contain the null character.
+    sanitize_name : Text -> Text
+    sanitize_name name =
+        # Using the regex matcher due to the #5831 bug.
+        name.replace '\0' '\\\\0' matcher=Regex_Matcher.Value
