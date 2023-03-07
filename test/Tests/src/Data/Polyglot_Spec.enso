@@ -7,6 +7,7 @@ polyglot java import java.time.LocalDate
 polyglot java import java.lang.String
 polyglot java import java.lang.Integer
 polyglot java import java.util.function.Function
+polyglot java import org.enso.base_test_helpers.IntHolder
 
 spec = Test.group "Polyglot" <|
     Test.specify "should be able to invoke a polyglot method by name and pass arguments" <|
@@ -25,6 +26,13 @@ spec = Test.group "Polyglot" <|
 
     Test.specify "use Integer read from Polyglot object" <|
         (Polyglot.get_member js_meaning "meaning") . should_equal 42
+
+    Test.specify "use Integer obtained from a call" <|
+        Integer.parseInt "42" . should_equal 42
+
+    Test.specify "use Integer obtained from a read" <|
+        hold = IntHolder.new (6 * 7)
+        hold.value . should_equal 42
 
     Test.specify "should be able to execute a polyglot function object along with corresponding arguments" <|
         fun = Function.identity
