@@ -1,0 +1,21 @@
+from Standard.Base import all
+import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+
+## PRIVATE
+   Checks if the name is valid and runs the action, otherwise raises an error.
+ensure_name_is_valid name ~action = case name of
+     Nothing -> Error.throw (Illegal_Argument.Error "The column name must not be Nothing.")
+     "" -> Error.throw (Illegal_Argument.Error "The column name must not be empty.")
+     _ : Text ->
+        # Cannot use `text.contains '\0'` due to the #5831 bug.
+        if name.codepoints.contains 0 then Error.throw (Illegal_Argument.Error "The column name must not contain the NUL character.") else
+           action
+     _ -> Error.throw (Type_Error.Error Text (Meta.type_of name) "name")
+
+## PRIVATE
+   Ensures that the name does not contain the null character.
+sanitize_name : Text -> Text
+sanitize_name name =
+    # Using the regex matcher due to the #5831 bug.
+    name.replace '\0' matcher=Regex_Matcher.Value

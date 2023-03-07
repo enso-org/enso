@@ -6,6 +6,7 @@ from Standard.Table import Sort_Column, Data_Formatter
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Internal.Java_Problems
+import Standard.Table.Internal.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table.Data.Value_Type import Value_Type, Auto
@@ -670,15 +671,23 @@ type Column
     fill_missing : Any -> Column
     fill_missing self default = self.make_binary_op "FILL_NULL" default
 
-    ## UNSTABLE
+    ## ALIAS Rename Column
 
-       Returns the same column with changed name.
+       Returns a new column, containing the same elements as `self`, but with
+       the given name.
 
        Arguments:
-       - new_name: The name to rename `self` column to.
-    rename : Text -> Column ! Unsupported_Name
-    rename self new_name =
-        Column.Value new_name self.connection self.sql_type self.expression self.context
+       - name: The new name for the column.
+
+       > Example
+         Rename a column.
+
+             import Standard.Examples
+
+             example_rename = Examples.integer_column.rename "My Numbers"
+    rename : Text -> Column ! Illegal_Argument
+    rename self name = Naming_Helpers.ensure_name_is_valid name <|
+        Column.Value name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
 

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Arithmetic_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table.Errors import all
 
@@ -209,3 +210,13 @@ spec setup =
             s1.ends_with "ar" . to_vector . should_equal [True, True, False, False, Nothing]
             s1.ends_with "a" . to_vector . should_equal [False, False, False, False, Nothing]
             s1.ends_with "b" Case_Sensitivity.Insensitive . to_vector . should_equal [False, False, False, True, Nothing]
+
+    Test.group prefix+"Column.rename" <|
+        Test.specify "should not allow illegal names" <|
+            t = table_builder [["a", [1, 2, 3]]]
+            c = t.at "a"
+
+            c.rename Nothing . should_fail_with Illegal_Argument
+            c.rename '' . should_fail_with Illegal_Argument
+            c.rename 'a\0b' . should_fail_with Illegal_Argument
+            c.rename '\0' . should_fail_with Illegal_Argument

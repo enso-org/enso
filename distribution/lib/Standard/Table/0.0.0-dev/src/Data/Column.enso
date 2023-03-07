@@ -12,6 +12,7 @@ import project.Data.Storage.Storage
 import project.Data.Table.Table
 import project.Data.Value_Type.Value_Type
 import project.Internal.Java_Problems
+import project.Internal.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
@@ -1048,8 +1049,9 @@ type Column
              import Standard.Examples
 
              example_rename = Examples.integer_column.rename "My Numbers"
-    rename : Text -> Column
-    rename self name = Column.Value (self.java_column.rename name)
+    rename : Text -> Column ! Illegal_Argument
+    rename self name = Naming_Helpers.ensure_name_is_valid name <|
+        Column.Value (self.java_column.rename name)
 
     ## Returns the name of this column.
 

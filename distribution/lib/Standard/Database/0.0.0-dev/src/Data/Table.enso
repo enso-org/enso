@@ -20,6 +20,7 @@ import Standard.Table.Data.Value_Type.Auto
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Java_Exports
+import Standard.Table.Internal.Naming_Helpers
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -673,7 +674,7 @@ type Table
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
         new_column = Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename expression
+        result = new_column.rename (Naming_Helpers.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
