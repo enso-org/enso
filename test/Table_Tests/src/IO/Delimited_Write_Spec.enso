@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Encoding_Error.Encoding_Error
+import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Match_Columns, Delimited
@@ -546,5 +547,57 @@ spec =
             result . should_fail_with Illegal_Argument.Error
             result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
             file.delete
+
+        Test.specify "should fail if the target file is read-only" <|
+            f = enso_project.data / "transient" / "permission.csv"
+            f.delete_if_exists
+
+            initial_data = "MY DATA"
+            initial_data.write f
+            set_writable f False
+
+            t1 = Table.new [["X", [1, 2, 3]]]
+            [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior->
+                r1 = t1.write f (Delimited ',') on_existing_file=behavior
+                r1.should_fail_with File_Error.Access_Denied
+                f.read Plain_Text . should_equal initial_data
+
+            set_writable f True
+            f.delete
+
+        Test.specify "should fail if the parent directory does not exist" <|
+            parent = enso_project.data / "transient" / "nonexistent"
+            parent.exists.should_be_false
+
+            f = parent / "foo.csv"
+            t1 = Table.new [["X", [1, 2, 3]]]
+            r1 = t1.write f (Delimited ',')
+            r1.should_fail_with File_Error.Not_Found
+
+        Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
+            f = enso_project.data / "transient" / "encoding-errors.csv"
+
+            format = Delimited "," encoding=Encoding.ascii headers=True
+            t = Table.new [["X", ["A", "B", "😊", "D"]]]
+            do_write pb =
+                f.delete_if_exists
+                t.write f format on_problems=pb
+            tester write_result =
+                write_result . should_equal f
+                read_table = write_result.read format
+                read_table.column_names . should_equal ["X"]
+                read_table.at "X" . to_vector . should_equal ["A", "B", "?", "D"]
+            problems = [Encoding_Error.Error "Encoding issues at codepoint 6."]
+            Problems.test_problem_handling do_write problems tester
+
+            # And should not overwrite the original contents when working in backup mode.
+            f.delete_if_exists
+            "Initial Content".write f on_existing_file=Existing_File_Behavior.Overwrite
+            big_table = Table.new [["X", 0.up_to 5000 . to_vector + ["😊"]]]
+            r2 = big_table.write f format on_problems=Problem_Behavior.Report_Error
+            r2.should_fail_with Encoding_Error
+            r2.catch.to_display_text . should_contain "Encoding issues"
+            f.read Plain_Text . should_equal "Initial Content"
+            f.delete
 
 main = Test_Suite.run_main spec
