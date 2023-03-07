@@ -136,11 +136,6 @@ const initOpenUrlListener = (
         }
         /** Don't open the deep link URL in the window, we want the system browser to handle it. */
         event.preventDefault()
-        if (window) {
-            window.webContents.send(ipc.channel.openDeepLink, url)
-        } else {
-            logger.error("Can't open the URL. Window is null.")
-        }
-
+        window()?.webContents.send(ipc.channel.openDeepLink, url)
     })
 }
