@@ -1,10 +1,10 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -14,10 +14,11 @@ import java.util.stream.Collectors;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
@@ -91,9 +92,17 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          boolean firstResult = equalsNode.execute(firstValue, secondValue);
-          boolean secondResult = equalsNode.execute(firstValue, secondValue);
-          assertEquals("equals should be symmetric", firstResult, secondResult);
+          Object firstResult = equalsNode.execute(firstValue, secondValue);
+          Object secondResult = equalsNode.execute(secondValue, firstValue);
+          if (firstResult instanceof Boolean firstResultBool && secondResult instanceof Boolean secondResultBool) {
+            assertEquals("equals should be symmetric", firstResultBool, secondResultBool);
+          } else {
+            var nothing = EnsoContext.get(null).getBuiltins().nothing();
+            assertTrue(
+                "equals should be symmetric - Nothing returned just in one case",
+                nothing == firstResult && nothing == secondResult
+            );
+          }
           return null;
         });
   }
@@ -103,8 +112,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          boolean firstResult = equalsNode.execute(value, value);
-          boolean secondResult = equalsNode.execute(value, value);
+          Object firstResult = equalsNode.execute(value, value);
+          Object secondResult = equalsNode.execute(value, value);
           assertEquals("equals should be consistent", firstResult, secondResult);
           return null;
         });
@@ -115,8 +124,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          boolean uncachedRes = EqualsNodeGen.getUncached().execute(firstVal, secondVal);
-          boolean cachedRes = equalsNode.execute(firstVal, secondVal);
+          Object uncachedRes = EqualsNodeGen.getUncached().execute(firstVal, secondVal);
+          Object cachedRes = equalsNode.execute(firstVal, secondVal);
           assertEquals(
               "Result from uncached EqualsNode should be the same as result from its cached variant",
               uncachedRes,
@@ -137,7 +146,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoDate, javaDate));
+          assertTrue((Boolean) equalsNode.execute(ensoDate, javaDate));
           return null;
         });
   }
@@ -155,7 +164,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoTime, javaDate));
+          assertTrue((Boolean) equalsNode.execute(ensoTime, javaDate));
           return null;
         });
   }
@@ -178,7 +187,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoDateTime, javaDateTime));
+          assertTrue((Boolean) equalsNode.execute(ensoDateTime, javaDateTime));
           return null;
         });
   }
@@ -191,8 +200,26 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoVector, javaVector));
+          assertTrue((Boolean) equalsNode.execute(ensoVector, javaVector));
           return null;
         });
+  }
+
+  /**
+   * NaN is a special value of Decimal type that is not comparable.
+   */
+  @Test
+  public void testNanEquality() {
+    Object nan = unwrapValue(context, createValue(context, "Number.nan", "import Standard.Base.Data.Numbers.Number"));
+    Object decimal = unwrapValue(context, createValue(context, "15.56"));
+    executeInContext(
+        context,
+        () -> {
+          Object res = equalsNode.execute(nan, decimal);
+          Type nothing = EnsoContext.get(null).getNothing();
+          assertSame("Comparison of NaN and other decimal should return Nothing", nothing, res);
+          return null;
+        }
+    );
   }
 }

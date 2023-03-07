@@ -109,9 +109,9 @@ spec =
                     File_Permissions.Value [] [] []
 
                 r1 = f.read
-                r1.should_fail_with File_Error.IO_Error
+                r1.should_fail_with File_Error.Access_Denied
                 r1.catch.file . should_equal f
-                r1.catch.message.contains "You do not have permission" . should_be_true
+                r1.catch.to_display_text.should_contain "Insufficient permissions"
 
                 Process.run "chmod" ["0744", f.absolute.path] . should_equal Exit_Code.Success
                 f.delete
@@ -221,7 +221,7 @@ spec =
             f.delete_if_exists
             f_bak.delete_if_exists
 
-        Test.specify "should allow to overwriting a file with new bytes" <|
+        Test.specify "should allow overwriting a file with new bytes" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
@@ -419,20 +419,55 @@ spec =
             f.is_writable.should_be_false
 
             r2 = "FOO".write f on_existing_file=Existing_File_Behavior.Append
-            r2.should_fail_with File_Error.IO_Error
+            r2.should_fail_with File_Error.Access_Denied
             f.read . should_equal "foobar"
 
             r3 = "FOO".write f on_existing_file=Existing_File_Behavior.Overwrite
-            r3.should_fail_with File_Error.IO_Error
+            r3.should_fail_with File_Error.Access_Denied
             f.read . should_equal "foobar"
 
             r4 = "FOO".write f on_existing_file=Existing_File_Behavior.Backup
-            r4.should_fail_with File_Error.IO_Error
+            r4.should_fail_with File_Error.Access_Denied
             f.read . should_equal "foobar"
 
             f.is_writable.should_be_false
 
             set_writable f True
+            f.delete
+
+        Test.specify "should fail if the parent directory does not exist" <|
+            parent = transient / "nonexistent"
+            parent.exists.should_be_false
+
+            f = parent / "foo.txt"
+            r1 = "txt".write f
+            r1.should_fail_with File_Error.Not_Found
+            # The write fails because the _parent_ directory did not exist.
+            r1.catch.file . should_equal parent
+
+            [65, 67].write_bytes f . should_fail_with File_Error.Not_Found
+
+        Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
+            f = transient / "encoding-errors.txt"
+
+            encoding = Encoding.ascii
+            input_content = "Hello! 😊"
+            do_write pb =
+                f.delete_if_exists
+                input_content.write f encoding on_problems=pb
+            tester write_result =
+                write_result . should_equal f
+                write_result.read . should_equal "Hello! ?"
+            problems = [Encoding_Error.Error "Encoding issues at 7."]
+            Problems.test_problem_handling do_write problems tester
+
+            # And should not overwrite the original contents when working in backup mode.
+            f.delete_if_exists
+            "Initial Content".write f on_existing_file=Existing_File_Behavior.Overwrite
+            big_content = "Hello " * 2000 + input_content
+            r2 = big_content.write f encoding on_problems=Problem_Behavior.Report_Error
+            r2.should_fail_with Encoding_Error
+            f.read . should_equal "Initial Content"
             f.delete
 
     Test.group "folder operations" <|
