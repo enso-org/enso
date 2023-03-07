@@ -105,7 +105,7 @@ type Postgres_Dialect
        It will execute the provided action if it is or raise an error otherwise.
     ensure_name_is_valid : Text -> Any -> Any
     ensure_name_is_valid self name ~action =
-        Naming_Helpers.ensure_name_is_valid name ~action
+        Naming_Helpers.ensure_name_is_valid name action
 
 ## PRIVATE
 make_internal_generator_dialect =
