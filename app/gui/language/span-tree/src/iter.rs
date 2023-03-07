@@ -133,7 +133,7 @@ mod tests {
             .add_child(0, 10, Kind::chained(), vec![LeftOperand])
             .add_leaf(0, 3, Kind::this(), vec![LeftOperand])
             .add_leaf(4, 1, Kind::Operation, vec![Operator])
-            .add_child(6, 3, Kind::argument(), vec![RightOperand])
+            .add_child(6, 3, Kind::argument(1), vec![RightOperand])
             .add_leaf(0, 1, Kind::Operation, vec![Func])
             .add_leaf(2, 1, Kind::this(), vec![Arg])
             .done()
@@ -145,7 +145,7 @@ mod tests {
             .add_child(6, 5, Kind::chained(), vec![RightOperand])
             .add_leaf(0, 1, Kind::this(), vec![LeftOperand])
             .add_leaf(2, 1, Kind::Operation, vec![Operator])
-            .add_leaf(4, 1, Kind::argument(), vec![RightOperand])
+            .add_leaf(4, 1, Kind::argument(1), vec![RightOperand])
             .done()
             .done()
             .build();

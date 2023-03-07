@@ -94,6 +94,11 @@ impl ArgumentInfo {
         Self { name, tp, call_id, tag_values }
     }
 
+    /// Specialized constructor with argument name.
+    pub fn named(name: impl Str) -> Self {
+        Self::new(Some(name.into()), None, None, default())
+    }
+
     /// Specialized constructor for "this" argument.
     pub fn this(tp: Option<String>, call_id: Option<ast::Id>) -> Self {
         Self::new(Some(node::Argument::THIS.into()), tp, call_id, default())
@@ -189,7 +194,7 @@ impl<T: Payload> Default for SpanTree<T> {
 
 // == Debug utils ==
 
-impl<T: Payload> SpanTree<T> {
+impl<T> SpanTree<T> {
     #[allow(dead_code)]
     /// Get pretty-printed representation of this span tree for debugging purposes. The `code`
     /// argument should be identical to the expression that was used during generation of this
@@ -226,6 +231,12 @@ impl<T: Payload> SpanTree<T> {
     /// ```
     pub fn debug_print(&self, code: &str) -> String {
         use std::fmt::Write;
+
+        let mut code = code.to_string();
+        let code_padding = self.root.size.as_usize().saturating_sub(code.len());
+        for _ in 0..code_padding {
+            code.push(' ');
+        }
 
         let mut buffer = String::new();
         let span_padding = " ".repeat(code.len() + 1);
@@ -264,6 +275,10 @@ impl<T: Payload> SpanTree<T> {
             buffer.push_str(node.kind.variant_name());
             if let node::Kind::InsertionPoint(inner) = &node.kind {
                 write!(buffer, "({:?})", inner.kind).unwrap();
+            }
+
+            if let node::Kind::Argument(arg) = &node.kind {
+                write!(buffer, "({})", arg.position).unwrap();
             }
 
             if let Some(name) = node.kind.name() {

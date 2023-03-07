@@ -133,8 +133,8 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         let last_elem = infix.args.last_mut().unwrap();
                         last_elem.offset = DEFAULT_OFFSET;
                         match kind {
-                            BeforeArgument(idx) if has_target => infix.insert_operand(*idx, item),
-                            BeforeArgument(_) => infix.target = Some(item),
+                            BeforeArgument(0 | 1) if !has_target => infix.target = Some(item),
+                            BeforeArgument(idx) => infix.insert_operand(*idx, item),
                             Append if has_arg => infix.push_operand(item),
                             Append => last_elem.operand = Some(item),
                             ExpectedArgument { .. } => unreachable!(
@@ -275,10 +275,16 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 });
                 let mut new_root = root.set_traversing(parent_crumbs, new_ast?)?;
 
-                if !is_named_argument {
-                    // when erasing a positional argument, all further positional arguments will
-                    // end up in wrong position. To fix that, we need to rewrite them as named
-                    // arguments.
+                let matches_position = self
+                    .kind
+                    .definition_index()
+                    .zip(self.kind.argument_position())
+                    .map_or(false, |(def, pos)| def == pos);
+
+                if !is_named_argument || matches_position {
+                    // when erasing a positional argument or named argument in its natural position,
+                    // all further positional arguments will end up in wrong position. To fix that,
+                    // we need to rewrite them as named arguments.
 
                     let mut next_parent = parent_crumbs
                         .split_last()
@@ -340,23 +346,36 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 // reinsertion points. We can find them by scanning new span-tree for the insertion
                 // point at correct location.
                 let reinsert_crumbs = reinsert_crumbs.or_else(|| {
+                    let call_id = self.kind.call_id();
+
+                    let call_root =
+                        new_span_tree.root_ref().find_node(|node| node.ast_id == call_id)?;
+
+
                     let removed_offset = if is_named_argument {
                         self.parent().ok()??.span_offset
                     } else {
                         self.span_offset
                     };
 
-                    let found = new_span_tree.root_ref().find_node(|node| {
-                        node.kind.is_insertion_point() && node.span_offset == removed_offset
-                    });
-
+                    // If removed offset is past the tree, use last Append as reinsertion point.
+                    let max_span = call_root.span().end;
+                    let removed_offset = removed_offset.min(max_span);
+                    let found = call_root.find_by_span(&(removed_offset..removed_offset).into());
+                    let found = found.filter(|node| node.is_insertion_point());
                     found.map(|found| found.crumbs)
                 });
 
                 // If all fails, use the root of the span-tree as reinsertion point as a fallback,
                 // and log it as an error.
                 let reinsert_crumbs = reinsert_crumbs.unwrap_or_else(|| {
-                    error!("Failed to find reinsertion point for erased argument. This is a bug.");
+                    let printed_tree = new_span_tree.debug_print(&new_root.repr());
+                    let offset = self.span_offset;
+                    error!(
+                        "Failed to find reinsertion point for erased argument. This is a bug.\n\
+                         Removed offset: {offset}\n\
+                         Span tree: \n{printed_tree}"
+                    );
                     new_span_tree.root_ref().crumbs
                 });
 
@@ -432,6 +451,8 @@ mod test {
                 }
                 .expect(&case);
                 let result_repr = result.repr();
+                println!("{}", tree.debug_print(&self.expr));
+                println!("{:?}", node.kind);
                 assert_eq!(result_repr, self.expected, "Wrong answer for case {self:?}");
                 assert_eq!(ast_id, result.id, "Changed AST ID in case {self:?}");
             }
@@ -454,14 +475,14 @@ mod test {
             , Case{expr:"+"          , span:0..0  , action:Set  , expected:"foo +"          }
             , Case{expr:"+"          , span:1..1  , action:Set  , expected:"+ foo"          }
             , Case{expr:"a + b"      , span:0..0  , action:Set  , expected:"foo + a + b"    }
-            , Case{expr:"a + b"      , span:1..1  , action:Set  , expected:"a + foo + b"    }
+            , Case{expr:"a + b"      , span:4..4  , action:Set  , expected:"a + foo + b"    }
             , Case{expr:"a + b"      , span:5..5  , action:Set  , expected:"a + b + foo"    }
             , Case{expr:"+ b"        , span:3..3  , action:Set  , expected:"+ b + foo"      }
             , Case{expr:"a + b + c"  , span:0..0  , action:Set  , expected:"foo + a + b + c"}
-            , Case{expr:"a + b + c"  , span:5..5  , action:Set  , expected:"a + b + foo + c"}
+            , Case{expr:"a + b + c"  , span:8..8  , action:Set  , expected:"a + b + foo + c"}
             , Case{expr:", b"        , span:3..3  , action:Set  , expected:", b , foo"      }
             , Case{expr:"f a b"      , span:2..2  , action:Set  , expected:"f foo a b"      }
-            , Case{expr:"f a b"      , span:3..3  , action:Set  , expected:"f a foo b"      }
+            , Case{expr:"f a b"      , span:4..4  , action:Set  , expected:"f a foo b"      }
             , Case{expr:"f a b"      , span:5..5  , action:Set  , expected:"f a b foo"      }
             , Case{expr:"if a then b", span:3..4  , action:Set  , expected: "if foo then b" }
             , Case{expr:"if a then b", span:10..11, action:Set  , expected: "if a then foo" }
@@ -513,32 +534,32 @@ mod test {
         let cases: &[Case] = &[
             Case { expr: "abc", span: 0..3, expected: &[Set] },
             Case { expr: "a + b", span: 0..0, expected: &[Set] },
-            Case { expr: "a + b", span: 0..1, expected: &[Set, Erase] },
-            Case { expr: "a + b", span: 1..1, expected: &[Set] },
+            Case { expr: "a + b", span: 0..1, expected: &[Set] },
             Case { expr: "a + b", span: 2..3, expected: &[] },
-            Case { expr: "a + b", span: 4..5, expected: &[Set, Erase] },
+            Case { expr: "a + b", span: 4..4, expected: &[Set] },
+            Case { expr: "a + b", span: 4..5, expected: &[Set] },
             Case { expr: "a + b", span: 5..5, expected: &[Set] },
             Case { expr: "a + b + c", span: 0..0, expected: &[Set] },
             Case { expr: "a + b + c", span: 0..1, expected: &[Set, Erase] },
-            Case { expr: "a + b + c", span: 1..1, expected: &[Set] },
+            Case { expr: "a + b + c", span: 4..4, expected: &[Set] },
             Case { expr: "a + b + c", span: 4..5, expected: &[Set, Erase] },
-            Case { expr: "a + b + c", span: 5..5, expected: &[Set] },
+            Case { expr: "a + b + c", span: 8..8, expected: &[Set] },
             Case { expr: "a + b + c", span: 8..9, expected: &[Set, Erase] },
             Case { expr: "a + b + c", span: 9..9, expected: &[Set] },
             Case { expr: "f a b", span: 0..1, expected: &[Set] },
             Case { expr: "f a b", span: 2..2, expected: &[Set] },
             Case { expr: "f a b", span: 2..3, expected: &[Set, Erase] },
-            Case { expr: "f a b", span: 3..3, expected: &[Set] },
+            Case { expr: "f a b", span: 4..4, expected: &[Set] },
             Case { expr: "f a b", span: 4..5, expected: &[Set, Erase] },
             Case { expr: "f a b", span: 5..5, expected: &[Set] },
-            Case { expr: "f a", span: 2..3, expected: &[Set, Erase] },
+            Case { expr: "f a", span: 2..3, expected: &[Set] },
             Case { expr: "if a then b", span: 3..4, expected: &[Set] },
             Case { expr: "if a then b", span: 10..11, expected: &[Set] },
             Case { expr: "(a + b)", span: 0..1, expected: &[] },
             Case { expr: "[a,b]", span: 0..1, expected: &[] },
             Case { expr: "[a,b]", span: 4..5, expected: &[] },
             Case { expr: "(a + b + c)", span: 5..6, expected: &[Set, Erase] },
-            Case { expr: "(a", span: 1..2, expected: &[Set, Erase] },
+            Case { expr: "(a", span: 1..2, expected: &[Set] },
             Case { expr: "(a + b + c", span: 5..6, expected: &[Set, Erase] },
         ];
         let parser = Parser::new();
@@ -557,7 +578,7 @@ mod test {
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_leaf(4, 7, node::Kind::this(), PrefixCrumb::Arg)
             .add_empty_child(7, InsertionPoint::expected_argument(1))
-            .add_empty_child(7, InsertionPoint::expected_argument(2))
+            .add_empty_child(7, InsertionPoint::expected_named_argument(2, "b"))
             .build();
 
         let ast = Ast::prefix(Ast::var("foo"), Ast::var("bar"));
@@ -573,7 +594,7 @@ mod test {
         assert_eq!(after.id, ast_id);
 
         let after = tree.root_ref().child(3).unwrap().set(&ast, baz.clone_ref()).unwrap();
-        assert_eq!(after.repr(), "foo bar _ baz");
+        assert_eq!(after.repr(), "foo bar b=baz");
         assert_eq!(after.id, ast_id);
 
         // Another case is Span Tree for `Main . foo` where `foo` is a method known to take 2
@@ -581,9 +602,9 @@ mod test {
         let tree: SpanTree = TreeBuilder::new(10)
             .add_leaf(0, 4, node::Kind::this(), InfixCrumb::LeftOperand)
             .add_leaf(5, 6, node::Kind::Operation, InfixCrumb::Operator)
-            .add_leaf(7, 10, node::Kind::argument(), InfixCrumb::RightOperand)
+            .add_leaf(7, 10, node::Kind::argument(1), InfixCrumb::RightOperand)
             .add_empty_child(10, InsertionPoint::expected_argument(0))
-            .add_empty_child(10, InsertionPoint::expected_argument(1))
+            .add_empty_child(10, InsertionPoint::expected_named_argument(1, "b"))
             .build();
 
         let ast = Ast::infix(Ast::cons("Main"), ".", Ast::var("foo"));
@@ -595,7 +616,7 @@ mod test {
         assert_eq!(after.id, ast_id);
 
         let after = tree.root_ref().child(4).unwrap().set(&ast, baz.clone_ref()).unwrap();
-        assert_eq!(after.repr(), "Main . foo _ baz");
+        assert_eq!(after.repr(), "Main . foo b=baz");
         assert_eq!(after.id, ast_id);
     }
 }

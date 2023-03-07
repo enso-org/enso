@@ -772,6 +772,7 @@ mod test {
     use crate::builder::TreeBuilder;
     use crate::node;
     use crate::node::InsertionPoint;
+    use crate::node::InsertionPointType;
     use crate::Crumbs;
     use crate::SpanTree;
 
@@ -785,10 +786,10 @@ mod test {
         let tree: SpanTree = TreeBuilder::new(7)
             .add_leaf(0, 1, node::Kind::this(), vec![LeftOperand])
             .add_leaf(1, 1, node::Kind::Operation, vec![Operator])
-            .add_child(2, 5, node::Kind::argument(), vec![RightOperand])
+            .add_child(2, 5, node::Kind::argument(1), vec![RightOperand])
             .add_leaf(0, 2, node::Kind::this(), vec![LeftOperand])
             .add_leaf(3, 1, node::Kind::Operation, vec![Operator])
-            .add_leaf(4, 1, node::Kind::argument(), vec![RightOperand])
+            .add_leaf(4, 1, node::Kind::argument(1), vec![RightOperand])
             .done()
             .build();
 
@@ -843,7 +844,8 @@ mod test {
         let tree: SpanTree = TreeBuilder::new(7)
             .add_leaf(0, 1, node::Kind::this(), vec![LeftOperand])
             .add_leaf(1, 1, node::Kind::Operation, vec![Operator])
-            .add_child(2, 5, node::Kind::argument(), vec![RightOperand])
+            .add_empty_child(2, InsertionPointType::BeforeArgument(0))
+            .add_child(2, 5, node::Kind::argument(1), vec![RightOperand])
             .add_leaf(0, 3, node::Kind::Operation, vec![Func])
             .add_leaf(3, 1, node::Kind::this(), vec![Arg])
             .done()
@@ -861,8 +863,8 @@ mod test {
         for case in cases {
             let (crumbs, expected_crumbs, expected_remaining_ast_crumbs) = case;
             let result = root.clone().get_descendant_by_ast_crumbs(crumbs).unwrap();
-            assert_eq!(result.node.crumbs.as_slice(), *expected_crumbs);
-            assert_eq!(result.ast_crumbs, expected_remaining_ast_crumbs.as_slice());
+            assert_eq!(result.node.crumbs.as_slice(), *expected_crumbs, "{case:?}");
+            assert_eq!(result.ast_crumbs, expected_remaining_ast_crumbs.as_slice(), "{case:?}");
         }
     }
 
@@ -877,11 +879,11 @@ mod test {
             .add_child(0, 8, node::Kind::Operation, ast::crumbs::Crumbs::default())
             .add_leaf(0, 4, node::Kind::this(), LeftOperand)
             .add_leaf(4, 1, node::Kind::Operation, Operator)
-            .add_leaf(5, 3, node::Kind::argument(), RightOperand)
+            .add_leaf(5, 3, node::Kind::argument(1), RightOperand)
             .done()
             .add_empty_child(8, InsertionPoint::expected_argument(0))
             .done()
-            .add_empty_child(8, InsertionPoint::expected_argument(1))
+            .add_empty_child(8, InsertionPoint::expected_named_argument(1, "foo"))
             .build();
 
         let cases =

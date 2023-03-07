@@ -45,10 +45,10 @@ impl Kind {
         Chained::this()
     }
     pub fn this() -> Argument {
-        Argument::this()
+        Self::argument(0).with_name(Some(Argument::THIS.into()))
     }
-    pub fn argument() -> Argument {
-        default()
+    pub fn argument(position: usize) -> Argument {
+        Argument { position, ..default() }
     }
     pub fn insertion_point() -> InsertionPoint {
         default()
@@ -165,6 +165,15 @@ impl Kind {
     pub fn definition_index(&self) -> Option<usize> {
         match self {
             Self::Argument(t) => t.definition_index,
+            _ => None,
+        }
+    }
+
+    /// Get the argument position within the chain. Does not apply to placeholders, which are not
+    /// yet placed in the chain.
+    pub fn argument_position(&self) -> Option<usize> {
+        match self {
+            Self::Argument(t) => Some(t.position),
             _ => None,
         }
     }
@@ -293,6 +302,7 @@ impl From<Chained> for Kind {
 #[allow(missing_docs)]
 pub struct Argument {
     pub removable:        bool,
+    pub position:         usize,
     /// The index of the argument in the function definition.
     pub definition_index: Option<usize>,
     pub name:             Option<String>,
@@ -308,9 +318,6 @@ pub struct Argument {
 impl Argument {
     pub const THIS: &'static str = "self";
 
-    pub fn this() -> Self {
-        Self { name: Some(Argument::THIS.into()), ..default() }
-    }
     pub fn typed(mut self, tp: String) -> Self {
         self.tp = Some(tp);
         self
@@ -333,6 +340,10 @@ impl Argument {
     }
     pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
         self.call_id = call_id;
+        self
+    }
+    pub fn indexed(mut self, index: usize) -> Self {
+        self.definition_index = Some(index);
         self
     }
 }
@@ -367,17 +378,16 @@ pub struct InsertionPoint {
 
 #[allow(missing_docs)]
 impl InsertionPoint {
-    pub fn before_argument(index: usize) -> Self {
-        Self::default().with_kind(InsertionPointType::BeforeArgument(index))
-    }
-    pub fn append() -> Self {
-        Self::default().with_kind(InsertionPointType::Append)
-    }
     pub fn expected_argument(index: usize) -> Self {
         Self::default().with_kind(InsertionPointType::ExpectedArgument { index, named: false })
     }
-    pub fn expected_named_argument(index: usize) -> Self {
+    pub fn expected_named_argument_erased(index: usize) -> Self {
         Self::default().with_kind(InsertionPointType::ExpectedArgument { index, named: true })
+    }
+    pub fn expected_named_argument(index: usize, name: impl Str) -> Self {
+        let kind = InsertionPointType::ExpectedArgument { index, named: true };
+        let name = Some(name.into());
+        Self::default().with_kind(kind).with_name(name)
     }
 }
 
@@ -388,6 +398,11 @@ impl InsertionPoint {
 impl InsertionPoint {
     pub fn with_kind(mut self, kind: InsertionPointType) -> Self {
         self.kind = kind;
+        self
+    }
+
+    pub fn with_name(mut self, name: Option<String>) -> Self {
+        self.name = name;
         self
     }
 }

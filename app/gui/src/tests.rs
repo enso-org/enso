@@ -112,13 +112,13 @@ fn span_tree_args() {
     match get_inputs().root.children.as_slice() {
         // The tree here should have two nodes under root - one with given Ast and second for
         // an additional prefix application argument.
-        [_target, _before0, argument, _append] => {
+        [_target, argument] => {
             let Node { children, kind, .. } = &argument.node;
             assert!(children.is_empty());
             assert_eq!(kind.argument_info().as_ref(), Some(&expected_arg1_param));
         }
         inputs =>
-            panic!("Expected four children in the span tree's root but got {:?}", inputs.len()),
+            panic!("Expected two children in the span tree's root but got {:?}", inputs.len()),
     };
 
 
