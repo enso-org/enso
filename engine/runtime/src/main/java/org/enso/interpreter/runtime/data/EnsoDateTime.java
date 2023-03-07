@@ -73,9 +73,9 @@ public final class EnsoDateTime implements TruffleObject {
   public static EnsoDateTime parse(String text) {
     String iso = text;
     if (text != null && text.length() > 10 && text.charAt(10) == ' ') {
-      var array = text.toCharArray();
-      array[10] = 'T';
-      iso = new String(array);
+      var builder = new StringBuilder(iso);
+      builder.replace(10, 11, "T");
+      iso = builder.toString();
     }
 
     var datetime = DATE_TIME_FORMATTER.parseBest(iso, ZonedDateTime::from, LocalDateTime::from);
