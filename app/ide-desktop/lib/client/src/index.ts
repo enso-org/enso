@@ -103,7 +103,9 @@ class App {
                 await this.startContentServerIfEnabled()
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
-                authentication.initAuthenticationModule(() => this.window)
+                // The window instance is passed as lambda because at this point of runtime it is uninitialized.
+                // Passing it by variable will remain it as an unset.
+                authentication.initModule(() => this.window)
                 this.loadWindowContent()
             })
         } catch (err) {

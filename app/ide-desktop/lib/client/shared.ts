@@ -9,5 +9,5 @@
 /** Name of the product. */
 export const PRODUCT_NAME = 'Enso'
 
-/** URL protocol scheme for deep links to authentication flow pages. */
+/** URL protocol scheme for deep links to authentication flow pages, ex "enos://authentication" */
 export const DEEP_LINK_SCHEME = 'enso'

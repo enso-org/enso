@@ -71,6 +71,8 @@
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
+
+import {logger} from 'enso-content-config'
 import * as electron from 'electron'
 import * as ipc from 'ipc'
 import * as shared from '../shared'
@@ -94,7 +96,7 @@ const OPEN_URL_EVENT = 'open-url'
 
 /** Configures all the functionality that must be set up in the Electron app to support
  * authentication-related flows. Must be called in the Electron app `whenReady` event. */
-export const initAuthenticationModule = (
+export const initModule = (
     window: () => electron.BrowserWindow | null,
 ) => {
     initIpc()
@@ -126,15 +128,19 @@ const initOpenUrlListener = (
     window: () => electron.BrowserWindow | null,
 ) => {
     electron.app.on(OPEN_URL_EVENT, (event, url) => {
+        logger.error("PAWEL DEBUG!!!")
         const parsedUrl = new URL(url)
-
         if (parsedUrl.protocol !== `${shared.DEEP_LINK_SCHEME}:`) {
+            logger.error("URL with protocol not matching the enso:// format: ", parsedUrl)
             return
         }
-
         /** Don't open the deep link URL in the window, we want the system browser to handle it. */
         event.preventDefault()
+        if (window) {
+            window.webContents.send(ipc.channel.openDeepLink, url)
+        } else {
+            logger.error("Can't open the URL. Window is null.")
+        }
 
-        window()?.webContents.send(ipc.channel.openDeepLink, url)
     })
 }

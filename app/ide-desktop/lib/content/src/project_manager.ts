@@ -54,7 +54,7 @@ class ProjectManager {
             id: 0,
             method: 'project/create',
             params: params,
-        }
+        }d.
 
         const ws = new WebSocket(this.connectionUrl)
         return new Promise((resolve, reject) => {

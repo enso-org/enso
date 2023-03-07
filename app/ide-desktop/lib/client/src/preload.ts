@@ -12,8 +12,8 @@ import * as ipc from 'ipc'
 // === Constants ===
 // =================
 
-/** Name of the object containing proxied authentication functions that are used by the
- * dashboard. */
+/** Name of the object which is exposed on the electron main window and
+ * contains proxy authentication functions that are used by the dashboard. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
 
 
