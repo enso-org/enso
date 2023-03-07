@@ -72,7 +72,6 @@
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
 
-import {logger} from 'enso-content-config'
 import * as electron from 'electron'
 import * as ipc from 'ipc'
 import * as shared from '../shared'
@@ -125,13 +124,11 @@ const initIpc = () => {
  * All URLs that aren't deep links (i.e., URLs that don't use the {@link shared.DEEP_LINK_SCHEME}
  * protocol) will be ignored by this handler. */
 const initOpenUrlListener = (
-    window: () => electron.BrowserWindow | null,
+    window: electron.BrowserWindow | null,
 ) => {
     electron.app.on(OPEN_URL_EVENT, (event, url) => {
-        logger.error("PAWEL DEBUG!!!")
         const parsedUrl = new URL(url)
         if (parsedUrl.protocol !== `${shared.DEEP_LINK_SCHEME}:`) {
-            logger.error("URL with protocol not matching the enso:// format: ", parsedUrl)
             return
         }
         /** Don't open the deep link URL in the window, we want the system browser to handle it. */
