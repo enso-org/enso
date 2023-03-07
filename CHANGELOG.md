@@ -601,6 +601,7 @@
 - [Use sbt runEngineDistribution][5609]
 - [Update to GraalVM 22.3.1][5602]
 - [Cache library bindings to optimize import/export resolution][5700]
+- [Comparators support partial ordering][5778]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -698,6 +699,7 @@
 [5609]: https://github.com/enso-org/enso/pull/5609
 [5602]: https://github.com/enso-org/enso/pull/5602
 [5700]: https://github.com/enso-org/enso/pull/5700
+[5778]: https://github.com/enso-org/enso/pull/5778
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

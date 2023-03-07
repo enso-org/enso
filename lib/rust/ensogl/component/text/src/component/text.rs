@@ -347,6 +347,7 @@ ensogl_core::define_endpoints_2! {
         single_line_mode(bool),
         view_width(Option<f32>),
         long_text_truncation_mode(bool),
+        glyph_system    (Option<glyph::System>),
 
         // === Internal API ===
 
@@ -604,7 +605,8 @@ impl Text {
 
             // === Font ===
 
-            eval input.set_font ((t) m.set_font(t));
+            new_glyph_system <- input.set_font.map(f!([m](t) Some(m.set_font(t))));
+            out.glyph_system <+ new_glyph_system;
 
 
             // === Colors ===
@@ -716,10 +718,9 @@ impl TextModel {
         let scene = &app.display.default_scene;
         let selection_map = default();
         let display_object = display::object::Instance::new();
-        let glyph_system = {
-            let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
-            RefCell::new(glyph_system)
-        };
+        let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
+        frp.private.output.glyph_system.emit(Some(glyph_system.clone()));
+        let glyph_system = RefCell::new(glyph_system);
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());
         let layer = CloneRefCell::new(scene.layers.main.clone_ref());
         let lines = Lines::new(Self::new_line_helper(
@@ -1370,7 +1371,6 @@ impl TextModel {
                             let glyph_render_offset =
                                 render_info.offset.scale(style.font_size.value);
                             glyph.set_color(style.color);
-                            glyph.skip_color_animation();
                             glyph.set_sdf_weight(style.sdf_weight.value);
                             glyph.set_font_size(formatting::Size(
                                 style.font_size.value * magic_scale,
@@ -1715,14 +1715,15 @@ impl TextModel {
     }
 
     #[profile(Debug)]
-    fn set_font(&self, font_name: &str) {
+    fn set_font(&self, font_name: &str) -> glyph::System {
         let app = &self.app;
         let scene = &app.display.default_scene;
         let glyph_system = font::glyph::System::new(scene, font_name);
-        self.glyph_system.replace(glyph_system);
+        self.glyph_system.replace(glyph_system.clone());
         // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.take_lines();
         self.redraw();
+        glyph_system
     }
 }
 

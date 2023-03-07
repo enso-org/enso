@@ -3170,6 +3170,7 @@ version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
+ "enso-profiler",
  "enso-types",
  "enso-web",
  "ensogl-text-embedded-fonts",

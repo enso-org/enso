@@ -1,12 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Empty_Error
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
 import Standard.Base.Error.Common.Not_Found
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
 
@@ -559,10 +559,10 @@ spec = Test.group "Vectors" <|
         [Time_Of_Day.new 12, Time_Of_Day.new 10 30].sort . should_equal [Time_Of_Day.new 10 30, Time_Of_Day.new 12]
         [Date_Time.new 2000 12 30 12 30, Date_Time.new 2000 12 30 12 00].sort . should_equal [Date_Time.new 2000 12 30 12 00, Date_Time.new 2000 12 30 12 30]
 
-        ["aa", 2].sort . should_fail_with Incomparable_Values
-        [2, Date.new 1999].sort . should_fail_with Incomparable_Values
-        [Date_Time.new 1999 1 1 12 30, Date.new 1999].sort . should_fail_with Incomparable_Values
-        [Date_Time.new 1999 1 1 12 30, Time_Of_Day.new 12 30].sort . should_fail_with Incomparable_Values
+        ["aa", 2].sort . should_fail_with Incomparable_Values.Error
+        [2, Date.new 1999].sort . should_fail_with Incomparable_Values.Error
+        [Date_Time.new 1999 1 1 12 30, Date.new 1999].sort . should_fail_with Incomparable_Values.Error
+        [Date_Time.new 1999 1 1 12 30, Time_Of_Day.new 12 30].sort . should_fail_with Incomparable_Values.Error
         Test.expect_panic_with ([3,2,1].to_array.sort 42) Type_Error.Error
 
     Test.specify "should leave the original vector unchanged" <|

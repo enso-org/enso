@@ -1,0 +1,46 @@
+from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
+from Standard.Table import Table
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+import project.Util
+
+
+spec = Test.group 'Various File Format support on Table' <|
+    t1 = Table.new [["X", [1, 2, 3]]]
+    transient = enso_project.data / "transient"
+    Test.specify "should be able to be written as CSV, Excel" <|
+
+        f1 = transient / "test2.csv"
+        f2 = transient / "test3.xlsx"
+        [f1, f2].each f->
+            f.delete_if_exists
+            t1.write f . should_succeed
+            f.exists.should_be_true
+            f.delete
+
+    Test.specify "should be able to be written as JSON using Table.write" pending="Currently Table.write cannot autodetect that JSON writing is supported and write_json is used as a workaround." <|
+        f1 = transient / "test1.json"
+        f1.delete_if_exists
+        t1.write f1 . should_succeed
+        f1.exists.should_be_true
+        f1.delete
+
+    Test.specify "should fail gracefully when provided with an unsupported format" <|
+        f1 = (transient / "test4.unknown-format")
+        f1.delete_if_exists
+        r1 = t1.write f1
+        r1.should_fail_with File_Error.Unsupported_Output_Type
+        r1.catch.format . should_equal f1
+        r1.catch.to_display_text . should_equal "Values of type Table cannot be written as format test4.unknown-format."
+
+        f2 = (transient / "test5.txt")
+        f2.delete_if_exists
+        my_format = Plain_Text Encoding.ascii
+        r2 = t1.write f2 my_format
+        r2.should_fail_with File_Error.Unsupported_Output_Type
+        r2.catch.format . should_equal my_format
+
+main = Test_Suite.run_main spec

@@ -60,6 +60,7 @@ impl Texture {
     }
 
     /// Extends texture with new MSDF data in f32 format
+    #[profile(Debug)]
     pub fn extend_with_raw_data<T: IntoIterator<Item = f32>>(&self, iter: T) {
         let f32_iterator = iter.into_iter();
         let converted_iterator = f32_iterator.map(Self::f32_to_cell);

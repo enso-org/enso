@@ -97,7 +97,7 @@ public class TypeMembersTest {
           v.invokeMember(k);
           fail("Invoking " + k + " on " + v + " shall fail");
         } catch (PolyglotException ex) {
-          assertEquals("No_Such_Field_Error_Data", ex.getMessage());
+          assertEquals("No_Such_Field.Error", ex.getMessage());
         }
       } else {
         assertNotNull(msg + " - can be invoked", v.invokeMember(k));

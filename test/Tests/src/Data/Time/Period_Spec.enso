@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Incomparable_Values.Incomparable_Values
+import Standard.Base.Error.Common.Incomparable_Values
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -29,9 +29,9 @@ spec =
             (Period.between (Date.new 2022 10 19) (Date.new 2022 11 01)) . should_equal (Period.new days=13)
 
         Test.specify "should not compare between two periods" <|
-            ((Period.new days=10) > (Period.new days=1)) . should_fail_with Incomparable_Values
-            ((Period.new years=10) > (Period.new days=1)) . should_fail_with Incomparable_Values
-            ((Period.new years=10 months=3) > (Period.new months=5)) . should_fail_with Incomparable_Values
+            ((Period.new days=10) > (Period.new days=1)) . should_fail_with Incomparable_Values.Error
+            ((Period.new years=10) > (Period.new days=1)) . should_fail_with Incomparable_Values.Error
+            ((Period.new years=10 months=3) > (Period.new months=5)) . should_fail_with Incomparable_Values.Error
 
         Test.specify "two Periods are equal iff their fields are equal" <|
             ((Period.new days=1) == (Period.new days=1)) . should_be_true
