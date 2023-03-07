@@ -35,11 +35,11 @@ pub enum Literal {
     Number(ast::known::Number),
     /// A literal of a text type.
     Text {
-        /// The string representation of the finished text literal. Includes the finishing
-        /// quotation mark even if the user didn't type it yet.
-        text:                   ImString,
-        /// The missing quotation mark if the user didn't type it yet.
-        missing_quotation_mark: Option<char>,
+        /// The string representation of the finished text literal. Includes the closing
+        /// delimiter even if the user didn't type it yet.
+        text:              ImString,
+        /// The missing closing delimiter if the user didn't type it yet.
+        closing_delimiter: Option<&'static str>,
     },
 }
 
@@ -56,23 +56,25 @@ impl Literal {
     /// Construct a string literal. Returns `None` if the given string is not starting with a
     /// quotation mark.
     fn try_new_text(text: &str) -> Option<Self> {
-        if text.starts_with('"') || text.starts_with('\'') {
-            // Unwrap is safe here, because we know the first character exists.
-            let mark = text.chars().next().unwrap();
-            let quote_only = text.len() == 1;
-            let ends_with_quote = text.ends_with(mark);
-            let missing_quote = if ends_with_quote && !quote_only { None } else { Some(mark) };
-            let text = if let Some(mark) = missing_quote {
-                let mut text = text.to_owned();
-                text.push(mark);
-                text.into()
-            } else {
-                text.into()
-            };
-            Some(Literal::Text { text, missing_quotation_mark: missing_quote })
-        } else {
-            None
+        for delimiter in ast::repr::STRING_DELIMITERS {
+            if text.starts_with(delimiter) {
+                let delimiter_only = text == *delimiter;
+                let closing_delimiter = if text.ends_with(delimiter) && !delimiter_only {
+                    None
+                } else {
+                    Some(*delimiter)
+                };
+                let text = if let Some(delimiter) = closing_delimiter {
+                    let mut text = text.to_owned();
+                    text.push_str(delimiter);
+                    text.into()
+                } else {
+                    text.into()
+                };
+                return Some(Self::Text { text, closing_delimiter });
+            }
         }
+        None
     }
 }
 
@@ -419,29 +421,81 @@ mod tests {
 
     #[test]
     fn edited_literal() {
+        struct Case {
+            input:    &'static str,
+            expected: Option<Literal>,
+        }
+
+        let cases: Vec<Case> = vec![
+            Case { input: "", expected: None },
+            Case {
+                input:    "'",
+                expected: Some(Literal::Text {
+                    text:              "''".into(),
+                    closing_delimiter: Some("'"),
+                }),
+            },
+            Case {
+                input:    "\"\"\"",
+                expected: Some(Literal::Text {
+                    text:              "\"\"\"\"\"\"".into(),
+                    closing_delimiter: Some("\"\"\""),
+                }),
+            },
+            Case {
+                input:    "\"text",
+                expected: Some(Literal::Text {
+                    text:              "\"text\"".into(),
+                    closing_delimiter: Some("\""),
+                }),
+            },
+            Case {
+                input:    "\"text\"",
+                expected: Some(Literal::Text {
+                    text:              "\"text\"".into(),
+                    closing_delimiter: None,
+                }),
+            },
+            Case {
+                input:    "'text",
+                expected: Some(Literal::Text {
+                    text:              "'text'".into(),
+                    closing_delimiter: Some("'"),
+                }),
+            },
+            Case {
+                input:    "'text'",
+                expected: Some(Literal::Text {
+                    text:              "'text'".into(),
+                    closing_delimiter: None,
+                }),
+            },
+            Case {
+                input:    "x = 'text",
+                expected: Some(Literal::Text {
+                    text:              "'text'".into(),
+                    closing_delimiter: Some("'"),
+                }),
+            },
+            Case {
+                input:    "x = \"\"\"text",
+                expected: Some(Literal::Text {
+                    text:              "\"\"\"text\"\"\"".into(),
+                    closing_delimiter: Some("\"\"\""),
+                }),
+            },
+        ];
         let parser = Parser::new();
-        let input = Input::parse(&parser, "name", text::Byte(4));
-        assert!(input.edited_literal().is_none());
 
         let input = Input::parse(&parser, "123", text::Byte(3));
         assert!(matches!(input.edited_literal(), Some(Literal::Number(n)) if n.repr() == "123"));
-
         let input = Input::parse(&parser, "x = 123", text::Byte(7));
         assert!(matches!(input.edited_literal(), Some(Literal::Number(n)) if n.repr() == "123"));
 
-        let input = Input::parse(&parser, "\"text", text::Byte(5));
-        let expected = Literal::Text {
-            text:                   "\"text\"".into(),
-            missing_quotation_mark: Some('"'),
-        };
-        assert_eq!(input.edited_literal(), Some(&expected));
-
-        let input = Input::parse(&parser, "x = \"text\"", text::Byte(10));
-        let expected = Literal::Text {
-            text:                   "\"text\"".into(),
-            missing_quotation_mark: None,
-        };
-        assert_eq!(input.edited_literal(), Some(&expected));
+        for case in cases {
+            let input = Input::parse(&parser, case.input, text::Byte(case.input.len()));
+            assert_eq!(input.edited_literal(), case.expected.as_ref());
+        }
     }
 
     #[test]

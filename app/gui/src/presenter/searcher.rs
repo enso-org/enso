@@ -279,7 +279,9 @@ impl Model {
                 component::Data::FromDatabase { id, .. } =>
                     self.controller.documentation_for_entry(*id),
                 component::Data::Virtual { snippet } => {
-                    if let Some(documentation) = &snippet.documentation_html {
+                    if let Some(documentation) = &snippet.documentation {
+                        documentation.clone()
+                    } else if let Some(documentation) = &snippet.documentation_html {
                         EntryDocumentation::Builtin(documentation.into())
                     } else {
                         default()

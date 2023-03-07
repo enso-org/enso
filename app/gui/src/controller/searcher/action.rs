@@ -20,7 +20,7 @@ pub mod hardcoded;
 // === Action ===
 // ==============
 
-#[derive(Clone, CloneRef, Debug, Eq, PartialEq)]
+#[derive(Clone, CloneRef, Debug, PartialEq)]
 /// Suggestion for code completion: possible functions, arguments, etc.
 pub enum Suggestion {
     /// The suggestion from Suggestion Database received from the Engine.
@@ -88,7 +88,7 @@ pub enum ProjectManagement {
 }
 
 /// A single action on the Searcher list. See also `controller::searcher::Searcher` docs.
-#[derive(Clone, CloneRef, Debug, Eq, PartialEq)]
+#[derive(Clone, CloneRef, Debug, PartialEq)]
 pub enum Action {
     /// Add to the searcher input a suggested code and commit editing (new node is inserted or
     /// existing is modified). This action can be also used to complete searcher input without
@@ -214,7 +214,7 @@ impl Eq for MatchInfo {}
 
 /// The single list entry.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ListEntry {
     pub category:   CategoryId,
     pub match_info: MatchInfo,

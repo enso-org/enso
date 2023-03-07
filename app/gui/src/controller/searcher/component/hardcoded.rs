@@ -10,6 +10,8 @@ use crate::prelude::*;
 use crate::controller::searcher::input;
 
 use double_representation::name::QualifiedName;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::SuggestionDatabase;
 use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
 
 
@@ -21,6 +23,10 @@ use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as 
 /// Name of the favorites component group in the `Standard.Base` library where virtual components
 /// created from the [`INPUT_SNIPPETS`] should be added.
 pub const INPUT_GROUP_NAME: &str = "Input";
+/// Qualified name of the `Text` type.
+const TEXT_ENTRY: &str = "Standard.Base.Main.Data.Text.Text";
+/// Qualified name of the `Number` type.
+const NUMBER_ENTRY: &str = "Standard.Base.Main.Data.Numbers.Number";
 
 thread_local! {
     /// Snippets describing virtual components displayed in the [`INPUT_GROUP_NAME`] favorites
@@ -30,7 +36,7 @@ thread_local! {
     pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = vec![
         Snippet::new("text input", "\"\"", IconId::TextInput)
             .with_return_types(["Standard.Base.Data.Text.Text"])
-            .with_documentation(
+            .with_documentation_html(
                 "A text input node.<br/><br/>
                 An empty text. The value can be edited and used as an input for other nodes.",
             )
@@ -41,7 +47,7 @@ thread_local! {
                 "Standard.Base.Data.Numbers.Decimal",
                 "Standard.Base.Data.Numbers.Integer",
             ])
-            .with_documentation(
+            .with_documentation_html(
                 "A number input node.<br/><br/>
                  A zero number. The value can be edited and used as an input for other nodes.",
             )
@@ -56,7 +62,7 @@ thread_local! {
 // ===============
 
 /// A hardcoded snippet of code with a description and syntactic metadata.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Snippet {
     /// The name displayed in the [Component Browser](crate::controller::searcher).
     pub name:               ImString,
@@ -66,7 +72,9 @@ pub struct Snippet {
     /// [Component Browser](crate::controller::searcher) to decide whether to display the
     /// snippet when filtering components by return type.
     pub return_types:       Vec<QualifiedName>,
-    /// The documentation bound to the snippet.
+    /// The documentation bound to the snippet. Takes priority over the `documentation_html` field.
+    pub documentation:      Option<EntryDocumentation>,
+    /// The HTML documentation string bound to the snippet.
     pub documentation_html: Option<ImString>,
     /// The ID of the icon bound to this snippet's entry in the [Component
     /// Browser](crate::controller::searcher).
@@ -80,21 +88,26 @@ impl Snippet {
     }
 
     /// Construct a hardcoded snippet for a single literal.
-    pub fn from_literal(literal: &input::Literal) -> Self {
+    pub fn from_literal(literal: &input::Literal, db: &SuggestionDatabase) -> Self {
         use input::Literal::*;
         let text_repr = literal.to_string();
-        match literal {
-            Text { missing_quotation_mark, .. } => {
+        let snippet = match literal {
+            Text { closing_delimiter: missing_quotation_mark, .. } => {
                 let missing_quote = missing_quotation_mark.as_ref();
                 let code = &missing_quote.map(ToString::to_string).unwrap_or_default();
-                let snippet = Self::new(&text_repr, code, IconId::TextInput);
-                snippet.with_documentation("A string literal.")
+                Self::new(&text_repr, code, IconId::TextInput)
             }
-            Number(_) => {
-                let snippet = Self::new(&text_repr, "", IconId::NumberInput);
-                snippet.with_documentation("A number literal.")
-            }
-        }
+            Number(_) => Self::new(&text_repr, "", IconId::NumberInput),
+        };
+        let entry_path = match literal {
+            Text { .. } => TEXT_ENTRY,
+            Number(_) => NUMBER_ENTRY,
+        };
+        // `unwrap()` is safe here, because we test the validity of `entry_path` in the tests.
+        let qualified_name = QualifiedName::from_text(entry_path).unwrap();
+        let entry = db.lookup_by_qualified_name(&qualified_name);
+        let docs = entry.map(|(entry_id, _)| db.documentation_for_entry(entry_id));
+        snippet.with_documentation(docs.unwrap_or_default())
     }
 
     /// Returns a modified suggestion with [`Snippet::return_types`] field set. This method is only
@@ -108,8 +121,33 @@ impl Snippet {
 
     /// Returns a modified suggestion with [`Snippet::documentation_html`] field set. No validation
     /// or modification of the `documentation` string is performed.
-    fn with_documentation(mut self, documentation: &str) -> Self {
+    fn with_documentation_html(mut self, documentation: &str) -> Self {
         self.documentation_html = Some(documentation.to_im_string());
         self
+    }
+
+    /// Returns a modified suggestion with [`Snippet::documentation`] field set.
+    fn with_documentation(mut self, documentation: EntryDocumentation) -> Self {
+        self.documentation = Some(documentation);
+        self
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test that the qualified names used for hardcoded snippets can be constructed. We don't check
+    /// if the entries are actually available in the suggestion database.
+    #[test]
+    fn test_qualified_names_construction() {
+        QualifiedName::from_text(TEXT_ENTRY).unwrap();
+        QualifiedName::from_text(NUMBER_ENTRY).unwrap();
     }
 }

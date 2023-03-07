@@ -885,7 +885,7 @@ impl Searcher {
     pub fn reload_list(&self) {
         let edited_literal = self.data.borrow().input.edited_literal().cloned();
         if let Some(literal) = edited_literal {
-            let components = component_list_for_literal(&literal);
+            let components = component_list_for_literal(&literal, &self.database);
             let mut data = self.data.borrow_mut();
             data.components = components;
             data.actions = Actions::Loaded { list: default() };
@@ -1261,10 +1261,13 @@ fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
 /// Build a component list with a single component, representing the given literal. When used as a
 /// suggestion, a number literal will be inserted without changes, but a string literal will be
 /// surrounded by quotation marks.
-fn component_list_for_literal(literal: &input::Literal) -> component::List {
+fn component_list_for_literal(
+    literal: &input::Literal,
+    db: &enso_suggestion_database::SuggestionDatabase,
+) -> component::List {
     let mut builder = component::builder::List::default();
     let project = project::QualifiedName::standard_base_library();
-    let snippet = component::hardcoded::Snippet::from_literal(literal).into();
+    let snippet = component::hardcoded::Snippet::from_literal(literal, db).into();
     builder.insert_virtual_components_in_favorites_group("Literals", project, vec![snippet]);
     builder.build()
 }
