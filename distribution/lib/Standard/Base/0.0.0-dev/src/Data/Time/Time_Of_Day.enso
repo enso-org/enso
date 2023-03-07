@@ -20,7 +20,6 @@ import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 
-polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils

@@ -990,10 +990,8 @@ type Column
 
        Arguments:
        - function: The function to apply to each element of `self` column.
-       - on_missing: The value to return for missing cells. Ideally it should be
-         replaced with a `skip_nulls` parameter like elsewhere, but currently
-         that is not possible due to a bug:
-         https://github.com/oracle/graal/issues/4741
+       - skip_nothing: If `True`, `Nothing` values will be skipped. Otherwise,
+         `Nothing` values will be passed to the `function`.
 
        > Example
          Multiply each element of the column by itself.
@@ -1001,12 +999,11 @@ type Column
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
-    map : (Any -> Any) -> Column
-    map self function on_missing=Nothing =
-        storage = self.java_column.getStorage
-        new_st = storage.map Nothing function on_missing Nothing
-        col = Java_Column.new "Result" new_st
-        Column.Value col
+    map : (Any -> Any) -> Boolean -> Column
+    map self function skip_nothing=True =
+        new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
+        new_st = self.to_vector.map new_fn
+        Column.from_vector "Result" new_st
 
     ## ALIAS Transform Columns
 
