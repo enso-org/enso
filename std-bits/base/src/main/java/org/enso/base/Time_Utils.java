@@ -43,7 +43,7 @@ public class Time_Utils {
       case "ISO_LOCAL_DATE_TIME" -> DateTimeFormatter.ISO_LOCAL_DATE_TIME;
       case "ISO_LOCAL_DATE" -> DateTimeFormatter.ISO_LOCAL_DATE;
       case "ISO_LOCAL_TIME" -> DateTimeFormatter.ISO_LOCAL_TIME;
-      default -> DateTimeFormatter.ofPattern(format, locale).withZone(ZoneId.systemDefault());
+      default -> DateTimeFormatter.ofPattern(format, locale);
     };
   }
 
