@@ -451,8 +451,6 @@ mod test {
                 }
                 .expect(&case);
                 let result_repr = result.repr();
-                println!("{}", tree.debug_print(&self.expr));
-                println!("{:?}", node.kind);
                 assert_eq!(result_repr, self.expected, "Wrong answer for case {self:?}");
                 assert_eq!(ast_id, result.id, "Changed AST ID in case {self:?}");
             }
