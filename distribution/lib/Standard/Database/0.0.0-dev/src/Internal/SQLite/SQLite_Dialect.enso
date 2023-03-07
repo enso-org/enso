@@ -119,12 +119,10 @@ type SQLite_Dialect
         (text.contains "SELECT ") || (text.contains "EXEC ")
 
     ## PRIVATE
-       Checks if the provided name is valid for the current backend.
-
-       It will execute the provided action if it is or raise an error otherwise.
-    ensure_name_is_valid : Text -> Any -> Any
-    ensure_name_is_valid self name ~action =
-        Naming_Helpers.ensure_name_is_valid name action
+       Returns an utility that allows ensuring column names are valid for the
+       given backend.
+    get_naming_helpers : Naming_Helpers
+    get_naming_helpers self = Naming_Helpers
 
 ## PRIVATE
 make_internal_generator_dialect =

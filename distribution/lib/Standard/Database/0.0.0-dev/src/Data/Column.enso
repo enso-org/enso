@@ -685,7 +685,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column ! Illegal_Argument
-    rename self name = self.connection.dialect.ensure_name_is_valid name <|
+    rename self name = self.connection.dialect.get_naming_helpers.ensure_name_is_valid name <|
         Column.Value name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
