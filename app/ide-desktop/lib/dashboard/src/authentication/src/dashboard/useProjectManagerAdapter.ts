@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { ProjectManager } from 'enso-studio-content/src/project_manager'
 import * as auth from '../authentication/providers/auth'
-import { Project, ProjectState, useBackendService } from './service'
+import { Project, ProjectState } from './service'
 
 interface ProjectManagerAdapter {
     createProject(projectName: string, projectTemplateName?: string): Promise<Project>
@@ -56,8 +56,9 @@ const useProjectManagerDesktopClient = (
     }
 }
 
-const useProjectManagerWebClient = (): ProjectManagerAdapter => {
-    const backendService = useBackendService()
+const useProjectManagerWebClient = (): ProjectManagerAdapter | null => {
+    const backendService = auth.useAuth().backend
+    if (!backendService) return null
     return {
         async createProject(projectName, projectTemplateName) {
             const project = await backendService.createProject({
@@ -84,7 +85,7 @@ const useProjectManageAdapter = (
     const projectManagerWebClient = useProjectManagerWebClient()
 
     const projectManagerAdapter = useMemo(() => {
-        return runningOnDesktop ? projectManagerDesktopClient! : projectManagerWebClient
+        return runningOnDesktop ? projectManagerDesktopClient! : projectManagerWebClient!
     }, [runningOnDesktop])
 
     return projectManagerAdapter

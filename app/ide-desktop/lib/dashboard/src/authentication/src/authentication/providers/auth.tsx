@@ -7,6 +7,7 @@ import react from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
+import * as http from '../../http'
 import * as backendService from '../../dashboard/service'
 import * as authService from '../service'
 import * as app from '../../components/app'
@@ -91,6 +92,7 @@ interface AuthContextType {
      *
      * If the user has not signed in, the session will be `undefined`. */
     session: UserSession | undefined
+    backend: backendService.Backend | undefined
 }
 
 /** Create a global instance of the `AuthContextType`, that will be re-used between all React
@@ -140,6 +142,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
     const navigate = router.useNavigate()
     const [initialized, setInitialized] = react.useState(false)
     const [userSession, setUserSession] = react.useState<UserSession | undefined>(undefined)
+    const [backend, setBackend] = react.useState<backendService.Backend | undefined>(undefined)
 
     // Fetch the JWT access token from the session via the AWS Amplify library.
     //
@@ -156,10 +159,14 @@ export const AuthProvider = (props: AuthProviderProps) => {
             }
             const { accessToken, email } = session.val
 
-            const backend = backendService.createBackend(accessToken, logger)
+            const headers = new Headers()
+            headers.append('Authorization', `Bearer ${accessToken}`)
+            const client = http.Client.builder().defaultHeaders(headers).build()
+            const myBackend = new backendService.Backend(client, logger)
+            setBackend(myBackend)
 
             // Request the user's organization information from the Cloud backend.
-            const organization = await backend.getUser()
+            const organization = await myBackend.getUser()
 
             let userSession: UserSession
 
@@ -236,11 +243,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
             userEmail: email,
         }
 
-        // TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
-        // Don't create a new API client here, reuse the one from the context.
-        const backend = backendService.createBackend(accessToken, logger)
-
-        await backend.setUsername(body)
+        await useAuth().backend!.setUsername(body)
         navigate(app.DASHBOARD_PATH)
         toast.success(MESSAGES.setUsernameSuccess)
     }
@@ -296,6 +299,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
         resetPassword: withLoadingToast(resetPassword),
         signOut,
         session: userSession,
+        backend: backend,
     }
 
     return (

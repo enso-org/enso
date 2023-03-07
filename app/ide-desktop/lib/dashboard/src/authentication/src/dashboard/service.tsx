@@ -247,27 +247,3 @@ export class Backend {
         }
     }
 }
-
-// =====================
-// === createBackend ===
-// =====================
-
-/** Shorthand method for creating a new instance of the backend API, along with the necessary
- * headers. */
-// TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
-// This is a hack to quickly create the backend in the format we want, until we get the provider
-// working. This should be removed entirely in favour of creating the backend once and using it from
-// the context.
-export const createBackend = (accessToken: string, logger: loggerProvider.Logger): Backend => {
-    const headers = new Headers()
-    headers.append('Authorization', `Bearer ${accessToken}`)
-    const client = http.Client.builder().defaultHeaders(headers).build()
-    return new Backend(client, logger)
-}
-
-export const useBackendService = () => {
-    const { accessToken } = auth.useFullUserSession()
-    const logger = loggerProvider.useLogger()
-    const backendService = useMemo(() => createBackend(accessToken, logger), [accessToken, logger])
-    return backendService
-}

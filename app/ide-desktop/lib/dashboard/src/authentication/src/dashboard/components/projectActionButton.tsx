@@ -18,7 +18,7 @@ interface Props {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ProjectActionButton = (props: Props) => {
-    const backendService = backend.useBackendService()
+    const backendService = auth.useAuth().backend!
     const { project, onOpen, onOpenStart, onClose } = props
     const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | undefined>(
         undefined
