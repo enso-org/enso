@@ -71,7 +71,7 @@ public abstract class EqualsNode extends Node {
     return EqualsNodeGen.create();
   }
 
-  public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
+  public abstract Object execute(@AcceptsError Object left, @AcceptsError Object right);
 
   /**
    * Primitive values
@@ -134,12 +134,16 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
-  boolean equalsDoubleDouble(double self, double other) {
+  Object equalsDoubleDouble(double self, double other) {
     if (Double.isNaN(self) || Double.isNaN(other)) {
-      return false;
+      return nothing();
     } else {
       return self == other;
     }
+  }
+
+  private Object nothing() {
+    return EnsoContext.get(this).getBuiltins().nothing();
   }
 
   @Specialization
@@ -264,26 +268,26 @@ public abstract class EqualsNode extends Node {
   boolean equalsUnresolvedSymbols(UnresolvedSymbol self, UnresolvedSymbol otherSymbol,
                                   @Cached EqualsNode equalsNode) {
     return self.getName().equals(otherSymbol.getName())
-        && equalsNode.execute(self.getScope(), otherSymbol.getScope());
+        && (boolean) equalsNode.execute(self.getScope(), otherSymbol.getScope());
   }
 
   @Specialization
   boolean equalsUnresolvedConversion(UnresolvedConversion selfConversion, UnresolvedConversion otherConversion,
                                      @Cached EqualsNode equalsNode) {
-    return equalsNode.execute(selfConversion.getScope(), otherConversion.getScope());
+    return (boolean) equalsNode.execute(selfConversion.getScope(), otherConversion.getScope());
   }
 
   @Specialization
   boolean equalsModuleScopes(ModuleScope selfModuleScope, ModuleScope otherModuleScope,
       @Cached EqualsNode equalsNode) {
-    return equalsNode.execute(selfModuleScope.getModule(), otherModuleScope.getModule());
+    return (boolean) equalsNode.execute(selfModuleScope.getModule(), otherModuleScope.getModule());
   }
 
   @Specialization
   @TruffleBoundary
   boolean equalsModules(Module selfModule, Module otherModule,
       @Cached EqualsNode equalsNode) {
-    return equalsNode.execute(selfModule.getName().toString(), otherModule.getName().toString());
+    return (boolean) equalsNode.execute(selfModule.getName().toString(), otherModule.getName().toString());
   }
 
   @Specialization
@@ -305,7 +309,7 @@ public abstract class EqualsNode extends Node {
   boolean equalsTypes(Type selfType, Type otherType,
       @Cached EqualsNode equalsNode,
       @CachedLibrary(limit = "5") TypesLibrary typesLib) {
-    return equalsNode.execute(
+    return (boolean) equalsNode.execute(
         selfType.getQualifiedName().toString(),
         otherType.getQualifiedName().toString()
     );
@@ -318,7 +322,7 @@ public abstract class EqualsNode extends Node {
   @Specialization(guards = {
       "selfWarnLib.hasWarnings(selfWithWarnings) || otherWarnLib.hasWarnings(otherWithWarnings)"
   }, limit = "3")
-  boolean equalsWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
+  Object equalsWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
                              @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
                              @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
                              @Cached EqualsNode equalsNode
@@ -526,7 +530,7 @@ public abstract class EqualsNode extends Node {
       for (long i = 0; i < selfSize; i++) {
         Object selfElem = selfInterop.readArrayElement(selfArray, i);
         Object otherElem = otherInterop.readArrayElement(otherArray, i);
-        boolean elemsAreEqual;
+        Object elemsAreEqual;
         if (selfElem instanceof Atom selfAtomElem
             && otherElem instanceof Atom otherAtomElem
             && hasCustomComparatorNode.execute(selfAtomElem)) {
@@ -534,7 +538,7 @@ public abstract class EqualsNode extends Node {
         } else {
           elemsAreEqual = equalsNode.execute(selfElem, otherElem);
         }
-        if (!elemsAreEqual) {
+        if (!(elemsAreEqual instanceof Boolean elemsAreEqualBool && elemsAreEqualBool)) {
           return false;
         }
       }
@@ -569,7 +573,8 @@ public abstract class EqualsNode extends Node {
         if (otherInterop.isHashEntryExisting(otherHashMap, key)
             && otherInterop.isHashEntryReadable(otherHashMap, key)) {
           Object otherValue = otherInterop.readHashValue(otherHashMap, key);
-          if (!equalsNode.execute(selfValue, otherValue)) {
+          Object res = equalsNode.execute(selfValue, otherValue);
+          if (!(res instanceof Boolean resBool && resBool)) {
             return false;
           }
         } else {
@@ -605,7 +610,8 @@ public abstract class EqualsNode extends Node {
       for (int i = 0; i < membersSize; i++) {
         String selfMemberName = interop.asString(interop.readArrayElement(selfMembers, i));
         String otherMemberName = interop.asString(interop.readArrayElement(otherMembers, i));
-        if (!equalsNode.execute(selfMemberName, otherMemberName)) {
+        Object res = equalsNode.execute(selfMemberName, otherMemberName);
+        if (!(res instanceof Boolean resBool && resBool)) {
           return false;
         }
         memberNames[i] = selfMemberName;
@@ -617,7 +623,8 @@ public abstract class EqualsNode extends Node {
             interop.isMemberReadable(otherObject, memberNames[i])) {
           Object selfMember = interop.readMember(selfObject, memberNames[i]);
           Object otherMember = interop.readMember(otherObject, memberNames[i]);
-          if (!equalsNode.execute(selfMember, otherMember)) {
+          Object res = equalsNode.execute(selfMember, otherMember);
+          if (!(res instanceof Boolean resBool && resBool)) {
             return false;
           }
         }
@@ -686,10 +693,15 @@ public abstract class EqualsNode extends Node {
         // custom comparators. EqualsNode cannot deal with custom comparators.
         fieldsAreEqual = invokeAnyEqualsNode.execute(selfAtomField, otherAtomField);
       } else {
-        fieldsAreEqual = fieldEqualsNodes[i].execute(
+        Object res = fieldEqualsNodes[i].execute(
             selfFields[i],
             otherFields[i]
         );
+        if (res instanceof Boolean resBool) {
+          fieldsAreEqual = resBool;
+        } else {
+          return false;
+        }
       }
       if (!fieldsAreEqual) {
         return false;
@@ -716,7 +728,12 @@ public abstract class EqualsNode extends Node {
           && HasCustomComparatorNode.getUncached().execute(selfFieldAtom)) {
         areFieldsSame = InvokeAnyEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
       } else {
-        areFieldsSame = EqualsNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
+        Object res = EqualsNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
+        if (res instanceof Boolean resBool) {
+          areFieldsSame = resBool;
+        } else {
+          return false;
+        }
       }
       if (!areFieldsSame) {
         return false;
@@ -749,7 +766,7 @@ public abstract class EqualsNode extends Node {
       "isHostFunction(selfHostFunc)",
       "isHostFunction(otherHostFunc)"
   })
-  boolean equalsHostFunctions(Object selfHostFunc, Object otherHostFunc,
+  Object equalsHostFunctions(Object selfHostFunc, Object otherHostFunc,
       @CachedLibrary(limit = "5") InteropLibrary interop,
       @Cached EqualsNode equalsNode) {
     Object selfFuncStrRepr = interop.toDisplayString(selfHostFunc);

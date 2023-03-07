@@ -10,11 +10,13 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -39,13 +41,18 @@ public abstract class LessThanNode extends Node {
   public abstract Object execute(@AcceptsError Object left, @AcceptsError Object other);
 
   @Specialization
-  boolean lessIntegers(int i, int j) {
-    return i < j;
+  boolean lessBools(boolean b1, boolean b2) {
+    return !b1 && b2;
   }
 
   @Specialization
-  boolean lessBools(boolean b1, boolean b2) {
-    return !b1 && b2;
+  Object lessLongBool(long self, boolean other) {
+    return nothing();
+  }
+
+  @Specialization
+  Object lessBoolLong(boolean self, long other) {
+    return nothing();
   }
 
   @Specialization
@@ -54,39 +61,30 @@ public abstract class LessThanNode extends Node {
   }
 
   @Specialization
-  boolean lessDoubles(double self, double other) {
-    return self < other;
+  Object lessDoubles(double self, double other) {
+    if (Double.isNaN(self) || Double.isNaN(other)) {
+      return nothing();
+    } else {
+      return self < other;
+    }
   }
 
   @Specialization
-  boolean lessLongDouble(long self, double other) {
-    return (double) self < other;
+  Object lessLongDouble(long self, double other) {
+    if (Double.isNaN(other)) {
+      return nothing();
+    } else {
+      return (double) self < other;
+    }
   }
 
   @Specialization
-  boolean lessDoubleLong(double self, long other) {
-    return self < (double) other;
-  }
-
-  @Specialization
-  boolean lessIntLong(int self, long other) {
-    return (long) self < other;
-  }
-
-  @Specialization
-  boolean lessLongInt(long self, int other) {
-    return self < (long) other;
-  }
-
-
-  @Specialization
-  boolean lessIntDouble(int self, double other) {
-    return (double) self < other;
-  }
-
-  @Specialization
-  boolean lessDoubleInt(double self, int other) {
-    return self < (double) other;
+  Object lessDoubleLong(double self, long other) {
+    if (Double.isNaN(self)) {
+      return nothing();
+    } else {
+      return self < (double) other;
+    }
   }
 
   @Specialization
@@ -97,14 +95,42 @@ public abstract class LessThanNode extends Node {
 
   @Specialization
   @TruffleBoundary
-  boolean lessBitIntDouble(EnsoBigInteger self, double other) {
-    return self.doubleValue() < other;
+  Object lessBitIntDouble(EnsoBigInteger self, double other) {
+    if (Double.isNaN(other)) {
+      return nothing();
+    } else {
+      return self.getValue().compareTo(BigInteger.valueOf((long) other)) < 0;
+    }
   }
 
   @Specialization
   @TruffleBoundary
-  boolean lessDoubleBigInt(double self, EnsoBigInteger other) {
-    return self < other.doubleValue();
+  Object lessDoubleBigInt(double self, EnsoBigInteger other) {
+    if (Double.isNaN(self)) {
+      return nothing();
+    } else {
+      return BigInteger.valueOf((long) self).compareTo(other.getValue()) < 0;
+    }
+  }
+
+  @Specialization
+  @TruffleBoundary
+  boolean lessLongBigInt(long self, EnsoBigInteger other) {
+    if (BigIntegerOps.fitsInLong(other.getValue())) {
+      return BigInteger.valueOf(self).compareTo(other.getValue()) < 0;
+    } else {
+      return true;
+    }
+  }
+
+  @Specialization
+  @TruffleBoundary
+  boolean lessBigIntLong(EnsoBigInteger self, long other) {
+    if (BigIntegerOps.fitsInLong(self.getValue())) {
+      return self.getValue().compareTo(BigInteger.valueOf(other)) < 0;
+    } else {
+      return false;
+    }
   }
 
   /**
@@ -299,7 +325,17 @@ public abstract class LessThanNode extends Node {
 
   @Fallback
   Object fallback(Object left, Object right) {
+    return nothing();
+  }
+
+  private DataflowError dataflowError(Object left, Object right) {
     var typeError = EnsoContext.get(this).getBuiltins().error().makeTypeError(left, right, "right");
     return DataflowError.withoutTrace(typeError, this);
   }
+
+  private Object nothing() {
+    return EnsoContext.get(this).getNothing();
+  }
+
+
 }

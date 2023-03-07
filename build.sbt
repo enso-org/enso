@@ -2048,7 +2048,18 @@ lazy val `enso-test-java-helpers` = project
       file("test/Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
-    )
+    ),
+    Compile / packageBin := Def.task {
+      val result          = (Compile / packageBin).value
+      val primaryLocation = (Compile / packageBin / artifactPath).value
+      val secondaryLocations = Seq(
+        file("test/Table_Tests/polyglot/java/helpers.jar")
+      )
+      secondaryLocations.foreach { target =>
+        IO.copyFile(primaryLocation, target)
+      }
+      result
+    }.value
   )
 
 lazy val `std-table` = project
@@ -2097,7 +2108,7 @@ lazy val `std-image` = project
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "org.openpnp" % "opencv" % "4.5.1-2"
+      "org.openpnp"      % "opencv"                  % "4.5.1-2"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2232,11 +2243,16 @@ buildEngineDistribution := {
   log.info(s"Engine package created at $root")
 }
 
-lazy val runEngineDistribution = inputKey[Unit]("Run the engine distribution with arguments")
+lazy val runEngineDistribution =
+  inputKey[Unit]("Run the engine distribution with arguments")
 runEngineDistribution := {
   buildEngineDistribution.value
   val args: Seq[String] = spaceDelimited("<arg>").parsed
-  DistributionPackage.runEnginePackage(engineDistributionRoot.value, args, streams.value.log)
+  DistributionPackage.runEnginePackage(
+    engineDistributionRoot.value,
+    args,
+    streams.value.log
+  )
 }
 
 val stdBitsProjects =
