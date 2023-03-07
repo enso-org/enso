@@ -1296,6 +1296,16 @@ spec =
         Test.specify "should throw ??? for a regex with incorrect syntax" <|
             "abcddd".find("ab(c(((((((").group 0 . text . should_fail_with Regex_Syntax_Error.Error
 
+        Test.specify ".group should return Nothing if the group did not participate in the match" <|
+            match_c = "abc".find("ab((c)|(d))")
+            match_c.group 1 . text . should_equal "c"
+            match_c.group 2 . text . should_equal "c"
+            match_c.group 3 . should_equal Nothing
+            match_d = "abd".find("ab((c)|(d))")
+            match_d.group 1 . text . should_equal "d"
+            match_d.group 2 . should_equal Nothing
+            match_d.group 3 . text . should_equal "d"
+
         Test.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
 
