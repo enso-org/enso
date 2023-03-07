@@ -115,6 +115,10 @@ type Pattern_2
     to_text_debug self input =
         Match_Iterator.new self input . to_text_debug
 
+    ## PRIVATE
+    group_count : Integer
+    group_count self = self.internal_regex_object.groupCount
+
 ## PRIVATE
 
     Performs the regex match, and iterates through the results. Yields both
