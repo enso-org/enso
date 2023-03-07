@@ -9,7 +9,7 @@ ensure_name_is_valid name ~action = case name of
      "" -> Error.throw (Illegal_Argument.Error "The column name must not be empty.")
      _ : Text ->
         # Cannot use `text.contains '\0'` due to the #5831 bug.
-        if name.codepoints.contains 0 then Error.throw (Illegal_Argument.Error "The column name must not contain the NUL character.") else
+        if name.codepoints.contains 0 then Error.throw (Illegal_Argument.Error "The column name "+name.pretty+" must not contain the NUL character.") else
            action
      _ -> Error.throw (Type_Error.Error Text (Meta.type_of name) "name")
 

@@ -271,8 +271,8 @@ spec =
                 foo
                 bar\r\tbaz
             text_1.pretty.should_equal "'foo\nbar\r\tbaz'"
-            text_2 = '\n\t\a\b\f\r\v\e\'\\'
-            text_2.pretty.should_equal "'\n\t\a\b\f\r\v\e\'\\'"
+            text_2 = '\n\0\t\a\b\f\r\v\e\'\\'
+            text_2.pretty.should_equal "'\n\0\t\a\b\f\r\v\e\'\\'"
 
         Test.specify "should return text as is when converting to text" <|
             text_1 = '''
