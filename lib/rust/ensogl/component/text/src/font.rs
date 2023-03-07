@@ -8,6 +8,7 @@ use ensogl_core::display::scene;
 use ensogl_core::system::gpu;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::texture;
+use ensogl_core::system::web::platform;
 use ensogl_text_embedded_fonts::Embedded;
 use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
@@ -687,13 +688,15 @@ impl<F: Family> FontTemplate<F> {
                 }
                 let mut borrowed_cache = self.cache.borrow_mut();
                 let font_data_cache = borrowed_cache.get_mut(variations).unwrap();
-                *font_data_cache.kerning.entry((left, right)).or_insert_with(|| {
+                let calculate_kerning = || {
+                    let _profiler = profiler::start_debug!("calculate_kerning");
                     let tables = face.ttf.as_face_ref().tables();
                     let units_per_em = tables.head.units_per_em;
                     let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
                     let kerning = kern_table.and_then(|t| t.glyphs_kerning(left, right));
                     kerning.unwrap_or_default() as f32 / units_per_em as f32
-                })
+                };
+                *font_data_cache.kerning.entry((left, right)).or_insert_with(calculate_kerning)
             })
             .unwrap_or_default()
     }
@@ -711,9 +714,9 @@ impl<F: Family> FontTemplate<F> {
 
 
 
-// =====================
-// === FontWithAtlas ===
-// =====================
+// =======================
+// === FontWithGpuData ===
+// =======================
 
 #[cfg(target_arch = "wasm32")]
 type AtlasTexture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
@@ -721,13 +724,28 @@ type AtlasTexture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 #[cfg(not(target_arch = "wasm32"))]
 type AtlasTexture = f32;
 
-/// A font with an associated GPU-stored glyph atlas.
+/// A font with an associated GPU-stored data.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug, Deref)]
-pub struct FontWithAtlas {
+pub struct FontWithGpuData {
     #[deref]
-    pub font:  Font,
-    pub atlas: gpu::Uniform<AtlasTexture>,
+    pub font:             Font,
+    /// The glyph atlas.
+    pub atlas:            gpu::Uniform<AtlasTexture>,
+    pub opacity_increase: gpu::Uniform<f32>,
+    pub opacity_exponent: gpu::Uniform<f32>,
+}
+
+impl FontWithGpuData {
+    fn new(font: Font, hinting: Hinting, scene: &scene::Scene) -> Self {
+        let Hinting { opacity_increase, opacity_exponent } = hinting;
+        let context = get_context(scene);
+        let texture = get_texture(&context);
+        let atlas = gpu::Uniform::new(texture);
+        let opacity_increase = gpu::Uniform::new(opacity_increase);
+        let opacity_exponent = gpu::Uniform::new(opacity_exponent);
+        Self { font, atlas, opacity_exponent, opacity_increase }
+    }
 }
 
 
@@ -771,19 +789,19 @@ shared! { Registry
 pub struct RegistryData {
     scene:    scene::Scene,
     embedded: Embedded,
-    fonts:    HashMap<Name, FontWithAtlas>,
+    fonts:    HashMap<Name, FontWithGpuData>,
 }
 
 impl {
     /// Load the default font. See the docs of [`load`] to learn more.
-    pub fn load_default(&mut self) -> FontWithAtlas {
+    pub fn load_default(&mut self) -> FontWithGpuData {
         self.load(DEFAULT_FONT)
     }
 
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns the default font if the name is missing in both cache
     /// and embedded font list.
-    pub fn load(&mut self, name:impl Into<Name>) -> FontWithAtlas {
+    pub fn load(&mut self, name:impl Into<Name>) -> FontWithGpuData {
         let name = name.into();
         self.try_load(&name).unwrap_or_else(|| {
             warn!("Font '{name}' not found. Loading the default font.");
@@ -794,32 +812,18 @@ impl {
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns [`None`] if the name is missing in both cache and
     /// embedded font list.
-    pub fn try_load(&mut self, name:impl Into<Name>) -> Option<FontWithAtlas> {
+    pub fn try_load(&mut self, name:impl Into<Name>) -> Option<FontWithGpuData> {
         let name = name.into();
         match self.fonts.entry(name.clone()) {
             Entry::Occupied (entry) => Some(entry.get().clone_ref()),
             Entry::Vacant   (entry) => {
                 debug!("Loading font: {:?}", name);
-                self.embedded.definitions.get(&name).map(|definition| {
-                    let font: Font = match definition {
-                        family::Definition::NonVariable(definition) => {
-                            let family = NonVariableFamily::from(definition);
-                            family.load_all_faces(&self.embedded);
-                            NonVariableFont::new(name, family).into()
-                        }
-                        family::Definition::Variable(definition) => {
-                            let family = VariableFamily::from(definition);
-                            family.load_all_faces(&self.embedded);
-                            VariableFont::new(name, family).into()
-                        }
-                    };
-                    let context = get_context(&self.scene);
-                    let texture = get_texture(&context);
-                    let atlas   = gpu::Uniform::new(texture);
-                    let font    = FontWithAtlas {font, atlas};
-                    entry.insert(font.clone_ref());
-                    font
-                })
+                let definition = self.embedded.definitions.get(&name)?;
+                let hinting = Hinting::for_font(&name);
+                let font = load_from_embedded_registry(name, definition, &self.embedded);
+                let font = FontWithGpuData::new(font, hinting, &self.scene);
+                entry.insert(font.clone_ref());
+                Some(font)
             }
         }
     }
@@ -840,5 +844,63 @@ impl Registry {
 impl scene::Extension for Registry {
     fn init(scene: &scene::Scene) -> Self {
         Self::init_and_load_embedded_fonts(scene)
+    }
+}
+
+fn load_from_embedded_registry(
+    name: Name,
+    definition: &family::Definition,
+    embedded: &Embedded,
+) -> Font {
+    match definition {
+        family::Definition::NonVariable(definition) => {
+            let family = NonVariableFamily::from(definition);
+            family.load_all_faces(embedded);
+            NonVariableFont::new(name, family).into()
+        }
+        family::Definition::Variable(definition) => {
+            let family = VariableFamily::from(definition);
+            family.load_all_faces(embedded);
+            VariableFont::new(name, family).into()
+        }
+    }
+}
+
+
+
+// ===============
+// === Hinting ===
+// ===============
+
+/// System- and font-specific hinting properties. They affect the way the font is rasterized. In
+/// order to understand how these variables affect the font rendering, see the GLSL file (in
+/// [`glyph::FUNCTIONS`]).
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug)]
+pub struct Hinting {
+    opacity_increase: f32,
+    opacity_exponent: f32,
+}
+
+impl Hinting {
+    fn for_font(font_name: &str) -> Self {
+        let platform = platform::current();
+        // The optimal hinting values must be found by testing. The [`text_are`] debug scene
+        // supports trying different values at runtime.
+        match (platform, font_name) {
+            (Some(platform::Platform::MacOS), "mplus1p") =>
+                Self { opacity_increase: 0.4, opacity_exponent: 4.0 },
+            (Some(platform::Platform::Windows), "mplus1p") =>
+                Self { opacity_increase: 0.3, opacity_exponent: 3.0 },
+            (Some(platform::Platform::Linux), "mplus1p") =>
+                Self { opacity_increase: 0.3, opacity_exponent: 3.0 },
+            _ => Self::default(),
+        }
+    }
+}
+
+impl Default for Hinting {
+    fn default() -> Self {
+        Self { opacity_increase: 0.0, opacity_exponent: 1.0 }
     }
 }

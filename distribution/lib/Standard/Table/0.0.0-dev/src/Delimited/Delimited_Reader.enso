@@ -8,7 +8,7 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Java_Problems
-from project.Errors import Additional_Warnings, Parser_Error, Empty_File_Error
+from project.Errors import Mismatched_Quote, Additional_Warnings, Parser_Error, Empty_File_Error
 
 polyglot java import org.enso.base.encoding.NewlineDetector
 polyglot java import org.enso.table.read.DelimitedReader
@@ -22,6 +22,7 @@ polyglot java import java.io.StringReader
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
 polyglot java import org.enso.table.read.QuoteStrippingParser
+polyglot java import org.enso.table.parsing.problems.MismatchedQuote
 
 ## Reads a delimited file according to the provided format.
 
@@ -38,8 +39,11 @@ read_file format file on_problems =
        read files with unlimited column limits (risking OutOfMemory
        exceptions), we can catch the exception indicating the limit has been
        reached and restart parsing with an increased limit.
-    file.with_input_stream [File_Access.Read] stream->
+    result = file.with_input_stream [File_Access.Read] stream->
         read_stream format stream on_problems related_file=file
+    # With file reading, we convert the `Mismatched_Quote` into a `File_Error.Corrupted_Format`.
+    result.catch Mismatched_Quote error->
+        Error.throw (File_Error.Corrupted_Format file error.to_display_text error)
 
 read_text : Text -> Delimited_Format -> Problem_Behavior -> Table
 read_text text format on_problems =
@@ -199,10 +203,14 @@ newline_at_eof file encoding =
     result.first
 
 ## PRIVATE
-handle_parsing_failure =
+handle_parsing_failure ~action =
     translate_parsing_failure caught_panic =
         Error.throw (Java_Problems.translate_problem caught_panic.payload.problem)
-    Panic.catch ParsingFailedException handler=translate_parsing_failure
+    translate_mismatched_quote _ = Error.throw Mismatched_Quote
+    Panic.catch ParsingFailedException handler=translate_parsing_failure <|
+        Panic.catch MismatchedQuote handler=translate_mismatched_quote <|
+            action
+
 
 ## PRIVATE
 handle_parsing_exception =

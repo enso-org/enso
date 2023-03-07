@@ -378,6 +378,40 @@ spec_write suffix test_sheet_name =
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
+        Test.specify "should fail if the target file is read-only" <|
+            f = enso_project.data / "transient" / "permission."+suffix
+            f.delete_if_exists
+
+            initial_data = "MY DATA"
+            initial_data.write f
+            Util.set_writable f False
+
+            t1 = Table.new [["X", [1, 2, 3]]]
+            [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior->
+                r1 = t1.write f (Excel (Worksheet "Another")) on_existing_file=behavior
+                r1.should_fail_with File_Error.Access_Denied
+                f.read Plain_Text . should_equal initial_data
+
+            Util.set_writable f True
+            f.delete
+
+        Test.specify "should fail if the parent directory does not exist" <|
+            parent = enso_project.data / "transient" / "nonexistent"
+            parent.exists.should_be_false
+
+            f = parent / "foo."+suffix
+            t1 = Table.new [["X", [1, 2, 3]]]
+            r1 = t1.write f (Excel (Worksheet "Another"))
+            r1.should_fail_with File_Error.Not_Found
+
+        Test.specify "should allow to write and read-back Unicode characters" <|
+            encodings = enso_project.data / "transient" / "encodings."+suffix
+            t1 = Table.new [["A", ["A", "B", "😊", "D"]], ["B", [1, 2, 3, 4]]]
+            t1.write encodings (Excel (Worksheet "Another"))
+            t2 = encodings.read (Excel (Worksheet "Another"))
+            t2.at "A" . to_vector . should_equal ["A", "B", "😊", "D"]
+            encodings.delete
+
         out.delete_if_exists
         out_bak.delete_if_exists
 
@@ -631,6 +665,23 @@ spec =
         Test.specify "should handle wrong xls_format gracefully" <|
             xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File_Error.IO_Error
             xls_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File_Error.IO_Error
+
+        Test.specify "should handle malformed XLS files gracefully" <|
+            bad_file = enso_project.data / "transient" / "malformed.xls"
+            "not really an XLS file contents...".write bad_file on_existing_file=Existing_File_Behavior.Overwrite
+
+            r1 = bad_file.read
+            r1.should_fail_with File_Error.Corrupted_Format
+            r1.catch.to_display_text.should_contain "is corrupted"
+
+            bad_file.read Excel . should_fail_with File_Error.Corrupted_Format
+            bad_file.read (Excel Sheet_Names) . should_fail_with File_Error.Corrupted_Format
+
+            r2 = bad_file.read (Excel (Cell_Range "Sheet1!A:C"))
+            r2.should_fail_with File_Error.Corrupted_Format
+            r2.catch.to_display_text.should_contain "is corrupted"
+
+            bad_file.delete
 
     spec_fmt 'XLSX reading' Examples.xlsx .read
 

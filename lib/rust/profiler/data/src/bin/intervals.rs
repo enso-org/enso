@@ -14,6 +14,7 @@
 
 // === Features ===
 #![feature(test)]
+#![feature(let_chains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -32,7 +33,15 @@ use enso_prelude::*;
 
 use enso_profiler::format::AnyMetadata;
 use enso_profiler_data as data;
-use std::collections;
+
+
+
+// =====================
+// === Configuration ===
+// =====================
+
+/// Set this to filter the output to matching profilers and their children.
+const INCLUDE_ONLY_SUBTREES_MATCHING_PREFIX: Option<&str> = None;
 
 
 
@@ -53,16 +62,16 @@ fn main() {
     let kv_to_func = |(label, timings)| Func { label, timings };
     let mut funcs: Vec<_> = funcs.into_iter().map(kv_to_func).collect();
     funcs.sort_unstable_by(|a, b| a.timings.self_duration.total_cmp(&b.timings.self_duration));
-    println!("self_duration total_duration count profiler");
+    println!("self_duration,total_duration,count,profiler");
     for Func { label, timings } in funcs.iter().rev() {
         let FuncTimings { total_duration, self_duration, count } = timings;
-        println!("{self_duration:>6.1} {total_duration:>6.1} {count} {label}");
+        println!("{self_duration:>6.1},{total_duration:>6.1},{count},{label}");
     }
     let mut total_duration = 0.0;
     for Func { timings, .. } in funcs.iter() {
         total_duration += timings.self_duration;
     }
-    println!("0.0 {total_duration:>6.1} 1 (total_self_duration)");
+    println!("0.0,{total_duration:>6.1},1,(total_self_duration)");
 }
 
 
@@ -80,10 +89,10 @@ struct FuncCollector {
 
 impl FuncCollector {
     /// Aggregate all intervals created by a particular profiler.
-    fn run(root: &data::aggregate::Frame) -> collections::HashMap<Label, FuncTimings> {
+    fn run(root: &data::aggregate::Frame) -> HashMap<Label, FuncTimings> {
         let mut collector = FuncCollector::default();
         for (label, frame) in &root.children {
-            collector.visit(label, frame);
+            collector.visit(label, frame, default());
         }
         let FuncCollector { funcs, .. } = collector;
         funcs
@@ -92,13 +101,18 @@ impl FuncCollector {
 
 impl FuncCollector {
     /// Add time spent in an interval to the running sums; recurse into children.
-    fn visit(&mut self, label: &Label, frame: &data::aggregate::Frame) {
-        let func = self.funcs.entry(label.clone()).or_default();
-        func.self_duration += frame.self_duration();
-        func.total_duration += frame.total_duration();
-        func.count += frame.interval_count();
+    fn visit(&mut self, label: &Label, frame: &data::aggregate::Frame, enable: bool) {
+        let enable = enable
+            || INCLUDE_ONLY_SUBTREES_MATCHING_PREFIX
+                .map_or(true, |prefix| label.starts_with(prefix));
+        if enable {
+            let func = self.funcs.entry(label.clone()).or_default();
+            func.self_duration += frame.self_duration();
+            func.total_duration += frame.total_duration();
+            func.count += frame.interval_count();
+        }
         for (label, frame) in &frame.children {
-            self.visit(label, frame);
+            self.visit(label, frame, enable);
         }
     }
 }
