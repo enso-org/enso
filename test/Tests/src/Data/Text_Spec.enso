@@ -1276,32 +1276,32 @@ spec =
             "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
 
         Test.specify "should allow access to match groups by number" <|
-            "abcddd".find("ab(c(d+))").group 0 . text . should_equal "abcddd"
-            "abcddd".find("ab(c(d+))").group 1 . text . should_equal "cddd"
-            "abcddd".find("ab(c(d+))").group 2 . text . should_equal "ddd"
+            "abcddd".find "ab(c(d+))" . group 0 . text . should_equal "abcddd"
+            "abcddd".find "ab(c(d+))" . group 1 . text . should_equal "cddd"
+            "abcddd".find "ab(c(d+))" . group 2 . text . should_equal "ddd"
 
         Test.specify "should allow access to match groups by name" <|
-            "abcddd".find("ab(?<cee>c(d+))").group "cee" . text . should_equal "cddd"
+            "abcddd".find "ab(?<cee>c(d+))" . group "cee" . text . should_equal "cddd"
 
         Test.specify "should throw No_Such_Group for an out-of-range group number" <|
-            "abcddd".find("ab(c(d+))").group 3 . text . should_fail_with No_Such_Group.Error
-            "abcddd".find("ab(c(d+))").group 12 . text . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(c(d+))" . group 3 . text . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(c(d+))" . group 12 . text . should_fail_with No_Such_Group.Error
 
         Test.specify "should throw No_Such_Group for an invalid group name" <|
-            "abcddd".find("ab(?<cee>c(d+))").group "dee" . text . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . text . should_fail_with No_Such_Group.Error
 
         Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
-            "abcddd".find("ab(c(d+))").group "dee" . text . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(c(d+))" . group "dee" . text . should_fail_with No_Such_Group.Error
 
         Test.specify "should throw ??? for a regex with incorrect syntax" <|
-            "abcddd".find("ab(c(((((((").group 0 . text . should_fail_with Regex_Syntax_Error.Error
+            "abcddd".find "ab(c(((((((" . group 0 . text . should_fail_with Regex_Syntax_Error.Error
 
         Test.specify ".group should return Nothing if the group did not participate in the match" <|
-            match_c = "abc".find("ab((c)|(d))")
+            match_c = "abc".find "ab((c)|(d))"
             match_c.group 1 . text . should_equal "c"
             match_c.group 2 . text . should_equal "c"
             match_c.group 3 . should_equal Nothing
-            match_d = "abd".find("ab((c)|(d))")
+            match_d = "abd".find "ab((c)|(d))"
             match_d.group 1 . text . should_equal "d"
             match_d.group 2 . should_equal Nothing
             match_d.group 3 . text . should_equal "d"
