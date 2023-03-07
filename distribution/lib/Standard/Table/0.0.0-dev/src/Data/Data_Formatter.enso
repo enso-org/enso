@@ -24,9 +24,16 @@ polyglot java import org.enso.table.formatting.DateTimeFormatter
 polyglot java import org.enso.table.formatting.TimeFormatter
 polyglot java import org.enso.table.formatting.TextFormatter
 
+polyglot java import java.lang.IllegalArgumentException
+
 type Data_Formatter
     ## Specifies options for reading text data in a table to more specific types and
        serializing them back.
+
+       For date and time formats, a Java format string can be used or one of
+       `ENSO_ZONED_DATE_TIME`, `ISO_ZONED_DATE_TIME`, `ISO_LOCAL_DATE_TIME`,
+       `ISO_OFFSET_DATE_TIME`, `ISO_LOCAL_DATE`, `ISO_LOCAL_TIME` to use a
+       predefined format.
 
        Arguments:
        - trim_values: Trim whitespace before parsing.
@@ -53,7 +60,7 @@ type Data_Formatter
        - datetime_locale: The locale to use when parsing dates and times.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss", "HH:mm"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
+    Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Text)=["ENSO_ZONED_DATE_TIME"] date_formats:(Vector Text)=["ISO_LOCAL_DATE"] time_formats:(Vector Text)=["ISO_LOCAL_TIME"] datetime_locale:Locale=Locale.default true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
 
     ## Parse a Text into a value.
 
@@ -95,11 +102,15 @@ type Data_Formatter
 
     ## Specify values for Date/Time parsing.
 
+       A Java format string can be used or one of `ENSO_ZONED_DATE_TIME`,
+       `ISO_ZONED_DATE_TIME`, `ISO_LOCAL_DATE_TIME`, `ISO_OFFSET_DATE_TIME`,
+       `ISO_LOCAL_DATE`, `ISO_LOCAL_TIME` to use a predefined format.
+
        Arguments:
        - datetime_formats: Expected datetime formats.
        - date_formats: Expected date formats.
        - time_formats: Expected time formats.
-    with_datetime_formats : (Text|[Text]) -> (Text|[Text]) -> (Text|[Text]) -> Data_Formatter
+    with_datetime_formats : Text|(Vector Text) -> Text|(Vector Text) -> Text|(Vector Text) -> Data_Formatter
     with_datetime_formats self datetime_formats=self.datetime_formats date_formats=self.date_formats time_formats=self.time_formats =
         datetime_vector = wrap_text_in_vector datetime_formats
         date_vector = wrap_text_in_vector date_formats
@@ -111,7 +122,7 @@ type Data_Formatter
        Arguments:
        - true_values: Values representing True.
        - false_values: Values representing False.
-    with_boolean_values : (Text|[Text]) -> (Text|[Text]) -> Data_Formatter
+    with_boolean_values : Text|(Vector Text) -> Text|(Vector Text) -> Data_Formatter
     with_boolean_values self true_values false_values =
         true_vector = wrap_text_in_vector true_values
         false_vector = wrap_text_in_vector false_values
@@ -151,7 +162,7 @@ type Data_Formatter
 
     ## PRIVATE
        Clone the instance with some properties overridden.
-    clone : Boolean -> Boolean -> Text -> Text -> Boolean -> [Text] -> [Text] -> [Text] -> Locale -> [Text] -> [Text] -> Data_Formatter
+    clone : Boolean -> Boolean -> Text -> Text -> Boolean -> Vector Text -> Vector Text -> Vector Text -> Locale -> Vector Text -> Vector Text -> Data_Formatter
     clone self (trim_values=self.trim_values) (allow_leading_zeros=self.allow_leading_zeros) (decimal_point=self.decimal_point) (thousand_separator=self.thousand_separator) (allow_exponential_notation=self.allow_exponential_notation) (datetime_formats=self.datetime_formats) (date_formats=self.date_formats) (time_formats=self.time_formats) (datetime_locale=self.datetime_locale) (true_values=self.true_values) (false_values=self.false_values) =
         Data_Formatter.Value trim_values=trim_values allow_leading_zeros=allow_leading_zeros decimal_point=decimal_point thousand_separator=thousand_separator allow_exponential_notation=allow_exponential_notation datetime_formats=datetime_formats date_formats=date_formats time_formats=time_formats datetime_locale=datetime_locale true_values=true_values false_values=false_values
 
@@ -178,15 +189,18 @@ type Data_Formatter
 
     ## PRIVATE
     make_date_parser self = self.wrap_base_parser <|
-        DateParser.new self.date_formats.to_array self.datetime_locale.java_locale
+        Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+            DateParser.new self.date_formats.to_array self.datetime_locale.java_locale
 
     ## PRIVATE
     make_date_time_parser self = self.wrap_base_parser <|
-        DateTimeParser.new self.datetime_formats.to_array self.datetime_locale.java_locale
+        Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+            DateTimeParser.new self.datetime_formats.to_array self.datetime_locale.java_locale
 
     ## PRIVATE
     make_time_of_day_parser self = self.wrap_base_parser <|
-        TimeOfDayParser.new self.time_formats.to_array self.datetime_locale.java_locale
+        Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+            TimeOfDayParser.new self.time_formats.to_array self.datetime_locale.java_locale
 
     ## PRIVATE
     make_identity_parser self = self.wrap_base_parser IdentityParser.new
@@ -221,17 +235,20 @@ type Data_Formatter
     ## PRIVATE
     make_date_formatter self =
         if self.date_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting dates requires at least one entry in the `date_formats` parameter") else
-            DateFormatter.new self.date_formats.first self.datetime_locale.java_locale
+            Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+                DateFormatter.new self.date_formats.first self.datetime_locale.java_locale
 
     ## PRIVATE
     make_time_of_day_formatter self =
         if self.time_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting times requires at least one entry in the `time_formats` parameter") else
-            TimeFormatter.new self.time_formats.first self.datetime_locale.java_locale
+            Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+                TimeFormatter.new self.time_formats.first self.datetime_locale.java_locale
 
     ## PRIVATE
     make_date_time_formatter self =
         if self.datetime_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting date-times requires at least one entry in the `datetime_formats` parameter") else
-            DateTimeFormatter.new self.datetime_formats.first self.datetime_locale.java_locale
+            Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+                DateTimeFormatter.new self.datetime_formats.first self.datetime_locale.java_locale
 
     ## PRIVATE
     make_boolean_formatter self =
