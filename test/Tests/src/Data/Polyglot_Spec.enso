@@ -33,6 +33,7 @@ spec = Test.group "Polyglot" <|
     Test.specify "use Integer obtained from a read" <|
         hold = IntHolder.new (6 * 7)
         hold.value . should_equal 42
+        hold.boxed . should_equal 42
 
     Test.specify "should be able to execute a polyglot function object along with corresponding arguments" <|
         fun = Function.identity
