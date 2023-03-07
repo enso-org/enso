@@ -47,6 +47,31 @@ public class Time_Utils {
     };
   }
 
+  /**
+   * Creates a DateTimeFormatter from a format string, supporting building standard formats.
+   * For Enso format, return the default output formatter.
+   * @param format format string
+   * @param locale locale needed for custom formats
+   * @return DateTimeFormatter
+   */
+  public static DateTimeFormatter make_output_formatter(String format, Locale locale) {
+    return format.equals("ENSO_ZONED_DATE_TIME")
+            ? Time_Utils.default_output_date_time_formatter()
+            : make_formatter(format, locale);
+  }
+
+  /**
+   * Given a format string, returns true if it is a format that is based on ISO date time.
+   * @param format format string
+   * @return True if format is based on ISO date time
+   */
+  public static boolean is_iso_datetime_based(String format) {
+    return switch (format) {
+      case "ENSO_ZONED_DATE_TIME", "ISO_ZONED_DATE_TIME", "ISO_OFFSET_DATE_TIME", "ISO_LOCAL_DATE_TIME" -> true;
+      default -> false;
+    };
+  }
+
   /** @return default Date Time formatter for parsing a Date_Time. */
   public static DateTimeFormatter default_zoned_date_time_formatter() {
     return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -162,7 +187,7 @@ public class Time_Utils {
    * types is not supported, so this is a workaround.
    *
    * <p>TODO once the related issue is fixed, this workaround may be replaced with pattern matching
-   * in Enso; <a href="https://www.pivotaltracker.com/story/show/183219169">Pivotal issue.</a>
+   * in Enso; <a href="https://github.com/enso-org/enso/issues/4597">Pivotal issue.</a>
    */
   public static TimeUtilsBase utils_for(Value value) {
     boolean isDate = value.isDate();

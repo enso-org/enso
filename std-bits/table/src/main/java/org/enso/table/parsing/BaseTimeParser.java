@@ -23,7 +23,7 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
     replaceSpaces = new boolean[formats.length];
     for (int i = 0; i < formats.length; i++) {
       formatters[i] = Time_Utils.make_formatter(formats[i], locale);
-      replaceSpaces[i] = formats[i].endsWith("_DATE_TIME");
+      replaceSpaces[i] = Time_Utils.is_iso_datetime_based(formats[i]);
     }
   }
 

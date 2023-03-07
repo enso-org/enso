@@ -11,9 +11,7 @@ public class DateTimeFormatter implements DataFormatter {
   private final java.time.format.DateTimeFormatter formatter;
 
   public DateTimeFormatter(String formatString, Locale locale) {
-    formatter = formatString.equals("ENSO_ZONED_DATE_TIME")
-            ? Time_Utils.default_output_date_time_formatter()
-            : Time_Utils.make_formatter(formatString, locale);
+    formatter = Time_Utils.make_output_formatter(formatString, locale);
   }
 
   @Override
