@@ -311,7 +311,10 @@ export class App {
             'Downloading assets manifest.',
             async () => {
                 const manifestResponse = await fetch(`${assetsUrl}/manifest.json`)
-                const manifest: Record<string, Record<string, AssetDefinition>> = await manifestResponse.json()
+                const manifest: Record<
+                    string,
+                    Record<string, AssetDefinition>
+                > = await manifestResponse.json()
                 return manifest
             }
         )
@@ -341,8 +344,17 @@ export class App {
 
         void loader.done.then(() => task.end())
         const assetsResponses = responses.assets
-        const assetsBlobs = await Promise.all(assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer())))
-        const assets = assetsInfo.map((info) => new Asset(info.type, info.key, new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))))
+        const assetsBlobs = await Promise.all(
+            assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer()))
+        )
+        const assets = assetsInfo.map(
+            info =>
+                new Asset(
+                    info.type,
+                    info.key,
+                    new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))
+                )
+        )
 
         const pkgJs = await responses.pkgJs.text()
         this.loader = loader
@@ -566,9 +578,11 @@ export class App {
                 return null
             } else {
                 const resultUnmangled = rustGetAssetsSourcesFn()
-                const mangleKeys = <T,>(map: Map<string, T>) => new Map(Array.from(map, ([key, value]) => [name.mangle(key), value]))
-                const result = new Map(Array.from(resultUnmangled,
-                    ([key, value]) => [key, mangleKeys(value)]))
+                const mangleKeys = <T>(map: Map<string, T>) =>
+                    new Map(Array.from(map, ([key, value]) => [name.mangle(key), value]))
+                const result = new Map(
+                    Array.from(resultUnmangled, ([key, value]) => [key, mangleKeys(value)])
+                )
                 logger.log(`Got ${result.size} asset definitions.`)
                 return result
             }
