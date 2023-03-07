@@ -27,6 +27,9 @@ spec = Test.group "Polyglot" <|
     Test.specify "use Integer read from Polyglot object" <|
         (Polyglot.get_member js_meaning "meaning") . should_equal 42
 
+    Test.specify "access Integer field from Polyglot object" <|
+        js_meaning.meaning . should_equal 42
+
     Test.specify "use Integer obtained from a call" <|
         Integer.parseInt "42" . should_equal 42
 
