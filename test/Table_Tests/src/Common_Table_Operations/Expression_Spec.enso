@@ -97,6 +97,12 @@ spec detailed setup =
             expression_test "[A]" (column_a.at 1)
             expression_test "[Bad]] Name]" (column_odd.at 1)
 
+        Test.specify "should sanitize names" <|
+            t = table_builder [["X", ['\0', 'x', '']]]
+            c = t.compute '[X] == \'\0\''
+            c.name . should_equal "[X] == '\0'"
+            c.to_vector . should_equal [True, False, False]
+
     Test.group prefix+"Expression Nothing literals" <|
         specify_test "should be able to add an nothing column" expression_test->
             expression_test "null" Nothing
