@@ -6,6 +6,7 @@ import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
+
 import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
@@ -26,6 +27,7 @@ import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Common.Compile_Error
 import project.Error.Common.Index_Out_Of_Bounds
+import project.Error.Common.Syntax_Error
 import project.Error.Error
 import project.Error.Encoding_Error.Encoding_Error
 import project.Error.Illegal_Argument.Illegal_Argument
@@ -228,7 +230,7 @@ Text.characters self =
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
-Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Compile_Error
+Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Syntax_Error
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     Regex_2.compile pattern case_insensitive=case_insensitive . match self

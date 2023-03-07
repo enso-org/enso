@@ -12,7 +12,7 @@ import project.Panic.Panic
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
-compile : Text -> Boolean | Nothing -> Pattern_2 ! (Compile_Error | Illegal_Argument | Syntax_Error)
+compile : Text -> Boolean | Nothing -> Pattern_2 ! Syntax_Error
 compile self expression case_insensitive=Nothing =
     #all_options = options + self.engine_opts
     #options_bitmask = from_enso_options all_options
