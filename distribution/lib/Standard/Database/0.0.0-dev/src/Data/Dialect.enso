@@ -70,6 +70,14 @@ type Dialect
     is_probably_a_query self =
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       Checks if the provided name is valid for the current backend.
+
+       It will execute the provided action if it is or raise an error otherwise.
+    ensure_name_is_valid : Text -> Any -> Any
+    ensure_name_is_valid self =
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.

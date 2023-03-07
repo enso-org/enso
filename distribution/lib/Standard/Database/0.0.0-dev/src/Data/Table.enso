@@ -20,7 +20,6 @@ import Standard.Table.Data.Value_Type.Auto
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Java_Exports
-import Standard.Table.Internal.Naming_Helpers
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
