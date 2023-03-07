@@ -29,6 +29,27 @@ type Pattern_2
         m = self.internal_regex_object.exec input 0
         m . isMatch && m.getEnd 0 == input.length
 
+    ## PRIVATE
+
+       Tries to match the provided `input` against the pattern `self`.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+    match : Text -> Match_2 | Nothing
+    match self input =
+        it = Match_Iterator.new self input
+        case it.next of
+            Match_Iterator_Value.Next _ match _ -> match
+            Match_Iterator_Value.Last _ -> Nothing
+
+    ## PRIVATE
+
+       Tries to match the provided `input` against the pattern `self`.
+
+       Returns a Vector of Match_2 objects.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
     match_all : Text -> Vector Match_2
     match_all self input =
         builder = Vector.new_builder
@@ -40,13 +61,6 @@ type Pattern_2
             Match_Iterator_Value.Last _ -> Nothing
         go it
         builder.to_vector
-
-    match : Text -> Match_2 | Nothing
-    match self input =
-        it = Match_Iterator.new self input
-        case it.next of
-            Match_Iterator_Value.Next _ match _ -> match
-            Match_Iterator_Value.Last _ -> Nothing
 
     ## PRIVATE
 
@@ -101,6 +115,14 @@ type Pattern_2
     to_text_debug self input =
         Match_Iterator.new self input . to_text_debug
 
+## PRIVATE
+
+    Performs the regex match, and iterates through the results. Yields both
+    the matched parts of the string, and the 'filler' parts between them.
+
+    At each step, it yields a Match_Iterator_Value, whivch has either a filler
+    and a match, or just the final filler. A Match_Iterator_Value.Last value is
+    return at the end, and only at the end.
 type Match_Iterator
     new : Pattern_2 -> Text -> Match_Iterator
     new pattern input = Match_Iterator.Value pattern input 0

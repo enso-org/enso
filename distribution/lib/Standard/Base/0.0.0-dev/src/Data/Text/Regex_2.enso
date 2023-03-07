@@ -12,6 +12,21 @@ import project.Panic.Panic
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
+## Compile the provided `expression` into a regex pattern that can be used for
+   matching.
+
+   Arguments
+   - expression: The text representing the regular expression that you want to
+     compile.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+
+   ? Why Compile?
+     While many regex engines are able to cache ad-hoc patterns, it is often
+     useful to be able to manually retain a pattern that you have computed. This
+     function exists so you can hold onto the resultant `Pattern_2` object,
+     instead of immediately proceeding to match using it.
 compile : Text -> Boolean | Nothing -> Pattern_2 ! Syntax_Error
 compile self expression case_insensitive=Nothing =
     #all_options = options + self.engine_opts
