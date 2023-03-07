@@ -29,6 +29,7 @@ public class Error {
   private final ArithmeticError arithmeticError;
   private final InvalidArrayIndex invalidArrayIndex;
   private final ArityError arityError;
+  private final IncomparableValues incomparableValues;
   private final UnsupportedArgumentTypes unsupportedArgumentsError;
   private final ModuleDoesNotExist moduleDoesNotExistError;
   private final NotInvokable notInvokable;
@@ -61,6 +62,7 @@ public class Error {
     arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
     invalidArrayIndex = builtins.getBuiltinType(InvalidArrayIndex.class);
     arityError = builtins.getBuiltinType(ArityError.class);
+    incomparableValues = builtins.getBuiltinType(IncomparableValues.class);
     unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
     notInvokable = builtins.getBuiltinType(NotInvokable.class);
@@ -82,6 +84,10 @@ public class Error {
 
   public Atom makeIndexOutOfBounds(long index, long length) {
     return indexOutOfBounds.newInstance(index, length);
+  }
+
+  public Atom makeIncomparableValues(Object leftOperand, Object rightOperand) {
+    return incomparableValues.newInstance(leftOperand, rightOperand);
   }
 
   public Atom makeInexhaustivePatternMatch(Object message) {

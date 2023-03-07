@@ -1,5 +1,12 @@
 import project.Data.Text.Text
+import project.Error.Error
 import project.Meta
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import True, False
+
+polyglot java import java.lang.ClassCastException
+polyglot java import org.enso.base.CompareException
 
 ## An error indicating that no value was found.
 type Not_Found
@@ -135,6 +142,34 @@ type Arithmetic_Error
        Arguments:
        - message: A description of the error condition.
     Error message
+
+@Builtin_Type
+type Incomparable_Values
+    ## An error that indicates that the two values are not comparable
+
+       Arguments:
+       - left: The left value (first operand)
+       - right: The right value (second operand)
+    Error left=Nothing right=Nothing
+
+    ## UNSTABLE
+
+       Convert the Incomparable_Values error to a human-readable format.
+    to_display_text : Text
+    to_display_text self =
+        case self.left.is_nothing && self.right.is_nothing of
+            True -> "Incomparable_Values.Error"
+            False -> "Cannot compare `" + self.left.to_text + "` with `" + self.right.to_text + "`"
+
+    ## ADVANCED
+       Catches possible errors from comparing values and throws an
+       `Incomparable_Values` if any occur.
+    handle_errors ~function =
+        handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values.Error)
+        handle_cmp_exc = Panic.catch CompareException handler=(exc-> Error.throw (Incomparable_Values.Error exc.getLeftOperand exc.getRightOperand))
+
+        handle ClassCastException <| handle No_Such_Method.Error <| handle Type_Error.Error <| handle Unsupported_Argument_Types.Error <| handle_cmp_exc <|
+            function
 
 @Builtin_Type
 type Invalid_Array_Index
