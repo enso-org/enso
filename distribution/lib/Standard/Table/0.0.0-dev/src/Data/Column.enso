@@ -12,7 +12,6 @@ import project.Data.Storage.Storage
 import project.Data.Table.Table
 import project.Data.Value_Type.Value_Type
 import project.Internal.Java_Problems
-import project.Internal.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
@@ -40,12 +39,16 @@ type Column
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Column
-    from_vector name items = Column.Value (Java_Column.fromItems name items.to_array)
+    from_vector name items =
+        Illegal_Argument.handle_java_exception <|
+            Column.Value (Java_Column.fromItems name items.to_array)
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
     from_storage : Text -> Java_Storage -> Column
-    from_storage name storage = Column.Value (Java_Column.new name storage)
+    from_storage name storage =
+        Illegal_Argument.handle_java_exception <|
+            Column.Value (Java_Column.new name storage)
 
     ## Creates a new column given a name and a vector of elements repeated over and over.
 
@@ -54,7 +57,9 @@ type Column
        - items: The elements to contain in the column.
        - repeats: The number of times to repeat the vector.
     from_vector_repeated : Text -> Vector -> Integer -> Column
-    from_vector_repeated name items repeats = Column.Value (Java_Column.fromRepeatedItems name items.to_array repeats)
+    from_vector_repeated name items repeats =
+        Illegal_Argument.handle_java_exception <|
+            Column.Value (Java_Column.fromRepeatedItems name items.to_array repeats)
 
     ## PRIVATE
 
@@ -1050,7 +1055,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column ! Illegal_Argument
-    rename self name = Naming_Helpers.ensure_name_is_valid name <|
+    rename self name = Illegal_Argument.handle_java_exception <|
         Column.Value (self.java_column.rename name)
 
     ## Returns the name of this column.
@@ -1325,6 +1330,10 @@ type Column
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count : Column
     duplicate_count self = Column.Value self.java_column.duplicateCount
+
+    ## Provides a simplified text representation for display in the REPL and errors.
+    to_text : Text
+    to_text self = "(In-Memory Column "+self.name.to_text+")"
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
