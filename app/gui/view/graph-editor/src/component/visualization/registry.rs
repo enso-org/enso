@@ -66,18 +66,15 @@ impl Registry {
     pub fn valid_sources(&self, tp: &enso::Type) -> Vec<visualization::Definition> {
         let type_map = self.type_map.borrow();
         let any_type = enso::Type::any();
-        let mut result: Vec<visualization::Definition> =
-            type_map.get(tp).cloned().unwrap_or_default();
+        // IndexSet preserves insertion order.
+        let mut result: indexmap::IndexSet<visualization::Definition> = default();
+        result.extend(type_map.get(tp).cloned().unwrap_or_default());
         if tp != &any_type {
             if let Some(vis_for_any) = type_map.get(&any_type) {
-                for vis in vis_for_any {
-                    if !result.contains(vis) {
-                        result.push(vis.clone_ref());
-                    }
-                }
+                result.extend(vis_for_any.iter().cloned());
             }
         }
-        result
+        result.into_iter().collect()
     }
 
     /// Return the `visualization::Definition` that should be used as default for the given type.
