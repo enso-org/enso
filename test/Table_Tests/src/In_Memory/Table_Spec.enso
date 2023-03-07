@@ -30,8 +30,6 @@ type My
         My.Data x1 y1 -> My.Data y1 x1
 
 type My_Comparator
-    is_ordered = True
-
     compare left right =
         left_sum = left.x + left.y
         right_sum = right.x + right.y

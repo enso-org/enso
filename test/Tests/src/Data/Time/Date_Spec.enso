@@ -123,9 +123,6 @@ spec_with name create_new_date parse_date =
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should get default ordered comparator for dates" <|
-            Comparable.from (create_new_date 2023 2 3) . should_equal Default_Ordered_Comparator
-
         Test.specify "should be comparable" <|
             date_1 = parse_date "2021-01-02"
             date_2 = parse_date "2021-01-01"

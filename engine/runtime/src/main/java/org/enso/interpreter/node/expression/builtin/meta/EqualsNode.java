@@ -54,6 +54,7 @@ import org.enso.polyglot.MethodNames;
     description = """
       Compares self with other object and returns True iff `self` is exactly the same as
       the other object, including all its transitively accessible properties or fields.
+      Returns Nothing if self and other object are incomparable.
       Can handle arbitrary objects, including all foreign objects.
       
       Does not throw exceptions.

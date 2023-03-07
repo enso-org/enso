@@ -315,10 +315,10 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should get default ordered comparator for datetimes" <|
-            Comparable.from (create_new_datetime 2023 2 3 23 59) . should_equal Default_Ordered_Comparator
-            Comparable.from (parse_datetime "2021-01-01T00:30:12.7102[UTC]") . should_equal Default_Ordered_Comparator
-            Comparable.from (create_new_datetime 2022 10 31 2 30 55 1234) . should_equal Default_Ordered_Comparator
+        Test.specify "should get the default comparator for datetimes" <|
+            Comparable.from (create_new_datetime 2023 2 3 23 59) . should_equal Default_Comparator
+            Comparable.from (parse_datetime "2021-01-01T00:30:12.7102[UTC]") . should_equal Default_Comparator
+            Comparable.from (create_new_datetime 2022 10 31 2 30 55 1234) . should_equal Default_Comparator
 
         Test.specify "should be comparable" <|
             time_1 = parse_datetime "2021-01-01T00:30:12.7102[UTC]"

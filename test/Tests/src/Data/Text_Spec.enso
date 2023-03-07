@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
@@ -114,8 +115,8 @@ spec =
             # Handling of Nothing
             (accent_1 == Nothing) . should_be_false
             (accent_1 != Nothing) . should_be_true
-            Ordering.compare accent_1 Nothing . should_fail_with Type_Error.Error
-            (accent_1 > Nothing) . should_fail_with Type_Error.Error
+            Ordering.compare accent_1 Nothing . should_fail_with Incomparable_Values.Error
+            (accent_1 > Nothing) . should_fail_with Incomparable_Values.Error
             accent_1 . compare_to_ignore_case Nothing . should_fail_with Type_Error.Error
 
             earlier_suffix = "aooooz"
