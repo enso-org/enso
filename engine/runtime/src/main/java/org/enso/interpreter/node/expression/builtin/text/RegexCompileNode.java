@@ -25,17 +25,19 @@ public abstract class RegexCompileNode extends Node {
 
   abstract Object execute(Object self, Object pattern, Object options);
 
-
-
-  @Specialization(limit = "3", guards = {
-    "pattern.toString().equals(cachedPattern)",
-    "options.toString().equals(cachedOptions)"
-  })
-  Object parseRegexPattern(Object self, Text pattern, Text options,
-    @Cached("pattern.toString()") String cachedPattern,
-    @Cached("options.toString()") String cachedOptions,
-    @Cached("compile(cachedPattern, cachedOptions)") Object regex
-  ) {
+  @Specialization(
+      limit = "3",
+      guards = {
+        "pattern.toString().equals(cachedPattern)",
+        "options.toString().equals(cachedOptions)"
+      })
+  Object parseRegexPattern(
+      Object self,
+      Text pattern,
+      Text options,
+      @Cached("pattern.toString()") String cachedPattern,
+      @Cached("options.toString()") String cachedOptions,
+      @Cached("compile(cachedPattern, cachedOptions)") Object regex) {
     return regex;
   }
 
@@ -49,10 +51,10 @@ public abstract class RegexCompileNode extends Node {
     var env = ctx.getEnvironment();
     var s = "Flavor=ECMAScript/" + pattern + "/" + options;
     var src =
-            Source.newBuilder("regex", s, "myRegex")
-                    .mimeType("application/tregex")
-                    .internal(true)
-                    .build();
+        Source.newBuilder("regex", s, "myRegex")
+            .mimeType("application/tregex")
+            .internal(true)
+            .build();
 
     try {
       var regex = env.parseInternal(src).call();
