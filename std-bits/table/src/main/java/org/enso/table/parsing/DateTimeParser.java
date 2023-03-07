@@ -24,7 +24,6 @@ public class DateTimeParser extends BaseTimeParser {
       return ldt.atZone(ZoneId.systemDefault());
     }
     throw new DateTimeParseException("Invalid date time", text, 0);
-
   }
 
   @Override

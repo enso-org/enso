@@ -12,7 +12,7 @@ public class DateTimeFormatter implements DataFormatter {
 
   public DateTimeFormatter(String formatString, Locale locale) {
     formatter = formatString.equals("ENSO_ZONED_DATE_TIME")
-            ? Time_Utils.make_formatter("yyyy-MM-dd HH:mm:ss", locale)
+            ? Time_Utils.default_output_date_time_formatter()
             : Time_Utils.make_formatter(formatString, locale);
   }
 

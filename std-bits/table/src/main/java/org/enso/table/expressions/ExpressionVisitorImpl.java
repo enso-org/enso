@@ -316,12 +316,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
-    var text = ctx.text.getText();
-    if (text != null && text.length() > 10 && text.charAt(10) == ' ') {
-      var array = text.toCharArray();
-      array[10] = 'T';
-      text = new String(array);
-    }
+    var text = Time_Utils.normaliseISODateTime(ctx.text.getText());
 
     try {
       var datetime = Time_Utils.default_zoned_date_time_formatter().parseBest(text, ZonedDateTime::from, LocalDateTime::from);

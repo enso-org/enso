@@ -60,7 +60,7 @@ type Data_Formatter
        - datetime_locale: The locale to use when parsing dates and times.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Text)=["ENSO_ZONED_DATE_TIME"] date_formats:(Vector Text)=["yyyy-MM-dd"] time_formats:(Vector Text)=["ISO_LOCAL_TIME"] datetime_locale:Locale=Locale.default true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
+    Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Text)=["ENSO_ZONED_DATE_TIME"] date_formats:(Vector Text)=["ISO_LOCAL_DATE"] time_formats:(Vector Text)=["ISO_LOCAL_TIME"] datetime_locale:Locale=Locale.default true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
 
     ## Parse a Text into a value.
 

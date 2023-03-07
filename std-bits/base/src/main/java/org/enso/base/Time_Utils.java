@@ -47,12 +47,35 @@ public class Time_Utils {
     };
   }
 
-  /** @return default Date Time formatter. */
+  /** @return default Date Time formatter for parsing a Date_Time. */
   public static DateTimeFormatter default_zoned_date_time_formatter() {
     return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             .optionalStart().parseLenient().appendOffsetId().optionalEnd()
             .optionalStart().appendLiteral('[').parseCaseSensitive().appendZoneRegionId().appendLiteral(']')
-            .toFormatter().withZone(ZoneId.systemDefault());
+            .toFormatter();
+  }
+
+  /** @return default Date Time formatter for writing a Date_Time. */
+  public static DateTimeFormatter default_output_date_time_formatter() {
+    return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE)
+            .appendLiteral(' ')
+            .append(DateTimeFormatter.ISO_LOCAL_TIME)
+            .toFormatter();
+  }
+
+  /**
+   * Replace space with T in ISO date time string to make it compatible with ISO format.
+   * @param dateString Raw date time string with either space or T as separator
+   * @return ISO format date time string
+   */
+  public static String normaliseISODateTime(String dateString) {
+    if (dateString != null && dateString.length() > 10 && dateString.charAt(10) == ' ') {
+      var builder = new StringBuilder(dateString);
+      builder.replace(10, 11, "T");
+      return builder.toString();
+    }
+
+    return dateString;
   }
 
   public static String local_date_format(LocalDate date, Object format) {
