@@ -347,12 +347,10 @@ export class App {
         const assetsBlobs = await Promise.all(
             assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer()))
         )
-        const assets = assetsInfo.map(
-            info => {
-                const data = new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]));
-                return new Asset(info.type, info.key, data);
-            }
-        )
+        const assets = assetsInfo.map(info => {
+            const data = new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))
+            return new Asset(info.type, info.key, data)
+        })
 
         const pkgJs = await responses.pkgJs.text()
         this.loader = loader

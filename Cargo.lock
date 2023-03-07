@@ -3032,6 +3032,7 @@ dependencies = [
  "enso-prelude",
  "enso-shapely",
  "ensogl-core",
+ "ensogl-text",
 ]
 
 [[package]]

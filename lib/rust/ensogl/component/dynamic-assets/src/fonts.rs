@@ -49,7 +49,7 @@ const PRELOAD_VARIATIONS: &[font::NonVariableFaceHeader] = &[
 ];
 
 /// The typefaces for which atlases should be pre-built.
-const PRELOAD_TYPEFACES: &[&str] = &[font::DEFAULT_FONT_MONO, font::DEFAULT_FONT, "mplus1p"];
+const PRELOAD_TYPEFACES: &[&str] = &[font::DEFAULT_FONT_MONO, font::DEFAULT_FONT];
 
 /// Path within the asset directory to store the glyph atlas image.
 const ATLAS_FILE: &str = "atlas.ppm";
@@ -140,8 +140,9 @@ fn build_atlas(name: &str) -> anyhow::Result<Atlas> {
     };
     for variation in PRELOAD_VARIATIONS {
         for glyphs in PRELOAD_GLYPHS {
-            font.prepare_glyphs_for_text(variation, glyphs)
-                .unwrap_or_else(|e| error!("Failed to populate cache for font variation: {e}."));
+            font.prepare_glyphs_for_text(variation, glyphs).unwrap_or_else(|e| {
+                warn!("Failed to load specified variation for font `{name}`: {e}")
+            });
         }
         let unknown_glyph = font::GlyphId::default();
         font.prepare_glyph_by_id(variation, unknown_glyph);
