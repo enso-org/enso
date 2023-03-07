@@ -24,8 +24,6 @@ type Pattern_2
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (internal_regex_object : Any)
 
-    # start_iterator
-
     matches : Text -> Boolean
     matches self input =
         m = self.internal_regex_object.exec input 0

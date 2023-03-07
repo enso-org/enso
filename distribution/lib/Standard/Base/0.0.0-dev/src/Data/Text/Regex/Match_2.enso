@@ -7,14 +7,21 @@ import project.Data.Text.Text
 import project.Nothing.Nothing
 
 type Match_2
-    ##
-       internal_regex_result : RegexResult (Truffle)
+    ## internal_regex_result : RegexResult (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (pattern : Pattern_2) (internal_regex_result : Any) (input : Text)
 
+    ## PRIVATE
+       The start character of group n
     start : Integer -> Integer
     start self n = self.internal_regex_result.getStart n
 
+    ## PRIVATE
+       - n: the integer group number
+       The end character of group n
+
+       Arguments:
+       - n: the integer group number
     end : Integer -> Integer
     end self n = self.internal_regex_result.getEnd n
 
@@ -25,7 +32,7 @@ type Match_2
        exists for the provided identifier, a `No_Such_Group` is returned.
 
        Arguments:
-       - id: The index or name of that group.
+       - id: The integer index or name of that group.
 
        ? The Full Match
          The group with index 0 is always the full match of the pattern.
