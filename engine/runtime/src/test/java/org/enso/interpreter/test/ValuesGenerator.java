@@ -87,9 +87,10 @@ class ValuesGenerator {
    *
    * @param typeDefs Type definitions.
    * @param expressions List of expressions - every expression will be converted to a {@link Value}.
+   * @param checks list of names (with {@code null}) to define checks for
    * @return List of values converted from the given expressions.
    */
-  private List<Value> createValuesOfCustomType(String typeDefs, List<String> expressions) {
+  private List<Value> createValuesOfCustomType(String typeDefs, List<String> expressions, List<String> checks) {
     var prev = multiValues.get(typeDefs);
     if (prev != null) {
       return prev;
@@ -101,13 +102,30 @@ class ValuesGenerator {
     for (int i = 0; i < expressions.size(); i++) {
       sb.append("var_").append(i).append(" = ").append(expressions.get(i)).append("\n");
     }
+    for (int i = 0; i < expressions.size(); i++) {
+      var c = checks != null ? checks.get(i) : null;
+      if (c == null) {
+        continue;
+      }
+      sb.append("""
+      check_{i} x = case x of
+          v : {type} -> 1
+          _ -> 0
+
+      """.replace("{type}", c).replace("{i}", "" + i));
+    }
     Value module = ctx.eval("enso", sb.toString());
     List<Value> values = new ArrayList<>(expressions.size());
     for (int i = 0; i < expressions.size(); i++) {
       Value val = module.invokeMember(Module.EVAL_EXPRESSION, "var_" + i);
       values.add(val);
+      var c = checks != null ? checks.get(i) : null;
+      if (c == null) {
+        continue;
+      }
+      Value check = module.invokeMember(Module.EVAL_EXPRESSION, "check_" + i);
+      this.values.put(c, new ValueInfo(val, check));
     }
-
     multiValues.put(typeDefs, values);
     return values;
   }
@@ -577,7 +595,7 @@ class ValuesGenerator {
           "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
           "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Nil) (Node.Value 22)) (Node.C2 (Node.Value 22) (Node.Nil)))"
       );
-      collect.addAll(createValuesOfCustomType(nodeTypeDef, exprs));
+      collect.addAll(createValuesOfCustomType(nodeTypeDef, exprs, null));
     }
     return collect;
   }
@@ -616,7 +634,14 @@ class ValuesGenerator {
           "Sum_Type.Variant_A 'A'",
           "Sum_Type.Variant_B 'B'"
       );
-      collect.addAll(createValuesOfCustomType(code, constructors));
+      var constructorTypes = Arrays.asList(new String[] {
+          "Sum_Type",
+          null,
+          null,
+          null,
+          null
+      });
+      collect.addAll(createValuesOfCustomType(code, constructors, constructorTypes));
     }
     return collect;
   }
