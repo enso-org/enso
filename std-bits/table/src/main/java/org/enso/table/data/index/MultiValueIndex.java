@@ -198,8 +198,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
           effectiveName = name + " " + aggregateNames[i];
         }
 
-        output[offset + i] =
-            new Column(effectiveName, storage[offset + i].seal());
+        output[offset + i] = new Column(effectiveName, storage[offset + i].seal());
       }
 
       offset += aggregates.length;
