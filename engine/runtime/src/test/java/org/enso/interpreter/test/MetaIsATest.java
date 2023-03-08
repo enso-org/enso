@@ -2,6 +2,8 @@ package org.enso.interpreter.test;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -138,19 +140,32 @@ public class MetaIsATest extends TestBase {
   public void constructorVariants() throws Exception {
     var g = ValuesGenerator.create(ctx);
     var found = new HashMap<Value, Value>();
-    for (var v1 : g.constructorsAndValuesAndSumType()) {
-      for (var v2 : g.constructorsAndValuesAndSumType()) {
-        var r = isACheck.execute(v1, v2);
-        var withTypeCaseOf = g.withType(v1);
-        if (r.asBoolean()) {
-          assertTrue(withTypeCaseOf.execute(v2).asBoolean());
-          found.put(v1, v2);
-        } else {
-          assertFalse(withTypeCaseOf.execute(v2).asBoolean());
-        }
+    final List<Value> values = g.constructorsAndValuesAndSumType();
+    for (var v1 : values) {
+      for (var v2 : values) {
+        assertTypeWithCheck(g, v1, v2, found);
       }
     }
     assertEquals("Just one: " + found, 1, found.size());
+  }
+
+  private void assertTypeWithCheck(ValuesGenerator g, Value type, Value value, Map<Value, Value> found) {
+    var r = isACheck.execute(value, type);
+    Value withTypeCaseOf;
+    try {
+       withTypeCaseOf = g.withType(type);
+    } catch (IllegalArgumentException ex) {
+      assertFalse("It is not a type: " + type + " value: " + value, r.asBoolean());
+      return;
+    }
+    var is = withTypeCaseOf.execute(value);
+    assertTrue("Returns boolean for " + withTypeCaseOf, is.fitsInInt());
+    if (r.asBoolean()) {
+      assertEquals("True is 1 for " + type + " check of " + value, 1, is.asInt());
+      found.put(type, value);
+    } else {
+        assertEquals("False is 0 for " + type + " check of " + value, 0, is.asInt());
+    }
   }
 
   @Test

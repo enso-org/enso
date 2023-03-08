@@ -134,6 +134,11 @@ spec =
             (Sum_Type.Variant_A 42).is_a Sum_Type.Variant_A . should_be_false
             (Sum_Type.Variant_A 42).is_a Sum_Type.Variant_B . should_be_false
 
+        Test.specify "constructor variants case of" <|
+            case (Sum_Type.Variant_A 42) of
+                _ : Sum_Type -> Nothing
+                e -> e.should_fail_with "It is a Sum_Type"
+
         Test.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42
             n_1 . should_equal_type Integer
