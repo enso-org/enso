@@ -6,7 +6,7 @@ import * as router from "react-router-dom";
 import * as projectManager from "enso-studio-content/src/project_manager";
 
 import * as authProvider from "../authentication/providers/auth";
-import DashboardContainer from "../dashboard/components/dashboard";
+import Dashboard from "../dashboard/components/dashboard";
 import ForgotPasswordContainer from "../authentication/components/forgotPassword";
 import ResetPasswordContainer from "../authentication/components/resetPassword";
 import LoginContainer from "../authentication/components/login";
@@ -125,7 +125,7 @@ const AppRouter = (props: AppProps) => {
                                 <router.Route
                                     path={DASHBOARD_PATH}
                                     element={
-                                        <DashboardContainer
+                                        <Dashboard
                                             runningOnDesktop={runningOnDesktop}
                                             projectManager={projectManager}
                                         />
