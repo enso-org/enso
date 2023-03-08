@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.data.text;
 
-import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -19,6 +18,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
@@ -178,13 +178,7 @@ public final class Text implements TruffleObject {
 
   @CompilerDirectives.TruffleBoundary
   private int computeLength() {
-    BreakIterator iter = BreakIterator.getCharacterInstance();
-    iter.setText(toString());
-    int len = 0;
-    while (iter.next() != BreakIterator.DONE) {
-      len++;
-    }
-    return len;
+    return Core_Text_Utils.computeGraphemeLength(toString());
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -193,37 +187,7 @@ public final class Text implements TruffleObject {
       boolean allowSideEffects,
       @Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
     String str = toJavaStringNode.execute(this);
-    int len = str.length();
-    int outputLength = len + 2; // Precise if there are no special characters.
-
-    // TODO This should be more extensible; while it's still a small fixed set,
-    // a switch is probably fastest (unconfirmed)
-
-    StringBuffer strBuf = new StringBuffer(outputLength);
-
-    strBuf.append('\'');
-
-    for (int i = 0; i < len; ++i) {
-      char c = str.charAt(i);
-      switch (c) {
-        case '\\' -> strBuf.append("\\\\");
-        case '\'' -> strBuf.append("\\'");
-        case '\n' -> strBuf.append("\\n");
-        case '\t' -> strBuf.append("\\t");
-        case '\0' -> strBuf.append("\\0");
-        case '\u0007' -> strBuf.append("\\a");
-        case '\u0008' -> strBuf.append("\\b");
-        case '\u000c' -> strBuf.append("\\f");
-        case '\r' -> strBuf.append("\\r");
-        case '\u000B' -> strBuf.append("\\v");
-        case '\u001B' -> strBuf.append("\\e");
-        default -> strBuf.append(c);
-      }
-    }
-
-    strBuf.append('\'');
-
-    return strBuf.toString();
+    return Core_Text_Utils.prettyPrint(str);
   }
 
   @ExportMessage

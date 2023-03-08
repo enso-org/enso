@@ -1,5 +1,6 @@
 package org.enso.table.data.table;
 
+import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -40,8 +41,8 @@ public class Column {
       throw new IllegalArgumentException("Column name cannot be empty.");
     }
     if (name.indexOf('\0') >= 0) {
-      // TODO pretty?
-      throw new IllegalArgumentException("Column name "+name+" must not contain the NUL character.");
+      String pretty = Text_Utils.pretty_print(name);
+      throw new IllegalArgumentException("Column name "+pretty+" must not contain the NUL character.");
     }
   }
 
