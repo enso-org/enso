@@ -12,10 +12,12 @@ type Match_2
     Value (pattern : Pattern_2) (internal_regex_result : Any) (input : Text)
 
     ## PRIVATE
-       Returns the start character of group n
+       Returns the start character of group n.
 
        Arguments:
-       - n: the integer group number
+       - n: the integer group number. Note that the groups explicitly
+         defined in the regex are numbered starting at 1; group 0 refers to the
+         entire match range.
     start : Integer -> Integer
     start self n = self.internal_regex_result.getStart n
 

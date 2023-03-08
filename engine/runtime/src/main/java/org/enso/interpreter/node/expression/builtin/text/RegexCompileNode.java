@@ -23,7 +23,7 @@ public abstract class RegexCompileNode extends Node {
     return RegexCompileNodeGen.create();
   }
 
-  abstract Object execute(Object self, Object pattern, Object options);
+  abstract Object execute(Object pattern, Object options);
 
   @Specialization(
       limit = "3",
@@ -32,7 +32,6 @@ public abstract class RegexCompileNode extends Node {
         "options.toString().equals(cachedOptions)"
       })
   Object parseRegexPattern(
-      Object self,
       Text pattern,
       Text options,
       @Cached("pattern.toString()") String cachedPattern,
@@ -42,7 +41,7 @@ public abstract class RegexCompileNode extends Node {
   }
 
   @Specialization
-  Object alwaysCompile(Object self, Text pattern, Text options) {
+  Object alwaysCompile(Text pattern, Text options) {
     return compile(pattern.toString(), options.toString());
   }
 

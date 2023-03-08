@@ -24,14 +24,17 @@ type Pattern_2
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (internal_regex_object : Any)
 
+    ## Returns `True` if the input matches against the pattern described by
+       `self`, otherwise `False`.
+
+       Arguments:
+       - input: The text to check for matching.
     matches : Text -> Boolean
     matches self input =
         m = self.internal_regex_object.exec input 0
-        m . isMatch && m.getEnd 0 == input.length
+        m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
-    ## PRIVATE
-
-       Tries to match the provided `input` against the pattern `self`.
+    ## Tries to match the provided `input` against the pattern `self`.
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
@@ -42,9 +45,7 @@ type Pattern_2
             Match_Iterator_Value.Next _ match _ -> match
             Match_Iterator_Value.Last _ -> Nothing
 
-    ## PRIVATE
-
-       Tries to match the provided `input` against the pattern `self`.
+    ## Tries to match the provided `input` against the pattern `self`.
 
        Returns a Vector of Match_2 objects.
 
@@ -92,7 +93,7 @@ type Pattern_2
     lookup_group : Integer | Text -> Integer ! No_Such_Group
     lookup_group self id =
         case id of
-            n : Integer -> case (n < self.internal_regex_object.groupCount) of
+            n : Integer -> case (n >= 0 && n < self.internal_regex_object.groupCount) of
                 True -> n
                 False -> Error.throw (No_Such_Group.Error n)
             name : Text ->
@@ -101,19 +102,15 @@ type Pattern_2
 
                 n = case groups of
                         # If Nothing, there are no named groups
-                        _ : Nothing -> Error.throw (No_Such_Group.Error name)
+                        Nothing -> Error.throw (No_Such_Group.Error name)
                         _ ->
                             qq = (read_group_map groups name)
                             case qq of
-                                _ : Nothing -> Nothing
+                                Nothing -> Nothing
                                 n : Integer -> n
                 case n of
                     _ : Integer -> n
-                    _ : Nothing -> Error.throw (No_Such_Group.Error name)
-
-    to_text_debug : Text -> Vector Text
-    to_text_debug self input =
-        Match_Iterator.new self input . to_text_debug
+                    Nothing -> Error.throw (No_Such_Group.Error name)
 
     ## PRIVATE
     group_count : Integer
@@ -163,6 +160,7 @@ type Match_Iterator
         go self
         vb.to_vector
 
+## PRIVATE
 type Match_Iterator_Value
   Next (filler : Span) (match : Match_2) (next_iterator : Match_Iterator)
   Last (filler : Span)
@@ -171,8 +169,7 @@ type Match_Iterator_Value
 group_map_contains : Any -> Text -> Boolean
 group_map_contains map elem =
     members = Polyglot.get_members map
-    as_vec = Range.new 0 (members.length) . map i->
-        members . at i
+    as_vec = Vector.from_polyglot_array members
     as_vec.contains elem
 
 ## PRIVATE
