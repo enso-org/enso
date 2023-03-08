@@ -36,9 +36,6 @@ public final class Text implements TruffleObject {
   }
 
   private Text(String string) {
-    if (string == null) {
-      throw new NullPointerException("Text::new(String) called with null");
-    }
     this.contents = string;
   }
 
