@@ -185,9 +185,15 @@ spec =
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            Data.read_text "does_not_exist.txt" . should_fail_with File_Error.Not_Found
-            file.read_text . should_fail_with File_Error.Not_Found
-            non_existent_file.read_text . should_fail_with File_Error.Not_Found
+            r1 = Data.read_text "does_not_exist.txt"
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Not_Found
+            r2 = file.read_text
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Not_Found
+            r3 = non_existent_file.read_text
+            r3.should_fail_with File_Error
+            r3.catch.should_be_a File_Error.Not_Found
 
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path

@@ -142,12 +142,12 @@ type Panic
        > Example
          Converting an expected panic to a dataflow error.
 
-             Panic.recover Illegal_Argument.Error (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
+             Panic.recover Illegal_Argument (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
 
        > Example
          Converting one of many expected panic types to a dataflow error.
 
-             Panic.recover [Illegal_Argument.Error, Illegal_State.Error] (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
+             Panic.recover [Illegal_Argument, Illegal_State] (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
     recover : (Vector Any | Any) -> Any -> Any
     recover expected_types ~action =
         types_to_check = case expected_types of
