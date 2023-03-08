@@ -253,7 +253,8 @@ impl<'a> ApplicationBase<'a> {
     }
 }
 
-///
+/// A result of resolving arguments of [`ApplicationBase`]. It contains information about the
+/// expected arguments and their positions in the application.
 struct ResolvedApplication {
     argument_in_access: Option<ArgumentInfo>,
     /// Arguments are paired with their original positions in the chain. That way the position
