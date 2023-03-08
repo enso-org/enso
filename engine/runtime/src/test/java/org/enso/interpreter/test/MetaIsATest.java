@@ -1,18 +1,12 @@
 package org.enso.interpreter.test;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.nio.file.Paths;
-import java.util.Map;
-import org.enso.polyglot.RuntimeOptions;
+import java.util.HashMap;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -138,6 +132,25 @@ public class MetaIsATest extends TestBase {
         assertFalse("Value " + v + " shall not be instance of itself", r.isBoolean() && r.asBoolean());
       }
     }
+  }
+
+  @Test
+  public void constructorVariants() throws Exception {
+    var g = ValuesGenerator.create(ctx);
+    var found = new HashMap<Value, Value>();
+    for (var v1 : g.constructorsAndValuesAndSumType()) {
+      for (var v2 : g.constructorsAndValuesAndSumType()) {
+        var r = isACheck.execute(v1, v2);
+        var withTypeCaseOf = g.withType(v1);
+        if (r.asBoolean()) {
+          assertTrue(withTypeCaseOf.execute(v2).asBoolean());
+          found.put(v1, v2);
+        } else {
+          assertFalse(withTypeCaseOf.execute(v2).asBoolean());
+        }
+      }
+    }
+    assertEquals("Just one: " + found, 1, found.size());
   }
 
   @Test
