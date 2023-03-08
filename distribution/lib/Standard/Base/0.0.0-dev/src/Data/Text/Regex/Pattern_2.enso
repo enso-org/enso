@@ -166,6 +166,16 @@ type Match_Iterator_Value
   Last (filler : Span)
 
 ## PRIVATE
+   Convert the polyglot map to a Map.
+polyglot_map_to_map : Any -> Map Any Text
+polyglot_map_to_map map =
+    polyglot_keys = Polyglot.get_members map
+    keys = Vector.from_polyglot_array polyglot_keys
+    values = keys.map key-> Polyglot.get_member map key
+    Map.from_vector (keys.zip values)
+
+## PRIVATE
+   Returns True iff the polyglot map contains the given key.
 group_map_contains : Any -> Text -> Boolean
 group_map_contains map elem =
     members = Polyglot.get_members map
@@ -173,6 +183,7 @@ group_map_contains map elem =
     as_vec.contains elem
 
 ## PRIVATE
+   Get the named group from the polyglot map.
 read_group_map : Any -> Text -> Integer | Nothing
 read_group_map map name =
     case group_map_contains map name of
