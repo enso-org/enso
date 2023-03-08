@@ -53,19 +53,20 @@ const INPUT_CHANGE_DELAY_MS: i32 = 200;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SearcherParams {
     /// The node being an Expression Input.
-    pub input:       NodeId,
+    pub input:           NodeId,
     /// The node being a source for the edited node data - usually it's output shall be a `this`
     /// port for inserted expression.
-    pub source_node: Option<NodeSource>,
+    pub source_node:     Option<NodeSource>,
+    pub cursor_position: text::Byte,
 }
 
 impl SearcherParams {
     fn new_for_new_node(node_id: NodeId, source_node: Option<NodeSource>) -> Self {
-        Self { input: node_id, source_node }
+        Self { input: node_id, source_node, cursor_position: default() }
     }
 
-    fn new_for_edited_node(node_id: NodeId) -> Self {
-        Self { input: node_id, source_node: None }
+    fn new_for_edited_node(node_id: NodeId, cursor_position: text::Byte) -> Self {
+        Self { input: node_id, source_node: None, cursor_position }
     }
 }
 
@@ -484,6 +485,7 @@ impl View {
         // TODO[WD]: This should not be needed after the theme switching issue is implemented.
         //   See: https://github.com/enso-org/ide/issues/795
         let input_change_delay = frp::io::timer::Timeout::new(network);
+        let searcher_open_delay = frp::io::timer::Timeout::new(network);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();
@@ -583,13 +585,29 @@ impl View {
 
             // === Editing ===
 
-            existing_node_edited <- graph.node_being_edited.filter_map(|x| *x).gate_not(&frp.adding_new_node);
-            frp.source.searcher <+ existing_node_edited.map(
-                |&node| Some(SearcherParams::new_for_edited_node(node))
+            node_edited_by_user <- graph.node_being_edited.gate_not(&frp.adding_new_node);
+            existing_node_edited <- graph.node_expression_edited.gate_not(&frp.source.is_searcher_opened);
+            searcher_params <- existing_node_edited.map2(&node_edited_by_user,
+                |(node_id, expr, selections), node_edited| {
+                    if let Some(node_edited) = node_edited {
+                        if *node_id != *node_edited {
+                            return None;
+                        }
+                        let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
+                        Some(SearcherParams::new_for_edited_node(*node_id, cursor_position))
+                    } else {
+                        None
+                    }
+                }
             );
-            searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher, |(node_id, expr, selections), searcher| {
-                (searcher.as_ref()?.input == *node_id).then(|| (expr.clone_ref(), selections.clone()))
-            });
+            searcher_opening <- searcher_params.filter_map(|params| *params);
+            searcher_open_delay.restart <+ searcher_opening.constant(0);
+            frp.source.searcher <+ searcher_params.sample(&searcher_open_delay.on_expired);
+            searcher_input_change_opt <- graph.node_expression_edited.map2(&searcher_params,
+                |(node_id, expr, selections), searcher| {
+                    (searcher.as_ref()?.input == *node_id).then(|| (expr.clone_ref(), selections.clone()))
+                }
+            );
             searcher_input_change <- searcher_input_change_opt.filter_map(|change| change.clone());
             input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
             update_searcher_input_on_commit <- frp.output.editing_committed.constant(());

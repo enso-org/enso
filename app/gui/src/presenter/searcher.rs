@@ -439,7 +439,7 @@ impl Searcher {
         /// The expression to be used for newly created nodes when initialising the searcher without
         /// an existing node.
         const DEFAULT_INPUT_EXPRESSION: &str = "Nothing";
-        let SearcherParams { input, source_node } = parameters;
+        let SearcherParams { input, source_node, .. } = parameters;
 
         let view_data = graph_editor.model.nodes.get_cloned_ref(&input);
 
@@ -518,7 +518,7 @@ impl Searcher {
             &project_controller.model,
             graph_controller,
             mode,
-            text::Byte(0),
+            parameters.cursor_position,
             position_in_code,
         )?;
 
