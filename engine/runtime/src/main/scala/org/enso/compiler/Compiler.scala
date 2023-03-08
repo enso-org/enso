@@ -36,6 +36,7 @@ import java.util.concurrent.{
   TimeUnit
 }
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -102,7 +103,7 @@ class Compiler(
   }
 
   /** Lazy-initializes the IR for the builtins module. */
-  def initializeBuiltinsIr(): Unit = {
+  private def initializeBuiltinsIr(): Unit = {
     if (!builtins.isIrInitialized) {
       logger.log(
         Compiler.defaultLogLevel,
@@ -136,6 +137,10 @@ class Compiler(
       }
     }
   }
+
+  /** @return the serialization manager instance. */
+  def getSerializationManager: SerializationManager =
+    serializationManager
 
   /** Processes the provided language sources, registering any bindings in the
     * given scope.
@@ -195,7 +200,8 @@ class Compiler(
               generateCode = false,
               shouldCompileDependencies
             )
-            serializationManager.serializeLibraryBindings(
+
+            serializationManager.serializeLibrary(
               pkg.libraryName,
               useGlobalCacheLocations = true
             )

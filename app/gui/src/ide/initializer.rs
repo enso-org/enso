@@ -9,7 +9,9 @@ use crate::FailedIde;
 
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
+use enso_web::sleep;
 use ensogl::application::Application;
+use std::time::Duration;
 use uuid::Uuid;
 
 
@@ -22,6 +24,13 @@ use uuid::Uuid;
 //     download required version of Engine. This should be handled properly when implementing
 //     https://github.com/enso-org/ide/issues/1034
 const PROJECT_MANAGER_TIMEOUT_SEC: u64 = 2 * 60 * 60;
+
+/// Times to wait for the subsequent IDE initialization retry.
+///
+/// The IDE initialization is prone to connectivity problems, therefore we retry it several times.
+/// The number of retries is equal to this slice length.
+const INITIALIZATION_RETRY_TIMES: &[Duration] =
+    &[Duration::from_secs(1), Duration::from_secs(2), Duration::from_secs(4)];
 
 
 
@@ -81,17 +90,29 @@ impl Initializer {
         // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
         //      issues to user, such information should be properly passed
         //      in case of setup failure.
-        match self.initialize_ide_controller().await {
-            Ok(controller) => {
-                let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
-                info!("Setup done.");
-                Ok(ide)
-            }
-            Err(error) => {
-                let message = format!("Failed to initialize application: {error}");
-                error!("{message}");
-                status_bar.add_event(ide_view::status_bar::event::Label::new(message));
-                Err(FailedIde { view })
+
+        let mut retry_after = INITIALIZATION_RETRY_TIMES.iter();
+        loop {
+            match self.initialize_ide_controller().await {
+                Ok(controller) => {
+                    let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
+                    info!("Setup done.");
+                    break Ok(ide);
+                }
+                Err(error) => {
+                    let message = format!("Failed to initialize application: {error}");
+                    error!("{message}");
+                    match retry_after.next() {
+                        Some(time) => {
+                            error!("Retrying after {} seconds", time.as_secs_f32());
+                            sleep(*time).await;
+                        }
+                        None => {
+                            status_bar.add_event(ide_view::status_bar::event::Label::new(message));
+                            break Err(FailedIde { view });
+                        }
+                    }
+                }
             }
         }
     }

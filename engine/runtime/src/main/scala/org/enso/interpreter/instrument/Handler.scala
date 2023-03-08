@@ -17,9 +17,7 @@ import org.graalvm.polyglot.io.MessageEndpoint
 import java.nio.ByteBuffer
 import scala.concurrent.Future
 
-/** A message endpoint implementation used by the
-  * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
-  */
+/** A message endpoint implementation. */
 class Endpoint(handler: Handler)
     extends MessageEndpoint
     with RuntimeServerConnectionEndpoint {
@@ -46,6 +44,15 @@ class Endpoint(handler: Handler)
     */
   def sendToClient(msg: Api.Response): Unit =
     client.sendBinary(Api.serialize(msg))
+
+  /** Sends a notification to the runtime.
+    *
+    * Can be used to start a command processing in the background.
+    *
+    * @param msg the message to send.
+    */
+  def sendToSelf(msg: Api.Request): Unit =
+    handler.onMessage(msg)
 
   /** Sends a request to the connected client and expects a reply. */
   override def sendRequest(msg: ApiRequest): Future[ApiResponse] =
