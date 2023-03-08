@@ -75,6 +75,15 @@ type Constructor
     ## UNSTABLE
        ADVANCED
 
+       Returns the type this constructor belongs to.
+    defining_type : Text
+    defining_type self =
+        c = self.value ...
+        get_constructor_type c
+
+    ## UNSTABLE
+       ADVANCED
+
        Creates a new atom of the given constructor.
 
        Arguments:
@@ -263,6 +272,15 @@ get_constructor_fields atom_constructor = @Builtin_Method "Meta.get_constructor_
    - atom_constructor: The atom constructor from which to obtain the name.
 get_constructor_name : Any -> Text
 get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_name"
+
+## PRIVATE
+
+   Get the name of an atom constructor.
+
+   Arguments:
+   - atom_constructor: The atom constructor from which to obtain the name.
+get_constructor_type : Any -> Any
+get_constructor_type atom_constructor = @Builtin_Method "Meta.get_constructor_type"
 
 ## PRIVATE
 
