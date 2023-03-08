@@ -139,6 +139,11 @@ spec =
                 _ : Sum_Type -> Nothing
                 e -> Test.fail "Expected "+e.to_text+" to be a Sum_Type"
 
+        Test.specify "constructor True check" <|
+            True . should_be_a True
+            True . should_be_a Boolean
+            Panic.recover Any (True . should_be_a False) . should_fail_with Any
+
         Test.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42
             n_1 . should_equal_type Integer
