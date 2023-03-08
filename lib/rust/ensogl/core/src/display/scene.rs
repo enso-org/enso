@@ -490,8 +490,8 @@ impl Renderer {
     // rounding errors. We round to the nearest integer to compensate for those errors.
     fn view_size(&self) -> (i32, i32, f32) {
         let shape = self.dom.shape().device_pixels();
-        let width = shape.width.round() as i32;
-        let height = shape.height.round() as i32;
+        let width = shape.width.ceil() as i32;
+        let height = shape.height.ceil() as i32;
         let pixel_ratio = shape.pixel_ratio;
         (width, height, pixel_ratio)
     }

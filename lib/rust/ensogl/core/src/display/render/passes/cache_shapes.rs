@@ -68,7 +68,7 @@ impl pass::Definition for CacheShapesPass {
         });
         let texture_size = display::shape::primitive::system::cached::texture_size();
         self.texture_size_device =
-            texture_size.map(|i| ((i as f32) * instance.pixel_ratio).round() as i32);
+            texture_size.map(|i| ((i as f32) * instance.pixel_ratio).ceil() as i32);
 
         for shape in &self.shapes_to_render {
             self.scene.add_child(&**shape);
