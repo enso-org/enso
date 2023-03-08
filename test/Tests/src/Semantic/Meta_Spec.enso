@@ -74,7 +74,7 @@ spec =
         Test.specify "should allow manipulation of error values" <|
             err = Error.throw "My Error"
             meta_err = Meta.meta err
-            meta_err.is_a Meta.Error.Value . should_be_true
+            meta_err.is_a Meta.Error . should_be_true
             meta_err.value . should_equal "My Error"
         Test.specify "should allow checking if a value is of a certain type" <|
             1.is_a Any . should_be_true
@@ -110,8 +110,8 @@ spec =
             Meta.is_a random_gen Random . should_be_true
             Meta.is_a random_gen Integer . should_be_false
 
-            (My_Type.Value 1 "foo" Nothing).is_a My_Type.Value . should_be_true
-            (My_Type.Value 1 "foo" Nothing).is_a Test_Type.Value . should_be_false
+            (My_Type.Value 1 "foo" Nothing).is_a My_Type . should_be_true
+            (My_Type.Value 1 "foo" Nothing).is_a Test_Type . should_be_false
             (My_Type.Value 1 "foo" Nothing).is_a Number . should_be_false
 
             err = Error.throw "Error Value"
@@ -187,7 +187,7 @@ spec =
 
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Random.new
-            java_meta . should_be_a Meta.Polyglot.Value
+            java_meta . should_be_a Meta.Polyglot
             java_meta . get_language . should_equal Meta.Language.Java
 
         Test.specify "should correctly handle equality of Java values" <|
@@ -252,7 +252,7 @@ spec =
             atom.bar . should_equal 2
 
         Test.specify "fail if atom_with_hole isn't used" <|
-            key = Panic.catch Uninitialized_State.Error handler=(caught_panic-> caught_panic.payload.key) <|
+            key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
                 Meta.atom_with_hole (_ -> My_Type.Value 1 2 3)
             case key of
                 t : My_Type ->
@@ -261,7 +261,7 @@ spec =
                     t.baz . should_equal 3
 
         Test.specify "fail if non-atom is created" <|
-            key = Panic.catch Uninitialized_State.Error handler=(caught_panic-> caught_panic.payload.key) <|
+            key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
                 Meta.atom_with_hole (_ -> 2)
             case key of
                 t : Number ->
