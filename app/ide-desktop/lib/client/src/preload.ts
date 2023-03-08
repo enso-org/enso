@@ -12,15 +12,8 @@ import * as ipc from 'ipc'
 // === Constants ===
 // =================
 
-/** Name of the object which is exposed on the Electron main window and contains proxy functions
- * that are used by the dashboard for authentication.
- *
- * Some functions (i.e., the functions to open URLs in the system browser) are not available in
- * sandboxed processes (i.e., the dashboard). So the {@link contextBridge.exposeInMainWorld} API is
- * used to expose these functions. The functions are exposed via an API object that is added to the
- * main window. This variable is the name given to that object.
- *
- * For more details, see: https://www.electronjs.org/docs/latest/api/context-bridge#api-functions */
+/** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
+ * window. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
 
 
@@ -76,10 +69,17 @@ contextBridge.exposeInMainWorld('enso_console', {
 // === Authentication API ===
 // ==========================
 
-/** Exposes an object on the main window; object is used by the dashboard to:
+/** Object exposed on the Electron main window; provides proxy functions to:
  * - open OAuth flows in the system browser, and
- * - handle deep links from the system browser or email client to the dashboard. */
-contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, {
+ * - handle deep links from the system browser or email client to the dashboard.
+ *
+ * Some functions (i.e., the functions to open URLs in the system browser) are not available in
+ * sandboxed processes (i.e., the dashboard). So the {@link contextBridge.exposeInMainWorld} API is
+ * used to expose these functions. The functions are exposed via this "API object", which is added
+ * to the main window.
+ *
+ * For more details, see: https://www.electronjs.org/docs/latest/api/context-bridge#api-functions */
+const AUTHENTICATION_API = {
     /** Opens a URL in the system browser (rather than in the app).
      *
      * OAuth URLs must be opened this way because the dashboard application is sandboxed and thus
@@ -93,4 +93,5 @@ contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, {
      * progress when the link was opened (e.g., an OAuth registration flow). */
     setDeepLinkHandler: (callback: (url: string) => void) =>
         ipcRenderer.on(ipc.channel.openDeepLink, (_event, url) => callback(url)),
-})
+};
+contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API);
