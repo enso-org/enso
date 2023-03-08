@@ -1764,6 +1764,7 @@ main =
                 parameters: vec![
                     span_tree::ArgumentInfo::named("arg1"),
                     span_tree::ArgumentInfo::named("arg2"),
+                    span_tree::ArgumentInfo::named("arg3"),
                 ],
                 ..default()
             })
@@ -1784,6 +1785,11 @@ main =
             Case { info: info(), dest_node_expr: "foo a var", dest_node_expected: "foo a" },
             Case { info: info(), dest_node_expr: "foo arg2=var a", dest_node_expected: "foo a" },
             Case { info: info(), dest_node_expr: "foo arg1=var a", dest_node_expected: "foo arg2=a" },
+            Case {
+                info: info(),
+                dest_node_expr: "foo arg2=var a c",
+                dest_node_expected: "foo a arg3=c"
+            },
             Case {
                 info: None,
                 dest_node_expr:     "f\n        bar a var",

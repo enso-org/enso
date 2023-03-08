@@ -37,9 +37,9 @@ pub fn main() {
         .add_empty_child(14, InsertionPointType::Append)
         .set_ast_id(Uuid::new_v4())
         .done()
-        .add_child(15, 21, node::Kind::argument(1).removable(), PrefixCrumb::Arg)
+        .add_child(15, 21, node::Kind::argument().removable(), PrefixCrumb::Arg)
         .set_ast_id(Uuid::new_v4())
-        .add_child(1, 19, node::Kind::argument(2), parens_cr1)
+        .add_child(1, 19, node::Kind::argument(), parens_cr1)
         .set_ast_id(Uuid::new_v4())
         .add_child(0, 12, node::Kind::Operation, PrefixCrumb::Func)
         .set_ast_id(Uuid::new_v4())
@@ -76,12 +76,12 @@ pub fn main() {
         })
         .new_child(|t| {
             t.new_ast_id()
-                .kind(node::Kind::argument(1).removable())
+                .kind(node::Kind::argument().removable())
                 .crumbs(PrefixCrumb::Arg)
                 .new_child(|t| {
                     t.new_ast_id()
                         .offset(1.bytes())
-                        .kind(node::Kind::argument(2).removable())
+                        .kind(node::Kind::argument().removable())
                         .crumbs(parens_cr)
                         .new_child(|t| {
                             t.size(12.bytes())

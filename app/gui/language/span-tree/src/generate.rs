@@ -401,7 +401,7 @@ fn generate_node_for_opr_chain<T: Payload>(
 
     let node_and_offset: FallibleResult<(Node<T>, usize)> = match &this.target {
         Some(target) => {
-            let kind = node::Kind::argument(0).with_removable(removable);
+            let kind = node::Kind::argument().with_removable(removable);
             let node = target.arg.generate_node(kind, context)?;
             Ok((node, target.offset))
         }
@@ -476,7 +476,7 @@ fn generate_node_for_opr_chain<T: Payload>(
                 gen.generate_empty_node(InsertionPointType::BeforeArgument(i + 1));
             }
 
-            let argument_kind = node::Kind::argument(i + 1).with_removable(removable);
+            let argument_kind = node::Kind::argument().with_removable(removable);
             let argument = gen.generate_ast_node(arg_ast, argument_kind, context)?;
 
             if let Some((index, info)) = infix_right_argument_info {
@@ -576,7 +576,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
                     let removable = resolved || !is_only_argument;
 
                     let mut arg_kind = node::Kind::from(
-                        node::Kind::argument(inserted_arguments)
+                        node::Kind::argument()
                             .with_removable(removable)
                             .with_name(arg_name.map(ToString::to_string)),
                     );
@@ -820,7 +820,7 @@ fn tree_generate_node<T: Payload>(
                     offset += size;
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
-                    let kind = node::Kind::argument(index);
+                    let kind = node::Kind::argument();
                     let node = node.generate_node(kind, context)?;
                     let child_size = node.size;
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
@@ -939,22 +939,22 @@ mod test {
         clear_parameter_infos(&mut tree.root);
         let expected = TreeBuilder::new(15)
             .add_empty_child(0, BeforeArgument(0))
-            .add_child(0, 11, node::Kind::argument(0), InfixCrumb::LeftOperand)
+            .add_child(0, 11, node::Kind::argument(), InfixCrumb::LeftOperand)
             .add_empty_child(0, BeforeArgument(0))
-            .add_leaf(0, 1, node::Kind::argument(0), InfixCrumb::LeftOperand)
+            .add_leaf(0, 1, node::Kind::argument(), InfixCrumb::LeftOperand)
             .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_empty_child(4, BeforeArgument(1))
-            .add_child(4, 7, node::Kind::argument(1), InfixCrumb::RightOperand)
+            .add_child(4, 7, node::Kind::argument(), InfixCrumb::RightOperand)
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_empty_child(4, BeforeArgument(0))
-            .add_leaf(4, 3, node::Kind::argument(0), PrefixCrumb::Arg)
+            .add_leaf(4, 3, node::Kind::argument(), PrefixCrumb::Arg)
             .add_empty_child(7, Append)
             .done()
             .add_empty_child(11, Append)
             .done()
             .add_leaf(12, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_empty_child(14, BeforeArgument(1))
-            .add_leaf(14, 1, node::Kind::argument(1), InfixCrumb::RightOperand)
+            .add_leaf(14, 1, node::Kind::argument(), InfixCrumb::RightOperand)
             .add_empty_child(15, Append)
             .build();
 
@@ -973,31 +973,31 @@ mod test {
             .add_child(0, 22, node::Kind::chained(), InfixCrumb::LeftOperand)
             .add_child(0, 5, node::Kind::chained(), InfixCrumb::LeftOperand)
             .add_empty_child(0, BeforeArgument(0))
-            .add_leaf(0, 1, node::Kind::argument(0).removable(), InfixCrumb::LeftOperand)
+            .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
             .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_empty_child(4, BeforeArgument(1))
-            .add_leaf(4, 1, node::Kind::argument(1).removable(), InfixCrumb::RightOperand)
+            .add_leaf(4, 1, node::Kind::argument().removable(), InfixCrumb::RightOperand)
             .done()
             .add_leaf(6, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_empty_child(8, BeforeArgument(2))
-            .add_child(8, 14, node::Kind::argument(2).removable(), InfixCrumb::RightOperand)
+            .add_child(8, 14, node::Kind::argument().removable(), InfixCrumb::RightOperand)
             .add_child(0, 11, node::Kind::chained(), PrefixCrumb::Func)
             .add_child(0, 7, node::Kind::chained(), PrefixCrumb::Func)
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_empty_child(4, BeforeArgument(0))
-            .add_leaf(4, 3, node::Kind::argument(0).removable(), PrefixCrumb::Arg)
+            .add_leaf(4, 3, node::Kind::argument().removable(), PrefixCrumb::Arg)
             .done()
             .add_empty_child(8, BeforeArgument(1))
-            .add_leaf(8, 3, node::Kind::argument(1).removable(), PrefixCrumb::Arg)
+            .add_leaf(8, 3, node::Kind::argument().removable(), PrefixCrumb::Arg)
             .done()
             .add_empty_child(12, BeforeArgument(2))
-            .add_leaf(12, 2, node::Kind::argument(2).removable(), PrefixCrumb::Arg)
+            .add_leaf(12, 2, node::Kind::argument().removable(), PrefixCrumb::Arg)
             .add_empty_child(14, Append)
             .done()
             .done()
             .add_leaf(23, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_empty_child(25, BeforeArgument(3))
-            .add_leaf(25, 1, node::Kind::argument(3).removable(), InfixCrumb::RightOperand)
+            .add_leaf(25, 1, node::Kind::argument().removable(), InfixCrumb::RightOperand)
             .add_empty_child(26, Append)
             .build();
 
@@ -1014,13 +1014,13 @@ mod test {
         clear_parameter_infos(&mut tree.root);
         let expected = TreeBuilder::new(7)
             .add_empty_child(0, Append)
-            .add_leaf(0, 1, node::Kind::argument(2).removable(), InfixCrumb::LeftOperand)
+            .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
             .add_leaf(1, 2, node::Kind::Operation, InfixCrumb::Operator)
             .add_child(3, 3, node::Kind::chained(), InfixCrumb::RightOperand)
             .add_empty_child(0, Append)
-            .add_leaf(0, 1, node::Kind::argument(1).removable(), InfixCrumb::LeftOperand)
+            .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
             .add_leaf(1, 2, node::Kind::Operation, InfixCrumb::Operator)
-            .add_leaf(3, 1, node::Kind::argument(0).removable(), InfixCrumb::RightOperand)
+            .add_leaf(3, 1, node::Kind::argument().removable(), InfixCrumb::RightOperand)
             .add_empty_child(4, BeforeArgument(0))
             .done()
             .build();
@@ -1040,7 +1040,7 @@ mod test {
             .add_leaf(0, 2, node::Kind::Operation, SectionRightCrumb::Opr)
             .add_child(2, 2, node::Kind::chained(), SectionRightCrumb::Arg)
             .add_empty_child(0, Append)
-            .add_leaf(0, 1, node::Kind::argument(0).removable(), SectionLeftCrumb::Arg)
+            .add_leaf(0, 1, node::Kind::argument().removable(), SectionLeftCrumb::Arg)
             .add_leaf(1, 1, node::Kind::Operation, SectionLeftCrumb::Opr)
             .add_empty_child(2, BeforeArgument(0))
             .done()
@@ -1059,7 +1059,7 @@ mod test {
         let expected = TreeBuilder::new(13)
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_empty_child(4, BeforeArgument(0))
-            .add_leaf(4, 9, node::Kind::argument(0), PrefixCrumb::Arg)
+            .add_leaf(4, 9, node::Kind::argument(), PrefixCrumb::Arg)
             .add_empty_child(13, Append)
             .build();
 
@@ -1124,7 +1124,7 @@ mod test {
         }
         let expected = TreeBuilder::new(8)
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
-            .add_leaf(4, 4, node::Kind::argument(0).removable().indexed(0), PrefixCrumb::Arg)
+            .add_leaf(4, 4, node::Kind::argument().removable().indexed(0), PrefixCrumb::Arg)
             .build();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
@@ -1154,7 +1154,7 @@ mod test {
             .add_child(0, 8, node::Kind::chained(), Crumbs::default())
             .add_child(0, 8, node::Kind::chained(), Crumbs::default())
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
-            .add_leaf(4, 4, node::Kind::argument(0).removable().indexed(0), PrefixCrumb::Arg)
+            .add_leaf(4, 4, node::Kind::argument().removable().indexed(0), PrefixCrumb::Arg)
             .done()
             .add_empty_child(8, InsertionPoint::expected_argument(1))
             .done()
@@ -1186,10 +1186,10 @@ mod test {
             .add_child(0, 8, node::Kind::chained(), Crumbs::default())
             .add_child(0, 8, node::Kind::Operation, Crumbs::default())
             .add_empty_child(0, BeforeArgument(0))
-            .add_leaf(0, 4, node::Kind::argument(0), InfixCrumb::LeftOperand)
+            .add_leaf(0, 4, node::Kind::argument(), InfixCrumb::LeftOperand)
             .add_leaf(4, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_empty_child(5, BeforeArgument(1))
-            .add_leaf(5, 3, node::Kind::argument(1), InfixCrumb::RightOperand)
+            .add_leaf(5, 3, node::Kind::argument(), InfixCrumb::RightOperand)
             .add_empty_child(8, Append)
             .done()
             .add_empty_child(8, InsertionPoint::expected_argument(0))

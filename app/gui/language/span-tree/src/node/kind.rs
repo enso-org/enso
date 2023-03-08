@@ -45,10 +45,10 @@ impl Kind {
         Chained::this()
     }
     pub fn this() -> Argument {
-        Self::argument(0).with_name(Some(Argument::THIS.into()))
+        Self::argument().with_name(Some(Argument::THIS.into()))
     }
-    pub fn argument(position: usize) -> Argument {
-        Argument { position, ..default() }
+    pub fn argument() -> Argument {
+        default()
     }
     pub fn insertion_point() -> InsertionPoint {
         default()
@@ -165,15 +165,6 @@ impl Kind {
     pub fn definition_index(&self) -> Option<usize> {
         match self {
             Self::Argument(t) => t.definition_index,
-            _ => None,
-        }
-    }
-
-    /// Get the argument position within the chain. Does not apply to placeholders, which are not
-    /// yet placed in the chain.
-    pub fn argument_position(&self) -> Option<usize> {
-        match self {
-            Self::Argument(t) => Some(t.position),
             _ => None,
         }
     }
@@ -302,7 +293,6 @@ impl From<Chained> for Kind {
 #[allow(missing_docs)]
 pub struct Argument {
     pub removable:        bool,
-    pub position:         usize,
     /// The index of the argument in the function definition.
     pub definition_index: Option<usize>,
     pub name:             Option<String>,

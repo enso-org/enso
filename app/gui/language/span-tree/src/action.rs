@@ -275,17 +275,11 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 });
                 let mut new_root = root.set_traversing(parent_crumbs, new_ast?)?;
 
-                let matches_position = self
-                    .kind
-                    .definition_index()
-                    .zip(self.kind.argument_position())
-                    .map_or(false, |(def, pos)| def == pos);
 
-                if !is_named_argument || matches_position {
-                    // when erasing a positional argument or named argument in its natural position,
-                    // all further positional arguments will end up in wrong position. To fix that,
-                    // we need to rewrite them as named arguments.
-
+                // when erasing a positional or named argument, all further positional arguments
+                // past its definition order will end up in wrong position. To fix that, we need to
+                // rewrite them as named arguments.
+                if let Some(erased_definition_index) = self.kind.definition_index() {
                     let mut next_parent = parent_crumbs
                         .split_last()
                         .and_then(|(_, crumbs)| {
@@ -302,10 +296,17 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         match argument_node {
                             Some(found) if found.node.is_argument() =>
                                 if let Some(arg_name) = found.node.kind.argument_name() {
-                                    let arg_crumbs = &found.node.ast_crumbs;
-                                    let expression = new_root.get_traversing(arg_crumbs)?;
-                                    let named_ast = Ast::named_argument(arg_name, expression);
-                                    new_root = new_root.set_traversing(arg_crumbs, named_ast)?;
+                                    let def_idx = found.node.kind.definition_index();
+                                    let need_rewrite =
+                                        def_idx.map_or(false, |idx| idx > erased_definition_index);
+
+                                    if need_rewrite {
+                                        let arg_crumbs = &found.node.ast_crumbs;
+                                        let expression = new_root.get_traversing(arg_crumbs)?;
+                                        let named_ast = Ast::named_argument(arg_name, expression);
+                                        new_root =
+                                            new_root.set_traversing(arg_crumbs, named_ast)?;
+                                    }
                                 },
                             Some(found) if found.node.is_named_argument() => {
                                 // Found named argument. Continue searching for positional arguments
@@ -600,7 +601,7 @@ mod test {
         let tree: SpanTree = TreeBuilder::new(10)
             .add_leaf(0, 4, node::Kind::this(), InfixCrumb::LeftOperand)
             .add_leaf(5, 6, node::Kind::Operation, InfixCrumb::Operator)
-            .add_leaf(7, 10, node::Kind::argument(1), InfixCrumb::RightOperand)
+            .add_leaf(7, 10, node::Kind::argument(), InfixCrumb::RightOperand)
             .add_empty_child(10, InsertionPoint::expected_argument(0))
             .add_empty_child(10, InsertionPoint::expected_named_argument(1, "b"))
             .build();

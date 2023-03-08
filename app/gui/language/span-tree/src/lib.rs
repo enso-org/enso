@@ -277,10 +277,6 @@ impl<T> SpanTree<T> {
                 write!(buffer, "({:?})", inner.kind).unwrap();
             }
 
-            if let node::Kind::Argument(arg) = &node.kind {
-                write!(buffer, "({})", arg.position).unwrap();
-            }
-
             if let Some(name) = node.kind.name() {
                 write!(buffer, " name={name:?}").unwrap();
             }
