@@ -165,8 +165,7 @@ type Match_Iterator_Value
 group_map_contains : Any -> Text -> Boolean
 group_map_contains map elem =
     members = Polyglot.get_members map
-    as_vec = Range.new 0 (members.length) . map i->
-        members . at i
+    as_vec = Vector.from_polyglot_array members
     as_vec.contains elem
 
 ## PRIVATE
