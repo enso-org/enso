@@ -39,7 +39,8 @@ public class QuoteHelper {
       return text.substring(1, text.length() - 1);
     } else {
       assert hasLeadingQuote || hasTrailingQuote;
-      // We report mismatched quotes only at the beginning, if it is at the end it is treated as literal quote character.
+      // We report mismatched quotes only at the beginning, if it is at the end it is treated as
+      // literal quote character.
       if (hasLeadingQuote && !hasTrailingQuote) {
         mismatchedQuoteCallback.accept(text);
       }
