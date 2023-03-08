@@ -134,10 +134,10 @@ spec setup =
             err1.catch.name . should_equal "[MISSING]*10"
             err1.catch.expression_error . should_equal (No_Such_Column.Error "MISSING")
 
-            err2 = table.cross_tab values=[Sum "[[[["]
+            err2 = table.cross_tab values=[Sum "[[["]
             err2.should_fail_with Invalid_Aggregate_Column
-            err2.catch.name . should_equal "[[[["
-            err1.catch.expression_error . should_be_a Expression_Error.Syntax_Error
+            err2.catch.name . should_equal "[[["
+            err2.catch.expression_error . should_be_a Expression_Error.Syntax_Error
 
         Test.specify "should not allow Group_By for values" <|
             err1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=Problem_Behavior.Ignore
