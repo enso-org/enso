@@ -588,12 +588,12 @@ impl View {
 
             node_edited_by_user <- graph.node_being_edited.gate_not(&frp.adding_new_node);
             existing_node_edited <- graph.node_expression_edited.gate_not(&frp.is_searcher_opened);
-            open_searcher <- existing_node_edited.map2(&node_edited_by_user, 
+            open_searcher <- existing_node_edited.map2(&node_edited_by_user,
                 |(id, _, _), edited| edited.map_or(false, |edited| *id == edited)
             ).on_true();
             searcher_open_delay.restart <+ open_searcher.constant(0);
             cursor_position <- existing_node_edited.map2(
-                &node_edited_by_user, 
+                &node_edited_by_user,
                 |(node_id, _, selections), edited| {
                     edited.map_or(None, |edited| {
                         let position = || selections.last().map(|sel| sel.end).unwrap_or_default();
@@ -618,8 +618,8 @@ impl View {
             update_searcher_input_on_commit <- frp.output.editing_committed.constant(());
             input_change_delay.cancel <+ update_searcher_input_on_commit;
             update_searcher_input <- any(&input_change_delay.on_expired, &update_searcher_input_on_commit);
-            input_change_and_searcher <- map2(&searcher_input_change, &frp.searcher, 
-                |c, s| (c.clone(), s.clone())
+            input_change_and_searcher <- map2(&searcher_input_change, &frp.searcher,
+                |c, s| (c.clone(), *s)
             );
             updated_input <- input_change_and_searcher.sample(&update_searcher_input);
             input_changed <- updated_input.filter_map(|((node_id, expr, selections), searcher)| {
