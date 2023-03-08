@@ -41,13 +41,13 @@ Any.should_fail_with self matcher frames_to_skip=0 =
             Examples.throw_error . should_fail_with Examples.My_Error
 Error.should_fail_with : Any -> Integer -> Test_Result
 Error.should_fail_with self matcher frames_to_skip=0 =
-    real_type = case Meta.meta matcher of
-        c : Meta.Constructor -> c.defining_type
-        _ -> matcher
     caught = self.catch
-    if caught == real_type || caught.is_a real_type then Nothing else
+    ok = case Meta.meta matcher of
+        c : Meta.Constructor -> Meta.meta caught . constructor == c
+        _ -> caught == matcher || caught.is_a matcher
+    if ok then Nothing else
         loc = Meta.get_source_location 3+frames_to_skip
-        Test.fail ("Expected error "+real_type.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
+        Test.fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
 
 ## Asserts that `self` value is equal to the expected value.
 
@@ -323,13 +323,13 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Test_Result
 Any.should_be_a self typ =
-    real_type = case Meta.meta typ of
-        c : Meta.Constructor -> c.defining_type
-        _ -> typ
+    ok = case Meta.meta typ of
+        c : Meta.Constructor -> Meta.meta self . constructor == c
+        _ -> self.is_a typ || self==typ
 
-    if self.is_a real_type || self==real_type then Test_Result.Success else
+    if ok then Test_Result.Success else
         loc = Meta.get_source_location 0
-        expected_type = Meta.get_qualified_type_name real_type
+        expected_type = Meta.get_qualified_type_name typ
         actual_type = Meta.get_qualified_type_name self
         message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
         Test.fail message

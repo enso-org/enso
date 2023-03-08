@@ -91,20 +91,19 @@ type Test
                  Test.expect_panic_with Examples.throw_panic Examples.My_Error
     expect_panic_with : Any -> Any -> Test_Result
     expect_panic_with ~action matcher =
-        real_type = case Meta.meta matcher of
-            c : Meta.Constructor -> c.defining_type
-            _ -> matcher
-
-
         res = Panic.recover Any action
         case res of
             _ ->
                 loc = Meta.get_source_location 2
                 return_suffix = if res.is_nothing then "" else "and returned ["+res.to_text+"]"
-                Test.fail ("Expected a " + real_type.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
+                Test.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
         err = res.catch
-        if err.is_a real_type then Nothing else
-            Test.fail ("Expected a " + real_type.to_text + ", but " + err.to_text + " was thrown instead.")
+        ok = case Meta.meta matcher of
+            c : Meta.Constructor -> Meta.meta err . constructor == c
+            _ -> err.is_a matcher
+
+        if ok then Nothing else
+            Test.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
 
 
     ## Checks that the provided action returns without any errors or warnings.
