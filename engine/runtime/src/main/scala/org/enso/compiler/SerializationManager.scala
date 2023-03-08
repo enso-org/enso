@@ -2,13 +2,17 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.context.SuggestionBuilder
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.docs.sections.DocSectionsBuilder
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.Suggestion
 
 import java.io.NotSerializableException
+import java.util
 import java.util.concurrent.{
   Callable,
   CompletableFuture,
@@ -19,10 +23,15 @@ import java.util.concurrent.{
   TimeUnit
 }
 import java.util.logging.Level
+
 import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptional
 
-class SerializationManager(compiler: Compiler) {
+final class SerializationManager(
+  compiler: Compiler,
+  docSectionsBuilder: DocSectionsBuilder = DocSectionsBuilder()
+) {
+
   import SerializationManager._
 
   /** The debug logging level. */
@@ -133,13 +142,13 @@ class SerializationManager(compiler: Compiler) {
     }
   }
 
-  def serializeLibraryBindings(
+  def serializeLibrary(
     libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
   ): Future[Boolean] = {
     logger.log(
       Level.INFO,
-      s"Requesting serialization for library [$libraryName] bindings."
+      s"Requesting serialization for library [$libraryName]."
     )
 
     val task: Callable[Boolean] =
@@ -157,7 +166,7 @@ class SerializationManager(compiler: Compiler) {
         case e: Throwable =>
           logger.log(
             debugLogLevel,
-            s"Serialization task failed for library [${libraryName}].",
+            s"Serialization task failed for library [$libraryName].",
             e
           )
           CompletableFuture.completedFuture(false)
@@ -165,7 +174,7 @@ class SerializationManager(compiler: Compiler) {
     }
   }
 
-  def doSerializeLibrary(
+  private def doSerializeLibrary(
     libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
   ): Callable[Boolean] = () => {
@@ -195,26 +204,97 @@ class SerializationManager(compiler: Compiler) {
         .map(_.listSourcesJava())
     )
     try {
-      new ImportExportCache(libraryName)
-        .save(bindingsCache, compiler.context, useGlobalCacheLocations)
-        .isPresent()
-    } catch {
-      case e: NotSerializableException =>
-        logger.log(
-          Level.SEVERE,
-          s"Could not serialize bindings [$libraryName].",
-          e
-        )
-        throw e
-      case e: Throwable =>
-        logger.log(
-          Level.SEVERE,
-          s"Serialization of bindings `$libraryName` failed: ${e.getMessage}`",
-          e
-        )
-        throw e
+      val result =
+        try {
+          new ImportExportCache(libraryName)
+            .save(bindingsCache, compiler.context, useGlobalCacheLocations)
+            .isPresent
+        } catch {
+          case e: NotSerializableException =>
+            logger.log(
+              Level.SEVERE,
+              s"Could not serialize bindings [$libraryName].",
+              e
+            )
+            throw e
+          case e: Throwable =>
+            logger.log(
+              Level.SEVERE,
+              s"Serialization of bindings `$libraryName` failed: ${e.getMessage}`",
+              e
+            )
+            throw e
+        }
+
+      try {
+        val suggestions = new util.ArrayList[Suggestion]()
+        compiler.packageRepository
+          .getModulesForLibrary(libraryName)
+          .flatMap { module =>
+            SuggestionBuilder(module)
+              .build(module.getName, module.getIr)
+              .toVector
+          }
+          .map(generateDocumentation)
+          .foreach(suggestions.add)
+        val cachedSuggestions =
+          new SuggestionsCache.CachedSuggestions(
+            libraryName,
+            new SuggestionsCache.Suggestions(suggestions),
+            compiler.packageRepository
+              .getPackageForLibraryJava(libraryName)
+              .map(_.listSourcesJava())
+          )
+        new SuggestionsCache(libraryName)
+          .save(cachedSuggestions, compiler.context, false)
+          .isPresent
+      } catch {
+        case e: NotSerializableException =>
+          logger.log(
+            Level.SEVERE,
+            s"Could not serialize suggestions [$libraryName].",
+            e
+          )
+          throw e
+        case e: Throwable =>
+          logger.log(
+            Level.SEVERE,
+            s"Serialization of suggestions `$libraryName` failed: ${e.getMessage}`",
+            e
+          )
+          throw e
+      }
+
+      result
     } finally {
       finishSerializing(libraryName.toQualifiedName)
+    }
+  }
+
+  def deserializeSuggestions(
+    libraryName: LibraryName
+  ): Option[SuggestionsCache.CachedSuggestions] = {
+    if (isWaitingForSerialization(libraryName)) {
+      abort(libraryName)
+      None
+    } else {
+      while (isSerializingLibrary(libraryName)) {
+        Thread.sleep(100)
+      }
+      new SuggestionsCache(libraryName).load(compiler.context).toScala match {
+        case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
+          logger.log(
+            Level.FINE,
+            s"Restored suggestions for library [$libraryName]."
+          )
+          result
+        case _ =>
+          logger.log(
+            Level.FINEST,
+            s"Unable to load suggestions for library [$libraryName]."
+          )
+          None
+      }
     }
   }
 
@@ -524,7 +604,45 @@ class SerializationManager(compiler: Compiler) {
       )
       .asScala
   }
+
+  /** Generate the documentation for the given suggestion.
+    *
+    * @param suggestion the initial suggestion
+    * @return the suggestion with documentation fields set
+    */
+  private def generateDocumentation(suggestion: Suggestion): Suggestion =
+    suggestion match {
+      case module: Suggestion.Module =>
+        val docSections = module.documentation.map(docSectionsBuilder.build)
+        module.copy(documentationSections = docSections)
+
+      case constructor: Suggestion.Constructor =>
+        val docSections =
+          constructor.documentation.map(docSectionsBuilder.build)
+        constructor.copy(documentationSections = docSections)
+
+      case tpe: Suggestion.Type =>
+        val docSections = tpe.documentation.map(docSectionsBuilder.build)
+        tpe.copy(documentationSections = docSections)
+
+      case method: Suggestion.Method =>
+        val docSections = method.documentation.map(docSectionsBuilder.build)
+        method.copy(documentationSections = docSections)
+
+      case conversion: Suggestion.Conversion =>
+        val docSections = conversion.documentation.map(docSectionsBuilder.build)
+        conversion.copy(documentationSections = docSections)
+
+      case function: Suggestion.Function =>
+        val docSections = function.documentation.map(docSectionsBuilder.build)
+        function.copy(documentationSections = docSections)
+
+      case local: Suggestion.Local =>
+        val docSections = local.documentation.map(docSectionsBuilder.build)
+        local.copy(documentationSections = docSections)
+    }
 }
+
 object SerializationManager {
 
   /** The maximum number of serialization threads allowed. */

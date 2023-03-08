@@ -352,12 +352,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(40, 9)
-    val yId        = metadata.addItem(58, 2)
-    val mainResId  = metadata.addItem(65, 12)
+    val xId        = metadata.addItem(46, 9)
+    val yId        = metadata.addItem(64, 2)
+    val mainResId  = metadata.addItem(71, 12)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |main =
         |    x = undefined
@@ -958,12 +958,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(40, 7)
-    val yId        = metadata.addItem(56, 5)
-    val mainResId  = metadata.addItem(66, 12)
+    val xId        = metadata.addItem(46, 7)
+    val yId        = metadata.addItem(62, 5)
+    val mainResId  = metadata.addItem(72, 12)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |main =
         |    x = 1 + foo
@@ -1386,13 +1386,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(98, 3)
-    val yId        = metadata.addItem(110, 5)
-    val mainResId  = metadata.addItem(120, 12)
+    val xId        = metadata.addItem(71, 3)
+    val yId        = metadata.addItem(83, 5)
+    val mainResId  = metadata.addItem(93, 12)
 
     val code =
-      """import Standard.Base.IO
-        |import Standard.Base.Error.Error
+      """from Standard.Base import all
         |
         |foo =
         |    Error.throw 9
@@ -1462,7 +1461,7 @@ class RuntimeErrorsTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(4, 4), model.Position(4, 17)),
+              model.Range(model.Position(3, 4), model.Position(3, 17)),
               "10002 - 10000"
             )
           ),
@@ -1589,8 +1588,8 @@ class RuntimeErrorsTest
     context.receiveNIgnorePendingExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING),
-      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING_BUILTIN),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("MyError")
