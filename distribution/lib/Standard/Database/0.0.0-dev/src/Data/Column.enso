@@ -958,12 +958,12 @@ type Column
     as_internal : Internal_Column
     as_internal self = Internal_Column.Value self.name self.sql_type self.expression
 
-    ## PRIVATE
-    naming_helpers self = self.connection.dialect.get_naming_helpers
-
     ## Provides a simplified text representation for display in the REPL and errors.
     to_text : Text
     to_text self = "(Database Column "+self.name.to_text+")"
+
+    ## PRIVATE
+    naming_helpers self = self.connection.dialect.get_naming_helpers
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
