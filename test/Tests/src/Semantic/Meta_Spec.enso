@@ -38,6 +38,10 @@ test_method a b = a + b
 type Test_Type
     Value x
 
+type Sum_Type
+    Variant_A x
+    Variant_B y
+
 spec =
     Test.group "Meta-Value Manipulation" <|
         Test.specify "should allow manipulating unresolved symbols" <|
@@ -124,6 +128,11 @@ spec =
             Meta.is_a Time_Of_Day.now Date . should_be_false
             Meta.is_a Date_Time.now.zone Time_Zone . should_be_true
             Meta.is_a Date_Time.now.zone Date . should_be_false
+
+        Test.specify "constructor variants check" <|
+            (Sum_Type.Variant_A 42).is_a Sum_Type . should_be_true
+            (Sum_Type.Variant_A 42).is_a Sum_Type.Variant_A . should_be_false
+            (Sum_Type.Variant_A 42).is_a Sum_Type.Variant_B . should_be_false
 
         Test.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42
