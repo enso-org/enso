@@ -38,8 +38,7 @@ object DistributionPackage {
     }
   }
 
-  /**
-    * Conditional copying, based on the contents of cache and timestamps of files.
+  /** Conditional copying, based on the contents of cache and timestamps of files.
     *
     * @param source source directory
     * @param destination target directory
@@ -123,7 +122,6 @@ object DistributionPackage {
     targetStdlibVersion: String,
     targetDir: File
   ): Unit = {
-
     copyDirectoryIncremental(
       file("distribution/engine/THIRD-PARTY"),
       distributionRoot / "THIRD-PARTY",
@@ -135,15 +133,7 @@ object DistributionPackage {
       distributionRoot / "component",
       cacheFactory.make("engine-jars")
     )
-    val os = System.getProperty("os.name")
-    val isMac = os.startsWith("Mac")
-    val parser = targetDir / (if (isMac) {
-      "libenso_parser.dylib"
-    } else if (os.startsWith("Windows")) {
-      "enso_parser.dll"
-    } else {
-      "libenso_parser.so"
-    })
+    val parser = targetDir / Platform.dynamicLibraryFileName("enso_parser")
     copyFilesIncremental(
       Seq(parser),
       distributionRoot / "component",
@@ -583,7 +573,7 @@ object DistributionPackage {
       arguments: String*
     ): String = {
       val shallowFile = graalDir / "bin" / "gu"
-      val deepFile = graalDir / "Contents" / "Home" / "bin" / "gu"
+      val deepFile    = graalDir / "Contents" / "Home" / "bin" / "gu"
       val executableFile = os match {
         case OS.Linux =>
           shallowFile
@@ -597,11 +587,13 @@ object DistributionPackage {
           graalDir / "bin" / "gu.cmd"
       }
       val javaHomeFile = executableFile.getParentFile.getParentFile
-      val javaHome = javaHomeFile.toPath.toAbsolutePath
+      val javaHome     = javaHomeFile.toPath.toAbsolutePath
       val command =
         executableFile.toPath.toAbsolutePath.toString +: arguments
 
-      log.debug(s"Running $command in $graalDir with JAVA_HOME=${javaHome.toString}")
+      log.debug(
+        s"Running $command in $graalDir with JAVA_HOME=${javaHome.toString}"
+      )
 
       try {
         Process(

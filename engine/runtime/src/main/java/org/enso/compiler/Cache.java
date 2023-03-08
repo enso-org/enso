@@ -6,6 +6,7 @@ import org.bouncycastle.jcajce.provider.digest.SHA3;
 import org.bouncycastle.util.encoders.Hex;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
+import org.enso.pkg.SourceFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +20,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 
@@ -326,8 +329,32 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param bytes bytes for which hash will be computed
    * @return string representation of bytes' hash
    */
-  protected String computeDigestFromBytes(byte[] bytes) {
+  protected final String computeDigestFromBytes(byte[] bytes) {
     return Hex.toHexString(messageDigest().digest(bytes));
+  }
+
+  /**
+   * Computes digest from package sources using a default hashing algorithm.
+   *
+   * @param pkgSources the list of package sources
+   * @param logger the truffle logger
+   * @return string representation of bytes' hash
+   */
+  protected final String computeDigestOfLibrarySources(
+      List<SourceFile<TruffleFile>> pkgSources, TruffleLogger logger) {
+    pkgSources.sort(Comparator.comparing(o -> o.qualifiedName().toString()));
+
+    var digest = messageDigest();
+    pkgSources.forEach(
+        source -> {
+          try {
+            digest.update(source.file().readAllBytes());
+          } catch (IOException e) {
+            logger.log(
+                logLevel, "failed to compute digest for " + source.qualifiedName().toString(), e);
+          }
+        });
+    return Hex.toHexString(digest.digest());
   }
 
   /**
