@@ -131,12 +131,12 @@ const initIpc = () => {
 const initOpenUrlListener = (window: () => electron.BrowserWindow) => {
     electron.app.on(OPEN_URL_EVENT, (event, url) => {
         const parsedUrl = new URL(url)
+        /** Prevent Electron from handling the URL at all, because redirects can be dangerous. */
+        event.preventDefault()
         if (parsedUrl.protocol !== `${shared.DEEP_LINK_SCHEME}:`) {
-            content.logger.log(`${url} is not a deep link, ignoring.`)
+            content.logger.error(`${url} is not a deep link, ignoring.`)
             return
         }
-        /** Don't open the deep link URL in the window, we want the system browser to handle it. */
-        event.preventDefault()
         window().webContents.send(ipc.channel.openDeepLink, url)
     })
 }
