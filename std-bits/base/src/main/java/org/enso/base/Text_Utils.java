@@ -269,7 +269,7 @@ public class Text_Utils {
    * @param str the string to measure
    * @return length of the string
    */
-  private static long grapheme_length(String str) {
+  public static long grapheme_length(String str) {
     return Core_Text_Utils.computeGraphemeLength(str);
   }
 
