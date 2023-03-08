@@ -24,6 +24,8 @@ public final class SuggestionsCache
   private static final String SUGGESTIONS_CACHE_DATA_EXTENSION = ".suggestions";
   private static final String SUGGESTIONS_CACHE_METADATA_EXTENSION =".suggestions.meta";
 
+  private final static ObjectMapper objectMapper = new ObjectMapper();
+
   final LibraryName libraryName;
 
   public SuggestionsCache(LibraryName libraryName) {
@@ -37,9 +39,8 @@ public final class SuggestionsCache
 
   @Override
   protected byte[] metadata(String sourceDigest, String blobDigest, CachedSuggestions entry) {
-    var mapper = new ObjectMapper();
     try {
-      return mapper.writeValueAsString(new Metadata(sourceDigest, blobDigest)).getBytes(metadataCharset);
+      return objectMapper.writeValueAsString(new Metadata(sourceDigest, blobDigest)).getBytes(metadataCharset);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
@@ -58,9 +59,8 @@ public final class SuggestionsCache
   @Override
   protected Optional<Metadata> metadataFromBytes(byte[] bytes) {
     var maybeJsonString = new String(bytes, Cache.metadataCharset);
-    var mapper = new ObjectMapper();
     try {
-      return Optional.of(mapper.readValue(maybeJsonString, SuggestionsCache.Metadata.class));
+      return Optional.of(objectMapper.readValue(maybeJsonString, SuggestionsCache.Metadata.class));
     } catch (JsonProcessingException e) {
       return Optional.empty();
     }

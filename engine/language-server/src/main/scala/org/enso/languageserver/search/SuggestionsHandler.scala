@@ -503,7 +503,6 @@ final class SuggestionsHandler(
         libraryLoaded.namespace,
         libraryLoaded.name
       )
-      System.err.println("Loaded library: " + libraryLoaded.name)
 
     case SuggestionUpdatesCompleted =>
       if (state.suggestionUpdatesQueue.nonEmpty) {
@@ -566,10 +565,10 @@ final class SuggestionsHandler(
     } yield {
       val treeUpdates = treeResults.flatMap {
         case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
-          val verb = action.getClass.getSimpleName
           action match {
             case Api.SuggestionAction.Add() =>
               if (ids.isEmpty) {
+                val verb = action.getClass.getSimpleName
                 logger.error("Cannot {} [{}].", verb, suggestion)
               }
               ids.map(
