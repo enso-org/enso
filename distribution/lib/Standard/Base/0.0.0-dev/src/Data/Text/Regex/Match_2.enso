@@ -1,9 +1,11 @@
 from project.Data.Boolean import Boolean, True, False
 import project.Data.Numbers.Integer
+import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Nothing.Nothing
 
 type Match_2
@@ -80,5 +82,5 @@ type Match_2
          index based on their position in the pattern.
     groups : Vector Span
     groups self =
-        group_numbers = 0.up_to <| self.pattern.group_count
+        group_numbers = 0.up_to self.pattern.group_count
         group_numbers.map n-> self.group n

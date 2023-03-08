@@ -1332,11 +1332,8 @@ spec =
             check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
 
         Test.specify "can return a vector of all match groups" <|
-            groups = "abc".find "ab((c)|(d))".groups
-            groups . should_equal [Span (Range.Between 0 3) "abc",
-                                   Span (Range.Between 2 3) "abc",
-                                   Span (Range.Between 2 3) "abc",
-                                   Nothing]
+            groups = "abc".find "ab((c)|(d))" . groups
+            groups . should_equal [Span.Value (Range.Between 0 3) "abc", Span.Value (Range.Between 2 3) "abc", Span.Value (Range.Between 2 3) "abc", Nothing]
 
         Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
             check_span_all ("abacadae".find_all "a[bc]") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
