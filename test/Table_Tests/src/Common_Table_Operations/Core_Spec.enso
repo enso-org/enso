@@ -135,7 +135,8 @@ spec setup =
         Test.specify "should gracefully handle expression failures" <|
             t1 = table_builder [["X", [1,2,3]]]
             t1.set "[unknown] + 10" new_name="Z" . should_fail_with No_Such_Column
-            t1.set "[[[[" . should_fail_with Expression_Error.Syntax_Error
+            t1.set "[[[[" . should_fail_with Expression_Error
+            t1.set "[[[[" . catch . should_be_a Expression_Error.Syntax_Error
 
         Test.specify "should forward expression problems" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]

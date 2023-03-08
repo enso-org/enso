@@ -283,8 +283,9 @@ spec detailed setup =
             expression_test "max([A], [B], 3)" [3, 3, 3, 4, 6]
 
     Test.group prefix+"Expression Errors should be handled" <|
-        error_tester expression fail_type =
-            test_table.set expression new_name="NEW_COL" . should_fail_with fail_type
+        error_tester expression fail_ctor =
+            test_table.set expression new_name="NEW_COL" . should_fail_with Expression_Error
+            test_table.set expression new_name="NEW_COL" . catch . should_be_a fail_ctor
 
         specify_test "should fail with Syntax_Error if badly formed" expression_test=error_tester expression_test->
             expression_test "IIF [A] THEN 1 ELSE 2" Expression_Error.Syntax_Error
