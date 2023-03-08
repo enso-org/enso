@@ -33,9 +33,13 @@ public class Column {
     this.storage = storage;
   }
 
+  public static IllegalArgumentException raiseNothingName() throws IllegalArgumentException {
+    throw new IllegalArgumentException("Column name cannot be Nothing.");
+  }
+
   public static void ensureNameIsValid(String name) {
     if (name == null) {
-      throw new IllegalArgumentException("Column name cannot be Nothing.");
+      raiseNothingName();
     }
     if (name.isEmpty()) {
       throw new IllegalArgumentException("Column name cannot be empty.");
