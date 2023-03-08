@@ -211,7 +211,7 @@ spec setup =
             s1.ends_with "a" . to_vector . should_equal [False, False, False, False, Nothing]
             s1.ends_with "b" Case_Sensitivity.Insensitive . to_vector . should_equal [False, False, False, True, Nothing]
 
-    Test.group "Colum Operations - Names" <|
+    Test.group prefix+"Colum Operations - Names" <|
         t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]]
         Test.specify "arithmetic" <|
             ((t.at "a") + 42) . name . should_equal "[a] + 42"
