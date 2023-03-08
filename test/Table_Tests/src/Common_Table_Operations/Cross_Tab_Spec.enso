@@ -70,6 +70,17 @@ spec setup =
             t1.at "y" . to_vector . should_equal [2, 1]
             t1.at "z" . to_vector . should_equal [1, 1]
 
+        Test.specify "should allow a grouping by Aggregate_Column" <|
+            t1 = table2.cross_tab [Group_By "Group"] "Key"
+            t1.column_names . should_equal ["Group", "x", "y", "z"]
+            t1.row_count . should_equal 2
+            t1.at "Group" . to_vector . should_equal ["A", "B"]
+            t1.at "x" . to_vector . should_equal [2, 2]
+            t1.at "y" . to_vector . should_equal [2, 1]
+            t1.at "z" . to_vector . should_equal [1, 1]
+
+            table2.cross_tab [Sum "Group"] "Key" . should_fail_with Illegal_Argument
+
         Test.specify "should allow a grouping by text" <|
             t1 = table2.cross_tab "Group" "Key"
             t1.column_names . should_equal ["Group", "x", "y", "z"]

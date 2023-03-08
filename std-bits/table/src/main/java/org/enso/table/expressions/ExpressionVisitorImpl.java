@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 
+import org.enso.base.Time_Utils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -15,7 +16,6 @@ import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -316,31 +316,22 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
-    var text = ctx.text.getText().replace(' ', 'T');
-    var timezone = text.contains("[") ? text.substring(text.indexOf('[')) : "";
-    text = text.substring(0, text.length() - timezone.length());
-
-    var zoneId =
-        timezone.equals("")
-            ? ZoneId.systemDefault()
-            : ZoneId.of(timezone.substring(1, timezone.length() - 1));
+    var text = Time_Utils.normaliseISODateTime(ctx.text.getText());
 
     try {
-      var zonedDateTime =
-          ZonedDateTime.parse(text, DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(zoneId));
-      return Value.asValue(zonedDateTime);
+      var datetime = Time_Utils.default_zoned_date_time_formatter().parseBest(text, ZonedDateTime::from, LocalDateTime::from);
+      if (datetime instanceof ZonedDateTime zonedDateTime) {
+        return Value.asValue(zonedDateTime);
+      } else if (datetime instanceof LocalDateTime localDateTime) {
+        return Value.asValue(localDateTime.atZone(ZoneId.systemDefault()));
+      }
     } catch (DateTimeParseException ignored) {
     }
 
-    try {
-      var localDateTime = LocalDateTime.parse(text);
-      return Value.asValue(localDateTime.atZone(zoneId));
-    } catch (DateTimeParseException e) {
-      throw new SyntaxErrorException(
-          "Invalid Date_Time format: " + text,
-          ctx.getStart().getLine(),
-          ctx.getStart().getCharPositionInLine());
-    }
+    throw new SyntaxErrorException(
+            "Invalid Date_Time format: " + text,
+            ctx.getStart().getLine(),
+            ctx.getStart().getCharPositionInLine());
   }
 
   @Override

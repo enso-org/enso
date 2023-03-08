@@ -24,6 +24,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
@@ -31,7 +32,7 @@ import org.enso.interpreter.runtime.state.State;
 public abstract class SortNode extends Node {
   private @Child CallOptimiserNode callOptimiserNode = SimpleCallOptimiserNode.build();
   private @Child InvalidComparisonNode invalidComparisonNode = InvalidComparisonNode.build();
-  private final BranchProfile resultProfile = BranchProfile.create();
+  private final BranchProfile invalidCompareResultProfile = BranchProfile.create();
 
   abstract Object execute(State state, Object self, Object comparator);
 
@@ -46,7 +47,12 @@ public abstract class SortNode extends Node {
     Object[] newArr = new Object[size];
     System.arraycopy(self.getItems(), 0, newArr, 0, size);
 
-    return getComparatorAndSort(state, newArr, comparator, context);
+    try {
+      return getComparatorAndSort(state, newArr, comparator, context);
+    } catch (CompareException e) {
+      return DataflowError.withoutTrace(
+          incomparableValuesError(e.leftOperand, e.rightOperand), this);
+    }
   }
 
   @Specialization(guards = "arrays.hasArrayElements(self)")
@@ -56,15 +62,23 @@ public abstract class SortNode extends Node {
       Function comparator,
       @CachedLibrary(limit = "3") InteropLibrary arrays,
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
+    long size;
+    Object[] newArray;
     try {
-      long size = arrays.getArraySize(self);
-      Object[] newArray = new Object[(int) size];
+      size = arrays.getArraySize(self);
+      newArray = new Object[(int) size];
       for (int i = 0; i < size; i++) {
         newArray[i] = hostValueToEnsoNode.execute(arrays.readArrayElement(self, i));
       }
-      return getComparatorAndSort(state, newArray, comparator, EnsoContext.get(this));
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
       throw new IllegalStateException(e);
+    }
+
+    try {
+      return getComparatorAndSort(state, newArray, comparator, EnsoContext.get(this));
+    } catch (CompareException e) {
+      return DataflowError.withoutTrace(
+          incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
 
@@ -95,6 +109,10 @@ public abstract class SortNode extends Node {
     Arrays.sort(items, compare);
   }
 
+  private Object incomparableValuesError(Object left, Object right) {
+    return EnsoContext.get(this).getBuiltins().error().makeIncomparableValues(left, right);
+  }
+
   private class SortComparator implements Comparator<Object> {
     private final Function compFn;
     private final EnsoContext context;
@@ -116,11 +134,7 @@ public abstract class SortNode extends Node {
 
     @Override
     public int compare(Object o1, Object o2) {
-      var value = callOptimiserNode.executeDispatch(compFn, null, state, new Object[] {o1, o2});
-      return convertResult(value);
-    }
-
-    private int convertResult(Object res) {
+      Object res = callOptimiserNode.executeDispatch(compFn, null, state, new Object[] {o1, o2});
       if (res == less) {
         return -1;
       } else if (res == equal) {
@@ -128,9 +142,19 @@ public abstract class SortNode extends Node {
       } else if (res == greater) {
         return 1;
       } else {
-        resultProfile.enter();
-        return invalidComparisonNode.execute(res);
+        invalidCompareResultProfile.enter();
+        throw new CompareException(o1, o2);
       }
+    }
+  }
+
+  private static final class CompareException extends RuntimeException {
+    final Object leftOperand;
+    final Object rightOperand;
+
+    private CompareException(Object leftOperand, Object rightOperand) {
+      this.leftOperand = leftOperand;
+      this.rightOperand = rightOperand;
     }
   }
 }

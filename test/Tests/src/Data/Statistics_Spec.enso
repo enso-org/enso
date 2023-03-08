@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Data.Vector import Empty_Error
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -168,11 +168,11 @@ spec =
 
         Test.specify "should fail with Incomparable_Values on custom incomparable type" <|
             no_ord_set.compute . should_equal 3
-            no_ord_set.compute Statistic.Minimum . should_fail_with Incomparable_Values
-            no_ord_set.compute Statistic.Maximum . should_fail_with Incomparable_Values
+            no_ord_set.compute Statistic.Minimum . should_fail_with Incomparable_Values.Error
+            no_ord_set.compute Statistic.Maximum . should_fail_with Incomparable_Values.Error
 
         Test.specify "should fail with Incomparable_Values on mixed Vectors" <|
-            [1, False].compute Statistic.Minimum . should_fail_with Incomparable_Values
+            [1, False].compute Statistic.Minimum . should_fail_with Incomparable_Values.Error
 
     Test.group "Rank Data" <|
         Test.specify "can rank a Decimal data series" <|
@@ -197,10 +197,10 @@ spec =
 
         Test.specify "should fail with Incomparable_Values on custom incomparable type" <|
             values = [No_Ord.Value 10, No_Ord.Value 2, No_Ord.Value 9]
-            Statistic.rank_data values . should_fail_with Incomparable_Values
+            Statistic.rank_data values . should_fail_with Incomparable_Values.Error
 
         Test.specify "should fail with Incomparable_Values on mixed Vectors" <|
-            Statistic.rank_data [1, "A"] . should_fail_with Incomparable_Values
+            Statistic.rank_data [1, "A"] . should_fail_with Incomparable_Values.Error
 
         Test.specify "should fail with Illegal_Argument on Vectors with Nothing" <|
             Statistic.rank_data [1, Nothing, 4] . should_fail_with Illegal_Argument.Error

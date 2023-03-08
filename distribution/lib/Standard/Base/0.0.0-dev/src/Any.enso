@@ -2,7 +2,7 @@ import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Error
-import project.Error.Incomparable_Values.Incomparable_Values
+import project.Error.Common.Incomparable_Values
 import project.Error.Common.No_Such_Conversion
 import project.Error.Common.Type_Error
 import project.Nothing.Nothing
@@ -119,11 +119,15 @@ type Any
                     True ->
                         case eq_self.is_ordered of
                             True ->
-                                # Comparable.equals_builtin is a hack how to directly access EqualsNode from the
-                                # engine, so that we don't end up in an infinite recursion here (which would happen
-                                # if we would compare with `eq_self == eq_that`).
-                                Comparable.equals_builtin (eq_self.compare self that) Ordering.Equal
-                            False -> eq_self.equals self that
+                                res = eq_self.compare self that
+                                case res of
+                                    Ordering.Equal -> True
+                                    _ -> False
+                            False ->
+                                res = eq_self.equals self that
+                                case res of
+                                    Nothing -> False
+                                    _ -> res
 
     ## ALIAS Inequality
 
@@ -171,6 +175,7 @@ type Any
         assert_ordered_comparators self that <|
             case (Comparable.from self).compare self that of
                 Ordering.Greater -> True
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
     ## ALIAS Greater Than or Equal
@@ -203,6 +208,7 @@ type Any
                 Ordering.Less -> False
                 Ordering.Equal -> True
                 Ordering.Greater -> True
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
 
     ## ALIAS Less Than
 
@@ -227,6 +233,7 @@ type Any
         assert_ordered_comparators self that <|
             case (Comparable.from self).compare self that of
                 Ordering.Less -> True
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
     ## ALIAS Less Than or Equal
@@ -259,6 +266,7 @@ type Any
                 Ordering.Less -> True
                 Ordering.Equal -> True
                 Ordering.Greater -> False
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
 
     ## Checks if the type is an instance of `Nothing`.
 
@@ -456,5 +464,5 @@ assert_ordered_comparators this that ~action =
     comp_this = Comparable.from this
     comp_that = Comparable.from that
     if (Meta.is_same_object comp_this comp_that).not then Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that") else
-        if Meta.is_same_object comp_this Incomparable || comp_this.is_ordered.not then Error.throw Incomparable_Values else
+        if Meta.is_same_object comp_this Incomparable || comp_this.is_ordered.not then Error.throw (Incomparable_Values.Error this that) else
             action
