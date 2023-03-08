@@ -4,7 +4,7 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Pattern_2.Pattern_2
 import project.Data.Text.Text
-from project.Error.Common import Compile_Error, Syntax_Error
+from project.Error.Common import Syntax_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
@@ -27,13 +27,12 @@ polyglot java import java.util.regex.Pattern as Java_Pattern
      useful to be able to manually retain a pattern that you have computed. This
      function exists so you can hold onto the resultant `Pattern_2` object,
      instead of immediately proceeding to match using it.
-compile : Text -> Boolean | Nothing -> Pattern_2 ! Syntax_Error
+compile : Text -> Boolean | Nothing -> Pattern_2 ! Regex_Syntax_Error
 compile self expression case_insensitive=Nothing =
-    #all_options = options + self.engine_opts
-    #options_bitmask = from_enso_options all_options
     options_string = if case_insensitive == True then "usgi" else "usg"
 
-    internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic-> Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
+    internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
+        Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
 
     Pattern_2.Value internal_regex_object
 
@@ -46,7 +45,7 @@ compile self expression case_insensitive=Nothing =
    - expression: The expression to escape metacharacters in.
 
    > Example
-     Turn a literal string into a regex that matches that string exactly.
+     Turn a Text into a regex that matches that string exactly.
 
          import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
          import Standard.Base.Data.Text.Regex.Regex_Option.Regex_Option

@@ -18,7 +18,7 @@ optimize text = @Builtin_Method "Prim_Text_Helper.optimize"
 
    Arguments:
    - pattern: the regex to compile
-   - options: string containing traditional regex flags (for example, `"g"`
-    as in ``/foo/g`
+   - options: string containing traditional regex flags (for example, "g"
+    as in "/foo/g"
 compile_regex : Text -> Text -> Any
 compile_regex pattern options = @Builtin_Method "Prim_Text_Helper.compile_regex"
