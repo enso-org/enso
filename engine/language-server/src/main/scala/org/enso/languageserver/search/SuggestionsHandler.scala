@@ -161,10 +161,9 @@ final class SuggestionsHandler(
         .fold(
           t =>
             logger.error(
-              "Cannot read the package definition from [{}]. {} {}",
+              "Cannot read the package definition from [{}].",
               MaskedPath(config.projectContentRoot.file.toPath),
-              t.getClass.getName,
-              t.getMessage
+              t
             ),
           pkg => self ! ProjectNameUpdated(pkg.config.name)
         )
@@ -176,11 +175,7 @@ final class SuggestionsHandler(
       tryInitialize(init.copy(typeGraph = Some(g)))
 
     case Status.Failure(ex) =>
-      logger.error(
-        "Initialization failure [{}]. {}",
-        ex.getClass,
-        ex.getMessage
-      )
+      logger.error("Initialization failure.", ex)
 
     case _ => stash()
   }
@@ -228,9 +223,9 @@ final class SuggestionsHandler(
             }
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion updates for loaded library [{}] ({})",
+              "Error applying suggestion updates for loaded library [{}].",
               msg.libraryName,
-              ex.getMessage
+              ex
             )
         }
 
@@ -266,10 +261,10 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion database updates batch of [{}] modules [{}]. ({})",
+              "Error applying suggestion database updates batch of [{}] modules [{}].",
               modules.length,
               modules.mkString(", "),
-              ex.getMessage
+              ex
             )
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
         }
@@ -302,10 +297,10 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion database updates [{}, {}] ({})",
+              "Error applying suggestion database updates [{}, {}].",
               msg.module,
               msg.version,
-              ex.getMessage
+              ex
             )
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
         }
@@ -346,9 +341,9 @@ final class SuggestionsHandler(
             }
           case Failure(ex) =>
             logger.error(
-              "Error applying changes from computed values [{}]. {}",
+              "Error applying changes from computed values [{}].",
               updates.map(_.expressionId),
-              ex.getMessage
+              ex
             )
         }
 
@@ -423,8 +418,8 @@ final class SuggestionsHandler(
             )
           case Failure(ex) =>
             logger.error(
-              "Error cleaning the index after file delete event. {}",
-              ex.getMessage
+              "Error cleaning the index after file delete event.",
+              ex
             )
         }
 
@@ -579,7 +574,8 @@ final class SuggestionsHandler(
               )
             case action =>
               logger.error(
-                s"Invalid action during suggestions loading [$action]."
+                "Invalid action during suggestions loading [{}].",
+                action
               )
               Seq()
           }
