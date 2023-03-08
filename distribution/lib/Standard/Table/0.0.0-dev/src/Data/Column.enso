@@ -693,9 +693,9 @@ type Column
 
              import Standard.Examples
 
-             example_is_missing = Examples.decimal_column.is_missing
-    is_missing : Column
-    is_missing self =
+             example_is_missing = Examples.decimal_column.is_nothing
+    is_nothing : Column
+    is_nothing self =
         new_name = Naming_Helpers.to_expression_text self + " is null"
         run_vectorized_unary_op self "is_missing" (== Nothing) new_name on_missing=True
 
@@ -730,7 +730,7 @@ type Column
     is_present : Column
     is_present self =
         new_name = Naming_Helpers.function_name "is_present" [self]
-        self.is_missing.not.rename new_name
+        self.is_nothing.not.rename new_name
 
     ## PRIVATE
        Returns a column of booleans with `True` at the positions where this
@@ -747,9 +747,9 @@ type Column
         new_name = Naming_Helpers.function_name "is_blank" [self]
         result = case self.storage_type of
             Storage.Text -> self.is_empty
-            Storage.Decimal -> if treat_nans_as_blank then self.is_missing || self.is_nan else self.is_missing
+            Storage.Decimal -> if treat_nans_as_blank then self.is_nothing || self.is_nan else self.is_missing
             Storage.Any -> if treat_nans_as_blank then self.is_empty || self.is_nan else self.is_empty
-            _ -> self.is_missing
+            _ -> self.is_nothing
         result.rename new_name
 
     ## ALIAS Fill Missing
@@ -767,10 +767,10 @@ type Column
 
              import Standard.Examples
 
-             example_fill_missing = Examples.decimal_column.fill_missing 20.5
-    fill_missing : Column | Any -> Column
-    fill_missing self default =
-        new_name = Naming_Helpers.function_name "fill_missing" [self, default]
+             example_fill_missing = Examples.decimal_column.fill_nothing 20.5
+    fill_nothing : Column | Any -> Column
+    fill_nothing self default =
+        new_name = Naming_Helpers.function_name "fill_nothing" [self, default]
         storage = self.java_column.getStorage
         new_st = case default of
             Column.Value java_col ->
