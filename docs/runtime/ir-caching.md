@@ -142,9 +142,9 @@ It is a JSON file as follows:
 }
 ```
 
-All hashes are encoded in SHA1 format, for performance reasons.
-The engine version is encoded in the cache path, and hence does not need
-to be explicitly specified in the metadata.
+All hashes are encoded in SHA1 format, for performance reasons. The engine
+version is encoded in the cache path, and hence does not need to be explicitly
+specified in the metadata.
 
 ### Portability Guarantees
 
