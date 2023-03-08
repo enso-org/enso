@@ -1,4 +1,5 @@
 package org.enso.compiler.context
+
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{These, Tree}
 import org.enso.polyglot.runtime.Runtime.Api

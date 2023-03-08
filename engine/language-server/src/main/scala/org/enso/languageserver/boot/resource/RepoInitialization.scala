@@ -89,7 +89,7 @@ class RepoInitialization(
       } yield ()
     initAction.onComplete {
       case Success(()) =>
-        eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
+        eventStream.publish(InitializedEvent.VersionsRepoInitialized)
       case Failure(ex) =>
         logger.error(
           "Failed to initialize SQL versions repo [{}]. {}",

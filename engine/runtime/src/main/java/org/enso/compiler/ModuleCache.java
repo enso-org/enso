@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.logging.Level;
 
-public class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
+public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
 
     private final Module module;
 

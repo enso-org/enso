@@ -3,6 +3,8 @@ package org.enso.polyglot.data
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.collection.mutable.Builder
+
 class TreeTest extends AnyWordSpec with Matchers {
 
   val tree: Tree.Root[Long] = Tree.Root(
@@ -189,4 +191,26 @@ class TreeTest extends AnyWordSpec with Matchers {
     Tree.zip(tree1, tree2) shouldEqual expected
   }
 
+  "building the tree with mutable builder" in {
+    val b: Builder[Tree.Node[String], Vector[
+      Tree.Node[String]
+    ]] = Vector.newBuilder
+    b += Tree.Node("ahoj", Vector())
+    b += Tree.Node("cześć", Vector())
+    b += Tree.Node("hi", Vector())
+    b += Tree.Node("приве́т", Vector())
+    b += Tree.Node("ciao", Vector())
+    val v = b.result()
+    val t = Tree.Root(v)
+
+    val expected = Tree.Root(
+      Vector(
+        Tree.Node("ahoj", Vector()),
+        Tree.Node("hi", Vector()),
+        Tree.Node("ciao", Vector())
+      )
+    )
+
+    t.filter(_.forall(ch => 'a' <= ch && ch <= 'z')) shouldEqual expected
+  }
 }
