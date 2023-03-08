@@ -25,5 +25,4 @@ Please include the following checklist in your PR:
       style guides.
 - All code has been tested:
   - [ ] Unit tests have been written where possible.
-  - [ ] If GUI codebase was changed: Enso GUI was tested when built using BOTH
-        `./run ide build` and `./run ide watch`.
+  - [ ] If GUI codebase was changed: Enso GUI was tested when built using `./run ide build`.

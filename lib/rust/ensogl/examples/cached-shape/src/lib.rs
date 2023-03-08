@@ -23,7 +23,8 @@ use ensogl_core::display::texture::FloatSampler;
 
 mod icon1 {
     use super::*;
-    ensogl_core::cached_shape! { 32 x 32;
+    ensogl_core::cached_shape! {
+        size = (32, 32);
         (_style: Style) {
             let shape = Circle(16.px()).fill(color::Rgba::red());
             shape.recolorize(color::Rgba::green(), color::Rgba::red(), color::Rgba::blue()).into()
@@ -33,7 +34,8 @@ mod icon1 {
 
 mod icon2 {
     use super::*;
-    ensogl_core::cached_shape! { 200 x 310;
+    ensogl_core::cached_shape! {
+        size = (200, 310);
         (_style: Style) {
             let shape = Rect((200.px(), 310.px())).fill(color::Rgba::red());
             shape.into()
@@ -59,7 +61,8 @@ pub mod data_input {
         (line + head).into()
     }
 
-    ensogl_core::cached_shape! { 16 x 16;
+    ensogl_core::cached_shape! {
+        size = (16, 16);
         (style: Style) {
             let vivid_color: Var<color::Rgba> = "srgba(1.0, 0.0, 0.0, 1.0)".into();
             let dull_color: Var<color::Rgba> = "srgba(0.0, 1.0, 0.0, 1.0)".into();

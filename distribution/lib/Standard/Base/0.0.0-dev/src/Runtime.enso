@@ -27,8 +27,7 @@ get_stack_trace =
     prim_stack = primitive_get_stack_trace
     stack_with_prims = Vector.from_polyglot_array prim_stack
     # (First 2) drops the `Runtime.primitive_get_stack_trace` frame and this one
-    # (Last 1) drops the `org.graalvm.polyglot.Value<Function>.execute` frame
-    stack = stack_with_prims.drop (First 2) . drop (Last 1)
+    stack = stack_with_prims.drop (First 2)
     stack.map wrap_primitive_stack_trace_element
 
 ## ADVANCED

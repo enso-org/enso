@@ -29,7 +29,6 @@ from project.Data.Boolean import Boolean, True, False
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.ZonedDateTime
-polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 
@@ -246,7 +245,7 @@ type Date_Time
         Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
             case pattern of
                 Nothing -> parse_builtin text
-                _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
+                _ : Text -> Time_Utils.parse_datetime text pattern locale.java_locale
 
 
     ## Get the year portion of the time.

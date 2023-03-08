@@ -1,6 +1,5 @@
-package org.enso.languageserver.search
+package org.enso.docs.sections
 
-import org.enso.docs.sections.{HtmlRepr, ParsedSectionsBuilder, Section}
 import org.enso.polyglot.DocSection
 import org.enso.syntax.text.DocParser
 import org.enso.syntax.text.ast.Doc

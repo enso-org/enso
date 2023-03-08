@@ -1,7 +1,10 @@
 use crate::prelude::*;
 
 use crate::project::gui::ide_desktop_from_context;
+use crate::project::gui::GuiBuildWithWatchedWasm;
 use crate::project::Context;
+use crate::project::Gui;
+use crate::source::WatchTargetJob;
 
 use ide_ci::actions::artifacts::upload_compressed_directory;
 use ide_ci::actions::artifacts::upload_single_file;
@@ -98,22 +101,16 @@ pub struct BuildInput {
     pub electron_target: Option<String>,
 }
 
-#[derive(Clone, Debug)]
-pub enum OutputPath {
-    /// The job must place the artifact under given path.
-    Required(PathBuf),
-    /// THe job may place the artifact anywhere, though it should use the suggested path if it has
-    /// no "better idea" (like reusing existing cache).
-    Suggested(PathBuf),
-    /// The job is responsible for finding a place for artifacts.
-    Whatever,
-}
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct Ide {
     pub target_os:   OS,
     pub target_arch: Arch,
+}
+
+impl Default for Ide {
+    fn default() -> Self {
+        Self { target_os: TARGET_OS, target_arch: TARGET_ARCH }
+    }
 }
 
 impl Ide {
@@ -135,6 +132,27 @@ impl Ide {
                 .dist(&gui, &project_manager, &output_path, target_os, electron_target)
                 .await?;
             Ok(Artifact::new(target_os, target_arch, &version, output_path))
+        }
+        .boxed()
+    }
+
+    /// Setup watch for IDE.
+    ///
+    /// This includes both WASM watcher and watcher for the web parts.
+    pub fn watch(
+        &self,
+        context: &Context,
+        gui_watch_job: WatchTargetJob<Gui>,
+        get_project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
+        ide_options: Vec<String>,
+    ) -> BoxFuture<'static, Result> {
+        let ide_desktop = ide_desktop_from_context(context);
+        let GuiBuildWithWatchedWasm { perhaps_watched_wasm, build_info, destination: _ } =
+            Gui.perhaps_setup_wasm_watcher(context.clone(), gui_watch_job);
+        async move {
+            ide_desktop
+                .watch(perhaps_watched_wasm, build_info, get_project_manager, ide_options)
+                .await
         }
         .boxed()
     }

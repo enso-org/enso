@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -16,6 +17,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Gets a member by name from a polyglot object.",
     autoRegister = false)
 public class GetMemberNode extends Node {
+  private @Child HostValueToEnsoNode fromHost = HostValueToEnsoNode.build();
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
@@ -23,7 +25,8 @@ public class GetMemberNode extends Node {
 
   Object execute(Object object, Object member_name) {
     try {
-      return library.readMember(object, expectStringNode.execute(member_name));
+      var value = library.readMember(object, expectStringNode.execute(member_name));
+      return fromHost.execute(value);
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
       err.enter();
       throw new PanicException(e.getMessage(), this);

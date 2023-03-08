@@ -40,6 +40,12 @@ case class Package[F](
   val irCacheDirectory: F = internalDirectory
     .getChild(Package.cacheDirName)
     .getChild(Package.irCacheDirName)
+  val bindingsCacheDirectory: F = internalDirectory
+    .getChild(Package.cacheDirName)
+    .getChild(Package.bindingsCacheDirName)
+  val suggestionsCacheDirectory: F = internalDirectory
+    .getChild(Package.cacheDirName)
+    .getChild(Package.suggestionsCacheDirName)
 
   /** Sets the package name.
     *
@@ -77,6 +83,30 @@ case class Package[F](
     */
   def getIrCacheRootForPackage(ensoVersion: String): F = {
     irCacheDirectory.getChild(ensoVersion)
+  }
+
+  /** Gets the bindings cache root location within this package for a given Enso
+    * version.
+    *
+    * This will create the location if it does not exist.
+    *
+    * @param ensoVersion the enso version to get the cache root for
+    * @return the cache root location
+    */
+  def getBindingsCacheRootForPackage(ensoVersion: String): F = {
+    bindingsCacheDirectory.getChild(ensoVersion)
+  }
+
+  /** Gets the suggestions cache root location within this package for a given
+    * Enso version.
+    *
+    * This will create the location if it does not exist.
+    *
+    * @param ensoVersion the enso version to get the cache root for
+    * @return the cache root location
+    */
+  def getSuggestionsCacheRootForPackage(ensoVersion: String): F = {
+    suggestionsCacheDirectory.getChild(ensoVersion)
   }
 
   /** Changes the package name.
@@ -155,13 +185,19 @@ case class Package[F](
     *
     * @return the list of all source files in this package, together with their qualified names.
     */
-  def listSources: List[SourceFile[F]] = {
-    val sources = sourceDir.walk
+  def listSources(): List[SourceFile[F]] = {
+    listSourcesJava().asScala.toList
+  }
+
+  /** Lists the source files in this package.
+    *
+    * @return the list of all source files in this package, together with their qualified names.
+    */
+  def listSourcesJava(): java.util.List[SourceFile[F]] = {
+    sourceDir.walk
       .filter(f => f.isRegularFile && f.getName.endsWith(".enso"))
-      .iterator
-      .asScala
-      .toList
-    sources.map { path => SourceFile(moduleNameForFile(path), path) }
+      .map(path => SourceFile(moduleNameForFile(path), path))
+      .collect(java.util.stream.Collectors.toList[SourceFile[F]])
   }
 
   /** Lists contents of the polyglot extensions directory for a given language.
@@ -481,4 +517,6 @@ object Package {
   val thumbFileName             = "thumb.png"
   val cacheDirName              = "cache"
   val irCacheDirName            = "ir"
+  val bindingsCacheDirName      = "bindings"
+  val suggestionsCacheDirName   = "suggestions"
 }

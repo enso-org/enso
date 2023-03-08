@@ -12,7 +12,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_grid_view as grid;
-use ide_view_component_list_panel_icons::Any as AnyIcon;
+use ide_view_component_list_panel_icons::any as any_icon;
 use ide_view_component_list_panel_icons::SIZE;
 
 
@@ -57,45 +57,6 @@ pub struct Params {
 
 
 // ============
-// === Data ===
-// ============
-
-/// Grid view entry type which represents a single icon. We use grid view with icons instead of
-/// multiple buttons to simplify the implementation.
-#[derive(Debug, Clone, CloneRef)]
-pub struct Data {
-    display_object: display::object::Instance,
-    icon:           Rc<RefCell<Option<AnyIcon>>>,
-    color:          Rc<Cell<color::Lcha>>,
-}
-
-impl Data {
-    pub fn new() -> Self {
-        let display_object = display::object::Instance::new();
-        let icon = default();
-        let color = default();
-        Self { display_object, icon, color }
-    }
-
-    fn set_icon(&self, icon_id: icon::Id) {
-        let size = Vector2(SIZE, SIZE);
-        let icon = icon_id.create_shape(size);
-        icon.set_color(color::Rgba::from(self.color.get()).into());
-        self.display_object.add_child(&icon);
-        *self.icon.borrow_mut() = Some(icon);
-    }
-
-    fn set_color(&self, color: color::Lcha) {
-        self.color.set(color);
-        if let Some(icon) = self.icon.borrow().deref() {
-            icon.set_color(color::Rgba::from(color).into());
-        }
-    }
-}
-
-
-
-// ============
 // === View ===
 // ============
 
@@ -103,7 +64,7 @@ impl Data {
 #[derive(Clone, CloneRef, Debug)]
 pub struct View {
     frp:  grid::entry::EntryFrp<Self>,
-    data: Data,
+    icon: any_icon::View,
 }
 
 impl grid::entry::Entry for View {
@@ -112,7 +73,8 @@ impl grid::entry::Entry for View {
 
     fn new(_app: &Application, _text_layer: Option<&Layer>) -> Self {
         let frp = grid::entry::EntryFrp::<Self>::new();
-        let data = Data::new();
+        let icon = any_icon::View::new();
+        icon.set_size((SIZE, SIZE));
         let network = frp.network();
         let input = &frp.private().input;
         let out = &frp.private().output;
@@ -122,8 +84,8 @@ impl grid::entry::Entry for View {
         frp::extend! { network
             init <- source_();
 
-            icon <- input.set_model.map(|m| m.icon_id);
-            eval icon((icon) data.set_icon(*icon));
+            icon_id <- input.set_model.map(|m| m.icon_id);
+            eval icon_id((id) icon.icon.set(id.any_cached_shape_location()));
 
             active_color <- input.set_model.map(|m| m.active);
             inactive_color <- input.set_model.map(|m| m.inactive);
@@ -135,7 +97,7 @@ impl grid::entry::Entry for View {
             color_anim.target <+ active_color.sample(&entry_selected);
             color_anim.target <+ inactive_color.sample(&entry_deselected);
 
-            eval color_anim.value((color) data.set_color(*color));
+            eval color_anim.value((color) icon.r_component.set(color::Rgba::from(*color).into()));
 
             style <- input.set_params.on_change();
             selection_color <- style.map(|s| s.selection_color).on_change();
@@ -150,7 +112,7 @@ impl grid::entry::Entry for View {
         }
         init.emit(());
 
-        Self { frp, data }
+        Self { frp, icon }
     }
 
     fn frp(&self) -> &grid::entry::EntryFrp<Self> {
@@ -160,6 +122,6 @@ impl grid::entry::Entry for View {
 
 impl display::Object for View {
     fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
+        self.icon.display_object()
     }
 }

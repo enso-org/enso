@@ -20,8 +20,8 @@ default = []
 
 [dependencies]
 enso-macro-utils = { path = "../../macro-utils" }
-proc-macro2 = "1.0"
-quote = "1.0"
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
 Inflector = "0.11.4"
 itertools = { workspace = true }
 boolinator = { workspace = true }

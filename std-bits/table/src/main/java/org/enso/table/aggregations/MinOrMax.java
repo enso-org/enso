@@ -1,5 +1,6 @@
 package org.enso.table.aggregations;
 
+import org.enso.base.CompareException;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -40,8 +41,12 @@ public class MinOrMax extends Aggregator {
               || Integer.signum(objectComparator.compare(value, current)) == minOrMax) {
             current = value;
           }
-        } catch (ClassCastException e) {
-          this.addProblem(new InvalidAggregation(this.getName(), row, "Cannot compare values."));
+        } catch (CompareException e) {
+          this.addProblem(
+              new InvalidAggregation(
+                  this.getName(),
+                  row,
+                  "Cannot compare values " + e.getLeftOperand() + " with " + e.getRightOperand()));
           return null;
         }
       }
