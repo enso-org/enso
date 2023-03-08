@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Regex_2.No_Such_Group
 import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
 import Standard.Base.Data.Text.Span.Span
-import Standard.Base.Error.Common.Compile_Error
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
@@ -1294,7 +1293,7 @@ spec =
         Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
             "abcddd".find "ab(c(d+))" . group "dee" . text . should_fail_with No_Such_Group.Error
 
-        Test.specify "should throw ??? for a regex with incorrect syntax" <|
+        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
             "abcddd".find "ab(c(((((((" . group 0 . text . should_fail_with Regex_Syntax_Error.Error
 
         Test.specify ".group should return Nothing if the group did not participate in the match" <|
