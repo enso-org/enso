@@ -58,7 +58,7 @@ type Storage
        Converts a Java storage id to a `Storage`.
     from_java : Integer -> Storage
     from_java id =
-        Storage.types.at id . catch Index_Out_Of_Bounds.Error _->
+        Storage.types.at id . catch Index_Out_Of_Bounds _->
             Panic.throw (Illegal_State.Error "Unknown storage type: "+id.to_text)
 
     ## PRIVATE

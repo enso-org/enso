@@ -56,7 +56,7 @@ spec =
 
         Test.specify "should allow recovery of only a specific error-type" <|
             recover_illegal_argument ~action =
-                action . catch Illegal_Argument.Error err->
+                action . catch Illegal_Argument err->
                     "recovered error: "+err.message
             (recover_illegal_argument (Error.throw (Illegal_Argument.Error "foo"))) . should_equal "recovered error: foo"
             (recover_illegal_argument (Error.throw (Illegal_State.Error "bar"))) . should_fail_with Illegal_State

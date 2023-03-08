@@ -609,7 +609,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should correctly propagate error through map" <|
         [1, 2, 3].map Error.throw . catch . should_equal 1
         fun a = if a == 3 then Error.throw (My_Error.Value a) else a
-        [1, 2, 3, 4].map fun . catch My_Error.Value . should_equal (My_Error.Value 3)
+        [1, 2, 3, 4].map fun . catch My_Error . should_equal (My_Error.Value 3)
 
     Test.specify "should pad elements" <|
         [].pad 3 0 . should_equal [0, 0, 0]
