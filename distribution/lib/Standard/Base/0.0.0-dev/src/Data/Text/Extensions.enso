@@ -6,18 +6,17 @@ import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
-
 import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
-import project.Data.Text.Regex
-import project.Data.Text.Regex_2
 import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Regex_Matcher.Regex_Matcher
+import project.Data.Text.Regex_2
+import project.Data.Text.Regex_2.Regex_Syntax_Error
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
@@ -27,7 +26,6 @@ import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Common.Compile_Error
 import project.Error.Common.Index_Out_Of_Bounds
-import project.Error.Common.Syntax_Error
 import project.Error.Error
 import project.Error.Encoding_Error.Encoding_Error
 import project.Error.Illegal_Argument.Illegal_Argument
@@ -230,7 +228,7 @@ Text.characters self =
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
-Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Syntax_Error
+Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     Regex_2.compile pattern case_insensitive=case_insensitive . match self
@@ -252,7 +250,7 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
          example_find_all_insensitive =
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
-Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Compile_Error
+Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     Regex_2.compile pattern case_insensitive=case_insensitive . match_all self
@@ -277,7 +275,7 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              regex = ".+ct@.+"
              # Evaluates to true
              "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
-Text.match : Text -> Case_Sensitivity -> Boolean ! Compile_Error
+Text.match : Text -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive

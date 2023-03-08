@@ -1286,6 +1286,7 @@ spec =
         Test.specify "should throw No_Such_Group for an out-of-range group number" <|
             "abcddd".find "ab(c(d+))" . group 3 . text . should_fail_with No_Such_Group.Error
             "abcddd".find "ab(c(d+))" . group 12 . text . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(c(d+))" . group (-1) . text . should_fail_with No_Such_Group.Error
 
         Test.specify "should throw No_Such_Group for an invalid group name" <|
             "abcddd".find "ab(?<cee>c(d+))" . group "dee" . text . should_fail_with No_Such_Group.Error
