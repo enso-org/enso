@@ -17,11 +17,11 @@ type My_Type
 
 type My_Type_Comparator
     is_ordered = True
-    
+
     compare my_1 my_2 =
         comp = Comparable.from my_1.x
         comp.compare (my_1.x + my_1.y) (my_2.x + my_2.y)
-    
+
     hash my_type = Comparable.from my_type.x . hash (my_type.x + my_type.y)
 
 Comparable.from (_:My_Type) = My_Type_Comparator
@@ -56,7 +56,7 @@ spec setup =
                     t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
                     t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
                 False ->
-                    t3.should_fail_with Unsupported_Database_Operation.Error
+                    t3.should_fail_with Unsupported_Database_Operation
 
 
         Test.specify "should allow Left Outer join" <|
@@ -301,11 +301,11 @@ spec setup =
                - Missing_Input_Columns.Error ["foo", "baz"]
                here, but we can throw only one error. I think column names error
                will be more useful, so I'd prioritize it.
-            r1.should_fail_with Missing_Input_Columns.Error
+            r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria.should_equal ["foo", "baz"]
 
             r2 = t1.join t2 on=[Join_Condition.Equals 42 0] on_problems=Problem_Behavior.Ignore
-            r2.should_fail_with Column_Indexes_Out_Of_Range.Error
+            r2.should_fail_with Column_Indexes_Out_Of_Range
             r2.catch.indexes.should_equal [42]
 
         Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
@@ -313,7 +313,7 @@ spec setup =
             t2 = table_builder [["Z", ["1", "2", "c"]], ["W", [1, 2, 3]]]
 
             test result =
-                result.should_fail_with Invalid_Value_Type.Error
+                result.should_fail_with Invalid_Value_Type
                 result.catch.expected.should_equal Value_Type.Char
 
             test <|
@@ -326,14 +326,14 @@ spec setup =
             t2 = table_builder ["Y", [1, 2, 3]]
 
             r1 = t1.join t2 on_problems=Problem_Behavior.Ignore
-            r1.should_fail_with Invalid_Value_Type.Error
+            r1.should_fail_with Invalid_Value_Type
 
         Test.specify "should report Invalid_Value_Type if incompatible columns types are correlated in Between" pending="We need more advanced value type support to implement this in full-generality." <|
             t1 = table_builder ["X", ["1", "2", "c"], ["Y", [1, 2, 3]]]
             t2 = table_builder ["Z", ["1", "2", "c"], ["W", [1, 2, 3]]]
 
             test expected actual err =
-                err.should_fail_with Invalid_Value_Type.Error
+                err.should_fail_with Invalid_Value_Type
                 err.catch . should_equal (Invalid_Value_Type.Error expected actual)
 
             test Value_Type.Char Value_Type.Integer <|
@@ -469,8 +469,8 @@ spec setup =
 
         Test.specify "should pass dataflow errors through" <|
             error = Error.throw (Illegal_State.Error "FOO")
-            t1.join error . should_fail_with Illegal_State.Error
-            t1.join t2 on=[error, "X"] . should_fail_with Illegal_State.Error
+            t1.join error . should_fail_with Illegal_State
+            t1.join t2 on=[error, "X"] . should_fail_with Illegal_State
 
         Test.specify "should correctly handle all null rows" pending=db_todo <|
             t1 = table_builder [["A", [Nothing, 2, Nothing, 1]], ["B", [Nothing, 3, 4, 7]]]
@@ -502,7 +502,7 @@ spec setup =
                         r4.at 5 . should_equal [1, 7, Nothing, Nothing]
                         r4.at 6 . should_equal [2, 3, 2, 5]
                 False ->
-                    (materialize t4) . should_fail_with Unsupported_Database_Operation.Error
+                    (materialize t4) . should_fail_with Unsupported_Database_Operation
 
             t4_2 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Left_Outer
             expect_column_names ["A", "B", "C", "D"] t4_2

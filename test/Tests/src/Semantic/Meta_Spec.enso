@@ -206,7 +206,8 @@ spec =
         Test.specify "get annotations" <|
             Meta.get_annotation Meta_Spec "test_method" "a" . should_equal 7
             Meta.get_annotation Meta_Spec "test_method" "b" . should_equal (Test_Type.Value 49)
-            Meta.get_annotation Meta_Spec "test_method" "c" . should_fail_with "Error Value"
+            Meta.get_annotation Meta_Spec "test_method" "c" . should_fail_with Text
+            Meta.get_annotation Meta_Spec "test_method" "c" . catch . should_equal "Error Value"
             Meta.get_annotation Meta_Spec "test_method" "x" . should_equal Nothing
 
             value = My_Type.Value 99 "bar" True

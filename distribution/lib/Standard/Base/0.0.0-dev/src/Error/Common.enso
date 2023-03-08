@@ -168,7 +168,7 @@ type Incomparable_Values
         handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values.Error)
         handle_cmp_exc = Panic.catch CompareException handler=(exc-> Error.throw (Incomparable_Values.Error exc.getLeftOperand exc.getRightOperand))
 
-        handle ClassCastException <| handle No_Such_Method.Error <| handle Type_Error.Error <| handle Unsupported_Argument_Types.Error <| handle_cmp_exc <|
+        handle ClassCastException <| handle No_Such_Method <| handle Type_Error <| handle Unsupported_Argument_Types <| handle_cmp_exc <|
             function
 
 @Builtin_Type

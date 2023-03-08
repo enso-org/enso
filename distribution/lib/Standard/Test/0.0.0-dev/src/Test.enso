@@ -98,11 +98,7 @@ type Test
                 return_suffix = if res.is_nothing then "" else "and returned ["+res.to_text+"]"
                 Test.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
         err = res.catch
-        ok = case Meta.meta matcher of
-            c : Meta.Constructor -> Meta.meta err . constructor == c
-            _ -> err.is_a matcher
-
-        if ok then Nothing else
+        if err.is_a matcher then Nothing else
             Test.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
 
 

@@ -220,7 +220,7 @@ spec =
             m.at "foo" . should_equal 134
             m.at "bar" . should_equal 654
             m.at "baz" . should_equal "spam"
-            (m.at "nope").should_fail_with No_Such_Key.Error
+            (m.at "nope").should_fail_with No_Such_Key
 
         Test.specify "should support get" <|
             m = Map.empty . insert 2 3

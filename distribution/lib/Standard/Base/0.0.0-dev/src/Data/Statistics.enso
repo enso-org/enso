@@ -289,7 +289,7 @@ to_moment_statistic s = case s of
 wrap_java_call : Any -> Any
 wrap_java_call ~function =
     report_unsupported _ = Error.throw (Illegal_Argument.Error ("Can only compute correlations on numerical data sets."))
-    handle_unsupported = Panic.catch Unsupported_Argument_Types.Error handler=report_unsupported
+    handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_unsupported
 
     handle_unsupported <| Illegal_Argument.handle_java_exception <| function
 

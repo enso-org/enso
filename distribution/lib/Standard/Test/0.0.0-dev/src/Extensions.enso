@@ -42,10 +42,7 @@ Any.should_fail_with self matcher frames_to_skip=0 =
 Error.should_fail_with : Any -> Integer -> Test_Result
 Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
-    ok = case Meta.meta matcher of
-        c : Meta.Constructor -> Meta.meta caught . constructor == c
-        _ -> caught == matcher || caught.is_a matcher
-    if ok then Nothing else
+    if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 3+frames_to_skip
         Test.fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
 
@@ -426,7 +423,7 @@ Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = Test.fail_ma
 Any.should_contain : Any -> Integer -> Test_Result
 Any.should_contain self element frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    contains_result = Panic.catch No_Such_Method.Error (self.contains element) caught_panic->
+    contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
             msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + loc + ")."
             Test.fail msg
