@@ -230,6 +230,16 @@ impl Canvas {
         })
     }
 
+    /// Flip the shape upside-down, mirroring it over the X axis.
+    pub fn flip_y(&mut self, num: usize, s1: Shape) -> Shape {
+        self.if_not_defined(num, |this| {
+            let flip = format!("position.y = -position.y;");
+            let expr = format!("return {};", s1.getter());
+            this.add_current_function_code_line(flip);
+            this.new_shape_from_expr(&expr)
+        })
+    }
+
     /// Fill the shape with the provided color.
     pub fn fill<Color: Into<Var<color::Rgba>>>(
         &mut self,

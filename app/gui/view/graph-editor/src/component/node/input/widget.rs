@@ -15,8 +15,11 @@ use ensogl_component::drop_down::Dropdown;
 /// === Constants ===
 /// =================
 
-const DOT_COLOR: color::Lch = color::Lch::new(0.56708, 0.23249, 0.71372);
-
+const ACTIVATION_SHAPE_COLOR: color::Lch = color::Lch::new(0.56708, 0.23249, 0.71372);
+const ACTIVATION_SHAPE_Y_OFFSET: f32 = -5.0;
+const ACTIVATION_SHAPE_SIZE: Vector2 = Vector2(15.0, 11.0);
+/// Distance between the dropdown and the bottom of the port.
+const DROPDOWN_Y_OFFSET: f32 = 5.0;
 
 
 // ===========
@@ -66,7 +69,7 @@ pub enum Display {
 #[allow(missing_docs)]
 pub struct NodeData {
     pub argument_info: span_tree::ArgumentInfo,
-    pub node_height:   f32,
+    pub port_size:     Vector2,
 }
 
 
@@ -243,7 +246,7 @@ impl KindModel {
                 let tag_values = node_data.argument_info.tag_values.iter().map(Into::into);
                 let entries = dynamic_entries.unwrap_or_else(|| tag_values.collect());
 
-                inner.set_node_height(node_data.node_height);
+                inner.set_port_size(node_data.port_size);
                 inner.set_entries(entries);
             }
         }
@@ -257,12 +260,12 @@ impl KindModel {
 
 
 
-// =================
-// === Dot Shape ===
-// =================
+// ======================
+// === Triangle Shape ===
+// ======================
 
 /// Temporary dropdown activation shape definition.
-pub mod dot {
+pub mod triangle {
     use super::*;
     ensogl::shape! {
         above = [
@@ -271,8 +274,11 @@ pub mod dot {
         ];
         (style:Style, color:Vector4) {
             let size   = Var::canvas_size();
-            let radius = Min::min(size.x(),size.y()) / 2.0;
-            let shape  = Rect(size).corners_radius(radius);
+            let radius = 1.0.px();
+            let shrink = &radius * 2.0;
+            let shape  = Triangle(size.x() - &shrink, size.y() - &shrink)
+                .flip_y()
+                .grow(radius);
             shape.fill(color).into()
         }
     }
@@ -289,10 +295,10 @@ pub mod dot {
 #[derive(Debug)]
 pub struct SingleChoiceModel {
     #[allow(dead_code)]
-    network:        frp::Network,
-    dropdown:       Rc<RefCell<LazyDropdown>>,
+    network:          frp::Network,
+    dropdown:         Rc<RefCell<LazyDropdown>>,
     /// temporary click handling
-    activation_dot: dot::View,
+    activation_shape: triangle::View,
 }
 
 impl SingleChoiceModel {
@@ -301,9 +307,9 @@ impl SingleChoiceModel {
         display_object: &display::object::Instance,
         frp: &SampledFrp,
     ) -> Self {
-        let activation_dot = dot::View::new();
-        activation_dot.set_size((15.0, 15.0));
-        display_object.add_child(&activation_dot);
+        let activation_shape = triangle::View::new();
+        activation_shape.set_size(ACTIVATION_SHAPE_SIZE);
+        display_object.add_child(&activation_shape);
 
         frp::new_network! { network
             init <- source_();
@@ -321,7 +327,7 @@ impl SingleChoiceModel {
         let dropdown = Rc::new(RefCell::new(dropdown));
 
         frp::extend! { network
-            let dot_clicked = activation_dot.events.mouse_down_primary.clone_ref();
+            let dot_clicked = activation_shape.events.mouse_down_primary.clone_ref();
             toggle_focus <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
             set_focused <- any(toggle_focus, frp.set_focused);
             eval set_focused([display_object](focus) match focus {
@@ -330,10 +336,10 @@ impl SingleChoiceModel {
             });
 
             set_visible <- all(&frp.set_visible, &init)._0();
-            dot_alpha <- set_visible.map(|visible| if *visible { 1.0 } else { 0.0 });
-            dot_color <- dot_alpha.map(|alpha| DOT_COLOR.with_alpha(*alpha));
-            eval dot_color([activation_dot] (color) {
-                activation_dot.color.set(color::Rgba::from(color).into());
+            shape_alpha <- set_visible.map(|visible| if *visible { 1.0 } else { 0.0 });
+            shape_color <- shape_alpha.map(|a| ACTIVATION_SHAPE_COLOR.with_alpha(*a));
+            eval shape_color([activation_shape] (color) {
+                activation_shape.color.set(color::Rgba::from(color).into());
             });
 
             eval focus_in((_) dropdown.borrow_mut().initialize_on_open());
@@ -341,12 +347,14 @@ impl SingleChoiceModel {
 
         init.emit(());
 
-        Self { network, dropdown, activation_dot }
+        Self { network, dropdown, activation_shape }
     }
 
-    fn set_node_height(&self, node_height: f32) {
-        self.activation_dot.set_y(-node_height / 2.0 - 1.0);
-        self.dropdown.borrow_mut().set_node_height(node_height);
+    fn set_port_size(&self, port_size: Vector2) {
+        self.activation_shape.set_x(port_size.x() / 2.0);
+        self.activation_shape
+            .set_y(-port_size.y() / 2.0 - ACTIVATION_SHAPE_SIZE.y() - ACTIVATION_SHAPE_Y_OFFSET);
+        self.dropdown.borrow_mut().set_port_size(port_size);
     }
 
     fn set_entries(&self, values: Vec<ImString>) {
@@ -373,7 +381,7 @@ enum LazyDropdown {
     NotInitialized {
         app:               Application,
         display_object:    display::object::Instance,
-        node_height:       f32,
+        dropdown_y:        f32,
         entries:           Vec<ImString>,
         set_current_value: frp::Sampler<Option<ImString>>,
         is_open:           frp::Sampler<bool>,
@@ -393,12 +401,12 @@ impl LazyDropdown {
     ) -> Self {
         let app = app.clone_ref();
         let display_object = display_object.clone_ref();
-        let node_height = default();
+        let dropdown_y = default();
         let entries = default();
         LazyDropdown::NotInitialized {
             app,
             display_object,
-            node_height,
+            dropdown_y,
             entries,
             set_current_value,
             is_open,
@@ -406,13 +414,14 @@ impl LazyDropdown {
         }
     }
 
-    fn set_node_height(&mut self, new_node_height: f32) {
+    fn set_port_size(&mut self, new_port_size: Vector2) {
+        let y = -new_port_size.y() - DROPDOWN_Y_OFFSET;
         match self {
             LazyDropdown::Initialized(dropdown, ..) => {
-                dropdown.set_y(-new_node_height);
+                dropdown.set_y(y);
             }
-            LazyDropdown::NotInitialized { node_height, .. } => {
-                *node_height = new_node_height;
+            LazyDropdown::NotInitialized { dropdown_y, .. } => {
+                *dropdown_y = y;
             }
         }
     }
@@ -435,7 +444,7 @@ impl LazyDropdown {
             LazyDropdown::NotInitialized {
                 app,
                 display_object,
-                node_height,
+                dropdown_y,
                 entries,
                 is_open,
                 set_current_value,
@@ -444,7 +453,7 @@ impl LazyDropdown {
                 let dropdown = app.new_view::<Dropdown<ImString>>();
                 display_object.add_child(&dropdown);
                 app.display.default_scene.layers.above_nodes.add(&dropdown);
-                dropdown.set_y(-*node_height);
+                dropdown.set_y(*dropdown_y);
                 dropdown.set_max_open_size(Vector2(300.0, 500.0));
                 dropdown.set_all_entries(std::mem::take(entries));
                 dropdown.allow_deselect_all(true);
