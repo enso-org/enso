@@ -50,7 +50,7 @@ type Existing_File_Behavior
             Existing_File_Behavior.Overwrite -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] action
             Existing_File_Behavior.Append -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Append] action
             Existing_File_Behavior.Error -> file.with_output_stream [File_Access.Write, File_Access.Create_New] action
-            Existing_File_Behavior.Backup -> Panic.recover [File_Error.IO_Error, File_Error.Not_Found] <|
+            Existing_File_Behavior.Backup -> recover_io_and_not_found <|
                 handle_existing_file _ =
                     write_file_backing_up_old_one file action
                 handle_write_failure_dataflow caught_panic =
@@ -68,7 +68,7 @@ type Existing_File_Behavior
 
 ## PRIVATE
 write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
-write_file_backing_up_old_one file action = Panic.recover [File_Error.IO_Error, File_Error.Not_Found] <|
+write_file_backing_up_old_one file action = recover_io_and_not_found <|
     parent = file.parent
     bak_file = parent / file.name+".bak"
     go i =
@@ -132,5 +132,13 @@ type Internal_Write_Operation_Errored
 catch_already_exists handler =
     panic_handler caught_panic = case caught_panic.payload of
         File_Error.Already_Exists _ -> handler caught_panic
+        _ -> Panic.throw caught_panic
+    Panic.catch File_Error handler=panic_handler
+
+## PRIVATE
+recover_io_and_not_found =
+    panic_handler caught_panic = case caught_panic.payload of
+        File_Error.IO_Error _ _ -> caught_panic.convert_to_dataflow_error
+        File_Error.Not_Found _ -> caught_panic.convert_to_dataflow_error
         _ -> Panic.throw caught_panic
     Panic.catch File_Error handler=panic_handler

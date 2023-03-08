@@ -430,15 +430,18 @@ spec =
             f.is_writable.should_be_false
 
             r2 = "FOO".write f on_existing_file=Existing_File_Behavior.Append
-            r2.should_fail_with File_Error.Access_Denied
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Access_Denied
             f.read . should_equal "foobar"
 
             r3 = "FOO".write f on_existing_file=Existing_File_Behavior.Overwrite
-            r3.should_fail_with File_Error.Access_Denied
+            r3.should_fail_with File_Error
+            r3.catch.should_be_a File_Error.Access_Denied
             f.read . should_equal "foobar"
 
             r4 = "FOO".write f on_existing_file=Existing_File_Behavior.Backup
-            r4.should_fail_with File_Error.Access_Denied
+            r4.should_fail_with File_Error
+            r4.catch.should_be_a File_Error.Access_Denied
             f.read . should_equal "foobar"
 
             f.is_writable.should_be_false
@@ -452,11 +455,14 @@ spec =
 
             f = parent / "foo.txt"
             r1 = "txt".write f
-            r1.should_fail_with File_Error.Not_Found
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Not_Found
             # The write fails because the _parent_ directory did not exist.
             r1.catch.file . should_equal parent
 
-            [65, 67].write_bytes f . should_fail_with File_Error.Not_Found
+            r2 = [65, 67].write_bytes f
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Not_Found
 
         Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
             f = transient / "encoding-errors.txt"
