@@ -1346,6 +1346,8 @@ spec =
 
         Test.specify "should only match whole input" <|
             "Hello".match "[a-z]" . should_be_false
+            "abcd".match "bcd" . should_be_false
+            "abcd".match "abc" . should_be_false
             "x".match "[a-z]" . should_be_true
 
         Test.specify "should be possible on unicode text" <|

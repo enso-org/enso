@@ -32,7 +32,7 @@ type Pattern_2
     matches : Text -> Boolean
     matches self input =
         m = self.internal_regex_object.exec input 0
-        m . isMatch && m.getEnd 0 == input.length
+        m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
     ## Tries to match the provided `input` against the pattern `self`.
 
