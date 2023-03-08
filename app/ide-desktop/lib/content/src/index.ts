@@ -76,15 +76,22 @@ function displayDeprecatedVersionDialog() {
 // === Main Entry Point ===
 // ========================
 
+interface StringConfig {
+    [key: string]: string | StringConfig
+}
+
 class Main {
-    async main() {
-        const config = {
-            loader: {
-                wasmUrl: 'pkg-opt.wasm',
-                jsUrl: 'pkg.js',
-                shadersUrl: 'shaders',
+    async main(inputConfig: StringConfig) {
+        const config = Object.assign(
+            {
+                loader: {
+                    wasmUrl: 'pkg-opt.wasm',
+                    jsUrl: 'pkg.js',
+                    shadersUrl: 'shaders',
+                },
             },
-        }
+            inputConfig
+        )
 
         const appInstance = new app.App({
             config,

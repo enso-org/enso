@@ -66,14 +66,15 @@ impl Registry {
     pub fn valid_sources(&self, tp: &enso::Type) -> Vec<visualization::Definition> {
         let type_map = self.type_map.borrow();
         let any_type = enso::Type::any();
-        let mut result: Vec<visualization::Definition> =
-            type_map.get(tp).cloned().unwrap_or_default();
+        // IndexSet preserves insertion order.
+        let mut result: indexmap::IndexSet<visualization::Definition> = default();
+        result.extend(type_map.get(tp).cloned().unwrap_or_default());
         if tp != &any_type {
             if let Some(vis_for_any) = type_map.get(&any_type) {
                 result.extend(vis_for_any.iter().cloned());
             }
         }
-        result
+        result.into_iter().collect()
     }
 
     /// Return the `visualization::Definition` that should be used as default for the given type.
@@ -128,5 +129,29 @@ impl Registry {
 impl Default for Registry {
     fn default() -> Self {
         Registry::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    fn assert_no_duplicates<T: Eq + Hash + Debug + Clone>(items: &[T]) {
+        let vec_length = items.len();
+        let set: HashSet<T> = items.iter().cloned().collect();
+        assert_eq!(set.len(), vec_length, "Duplicate entries found: {items:?}");
+    }
+
+    #[wasm_bindgen_test]
+    fn assert_no_duplicate_default_visualisations() {
+        let registry = Registry::new();
+        registry.add_default_visualizations();
+
+        for entry in registry.type_map.borrow().values() {
+            let signatures = entry.iter().map(|class| class.signature.clone()).collect_vec();
+            assert_no_duplicates(&signatures);
+        }
     }
 }

@@ -120,7 +120,7 @@ impl Network {
         self.data.storage.borrow_mut().push(item);
     }
 
-    /// Register the node and return it's weak reference.
+    /// Register the node and return its weak reference.
     pub fn register_raw<T: HasOutputStatic>(&self, node: stream::Node<T>) -> stream::WeakNode<T> {
         let weak = node.downgrade();
         self.register_boxed(Box::new(node));
@@ -199,7 +199,7 @@ impl WeakNetwork {
 /// Bridge network is an FRP network build between two other FRP networks. However, in contrast to
 /// `Network`, the `BridgeNetwork` is not owned by the user. Instead it is owned by all of its
 /// parent networks. In case any of parent networks is dropped, the bridge is dropped as well, even
-/// if some of the parents ay stay alive. Bridge networks are incredibly usable when connecting
+/// if some of the parents stay alive. Bridge networks are incredibly usable when connecting
 /// few frp networks together. For example, when connecting an internal FRP network of a button with
 /// a network managing all buttons on a stage, we might want to tag the events from the button with
 /// a reference to the button which emitted the events. Using bridge network allows the memory to be

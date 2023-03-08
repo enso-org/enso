@@ -941,10 +941,7 @@ type Integer
 
     parse_builtin text radix = @Builtin_Method "Integer.parse"
 
-Comparable.from (that:Number) =
-    case that.is_nan of
-        True -> Incomparable
-        False -> Default_Ordered_Comparator
+Comparable.from (_:Number) = Default_Ordered_Comparator
 
 ## UNSTABLE
 

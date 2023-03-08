@@ -154,6 +154,9 @@ spec =
             Map.singleton Nothing 3 . get Nothing . should_equal 3
             Map.singleton Nothing 1 . insert Nothing 2 . get Nothing . should_equal 2
 
+        Test.specify "should handle incomparable values as keys" <|
+            Map.empty.insert Number.nan 1 . insert Number.nan 2 . get Number.nan . should_equal 2
+
         Test.specify "should handle Nothing as values" <|
             Map.singleton 1 Nothing . at 1 . should_equal Nothing
             Map.singleton Nothing Nothing . at Nothing . should_equal Nothing

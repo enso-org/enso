@@ -240,101 +240,79 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
             if event.ctrl_key() {
                 let key = event.code();
                 warn!("{:?}", key);
-                if key == "KeyH" {
-                    html_version.set(!html_version.get());
-                    if html_version.get() {
-                        warn!("Showing the HTML version.");
-                        area.unset_parent();
-                        div.set_style_or_warn("display", "block");
-                    } else {
-                        warn!("Showing the WebGL version.");
-                        scene.add_child(&area);
-                        div.set_style_or_warn("display", "none");
+                let mut set_property: Option<formatting::ResolvedProperty> = None;
+                match key.as_ref() {
+                    "KeyH" => {
+                        html_version.set(!html_version.get());
+                        if html_version.get() {
+                            warn!("Showing the HTML version.");
+                            area.unset_parent();
+                            div.set_style_or_warn("display", "block");
+                        } else {
+                            warn!("Showing the WebGL version.");
+                            scene.add_child(&area);
+                            div.set_style_or_warn("display", "none");
+                        }
                     }
-                } else if key == "Digit1" {
-                    if event.shift_key() {
-                        area.set_property_default(color::Rgba::black());
-                    } else {
-                        area.set_property(buffer::RangeLike::Selections, color::Rgba::black());
+                    "KeyF" => {
+                        let font = fonts_cycle.next().unwrap();
+                        warn!("Switching to font '{}'.", font);
+                        area.set_font(font);
                     }
-                } else if key == "Digit2" {
-                    if event.shift_key() {
-                        area.set_property_default(color::Rgba::red());
-                    } else {
-                        area.set_property(buffer::RangeLike::Selections, color::Rgba::red());
+                    "KeyW" => {
+                        area.set_long_text_truncation_mode(true);
+                        area.set_view_width(60.0);
                     }
-                } else if key == "Digit3" {
-                    if event.shift_key() {
-                        area.set_property_default(color::Rgba::green());
-                    } else {
-                        area.set_property(buffer::RangeLike::Selections, color::Rgba::green());
-                    }
-                } else if key == "Digit4" {
-                    if event.shift_key() {
-                        area.set_property_default(color::Rgba::blue());
-                    } else {
-                        area.set_property(buffer::RangeLike::Selections, color::Rgba::blue());
-                    }
-                } else if key == "Digit0" {
-                    area.set_property(
+                    "ArrowUp" => area.mod_first_view_line(-1),
+                    "ArrowDown" => area.mod_first_view_line(1),
+                    "Digit0" => area.set_property(
                         buffer::RangeLike::Selections,
                         formatting::Property::Color(None),
-                    );
-                } else if key == "KeyB" {
-                    if event.shift_key() {
-                        area.set_property_default(formatting::Weight::Bold);
-                    } else if event.alt_key() {
-                        area.set_property(
-                            buffer::RangeLike::Selections,
-                            formatting::Property::Weight(None),
-                        );
-                    } else {
-                        area.set_property(buffer::RangeLike::Selections, formatting::Weight::Bold);
+                    ),
+                    "Digit1" => set_property = Some(color::Rgba::black().into()),
+                    "Digit2" => set_property = Some(color::Rgba::red().into()),
+                    "Digit3" => set_property = Some(color::Rgba::green().into()),
+                    "Digit4" => set_property = Some(color::Rgba::blue().into()),
+                    "KeyB" if event.alt_key() => area.set_property(
+                        buffer::RangeLike::Selections,
+                        formatting::Property::Weight(None),
+                    ),
+                    "KeyB" => set_property = Some(formatting::Weight::Bold.into()),
+                    "KeyN" => set_property = Some(formatting::SdfWeight(0.02).into()),
+                    "KeyI" => set_property = Some(formatting::Style::Italic.into()),
+                    "Equal" if event.shift_key() =>
+                        area.set_property_default(formatting::Size(16.0)),
+                    "Equal" => area
+                        .mod_property(buffer::RangeLike::Selections, formatting::FontSizeDiff(2.0)),
+                    "Minus" if event.shift_key() =>
+                        area.set_property_default(formatting::Size(16.0)),
+                    "Minus" => area.mod_property(
+                        buffer::RangeLike::Selections,
+                        formatting::FontSizeDiff(-2.0),
+                    ),
+                    "KeyO" => {
+                        let sign = if event.shift_key() { -1.0 } else { 1.0 };
+                        let glyph_system = area.glyph_system.value().unwrap();
+                        glyph_system.font.opacity_increase.modify(|value| {
+                            *value += sign * 0.01;
+                            warn!("opacity_increase: {value}");
+                        });
                     }
-                } else if key == "KeyN" {
-                    if event.shift_key() {
-                        area.set_property_default(formatting::SdfWeight(0.02));
-                    } else {
-                        area.set_property(
-                            buffer::RangeLike::Selections,
-                            formatting::SdfWeight(0.02),
-                        );
+                    "KeyE" => {
+                        let sign = if event.shift_key() { -1.0 } else { 1.0 };
+                        let glyph_system = area.glyph_system.value().unwrap();
+                        glyph_system.font.opacity_exponent.modify(|value| {
+                            *value = (*value + sign * 0.1).max(0.0);
+                            warn!("opacity_exponent: {value}");
+                        });
                     }
-                } else if key == "KeyI" {
-                    if event.shift_key() {
-                        area.set_property_default(formatting::Style::Italic);
-                    } else {
-                        area.set_property(buffer::RangeLike::Selections, formatting::Style::Italic);
+                    _ => (),
+                }
+                if let Some(property) = set_property {
+                    match event.shift_key() {
+                        true => area.set_property_default(property),
+                        false => area.set_property(buffer::RangeLike::Selections, property),
                     }
-                } else if key == "KeyF" {
-                    let font = fonts_cycle.next().unwrap();
-                    warn!("Switching to font '{}'.", font);
-                    area.set_font(font);
-                } else if key == "Equal" {
-                    if event.shift_key() {
-                        area.set_property_default(formatting::Size(16.0));
-                    } else {
-                        area.mod_property(
-                            buffer::RangeLike::Selections,
-                            formatting::FontSizeDiff(2.0),
-                        );
-                    }
-                } else if key == "Minus" {
-                    if event.shift_key() {
-                        area.set_property_default(formatting::Size(16.0));
-                    } else {
-                        area.mod_property(
-                            buffer::RangeLike::Selections,
-                            formatting::FontSizeDiff(-2.0),
-                        );
-                    }
-                } else if key == "ArrowUp" {
-                    area.mod_first_view_line(-1);
-                } else if key == "ArrowDown" {
-                    area.mod_first_view_line(1);
-                } else if key == "KeyW" {
-                    area.set_long_text_truncation_mode(true);
-                    area.set_view_width(60.0);
                 }
             }
         }
