@@ -1030,7 +1030,7 @@ impl Area {
             frp.output.source.expression <+ expression.map(|e| e.code.clone_ref());
             expression_changed_by_user <- model.label.content.gate(&frp.input.set_editing);
             frp.output.source.expression <+ expression_changed_by_user.ref_into();
-            expression_edit <- model.label.selections.map2(
+            frp.output.source.expression_edit <+ model.label.selections.map2(
                 &expression_changed_by_user,
                 f!([model](selection, full_content) {
                     let full_content = full_content.into();
@@ -1039,7 +1039,6 @@ impl Area {
                     (full_content, selections)
                 })
             );
-            frp.output.source.expression_edit <+ expression_edit.gate(&frp.set_editing);
 
 
             // === Expression Type ===
