@@ -1619,11 +1619,15 @@ impl GraphEditorModelWithNetwork {
 
             selected    <- vis_is_selected.on_true();
             deselected  <- vis_is_selected.on_false();
-            output.visualization_preprocessor_changed <+
-                node_model.visualization.frp.preprocessor.map(move |preprocessor|
-                    (node_id,preprocessor.clone()));
             output.on_visualization_select <+ selected.constant(Switch::On(node_id));
             output.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
+
+            preprocessor_changed <-
+                node_model.visualization.frp.preprocessor.map(move |preprocessor| {
+                    (node_id,preprocessor.clone())
+                });
+            output.visualization_preprocessor_changed <+ preprocessor_changed.gate(&node.visualization_visible);
+
 
             metadata <- any(...);
             metadata <+ node_model.visualization.frp.preprocessor.map(visualization::Metadata::new);
