@@ -47,4 +47,6 @@ type Naming_Helpers
 ## PRIVATE
    Checks if the value is a column of any backend.
 is_column value =
-    Meta.get_qualified_type_name value . ends_with ".Column"
+    case Meta.get_qualified_type_name value of
+        Nothing -> False
+        typename : Text -> typename.ends_with ".Column"

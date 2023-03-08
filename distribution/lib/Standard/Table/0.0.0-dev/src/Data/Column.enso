@@ -696,7 +696,7 @@ type Column
              example_is_missing = Examples.decimal_column.is_missing
     is_missing : Column
     is_missing self =
-        new_name = Naming_Helpers.function_name "is_missing" [self]
+        new_name = Naming_Helpers.to_expression_text self + " is null"
         run_vectorized_unary_op self "is_missing" (== Nothing) new_name on_missing=True
 
     ## UNSTABLE
@@ -715,7 +715,7 @@ type Column
        this column contains an empty string or `Nothing`.
     is_empty : Column
     is_empty self =
-        new_name = Naming_Helpers.function_name "is_empty" [self]
+        new_name = self.naming_helpers.to_expression_text self + " is null"
         run_vectorized_unary_op self "is_empty" Filter_Condition.Is_Empty.to_predicate new_name on_missing=True
 
     ## Returns a column of booleans, with `True` items at the positions where
@@ -1374,9 +1374,8 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
         _ : Vector -> operands
         _ : Array -> Vector.from_polyglot_array operands
         _ -> [operands]
-    effective_new_name = case new_name of
-        Nothing -> Naming_Helpers.function_name name [column]+effective_operands
-        _ : Text -> new_name
+    effective_new_name = new_name.if_nothing <|
+        Naming_Helpers.function_name name [column]+effective_operands
     problem_builder = MapOperationProblemBuilder.new effective_new_name
     folded = effective_operands.fold column.java_column.getStorage current-> operand->
         case operand of
@@ -1404,9 +1403,8 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
    - new_name: The name of the column created as the result of this operation.
 run_vectorized_binary_op : Column -> Text -> (Any -> Any -> Any) -> Any -> Text|Nothing -> Boolean -> Column
 run_vectorized_binary_op column name fallback_fn operand new_name=Nothing skip_nulls=True =
-    effective_new_name = case new_name of
-        Nothing -> Naming_Helpers.binary_operation_name name column operand
-        _ : Text -> new_name
+    effective_new_name = new_name.if_nothing <|
+        Naming_Helpers.binary_operation_name name column operand
     problem_builder = MapOperationProblemBuilder.new column.name
     result = case operand of
         Column.Value col2 ->
