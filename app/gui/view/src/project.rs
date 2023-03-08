@@ -57,6 +57,7 @@ pub struct SearcherParams {
     /// The node being a source for the edited node data - usually it's output shall be a `this`
     /// port for inserted expression.
     pub source_node:     Option<NodeSource>,
+    /// A position of the cursor in the input node.
     pub cursor_position: text::Byte,
 }
 
@@ -588,7 +589,7 @@ impl View {
             node_edited_by_user <- graph.node_being_edited.gate_not(&frp.adding_new_node);
             existing_node_edited <- graph.node_expression_edited.gate_not(&frp.source.is_searcher_opened);
             searcher_params <- existing_node_edited.map2(&node_edited_by_user,
-                |(node_id, expr, selections), node_edited| {
+                |(node_id, _, selections), node_edited| {
                     if let Some(node_edited) = node_edited {
                         if *node_id != *node_edited {
                             return None;
