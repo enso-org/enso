@@ -128,7 +128,7 @@ spec setup =
             err2.should_fail_with Column_Indexes_Out_Of_Range
             err2.catch.indexes . should_equal [42]
 
-        Test.specify "should fail if aggregate values contain invalid expressions" pending="TODO?" <|
+        Test.specify "should fail if aggregate values contain invalid expressions" <|
             err1 = table.cross_tab values=[Sum "[MISSING]*10"]
             err1.should_fail_with Invalid_Aggregate_Column
             err1.catch.name . should_equal "[MISSING]*10"
@@ -143,7 +143,7 @@ spec setup =
             err1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=Problem_Behavior.Ignore
             err1.should_fail_with Illegal_Argument
 
-        Test.specify "should gracefully handle duplicate aggregate names" pending="TODO: this should be fixed as part of https://github.com/enso-org/enso/issues/5151" <|
+        Test.specify "should gracefully handle duplicate aggregate names" <|
             action = table.cross_tab [] "Key" values=[Count new_name="Agg1", Sum "Value" new_name="Agg1"]
             tester table =
                 table.column_names . should_equal ["x Agg1", "x Agg1_1", "y Agg1", "y Agg1_1", "z Agg1", "z Agg1_1"]
@@ -170,11 +170,11 @@ spec setup =
                         err.should_fail_with Invalid_Aggregation
                         err.catch . should_equal (Invalid_Aggregation.Error "Sum TextValue" [0, 4, 7] "Cannot convert to a number.")
 
-        Test.specify "should correctly handle uncommon blank fields" pending="TODO: this should be fixed as part of https://github.com/enso-org/enso/issues/5151" <|
+        Test.specify "should correctly handle empty/nothing fields" <|
             table = table_builder [["Key", [" ", "x", "x", "x", "", "", "", Nothing, Nothing]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             t1 = table.cross_tab
-            # TODO
-            t1.column_names . should_equal ["x", "Column_1", "Column_2"]
+            t1.print
+            t1.column_names . should_equal ["x", " ", "Column_1", "Column_2"]
 
         Test.specify "should correctly handle uncommon characters in fields becoming column names" <|
             table = table_builder [["Key", ["💡🎉🌻", "ąęź", "ąęź", '\n\n', "😊", "😊", "🌻", "😊", "🌻"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
