@@ -1,7 +1,6 @@
 overrides:
   - files:
       - "*.[j|t]s"
-      - "*.[j|t]sx"
       - "*.mjs"
       - "*.cjs"
     options:

@@ -9,7 +9,6 @@ import * as loggerProvider from "../providers/logger";
 import * as cognito from "./cognito";
 import * as authConfig from "./config";
 import * as config from "../config";
-import {ENVIRONMENT} from "../config";
 
 
 
