@@ -205,8 +205,8 @@ object DistributionPackage {
             "--compile",
             path.toString
           )
-          log.info(command.mkString(" "))
-          val exitCode = command.!
+          log.debug(command.mkString(" "))
+          val exitCode = Process(command, None, "JAVA_OPTS"->"-Dorg.jline.terminal.dumb=true").!
           if (exitCode != 0) {
             throw new RuntimeException(s"Cannot compile $libMajor.$libName.")
           }
