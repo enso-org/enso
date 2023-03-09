@@ -155,52 +155,52 @@ const initOpenUrlListener = (window: () => electron.BrowserWindow) => {
  * extra external dependency, the contents of the function have been copied into this file. The
  * function has been modified to follow the Enso style guide, and to be TypeScript-compatible. */
 const opener = (args: any, options?: any, callback?: any) => {
-    let platform = process.platform;
+    let platform = process.platform
 
     /** Attempt to detect Windows Subystem for Linux (WSL). WSL  itself as Linux (which works in
      * most cases), but in this specific case we need to treat it as actually being Windows. The
      * "Windows-way" of opening things through cmd.exe works just fine here, whereas using xdg-open
      * does not, since there is no X Windows in WSL. */
-    if (platform === "linux" && os.release().indexOf("Microsoft") !== -1) {
-        platform = "win32";
+    if (platform === 'linux' && os.release().indexOf('Microsoft') !== -1) {
+        platform = 'win32'
     }
 
     /** http://stackoverflow.com/q/1480971/3191, but see below for Windows. */
-    let command;
+    let command
     switch (platform) {
-        case "win32": {
-            command = "cmd.exe";
-            break;
+        case 'win32': {
+            command = 'cmd.exe'
+            break
         }
-        case "darwin": {
-            command = "open";
-            break;
+        case 'darwin': {
+            command = 'open'
+            break
         }
         default: {
-            command = "xdg-open";
-            break;
+            command = 'xdg-open'
+            break
         }
     }
 
-    if (typeof args === "string") {
-        args = [args];
+    if (typeof args === 'string') {
+        args = [args]
     }
 
-    if (typeof options === "function") {
-        callback = options;
-        options = {};
+    if (typeof options === 'function') {
+        callback = options
+        options = {}
     }
 
-    if (options && typeof options === "object" && options.command) {
-        if (platform === "win32") {
+    if (options && typeof options === 'object' && options.command) {
+        if (platform === 'win32') {
             /* *always* use cmd on windows */
-            args = [options.command].concat(args);
+            args = [options.command].concat(args)
         } else {
-            command = options.command;
+            command = options.command
         }
     }
 
-    if (platform === "win32") {
+    if (platform === 'win32') {
         /** On Windows, we really want to use the "start" command. But, the rules regarding
          * arguments with spaces, and escaping them with quotes, can get really arcane. So the
          * easiest way to deal with this is to pass off the responsibility to "cmd /c", which has
@@ -212,10 +212,10 @@ const opener = (args: any, options?: any, callback?: any) => {
          *
          * Additionally, on Windows ampersand and caret need to be escaped when passed to "start" */
         args = args.map((value: any) => {
-            return value.replace(/[&^]/g, "^$&");
-        });
-        args = ["/c", "start", "\"\""].concat(args);
+            return value.replace(/[&^]/g, '^$&')
+        })
+        args = ['/c', 'start', '""'].concat(args)
     }
 
-    return childProcess.execFile(command, args, options, callback);
-};
+    return childProcess.execFile(command, args, options, callback)
+}

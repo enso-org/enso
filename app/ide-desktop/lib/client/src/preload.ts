@@ -84,7 +84,8 @@ const AUTHENTICATION_API = {
      *
      * OAuth URLs must be opened this way because the dashboard application is sandboxed and thus
      * not privileged to do so unless we explicitly expose this functionality. */
-    openUrlInSystemBrowser: (url: string) => ipcRenderer.send(ipc.channel.openUrlInSystemBrowser, url),
+    openUrlInSystemBrowser: (url: string) =>
+        ipcRenderer.send(ipc.channel.openUrlInSystemBrowser, url),
     /** Set the callback that will be called when a deep link to the application is opened.
      *
      * The callback is intended to handle links like
@@ -93,5 +94,5 @@ const AUTHENTICATION_API = {
      * progress when the link was opened (e.g., an OAuth registration flow). */
     setDeepLinkHandler: (callback: (url: string) => void) =>
         ipcRenderer.on(ipc.channel.openDeepLink, (_event, url) => callback(url)),
-};
-contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API);
+}
+contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
