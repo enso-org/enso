@@ -1053,9 +1053,7 @@ type Column
         new_name = Naming_Helpers.binary_operation_name "x" self that
         Column.Value (Java_Column.new new_name rs)
 
-    ## ALIAS Rename Column
-
-       Returns a new column, containing the same elements as `self`, but with
+    ## Returns a new column, containing the same elements as `self`, but with
        the given name.
 
        Arguments:

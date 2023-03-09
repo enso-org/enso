@@ -380,7 +380,6 @@ type Column
        Returns a column containing the result of subtracting `other` from each
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
-       pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
     - self other =
         new_type = SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
@@ -699,9 +698,7 @@ type Column
         new_name = self.naming_helpers.function_name "fill_missing" [self, default]
         self.make_binary_op "FILL_NULL" default new_name
 
-    ## ALIAS Rename Column
-
-       Returns a new column, containing the same elements as `self`, but with
+    ## Returns a new column, containing the same elements as `self`, but with
        the given name.
 
        Arguments:
