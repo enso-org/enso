@@ -100,5 +100,5 @@ type Match_2
              example_groups =
                  match = "Examples.match"
                  match.named_groups default="UNMATCHED"
-    named_groups : Match_2 -> Map Text (Text | Any)
-    named_groups self default=Nothing =
+    #named_groups : Match_2 -> Map Text (Text | Any)
+    #named_groups self default=Nothing =

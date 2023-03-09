@@ -175,18 +175,8 @@ polyglot_map_to_map map =
     Map.from_vector (keys.zip values)
 
 ## PRIVATE
-   Returns True iff the polyglot map contains the given key.
-group_map_contains : Any -> Text -> Boolean
-group_map_contains map elem =
-    members = Polyglot.get_members map
-    as_vec = Vector.from_polyglot_array members
-    as_vec.contains elem
-
-## PRIVATE
    Get the named group from the polyglot map.
 read_group_map : Any -> Text -> Integer | Nothing
-read_group_map map name =
-    case group_map_contains map name of
-        True -> Polyglot.get_member map name
-        False -> Nothing
-
+read_group_map polyglot_map name =
+    map = polyglot_map_to_map polyglot_map
+    map.get name
