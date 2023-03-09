@@ -2,7 +2,7 @@ package org.enso.loggingservice
 
 import org.enso.loggingservice.internal.{InternalLogMessage, LoggerConnection}
 
-import java.util.logging.{Handler, Level, LogRecord}
+import java.util.logging.{SimpleFormatter, Handler, Level, LogRecord}
 
 /** A [[Handler]] implementation that allows to use the logging service as a
   * backend for [[java.util.logging]].
@@ -11,6 +11,7 @@ class JavaLoggingLogHandler(
   levelMapping: Level => LogLevel,
   connection: LoggerConnection
 ) extends Handler {
+  private val formatter = new SimpleFormatter()
 
   /** @inheritdoc
     */
@@ -21,7 +22,7 @@ class JavaLoggingLogHandler(
         level     = level,
         timestamp = record.getInstant,
         group     = record.getLoggerName,
-        message   = record.getMessage,
+        message   = formatter.formatMessage(record),
         exception = Option(record.getThrown)
       )
       connection.send(message)

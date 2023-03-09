@@ -873,6 +873,8 @@ lazy val `logging-service` = project
       akkaHttp,
       "io.circe"              %%% "circe-core"   % circeVersion,
       "io.circe"              %%% "circe-parser" % circeVersion,
+      "junit"               % "junit"                 % junitVersion      % Test,
+      "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep"),
       "org.scalatest"          %% "scalatest"    % scalatestVersion % Test,
       "org.graalvm.nativeimage" % "svm"          % graalVersion     % "provided"
     )
