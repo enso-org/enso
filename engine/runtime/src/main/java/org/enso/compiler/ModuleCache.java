@@ -6,10 +6,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
+import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
-import scala.jdk.CollectionConverters;
 import org.enso.interpreter.runtime.builtin.Builtins;
 
 import java.io.IOException;
@@ -33,12 +33,21 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry) {
-        var mapper = new ObjectMapper();
         try {
-            return mapper.writeValueAsBytes(new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString()));
+            return objectMapper.writeValueAsBytes(new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString()));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    protected boolean needsSourceDigestVerification() {
+        return true;
+    }
+
+    @Override
+    protected boolean needsDataDigestVerification() {
+        return false;
     }
 
     @Override
@@ -55,12 +64,12 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     }
 
     @Override
-    protected Optional<Metadata> metadataFromBytes(byte[] bytes) {
+    protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger) {
         var maybeJsonString = new String(bytes, Cache.metadataCharset);
-        var mapper = new ObjectMapper();
         try {
-            return Optional.of(mapper.readValue(maybeJsonString, Metadata.class));
+            return Optional.of(objectMapper.readValue(maybeJsonString, Metadata.class));
         } catch (JsonProcessingException e) {
+            logger.log(logLevel, "Failed to deserialize module's metadata: " + e.getMessage(), e);
             return Optional.empty();
         }
     }
@@ -111,9 +120,8 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
                         Info.ensoVersion()
                 ));
                 pathSegmentsJava.addAll(qualName.pathAsJava());
-                var pathSegments = CollectionConverters.ListHasAsScala(pathSegmentsJava).asScala();
                 var path = distribution.LocallyInstalledDirectories().irCacheDirectory()
-                        .resolve(pathSegments.mkString("/"));
+                        .resolve(StringUtils.join(pathSegmentsJava, "/"));
                 var globalCacheRoot = context.getTruffleFile(path.toFile());
 
                 return new Cache.Roots(localCacheRoot, globalCacheRoot);
@@ -128,9 +136,8 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
                     Info.ensoVersion()
             ));
             pathSegmentsJava.addAll(module.getName().pathAsJava());
-            var pathSegments = CollectionConverters.ListHasAsScala(pathSegmentsJava).asScala();
             var path = distribution.LocallyInstalledDirectories().irCacheDirectory()
-                    .resolve(pathSegments.mkString("/"));
+                    .resolve(StringUtils.join(pathSegmentsJava, "/"));
             var globalCacheRoot = context.getTruffleFile(path.toFile());
 
             return Optional.of(new Cache.Roots(globalCacheRoot, globalCacheRoot));
@@ -171,6 +178,9 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
             @JsonProperty("compilation_stage") String compilationStage) implements Cache.Metadata {}
 
     private final static String irCacheDataExtension = ".ir";
+
     private final static String irCacheMetadataExtension = ".meta";
+
+    private final static ObjectMapper objectMapper = new ObjectMapper();
 
 }
