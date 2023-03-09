@@ -97,11 +97,10 @@ type Match_2
          Get the map of all of the named groups in this match, replacing the
          value for groups that didn't match with "UNMATCHED".
 
-             import Standard.Examples
-
-             example_groups =
-                 match = "Examples.match"
-                 match.named_groups default="UNMATCHED"
+            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+            input = "aa ab abc a bc bcd"
+            match = pattern.match input
+            ## match.named_groups.keys.sort == ["empty", "letters"]
     named_groups : Any -> Map Text (Text | Any)
     named_groups self default=Nothing =
         named_group_names = self.pattern.group_names

@@ -496,6 +496,7 @@ spec =
 
         Test.specify "should return the results of all named groups" <|
             groups = match.named_groups
+            groups.keys.sort . should_equal ["empty", "letters"]
             groups.size . should_equal 2
             groups.at "letters" . text . should_equal "abc a bc bcd"
             groups.at "empty" . should_equal Nothing
