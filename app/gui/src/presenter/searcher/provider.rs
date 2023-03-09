@@ -209,9 +209,12 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
     }
 
     fn create_grid_content_info(&self) -> component_grid::content::Info {
-        let groups =
-            collect_all_group_infos(self.favorites(), self.top_modules(), self.is_filtered());
-        let local_scope_entry_count = self.local_scope().matched_items.get();
+        let local_scope = self.local_scope();
+        let mut groups = collect_all_groups_info(self.favorites(), self.top_modules());
+        if self.is_filtered() {
+            groups.sort_by_key(|group| ordered_float::OrderedFloat(-group.best_match_score));
+        }
+        let local_scope_entry_count = local_scope.matched_items.get();
         let namespace_section_count = self.namespace_section_count();
         component_list_panel::grid::content::Info {
             groups,
@@ -246,15 +249,14 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
 // === ControllerComponentsProviderExt Helper Functions ===
 
 
-fn collect_all_group_infos(
+fn collect_all_groups_info(
     favorites: component::group::List,
     top_modules: controller::searcher::TopModules,
-    is_filtered: bool,
 ) -> Vec<component_grid::content::Group> {
     use controller::searcher::TopModules;
     let popular_section =
         group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
-    let mut groups: Vec<_> = match top_modules {
+    match top_modules {
         TopModules::All(modules) => {
             let submodules = modules.iter().enumerate().flat_map(|(section, list)| {
                 group_list_to_grid_group_infos(component_grid::SectionId::Namespace(section), list)
@@ -268,11 +270,7 @@ fn collect_all_group_infos(
             );
             popular_section.chain(submodules).collect()
         }
-    };
-    if is_filtered {
-        groups.sort_by_key(|group| ordered_float::OrderedFloat(-group.best_match_score));
     }
-    groups
 }
 
 fn group_list_to_grid_group_infos(
@@ -403,16 +401,24 @@ impl Component {
             grid.model_for_entry <+ entry_model;
             grid.model_for_header <+ header_model;
         }
+        let local_scope = provider.local_scope();
+        let local_scope_score = local_scope.best_match_score.get();
         let content = provider.create_grid_content_info();
-        let first_group = content.groups.first().copied();
+        let first_group = content.groups.first();
+        let first_group_best_matching =
+            first_group.filter(|grp| grp.best_match_score > local_scope_score);
+        let (matching_section, matching_section_score) = first_group_best_matching
+            .map_or((component_grid::SectionId::LocalScope, local_scope_score), |grp| {
+                (grp.id.section, grp.best_match_score)
+            });
+
         grid.reset(content);
-        if let Some(group) = first_group {
-            if group.best_match_score > component::NOT_MATCHING_SCORE {
-                grid.switch_section_no_animation(group.id.section);
-            }
+        if matching_section_score > component::NOT_MATCHING_SCORE {
+            grid.switch_section_no_animation(matching_section);
         } else if provider.displaying_module() {
-            grid.switch_section_no_animation(component_grid::content::SectionId::LocalScope);
+            grid.switch_section_no_animation(component_grid::SectionId::LocalScope);
         }
+
         Self { _network: network }
     }
 }
