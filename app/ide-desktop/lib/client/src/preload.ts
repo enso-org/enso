@@ -12,8 +12,8 @@ import * as ipc from 'ipc'
 // === Constants ===
 // =================
 
-/** Name of the object containing proxied authentication functions that are used by the
- * dashboard. */
+/** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
+ * window. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
 
 
@@ -69,15 +69,23 @@ contextBridge.exposeInMainWorld('enso_console', {
 // === Authentication API ===
 // ==========================
 
-/** Exposes an object on the main window; object is used by the dashboard to:
+/** Object exposed on the Electron main window; provides proxy functions to:
  * - open OAuth flows in the system browser, and
- * - handle deep links from the system browser or email client to the dashboard. */
-contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, {
+ * - handle deep links from the system browser or email client to the dashboard.
+ *
+ * Some functions (i.e., the functions to open URLs in the system browser) are not available in
+ * sandboxed processes (i.e., the dashboard). So the {@link contextBridge.exposeInMainWorld} API is
+ * used to expose these functions. The functions are exposed via this "API object", which is added
+ * to the main window.
+ *
+ * For more details, see: https://www.electronjs.org/docs/latest/api/context-bridge#api-functions */
+const AUTHENTICATION_API = {
     /** Opens a URL in the system browser (rather than in the app).
      *
      * OAuth URLs must be opened this way because the dashboard application is sandboxed and thus
      * not privileged to do so unless we explicitly expose this functionality. */
-    openUrlInSystemBrowser: (url: string) => ipcRenderer.send(ipc.channel.openUrlInSystemBrowser, url),
+    openUrlInSystemBrowser: (url: string) =>
+        ipcRenderer.send(ipc.channel.openUrlInSystemBrowser, url),
     /** Set the callback that will be called when a deep link to the application is opened.
      *
      * The callback is intended to handle links like
@@ -86,4 +94,5 @@ contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, {
      * progress when the link was opened (e.g., an OAuth registration flow). */
     setDeepLinkHandler: (callback: (url: string) => void) =>
         ipcRenderer.on(ipc.channel.openDeepLink, (_event, url) => callback(url)),
-})
+}
+contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)

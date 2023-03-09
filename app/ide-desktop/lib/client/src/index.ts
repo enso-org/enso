@@ -51,6 +51,12 @@ class App {
             this.setChromeOptions(chromeOptions)
             security.enableAll()
             electron.app.on('before-quit', () => (this.isQuitting = true))
+            /** TODO [NP]: https://github.com/enso-org/enso/issues/5851
+             * The `electron.app.whenReady()` listener is preferable to the
+             * `electron.app.on('ready', ...)` listener. When the former is used in combination with
+             * the `authentication.initModule` call that is called in the listener, the application
+             * freezes. This freeze should be diagnosed and fixed. Then, the `whenReady()` listener
+             * should be used here instead. */
             electron.app.on('ready', () => this.main(windowSize))
             this.registerShortcuts()
         }
@@ -103,7 +109,12 @@ class App {
                 await this.startContentServerIfEnabled()
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
-                authentication.initAuthenticationModule(() => this.window)
+                /** The non-null assertion on the following line is safe because the window
+                 * initialization is guarded by the `createWindowIfEnabled` method. The window is
+                 * not yet created at this point, but it will be created by the time the
+                 * authentication module uses the lambda providing the window. */
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                authentication.initModule(() => this.window!)
                 this.loadWindowContent()
             })
         } catch (err) {

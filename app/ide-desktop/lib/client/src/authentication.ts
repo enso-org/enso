@@ -71,10 +71,13 @@
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
+
+import * as content from 'enso-content-config'
 import * as electron from 'electron'
 import * as ipc from 'ipc'
 import * as shared from '../shared'
-import opener from 'opener'
+import * as childProcess from 'child_process'
+import * as os from 'os'
 
 
 
@@ -93,10 +96,13 @@ const OPEN_URL_EVENT = 'open-url'
 // ========================================
 
 /** Configures all the functionality that must be set up in the Electron app to support
- * authentication-related flows. Must be called in the Electron app `whenReady` event. */
-export const initAuthenticationModule = (
-    window: () => electron.BrowserWindow | null,
-) => {
+ * authentication-related flows. Must be called in the Electron app `whenReady` event.
+ *
+ * @param window - A function that returns the main Electron window. This argument is a lambda and
+ * not a variable because the main window is not available when this function is called. This module
+ * does not use the `window` until after it is initialized, so while the lambda may return `null` in
+ * theory, it never will in practice. */
+export const initModule = (window: () => electron.BrowserWindow) => {
     initIpc()
     initOpenUrlListener(window)
 }
@@ -121,20 +127,95 @@ const initIpc = () => {
  * redirected to a URL with a protocol supported by this application.
  *
  * All URLs that aren't deep links (i.e., URLs that don't use the {@link shared.DEEP_LINK_SCHEME}
- * protocol) will be ignored by this handler. */
-const initOpenUrlListener = (
-    window: () => electron.BrowserWindow | null,
-) => {
+ * protocol) will be ignored by this handler. Non-deep link URLs will be handled by Electron. */
+const initOpenUrlListener = (window: () => electron.BrowserWindow) => {
     electron.app.on(OPEN_URL_EVENT, (event, url) => {
         const parsedUrl = new URL(url)
-
+        /** Prevent Electron from handling the URL at all, because redirects can be dangerous. */
+        event.preventDefault()
         if (parsedUrl.protocol !== `${shared.DEEP_LINK_SCHEME}:`) {
+            content.logger.error(`${url} is not a deep link, ignoring.`)
             return
         }
-
-        /** Don't open the deep link URL in the window, we want the system browser to handle it. */
-        event.preventDefault()
-
-        window()?.webContents.send(ipc.channel.openDeepLink, url)
+        window().webContents.send(ipc.channel.openDeepLink, url)
     })
+}
+
+
+
+// ==============
+// === Opener ===
+// ==============
+
+
+/** Function for opening URLs in the system browser in a cross-platform way.
+ *
+ * This function contains the contents of the `opener` NPM package, as of commit
+ * https://github.com/domenic/opener/commit/24edf48a38d1e23bbc5ffbeb079c206d5565f062.  To avoid an
+ * extra external dependency, the contents of the function have been copied into this file. The
+ * function has been modified to follow the Enso style guide, and to be TypeScript-compatible. */
+const opener = (args: any, options?: any, callback?: any) => {
+    let platform = process.platform
+
+    /** Attempt to detect Windows Subystem for Linux (WSL). WSL  itself as Linux (which works in
+     * most cases), but in this specific case we need to treat it as actually being Windows. The
+     * "Windows-way" of opening things through cmd.exe works just fine here, whereas using xdg-open
+     * does not, since there is no X Windows in WSL. */
+    if (platform === 'linux' && os.release().indexOf('Microsoft') !== -1) {
+        platform = 'win32'
+    }
+
+    /** http://stackoverflow.com/q/1480971/3191, but see below for Windows. */
+    let command
+    switch (platform) {
+        case 'win32': {
+            command = 'cmd.exe'
+            break
+        }
+        case 'darwin': {
+            command = 'open'
+            break
+        }
+        default: {
+            command = 'xdg-open'
+            break
+        }
+    }
+
+    if (typeof args === 'string') {
+        args = [args]
+    }
+
+    if (typeof options === 'function') {
+        callback = options
+        options = {}
+    }
+
+    if (options && typeof options === 'object' && options.command) {
+        if (platform === 'win32') {
+            /* *always* use cmd on windows */
+            args = [options.command].concat(args)
+        } else {
+            command = options.command
+        }
+    }
+
+    if (platform === 'win32') {
+        /** On Windows, we really want to use the "start" command. But, the rules regarding
+         * arguments with spaces, and escaping them with quotes, can get really arcane. So the
+         * easiest way to deal with this is to pass off the responsibility to "cmd /c", which has
+         * that logic built in.
+         *
+         * Furthermore, if "cmd /c" double-quoted the first parameter, then "start" will interpret
+         * it as a window title, so we need to add a dummy empty-string window title:
+         * http://stackoverflow.com/a/154090/3191
+         *
+         * Additionally, on Windows ampersand and caret need to be escaped when passed to "start" */
+        args = args.map((value: any) => {
+            return value.replace(/[&^]/g, '^$&')
+        })
+        args = ['/c', 'start', '""'].concat(args)
+    }
+
+    return childProcess.execFile(command, args, options, callback)
 }

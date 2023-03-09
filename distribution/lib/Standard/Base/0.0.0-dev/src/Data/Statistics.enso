@@ -8,9 +8,9 @@ import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
+import project.Error.Common.Incomparable_Values
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.Incomparable_Values.Incomparable_Values
 import project.Meta
 import project.Nothing.Nothing
 import project.Runtime.Ref.Ref
@@ -20,13 +20,13 @@ from project.Data.Boolean import Boolean, True, False
 from project.Data.Vector import Empty_Error
 from project.Error.Common import Unsupported_Argument_Types
 
+polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.MomentStatistic
 polyglot java import org.enso.base.statistics.CountMinMax
 polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
 
-polyglot java import java.lang.ClassCastException
 polyglot java import java.lang.NullPointerException
 
 ## Specifies how to handle ranking of equal values.
@@ -62,9 +62,10 @@ type Rank_Method
 
         report_nullpointer caught_panic = Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)
         handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
-        handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values)
+        handle_cmp_exc = Panic.catch CompareException handler=exc->
+            Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand)
 
-        handle_classcast <| handle_nullpointer <|
+        handle_cmp_exc <| handle_nullpointer <|
             java_ranks = Rank.rank input.to_array Comparator.new java_method
             Vector.from_polyglot_array java_ranks
 
@@ -171,8 +172,8 @@ type Statistic
             if skip_moments.not && result.is_nothing then report_error statistics else
                 statistics.map statistic-> case statistic of
                     Statistic.Count -> counter.count
-                    Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.minimum
-                    Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.maximum
+                    Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values.Error) else counter.minimum
+                    Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values.Error) else counter.maximum
                     Statistic.Covariance series -> calculate_correlation_statistics data series . covariance
                     Statistic.Pearson series -> calculate_correlation_statistics data series . pearsonCorrelation
                     Statistic.Spearman series -> calculate_spearman_rank data series
@@ -219,8 +220,8 @@ type Statistic
 
                     row = Panic.throw_wrapped_if_error <| statistics.map s-> case s of
                         Statistic.Count -> counter.count
-                        Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.minimum
-                        Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.maximum
+                        Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values.Error) else counter.minimum
+                        Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values.Error) else counter.maximum
                         _ -> if result.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute " + s.to_text + " on numerical data sets.")) else result.compute (to_moment_statistic s)
                     output.append row
 
@@ -342,13 +343,12 @@ compute_fold counter current value =
         counter.increment
 
         if counter.comparatorError.not then
-            value_comparator = Comparable.from value
             if counter.minimum.is_nothing then counter.setMinimum value else
-                ordering = Incomparable_Values.handle_errors <| value_comparator.compare value counter.minimum
+                ordering = Ordering.compare value counter.minimum
                 if ordering.is_error then counter.failComparator else
                     if ordering == Ordering.Less then counter.setMinimum value
             if counter.maximum.is_nothing then counter.setMaximum value else
-                ordering = Incomparable_Values.handle_errors <| value_comparator.compare value counter.maximum
+                ordering = Ordering.compare value counter.maximum
                 if ordering.is_error then counter.failComparator else
                     if ordering == Ordering.Greater then counter.setMaximum value
 

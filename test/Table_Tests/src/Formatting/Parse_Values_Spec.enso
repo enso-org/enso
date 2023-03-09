@@ -445,9 +445,9 @@ spec =
             c2 = c1.parse Date
             c2.to_vector . should_equal [Date.new 2022 5 7, Date.new 2000 1 1, Date.new 2010 12 31]
 
-            c3 = Column.from_vector "datetimes" ["2022-05-07 23:59:59", "2000-01-01 00:00:00", "2010-12-31 12:34:56"]
+            c3 = Column.from_vector "datetimes" ["2022-05-07 23:59:59", "2000-01-01 00:00:00", "2010-12-31 12:34:56", "2010-12-31T12:34:56", "2010-12-31 12:34:56.123"]
             c4 = c3.parse Date_Time
-            c4.to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Date_Time.new 2000 1 1, Date_Time.new 2010 12 31 12 34 56]
+            c4.to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Date_Time.new 2000 1 1, Date_Time.new 2010 12 31 12 34 56, Date_Time.new 2010 12 31 12 34 56, Date_Time.new 2010 12 31 12 34 56 123]
 
             c5 = Column.from_vector "times" ["23:59:59", "00:00:00", "12:34:56"]
             c6 = c5.parse Time_Of_Day
@@ -468,6 +468,12 @@ spec =
             c3 = Column.from_vector "datetimes" ["5/7/2022 23:59:59", "1/1/2000 00:00:00", "12/31/2010 12:34:56"]
             c4 = c3.parse Date_Time "M/d/yyyy HH:mm:ss"
             c4.to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Date_Time.new 2000 1 1, Date_Time.new 2010 12 31 12 34 56]
+
+        Test.specify "should handle invalid format strings gracefully" <|
+            c1 = Column.from_vector "date" ["5/7/2022", "1/1/2000", "12/31/2010"]
+            c1.parse Date "M/d/fqsrf" . should_fail_with Illegal_Argument
+            c1.parse Time_Of_Day "HH:mm:ss.fff" . should_fail_with Illegal_Argument
+            c1.parse Date_Time "M/d/fqsrf HH:mm:ss.fff" . should_fail_with Illegal_Argument
 
         Test.specify "should correctly work in Auto mode" <|
             c1 = Column.from_vector "A" ["1", "2", "3"]

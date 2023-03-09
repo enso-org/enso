@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -244,13 +245,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       } else if (exception instanceof PanicException) {
         PanicException panicException = (PanicException) exception;
         onReturnValue(frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
-      } else if (exception instanceof PanicSentinel) {
+      } else if (exception instanceof AbstractTruffleException) {
         onReturnValue(frame, exception);
       }
     }
 
     private void onExpressionReturn(Object result, Node node, EventContext context) throws ThreadDeath {
-      boolean isPanic = result instanceof PanicSentinel;
+      boolean isPanic = result instanceof AbstractTruffleException;
       UUID nodeId = ((ExpressionNode) node).getId();
 
       String resultType = typeOf(result);

@@ -299,6 +299,24 @@ object TestMessages {
     * @param expressionId an identifier of the expression
     * @param methodPointer a pointer to the method definition
     * @param payload the error payload
+    * @param builtin the type to use
+    * @return the expression update response
+    */
+  def panic(
+    contextId: UUID,
+    expressionId: UUID,
+    methodPointer: Api.MethodPointer,
+    payload: Api.ExpressionUpdate.Payload,
+    builtin: Option[String]
+  ): Api.Response =
+    panicBuilder(contextId, expressionId, Some(methodPointer), payload, builtin)
+
+  /** Create a panic update response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionId an identifier of the expression
+    * @param methodPointer a pointer to the method definition
+    * @param payload the error payload
     * @param builtin a flag indicating what is the type of Panic (a builtin Panic type or stdlib Panic)
     * @return the expression update response
     */
@@ -308,6 +326,22 @@ object TestMessages {
     methodPointer: Option[Api.MethodPointer],
     payload: Api.ExpressionUpdate.Payload,
     builtin: Boolean
+  ): Api.Response = panicBuilder(
+    contextId,
+    expressionId,
+    methodPointer,
+    payload,
+    Some(
+      if (builtin) ConstantsGen.PANIC_BUILTIN else ConstantsGen.PANIC
+    )
+  )
+
+  private def panicBuilder(
+    contextId: UUID,
+    expressionId: UUID,
+    methodPointer: Option[Api.MethodPointer],
+    payload: Api.ExpressionUpdate.Payload,
+    builtin: Option[String]
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
@@ -315,9 +349,7 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            Some(
-              if (builtin) ConstantsGen.PANIC_BUILTIN else ConstantsGen.PANIC
-            ),
+            builtin,
             methodPointer,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
-import org.bouncycastle.util.encoders.Hex;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -15,15 +14,13 @@ import org.enso.pkg.SourceFile;
 import scala.collection.immutable.Map;
 import scala.jdk.CollectionConverters;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 
-public class ImportExportCache extends Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
+public final class ImportExportCache extends Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
     private final LibraryName libraryName;
 
@@ -77,22 +74,6 @@ public class ImportExportCache extends Cache<ImportExportCache.CachedBindings, I
                 .getPackageRepository()
                 .getPackageForLibraryJava(libraryName)
                 .map(pkg -> computeDigestOfLibrarySources(pkg.listSourcesJava(), logger));
-    }
-
-    private String computeDigestOfLibrarySources(List<SourceFile<TruffleFile>> pkgSources, TruffleLogger logger) {
-        pkgSources.sort(Comparator.comparing(o -> o.qualifiedName().toString()));
-
-        var digest = messageDigest();
-        pkgSources.forEach(source ->
-            {
-                try {
-                    digest.update(source.file().readAllBytes());
-                } catch (IOException e) {
-                    logger.log(logLevel, "failed to compute digest for " + source.qualifiedName().toString(), e);
-                }
-            }
-        );
-        return Hex.toHexString(digest.digest());
     }
 
     @Override

@@ -42,7 +42,8 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
     bytes = self.bytes encoding on_problems
     file = File.new path
     r = on_existing_file.write file stream->
-        stream.write_bytes bytes
+        bytes.if_not_error <|
+            stream.write_bytes bytes
     r.if_not_error file
 
 ## Writes (or appends) the Vector of bytes into the specified file. The behavior

@@ -1119,6 +1119,7 @@ pub struct Model {
 
 impl Instance {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new() -> Self {
         default()
     }

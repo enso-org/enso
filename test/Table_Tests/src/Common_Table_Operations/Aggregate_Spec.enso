@@ -1390,7 +1390,9 @@ spec setup =
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
                 err = table.aggregate [Maximum "Mixed"] on_problems=pb
                 err.should_fail_with Invalid_Aggregation
-                err.catch . should_equal (Invalid_Aggregation.Error "Maximum Mixed" [1] "Cannot compare values.")
+                err.catch.column.should_equal "Maximum Mixed"
+                err.catch.message.should_start_with "Cannot compare values"
+                err.catch.rows.should_equal [1]
 
     Test.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) <|
         table =
