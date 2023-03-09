@@ -380,7 +380,7 @@ class Compiler(
         if (generateCode) {
           logger.log(
             Compiler.defaultLogLevel,
-            s"Generating code for module [{}].",
+            "Generating code for module [{}].",
             module.getName
           )
 
@@ -400,7 +400,7 @@ class Compiler(
         } else {
           logger.log(
             Compiler.defaultLogLevel,
-            s"Skipping serialization for [{}].",
+            "Skipping serialization for [{}].",
             module.getName
           )
         }
@@ -490,7 +490,7 @@ class Compiler(
   ): Unit = {
     logger.log(
       Compiler.defaultLogLevel,
-      s"Parsing the module [{}].",
+      "Parsing module [{}].",
       module.getName
     )
     module.ensureScopeExists(context)
@@ -523,7 +523,7 @@ class Compiler(
   private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
     logger.log(
       Compiler.defaultLogLevel,
-      s"Loading module [{}] from source.",
+      "Loading module [{}] from source.",
       module.getName
     )
     module.ensureScopeExists(context)

@@ -317,14 +317,14 @@ final class SerializationManager(
         case result @ Some(_: ImportExportCache.CachedBindings) =>
           logger.log(
             Level.FINE,
-            s"Restored bindings for library [{}].",
+            "Restored bindings for library [{}].",
             libraryName
           )
           result
         case _ =>
           logger.log(
             Level.FINEST,
-            s"Unable to load bindings for library [{}].",
+            "Unable to load bindings for library [{}].",
             libraryName
           )
           None
@@ -487,7 +487,7 @@ final class SerializationManager(
         val jobCount = waitingCount + isSerializing.size
         logger.log(
           debugLogLevel,
-          "Waiting for {} serialization jobs to complete.",
+          "Waiting for #{} serialization jobs to complete.",
           jobCount
         )
 
