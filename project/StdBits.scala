@@ -30,7 +30,8 @@ object StdBits {
 
       val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
       val validConfig =
-        if (ignoreScalaLibrary) baseFilter - new ExactFilter(Configurations.ScalaTool.name)
+        if (ignoreScalaLibrary)
+          baseFilter - new ExactFilter(Configurations.ScalaTool.name)
         else baseFilter
       val configFilter: ConfigurationFilter =
         DependencyFilter.configurationFilter(name = validConfig)
@@ -49,9 +50,7 @@ object StdBits {
       Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
         report =>
           val expectedFileNames =
-            report.checked.map(
-              file => file.getName
-            ) ++ baseJarName.toSeq
+            report.checked.map(file => file.getName) ++ baseJarName.toSeq
           for (existing <- IO.listFiles(destination)) {
             if (!expectedFileNames.contains(existing.getName)) {
               log.info(
@@ -85,16 +84,15 @@ object StdBits {
     IO.copyFile(jar, destination)
   }
 
-  /**
-   * Builds a single standard library package `name`. Should only be used
-   * in tasks used in local development.
-   *
-   * @param name name of the package, see `stdBitsProjects` in build.sbt
-   * @param root top directory where distribution is being built
-   * @param cache used for persisting the cached information
-   * @param log logger used in the task
-   * @param defaultDevEnsoVersion default `dev` version
-   */
+  /** Builds a single standard library package `name`. Should only be used
+    * in tasks used in local development.
+    *
+    * @param name name of the package, see `stdBitsProjects` in build.sbt
+    * @param root top directory where distribution is being built
+    * @param cache used for persisting the cached information
+    * @param log logger used in the task
+    * @param defaultDevEnsoVersion default `dev` version
+    */
   def buildStdLibPackage(
     name: String,
     root: File,
@@ -103,16 +101,18 @@ object StdBits {
     defaultDevEnsoVersion: String
   ) = {
     log.info(s"Building standard library package for '$name'")
-    val prefix = "Standard"
+    val prefix        = "Standard"
     val targetPkgRoot = root / "lib" / prefix / name / defaultDevEnsoVersion
-    val sourceDir = file(s"distribution/lib/$prefix/$name/$defaultDevEnsoVersion")
+    val sourceDir = file(
+      s"distribution/lib/$prefix/$name/$defaultDevEnsoVersion"
+    )
     if (!sourceDir.exists) {
       throw new RuntimeException("Invalid standard library package " + name)
     }
     val result = DistributionPackage.copyDirectoryIncremental(
       source      = file(s"distribution/lib/$prefix/$name/$defaultDevEnsoVersion"),
       destination = targetPkgRoot,
-      cache = cacheFactory.sub("engine-libraries").make(s"$prefix.$name"),
+      cache       = cacheFactory.sub("engine-libraries").make(s"$prefix.$name")
     )
     if (result) {
       log.info(s"Package '$name' has been updated")
