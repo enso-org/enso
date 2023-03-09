@@ -63,8 +63,8 @@ const forgotPasswordContainer = () => {
                             >
                                 <span className="mr-2 uppercase">Send link</span>
                                 <span>
-                  <icons.Svg data={icons.PATHS.rightArrow} />
-                </span>
+                                    <icons.Svg data={icons.PATHS.rightArrow} />
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -74,9 +74,9 @@ const forgotPasswordContainer = () => {
                         to={app.LOGIN_PATH}
                         className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
                     >
-            <span>
-              <icons.Svg data={icons.PATHS.goBack} />
-            </span>
+                        <span>
+                            <icons.Svg data={icons.PATHS.goBack} />
+                        </span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>
                 </div>

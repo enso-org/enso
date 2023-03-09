@@ -3,6 +3,7 @@
 import * as React from "react";
 import * as toast from "react-hot-toast";
 import * as router from "react-router-dom";
+import * as projectManager from "enso-studio-content/src/project_manager";
 
 import * as authProvider from "../authentication/providers/auth";
 import DashboardContainer from "../dashboard/components/dashboard";
@@ -51,6 +52,7 @@ export interface AppProps {
     /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
     runningOnDesktop: boolean;
     onAuthenticated: () => void;
+    projectManager?: projectManager.ProjectManager;
 }
 
 /** Functional component called by the parent module, returning the root React component for this package.
@@ -84,7 +86,7 @@ const App = (props: AppProps) => {
 /** Router definition for the app. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter = (props: AppProps) => {
-    const { logger, onAuthenticated, runningOnDesktop } = props;
+    const { logger, onAuthenticated, runningOnDesktop, projectManager } = props;
     const navigate = router.useNavigate();
     const memoizedAuthService = React.useMemo(
         () => {
@@ -121,15 +123,12 @@ const AppRouter = (props: AppProps) => {
                             {/* Protected pages are visible to authenticated users. */}
                             <router.Route element={<authProvider.ProtectedLayout />}>
                                 <router.Route
-                                    index
-                                    element={
-                                        <DashboardContainer />
-                                    }
-                                />
-                                <router.Route
                                     path={DASHBOARD_PATH}
                                     element={
-                                        <DashboardContainer />
+                                        <DashboardContainer
+                                            runningOnDesktop={runningOnDesktop}
+                                            projectManager={projectManager}
+                                        />
                                     }
                                 />
                                 <router.Route

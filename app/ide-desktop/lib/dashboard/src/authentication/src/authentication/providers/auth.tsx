@@ -51,7 +51,7 @@ export interface FullUserSession {
     /** User's email address. */
     email: string;
     /** User's organization information. */
-    organization: backendService.Organization;
+    organization: backendService.UserOrOrganization;
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -175,8 +175,10 @@ export const AuthProvider = (props: AuthProviderProps) => {
             const { accessToken, email } = session.val;
 
             const backend = backendService.createBackend(accessToken, logger);
-            const organization = await backend.getUser();
+            const organization = await backend.usersMe();
+
             let userSession: UserSession;
+
             if (!organization) {
                 userSession = {
                     state: "partial",
@@ -191,7 +193,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
                     organization,
                 };
 
-                /** Execute the callback that should inform the Electron app that the user has
+                /* Execute the callback that should inform the Electron app that the user has
                  * logged in. This is done to transition the app from the authentication/dashboard
                  * view to the IDE. */
                 onAuthenticated();
@@ -250,16 +252,16 @@ export const AuthProvider = (props: AuthProviderProps) => {
         username: string,
         email: string
     ) => {
-        const body: backendService.SetUsernameRequestBody = {
+        const body: backendService.CreateUserRequestBody = {
             userName: username,
-            userEmail: email,
+            userEmail: email as backendService.EmailAddress,
         };
 
         // TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
         // Don't create a new API client here, reuse the one from the context.
         const backend = backendService.createBackend(accessToken, logger);
 
-        await backend.setUsername(body);
+        await backend.createUser(body);
         navigate(app.DASHBOARD_PATH);
         toast.success(MESSAGES.setUsernameSuccess);
     };
@@ -365,6 +367,10 @@ export const ProtectedLayout = () => {
         return <router.Navigate to={app.LOGIN_PATH} />;
     }
 
+    if (session.state === "partial") {
+        return <router.Navigate to={app.SET_USERNAME_PATH} />;
+    }
+
     return <router.Outlet context={session} />;
 };
 
@@ -378,11 +384,11 @@ export const ProtectedLayout = () => {
 export const GuestLayout = () => {
     const { session } = useAuth();
 
-    if (session?.state == "partial") {
+    if (session?.state === "partial") {
         return <router.Navigate to={app.SET_USERNAME_PATH} />;
     }
 
-    if (session?.state == "full") {
+    if (session?.state === "full") {
         return <router.Navigate to={app.DASHBOARD_PATH} />;
     }
 

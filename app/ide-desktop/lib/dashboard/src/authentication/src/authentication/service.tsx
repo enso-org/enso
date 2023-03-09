@@ -29,7 +29,7 @@ const CONFIRM_REGISTRATION_PATHNAME = "//auth/confirmation";
  * password email. */
 const LOGIN_PATHNAME = "//auth/login";
 
-const BASE_AMPLIFY_CONFIG: Partial<authConfig.AmplifyConfig> = {
+const BASE_AMPLIFY_CONFIG = {
     region: authConfig.AWS_REGION,
     scope: authConfig.OAUTH_SCOPES,
     responseType: authConfig.OAUTH_RESPONSE_TYPE,
@@ -141,6 +141,7 @@ const loadAmplifyConfig = (
 ): authConfig.AmplifyConfig => {
     /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
+    let urlOpener: ((url: string) => void) | undefined;
 
     if (runningOnDesktop) {
         /** If we're running on the desktop, we want to override the default URL opener for OAuth
@@ -151,7 +152,7 @@ const loadAmplifyConfig = (
          * - users trust their system browser with their credentials more than they trust our app;
          * - our app can keep itself on the relevant page until the user is sent back to it (i.e.,
          *   we avoid unnecessary reloads/refreshes caused by redirects. */
-        baseConfig.urlOpener = openUrlWithExternalBrowser;
+        urlOpener = openUrlWithExternalBrowser;
 
         /** To handle redirects back to the application from the system browser, we also need to
          * register a custom URL handler. */
@@ -159,14 +160,19 @@ const loadAmplifyConfig = (
     }
 
     /** Set the redirect URLs for the OAuth flows, depending on our environment. */
-    baseConfig.redirectSignIn = runningOnDesktop
+    const redirectSignIn = runningOnDesktop
         ? authConfig.DESKTOP_REDIRECT
         : config.ACTIVE_CONFIG.cloudRedirect;
-    baseConfig.redirectSignOut = runningOnDesktop
+    const redirectSignOut = runningOnDesktop
         ? authConfig.DESKTOP_REDIRECT
         : config.ACTIVE_CONFIG.cloudRedirect;
 
-    return baseConfig as authConfig.AmplifyConfig;
+    return {
+        ...baseConfig,
+        redirectSignIn,
+        redirectSignOut,
+        urlOpener,
+    };
 };
 
 const openUrlWithExternalBrowser = (url: string) => {
@@ -203,7 +209,7 @@ const setDeepLinkHandler = (
 
         if (isConfirmRegistrationRedirect(parsedUrl)) {
             // Navigate to a relative URL to handle the confirmation link.
-            const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
+            const redirectUrl = `${CONFIRM_REGISTRATION_PATHNAME}${parsedUrl.search}`;
             navigate(redirectUrl);
         } else if (isSignOutRedirect(parsedUrl) || isLoginRedirect(parsedUrl)) {
             navigate(app.LOGIN_PATH);

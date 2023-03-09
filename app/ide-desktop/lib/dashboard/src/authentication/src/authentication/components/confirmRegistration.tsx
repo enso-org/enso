@@ -23,11 +23,11 @@ const REGISTRATION_QUERY_PARAMS = {
 
 
 
-// ====================================
-// === confirmRegistrationContainer ===
-// ====================================
+// ===========================
+// === ConfirmRegistration ===
+// ===========================
 
-const confirmRegistrationContainer = () => {
+const ConfirmRegistration = () => {
     const logger = loggerProvider.useLogger();
     const { confirmSignUp } = auth.useAuth();
     const { search } = router.useLocation();
@@ -64,4 +64,4 @@ const parseUrlSearchParams = (search: string) => {
     return { verificationCode, email };
 };
 
-export default withRouter(confirmRegistrationContainer);
+export default withRouter(ConfirmRegistration);

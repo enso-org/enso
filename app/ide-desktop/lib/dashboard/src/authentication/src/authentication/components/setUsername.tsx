@@ -56,8 +56,8 @@ const setUsernameContainer = () => {
                             >
                                 <span className="mr-2 uppercase">Set username</span>
                                 <span>
-                  <Icons.Svg data={Icons.PATHS.rightArrow} />
-                </span>
+                                    <Icons.Svg data={Icons.PATHS.rightArrow} />
+                                </span>
                             </button>
                         </div>
                     </form>

@@ -62,19 +62,18 @@ export function useAsyncEffect<T>(
     React.useEffect(() => {
         let active = true;
 
-        /** Declare the async data fetching function. */
+        // Declare the async data fetching function.
         const load = async () => {
             const result = await fetch();
 
-            /** Set state with the result if `active` is true. This prevents race conditions by
-             * making it so that only the latest async fetch will update the state on completion. */
+            // Set state with the result if `active` is true. This is what prevents race conditions.
             if (!active) return;
             setValue(result);
         };
 
         load().catch((error) => logger.error("Error while fetching data", error));
 
-        /** Cancel any future `setValue` calls. */
+        // Cancel any future `setValue` calls.
         return () => {
             active = false;
         };

@@ -73,9 +73,9 @@ const registrationContainer = () => {
                         </label>
                         <div className="relative">
                             <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                <span>
-                  <Icons.Svg data={Icons.PATHS.lock} />
-                </span>
+                                <span>
+                                    <Icons.Svg data={Icons.PATHS.lock} />
+                                </span>
                             </div>
 
                             <input
@@ -97,9 +97,9 @@ const registrationContainer = () => {
                         </label>
                         <div className="relative">
                             <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                <span>
-                  <Icons.Svg data={Icons.PATHS.lock} />
-                </span>
+                                <span>
+                                    <Icons.Svg data={Icons.PATHS.lock} />
+                                </span>
                             </div>
 
                             <input
@@ -120,8 +120,8 @@ const registrationContainer = () => {
                         >
                             <span className="mr-2 uppercase">Register</span>
                             <span>
-                <Icons.Svg data={Icons.PATHS.createAccount} />
-              </span>
+                                <Icons.Svg data={Icons.PATHS.createAccount} />
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -131,9 +131,9 @@ const registrationContainer = () => {
                     to={app.LOGIN_PATH}
                     className="inline-flex items-center font-bold text-indigo-500 hover:text-indigo-700 text-sm text-center"
                 >
-          <span>
-            <Icons.Svg data={Icons.PATHS.goBack} />
-          </span>
+                    <span>
+                        <Icons.Svg data={Icons.PATHS.goBack} />
+                    </span>
                     <span className="ml-2">Already have an account?</span>
                 </router.Link>
             </div>

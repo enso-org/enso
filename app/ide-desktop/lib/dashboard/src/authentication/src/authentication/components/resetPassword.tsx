@@ -154,8 +154,8 @@ const resetPasswordContainer = () => {
                             >
                                 <span className="mr-2 uppercase">Reset</span>
                                 <span>
-                  <Icons.Svg data={Icons.PATHS.rightArrow} />
-                </span>
+                                    <Icons.Svg data={Icons.PATHS.rightArrow} />
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -165,9 +165,9 @@ const resetPasswordContainer = () => {
                         to={app.LOGIN_PATH}
                         className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
                     >
-            <span>
-              <Icons.Svg data={Icons.PATHS.goBack} />
-            </span>
+                        <span>
+                            <Icons.Svg data={Icons.PATHS.goBack} />
+                        </span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>
                 </div>
