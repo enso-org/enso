@@ -1,7 +1,8 @@
 package org.enso.pkg
 
-import scala.jdk.CollectionConverters._;
 import com.oracle.truffle.api.CompilerDirectives
+
+import scala.jdk.CollectionConverters._
 
 /** Represents a qualified name of a source item.
   *
