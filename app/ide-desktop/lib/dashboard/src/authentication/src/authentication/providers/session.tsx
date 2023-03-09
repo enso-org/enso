@@ -1,5 +1,5 @@
-/** @file Provider for the {@link SessionContextType}, which contains information about the currently
- * authenticated user's session. */
+/** @file Provider for the {@link SessionContextType}, which contains information about the
+ * currently authenticated user's session. */
 import react from "react";
 import * as results from "ts-results";
 
@@ -37,13 +37,13 @@ interface SessionProviderProps {
 export const SessionProvider = (props: SessionProviderProps) => {
     const { children, userSession } = props;
 
-    // Flag used to avoid rendering child components until we've fetched the user's session at least
-    // once. Avoids flash of the login screen when the user is already logged in.
+    /** Flag used to avoid rendering child components until we've fetched the user's session at
+     * least once. Avoids flash of the login screen when the user is already logged in. */
     const [initialized, setInitialized] = react.useState(false);
 
-    // Register an async effect that will fetch the user's session whenever the `refresh` state is
-    // incremented. This is useful when a user has just logged in (as their cached credentials are
-    // out of date, so this will update them).
+    /** Register an async effect that will fetch the user's session whenever the `refresh` state is
+     * incremented. This is useful when a user has just logged in (as their cached credentials are
+     * out of date, so this will update them). */
     const [session] = hooks.useAsyncEffect(
         results.None,
         async () => {

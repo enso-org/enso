@@ -133,8 +133,8 @@ export class Client {
     /** Asynchronously sends an HTTP request, returning a wrapped {@link HttpResponse}, which can be
      * used to access the status code and deserialize the response body. */
     executeRequest = async (config: RequestInitWithUrlAndHeaders) => {
-        // Insert default headers into the request headers without overwriting already appended
-        // headers.
+        /** Insert default headers into the request headers without overwriting already appended
+         * headers. */
         if (this.defaultHeaders != null) {
             this.defaultHeaders.forEach((value, key) => {
                 if (!config.headers.has(key)) {
@@ -143,7 +143,7 @@ export class Client {
             });
         }
 
-        // Construct the request from the options.
+        /** Construct the request from the options. */
         const request = new Request(config.url, config);
 
         const response = await fetch(request);

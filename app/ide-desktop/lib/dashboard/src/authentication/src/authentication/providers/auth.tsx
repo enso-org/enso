@@ -119,12 +119,12 @@ export const AuthProvider = (props: AuthProviderProps) => {
         undefined
     );
 
-    // Fetch the JWT access token from the session via the AWS Amplify library.
-    //
-    // When invoked, retrieves the access token (if available) from the storage method chosen when
-    // Amplify was configured (e.g. local storage). If the token is not available, returns
-    // `undefined`.  If the token has expired, automatically refreshes the token and returns the new
-    // token.
+    /** Fetch the JWT access token from the session via the AWS Amplify library.
+     *
+     * When invoked, retrieves the access token (if available) from the storage method chosen when
+     * Amplify was configured (e.g. local storage). If the token is not available, returns
+     * `undefined`.  If the token has expired, automatically refreshes the token and returns the new
+     * token. */
     react.useEffect(() => {
         const fetchSession = async () => {
             if (session.none) {
@@ -135,12 +135,8 @@ export const AuthProvider = (props: AuthProviderProps) => {
             const { accessToken, email } = session.val;
 
             const backend = backendService.createBackend(accessToken, logger);
-
-            // Request the user's organization information from the Cloud backend.
             const organization = await backend.getUser();
-
             let userSession: UserSession;
-
             if (!organization) {
                 userSession = {
                     state: "partial",
@@ -155,8 +151,9 @@ export const AuthProvider = (props: AuthProviderProps) => {
                     organization,
                 };
 
-                // Execute the callback that should inform the Electron app that the user has logged in.
-                // This is done to transition the app from the authentication/dashboard view to the IDE.
+                /** Execute the callback that should inform the Electron app that the user has
+                 * logged in. This is done to transition the app from the authentication/dashboard
+                 * view to the IDE. */
                 onAuthenticated();
             }
 

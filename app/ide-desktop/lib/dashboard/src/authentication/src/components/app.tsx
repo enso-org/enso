@@ -45,8 +45,8 @@ const App = (props: AppProps) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const Router = runningOnDesktop ? router.MemoryRouter : router.BrowserRouter;
 
-    // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
-    // will redirect the user between the login/register pages and the dashboard.
+    /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
+     * will redirect the user between the login/register pages and the dashboard. */
     return (
         <>
             <toast.Toaster position="top-center" reverseOrder={false} />

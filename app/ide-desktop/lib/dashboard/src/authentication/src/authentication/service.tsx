@@ -84,10 +84,10 @@ export const initAuthService = (authConfig: AuthConfig): AuthService => {
 const loadAmplifyConfig = (
     runningOnDesktop: boolean,
 ): authConfig.AmplifyConfig => {
-    // Load the environment-specific Amplify configuration.
+    /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
 
-    // Set the redirect URLs for the OAuth flows, depending on our environment.
+    /** Set the redirect URLs for the OAuth flows, depending on our environment. */
     baseConfig.redirectSignIn = runningOnDesktop
         ? authConfig.DESKTOP_REDIRECT
         : config.ACTIVE_CONFIG.cloudRedirect;

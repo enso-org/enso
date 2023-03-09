@@ -35,10 +35,10 @@ export class CognitoImpl implements Cognito {
     constructor(
         amplifyConfig: config.AmplifyConfig
     ) {
-        // Amplify expects `Auth.configure` to be called before any other `Auth` methods are called.
-        // By wrapping all the `Auth` methods we care about and returning an `Cognito` API object
-        // containing them, we ensure that `Auth.configure` is called before any other `Auth`
-        // methods are called.
+        /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
+         * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
+         * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
+         * methods are called. */
         const nestedAmplifyConfig = config.toNestedAmplifyConfig(amplifyConfig)
         amplify.Auth.configure(nestedAmplifyConfig)
     }
@@ -120,7 +120,7 @@ const getAmplifyCurrentSession = () =>
 /** Parses a `CognitoUserSession` into a `UserSession`. */
 const parseUserSession = (session: cognito.CognitoUserSession): UserSession => {
     const payload = session.getIdToken().payload
-    // The `email` field is mandatory, so we assert that it exists and is a string.
+    /** The `email` field is mandatory, so we assert that it exists and is a string. */
     assertString(payload.email, 'Payload does not have an email field.')
     const email = payload.email
     const accessToken = session.getAccessToken().getJwtToken()
