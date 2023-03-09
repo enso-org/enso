@@ -116,7 +116,7 @@ final class PathWatcher(
       stopWatcher()
       restartCounter.inc()
       if (restartCounter.canRestart) {
-        logger.error(s"Restart #{} on error.", restartCounter.count, e)
+        logger.error("Restart #{} on error.", restartCounter.count, e)
         context.system.scheduler.scheduleOnce(
           config.restartTimeout,
           self,
