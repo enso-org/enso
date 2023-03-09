@@ -55,10 +55,10 @@ impl From<String> for Content {
 
 impl Model {
     /// Get the content of the model.
-    pub fn text(&self, width: usize) -> String {
+    pub fn text(&self) -> String {
         match &self.content {
             Content::Text { content, .. } => content.to_string(),
-            _ => " ".repeat(width),
+            _ => "".to_string(),
         }
     }
 }
@@ -107,7 +107,7 @@ impl Entry {
         self.content.set_style_or_warn("border-width", "1px");
         self.content.set_style_or_warn("border-color", model.bg_color.to_javascript_string());
 
-        self.content.set_inner_text(&model.text(CHARS_PER_CHUNK));
+        self.content.set_inner_text(&model.text());
     }
 
     fn set_params(&self, params: &Params) {

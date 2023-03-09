@@ -1,10 +1,12 @@
 //! Text visualisation that can show text based data from the backend. If the text is larger than
 //! the available space, it will use lazy loading to request only a subset of the data to
-//! display. This is useful for large texts to avoid overwhelming the visualisation.
+//! display. This is useful for large texts to avoid overwhelming the visualisation. The text can be
+//! formatted either as a normal text, or as a table of cells that contain text. This can be  used
+//! to visualise tables, or arrays.
 //!
-//! The visualisation is made up of text `chunks` that are cached and will be requested form the
-//! backend. The size of the chunks is determined by the `chunk_size` parameter and each hunk is
-//! shown as a cell in a grid.
+//! The underlying mechanisms for both text and table are similar. The visualisation is made up of
+//! text `chunks` that are cached and will be requested form the backend. The size of the chunks
+//! is determined by the `chunk_size` parameter and each chunk is rendered in a [`GridView`],
 //!
 //! Example:
 //! ```text
@@ -15,6 +17,12 @@
 //! ├──────────┼──────────┼───
 //! │ ...      │ ....     │ ...
 //! ```
+//!
+//! If the backing data is organised in a table, then that means there are cells in rows and
+//! columns, which contains text. They are addressed by coordinates in row/column pairs, and a
+//! chunk coordinate. Effectively, each cell contains a grid of chunks. For rendering they are
+//! flattened to a single grid that is rendered in a [`GridView`] (with some additional formatting
+//! around table cells, row/col headings etc.
 
 
 
@@ -25,11 +33,6 @@ pub mod text_provider;
 use crate::prelude::*;
 use ensogl::system::web::traits::*;
 
-use crate::builtin::visualization::native::text_visualization::text_provider::BackendTableProvider;
-use crate::builtin::visualization::native::text_visualization::text_provider::DebugGridTextProvider;
-use crate::builtin::visualization::native::text_visualization::text_provider::StringTextProvider;
-use crate::builtin::visualization::native::text_visualization::text_provider::TableContentItem;
-use crate::builtin::visualization::native::text_visualization::text_provider::TableSpecification;
 use crate::component::visualization;
 use crate::StyleWatchFrp;
 use enso_frp as frp;
@@ -48,7 +51,12 @@ use ensogl_component::grid_view::GridView;
 use ensogl_component::scrollbar;
 use ensogl_component::scrollbar::Scrollbar;
 use ensogl_hardcoded_theme as theme;
+use text_provider::BackendTableProvider;
 use text_provider::BackendTextProvider;
+use text_provider::DebugGridTextProvider;
+use text_provider::StringTextProvider;
+use text_provider::TableContentItem;
+use text_provider::TableSpecification;
 use text_provider::TextProvider;
 
 

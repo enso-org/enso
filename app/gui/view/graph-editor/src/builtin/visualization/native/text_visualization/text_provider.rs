@@ -40,17 +40,31 @@ pub trait TextProvider {
 }
 
 
-
 // ===========================
 // === Text Provider FRP ===
 // ===========================
 
+ensogl::define_endpoints_2! {
+    Input {}
+    Output {
+        line_count(u32),
+        chars_in_longest_line(u32),
+        table_specification(Option<TableSpecification>),
+        data_refresh(),
+    }
+}
+
+
+// ===========================
+// === Table Specification ===
+// ===========================
+
 type ColumnIndex = usize;
+type RowIndex = usize;
 /// Column Width in characters.
 type ColumnWidth = usize;
-/// Column Width in lines
+/// Row Height in lines.
 type RowHeight = usize;
-type RowIndex = usize;
 
 /// Specification of a table layout. Contains the column and row widths, as well as the column and
 /// row names. Provides methods for updating the specification and for accessing layout properties.
@@ -69,10 +83,9 @@ pub struct TableSpecification {
     pub row_names:    Vec<Option<String>>,
 }
 
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Copy)]
 /// A table item and its position. Only used for working on the layout, not for individual cells
 /// or accessing content.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Copy)]
 pub enum TableItem {
     /// A row or column heading.
     Heading {
@@ -202,9 +215,23 @@ impl TableSpecification {
         row_height.max(heading_height)
     }
 
-    /// Iterate over the item in the table. Only returns the actual content items. Does not return
-    /// the dividers or the headings.
-    fn iter_content_columns(&self) -> impl Iterator<Item = TableItem> + '_ {
+    /// Iterate over the content item in the table for a column. Only returns the actual content
+    /// items. Does not return the dividers or the headings.
+    ///
+    /// Example
+    /// -------
+    ///
+    /// ```rust
+    /// use enso_prelude::*;
+    /// use ide_view_graph_editor::builtin::visualization::native::text_visualization::text_provider::{TableItem, TableSpecification};
+    ///
+    /// let spec = TableSpecification { columns: vec![Some(3), Some(4), Some(5)], ..default() };
+    /// let mut iter = spec.iter_content_columns();
+    /// assert_eq!(iter.next(), Some(TableItem::Content { size: 3, index: 0, offset: 0 }));
+    /// assert_eq!(iter.next(), Some(TableItem::Content { size: 4, index: 1, offset: 0 }));
+    /// assert_eq!(iter.next(), Some(TableItem::Content { size: 5, index: 2, offset: 0 }));
+    /// ```
+    pub fn iter_content_columns(&self) -> impl Iterator<Item = TableItem> + '_ {
         self.columns.iter().enumerate().map(|(index, _)| TableItem::Content {
             size: self.column_width(index),
             index,
@@ -212,9 +239,23 @@ impl TableSpecification {
         })
     }
 
-    /// Iterate over the item in the table. Only returns the actual content items. Does not return
-    /// the dividers or the headings.
-    fn iter_content_rows(&self) -> impl Iterator<Item = TableItem> + '_ {
+    /// Iterate over the content items in the table for a row. Only returns the actual content
+    /// items. Does not return the dividers or the headings.
+    ///
+    /// Example
+    /// -------
+    ///
+    /// ```rust
+    /// use enso_prelude::*;
+    /// use ide_view_graph_editor::builtin::visualization::native::text_visualization::text_provider::{TableItem, TableSpecification};
+    ///
+    /// let spec = TableSpecification { rows: vec![Some(3), Some(4), Some(5)], ..default() };
+    /// let mut iter = spec.iter_content_rows();
+    /// assert_eq!(iter.next(), Some(TableItem::Content { size: 3, index: 0, offset: 0 }));
+    /// assert_eq!(iter.next(), Some(TableItem::Content { size: 4, index: 1, offset: 0 }));
+    /// assert_eq!(iter.next(), Some(TableItem::Content { size: 5, index: 2, offset: 0 }));
+    /// ```
+    pub fn iter_content_rows(&self) -> impl Iterator<Item = TableItem> + '_ {
         self.rows.iter().enumerate().map(|(index, _)| TableItem::Content {
             size: self.row_height(index),
             index,
@@ -488,18 +529,6 @@ impl TableSpecification {
     /// Return the name of the row at the given index.
     pub fn row_name(&self, row_ix: usize) -> Option<&str> {
         self.row_names.get(row_ix).and_then(|name| name.as_ref()).map(|x| &**x)
-    }
-}
-
-
-
-ensogl::define_endpoints_2! {
-    Input {}
-    Output {
-        line_count(u32),
-        chars_in_longest_line(u32),
-        table_specification(Option<TableSpecification>),
-        data_refresh(),
     }
 }
 
@@ -995,7 +1024,6 @@ struct TableData {
     chunks:              Vec<TableChunk>,
     table_specification: TableSpecification,
 }
-
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 struct TableSpecificationUpdate {
