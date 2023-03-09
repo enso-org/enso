@@ -102,7 +102,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       None,
       Some(serverConfig.computeExecutionContext)
     )
-  log.trace(s"Created ActorSystem [{}].", system)
+  log.trace("Created ActorSystem [{}].", system)
 
   private val zioRuntime =
     effect.Runtime.fromExecutionContext(system.dispatcher)
