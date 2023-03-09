@@ -423,6 +423,7 @@ spec =
 
         Test.specify "should respect file access permissions and fail with an error if denied, in all modes" <|
             f = transient / "permissions3.txt"
+            if f.exists then set_writable f True
             f.delete_if_exists
 
             "foobar".write f on_existing_file=Existing_File_Behavior.Overwrite
