@@ -4,6 +4,7 @@ import project.Data.Numbers.Integer
 import project.Data.Map.Map
 import project.Data.Range.Extensions
 import project.Data.Range.Range
+import project.Data.Text.Regex_2.No_Such_Group
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
@@ -35,7 +36,7 @@ type Match_2
 
     ## PRIVATE
 
-       Gets the text matched by the group with the provided identifier, or
+       Gets the UTF16 span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
        exists for the provided identifier, a `No_Such_Group` is returned.
 
@@ -58,8 +59,8 @@ type Match_2
        In this case, the group id for "(d)", which is 3, is a valid group id and
        (Pattern_2.lookup_group 3) will return 3. If the caller tries to get group 3,
        Match_2.group will return the default value.
-    group : Integer | Text -> Any | Nothing -> Span ! No_Such_Group
-    group self id default=Nothing =
+    span : Integer | Text -> Any | Nothing -> Utf_16_Span ! No_Such_Group
+    span self id default=Nothing =
         n = self.pattern.lookup_group id
         start = self.start n
         end = self.end n
@@ -68,22 +69,100 @@ type Match_2
             True -> default
             False ->
                 range = Range.new (self.start n) (self.end n)
-                (Utf_16_Span.Value range self.input).to_grapheme_span
+                Utf_16_Span.Value range self.input
 
-    ## Gets a vector containing the results of _all_ of the capturing groups in
-       the pattern, including group 0 (containing the entire match).
+    ## PRIVATE
+
+       Gets the grapheme span matched by the group with the provided identifier, or
+       a default value if the group did not participate in the match. If no such group
+       exists for the provided identifier, a `No_Such_Group` is returned.
 
        Arguments:
+       - id: The integer index or name of that group.
+
        ? The Full Match
          The group with index 0 is always the full match of the pattern.
 
        ? Named Groups by Index
          If the regex contained named groups, these may also be accessed by
          index based on their position in the pattern.
-    groups : Vector Span
-    groups self =
+
+       Note that it is possible for a group to "not participate in the match",
+       for example with a disjunction. In the example below, the "(d)" group
+       does not participate -- it neither matches nor fails.
+
+            "ab((c)|(d))".find "abc"
+
+       In this case, the group id for "(d)", which is 3, is a valid group id and
+       (Pattern_2.lookup_group 3) will return 3. If the caller tries to get group 3,
+       Match_2.group will return the default value.
+    grapheme_span : Integer | Text -> Any | Nothing -> Span ! No_Such_Group
+    grapheme_span self id default=Nothing = case self.span id default of
+      Nothing -> Nothing
+      utf_16_span -> utf_16_span.to_grapheme_span
+
+    ## PRIVATE
+
+       Gets the grapheme span matched by the group with the provided identifier, or
+       a default value if the group did not participate in the match. If no such group
+       exists for the provided identifier, a `No_Such_Group` is returned.
+
+       Arguments:
+       - id: The integer index or name of that group.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       Note that it is possible for a group to "not participate in the match",
+       for example with a disjunction. In the example below, the "(d)" group
+       does not participate -- it neither matches nor fails.
+
+            "ab((c)|(d))".find "abc"
+
+       In this case, the group id for "(d)", which is 3, is a valid group id and
+       (Pattern_2.lookup_group 3) will return 3. If the caller tries to get group 3,
+       Match_2.group will return the default value.
+    group : Integer | Text -> Any | Nothing -> Text ! No_Such_Group
+    group self id default=Nothing = case self.grapheme_span id default of
+        Nothing -> Nothing
+        span -> span.text
+
+    ## Gets a vector containing the results of _all_ of the capturing groups in
+       the pattern, replacing the value of groups that did not participate in
+       the match with `default`.
+
+       Arguments:
+       - default: The value to return for a given index when the group at that
+         index did not participate in the match.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       > Example
+         Get a vector of the text matched by all of the groups in this match,
+         replacing the value for groups that didn't match with "UNMATCHED".
+
+             import Standard.Examples
+
+             example_groups =
+                 match = Examples.match
+                 match.groups default="UNMATCHED"
+    groups : Any -> Vector (Text | Any)
+    groups self default=Nothing =
         group_numbers = 0.up_to self.pattern.group_count
-        group_numbers.map n-> self.group n
+        group_numbers.map n->
+            group = self.group n
+            case group of
+                Nothing -> default
+                _ -> group
 
     ## Gets a map containing the named capturing groups for the pattern,
        replacing the value for groups that did not participate in the match with
