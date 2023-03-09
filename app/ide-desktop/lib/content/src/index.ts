@@ -114,7 +114,9 @@ class Main {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    options.options.authentication.value
+                    options.options.authentication.value &&
+                    options.groups.startup.options.entry.value !=
+                        options.groups.startup.options.entry.default
                 ) {
                     const hideAuth = () => {
                        const auth = document.getElementById('authentication')
