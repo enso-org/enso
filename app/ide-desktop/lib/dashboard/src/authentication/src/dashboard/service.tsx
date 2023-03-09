@@ -17,6 +17,8 @@ const DEFAULT_OPEN_PROJECT_BODY: OpenProjectRequestBody = {
     forceCreate: false,
 };
 
+/** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
+const SET_USER_NAME_PATH = "users";
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
 const GET_USER_PATH = "users/me";
 /** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
@@ -101,6 +103,12 @@ export interface Project {
 // === Endpoints ===
 // =================
 
+/** HTTP request body for the "set username" endpoint. */
+export interface SetUsernameRequestBody {
+    userName: string;
+    userEmail: string;
+}
+
 /** HTTP response body for the "list projects" endpoint. */
 interface ListProjectsResponseBody {
     projects: Project[];
@@ -153,6 +161,13 @@ export class Backend {
         this.logger.error(error.message);
         throw new Error(message);
     };
+
+    /** Sets the username of the current user, on the Cloud backend API. */
+    setUsername = (body: SetUsernameRequestBody): Promise<Organization> =>
+        this.post(SET_USER_NAME_PATH)
+            .json(body)
+            .send()
+            .then((response) => response.model());
 
     /** Returns organization info for the current user, from the Cloud backend API.
      *

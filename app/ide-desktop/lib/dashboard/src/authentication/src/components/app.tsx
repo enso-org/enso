@@ -9,6 +9,7 @@ import DashboardContainer from "../dashboard/components/dashboard";
 import LoginContainer from "../authentication/components/login";
 import RegistrationContainer from "../authentication/components/registration";
 import ConfirmRegistrationContainer from "../authentication/components/confirmRegistration";
+import SetUsernameContainer from "../authentication/components/setUsername";
 import * as authService from "../authentication/service";
 import withRouter from "../navigation";
 import * as loggerProvider from "../providers/logger";
@@ -28,6 +29,8 @@ export const LOGIN_PATH = "/login";
 export const REGISTRATION_PATH = "/registration";
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = "/confirmation";
+/** Path to the set username page. */
+export const SET_USERNAME_PATH = "/set-username";
 
 
 
@@ -122,6 +125,10 @@ const AppRouter = (props: AppProps) => {
                                     element={
                                         <DashboardContainer />
                                     }
+                                />
+                                <router.Route
+                                    path={SET_USERNAME_PATH}
+                                    element={<SetUsernameContainer />}
                                 />
                             </router.Route>
                             {/* Other pages are visible to unauthenticated and authenticated users. */}
