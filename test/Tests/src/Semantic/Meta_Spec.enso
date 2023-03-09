@@ -12,6 +12,7 @@ polyglot java import java.util.Locale as JavaLocale
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 from Standard.Base.Error.Common import Uninitialized_State
+import Standard.Base.Error.File_Error.File_Error
 
 type My_Type
     @foo (test_method)
@@ -148,6 +149,9 @@ spec =
             Case.Lower . should_be_a Case.Lower
             Case.Lower . should_be_a Case
             Panic.recover Any (Case.Lower . should_be_a Case.Upper) . should_fail_with Any
+
+        Test.specify "5 isn't a constructor" <|
+            Panic.recover Any (5.should_be_a File_Error.Not_Found) . should_fail_with Any
 
         Test.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42

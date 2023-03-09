@@ -321,7 +321,9 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
 Any.should_be_a : Any -> Test_Result
 Any.should_be_a self typ =
     ok = case Meta.meta typ of
-        c : Meta.Constructor -> Meta.meta self . constructor == c
+        c : Meta.Constructor -> case Meta.meta self of
+            a : Meta.Atom -> a.constructor == c
+            _ -> False
         _ -> self.is_a typ || self==typ
 
     if ok then Test_Result.Success else
