@@ -23,7 +23,6 @@ import * as error from "../../error";
 const MESSAGES = {
     signUpSuccess: "We have sent you an email with further instructions!",
     confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
-    setUsernameSuccess: "Your username has been set!",
     signInWithPasswordSuccess: "Successfully logged in!",
     pleaseWait: "Please wait...",
 };
@@ -83,11 +82,6 @@ export interface PartialUserSession {
 interface AuthContextType {
     signUp: (email: string, password: string) => Promise<void>;
     confirmSignUp: (email: string, code: string) => Promise<void>;
-    setUsername: (
-        accessToken: string,
-        username: string,
-        email: string
-    ) => Promise<void>;
     signInWithGoogle: () => Promise<null>;
     signInWithGitHub: () => Promise<null>;
     signInWithPassword: (email: string, password: string) => Promise<void>;
@@ -238,25 +232,6 @@ export const AuthProvider = (props: AuthProviderProps) => {
             navigate(app.LOGIN_PATH);
         });
 
-    const setUsername = async (
-        accessToken: string,
-        username: string,
-        email: string
-    ) => {
-        const body: backendService.SetUsernameRequestBody = {
-            userName: username,
-            userEmail: email,
-        };
-
-        // TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
-        // Don't create a new API client here, reuse the one from the context.
-        const backend = backendService.createBackend(accessToken, logger);
-
-        await backend.setUsername(body);
-        navigate(app.DASHBOARD_PATH);
-        toast.success(MESSAGES.setUsernameSuccess);
-    };
-
     const signInWithPassword = async (email: string, password: string) =>
         cognito.signInWithPassword(email, password).then((result) => {
             if (result.ok) {
@@ -274,7 +249,6 @@ export const AuthProvider = (props: AuthProviderProps) => {
     const value = {
         signUp: withLoadingToast(signUp),
         confirmSignUp: withLoadingToast(confirmSignUp),
-        setUsername,
         signInWithGoogle: cognito.signInWithGoogle,
         signInWithGitHub: cognito.signInWithGitHub,
         signInWithPassword: withLoadingToast(signInWithPassword),
@@ -342,25 +316,11 @@ export const ProtectedLayout = () => {
 export const GuestLayout = () => {
     const { session } = useAuth();
 
-    if (session?.state == "partial") {
-        return <router.Navigate to={app.SET_USERNAME_PATH} />;
-    }
-
     if (session?.state == "full") {
         return <router.Navigate to={app.DASHBOARD_PATH} />;
     }
 
     return <router.Outlet />;
-};
-
-
-
-// =============================
-// === usePartialUserSession ===
-// =============================
-
-export const usePartialUserSession = () => {
-    return router.useOutletContext<PartialUserSession>();
 };
 
 
