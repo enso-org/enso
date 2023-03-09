@@ -2,9 +2,11 @@
 //! structures.
 
 use crate::prelude::*;
+use std::cmp;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
+use crate::controller::searcher::component::MatchInfo;
 use crate::controller::searcher::component::NOT_MATCHING_SCORE;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
@@ -79,7 +81,22 @@ impl Data {
 
     fn sort_by_match(&self) {
         let mut entries = self.entries.borrow_mut();
-        entries.sort_by_key(|component| OrderedFloat(component.score()));
+        entries.sort_by(|lhs, rhs| {
+            Self::entry_match_ordering(&lhs.match_info.borrow(), &rhs.match_info.borrow())
+        });
+    }
+
+    /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
+    fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
+        match (lhs, rhs) {
+            (MatchInfo::DoesNotMatch, MatchInfo::DoesNotMatch) => cmp::Ordering::Equal,
+            (MatchInfo::DoesNotMatch, MatchInfo::Matches { .. }) => cmp::Ordering::Greater,
+            (MatchInfo::Matches { .. }, MatchInfo::DoesNotMatch) => cmp::Ordering::Less,
+            (
+                MatchInfo::Matches { subsequence: lhs, .. },
+                MatchInfo::Matches { subsequence: rhs, .. },
+            ) => OrderedFloat(lhs.score).cmp(&OrderedFloat(rhs.score)),
+        }
     }
 
     fn update_match_info(&self) {
