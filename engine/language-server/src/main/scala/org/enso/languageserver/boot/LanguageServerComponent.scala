@@ -39,7 +39,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     val sampler = startSampling(config)
-    logger.debug(s"Started [{}].", sampler.getClass.getName)
+    logger.debug("Started [{}].", sampler.getClass.getName)
     val module = new MainModule(config, logLevel)
     val bindJsonServer =
       for {
