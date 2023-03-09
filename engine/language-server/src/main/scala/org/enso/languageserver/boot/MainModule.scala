@@ -175,7 +175,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         new NoopEventsMonitor
     }
   log.trace(
-    s"Started runtime events monitor [{}].",
+    "Started runtime events monitor [{}].",
     runtimeEventsMonitor.getClass.getName
   )
 
