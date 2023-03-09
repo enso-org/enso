@@ -72,7 +72,7 @@ export class Backend {
         this.get(GET_USER_PATH)
             .send()
             .then((response) => {
-                if (response.status() == 401 || response.status() == 404) {
+                if (response.status() === 401 || response.status() === 404) {
                     return null;
                 }
 

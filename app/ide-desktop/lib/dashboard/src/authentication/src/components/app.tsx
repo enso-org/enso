@@ -68,10 +68,12 @@ const App = (props: AppProps) => {
 const AppRouter = (props: AppProps) => {
     const { logger, onAuthenticated } = props;
     const navigate = router.useNavigate();
-    const authConfig = { navigate, ...props };
     const memoizedAuthService = React.useMemo(
-        () => authService.initAuthService(authConfig),
-        []
+        () => {
+            const authConfig = { navigate, ...props };
+            return authService.initAuthService(authConfig)
+        },
+        [navigate, props]
     );
 
     const userSession = memoizedAuthService.cognito.userSession;
