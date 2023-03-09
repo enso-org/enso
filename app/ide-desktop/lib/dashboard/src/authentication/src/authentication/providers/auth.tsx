@@ -23,6 +23,7 @@ import * as error from "../../error";
 const MESSAGES = {
     signUpSuccess: "We have sent you an email with further instructions!",
     confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
+    signInWithPasswordSuccess: "Successfully logged in!",
     pleaseWait: "Please wait...",
 };
 
@@ -81,6 +82,9 @@ export interface PartialUserSession {
 interface AuthContextType {
     signUp: (email: string, password: string) => Promise<void>;
     confirmSignUp: (email: string, code: string) => Promise<void>;
+    signInWithGoogle: () => Promise<null>;
+    signInWithGitHub: () => Promise<null>;
+    signInWithPassword: (email: string, password: string) => Promise<void>;
     /** Session containing the currently authenticated user's authentication information.
      *
      * If the user has not signed in, the session will be `undefined`. */
@@ -225,9 +229,26 @@ export const AuthProvider = (props: AuthProviderProps) => {
             navigate(app.LOGIN_PATH);
         });
 
+    const signInWithPassword = async (email: string, password: string) =>
+        cognito.signInWithPassword(email, password).then((result) => {
+            if (result.ok) {
+                toast.success(MESSAGES.signInWithPasswordSuccess);
+                return;
+            }
+
+            if (result.val.kind === "UserNotFound") {
+                navigate(app.REGISTRATION_PATH);
+            }
+
+            toast.error(result.val.message);
+        });
+
     const value = {
         signUp: withLoadingToast(signUp),
         confirmSignUp: withLoadingToast(confirmSignUp),
+        signInWithGoogle: cognito.signInWithGoogle,
+        signInWithGitHub: cognito.signInWithGitHub,
+        signInWithPassword: withLoadingToast(signInWithPassword),
         session: userSession,
     };
 
