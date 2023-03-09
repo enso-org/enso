@@ -11,7 +11,6 @@ class JavaLoggingLogHandler(
   levelMapping: Level => LogLevel,
   connection: LoggerConnection
 ) extends Handler {
-  private val formatter = new SimpleFormatter()
 
   /** @inheritdoc
     */
@@ -22,7 +21,7 @@ class JavaLoggingLogHandler(
         level     = level,
         timestamp = record.getInstant,
         group     = record.getLoggerName,
-        message   = formatter.formatMessage(record),
+        message   = JavaLoggingLogHandler.formatter.formatMessage(record),
         exception = Option(record.getThrown)
       )
       connection.send(message)
@@ -37,6 +36,7 @@ class JavaLoggingLogHandler(
 }
 
 object JavaLoggingLogHandler {
+  private val formatter = new SimpleFormatter()
 
   /** Creates a [[Handler]] with the provided mapping from Java's log levels to
     * our log levels.
