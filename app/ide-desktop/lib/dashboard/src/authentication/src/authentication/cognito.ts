@@ -28,11 +28,6 @@ const MESSAGES = {
         userNotConfirmed: 'User is not confirmed. Please check your email for a confirmation link.',
         incorrectUsernameOrPassword: 'Incorrect username or password.',
     },
-    forgotPassword: {
-        userNotFound: 'User not found. Please register first.',
-        userNotConfirmed:
-            'Cannot reset password for user with unverified email. Please verify your email first.',
-    },
 }
 
 /** A list of known Amplify errors that we can match against prior to trying to convert to our
@@ -42,11 +37,6 @@ const KNOWN_ERRORS = {
     userAlreadyConfirmed: {
         code: 'NotAuthorizedException',
         message: 'User cannot be confirmed. Current status is CONFIRMED',
-    },
-    forgotPasswordUserNotConfirmed: {
-        code: 'InvalidParameterException',
-        message:
-            'Cannot reset password for the user as there is no registered/verified email or phone_number',
     },
 }
 
@@ -76,26 +66,6 @@ const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
     } else {
         throw error
     }
-}
-
-
-
-// =================
-// === AuthError ===
-// =================
-
-/** Object returned by the AWS Amplify library when an auth error occurs. */
-interface AuthError {
-    name: string
-    log: string
-}
-
-/** Hints to TypeScript if we can safely cast an `unknown` error to an `AuthError`. */
-const isAuthError = (error: unknown): error is AuthError => {
-    if (error && typeof error === 'object') {
-        return 'name' in error && 'log' in error
-    }
-    return false
 }
 
 
@@ -153,32 +123,6 @@ export interface Cognito {
         username: string,
         password: string
     ) => Promise<results.Result<null, SignInWithPasswordError>>
-    /** Sends a password reset email to the given email address.
-     *
-     * The user will be able to reset their password by following the link in the email, which takes
-     * them to the "reset password" page of the application. The verification code will be filled in
-     * automatically.
-     *
-     * @param email - Email address to send the password reset email to.
-     * @returns A promise that resolves to either success or known error.
-     * @throws An error if failed due to an unknown error. */
-    forgotPassword: (username: string) => Promise<results.Result<null, ForgotPasswordError>>
-    /** Submits a new password for the given email address.
-     *
-     * The user will have received a verification code in an email, which they will have entered on
-     * the "reset password" page of the application. This function will submit the new password
-     * along with the verification code, changing the user's password.
-     *
-     * @param email - Email address to reset the password for.
-     * @param code - Verification code that was sent to the user's email address.
-     * @param password - New password to set.
-     * @returns A promise that resolves to either success or known error.
-     * @throws An error if failed due to an unknown error. */
-    forgotPasswordSubmit: (
-        username: string,
-        code: string,
-        newPassword: string
-    ) => Promise<results.Result<null, ForgotPasswordSubmitError>>
     /** Signs out the current user.
      *
      * @returns A promise that resolves if successful. */
@@ -233,8 +177,6 @@ export class CognitoImpl implements Cognito {
     signInWithGoogle = () => signInWithGoogle(this.customState())
     signInWithGitHub = signInWithGitHub
     signInWithPassword = signInWithPassword
-    forgotPassword = forgotPassword
-    forgotPasswordSubmit = forgotPasswordSubmit
     signOut = () => signOut(this.logger)
 }
 
@@ -479,79 +421,6 @@ const intoSignInWithPasswordErrorOrThrow = (error: AmplifyError): SignInWithPass
                 kind: 'NotAuthorized',
                 message: MESSAGES.signInWithPassword.incorrectUsernameOrPassword,
             }
-    }
-
-    throw error
-}
-
-
-
-// ======================
-// === ForgotPassword ===
-// ======================
-
-const forgotPassword = async (email: string) =>
-    results.Result.wrapAsync(() => amplify.Auth.forgotPassword(email))
-        // We don't care about the details in the success case, just that it happened.
-        .then(result => result.map(() => null))
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoForgotPasswordErrorOrThrow))
-
-type ForgotPasswordErrorKind = 'UserNotFound' | 'UserNotConfirmed'
-
-export interface ForgotPasswordError {
-    kind: ForgotPasswordErrorKind
-    message: string
-}
-
-const intoForgotPasswordErrorOrThrow = (error: AmplifyError): ForgotPasswordError => {
-    if (error.code === 'UserNotFoundException') {
-        return {
-            kind: 'UserNotFound',
-            message: MESSAGES.forgotPassword.userNotFound,
-        }
-    } else if (error.code === KNOWN_ERRORS.forgotPasswordUserNotConfirmed.code) {
-        if (error.message === KNOWN_ERRORS.forgotPasswordUserNotConfirmed.message) {
-            return {
-                kind: 'UserNotConfirmed',
-                message: MESSAGES.forgotPassword.userNotConfirmed,
-            }
-        }
-    }
-
-    throw error
-}
-
-
-
-// ============================
-// === ForgotPasswordSubmit ===
-// ============================
-
-const forgotPasswordSubmit = async (email: string, code: string, password: string) =>
-    results.Result.wrapAsync(() => amplify.Auth.forgotPasswordSubmit(email, code, password))
-        // We don't care about the details in the success case, just that it happened.
-        .then(result => result.map(() => null))
-        .then(result => result.mapErr(intoForgotPasswordSubmitErrorOrThrow))
-
-type ForgotPasswordSubmitErrorKind = 'AuthError' | 'AmplifyError'
-
-export interface ForgotPasswordSubmitError {
-    kind: ForgotPasswordSubmitErrorKind
-    message: string
-}
-
-const intoForgotPasswordSubmitErrorOrThrow = (error: unknown): ForgotPasswordSubmitError => {
-    if (isAuthError(error)) {
-        return {
-            kind: 'AuthError',
-            message: error.log,
-        }
-    } else if (isAmplifyError(error)) {
-        return {
-            kind: 'AmplifyError',
-            message: error.message,
-        }
     }
 
     throw error
