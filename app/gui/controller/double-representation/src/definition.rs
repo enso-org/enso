@@ -484,7 +484,7 @@ impl DefinitionProvider for DefinitionInfo {
                 let parent_crumb = Crumb::Infix(InfixCrumb::RightOperand);
                 let rarg = &self.ast.rarg;
                 let iter = rarg.enumerate().map(move |(crumb, ast)| {
-                    let crumbs = vec![parent_crumb.clone(), crumb];
+                    let crumbs = vec![parent_crumb, crumb];
                     ChildAst::new(crumbs, ast)
                 });
                 Box::new(iter)
