@@ -1,8 +1,11 @@
 package org.enso.librarymanager.published.repository
 
-import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Json}
+import io.circe.syntax.EncoderOps
+import io.circe.yaml
 import org.enso.editions.LibraryName
+
+import scala.util.Try
 
 /** The manifest file containing metadata related to a published library.
   *
@@ -67,6 +70,11 @@ object LibraryManifest {
       manifest.description.map(Fields.description -> _.asJson).toSeq
 
     Json.obj(allFields: _*)
+  }
+
+  /** Parser the provided string and returns a LibraryManifest, if valid */
+  def fromYaml(yamlString: String): Try[LibraryManifest] = {
+    yaml.parser.parse(yamlString).flatMap(_.as[LibraryManifest]).toTry
   }
 
   /** The name of the manifest file as included in the directory associated with

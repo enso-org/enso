@@ -17,28 +17,30 @@ shared! { Composer
 /// Render composer is a render pipeline bound to a specific context.
 #[derive(Debug)]
 pub struct ComposerModel {
-    pipeline  : Pipeline,
-    passes    : Vec<ComposerPass>,
+    pipeline : Pipeline,
+    passes : Vec<ComposerPass>,
     variables : UniformScope,
-    context   : Context,
-    width     : i32,
-    height    : i32,
+    context : Context,
+    width : i32,
+    height : i32,
+    pixel_ratio : i32,
 }
 
 impl {
     /// Constructor
     pub fn new
-    ( pipeline  : &Pipeline
-    , context   : &Context
-    , variables : &UniformScope
-    , width     : i32
-    , height    : i32
+    ( pipeline: &Pipeline
+    , context: &Context
+    , variables: &UniformScope
+    , width: i32
+    , height: i32
+    , pixel_ratio: i32
     ) -> Self {
         let pipeline  = pipeline.clone_ref();
         let passes    = default();
         let context   = context.clone();
         let variables = variables.clone_ref();
-        let mut this  = Self {pipeline,passes,variables,context,width,height};
+        let mut this  = Self {pipeline, passes, variables, context, width, height, pixel_ratio};
         this.init_passes();
         this
     }
@@ -50,9 +52,10 @@ impl {
     }
 
     /// Resize the composer and reinitialize all of its layers.
-    pub fn resize(&mut self, width:i32, height:i32) {
-        self.width  = width;
+    pub fn resize(&mut self, width: i32, height: i32, pixel_ratio: i32) {
+        self.width = width;
         self.height = height;
+        self.pixel_ratio = pixel_ratio;
         self.init_passes();
     }
 
@@ -62,8 +65,11 @@ impl {
         let vars   = &self.variables;
         let width  = self.width;
         let height = self.height;
+        let pixel_ratio = self.pixel_ratio;
         let defs   = self.pipeline.passes_clone();
-        let passes = defs.into_iter().map(|pass| ComposerPass::new(ctx,vars,pass,width,height));
+        let passes = defs
+            .into_iter()
+            .map(|pass| ComposerPass::new(ctx, vars, pass, width, height, pixel_ratio));
         self.passes = passes.collect_vec();
     }
 
@@ -112,8 +118,9 @@ impl ComposerPass {
         mut pass: Box<dyn pass::Definition>,
         width: i32,
         height: i32,
+        pixel_ratio: i32,
     ) -> Self {
-        let instance = pass::Instance::new(context, variables, width, height);
+        let instance = pass::Instance::new(context, variables, width, height, pixel_ratio);
         pass.initialize(&instance);
         Self { pass, instance }
     }

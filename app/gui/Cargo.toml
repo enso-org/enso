@@ -14,7 +14,7 @@ enso-config = { path = "config" }
 enso-callback = { path = "../../lib/rust/callback" }
 enso-data-structures = { path = "../../lib/rust/data-structures" }
 enso-debug-api = { path = "../../lib/rust/debug-api" }
-enso-debug-scene = { path = "view/debug_scene" }
+enso-debug-scene = { path = "view/examples" }
 enso-frp = { path = "../../lib/rust/frp" }
 enso-prelude = { path = "../../lib/rust/prelude" }
 enso-profiler = { path = "../../lib/rust/profiler" }
@@ -25,7 +25,7 @@ enso-text = { path = "../../lib/rust/text" }
 enso-web = { path = "../../lib/rust/web" }
 enso-suggestion-database = { path = "suggestion-database" }
 ensogl = { path = "../../lib/rust/ensogl" }
-ensogl-examples = { path = "../../lib/rust/ensogl/example" }
+ensogl-examples = { path = "../../lib/rust/ensogl/examples" }
 ensogl-component = { path = "../../lib/rust/ensogl/component" }
 ensogl-text-msdf = { path = "../../lib/rust/ensogl/component/text/src/font/msdf" }
 ensogl-hardcoded-theme = { path = "../../lib/rust/ensogl/app/theme/hardcoded" }

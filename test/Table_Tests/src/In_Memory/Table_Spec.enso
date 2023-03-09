@@ -1,8 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
 import Standard.Table.Main as Table_Module
@@ -448,7 +448,7 @@ spec =
             r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
 
             r6 = df.order_by (['mixed_dates'])
-            r6 . should_fail_with Incomparable_Values
+            r6 . should_fail_with Incomparable_Values.Error
 
     Test.group "Sorting Columns" <|
         Test.specify 'should sort columns with specified ordering and missing placement' <|

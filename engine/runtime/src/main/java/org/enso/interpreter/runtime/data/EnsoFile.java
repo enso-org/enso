@@ -184,6 +184,12 @@ public final class EnsoFile implements TruffleObject {
     return this.truffleFile.isRegularFile();
   }
 
+  @Builtin.Method
+  @CompilerDirectives.TruffleBoundary
+  public boolean isWritable() {
+    return this.truffleFile.isWritable();
+  }
+
   @Builtin.Method(name = "name")
   @CompilerDirectives.TruffleBoundary
   public String getName() {

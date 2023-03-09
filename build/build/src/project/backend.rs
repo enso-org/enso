@@ -59,6 +59,18 @@ pub struct Artifact {
     pub engine_versions: Vec<Version>,
 }
 
+impl Artifact {
+    /// Latest version of Enso Engine that is bundled in this Project Manager distribution.
+    pub fn latest_engine_version(&self) -> Result<&Version> {
+        self.engine_versions.iter().max().with_context(|| {
+            format!(
+                "Project Manager bundle at {} does not contain any Enso Engine packages.",
+                self.path
+            )
+        })
+    }
+}
+
 impl AsRef<Path> for Artifact {
     fn as_ref(&self) -> &Path {
         &self.path

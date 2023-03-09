@@ -142,6 +142,41 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
         Fill(self, color)
     }
 
+    /// Change the shape color depending on RGB components.
+    ///
+    /// ### How The New Color Is Defined
+    ///
+    /// Assuming `s.color` is a previous shape premultiplied color (i.e. the alpha component is
+    /// applied to each channel), a new color is defined as:
+    /// `r * s.color.r + b * s.color.b + g * s.color.g`.
+    ///
+    /// ### Usage
+    ///
+    /// The main case for this function is coloring a complex shape serving as a
+    /// template - the best example are [cached
+    /// shapes](crate::display::shape::primitive::system::cached), which cannot be
+    /// parameterized.
+    ///
+    /// When the only colors in that template are [full red](color::Rgba::red),
+    /// [full green](color::Rgba::green), or [full blue](color::Rgba::blue), this method will
+    /// replace the template colors with the specialized ones.
+    ///
+    /// A real-world example is an icon (cached in the texture) which should change color on mouse
+    /// hover or click.
+    fn recolorize<RColor, GColor, BColor>(
+        &self,
+        r: RColor,
+        g: GColor,
+        b: BColor,
+    ) -> Recolorize<Self>
+    where
+        RColor: Into<Var<color::Rgba>>,
+        GColor: Into<Var<color::Rgba>>,
+        BColor: Into<Var<color::Rgba>>,
+    {
+        Recolorize(self, r, g, b)
+    }
+
     /// Makes the borders of the shape crisp. Please note that it removes any form of antialiasing
     /// and can cause distortions especially with round surfaces.
     fn pixel_snap(&self) -> PixelSnap<Self> {

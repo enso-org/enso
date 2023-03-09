@@ -21,6 +21,10 @@ import scala.annotation.unused
   * @param moduleMethods the methods defined with current module as `this`
   * @param currentModule the module holding these bindings
   */
+
+@SerialVersionUID(
+  5568L // stable serialization of bindings
+)
 case class BindingsMap(
   definedEntities: List[DefinedEntity],
   currentModule: ModuleReference

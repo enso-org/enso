@@ -609,9 +609,11 @@ class LibrariesTest extends BaseServerTest {
             .loadPackage(cachedLibraryRoot.location.toFile)
             .get
         pkg.name shouldEqual "Bar"
-        pkg.listSources.map(
-          _.file.getName
-        ) should contain theSameElementsAs Seq("Main.enso")
+        pkg
+          .listSources()
+          .map(
+            _.file.getName
+          ) should contain theSameElementsAs Seq("Main.enso")
 
         assert(
           Files.exists(cachedLibraryRoot / LibraryManifest.filename),

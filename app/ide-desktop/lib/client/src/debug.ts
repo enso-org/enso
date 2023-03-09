@@ -40,8 +40,7 @@ async function getInfo() {
     }
 }
 
-export async function printInfoAndExit() {
+export async function printInfo() {
     let info = await getInfo()
     console.log(JSON.stringify(info, undefined, 4))
-    process.exit()
 }
