@@ -16,14 +16,18 @@ import * as config from "../config";
 // === Constants ===
 // =================
 
-/** Base URL path that all URLs handled by the {@link setDeepLinkHandler} function must be
- * prefixed with.
- *
- * Note the double leading slash on the pathname. This is because we use a custom URL protocol
- * scheme for these URLs. When parsing strings as URLs, the `url.pathname` is prefixed with an extra
- * slash. For example, `new URL('enso://authentication/register').pathname` results in
- * `//authentication/register`. */
- const AUTHENTICATION_PATHNAME_BASE = "//authentication"
+/** Pathname of the {@link URL} for deep links to the sign in page, after a redirect from a
+ * federated identity provider. */
+const SIGN_IN_PATHNAME = "//auth";
+/** Pathname of the {@link URL} for deep links to the sign out page, after a redirect from a
+ * federated identity provider. */
+const SIGN_OUT_PATHNAME = "//auth";
+/** Pathname of the {@link URL} for deep links to the registration confirmation page, after a
+ * redirect from an account verification email. */
+const CONFIRM_REGISTRATION_PATHNAME = "//auth/confirmation";
+/** Pathname of the {@link URL} for deep links to the login page, after a redirect from a reset
+ * password email. */
+const LOGIN_PATHNAME = "//auth/login";
 
 const BASE_AMPLIFY_CONFIG: Partial<authConfig.AmplifyConfig> = {
     region: authConfig.AWS_REGION,
@@ -197,10 +201,6 @@ const setDeepLinkHandler = (
     const onDeepLink = (url: string) => {
         const parsedUrl = new URL(url);
 
-        if (!parsedUrl.pathname.startsWith(AUTHENTICATION_PATHNAME_BASE)) {
-            return
-        }
-
         if (isConfirmRegistrationRedirect(parsedUrl)) {
             // Navigate to a relative URL to handle the confirmation link.
             const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
@@ -216,6 +216,8 @@ const setDeepLinkHandler = (
             // Navigate to a relative URL to handle the password reset.
             const redirectUrl = `${app.RESET_PASSWORD_PATH}${parsedUrl.search}`;
             navigate(redirectUrl);
+        } else {
+            logger.error(`${url} is an unrecognized deep link. Ignoring.`)
         }
     };
 
@@ -229,18 +231,18 @@ const setDeepLinkHandler = (
 /** If the user is being redirected after clicking the registration confirmation link in their
  * email, then the URL will be for the confirmation page path. */
 const isConfirmRegistrationRedirect = (url: URL) =>
-    url.pathname === app.CONFIRM_REGISTRATION_PATH;
+    url.pathname === CONFIRM_REGISTRATION_PATHNAME;
 
 /** If the user is being redirected after a sign-out, then no query args will be present. */
 // TODO [NP]: https://github.com/enso-org/cloud-v2/issues/339
 // Don't use `enso://auth` for both authentication redirect & signout redirect so we don't have to
 // disambiguate between the two on the `DASHBOARD_PATH`.
 const isSignOutRedirect = (url: URL) =>
-    url.pathname === app.DASHBOARD_PATH && url.search === "";
+    url.pathname === SIGN_OUT_PATHNAME && url.search === "";
 
 /** If the user is being redirected after a sign-out, then query args will be present. */
 const isSignInRedirect = (url: URL) =>
-    url.pathname === app.DASHBOARD_PATH && url.search !== "";
+    url.pathname === SIGN_IN_PATHNAME && url.search !== "";
 
 /** If the user is being redirected after clicking the reset password confirmation link in their
  * email, then the URL will be for the confirm password reset path. */
@@ -250,7 +252,7 @@ const isResetPasswordRedirect = (url: URL) =>
 /** If the user is being redirected after finishing the password reset flow,
  * then the URL will be for the login page. */
 const isLoginRedirect = (url: URL) =>
-    url.pathname === app.LOGIN_PATH;
+    url.pathname === LOGIN_PATHNAME;
 
 /** When the user is being redirected from a federated identity provider, then we need to pass the
  * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */
