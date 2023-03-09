@@ -2,25 +2,28 @@ from Standard.Base import all
 
 from Standard.Table import Table, Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Errors import all
 
 from Standard.Database import all
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import all
 
-from Standard.Test import Test, Problems
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
+import project.Util
 import project.Database.Helpers.Name_Generator
 
 spec prefix connection =
     tables_to_clean = Vector.new_builder
-    upload prefix data =
+    upload prefix data temporary=True =
         name = Name_Generator.random_name prefix
-        table = connection.upload_table name data
+        table = connection.upload_table name data temporary=temporary
         tables_to_clean.append name
         table
 
-    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
+    ## We have to upload the table as non-temporary, because otherwise it will
+       not be visible in the list of tables and make `Table.query` confused.
+    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]]) temporary=False
     Test.group prefix+"Basic Table Access" <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.read
@@ -35,6 +38,65 @@ spec prefix connection =
             original = Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
             table = upload "Big" original
             table.read.row_count . should_equal n
+
+    Test.group prefix+"Table.query" <|
+        name = t1.name
+        Test.specify "should allow to access a Table by name" <|
+            t2 = connection.query (SQL_Query.Table_Name name)
+            t2.read . should_equal t1.read
+
+        Test.specify "should allow to access a Table by an SQL query" <|
+            t2 = connection.query (SQL_Query.Raw_SQL ('SELECT a, b FROM "' + name + '" WHERE a >= 3'))
+            m2 = t2.read
+            m2.column_names . should_equal ["a", "b"]
+            m2.at "a" . to_vector . should_equal [4]
+            m2.at "b" . to_vector . should_equal [5]
+            m2.at "c" . should_fail_with No_Such_Column
+
+        Test.specify "should allow a shorthand trying to deduce if the query is a table name or an SQL query" <|
+            t2 = connection.query name
+            t2.read . should_equal t1.read
+
+            t3 = connection.query ('SELECT a, b FROM "' + name + '" WHERE a >= 3')
+            m3 = t3.read
+            m3.column_names . should_equal ["a", "b"]
+            m3.at "a" . to_vector . should_equal [4]
+
+            ## The effective name may get a deduplication prefix/suffix so we
+               need to use `t4.name` instead of the literal string. Still it
+               will contain the weird characters we wanted.
+
+               Also, the table name cannot be too long as Postgres truncates at
+               63 chars (and we append 37 chars of uniqueness suffix) and the
+               test logic will break then.
+            t4 = upload 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]]) temporary=False
+            t5 = connection.query t4.name
+            m5 = t5.read
+            m5.column_names . should_equal ["X", "Y"]
+            m5.at "X" . to_vector . should_equal ["a", "B"]
+            m5.at "Y" . to_vector . should_equal [2, 5]
+
+        Test.specify "should report an error depending on input SQL_Query type" <|
+            r2 = connection.query (SQL_Query.Table_Name "NONEXISTENT-TABLE")
+            r2.should_fail_with Table_Not_Found
+            r2.catch.name . should_equal "NONEXISTENT-TABLE"
+            r2.catch.to_display_text . should_equal "Table NONEXISTENT-TABLE was not found in the database."
+
+            r3 = connection.query (SQL_Query.Raw_SQL "MALFORMED-QUERY")
+            r3.should_fail_with SQL_Error
+
+        Test.specify "should make a best-effort attempt at returning a reasonable error for the short-hand" <|
+            r2 = connection.query "NONEXISTENT-TABLE"
+            r2.should_fail_with Table_Not_Found
+            r2.catch.name . should_equal "NONEXISTENT-TABLE"
+            r2.catch.treated_as_query . should_be_true
+            error_text = r2.catch.to_display_text
+            Test.with_clue "r2.catch.to_display_text = "+error_text <|
+                error_text.starts_with "The name NONEXISTENT-TABLE was treated as a query, but the query failed" . should_be_true
+                error_text.ends_with "wrap it in `SQL_Query.Table_Name`." . should_be_true
+
+            r3 = connection.query "SELECT * FROM ........"
+            r3.should_fail_with SQL_Error
 
     Test.group prefix+"Masking Tables" <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
@@ -183,3 +245,6 @@ spec prefix connection =
         sql = 'DROP TABLE "' + name + '"'
         Panic.rethrow <| connection.execute_update sql
     tables_to_clean.to_vector.each clean_table
+
+main = Test_Suite.run_main <|
+    spec "[SQLite] " (Database.connect (SQLite In_Memory))

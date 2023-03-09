@@ -83,6 +83,9 @@ pub mod constants {
 
     /// The tag name of documentation sections marked as "PRIVATE"
     pub const PRIVATE_DOC_SECTION_TAG_NAME: &str = "PRIVATE";
+
+    /// The tag name of a documentation section with a method alias.
+    pub const ALIAS_DOC_SECTION_TAG_NAME: &str = "ALIAS";
 }
 
 pub use crumbs::Crumb;

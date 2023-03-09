@@ -346,6 +346,9 @@ impl Searcher {
 
             action_list_changed <- source::<()>();
             select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
+
+            eval_ model.view.toggle_component_browser_private_entries_visibility (
+                model.controller.reload_list());
         }
 
         match model.view.searcher() {
@@ -368,7 +371,10 @@ impl Searcher {
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
                     selected_entry_changed <- entry_selected.on_change().constant(());
-                    grid.unhover_element <+ selected_entry_changed;
+                    grid.unhover_element <+ any2(
+                        &selected_entry_changed,
+                        &model.view.toggle_component_browser_private_entries_visibility,
+                    );
                     hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
                         match (h, s) {
                             (Some(h), Some(s)) => h != s,

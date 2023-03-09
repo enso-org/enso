@@ -15,8 +15,8 @@
 
 
 fn main() {
-    declare_env_dependence("ENSO_MAX_LOGGING_LEVEL");
-    declare_env_dependence("ENSO_UNCOLLAPSED_LOGGING_LEVEL");
+    declare_env_dependence("ENSO_MAX_LOG_LEVEL");
+    declare_env_dependence("ENSO_UNCOLLAPSED_LOG_LEVEL");
 }
 
 /// Make cargo aware that the result of compiling this crate depends on an environment variable.

@@ -20,7 +20,7 @@ class DependencyResolver(
   publishedLibraryProvider: PublishedLibraryCache,
   edition: Editions.ResolvedEdition,
   preferLocalLibraries: Boolean,
-  versionResolver: LibraryResolver,
+  libraryResolver: LibraryResolver,
   dependencyExtractor: DependencyExtractor[File]
 ) {
 
@@ -50,7 +50,7 @@ class DependencyResolver(
     if (parents.contains(libraryName)) {
       Set.empty
     } else {
-      val version = versionResolver
+      val version = libraryResolver
         .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
         .toTry
         .get

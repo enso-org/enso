@@ -63,6 +63,13 @@ type Dialect
     prepare_distinct self =
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       A heuristic used by `Connection.query` to determine if a given text looks
+       like a SQL query for the given dialect or is rather a table name.
+    is_probably_a_query : Text -> Boolean
+    is_probably_a_query self =
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.

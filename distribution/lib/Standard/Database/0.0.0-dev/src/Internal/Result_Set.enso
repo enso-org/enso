@@ -25,8 +25,8 @@ read_column result_set column_name =
 
 ## PRIVATE
    Converts a ResultSet into a Materialized_Table.
-result_set_to_table : ResultSet -> (Vector | Nothing) -> Materialized_Table
-result_set_to_table result_set expected_types=Nothing =
+result_set_to_table : ResultSet -> (Vector | Nothing) -> Boolean -> Materialized_Table
+result_set_to_table result_set expected_types=Nothing last_row_only=False =
     metadata = result_set.getMetaData
     ncols = metadata.getColumnCount
     column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
@@ -35,13 +35,25 @@ result_set_to_table result_set expected_types=Nothing =
             typeid = metadata.getColumnType ix+1
             name = metadata.getColumnTypeName ix+1
             SQL_Type.Value typeid name
-    column_builders = column_types.map typ->
-        create_builder typ
-    go has_next = if has_next.not then Nothing else
-        column_builders.map_with_index ix-> builder->
-            builder.fetch_and_append result_set ix+1
-        @Tail_Call go result_set.next
-    go result_set.next
+    column_builders = column_types.map create_builder
+    case last_row_only of
+        True ->
+            ## Not using the `ResultSet.last` as not supported by all connection types.
+            go has_next current = case has_next.not of
+                True ->
+                    if current.is_nothing then Nothing else
+                        column_builders.each_with_index ix-> builder-> builder.append (current.at ix)
+                        Nothing
+                False ->
+                    values = column_builders.map_with_index ix-> builder-> builder.fetch_value result_set ix+1
+                    @Tail_Call go result_set.next values
+            go result_set.next Nothing
+        False ->
+            go has_next = if has_next.not then Nothing else
+                column_builders.map_with_index ix-> builder->
+                    builder.fetch_and_append result_set ix+1
+                @Tail_Call go result_set.next
+            go result_set.next
     columns = column_builders.zip column_names builder-> name->
         builder.make_column name
     Materialized_Table.new columns
@@ -105,25 +117,29 @@ type Builder
        - i: the index of the column to fetch from (starting from 1 as is the
          ResultSet convention).
     fetch_and_append : ResultSet -> Integer -> Nothing
-    fetch_and_append self rs i = case self of
-        Builder.Builder_Inferred _ ->
-            obj = rs.getObject i
-            self.java_builder.append obj
-        Builder.Builder_Boolean _ ->
-            bool = rs.getBoolean i
-            case rs.wasNull of
-                True -> self.java_builder.appendNulls 1
-                False -> self.java_builder.appendBoolean bool
-        Builder.Builder_Long _ ->
-            long = rs.getLong i
-            case rs.wasNull of
-                True -> self.java_builder.appendNulls 1
-                False -> self.java_builder.appendLong long
-        Builder.Builder_Double _ ->
-            double = rs.getDouble i
-            case rs.wasNull of
-                True -> self.java_builder.appendNulls 1
-                False -> self.java_builder.appendDouble double
+    fetch_and_append self rs i =
+        value = self.fetch_value rs i
+        self.append value
+
+    ## PRIVATE
+       Fetches the value of ith column from the current row of the result set
+    fetch_value : ResultSet -> Integer -> Any
+    fetch_value self rs i =
+        value = case self of
+            Builder.Builder_Inferred _ -> rs.getObject i
+            Builder.Builder_Boolean _ -> rs.getBoolean i
+            Builder.Builder_Long _ -> rs.getLong i
+            Builder.Builder_Double _ -> rs.getDouble i
+        if rs.wasNull then Nothing else value
+
+    ## PRIVATE
+    append : Any -> Nothing
+    append self value = if value.is_nothing then self.java_builder.appendNulls 1 else
+        case self of
+            Builder.Builder_Inferred _ -> self.java_builder.append value
+            Builder.Builder_Boolean _ -> self.java_builder.appendBoolean value
+            Builder.Builder_Long _ -> self.java_builder.appendLong value
+            Builder.Builder_Double _ -> self.java_builder.appendDouble value
 
     ## PRIVATE
 

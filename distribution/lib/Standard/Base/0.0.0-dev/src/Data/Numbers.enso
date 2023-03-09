@@ -1,5 +1,6 @@
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
+import project.Data.Ordering.Incomparable
 import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Locale.Locale

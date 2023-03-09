@@ -28,13 +28,6 @@ type Expression
         handle_parse_error <| handle_unsupported <| handle_arguments <|
             ExpressionVisitorImpl.evaluate expression get_column make_constant module_name type_name var_args_functions.to_array
 
-    ## PRIVATE
-       Converts an expression into a compatible column name.
-    to_column_name : Text -> Text
-    to_column_name expression =
-        expression.replace "[^A-Za-z_0-9]" "_" matcher=Regex_Matcher.Value
-
-
 type Expression_Error
     ## The expression supplied could not be parsed due to a syntax error.
     Syntax_Error message:Text line:Integer column:Integer

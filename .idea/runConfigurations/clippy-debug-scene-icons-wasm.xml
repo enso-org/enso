@@ -5,7 +5,7 @@
     name="clippy/debug-scene-icons [wasm]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚥 GUI            view/debug_scene/icons"
+    folderName="🚥 GUI            view/examples/icons"
   >
     <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target-dir dist/intellij_wasm --package debug-scene-icons" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

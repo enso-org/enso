@@ -92,9 +92,22 @@
 - [Added restoring of last project snapshot on shortcut.][4050]
 - [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
   contain suggestions which are based on evaluated data.
+- [Added a shortcut to show internal components (private API) in the component
+  browser.][5582]
 - [Improved component browser entry filtering and sorting][5645]. The component
   browser will now provide suggestions matching either the component's label or
   the corresponding code.
+- [Improved argument placeholder resolution in more complex expressions][5656].
+  It is now possible to drop node connections onto missing arguments of chained
+  and nested function calls.
+- [The component browser suggestions take into account entry aliases][5678]. The
+  searcher input is now matched to entry aliases too. The alias match is used to
+  filter and sort component browser entries.
+- [The Component Browser icons are cached on texture][5779] improving its
+  performance on slower machines.
+- [Fixed missing result preview when editing nodes.][5757]
+- [Application retries its initialization after failures][5802], allowing a
+  reconnecting after connectivity problems.
 
 #### EnsoGL (rendering engine)
 
@@ -312,6 +325,11 @@
 - [Updated column selector APIs and new `Excel_Workbook` type.][5646]
 - [Moved regex functionality out of `Text.locate` and `Text.locate_all` into
   `Text.match` and `Text.match_all`.][5679]
+- [`File.parent` may return `Nothing`.][5699]
+- [Removed non-regex functionality from `is_match`, `match`, and `match_all`,
+  and renamed them to `match`, `find`, `find_all` (respectively).][5721]
+- [Updated `rename_columns` to new API. Added `first_row`, `second_row` and
+  `last_row` to Table types][5719]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -478,8 +496,18 @@
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4050]: https://github.com/enso-org/enso/pull/4050
 [4072]: https://github.com/enso-org/enso/pull/4072
+[5582]: https://github.com/enso-org/enso/pull/5582
 [5645]: https://github.com/enso-org/enso/pull/5645
 [5646]: https://github.com/enso-org/enso/pull/5646
+[5656]: https://github.com/enso-org/enso/pull/5656
+[5678]: https://github.com/enso-org/enso/pull/5678
+[5679]: https://github.com/enso-org/enso/pull/5679
+[5699]: https://github.com/enso-org/enso/pull/5699
+[5719]: https://github.com/enso-org/enso/pull/5719
+[5721]: https://github.com/enso-org/enso/pull/5721
+[5779]: https://github.com/enso-org/enso/pull/5779
+[5757]: https://github.com/enso-org/enso/pull/5757
+[5802]: https://github.com/enso-org/enso/pull/5802
 
 #### Enso Compiler
 
@@ -575,6 +603,8 @@
 - [Engine can now recover from serialization failures][5591]
 - [Use sbt runEngineDistribution][5609]
 - [Update to GraalVM 22.3.1][5602]
+- [Cache library bindings to optimize import/export resolution][5700]
+- [Comparators support partial ordering][5778]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -671,6 +701,8 @@
 [5591]: https://github.com/enso-org/enso/pull/5591
 [5609]: https://github.com/enso-org/enso/pull/5609
 [5602]: https://github.com/enso-org/enso/pull/5602
+[5700]: https://github.com/enso-org/enso/pull/5700
+[5778]: https://github.com/enso-org/enso/pull/5778
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

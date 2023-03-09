@@ -1,5 +1,6 @@
 package org.enso.table.formatting;
 
+import org.enso.base.Time_Utils;
 import org.graalvm.polyglot.Value;
 
 import java.time.LocalTime;
@@ -10,7 +11,7 @@ public class TimeFormatter implements DataFormatter {
   private final DateTimeFormatter formatter;
 
   public TimeFormatter(String formatString, Locale locale) {
-    formatter = DateTimeFormatter.ofPattern(formatString, locale);
+    formatter = Time_Utils.make_formatter(formatString, locale);
   }
 
   @Override

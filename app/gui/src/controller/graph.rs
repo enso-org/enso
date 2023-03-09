@@ -421,7 +421,7 @@ impl EndpointInfo {
         //  Unpleasant. Likely there should be something in span tree that allows obtaining
         //  sequence of nodes between root and given crumb. Or sth.
         let mut parent_port = self.parent_port_of(&self.endpoint.port);
-        while parent_port.contains_if(|p| p.node.kind == span_tree::node::Kind::Chained) {
+        while parent_port.contains_if(|p| p.node.is_chained()) {
             parent_port = parent_port.and_then(|p| self.parent_port_of(&p.crumbs));
         }
         parent_port
@@ -873,6 +873,7 @@ impl Handle {
         expression_text: impl Str,
         context: &impl SpanTreeContext,
     ) -> FallibleResult {
+        info!("Setting Expression Span {crumbs:?} node {id}  to \"{}\".", expression_text.as_ref());
         let node_ast = self.node_info(id)?.expression();
         let node_span_tree: SpanTree = SpanTree::new(&node_ast, context)?;
         let port = node_span_tree.get_node(crumbs)?;

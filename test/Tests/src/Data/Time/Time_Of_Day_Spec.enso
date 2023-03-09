@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Time_Error.Time_Error
 
@@ -116,7 +117,7 @@ specWith name create_new_time parse_time =
             time_1!=time_2 . should_be_true
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
-            time_2<(Date_Time.new 1999 1 1 4 0 10) . should_fail_with Type_Error.Error
+            time_2<(Date_Time.new 1999 1 1 4 0 10) . should_fail_with Incomparable_Values.Error
 
         Test.specify "should correctly determine the type of timeofday" <|
             new_timeofday = create_new_time 15 37 58

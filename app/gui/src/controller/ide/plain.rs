@@ -38,8 +38,9 @@ pub struct ProjectOperationsNotSupported;
 #[derive(Clone, CloneRef, Debug)]
 pub struct Handle {
     pub status_notifications: StatusNotificationPublisher,
-    pub parser:               Parser,
-    pub project:              model::Project,
+    pub parser: Parser,
+    pub project: model::Project,
+    component_browser_private_entries_visibility_flag: Rc<Cell<bool>>,
 }
 
 impl Handle {
@@ -47,7 +48,13 @@ impl Handle {
     pub fn new(project: model::Project) -> Self {
         let status_notifications = default();
         let parser = Parser::new();
-        Self { status_notifications, parser, project }
+        let component_browser_private_entries_visibility_flag = default();
+        Self {
+            status_notifications,
+            parser,
+            project,
+            component_browser_private_entries_visibility_flag,
+        }
     }
 
     /// Create IDE Controller from Language Server endpoints, describing the opened project.
@@ -74,7 +81,13 @@ impl Handle {
         .await?;
         let status_notifications = default();
         let parser = Parser::new();
-        Ok(Self { status_notifications, parser, project })
+        let component_browser_private_entries_visibility_flag = default();
+        Ok(Self {
+            status_notifications,
+            parser,
+            project,
+            component_browser_private_entries_visibility_flag,
+        })
     }
 }
 
@@ -95,5 +108,16 @@ impl controller::ide::API for Handle {
 
     fn manage_projects(&self) -> FallibleResult<&dyn ManagingProjectAPI> {
         Err(ProjectOperationsNotSupported.into())
+    }
+
+    fn are_component_browser_private_entries_visible(&self) -> bool {
+        self.component_browser_private_entries_visibility_flag.get()
+    }
+
+    fn set_component_browser_private_entries_visibility(&self, visibility: bool) {
+        debug!(
+            "Setting the visibility of private entries in the component browser to {visibility}."
+        );
+        self.component_browser_private_entries_visibility_flag.set(visibility);
     }
 }

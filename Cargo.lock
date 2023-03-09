@@ -1881,6 +1881,7 @@ dependencies = [
  "derive_more",
  "dirs",
  "enso-build-base",
+ "enso-build-macros-lib",
  "ensogl-pack",
  "filetime",
  "flate2",
@@ -1993,10 +1994,22 @@ dependencies = [
 name = "enso-build-macros"
 version = "0.1.0"
 dependencies = [
+ "enso-build-base",
+ "enso-build-macros-lib",
+ "itertools",
+ "proc-macro2",
+ "syn",
+]
+
+[[package]]
+name = "enso-build-macros-lib"
+version = "0.1.0"
+dependencies = [
  "convert_case 0.6.0",
  "derive_more",
  "enso-build-base",
  "itertools",
+ "lazy_static",
  "proc-macro2",
  "quote",
  "regex",
@@ -2236,7 +2249,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "wasm-bindgen-test",
 ]
 
 [[package]]
@@ -2616,11 +2628,13 @@ dependencies = [
  "ensogl-text-embedded-fonts",
  "enum_dispatch",
  "failure",
+ "futures 0.3.26",
  "itertools",
  "js-sys",
  "nalgebra",
  "num-traits",
  "num_enum",
+ "ordered-float",
  "rustc-hash",
  "semver 1.0.16",
  "serde",
@@ -3156,6 +3170,7 @@ version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
+ "enso-profiler",
  "enso-types",
  "enso-web",
  "ensogl-text-embedded-fonts",
@@ -4166,6 +4181,7 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
+ "ensogl-derive-theme",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
@@ -4297,6 +4313,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "failure",
+ "indexmap",
  "js-sys",
  "nalgebra",
  "ordered-float",
@@ -4307,6 +4324,7 @@ dependencies = [
  "span-tree",
  "uuid 0.8.2",
  "wasm-bindgen",
+ "wasm-bindgen-test",
  "web-sys",
 ]
 

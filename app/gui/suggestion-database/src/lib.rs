@@ -31,6 +31,7 @@
 #![warn(missing_debug_implementations)]
 
 use enso_prelude::*;
+use enso_profiler::prelude::*;
 
 use crate::documentation_ir::EntryDocumentation;
 use crate::entry::Kind;
@@ -44,7 +45,6 @@ use engine_protocol::language_server::SuggestionId;
 use enso_data_structures::hash_map_tree::HashMapTree;
 use enso_notification as notification;
 use enso_profiler as profiler;
-use enso_profiler::prelude::*;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
@@ -399,10 +399,8 @@ impl SuggestionDatabase {
         &self,
         method_pointer: &language_server::MethodPointer,
     ) -> Option<Rc<Entry>> {
-        self.method_pointer_to_id_map
-            .borrow()
-            .get(method_pointer)
-            .and_then(|id| self.entries.borrow().get(id).cloned())
+        let entry_id = self.method_pointer_to_id_map.borrow().get(method_pointer).copied();
+        entry_id.and_then(|id| self.entries.borrow().get(&id).cloned())
     }
 
     /// Get suggestion entry id by method pointer.
