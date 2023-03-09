@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Regex_2.No_Such_Group
 import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
 import Standard.Base.Data.Text.Span.Span
+import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
@@ -1187,12 +1188,22 @@ spec =
             ## Regex matching does not do case folding
             "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
 
+        Test.specify "find should produce correct spans" <|
+            "Hello World!".find ".o" Case_Sensitivity.Insensitive . grapheme_span 0 . should_equal (Span.Value (3.up_to 5) "Hello World!")
+            "Hello World!".find_all ".o" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
+            "foobar".find "BAR" Case_Sensitivity.Insensitive . grapheme_span 0 . should_equal (Span.Value (3.up_to 6) "foobar")
+
         Test.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
 
-            # Check spans
             accents.find 'h' . group 0 . should_equal 'h'
             accents.find 'e\u{301}' . group 0 . should_equal 'e\u{301}'
+
+            # Check both UTF16 spans
+            accents.find_all 'h' . map (match-> match.span 0) . should_equal [Utf_16_Span.Value (6.up_to 7) accents, Utf_16_Span.Value (9.up_to 10) accents]
+            accents.find_all 'e\u{301}' . map (match-> match.span 0) . should_equal [Utf_16_Span.Value (2.up_to 4) accents, Utf_16_Span.Value (7.up_to 9) accents]
+
+            # Check both grapheme spans
             accents.find_all 'h' . map (match-> match.grapheme_span 0) . should_equal [Span.Value (3.up_to 4) accents, Span.Value (5.up_to 6) accents]
             accents.find_all 'e\u{301}' . map (match-> match.grapheme_span 0) . should_equal [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
 
