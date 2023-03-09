@@ -113,8 +113,18 @@ type Pattern_2
                     Nothing -> Error.throw (No_Such_Group.Error name)
 
     ## PRIVATE
+
+       Return the number of groups in the underlying RegexObject
     group_count : Integer
     group_count self = self.internal_regex_object.groupCount
+
+    ## PRIVATE
+
+       Return a vector of all named group names.
+    group_names : Vector Text
+    group_names self =
+        map = polyglot_map_to_map self.internal_regex_object.groups
+        map.keys
 
 ## PRIVATE
 
