@@ -165,7 +165,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
             monitor
           case Failure(exception) =>
             log.error(
-              s"Failed to create runtime events monitor for [{}].",
+              "Failed to create runtime events monitor for [{}].",
               MaskedPath(path),
               exception
             )
