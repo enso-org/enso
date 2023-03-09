@@ -109,7 +109,7 @@ fn light_theme() -> Config {
         plot_background_color:   "#f1f1f0".into(),
         plot_bar_size:           Some(2.0),
         plot_step_size:          1.0,
-        plot_selection_border:   2.0,
+        plot_selection_border:   1.0,
         plot_selection_width:    1.0,
         plot_selection_color:    "#008cff20".into(),
         margin:                  6.0,
@@ -229,14 +229,26 @@ impl DomData {
 
         let bg_color = &config.background_color;
         let selection_border = config.plot_selection_border;
+        let selection_width = config.plot_selection_width + 2.0 * selection_border;
         let selection_left =
             config.plot_right_x() - 0.5 - config.plot_selection_width / 2.0 - selection_border;
         let selection = web::document.create_div_or_panic();
         selection.set_style_or_warn("position", "absolute");
-        selection.set_style_or_warn("width", format!("{}px", config.plot_selection_width));
-        selection.set_style_or_warn("height", "100px");
-        selection.set_style_or_warn("left", format!("{selection_left}px",));
-        selection.set_style_or_warn("border", format!("{selection_border}px solid {bg_color}"));
+        selection.set_style_or_warn("width", format!("{}px", selection_width));
+        selection.set_style_or_warn("height", "100%");
+        selection.set_style_or_warn("left", format!("{selection_left}px"));
+        selection.set_style_or_warn("display", "flex");
+        selection.set_style_or_warn("margin-top", "10px");
+
+        // selection.set_style_or_warn("border", format!("{selection_border}px solid {bg_color}"));
+
+        let selection_inner = web::document.create_div_or_panic();
+        selection_inner.set_style_or_warn("width", "100%");
+        selection_inner.set_style_or_warn("border", format!("{selection_border}px solid red"));
+        selection_inner.set_style_or_warn("margin-bottom", "20px");
+
+
+        selection.append_child(&selection_inner).unwrap();
 
         // selection.set_style_or_warn("background", &config.plot_selection_color);
 
@@ -628,7 +640,6 @@ impl Renderer {
                 self.first_draw(&dom);
             }
             self.shift_plot_area_left(&dom);
-            self.copy_plot_to_selection(&dom);
             self.clear_labels_area(&dom);
             self.draw_plots(&dom, stats);
         }
@@ -682,8 +693,6 @@ impl Renderer {
             )
             .unwrap();
     }
-
-    fn copy_plot_to_selection(&mut self, dom: &Dom) {}
 
     fn clear_labels_area(&mut self, dom: &Dom) {
         let step = self.config.plot_step_size;
