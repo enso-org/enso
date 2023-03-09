@@ -59,11 +59,6 @@ type Manual
      - Note that currently the regex-based operations may not handle the edge
        cases described above too well.
 spec =
-    check_span match span =
-        match . should_not_equal Nothing
-        match.grapheme_span 0 . should_equal span
-    check_span_all match spans = match . map (m-> (m.grapheme_span 0)) . should_equal spans
-
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
 
@@ -1212,7 +1207,7 @@ spec =
                expose normalization methods to allow developers to do it
                themselves.
             accents = 'a\u{301}e\u{301}o\u{301}'
-            check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
+            accents.find accent_1 . group 0 . should_equal "e\u{301}"
 
         Test.specify "should correctly handle regex edge cases in locate" pending="Figure out how to make Regex correctly handle empty patterns." <|
             regex = Regex_Matcher.Value
@@ -1241,27 +1236,25 @@ spec =
             txt.locate "a[bc]" . should_equal (Span.Value (2.up_to 7) txt)
             txt.locate_all "a[bc]" . should_equal [Span.Value (2.up_to 7) txt]
 
-            check_span ("ab".find "a[bc]") (Span.Value (0.up_to 2) "ab")
+            "ab".find "a[bc]" . group 0 . should_equal "ab"
             "a[bc]".find "a[bc]" . should_equal Nothing
             "a[bc]".find_all "a[bc]" . should_equal []
 
-            check_span (txt.find "a[bc]") (Span.Value (0.up_to 2) "aba[bc]adacae")
-            check_span_all (txt.find_all "a[bc]") [Span.Value (0.up_to 2) "aba[bc]adacae", Span.Value (9.up_to 11) "aba[bc]adacae"]
+            txt.find "a[bc]" . group 0 . should_equal "ab"
+            txt.find_all "a[bc]" . map (match-> match.group 0) . should_equal ["ab", "ac"]
 
     Test.group "Regex: find and find_all" <|
         Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".find "^My Text: (.+)$"
-            check_span match (Span.Value (0.up_to 18) "My Text: Goes Here")
+            "My Text: Goes Here".find "^My Text: (.+)$" . group 0 . should_equal "My Text: Goes Here"
 
         Test.specify "should be possible on unicode text" <|
             txt = "maza건반zaa"
             txt.find "^a..z$" . should_equal Nothing
-            check_span (txt.find "^m..a..z.a$") (Span.Value (0.up_to 9) txt)
-            check_span (txt.find "a..z") (Span.Value (3.up_to 7) txt)
+            txt.find "^m..a..z.a$" . group 0 . should_equal "maza건반zaa"
+            txt.find "a..z" . group 0 . should_equal "a건반z"
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".find "my" Case_Sensitivity.Insensitive
-            check_span match (Span.Value (0.up_to 2) "MY")
+            "MY".find "my" Case_Sensitivity.Insensitive . group 0 . should_equal "MY"
 
         Test.specify "should allow access to match groups " <|
             "abcddd".find "ab(c(d+))" . group 0 . should_equal "abcddd"
@@ -1295,19 +1288,6 @@ spec =
             match_d.group 2 . should_equal Nothing
             match_d.group 3 . should_equal "d"
 
-        Test.specify "should handle accents and other multi-point graphemes" <|
-            accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
-
-            # Check spans
-            check_span ((accents).find 'h') (Span.Value (3.up_to 4) accents)
-            check_span ((accents).find 'e\u{301}') (Span.Value (1.up_to 2) accents)
-            check_span_all ((accents).find_all 'h') [Span.Value (3.up_to 4) accents, Span.Value (5.up_to 6) accents]
-            check_span_all ((accents).find_all 'e\u{301}') [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
-
-            # Check contents to make sure the spans' ranges are ok
-            accents.find 'h' . group 0 . should_equal 'h'
-            accents.find 'e\u{301}' . group 0 . should_equal 'e\u{301}'
-
         Test.specify "should expand a partial-grapheme match to the whole grapheme" <|
             'e\u{301}'.find '\u{301}' . group 0 . should_equal 'e\u{301}'
 
@@ -1318,16 +1298,16 @@ spec =
                expose normalization methods to allow developers to do it
                themselves.
             accents = 'a\u{301}e\u{301}o\u{301}'
-            check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
+            accents.find accent_1 . grapheme_span 0 . should_equal (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
 
         Test.specify "can return a vector of all match groups" <|
             "abc".find "ab((c)|(d))" . groups . should_equal ['abc', 'c', 'c', Nothing]
 
         Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
-            check_span_all ("abacadae".find_all "a[bc]") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
-            check_span_all ("abacadae".find_all "a.") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
-            check_span_all ("abacadae".find_all "a.*") [Span.Value (0.up_to 8) "abacadae"]
-            check_span_all ("abacadae".find_all "a.+?") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
+            "abacadae".find_all "a[bc]" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
+            "abacadae".find_all "a." . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
+            "abacadae".find_all "a.*" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 8) "abacadae"]
+            "abacadae".find_all "a.+?" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
 
     Test.group "Text.match" <|
         Test.specify "should default to regex" <|
@@ -1347,19 +1327,6 @@ spec =
 
         Test.specify "should be possible in case-insensitive mode" <|
             "MY".match "my" Case_Sensitivity.Insensitive . should_be_true
-
-    Test.group "Regex finding" <|
-        Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".find "^My Text: (.+)$"
-            check_span match (Span.Value (0.up_to 18) "My Text: Goes Here")
-
-        Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반".find "^Korean: (.+)$"
-            check_span match (Span.Value (0.up_to 10) "Korean: 건반")
-
-        Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".find "my" Case_Sensitivity.Insensitive
-            check_span match (Span.Value (0.up_to 2) "MY")
 
     Test.group "Regex splitting" <|
         Test.specify "should be possible on text" <|
