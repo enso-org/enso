@@ -18,6 +18,7 @@ use crate::SectionLeft;
 use crate::SectionRight;
 use crate::SectionSides;
 use crate::Shape;
+use crate::Var;
 
 
 
@@ -114,6 +115,47 @@ pub fn assignment() -> known::Opr {
 /// Split qualified name into segments, like `"Int.add"` into `["Int","add"]`.
 pub fn name_segments(name: &str) -> impl Iterator<Item = &str> {
     name.split(predefined::ACCESS)
+}
+
+
+
+// =======================
+// === Named arguments ===
+// =======================
+
+/// Matched AST fragments for named argument, flattened into easy to access structure.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct NamedArgumentDef<'a> {
+    pub id:   Option<Id>,
+    pub name: &'a str,
+    pub larg: &'a Ast,
+    pub loff: usize,
+    pub opr:  &'a Ast,
+    pub roff: usize,
+    pub rarg: &'a Ast,
+}
+
+/// Match AST against named argument pattern. Pack AST fragments into flat `NamedArgumentDef`
+/// structure. Does not clone or allocate.
+///
+/// ```text
+/// name=expression - Infix
+/// name              |- Var
+///     =             |- Opr ASSIGN
+///      expression   `- any Ast
+/// ```
+pub fn match_named_argument(ast: &Ast) -> Option<NamedArgumentDef<'_>> {
+    let id = ast.id;
+    match ast.shape() {
+        Shape::Infix(Infix { larg, loff, opr, roff, rarg }) if is_assignment_opr(opr) =>
+            match larg.shape() {
+                Shape::Var(Var { name }) =>
+                    Some(NamedArgumentDef { id, name, larg, loff: *loff, opr, roff: *roff, rarg }),
+                _ => None,
+            },
+        _ => None,
+    }
 }
 
 
@@ -422,12 +464,6 @@ impl Chain {
     pub fn push_operand(&mut self, operand: ArgWithOffset<Ast>) {
         let last_index = self.args.len() + 1;
         self.insert_operand(last_index, operand)
-    }
-
-    /// Add operand at the front of the chain, actually making it a new target (see docs for
-    /// `insert_operand`.
-    pub fn push_front_operand(&mut self, operand: ArgWithOffset<Ast>) {
-        self.insert_operand(0, operand)
     }
 
     /// Erase the current target from chain, and make the current first operand a new target.
