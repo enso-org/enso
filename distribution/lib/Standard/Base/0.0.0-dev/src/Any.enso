@@ -106,13 +106,13 @@ type Any
                  a == 147
     == : Any -> Boolean
     == self that =
-        # If there is No_Such_Conversion, then `self` and `that` are probably
-        # host or polyglot values, so we just compare them with the default comparator.
-        eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Comparator
-        eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Comparator
-        case Meta.is_same_object eq_self Incomparable of
-            True -> False
+        case Meta.is_same_object self that of
+            True -> True
             False ->
+                # If there is No_Such_Conversion, then `self` and `that` are probably
+                # host or polyglot values, so we just compare them with the default comparator.
+                eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Comparator
+                eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Comparator
                 similar_type = Meta.is_same_object eq_self eq_that
                 case similar_type of
                     False -> False
@@ -457,14 +457,12 @@ type Any
 
 
 ## PRIVATE
-have_same_comparators : Any -> Any -> Boolean ! (Type_Error|Incomparable_Values)
+   Returns True if the given objects have the same Comparator type, otherwise
+   throws Type_Error
+have_same_comparators : Any -> Any -> Boolean ! Type_Error
 have_same_comparators this that =
     comp_this = Comparable.from this
     comp_that = Comparable.from that
     case Meta.is_same_object comp_this comp_that of
         False -> Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that")
-        True ->
-            case Meta.is_same_object comp_this Incomparable of
-                True -> Error.throw (Incomparable_Values.Error this that)
-                False -> True
-
+        True -> True

@@ -31,12 +31,10 @@ from project.Data.Boolean import all
         hash : T -> Integer
     ```
 
-    Or `Incomparable` in case that the type `T` should not be compared at all.
-
     Every type must provide exactly one comparator, i.e., any method of form
     `Comparable.from (_:My_Type)` must always return the same comparator type.
-    Note that if there is an implicit `Default_Comparator` assigned
-    for every type by default.
+    Note that there is an implicit `Default_Comparator` assigned for every
+    type by default.
 
     A comparator has to implement `compare` and `hash` methods. `compare x y` method
     returns `Ordering.Less` if x is ordered before y, `Ordering.Equal` if x is equal
@@ -119,14 +117,6 @@ from project.Data.Boolean import all
         By defining the `Rational_Ordering` and making it available via
         `Comparable.from (_:Rational)` method, all parts of the Enso system will use
         the custom comparator whenever equality or hash code is needed.
-
-        The equality check of two objects:
-        - verifies both objects share the same type of `comparator`
-        - consults their `compare` method.
-        - if the result is `Ordering.Equal` the system may also checks that both
-          instances have the same `hash`.
-        - the `hash` code check may be done only from time to time to speed things
-          up, or to ensure semantical consistency..
 @Builtin_Type
 type Comparable
     ## PRIVATE
@@ -144,20 +134,16 @@ type Comparable
         comp = Comparable.from atom
         (comp.is_a Default_Comparator).not
 
-## Singleton denoting that values of certain type are not comparable.
-type Incomparable
-    Singleton
-
 ## Default implementation of a _comparator_.
 @Builtin_Type
 type Default_Comparator
     compare : Any -> Any -> (Ordering|Nothing)
     compare x y =
+        # If equals_builtin returns Nothing, x and y are incomparable and thus, it makes
+        # no sense to try it passing into less_than_builtin
         case Comparable.equals_builtin x y of
-            True -> Ordering.Equal
-            # If equals_builtin returns Nothing, x and y are incomparable and thus, it makes
-            # no sense to try it passing into less_than_builtin
             Nothing -> Nothing
+            True -> Ordering.Equal
             False ->
                 case Comparable.less_than_builtin x y of
                     Nothing -> Nothing
