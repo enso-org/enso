@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import org.apache.commons.lang3.StringUtils;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.SourceFile;
@@ -47,6 +48,16 @@ public final class SuggestionsCache
   }
 
   @Override
+  protected boolean needsSourceDigestVerification() {
+    return true;
+  }
+
+  @Override
+  protected boolean needsDataDigestVerification() {
+    return false;
+  }
+
+  @Override
   protected CachedSuggestions validateReadObject(Object obj, Metadata meta, TruffleLogger logger)
       throws CacheException {
     if (obj instanceof Suggestions suggestions) {
@@ -57,11 +68,12 @@ public final class SuggestionsCache
   }
 
   @Override
-  protected Optional<Metadata> metadataFromBytes(byte[] bytes) {
+  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger) {
     var maybeJsonString = new String(bytes, Cache.metadataCharset);
     try {
       return Optional.of(objectMapper.readValue(maybeJsonString, SuggestionsCache.Metadata.class));
     } catch (JsonProcessingException e) {
+      logger.log(logLevel, "Failed to deserialize suggestions' metadata: " + e.getMessage(), e);
       return Optional.empty();
     }
   }
@@ -86,15 +98,15 @@ public final class SuggestionsCache
       var bindingsCacheRoot = pkg.getSuggestionsCacheRootForPackage(Info.ensoVersion());
       var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
       var distribution = context.getDistributionManager();
-      var pathSegments = CollectionConverters.ListHasAsScala(Arrays.asList(
+      var pathSegments = new String[]{
               pkg.namespace(),
               pkg.name(),
               pkg.config().version(),
               Info.ensoVersion(),
-              libraryName.namespace())
-      ).asScala();
+              libraryName.namespace()
+      };
       var path = distribution.LocallyInstalledDirectories().irCacheDirectory()
-              .resolve(pathSegments.mkString("/"));
+              .resolve(StringUtils.join(pathSegments, "/"));
       var globalCacheRoot = context.getTruffleFile(path.toFile());
       return new Cache.Roots(localCacheRoot, globalCacheRoot);
     });
