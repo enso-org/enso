@@ -51,5 +51,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "comments": {
+    "browserslist": "The `browserslist` key is used by `react-scripts` to determine which browsers to support."
   }
 }
