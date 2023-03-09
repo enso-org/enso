@@ -69,7 +69,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
         try {
             return Optional.of(objectMapper.readValue(maybeJsonString, Metadata.class));
         } catch (JsonProcessingException e) {
-            logger.log(logLevel, "Failed to deserialize module's metadata: " + e.getMessage(), e);
+            logger.log(logLevel, "Failed to deserialize module's metadata.", e);
             return Optional.empty();
         }
     }
