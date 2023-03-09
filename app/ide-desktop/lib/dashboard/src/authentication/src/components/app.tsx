@@ -6,6 +6,9 @@ import * as router from "react-router-dom";
 
 import * as authProvider from "../authentication/providers/auth";
 import DashboardContainer from "../dashboard/components/dashboard";
+import LoginContainer from "../authentication/components/login";
+import RegistrationContainer from "../authentication/components/registration";
+import ConfirmRegistrationContainer from "../authentication/components/confirmRegistration";
 import * as authService from "../authentication/service";
 import withRouter from "../navigation";
 import * as loggerProvider from "../providers/logger";
@@ -19,6 +22,12 @@ import * as session from "../authentication/providers/session";
 
 /** Path to the root of the app (i.e., the Cloud dashboard). */
 export const DASHBOARD_PATH = "/";
+/** Path to the login page. */
+export const LOGIN_PATH = "/login";
+/** Path to the registration page. */
+export const REGISTRATION_PATH = "/registration";
+/** Path to the confirm registration page. */
+export const CONFIRM_REGISTRATION_PATH = "/confirmation";
 
 
 
@@ -84,10 +93,19 @@ const AppRouter = (props: AppProps) => {
                 userSession={userSession}
             >
                 <authProvider.AuthProvider
+                    authService={memoizedAuthService}
                     onAuthenticated={onAuthenticated}
                 >
                     <router.Routes>
                         <React.Fragment>
+                            {/* Login & registration pages are visible to unauthenticated users. */}
+                            <router.Route element={<authProvider.GuestLayout />}>
+                                <router.Route
+                                    path={REGISTRATION_PATH}
+                                    element={<RegistrationContainer />}
+                                />
+                                <router.Route path={LOGIN_PATH} element={<LoginContainer />} />
+                            </router.Route>
                             {/* Protected pages are visible to authenticated users. */}
                             <router.Route element={<authProvider.ProtectedLayout />}>
                                 <router.Route
@@ -103,6 +121,11 @@ const AppRouter = (props: AppProps) => {
                                     }
                                 />
                             </router.Route>
+                            {/* Other pages are visible to unauthenticated and authenticated users. */}
+                            <router.Route
+                                path={CONFIRM_REGISTRATION_PATH}
+                                element={<ConfirmRegistrationContainer />}
+                            />
                         </React.Fragment>
                     </router.Routes>
                 </authProvider.AuthProvider>
