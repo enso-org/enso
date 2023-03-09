@@ -50,6 +50,11 @@ type Match_2
          If the regex contained named groups, these may also be accessed by
          index based on their position in the pattern.
 
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
        Note that it is possible for a group to "not participate in the match",
        for example with a disjunction. In the example below, the "(d)" group
        does not participate -- it neither matches nor fails.
@@ -86,6 +91,11 @@ type Match_2
        ? Named Groups by Index
          If the regex contained named groups, these may also be accessed by
          index based on their position in the pattern.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
 
        Note that it is possible for a group to "not participate in the match",
        for example with a disjunction. In the example below, the "(d)" group
