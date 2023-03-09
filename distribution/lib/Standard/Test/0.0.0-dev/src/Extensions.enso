@@ -325,7 +325,7 @@ Any.should_be_a self typ =
         _ -> self.is_a typ || self==typ
 
     if ok then Test_Result.Success else
-        loc = Meta.get_source_location 0
+        loc = Meta.get_source_location 3
         expected_type = Meta.get_qualified_type_name typ
         actual_type = Meta.get_qualified_type_name self
         message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
