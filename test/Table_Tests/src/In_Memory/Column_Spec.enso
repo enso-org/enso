@@ -3,7 +3,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Column
-import Standard.Table.Data.Storage.Storage
+import Standard.Table.Data.Type.Storage.Storage
 
 import Standard.Examples
 

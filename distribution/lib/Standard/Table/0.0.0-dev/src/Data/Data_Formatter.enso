@@ -1,8 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Value_Type.Auto
-import project.Data.Storage.Storage
+import project.Data.Type.Value_Type.Auto
+import project.Data.Type.Storage.Storage
 import project.Internal.Parse_Values_Helper
 
 polyglot java import org.enso.table.parsing.IntegerParser

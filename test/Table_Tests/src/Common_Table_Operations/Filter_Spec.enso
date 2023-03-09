@@ -5,7 +5,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import all
 

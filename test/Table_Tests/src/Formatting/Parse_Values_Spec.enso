@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Data_Formatter, Column, Column_Selector
-from Standard.Table.Data.Value_Type import Auto, Value_Type
+from Standard.Table.Data.Type.Value_Type import Auto, Value_Type
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Test_Suite, Problems

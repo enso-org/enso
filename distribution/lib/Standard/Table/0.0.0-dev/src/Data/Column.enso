@@ -7,16 +7,16 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
 import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Storage.Storage
+import project.Data.Type.Storage.Storage
 import project.Data.Table.Table
-import project.Data.Value_Type.Value_Type
+import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
-from project.Data.Value_Type import Auto, ensure_valid_parse_target
+from project.Data.Type.Value_Type import Auto, ensure_valid_parse_target
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder

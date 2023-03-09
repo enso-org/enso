@@ -2,13 +2,14 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
-import Standard.Table.Data.Storage.Storage
+import Standard.Table.Data.Type.Storage.Storage
 import Standard.Table.Data.Table.Table as Materialized_Table
 
 import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
+import project.Internal.SQL_Type_Mapping
 
 import project.Data.Table.Table as Database_Table
 
@@ -92,10 +93,10 @@ type JDBC_Connection
             metadata = stmt.executeQuery.getMetaData
 
             resolve_column ix =
-                name = metadata.getColumnName ix+1
-                typeid = metadata.getColumnType ix+1
-                typename = metadata.getColumnTypeName ix+1
-                [name, SQL_Type.Value typeid typename]
+                # Todo test edge case with AS
+                name = metadata.getColumnLabel ix+1
+                sql_type = SQL_Type_Mapping.from_metadata metadata ix+1
+                [name, sql_type]
 
             Vector.new metadata.getColumnCount resolve_column
 

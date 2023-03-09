@@ -1,0 +1,44 @@
+from Standard.Base import all
+
+import project.Data.SQL_Type.SQL_Type
+
+polyglot java import java.sql.ResultSetMetaData
+
+type SQL_Type_Mapping
+    ## Converts the given Value_Type to its corresponding SQL_Type.
+
+       Some SQL dialects may not support all Value_Types (in fact most will
+       have at least a few exceptions, and some like SQLite may have very
+       limited support). If an SQL_Type that matches the Value_Type cannot be
+       found, a closest approximate match is returned instead. If an exact match
+       cannot be found, an `Inexact_Type_???` warning is reported according to
+       the `on_problems` setting.
+
+       If the conversion is exact, it should be reversible, i.e.
+       `sql_type_to_value_type (value_type_to_sql x) = x`.
+    value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
+    value_type_to_sql =
+        unimplemented "This is an interface only."
+
+    ## Converts the given SQL_Type to its corresponding Value_Type.
+    sql_type_to_value_type : SQL_Type -> Value_Type
+    sql_type_to_value_type =
+        unimplemented "This is an interface only."
+
+    # TODO not sure if this is needed, instead we could allow to construct SQL types only in context of a specific dialect, then the correct typename would be baked into the type
+    to_dialect_specific_name : SQL_Type -> Text
+    to_dialect_specific_name =
+        unimplemented "This is an interface only."
+
+## PRIVATE
+from_metadata metadata ix =
+    typeid = metadata.getColumnType ix
+    typename = metadata.getColumnTypeName ix
+    precision = case metadata.getPrecision ix of
+        0 -> Nothing
+        p : Integer -> p
+    nullable_id =
+    nullable = if nullable_id == ResultSetMetaData.columnNoNulls then False else
+        if nullable_id == ResultSetMetaData.columnNullable then True else
+            Nothing
+    SQL_Type.Value typeid typename precision nullable

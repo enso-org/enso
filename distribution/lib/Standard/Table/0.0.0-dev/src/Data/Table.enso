@@ -23,8 +23,8 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
-import project.Data.Storage.Storage
-import project.Data.Value_Type.Value_Type
+import project.Data.Type.Storage.Storage
+import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
@@ -39,7 +39,7 @@ import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
 
-from project.Data.Value_Type import Auto, ensure_valid_parse_target
+from project.Data.Type.Value_Type import Auto, ensure_valid_parse_target
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
