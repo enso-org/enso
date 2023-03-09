@@ -8,23 +8,8 @@ import * as router from "react-router-dom";
 import toast from "react-hot-toast";
 
 import * as backendService from "../../dashboard/service";
-import * as authService from "../service";
-import * as app from "../../components/app";
 import * as loggerProvider from "../../providers/logger";
 import * as sessionProvider from "./session";
-import * as error from "../../error";
-
-
-
-// =================
-// === Constants ===
-// =================
-
-const MESSAGES = {
-    signUpSuccess: "We have sent you an email with further instructions!",
-    confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
-    pleaseWait: "Please wait...",
-};
 
 
 
@@ -79,8 +64,6 @@ export interface PartialUserSession {
  *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
-    signUp: (email: string, password: string) => Promise<void>;
-    confirmSignUp: (email: string, code: string) => Promise<void>;
     /** Session containing the currently authenticated user's authentication information.
      *
      * If the user has not signed in, the session will be `undefined`. */
@@ -120,7 +103,6 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 // ====================
 
 export interface AuthProviderProps {
-    authService: authService.AuthService;
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void;
     children: react.ReactNode;
@@ -128,12 +110,10 @@ export interface AuthProviderProps {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AuthProvider = (props: AuthProviderProps) => {
-    const { authService, children } = props;
-    const { cognito } = authService;
+    const { children } = props;
     const { session } = sessionProvider.useSession();
     const logger = loggerProvider.useLogger();
     const onAuthenticated = react.useCallback(props.onAuthenticated, []);
-    const navigate = router.useNavigate();
     const [initialized, setInitialized] = react.useState(false);
     const [userSession, setUserSession] = react.useState<UserSession | undefined>(
         undefined
@@ -193,44 +173,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
         });
     }, [session]);
 
-    const withLoadingToast =
-        <T extends any[]>(action: (...args: T) => Promise<void>) =>
-            async (...args: T) => {
-                const loadingToast = toast.loading(MESSAGES.pleaseWait);
-                try {
-                    await action(...args);
-                } finally {
-                    toast.dismiss(loadingToast);
-                }
-            };
-
-    const signUp = (username: string, password: string) =>
-        cognito.signUp(username, password).then((result) => {
-            if (result.ok) {
-                toast.success(MESSAGES.signUpSuccess);
-            } else {
-                toast.error(result.val.message);
-            }
-        });
-
-    const confirmSignUp = async (email: string, code: string) =>
-        cognito.confirmSignUp(email, code).then((result) => {
-            if (result.err) {
-                switch (result.val.kind) {
-                    case "UserAlreadyConfirmed":
-                        break;
-                    default:
-                        throw new error.UnreachableCaseError(result.val.kind);
-                }
-            }
-
-            toast.success(MESSAGES.confirmSignUpSuccess);
-            navigate(app.LOGIN_PATH);
-        });
-
     const value = {
-        signUp: withLoadingToast(signUp),
-        confirmSignUp: withLoadingToast(confirmSignUp),
         session: userSession,
     };
 
@@ -276,30 +219,15 @@ export const useAuth = () => react.useContext(AuthContext);
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ProtectedLayout = () => {
+    const logger = loggerProvider.useLogger();
     const { session } = useAuth();
 
     if (!session) {
-        return <router.Navigate to={app.LOGIN_PATH} />;
+        logger.error("User is not authenticated, but is trying to access a protected route.")
+        return <>Unauthenticated</>
     }
 
     return <router.Outlet context={session} />;
-};
-
-
-
-// ===================
-// === GuestLayout ===
-// ===================
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const GuestLayout = () => {
-    const { session } = useAuth();
-
-    if (session?.state == "full") {
-        return <router.Navigate to={app.DASHBOARD_PATH} />;
-    }
-
-    return <router.Outlet />;
 };
 
 
