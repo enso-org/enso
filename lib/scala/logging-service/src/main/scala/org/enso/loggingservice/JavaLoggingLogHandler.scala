@@ -2,7 +2,7 @@ package org.enso.loggingservice
 
 import org.enso.loggingservice.internal.{InternalLogMessage, LoggerConnection}
 
-import java.util.logging.{SimpleFormatter, Handler, Level, LogRecord}
+import java.util.logging.{Handler, Level, LogRecord, SimpleFormatter}
 
 /** A [[Handler]] implementation that allows to use the logging service as a
   * backend for [[java.util.logging]].
