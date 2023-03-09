@@ -1,13 +1,10 @@
-/**
- * This module defines a TS script that is responsible for invoking the Electron Builder process to
- * bundle the entire IDE distribution.
+/** @file This module defines a TS script that is responsible for invoking the Electron Builder
+ * process to bundle the entire IDE distribution.
  *
  * There are two areas to this:
  * - Parsing CLI options as per our needs.
- * - The default configuration of the build process.
- *
- * @module
- */
+ * - The default configuration of the build process. */
+/** @module */
 
 import path from 'node:path'
 import child_process from 'node:child_process'
@@ -18,6 +15,7 @@ import { notarize } from 'electron-notarize'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 
 import { project_manager_bundle } from './paths.js'
+import * as shared from './shared.js'
 import build from '../../build.json' assert { type: 'json' }
 import yargs from 'yargs'
 import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
@@ -80,12 +78,34 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 export function createElectronBuilderConfig(args: Arguments): Configuration {
     return {
         appId: 'org.enso',
-        productName: 'Enso',
+        productName: shared.PRODUCT_NAME,
         extraMetadata: {
             version: build.version,
         },
         copyright: 'Copyright © 2022 ${author}.',
         artifactName: 'enso-${os}-${version}.${ext}',
+        /** Definitions of URL {@link builder.Protocol} schemes used by the IDE.
+         *
+         * Electron will register all URL protocol schemes defined here with the OS. Once a URL protocol
+         * scheme is registered with the OS, any links using that scheme will function as "deep links".
+         * Deep links are used to redirect the user from external sources (e.g., system web browser,
+         * email client) to the IDE.
+         *
+         * Clicking a deep link will:
+         * - open the IDE (if it is not already open),
+         * - focus the IDE, and
+         * - navigate to the location specified by the URL of the deep link.
+         *
+         * For details on how this works, see:
+         * https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app */
+        protocols: [
+            /** Electron URL protocol scheme definition for deep links to authentication flow pages. */
+            {
+                name: `${shared.PRODUCT_NAME} url`,
+                schemes: [shared.DEEP_LINK_SCHEME],
+                role: 'Editor',
+            },
+        ],
         mac: {
             // We do not use compression as the build time is huge and file size saving is almost zero.
             target: (args.target as MacOsTargetName) ?? 'dmg',
