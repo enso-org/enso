@@ -84,14 +84,11 @@ const AppRouter = (props: AppProps) => {
     );
 
     const userSession = memoizedAuthService.cognito.userSession;
-    const registerAuthEventListener =
-        memoizedAuthService.registerAuthEventListener;
 
     return (
         <loggerProvider.LoggerProvider logger={logger}>
             <session.SessionProvider
                 userSession={userSession}
-                registerAuthEventListener={registerAuthEventListener}
             >
                 <authProvider.AuthProvider
                     authService={memoizedAuthService}

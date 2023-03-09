@@ -1,10 +1,8 @@
 /** @file Provides an {@link AuthService} which consists of an underyling {@link Cognito} API
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron. */
-import * as amplify from "@aws-amplify/auth";
 import * as app from "../components/app";
 
-import * as listen from "./listen";
 import * as loggerProvider from "../providers/logger";
 import * as cognito from "./cognito";
 import * as authConfig from "./config";
@@ -16,9 +14,6 @@ import * as config from "../config";
 // === Constants ===
 // =================
 
-/** Pathname of the {@link URL} for deep links to the sign in page, after a redirect from a
- * federated identity provider. */
-const SIGN_IN_PATHNAME = "//auth";
 /** Pathname of the {@link URL} for deep links to the registration confirmation page, after a
  * redirect from an account verification email. */
 const CONFIRM_REGISTRATION_PATHNAME = "//auth/confirmation";
@@ -99,8 +94,6 @@ export interface AuthConfig {
 export interface AuthService {
     /** @see {@link Cognito} */
     cognito: cognito.Cognito;
-    /** @see {@link listen.ListenFunction} */
-    registerAuthEventListener: listen.ListenFunction;
 }
 
 /** Creates an instance of the authentication service.
@@ -124,7 +117,6 @@ export const initAuthService = (authConfig: AuthConfig): AuthService => {
 
     return {
         cognito: cognitoClient,
-        registerAuthEventListener: listen.registerAuthEventListener,
     };
 };
 
@@ -199,8 +191,6 @@ const setDeepLinkHandler = (
             // Navigate to a relative URL to handle the confirmation link.
             const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
             navigate(redirectUrl);
-        } else if (isSignInRedirect(parsedUrl)) {
-            handleAuthResponse(url);
         } else {
             logger.error(`${url} is an unrecognized deep link. Ignoring.`)
         }
@@ -217,46 +207,3 @@ const setDeepLinkHandler = (
  * email, then the URL will be for the confirmation page path. */
 const isConfirmRegistrationRedirect = (url: URL) =>
     url.pathname === CONFIRM_REGISTRATION_PATHNAME;
-
-/** If the user is being redirected after a sign-out, then query args will be present. */
-const isSignInRedirect = (url: URL) =>
-    url.pathname === SIGN_IN_PATHNAME && url.search !== "";
-
-/** When the user is being redirected from a federated identity provider, then we need to pass the
- * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */
-const handleAuthResponse = (url: string) => {
-    void (async () => {
-        // Temporarily override the `window.location` object so that Amplify doesn't try
-        // to call `window.location.replaceState` (which doesn't work in the renderer
-        // process because of Electron's `webSecurity`). This is a hack, but it's the
-        // only way to get Amplify to work with a custom URL protocol in Electron.
-        //
-        // Note that this entire hack must happen within an async IIFE block, because we
-        // need to be sure to restore the original `window.location.replaceState`
-        // function before any non-Amplify code runs, which we can't guarantee if
-        // `_handleAuthResponse` is allowed to complete asynchronously.
-        //
-        // # Safety
-        //
-        // It is safe to disable the `unbound-method` lint here because we intentionally want to use
-        // the original `window.history.replaceState` function, which is not bound to the
-        // `window.history` object.
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        const replaceState = window.history.replaceState;
-        window.history.replaceState = () => false;
-        try {
-            // # Safety
-            //
-            // It is safe to disable the `no-unsafe-member-access` and `no-unsafe-call` lints here
-            // because we know that the `Auth` object has the `_handleAuthResponse` method, and we
-            // know that it is safe to call it with the `url` argument. There is no way to prove
-            // this to the TypeScript compiler, because these methods are intentionally not part of
-            // the public AWS Amplify API.
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-            await (amplify.Auth as any)._handleAuthResponse(url);
-        } finally {
-            // Restore the original `window.location.replaceState` function.
-            window.history.replaceState = replaceState;
-        }
-    })();
-};
