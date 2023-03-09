@@ -382,9 +382,10 @@ spec_write suffix test_sheet_name =
 
         Test.specify "should fail if the target file is read-only" <|
             f = enso_project.data / "transient" / "permission."+suffix
+            Util.set_writable f True
             f.delete_if_exists
 
-            initial_data = "MY DATA"
+            initial_data = Table.new [["Y", [10, 20, 30]]]
             initial_data.write f
             Util.set_writable f False
 
@@ -393,7 +394,7 @@ spec_write suffix test_sheet_name =
                 r1 = t1.write f (Excel (Worksheet "Another")) on_existing_file=behavior
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Access_Denied
-                f.read Plain_Text . should_equal initial_data
+                f.read . read "EnsoSheet" . should_equal initial_data
 
             Util.set_writable f True
             f.delete
