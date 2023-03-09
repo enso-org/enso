@@ -19,7 +19,7 @@ import "./styles/index.css";
 
 /** Entrypoint for the authentication/dashboard app.
  *
- * Running this function finds a `div` element with the ID `authentication`, and renders the
+ * Running this function finds a `div` element with the ID `dashboard`, and renders the
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
  * for redirecting the user to/from the login page). */
 export const run = (props: AppProps) => {
@@ -27,7 +27,7 @@ export const run = (props: AppProps) => {
     logger.log("Starting authentication/dashboard UI.");
 
     /** The `id` attribute of the root element that the app will be rendered into. */
-    const rootElementId = "authentication";
+    const rootElementId = "dashboard";
     /** The root element that the authentication/dashboard app will be rendered into. */
     const root = document.getElementById(rootElementId);
     if (root == null) {

@@ -119,7 +119,7 @@ class Main {
                         options.groups.startup.options.entry.default
                 ) {
                     const hideAuth = () => {
-                       const auth = document.getElementById('authentication')
+                       const auth = document.getElementById('dashboard')
                        const root = document.getElementById('root')
                        if (auth) auth.style.display = 'none'
                        if (root) root.style.display = 'block'
