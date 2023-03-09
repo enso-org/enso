@@ -126,6 +126,17 @@ const loginContainer = () => {
                             </div>
                         </div>
 
+                        <div className="flex items-center mb-6 -mt-4">
+                            <div className="flex ml-auto">
+                                <router.Link
+                                    to={app.FORGOT_PASSWORD_PATH}
+                                    className="inline-flex text-xs sm:text-sm text-blue-500 hover:text-blue-700"
+                                >
+                                    Forgot Your Password?
+                                </router.Link>
+                            </div>
+                        </div>
+
                         <div className="flex w-full">
                             <button
                                 type="submit"

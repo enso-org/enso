@@ -25,6 +25,9 @@ const SIGN_OUT_PATHNAME = "//auth";
 /** Pathname of the {@link URL} for deep links to the registration confirmation page, after a
  * redirect from an account verification email. */
 const CONFIRM_REGISTRATION_PATHNAME = "//auth/confirmation";
+/** Pathname of the {@link URL} for deep links to the login page, after a redirect from a reset
+ * password email. */
+const LOGIN_PATHNAME = "//auth/login";
 
 const BASE_AMPLIFY_CONFIG: Partial<authConfig.AmplifyConfig> = {
     region: authConfig.AWS_REGION,
@@ -202,10 +205,17 @@ const setDeepLinkHandler = (
             // Navigate to a relative URL to handle the confirmation link.
             const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
             navigate(redirectUrl);
-        } else if (isSignOutRedirect(parsedUrl)) {
+        } else if (isSignOutRedirect(parsedUrl) || isLoginRedirect(parsedUrl)) {
             navigate(app.LOGIN_PATH);
         } else if (isSignInRedirect(parsedUrl)) {
             handleAuthResponse(url);
+            // If the user is being redirected from a password reset email, then we need to navigate to
+            // the password reset page, with the verification code and email passed in the URL so they
+            // can be filled in automatically.
+        } else if (isResetPasswordRedirect(parsedUrl)) {
+            // Navigate to a relative URL to handle the password reset.
+            const redirectUrl = `${app.RESET_PASSWORD_PATH}${parsedUrl.search}`;
+            navigate(redirectUrl);
         } else {
             logger.error(`${url} is an unrecognized deep link. Ignoring.`)
         }
@@ -233,6 +243,16 @@ const isSignOutRedirect = (url: URL) =>
 /** If the user is being redirected after a sign-out, then query args will be present. */
 const isSignInRedirect = (url: URL) =>
     url.pathname === SIGN_IN_PATHNAME && url.search !== "";
+
+/** If the user is being redirected after clicking the reset password confirmation link in their
+ * email, then the URL will be for the confirm password reset path. */
+const isResetPasswordRedirect = (url: URL) =>
+    url.pathname === app.RESET_PASSWORD_PATH;
+
+/** If the user is being redirected after finishing the password reset flow,
+ * then the URL will be for the login page. */
+const isLoginRedirect = (url: URL) =>
+    url.pathname === LOGIN_PATHNAME;
 
 /** When the user is being redirected from a federated identity provider, then we need to pass the
  * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */

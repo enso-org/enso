@@ -6,6 +6,8 @@ import * as router from "react-router-dom";
 
 import * as authProvider from "../authentication/providers/auth";
 import DashboardContainer from "../dashboard/components/dashboard";
+import ForgotPasswordContainer from "../authentication/components/forgotPassword";
+import ResetPasswordContainer from "../authentication/components/resetPassword";
 import LoginContainer from "../authentication/components/login";
 import RegistrationContainer from "../authentication/components/registration";
 import ConfirmRegistrationContainer from "../authentication/components/confirmRegistration";
@@ -29,6 +31,10 @@ export const LOGIN_PATH = "/login";
 export const REGISTRATION_PATH = "/registration";
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = "/confirmation";
+/** Path to the forgot password page. */
+export const FORGOT_PASSWORD_PATH = "/forgot-password";
+/** Path to the reset password page. */
+export const RESET_PASSWORD_PATH = "/password-reset";
 /** Path to the set username page. */
 export const SET_USERNAME_PATH = "/set-username";
 
@@ -78,7 +84,7 @@ const App = (props: AppProps) => {
 /** Router definition for the app. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter = (props: AppProps) => {
-    const { logger, onAuthenticated } = props;
+    const { logger, onAuthenticated, runningOnDesktop } = props;
     const navigate = router.useNavigate();
     const memoizedAuthService = React.useMemo(
         () => {
@@ -135,6 +141,14 @@ const AppRouter = (props: AppProps) => {
                             <router.Route
                                 path={CONFIRM_REGISTRATION_PATH}
                                 element={<ConfirmRegistrationContainer />}
+                            />
+                            <router.Route
+                                path={FORGOT_PASSWORD_PATH}
+                                element={<ForgotPasswordContainer />}
+                            />
+                            <router.Route
+                                path={RESET_PASSWORD_PATH}
+                                element={<ResetPasswordContainer />}
                             />
                         </React.Fragment>
                     </router.Routes>

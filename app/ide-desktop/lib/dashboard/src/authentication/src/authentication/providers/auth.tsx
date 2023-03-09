@@ -25,6 +25,8 @@ const MESSAGES = {
     confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
     setUsernameSuccess: "Your username has been set!",
     signInWithPasswordSuccess: "Successfully logged in!",
+    forgotPasswordSuccess: "We have sent you an email with further instructions!",
+    resetPasswordSuccess: "Successfully reset password!",
     signOutSuccess: "Successfully logged out!",
     pleaseWait: "Please wait...",
 };
@@ -92,6 +94,12 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<null>;
     signInWithGitHub: () => Promise<null>;
     signInWithPassword: (email: string, password: string) => Promise<void>;
+    forgotPassword: (email: string) => Promise<void>;
+    resetPassword: (
+        email: string,
+        code: string,
+        password: string
+    ) => Promise<void>;
     signOut: () => Promise<void>;
     /** Session containing the currently authenticated user's authentication information.
      *
@@ -270,6 +278,26 @@ export const AuthProvider = (props: AuthProviderProps) => {
             toast.error(result.val.message);
         });
 
+    const forgotPassword = async (email: string) =>
+        cognito.forgotPassword(email).then((result) => {
+            if (result.ok) {
+                toast.success(MESSAGES.forgotPasswordSuccess);
+                navigate(app.RESET_PASSWORD_PATH);
+            } else {
+                toast.error(result.val.message);
+            }
+        });
+
+    const resetPassword = async (email: string, code: string, password: string) =>
+        cognito.forgotPasswordSubmit(email, code, password).then((result) => {
+            if (result.ok) {
+                toast.success(MESSAGES.resetPasswordSuccess);
+                navigate(app.LOGIN_PATH);
+            } else {
+                toast.error(result.val.message);
+            }
+        });
+
     const signOut = () =>
         cognito
             .signOut()
@@ -283,6 +311,8 @@ export const AuthProvider = (props: AuthProviderProps) => {
         signInWithGoogle: cognito.signInWithGoogle,
         signInWithGitHub: cognito.signInWithGitHub,
         signInWithPassword: withLoadingToast(signInWithPassword),
+        forgotPassword: withLoadingToast(forgotPassword),
+        resetPassword: withLoadingToast(resetPassword),
         signOut,
         session: userSession,
     };
