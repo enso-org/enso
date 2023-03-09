@@ -206,7 +206,7 @@ class LocalLibraryManager(
       config.componentGroups match {
         case Left(error) =>
           logger.error(
-            s"Failed to parse library [{}] component groups.",
+            "Failed to parse library [{}] component groups.",
             libraryName,
             error
           )
