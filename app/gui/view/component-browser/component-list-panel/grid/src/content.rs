@@ -140,7 +140,7 @@ pub struct Group {
     pub original_height:  usize,
     /// The group color defined by library's author.
     pub color:            Option<color::Rgb>,
-    /// Match score of the highest matching entry in this group.
+    /// Match score of the entry with the best filtering pattern match.
     pub best_match_score: f32,
 }
 

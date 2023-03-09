@@ -108,6 +108,9 @@
 - [Fixed missing result preview when editing nodes.][5757]
 - [Application retries its initialization after failures][5802], allowing a
   reconnecting after connectivity problems.
+- [Improved Component Browser Filtering][4115]. The best match is always
+  selected first, and the groups are rearranged, so the best matches are on the
+  bottom.
 
 #### EnsoGL (rendering engine)
 
@@ -508,6 +511,7 @@
 [5779]: https://github.com/enso-org/enso/pull/5779
 [5757]: https://github.com/enso-org/enso/pull/5757
 [5802]: https://github.com/enso-org/enso/pull/5802
+[4115]: https://github.com/enso-org/enso/pull/4115
 
 #### Enso Compiler
 

@@ -209,40 +209,10 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
     }
 
     fn create_grid_content_info(&self) -> component_grid::content::Info {
-        use controller::searcher::TopModules;
-        let favorites = self.favorites();
-        let popular_section =
-            group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
-        let top_modules = self.top_modules();
-        let groups: Vec<_> = match top_modules {
-            TopModules::All(modules) => {
-                let submodules = modules.iter().enumerate().flat_map(|(section, list)| {
-                    group_list_to_grid_group_infos(
-                        component_grid::SectionId::Namespace(section),
-                        list,
-                    )
-                });
-                popular_section.chain(submodules).collect()
-            }
-            TopModules::Subset(list, section) => {
-                let submodules = group_list_to_grid_group_infos(
-                    component_grid::SectionId::Namespace(section),
-                    &list,
-                );
-                popular_section.chain(submodules).collect()
-            }
-        };
+        let groups =
+            collect_all_group_infos(self.favorites(), self.top_modules(), self.is_filtered());
         let local_scope_entry_count = self.local_scope().matched_items.get();
         let namespace_section_count = self.namespace_section_count();
-        let groups = if self.is_filtered() {
-            groups
-                .into_iter()
-                .sorted_by_key(|group| ordered_float::OrderedFloat(group.best_match_score))
-                .rev()
-                .collect()
-        } else {
-            groups
-        };
         component_list_panel::grid::content::Info {
             groups,
             local_scope_entry_count,
@@ -275,26 +245,34 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
 
 // === ControllerComponentsProviderExt Helper Functions ===
 
-fn controller_group_to_grid_group_info(
-    id: component_grid::GroupId,
-    group: &component::Group,
-) -> component_grid::content::Group {
-    if group.name == "Unnamed.Foo" {
-        warn!("GROUP {id:?}: {group:#?}");
+
+fn collect_all_group_infos(
+    favorites: component::group::List,
+    top_modules: controller::searcher::TopModules,
+    is_filtered: bool,
+) -> Vec<component_grid::content::Group> {
+    use controller::searcher::TopModules;
+    let popular_section =
+        group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
+    let mut groups: Vec<_> = match top_modules {
+        TopModules::All(modules) => {
+            let submodules = modules.iter().enumerate().flat_map(|(section, list)| {
+                group_list_to_grid_group_infos(component_grid::SectionId::Namespace(section), list)
+            });
+            popular_section.chain(submodules).collect()
+        }
+        TopModules::Subset(list, section) => {
+            let submodules = group_list_to_grid_group_infos(
+                component_grid::SectionId::Namespace(section),
+                &list,
+            );
+            popular_section.chain(submodules).collect()
+        }
+    };
+    if is_filtered {
+        groups.sort_by_key(|group| ordered_float::OrderedFloat(-group.best_match_score));
     }
-    component_grid::content::Group {
-        id,
-        height: group.matched_items.get(),
-        original_height: group.len(),
-        color: group.color,
-        best_match_score: group
-            .best_match()
-            .map(|m| {
-                // error!("BEST MATCH: {:?}:{:?}", m.label(), m.score());
-                m.score()
-            })
-            .unwrap_or_default(),
-    }
+    groups
 }
 
 fn group_list_to_grid_group_infos(
@@ -305,6 +283,19 @@ fn group_list_to_grid_group_infos(
         let id = component_grid::GroupId { section, index };
         controller_group_to_grid_group_info(id, group)
     })
+}
+
+fn controller_group_to_grid_group_info(
+    id: component_grid::GroupId,
+    group: &component::Group,
+) -> component_grid::content::Group {
+    component_grid::content::Group {
+        id,
+        height: group.matched_items.get(),
+        original_height: group.len(),
+        color: group.color,
+        best_match_score: group.best_match_score.get(),
+    }
 }
 
 fn group_to_header_model(
@@ -413,11 +404,10 @@ impl Component {
             grid.model_for_header <+ header_model;
         }
         let content = provider.create_grid_content_info();
-        let first_group = content.groups.first().map(|group| *group);
+        let first_group = content.groups.first().copied();
         grid.reset(content);
-        // error!("first_section: {:?}", first_group);
         if let Some(group) = first_group {
-            if group.best_match_score > 0.0 {
+            if group.best_match_score > component::NOT_MATCHING_SCORE {
                 grid.switch_section_no_animation(group.id.section);
             }
         } else if provider.displaying_module() {
