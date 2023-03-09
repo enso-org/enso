@@ -19,6 +19,9 @@ import * as config from "../config";
 /** Pathname of the {@link URL} for deep links to the sign in page, after a redirect from a
  * federated identity provider. */
 const SIGN_IN_PATHNAME = "//auth";
+/** Pathname of the {@link URL} for deep links to the sign out page, after a redirect from a
+ * federated identity provider. */
+const SIGN_OUT_PATHNAME = "//auth";
 /** Pathname of the {@link URL} for deep links to the registration confirmation page, after a
  * redirect from an account verification email. */
 const CONFIRM_REGISTRATION_PATHNAME = "//auth/confirmation";
@@ -199,6 +202,8 @@ const setDeepLinkHandler = (
             // Navigate to a relative URL to handle the confirmation link.
             const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
             navigate(redirectUrl);
+        } else if (isSignOutRedirect(parsedUrl)) {
+            navigate(app.LOGIN_PATH);
         } else if (isSignInRedirect(parsedUrl)) {
             handleAuthResponse(url);
         } else {
@@ -217,6 +222,13 @@ const setDeepLinkHandler = (
  * email, then the URL will be for the confirmation page path. */
 const isConfirmRegistrationRedirect = (url: URL) =>
     url.pathname === CONFIRM_REGISTRATION_PATHNAME;
+
+/** If the user is being redirected after a sign-out, then no query args will be present. */
+// TODO [NP]: https://github.com/enso-org/cloud-v2/issues/339
+// Don't use `enso://auth` for both authentication redirect & signout redirect so we don't have to
+// disambiguate between the two on the `DASHBOARD_PATH`.
+const isSignOutRedirect = (url: URL) =>
+    url.pathname === SIGN_OUT_PATHNAME && url.search === "";
 
 /** If the user is being redirected after a sign-out, then query args will be present. */
 const isSignInRedirect = (url: URL) =>

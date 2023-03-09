@@ -25,6 +25,7 @@ const MESSAGES = {
     confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
     setUsernameSuccess: "Your username has been set!",
     signInWithPasswordSuccess: "Successfully logged in!",
+    signOutSuccess: "Successfully logged out!",
     pleaseWait: "Please wait...",
 };
 
@@ -91,6 +92,7 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<null>;
     signInWithGitHub: () => Promise<null>;
     signInWithPassword: (email: string, password: string) => Promise<void>;
+    signOut: () => Promise<void>;
     /** Session containing the currently authenticated user's authentication information.
      *
      * If the user has not signed in, the session will be `undefined`. */
@@ -268,6 +270,12 @@ export const AuthProvider = (props: AuthProviderProps) => {
             toast.error(result.val.message);
         });
 
+    const signOut = () =>
+        cognito
+            .signOut()
+            .then(() => toast.success(MESSAGES.signOutSuccess))
+            .then(() => {});
+
     const value = {
         signUp: withLoadingToast(signUp),
         confirmSignUp: withLoadingToast(confirmSignUp),
@@ -275,6 +283,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
         signInWithGoogle: cognito.signInWithGoogle,
         signInWithGitHub: cognito.signInWithGitHub,
         signInWithPassword: withLoadingToast(signInWithPassword),
+        signOut,
         session: userSession,
     };
 
