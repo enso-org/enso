@@ -152,8 +152,10 @@ type Any
        Arguments:
        - that: The value to compare `self` against.
 
-       To have `>` properly defined, a type must have an associated comparator.
-       See `Ordering.enso` for information how comparators work.
+       To be comparable, a custom object must have an associated comparator
+       which will return `Ordering.Less/Greater` for unequal values. Otherwise,
+       this will raise `Incomparable_Values` error. See `Ordering.enso` for
+       information how comparators work.
 
        > Example
          Checking if the variable `a` is greater than `147`.
@@ -212,8 +214,10 @@ type Any
        Arguments:
        - that: The value to compare `self` against.
 
-       To have `<` properly defined, a type must have an associated comparator.
-       See `Ordering.enso` for information how comparators work.
+       To be comparable, a custom object must have an associated comparator
+       which will return `Ordering.Less/Greater` for unequal values. Otherwise,
+       this will raise `Incomparable_Values` error. See `Ordering.enso` for
+       information how comparators work.
 
        > Example
          Checking if the variable `a` is less than `147`.
