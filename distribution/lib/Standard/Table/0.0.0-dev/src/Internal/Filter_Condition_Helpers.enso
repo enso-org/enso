@@ -82,7 +82,7 @@ expect_column_or_value_as_text field_name column_or_value ~action = case column_
        the backend). So we assume it is a column and if it doesn't quack like a
        column, we fall back to a type error.
     maybe_column ->
-        result = Panic.catch No_Such_Method.Error (Value_Type.expect_text maybe_column.value_type True) _->
+        result = Panic.catch No_Such_Method (Value_Type.expect_text maybe_column.value_type True) _->
             Error.throw (Type_Error.Error Text (Meta.type_of maybe_column) field_name)
         ## We don't run the action above, to avoid catching spurious
            `No_Such_Method` from the action itself. Instead we just return

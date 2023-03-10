@@ -141,7 +141,7 @@ spec setup =
 
         Test.specify "should not allow Group_By for values" <|
             err1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=Problem_Behavior.Ignore
-            err1.should_fail_with Illegal_Argument.Error
+            err1.should_fail_with Illegal_Argument
 
         Test.specify "should gracefully handle duplicate aggregate names" pending="TODO: this should be fixed as part of https://github.com/enso-org/enso/issues/5151" <|
             action = table.cross_tab [] "Key" values=[Count new_name="Agg1", Sum "Value" new_name="Agg1"]
