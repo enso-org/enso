@@ -27,8 +27,22 @@ public class Column {
    * @param storage the underlying storage
    */
   public Column(String name, Storage<?> storage) {
+    ensureNameIsValid(name);
     this.name = name;
     this.storage = storage;
+  }
+
+  public static void ensureNameIsValid(String name) {
+    if (name == null) {
+      throw new IllegalArgumentException("Column name cannot be Nothing.");
+    }
+    if (name.isEmpty()) {
+      throw new IllegalArgumentException("Column name cannot be empty.");
+    }
+    if (name.indexOf('\0') >= 0) {
+      // TODO pretty?
+      throw new IllegalArgumentException("Column name "+name+" must not contain the NUL character.");
+    }
   }
 
   /**

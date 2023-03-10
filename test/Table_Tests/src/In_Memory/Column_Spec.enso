@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Column
 import Standard.Table.Data.Storage.Storage
@@ -91,3 +92,16 @@ spec = Test.group "Columns" <|
         (test_column * 2).storage_type . should_equal Storage.Integer
         (test_column * 1.5).storage_type . should_equal Storage.Decimal
         (test_column + another).storage_type . should_equal Storage.Integer
+
+    Test.specify "should not allow invalid column names" <|
+        c1 = Column.from_vector "" [1, 2, 3]
+        c1.should_fail_with Illegal_Argument
+
+        c2 = Column.from_vector Nothing [1, 2, 3]
+        c2.should_fail_with Illegal_Argument
+
+        c3 = Column.from_vector '\0' [1, 2, 3]
+        c3.should_fail_with Illegal_Argument
+
+        c4 = Column.from_vector 'foo\0bar' [1, 2, 3]
+        c4.should_fail_with Illegal_Argument

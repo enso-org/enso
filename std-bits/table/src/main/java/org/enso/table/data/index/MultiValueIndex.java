@@ -2,12 +2,12 @@ package org.enso.table.data.index;
 
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
-import org.enso.table.data.column.builder.object.*;
+import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
 
 import java.util.*;
@@ -189,8 +189,16 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       String name = boxed == null ? "" : boxed.toString();
 
       for (int i = 0; i < aggregates.length; i++) {
-        output[offset + i] =
-            new Column((name + " " + aggregateNames[i]).trim(), storage[offset + i].seal());
+        String effectiveName;
+        if (aggregateNames[i].isEmpty()) {
+          effectiveName = name;
+        } else if (name.isEmpty()) {
+          effectiveName = aggregateNames[i];
+        } else {
+          effectiveName = name + " " + aggregateNames[i];
+        }
+
+        output[offset + i] = new Column(effectiveName, storage[offset + i].seal());
       }
 
       offset += aggregates.length;
