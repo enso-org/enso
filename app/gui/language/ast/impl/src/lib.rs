@@ -454,6 +454,21 @@ macro_rules! with_shape_variants {
     };
 }
 
+/// Define variant name getter for all shapes.
+macro_rules! generate_variant_name {
+    ( $([$name:ident $($rest:tt)* ])* ) => {
+        impl<T> Shape<T> {
+            pub fn variant_name(&self) -> &'static str {
+                match self {
+                    $(Shape::$name { .. } => stringify!($name),)*
+                }
+            }
+        }
+    };
+}
+
+with_shape_variants!(generate_variant_name);
+
 
 // === [`Tree`] data ===
 
@@ -1218,6 +1233,17 @@ impl Ast {
     /// Creates an AST node with `Infix` shape, where both its operands are Vars.
     pub fn infix_var(larg: impl Str, opr: impl Str, rarg: impl Str) -> Ast {
         let infix = Infix::from_vars(larg, opr, rarg);
+        Ast::from(infix)
+    }
+
+    /// Creates an AST node with `Infix` assignment to a `Var` with given name and no spacing.
+    pub fn named_argument(name: impl Str, expression: impl Into<Ast>) -> Ast {
+        let larg = Ast::var(name);
+        let loff = 0;
+        let opr = Ast::opr(opr::predefined::ASSIGNMENT);
+        let roff = 0;
+        let rarg = expression.into();
+        let infix = Infix { larg, loff, opr, roff, rarg };
         Ast::from(infix)
     }
 

@@ -79,8 +79,6 @@ import * as shared from '../shared'
 import * as childProcess from 'child_process'
 import * as os from 'os'
 
-
-
 // =================
 // === Constants ===
 // =================
@@ -88,8 +86,6 @@ import * as os from 'os'
 /** Name of the Electron event that is emitted when a URL is opened in Electron (e.g., when the user
  * clicks a link in the dashboard). */
 const OPEN_URL_EVENT = 'open-url'
-
-
 
 // ========================================
 // === Initialize Authentication Module ===
@@ -141,12 +137,9 @@ const initOpenUrlListener = (window: () => electron.BrowserWindow) => {
     })
 }
 
-
-
 // ==============
 // === Opener ===
 // ==============
-
 
 /** Function for opening URLs in the system browser in a cross-platform way.
  *

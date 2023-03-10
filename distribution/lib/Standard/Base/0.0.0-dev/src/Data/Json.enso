@@ -193,7 +193,7 @@ type JS_Object_Comparator
         obj1_keys = obj1.field_names
         obj2_keys = obj2.field_names
         obj1_keys.length == obj2_keys.length && obj1_keys.all key->
-            (obj1.get key == obj2.at key).catch No_Such_Key.Error _->False
+            (obj1.get key == obj2.at key).catch No_Such_Key _->False
 
     hash : JS_Object -> Integer
     hash obj =

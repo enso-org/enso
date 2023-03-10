@@ -50,13 +50,13 @@ type Existing_File_Behavior
             Existing_File_Behavior.Overwrite -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] action
             Existing_File_Behavior.Append -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Append] action
             Existing_File_Behavior.Error -> file.with_output_stream [File_Access.Write, File_Access.Create_New] action
-            Existing_File_Behavior.Backup -> Panic.recover [File_Error.IO_Error, File_Error.Not_Found] <|
+            Existing_File_Behavior.Backup -> recover_io_and_not_found <|
                 handle_existing_file _ =
                     write_file_backing_up_old_one file action
                 handle_write_failure_dataflow caught_panic =
                     Error.throw caught_panic.payload.cause
-                handle_file_already_exists = Panic.catch File_Error.Already_Exists handler=handle_existing_file
-                handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored.Error handler=handle_write_failure_dataflow
+                handle_file_already_exists = catch_already_exists handle_existing_file
+                handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
                 ## We first attempt to write the file to the original
                    destination, but if that files due to the file already
                    existing, we will run the alternative algorithm which uses a
@@ -68,7 +68,7 @@ type Existing_File_Behavior
 
 ## PRIVATE
 write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
-write_file_backing_up_old_one file action = Panic.recover [File_Error.IO_Error, File_Error.Not_Found] <|
+write_file_backing_up_old_one file action = recover_io_and_not_found <|
     parent = file.parent
     bak_file = parent / file.name+".bak"
     go i =
@@ -85,9 +85,9 @@ write_file_backing_up_old_one file action = Panic.recover [File_Error.IO_Error, 
                the file must have been created, but since we failed, we need to clean it up.
             new_file.delete
             Error.throw caught_panic.payload.cause
-        handle_file_already_exists = Panic.catch File_Error.Already_Exists handler=handle_existing_file
-        handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored.Error handler=handle_write_failure_dataflow
-        handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked.Panic handler=handle_write_failure_panic
+        handle_file_already_exists = catch_already_exists handle_existing_file
+        handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
+        handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked handler=handle_write_failure_panic
         handle_file_already_exists <| handle_internal_dataflow <| handle_internal_panic <|
             Panic.rethrow <|
                 new_file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
@@ -101,7 +101,10 @@ write_file_backing_up_old_one file action = Panic.recover [File_Error.IO_Error, 
                writing the new one to the temporary location. There is nothing
                to back-up anymore, but this is not a failure, so it can be
                safely ignored.
-            Panic.catch File_Error.Not_Found handler=(_->Nothing) <|
+            not_found_handler caught_panic = case caught_panic.payload of
+                File_Error.Not_Found _ -> Nothing
+                _ -> Panic.throw caught_panic
+            Panic.catch File_Error handler=not_found_handler <|
                 Panic.rethrow <| file.move_to bak_file replace_existing=True
             Panic.rethrow <| new_file.move_to file
     ## Here we manually check if the target file is writable. This is necessary,
@@ -124,3 +127,18 @@ type Internal_Write_Operation_Panicked
 type Internal_Write_Operation_Errored
     ## PRIVATE
     Error (cause : Any)
+
+## PRIVATE
+catch_already_exists handler =
+    panic_handler caught_panic = case caught_panic.payload of
+        File_Error.Already_Exists _ -> handler caught_panic
+        _ -> Panic.throw caught_panic
+    Panic.catch File_Error handler=panic_handler
+
+## PRIVATE
+recover_io_and_not_found =
+    panic_handler caught_panic = case caught_panic.payload of
+        File_Error.IO_Error _ _ -> caught_panic.convert_to_dataflow_error
+        File_Error.Not_Found _ -> caught_panic.convert_to_dataflow_error
+        _ -> Panic.throw caught_panic
+    Panic.catch File_Error handler=panic_handler

@@ -86,14 +86,14 @@ spec =
             r2.at "bar" . to_vector . should_equal []
 
         Test.specify "should handle error scenarios gracefully" <|
-            Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument.Error
-            Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument.Error
-            Table.new [] . should_fail_with Illegal_Argument.Error
+            Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
+            Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
+            Table.new [] . should_fail_with Illegal_Argument
 
-            Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument.Error
-            Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with Index_Out_Of_Bounds.Error
-            Table.from_rows [] [] . should_fail_with Illegal_Argument.Error
-            Table.from_rows [] [[]] . should_fail_with Illegal_Argument.Error
+            Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument
+            Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with Index_Out_Of_Bounds
+            Table.from_rows [] [] . should_fail_with Illegal_Argument
+            Table.from_rows [] [[]] . should_fail_with Illegal_Argument
 
         Test.specify "should be internally guarded against creating a table without columns" <|
             Test.expect_panic_with (Java_Table.new []) IllegalArgumentException
@@ -153,7 +153,7 @@ spec =
             t.at 's\u0301ciana' . to_vector . should_equal [1, 2, 3]
             t.at 'cafe\u0301' . to_vector . should_equal [4, 5, 6]
             t.at 'café' . to_vector . should_equal [4, 5, 6]
-            t.at 'sciana' . should_fail_with No_Such_Column.Error
+            t.at 'sciana' . should_fail_with No_Such_Column
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
@@ -448,7 +448,7 @@ spec =
             r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
 
             r6 = df.order_by (['mixed_dates'])
-            r6 . should_fail_with Incomparable_Values.Error
+            r6 . should_fail_with Incomparable_Values
 
     Test.group "Sorting Columns" <|
         Test.specify 'should sort columns with specified ordering and missing placement' <|
@@ -751,7 +751,7 @@ spec =
 
         Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|
             t = Table.new [["X", [My.Data 1 2, My.Data 3 4, My.Data 1 2]]]
-            t.distinct . should_fail_with Illegal_Argument.Error
+            t.distinct . should_fail_with Illegal_Argument
 
     Test.group "[In-Memory] Table.filter" <|
         Test.specify "by a custom predicate" <|
@@ -908,13 +908,13 @@ spec =
     Test.group "[In-Memory-specific] Table.join" <|
         Test.specify "should correctly report unsupported cross-backend joins" <|
             t = Table.new [["X", [1, 2, 3]]]
-            t.join 42 . should_fail_with Type_Error.Error
+            t.join 42 . should_fail_with Type_Error
 
             db = Database.connect (SQLite In_Memory)
             db_table = db.upload_table "test" (Table.new [["Y", [4, 5, 6]]])
 
             r = t.join db_table
-            r.should_fail_with Illegal_Argument.Error
+            r.should_fail_with Illegal_Argument
             r.catch.message . contains "cross-backend" . should_be_true
 
 main = Test_Suite.run_main spec

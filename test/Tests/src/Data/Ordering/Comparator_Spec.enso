@@ -68,6 +68,6 @@ spec = Test.group "Object Comparator" <|
 
     Test.specify "should fail gracefully for incomparable items" <|
         (default_comparator 1 True).catch . should_equal (Incomparable_Values.Error 1 True)
-        (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values.Error
+        (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values
 
 main = Test_Suite.run_main spec
