@@ -384,6 +384,7 @@ impl Model {
                 || (node.is_root() && !node.children.is_empty())
                 || skip_opr
                 || node.is_token()
+                || node.is_named_argument()
                 || builder.parent_parensed;
 
             if let Some(id) = node.ast_id {
@@ -536,13 +537,10 @@ impl Model {
                         widget.set_current_value(None);
                     }
 
-                    let can_be_removed = call_info.is_last_argument(port);
-                    let empty_value = if can_be_removed { "" } else { "_" };
-
                     let port_network = &port.network;
                     frp::extend! { port_network
                         code_update <- widget.value_changed.map(f!([crumbs](value) {
-                            let expression = value.clone().unwrap_or_else(|| empty_value.into());
+                            let expression = value.clone().unwrap_or_default();
                             (crumbs.clone_ref(), expression)
                         }));
                         area_frp.source.on_port_code_update <+ code_update;
@@ -1169,10 +1167,7 @@ struct CallInfoMap {
 #[derive(Debug, Default)]
 struct CallInfo {
     /// The AST ID associated with `self` argument span of the call expression.
-    target_id:     Option<ast::Id>,
-    /// The crumbs of last argument span associated with the call expression. It can be any
-    /// argument, including `self`.
-    last_argument: Option<Crumbs>,
+    target_id: Option<ast::Id>,
 }
 
 impl CallInfoMap {
@@ -1181,10 +1176,9 @@ impl CallInfoMap {
         expression.root_ref().dfs(|node| {
             if let Some(call_id) = node.kind.call_id() {
                 let mut entry = call_info.entry(call_id).or_default();
-                if entry.target_id.is_none() {
+                if entry.target_id.is_none() || node.kind.is_this() {
                     entry.target_id = node.ast_id;
                 }
-                entry.last_argument = Some(node.crumbs.clone());
             }
         });
 
@@ -1197,12 +1191,5 @@ impl CallInfoMap {
 
     fn target(&self, call_id: &ast::Id) -> Option<ast::Id> {
         self.call_info.get(call_id).and_then(|info| info.target_id)
-    }
-
-    fn is_last_argument(&self, node: &PortRefMut) -> bool {
-        let call_id = node.kind.call_id();
-        let info = call_id.and_then(|call_id| self.call_info.get(&call_id));
-        let last_argument = info.and_then(|info| info.last_argument.as_ref());
-        last_argument.map_or(false, |crumbs| crumbs == &node.crumbs)
     }
 }
