@@ -16,4 +16,10 @@ trait JobControlPlane {
     */
   def abortJobs(contextId: UUID): Unit
 
+  /** Starts background jobs processing.
+    *
+    * @return `true` if the background was started and `false` if they were
+    * already running.
+    */
+  def startBackgroundJobs(): Boolean
 }

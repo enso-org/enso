@@ -5,6 +5,8 @@ import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+import java.util.logging.Level
+
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that pushes an item onto a stack.
@@ -78,7 +80,16 @@ class PushContextCmd(
       for {
         _ <- Future(ctx.jobProcessor.run(EnsureCompiledJob(executable.stack)))
         _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
-      } yield ()
+      } yield {
+        val jobsStarted = ctx.jobControlPlane.startBackgroundJobs()
+        if (jobsStarted) {
+          ctx.executionService.getLogger
+            .log(Level.INFO, "Background jobs started.")
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.BackgroundJobsStartedNotification())
+          )
+        }
+      }
     } else {
       Future.successful(())
     }
