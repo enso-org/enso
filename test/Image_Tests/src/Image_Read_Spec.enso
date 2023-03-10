@@ -24,7 +24,9 @@ spec =
 
     Test.group "Image.read" pending=pending <|
         Test.specify "should return error when read failed" <|
-            Image.read (enso_project.root / 'no_such_file.png') . should_fail_with File_Error.IO_Error
+            result = Image.read (enso_project.root / 'no_such_file.png')
+            result . should_fail_with File_Error
+            result.catch.should_be_a File_Error.IO_Error
         Test.specify "should read a color image" <|
             img = Image.read rgba_file
             img.rows.should_equal 160
@@ -43,7 +45,9 @@ spec =
 
         Test.specify "should return error when write failed" <|
             out_file = enso_project.root / "no_such_directory" / "out.png"
-            Image.read rgba_file . write out_file . should_fail_with File_Error.IO_Error
+            result = Image.read rgba_file . write out_file
+            result.should_fail_with File_Error
+            result.catch.should_be_a File_Error.IO_Error
         Test.specify "should write a PNG file with alpha channel" <|
             out_file = enso_project.root / "out_alpha.png"
             Image.read rgba_file Read_Flag.Alpha_Channel . write out_file

@@ -12,6 +12,7 @@ polyglot java import java.util.Locale as JavaLocale
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 from Standard.Base.Error.Common import Uninitialized_State
+import Standard.Base.Error.File_Error.File_Error
 
 type My_Type
     @foo (test_method)
@@ -37,6 +38,10 @@ test_method a b = a + b
 
 type Test_Type
     Value x
+
+type Sum_Type
+    Variant_A x
+    Variant_B y
 
 spec =
     Test.group "Meta-Value Manipulation" <|
@@ -70,7 +75,7 @@ spec =
         Test.specify "should allow manipulation of error values" <|
             err = Error.throw "My Error"
             meta_err = Meta.meta err
-            meta_err.is_a Meta.Error.Value . should_be_true
+            meta_err.is_a Meta.Error . should_be_true
             meta_err.value . should_equal "My Error"
         Test.specify "should allow checking if a value is of a certain type" <|
             1.is_a Any . should_be_true
@@ -106,8 +111,8 @@ spec =
             Meta.is_a random_gen Random . should_be_true
             Meta.is_a random_gen Integer . should_be_false
 
-            (My_Type.Value 1 "foo" Nothing).is_a My_Type.Value . should_be_true
-            (My_Type.Value 1 "foo" Nothing).is_a Test_Type.Value . should_be_false
+            (My_Type.Value 1 "foo" Nothing).is_a My_Type . should_be_true
+            (My_Type.Value 1 "foo" Nothing).is_a Test_Type . should_be_false
             (My_Type.Value 1 "foo" Nothing).is_a Number . should_be_false
 
             err = Error.throw "Error Value"
@@ -124,6 +129,29 @@ spec =
             Meta.is_a Time_Of_Day.now Date . should_be_false
             Meta.is_a Date_Time.now.zone Time_Zone . should_be_true
             Meta.is_a Date_Time.now.zone Date . should_be_false
+
+        Test.specify "constructor variants check" <|
+            (Sum_Type.Variant_A 42).is_a Sum_Type . should_be_true
+            (Sum_Type.Variant_A 42).is_a Sum_Type.Variant_A . should_be_false
+            (Sum_Type.Variant_A 42).is_a Sum_Type.Variant_B . should_be_false
+
+        Test.specify "constructor variants case of" <|
+            case (Sum_Type.Variant_A 42) of
+                _ : Sum_Type -> Nothing
+                e -> Test.fail "Expected "+e.to_text+" to be a Sum_Type"
+
+        Test.specify "constructor True check" <|
+            True . should_be_a True
+            True . should_be_a Boolean
+            Panic.recover Any (True . should_be_a False) . should_fail_with Any
+
+        Test.specify "constructor Case.Lower check" <|
+            Case.Lower . should_be_a Case.Lower
+            Case.Lower . should_be_a Case
+            Panic.recover Any (Case.Lower . should_be_a Case.Upper) . should_fail_with Any
+
+        Test.specify "5 isn't a constructor" <|
+            Panic.recover Any (5.should_be_a File_Error.Not_Found) . should_fail_with Any
 
         Test.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42
@@ -173,7 +201,7 @@ spec =
 
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Random.new
-            java_meta . should_be_a Meta.Polyglot.Value
+            java_meta . should_be_a Meta.Polyglot
             java_meta . get_language . should_equal Meta.Language.Java
 
         Test.specify "should correctly handle equality of Java values" <|
@@ -192,7 +220,8 @@ spec =
         Test.specify "get annotations" <|
             Meta.get_annotation Meta_Spec "test_method" "a" . should_equal 7
             Meta.get_annotation Meta_Spec "test_method" "b" . should_equal (Test_Type.Value 49)
-            Meta.get_annotation Meta_Spec "test_method" "c" . should_fail_with "Error Value"
+            Meta.get_annotation Meta_Spec "test_method" "c" . should_fail_with Text
+            Meta.get_annotation Meta_Spec "test_method" "c" . catch . should_equal "Error Value"
             Meta.get_annotation Meta_Spec "test_method" "x" . should_equal Nothing
 
             value = My_Type.Value 99 "bar" True
@@ -238,7 +267,7 @@ spec =
             atom.bar . should_equal 2
 
         Test.specify "fail if atom_with_hole isn't used" <|
-            key = Panic.catch Uninitialized_State.Error handler=(caught_panic-> caught_panic.payload.key) <|
+            key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
                 Meta.atom_with_hole (_ -> My_Type.Value 1 2 3)
             case key of
                 t : My_Type ->
@@ -247,7 +276,7 @@ spec =
                     t.baz . should_equal 3
 
         Test.specify "fail if non-atom is created" <|
-            key = Panic.catch Uninitialized_State.Error handler=(caught_panic-> caught_panic.payload.key) <|
+            key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
                 Meta.atom_with_hole (_ -> 2)
             case key of
                 t : Number ->

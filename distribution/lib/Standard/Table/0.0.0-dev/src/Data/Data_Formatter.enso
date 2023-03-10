@@ -267,7 +267,7 @@ type Data_Formatter
     ## PRIVATE
     make_auto_formatter self =
         # TODO The panic rethrow+recover is a workaround for the vector error propagation bug.
-        formatters = Panic.recover Illegal_Argument.Error (self.get_specific_type_formatters.map Panic.rethrow)
+        formatters = Panic.recover Illegal_Argument (self.get_specific_type_formatters.map Panic.rethrow)
         AnyObjectFormatter.new formatters.to_array
 
     ## PRIVATE
