@@ -210,6 +210,7 @@ public final class Text implements TruffleObject {
         case '\'' -> strBuf.append("\\'");
         case '\n' -> strBuf.append("\\n");
         case '\t' -> strBuf.append("\\t");
+        case '\0' -> strBuf.append("\\0");
         case '\u0007' -> strBuf.append("\\a");
         case '\u0008' -> strBuf.append("\\b");
         case '\u000c' -> strBuf.append("\\f");

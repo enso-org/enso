@@ -452,6 +452,13 @@ spec setup =
             problems = [Invalid_Output_Column_Names.Error [Nothing]]
             Problems.test_problem_handling action problems tester
 
+        Test.specify "should correctly handle problems: invalid names null character" <|
+            map = ["alpha", 'a\0b']
+            action = table.rename_columns map on_problems=_
+            tester = expect_column_names ["alpha", "Column_1", "gamma", "delta"]
+            problems = [Invalid_Output_Column_Names.Error ['a\0b']]
+            Problems.test_problem_handling action problems tester
+
         Test.specify "should correctly handle problems: duplicate names" <|
             map = ["Test", "Test", "Test", "Test"]
             action = table.rename_columns map on_problems=_

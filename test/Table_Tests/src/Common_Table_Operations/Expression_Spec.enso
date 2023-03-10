@@ -6,6 +6,8 @@ from Standard.Table import Table, Column, Sort_Column, Aggregate_Column
 from Standard.Table.Errors import Floating_Point_Equality, Additional_Warnings
 import Standard.Table.Data.Expression.Expression_Error
 
+from Standard.Database.Errors import SQL_Error
+
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
@@ -45,6 +47,8 @@ spec detailed setup =
                 _ : Number -> e.equals v epsilon
                 _ -> e == v
             if match.not then values.should_equal expected
+
+        new_column.name . should_equal expression
 
     specify_test label action expression_test=tester pending=Nothing = case pending of
         Nothing ->
@@ -94,6 +98,15 @@ spec detailed setup =
         specify_test "should be able to get a Column" expression_test->
             expression_test "[A]" (column_a.at 1)
             expression_test "[Bad]] Name]" (column_odd.at 1)
+
+        Test.specify "should sanitize names" <|
+            t = table_builder [["X", ['\0', 'x', '']]]
+            c = t.compute '[X] == \'\0\'' . catch SQL_Error
+            c.name . should_equal "[X] == '\0'"
+            case c.to_vector . catch SQL_Error of
+                # We ignore the SQL error upon materialization - some backends just do not support `\0` in query parameters. This is not the main point of this test.
+                _ : SQL_Error -> Nothing
+                vec -> vec.should_equal [True, False, False]
 
     Test.group prefix+"Expression Nothing literals" <|
         specify_test "should be able to add an nothing column" expression_test->
