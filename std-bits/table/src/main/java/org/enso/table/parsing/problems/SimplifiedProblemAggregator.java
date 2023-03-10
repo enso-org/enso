@@ -19,7 +19,7 @@ public class SimplifiedProblemAggregator implements ProblemAggregator {
   }
 
   @Override
-  public void reportMismatchedQuote() {
+  public void reportMismatchedQuote(String cellText) {
     hasProblems = true;
   }
 
