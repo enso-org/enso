@@ -98,7 +98,7 @@ const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onChange }
                             />
                         </svg>
                     </button>
-                    <p className="font-[600] text-sm">New empty project</p>
+                    <p className="font-semibold text-sm">New empty project</p>
                 </div>
             </div>
         </button>
