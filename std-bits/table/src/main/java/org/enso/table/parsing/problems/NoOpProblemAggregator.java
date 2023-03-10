@@ -14,7 +14,7 @@ public class NoOpProblemAggregator implements ProblemAggregator {
   public void reportLeadingZeroes(String cell) {}
 
   @Override
-  public void reportMismatchedQuote() {}
+  public void reportMismatchedQuote(String cellText) {}
 
   @Override
   public boolean hasProblems() {
