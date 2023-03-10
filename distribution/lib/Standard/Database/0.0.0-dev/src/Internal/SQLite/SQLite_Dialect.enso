@@ -3,6 +3,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
+import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
@@ -116,6 +117,12 @@ type SQLite_Dialect
     is_probably_a_query : Text -> Boolean
     is_probably_a_query self text =
         (text.contains "SELECT ") || (text.contains "EXEC ")
+
+    ## PRIVATE
+       Returns an utility that allows ensuring column names are valid for the
+       given backend.
+    get_naming_helpers : Naming_Helpers
+    get_naming_helpers self = Naming_Helpers
 
 ## PRIVATE
 make_internal_generator_dialect =

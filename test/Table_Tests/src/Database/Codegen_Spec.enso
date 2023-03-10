@@ -70,21 +70,21 @@ spec =
             arith = (d * 2) + 1
             logic = (f || f.not) && True
             cmp = (d * d >= e) && (d - e < d)
-            arith.to_sql.prepare . should_equal ['SELECT (("T2"."D" * ?) + ?) AS "D" FROM "T2" AS "T2"', [[2, int], [1, int]]]
-            logic.to_sql.prepare . should_equal ['SELECT (("T2"."F" OR (NOT "T2"."F")) AND ?) AS "F" FROM "T2" AS "T2"', [[True, bool]]]
-            cmp.to_sql.prepare . should_equal ['SELECT ((("T2"."D" * "T2"."D") >= "T2"."E") AND (("T2"."D" - "T2"."E") < "T2"."D")) AS "D" FROM "T2" AS "T2"', []]
+            arith.to_sql.prepare . should_equal ['SELECT (("T2"."D" * ?) + ?) AS "'+arith.name+'" FROM "T2" AS "T2"', [[2, int], [1, int]]]
+            logic.to_sql.prepare . should_equal ['SELECT (("T2"."F" OR (NOT "T2"."F")) AND ?) AS "'+logic.name+'" FROM "T2" AS "T2"', [[True, bool]]]
+            cmp.to_sql.prepare . should_equal ['SELECT ((("T2"."D" * "T2"."D") >= "T2"."E") AND (("T2"."D" - "T2"."E") < "T2"."D")) AS "'+cmp.name+'" FROM "T2" AS "T2"', []]
 
         Test.specify "should support simple text operations" <|
             b = t1.at "B"
             add = b + "SUFFIX"
-            add.to_sql.prepare . should_equal ['SELECT ("T1"."B" || ?) AS "B" FROM "T1" AS "T1"', [["SUFFIX", str]]]
+            add.to_sql.prepare . should_equal ['SELECT ("T1"."B" || ?) AS "[B] + \'SUFFIX\'" FROM "T1" AS "T1"', [["SUFFIX", str]]]
 
             ends = b.ends_with "suf"
             starts = b.starts_with "pref"
             contains = b.contains "inf"
-            ends.to_sql.prepare . should_equal ['SELECT ("T1"."B" GLOB (\'*\' || ?)) AS "B" FROM "T1" AS "T1"', [["suf", str]]]
-            starts.to_sql.prepare . should_equal ['SELECT ("T1"."B" GLOB (? || \'*\')) AS "B" FROM "T1" AS "T1"', [["pref", str]]]
-            contains.to_sql.prepare . should_equal ['SELECT instr("T1"."B", ?) > 0 AS "B" FROM "T1" AS "T1"', [["inf", str]]]
+            ends.to_sql.prepare . should_equal ['SELECT ("T1"."B" GLOB (\'*\' || ?)) AS "'+ends.name+'" FROM "T1" AS "T1"', [["suf", str]]]
+            starts.to_sql.prepare . should_equal ['SELECT ("T1"."B" GLOB (? || \'*\')) AS "'+starts.name+'" FROM "T1" AS "T1"', [["pref", str]]]
+            contains.to_sql.prepare . should_equal ['SELECT instr("T1"."B", ?) > 0 AS "'+contains.name+'" FROM "T1" AS "T1"', [["inf", str]]]
 
     Test.group "[Codegen] Masking Tables and Columns" <|
         Test.specify "should generate a single BETWEEN expression" <|
@@ -113,7 +113,7 @@ spec =
     Test.group "[Codegen] Handling Missing Values" <|
         Test.specify "fill_missing should allow to replace missing values in a column with a constant" <|
             c = t1.at "A" . fill_missing "not-applicable"
-            c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "A" FROM "T1" AS "T1"', [["not-applicable", int]]]
+            c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "fill_missing([A], \'not-applicable\')" FROM "T1" AS "T1"', [["not-applicable", int]]]
 
         Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
             t2 = t1.filter_blank_rows when_any=True
