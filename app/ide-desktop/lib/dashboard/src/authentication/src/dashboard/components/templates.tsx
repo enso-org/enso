@@ -51,8 +51,9 @@ const dataUrl2 = `data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBwg
 const genBackgroundImage = () => `url(${Math.random() > 0.5 ? dataUrl1 : dataUrl2})`
 
 /** Render single template. */
-interface TemplateRenderProps extends TemplatesProps {
+interface TemplateRenderProps {
     template: Template
+    onChange(name?: string): void
 }
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const TemplateRender: React.FC<TemplateRenderProps> = ({ template, onChange }) => {
@@ -75,7 +76,7 @@ const TemplateRender: React.FC<TemplateRenderProps> = ({ template, onChange }) =
             {template.templateName ? (
                 <div
                     style={{ backgroundImage: genBackgroundImage() }}
-                    className="flex flex-col justify-end h-full w-full rounded-[16px] overflow-hidden text-white text-left bg-cover"
+                    className="flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left bg-cover"
                 >
                     <div className="bg-black bg-opacity-30 px-4 pt-2 pb-4">
                         <div className="text-sm font-bold pb-2">{template.title}</div>
@@ -85,7 +86,7 @@ const TemplateRender: React.FC<TemplateRenderProps> = ({ template, onChange }) =
             ) : (
                 <div
                     style={{ backgroundImage: borderBgImg }}
-                    className={`flex h-full w-full rounded-[16px] text-[#${borderColor}]`}
+                    className={`flex h-full w-full rounded-2xl text-[#${borderColor}]`}
                 >
                     <div className="m-auto text-center">
                         <button>
