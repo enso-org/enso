@@ -16,9 +16,7 @@ import * as config from './config'
 // === Constants ===
 // =================
 
-/** A list of known Amplify errors that we can match against prior to trying to convert to our
- * internal error types. This is useful for disambiguating between Amplify errors with the same code
- * but different messages. */
+/** A list of errors thrown by the Amplify library that we want to catch and handle ourselves. */
 const KNOWN_ERRORS = {
     userAlreadyConfirmed: {
         code: 'NotAuthorizedException',
@@ -32,13 +30,26 @@ const KNOWN_ERRORS = {
 // === AmplifyError ===
 // ====================
 
-/** Object returned by the AWS Amplify library when an Amplify error occurs. */
+/** Error thrown by the AWS Amplify library when an Amplify error occurs.
+ * 
+ * Some Amplify errors (e.g., network connectivity errors) can not be resolved within the
+ * application. Un-resolvable errors are allowed to flow up to the top-level error handler. Errors
+ * that can be resolved must be caught and handled as early as possible. The {@link KNOWN_ERRORS}
+ * map lists the Amplify errors that we want to catch and convert to typed responses.
+ *
+ * # Handling Amplify Errors
+ *
+ * Use the {@link isAmplifyError} function to check if an `unknown` error is an
+ * {@link AmplifyError}. If it is, use the {@link intoAmplifyErrorOrThrow} function to convert it
+ * from `unknown` to a typed object. Then, use the {@link KNOWN_ERRORS} to see if the error is one
+ * that must be handled by the application (i.e., it is an error that is relevant to our business
+ * logic). */
 interface AmplifyError extends Error {
     /** Error code for disambiguating the error. */
     code: string
 }
 
-/** Hints to TypeScript if we can safely cast an `unknown` error to an `AmplifyError`. */
+/** Hints to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
 const isAmplifyError = (error: unknown): error is AmplifyError => {
     if (error && typeof error === 'object') {
         return 'code' in error && 'message' in error && 'name' in error
@@ -46,6 +57,8 @@ const isAmplifyError = (error: unknown): error is AmplifyError => {
     return false
 }
 
+/** Converts the `unknown` error into an {@link AmplifyError} and returns it, or re-throws it if 
+ * conversion is not possible. */
 const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
     if (isAmplifyError(error)) {
         return error
@@ -60,10 +73,17 @@ const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
 // === Cognito ===
 // ===============
 
+/** Interface defining the methods provided by this module for interacting with Cognito for
+ * authentication.
+ * 
+ * The methods defined in this API are thin wrappers around the AWS Amplify library with error
+ * handling added. This way, the methods don't throw all errors, but define exactly which errors
+ * they return. The caller can then handle them via pattern matching on the {@link results.Result}
+ * type. */
 export interface Cognito {
-    /** Returns the current user's session.
+    /** Returns the current {@link UserSession}.
      *
-     * Will refresh the session if it has expired.
+     * Will refresh the {@link UserSession} if it has expired.
      *
      * @returns `UserSession` if the user is logged in, `None` otherwise.
      * @throws An error if failed due to an unknown error. */
@@ -93,16 +113,14 @@ export interface Cognito {
 // === CognitoImpl ===
 // ===================
 
+/** A class implementing the {@link Cognito} API by wrapping AWS Amplify functions. */
 export class CognitoImpl implements Cognito {
-    private readonly logger: loggerProvider.Logger
     private readonly fromDesktop: boolean
 
     constructor(
-        logger: loggerProvider.Logger,
         fromDesktop: boolean,
         amplifyConfig: config.AmplifyConfig
     ) {
-        this.logger = logger
         this.fromDesktop = fromDesktop
 
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
@@ -211,7 +229,7 @@ const signUp = (username: string, password: string, fromDesktop: boolean) =>
         const params = intoSignUpParams(username, password, fromDesktop)
         return amplify.Auth.signUp(params)
     })
-        // We don't care about the details in the success case, just that it happened.
+        /** The contents of a successful response are not relevant, so we discard them. */
         .then(result => result.map(() => null))
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
         .then(result => result.mapErr(intoSignUpErrorOrThrow))
@@ -225,15 +243,13 @@ const intoSignUpParams = (
     password,
     attributes: {
         email: username,
-        // Add a custom attribute indicating whether the user is signing up from the
-        // desktop. This is used to determine the schema used in the callback links sent in
-        // the verification emails. For example, `http://` for the Cloud, and `enso://` for
-        // the desktop.
-        //
-        // # Safety
-        //
-        // It is necessary to disable the naming convention rule here, because the key is expected
-        // to appear exactly as-is in Cognito, so we must match it.
+        /** Add a custom attribute indicating whether the user is signing up from the desktop. This
+         * is used to determine the schema used in the callback links sent in the verification
+         * emails. For example, `http://` for the Cloud, and `enso://` for the desktop. */
+        /** # Safety
+         *
+         * It is necessary to disable the naming convention rule here, because the key is expected
+         * to appear exactly as-is in Cognito, so we must match it. */
         // eslint-disable-next-line @typescript-eslint/naming-convention
         'custom:fromDesktop': fromDesktop ? 'true' : 'false',
     },
@@ -270,7 +286,7 @@ const intoSignUpErrorOrThrow = (error: AmplifyError): SignUpError => {
 
 const confirmSignUp = async (email: string, code: string) =>
     results.Result.wrapAsync(() => amplify.Auth.confirmSignUp(email, code))
-        // We don't care about the details in the success case, just that it happened.
+        /** The contents of a successful response are not relevant, so we discard them. */
         .then(result => result.map(() => null))
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
         .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
@@ -286,8 +302,9 @@ const intoConfirmSignUpErrorOrThrow = (error: AmplifyError): ConfirmSignUpError 
     if (error.code === KNOWN_ERRORS.userAlreadyConfirmed.code) {
         if (error.message === KNOWN_ERRORS.userAlreadyConfirmed.message) {
             return {
-                // We don't re-use the `error.code` here because Amplify overloads the same kind
-                // for multiple kinds of errors that we want to disambiguate.
+                /** Don't re-use the original `error.code` here because Amplify overloads the same
+                 * code for multiple kinds of errors. We replace it with a custom code that has no
+                 * ambiguity. */
                 kind: 'UserAlreadyConfirmed',
                 message: error.message,
             }

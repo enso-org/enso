@@ -62,8 +62,8 @@ export interface Version {
     versionType: VersionType;
     ami: string | undefined;
     created: string;
-    // This does not follow our naming convention because it's defined this way in the backend, so
-    // we need to match it.
+    /** This field name does not follow the naming convention. This field name is snake case on the
+     * backend. The case must match here for JSON deserialization to work. */
     // eslint-disable-next-line @typescript-eslint/naming-convention
     version_number: string;
 }

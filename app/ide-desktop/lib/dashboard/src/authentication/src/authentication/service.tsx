@@ -110,7 +110,6 @@ export const initAuthService = (authConfig: AuthConfig): AuthService => {
 
     const amplifyConfig = loadAmplifyConfig(logger, runningOnDesktop, navigate);
     const cognitoClient = new cognito.CognitoImpl(
-        logger,
         runningOnDesktop,
         amplifyConfig
     );
@@ -188,7 +187,7 @@ const setDeepLinkHandler = (
         const parsedUrl = new URL(url);
 
         if (isConfirmRegistrationRedirect(parsedUrl)) {
-            // Navigate to a relative URL to handle the confirmation link.
+            /** Navigate to a relative URL to handle the confirmation link. */
             const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
             navigate(redirectUrl);
         } else {
