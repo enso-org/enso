@@ -3,12 +3,12 @@
 use crate::prelude::*;
 use crate::system::web::traits::*;
 use enso_callback::traits::*;
-use frp::microtasks::next_tick_late;
 
 use crate::system::web;
 use crate::types::unit2::Duration;
 
 use enso_callback as callback;
+use frp::microtasks::TickPhases;
 use web::Closure;
 
 
@@ -252,60 +252,33 @@ impl InitializedTimeInfo {
 /// Callback for an animation frame.
 pub type OnFrameClosure = impl FnMut(Duration);
 fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::Copy1<Duration>) -> OnFrameClosure {
-    let on_frame_start = frp.private.output.on_frame_start.clone_ref();
-    let frame_end = frp.private.output.frame_end.clone_ref();
-    let on_before_animations = frp.private.output.on_before_animations.clone_ref();
-    let on_after_animations = frp.private.output.on_after_animations.clone_ref();
-    let on_before_rendering = frp.private.output.on_before_rendering.clone_ref();
     let callbacks = callbacks.clone_ref();
+    let output = frp.private.output.clone_ref();
 
     let mut time_info = InitializedTimeInfo::default();
     let h_cell = Rc::new(Cell::new(callback::Handle::default()));
     move |frame_time: Duration| {
-        let time = time_info.next_frame(frame_time);
-
-        let on_frame_start = on_frame_start.clone_ref();
-        let frame_end = frame_end.clone_ref();
-        let on_before_animations = on_before_animations.clone_ref();
-        let on_after_animations = on_after_animations.clone_ref();
-        let on_before_rendering = on_before_rendering.clone_ref();
+        let time_info = time_info.next_frame(frame_time);
+        let on_frame_start = output.on_frame_start.clone_ref();
+        let on_before_animations = output.on_before_animations.clone_ref();
+        let on_after_animations = output.on_after_animations.clone_ref();
+        let frame_end = output.frame_end.clone_ref();
+        let output = output.clone_ref();
         let callbacks = callbacks.clone_ref();
-        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame_start");
+        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
 
-        schedule_next_phase(h_cell.clone(), move |h_cell| {
-            on_frame_start.emit(frame_time);
-
-            schedule_next_phase(h_cell, move |h_cell| {
-                on_before_animations.emit(time);
-
-                schedule_next_phase(h_cell, move |h_cell| {
-                    callbacks.run_all(frame_time);
-
-                    schedule_next_phase(h_cell, move |h_cell| {
-                        on_after_animations.emit(time);
-
-                        schedule_next_phase(h_cell, move |h_cell| {
-                            frame_end.emit(time);
-
-                            schedule_next_phase(h_cell, move |_| {
-                                on_before_rendering.emit(time);
-
-                                drop(_profiler);
-                            });
-                        });
-                    });
-                });
-            });
-        });
+        TickPhases::new(h_cell.clone())
+            .then(move || on_frame_start.emit(frame_time))
+            .then(move || on_before_animations.emit(time_info))
+            .then(move || callbacks.run_all(frame_time))
+            .then(move || on_after_animations.emit(time_info))
+            .then(move || frame_end.emit(time_info))
+            .then(move || {
+                output.on_before_rendering.emit(time_info);
+                drop(_profiler);
+            })
+            .run();
     }
-}
-
-fn schedule_next_phase(
-    tick_handle: Rc<Cell<callback::Handle>>,
-    f: impl FnOnce(Rc<Cell<callback::Handle>>) + 'static,
-) {
-    let next_cell = tick_handle.clone();
-    tick_handle.set(next_tick_late(move || f(next_cell)));
 }
 
 // =============================

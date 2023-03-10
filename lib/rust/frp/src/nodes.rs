@@ -14,7 +14,7 @@ use crate::prelude::*;
 use enso_generics::traits::*;
 
 use crate::data::watch;
-use crate::microtasks::next_tick;
+use crate::microtasks::next_microtask;
 use crate::stream;
 use crate::stream::CallStack;
 use crate::stream::EventOutput;
@@ -143,20 +143,20 @@ impl Network {
         self.register(OwnedBatch::new(label, input, event))
     }
 
-    /// Delay and deduplicate the incoming events until the next tick. Once an event is received,
-    /// it will be emitted on the next tick. If multiple events are received before the next tick,
-    /// only the last one will be emitted.
+    /// Delay and deduplicate the incoming events. Once an event is received, it will be emitted
+    /// once the currently executing task. If multiple events are received within
+    /// the same , only the last one will be emitted.
     ///
     /// Input:  -----1--2-3-------
-    /// Tick:   ---x---x---x---x--
+    /// Tasks:  ───|───|───|───|──
     /// Output: -------1---3------
     ///
     /// The ticks are implemented as javascript event loop microtasks. The microtasks are inserted
     /// into the event queue as needed, always before the next repaint. Read more about microtasks:
     /// https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide
-    pub fn next_tick<T>(&self, label: Label, event: &T) -> Stream<Output<T>>
+    pub fn debounce<T>(&self, label: Label, event: &T) -> Stream<Output<T>>
     where T: EventOutput {
-        self.register(OwnedNextTick::new(label, event))
+        self.register(OwnedDebounce::new(label, event))
     }
 
     /// Fold the incoming value using [`Monoid`] implementation.
@@ -2233,31 +2233,31 @@ impl<T: HasOutput> stream::WeakEventConsumer<Output<T>> for Weak<BatchCollector<
 
 
 // ================
-// === NextTick ===
+// === Debounce ===
 // ================
 
 #[derive(Debug)]
-pub struct NextTickData<T: HasOutput> {
+pub struct DebounceData<T: HasOutput> {
     next_value:   RefCell<Option<Output<T>>>,
     task_handler: RefCell<Option<enso_callback::Handle>>,
 }
 
-pub type OwnedNextTick<T> = stream::Node<NextTickData<T>>;
-pub type NextTick<T> = stream::WeakNode<NextTickData<T>>;
+pub type OwnedDebounce<T> = stream::Node<DebounceData<T>>;
+pub type Debounce<T> = stream::WeakNode<DebounceData<T>>;
 
-impl<T: HasOutput> HasOutput for NextTickData<T> {
+impl<T: HasOutput> HasOutput for DebounceData<T> {
     type Output = Output<T>;
 }
 
-impl<T: EventOutput> OwnedNextTick<T> {
+impl<T: EventOutput> OwnedDebounce<T> {
     /// Constructor.
     pub fn new(label: Label, input: &T) -> Self {
-        let definition = NextTickData { next_value: default(), task_handler: default() };
+        let definition = DebounceData { next_value: default(), task_handler: default() };
         Self::construct_and_connect(label, input, definition)
     }
 }
 
-impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedNextTick<T> {
+impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedDebounce<T> {
     fn on_event(&self, _stack: CallStack, value: &Output<T>) {
         let mut next_value = self.next_value.borrow_mut();
         let not_scheduled = next_value.is_none();
@@ -2265,7 +2265,7 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedNextTick<T> {
 
         if not_scheduled {
             let weak = self.downgrade();
-            let handler = next_tick(move || {
+            let handler = next_microtask(move || {
                 if let Some(node) = weak.upgrade() {
                     if let Some(value) = node.next_value.borrow_mut().take() {
                         node.emit_event(&default(), &value);
@@ -2277,7 +2277,7 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedNextTick<T> {
     }
 }
 
-impl<T: EventOutput> stream::InputBehaviors for NextTickData<T> {
+impl<T: EventOutput> stream::InputBehaviors for DebounceData<T> {
     fn input_behaviors(&self) -> Vec<Link> {
         vec![]
     }

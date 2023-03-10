@@ -170,7 +170,7 @@ impl View {
         frp::extend! { network
             metadata_change <- input.set_metadata.on_change();
             node_data_change <- input.set_node_data.on_change();
-            widget_data <- all(&metadata_change, &node_data_change).next_tick();
+            widget_data <- all(&metadata_change, &node_data_change).debounce();
 
             set_current_value <- input.set_current_value.sampler();
             set_visible <- input.set_visible.sampler();
@@ -512,7 +512,7 @@ impl LazyDropdown {
 
                     dropdown.set_all_entries <+ set_entries;
                     entries_and_value <- all(&set_entries, set_current_value);
-                    entries_and_value <- entries_and_value.next_tick();
+                    entries_and_value <- entries_and_value.debounce();
 
                     selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
                     dropdown.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
