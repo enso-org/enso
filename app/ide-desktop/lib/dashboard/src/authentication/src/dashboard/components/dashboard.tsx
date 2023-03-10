@@ -163,7 +163,7 @@ const dashboardContainer = (props: DashboardProps) => {
 
     return (
         <>
-            <Templates onChange={handleCreateProject} />
+            <Templates onTemplateClick={handleCreateProject} />
             <table className="items-center w-full bg-transparent border-collapse">
                 <thead>
                     <tr>{tableHeaders}</tr>

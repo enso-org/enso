@@ -51,10 +51,10 @@ const genBackgroundImage = () => `url(${Math.random() > 0.5 ? dataUrl1 : dataUrl
 interface TemplatesRenderProps {
     // Later this data may be requested and therefore needs to be passed dynamically.
     templates: Template[]
-    onChange(name?: string): void
+    onTemplateClick(name?: string): void
 }
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onChange }) => {
+const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onTemplateClick }) => {
     /** Unify the border color and the text color. */
 
     const borderColor = '9E8C91'
@@ -74,7 +74,7 @@ const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onChange }
         <button
             className="h-40 cursor-pointer"
             onClick={() => {
-                onChange()
+                onTemplateClick()
             }}
         >
             <div
@@ -112,7 +112,7 @@ const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onChange }
                     key={template.title}
                     className="h-40 cursor-pointer"
                     onClick={() => {
-                        onChange(template.templateName)
+                        onTemplateClick(template.templateName)
                     }}
                 >
                     <div
@@ -134,15 +134,15 @@ const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onChange }
 
 /** The TemplatesRender's container. */
 interface TemplatesProps {
-    onChange(name?: string): void
+    onTemplateClick(name?: string): void
 }
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const Templates: React.FC<TemplatesProps> = ({ onChange }) => {
+const Templates: React.FC<TemplatesProps> = ({ onTemplateClick }) => {
     return (
         <div className="bg-white">
             <div className="mx-auto py-2 px-4 sm:py-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    <TemplatesRender templates={templates} onChange={onChange} />
+                    <TemplatesRender templates={templates} onTemplateClick={onTemplateClick} />
                 </div>
             </div>
         </div>
