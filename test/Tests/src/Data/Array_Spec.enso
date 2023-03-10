@@ -23,8 +23,8 @@ test_arrays array_from_vector =
 
     Test.specify "should panic on out of bounds access" <|
         arr = array_from_vector [1, 2, 3]
-        (arr.at -4) . should_fail_with Index_Out_Of_Bounds.Error
-        (arr.at 3) . should_fail_with Index_Out_Of_Bounds.Error
+        (arr.at -4) . should_fail_with Index_Out_Of_Bounds
+        (arr.at 3) . should_fail_with Index_Out_Of_Bounds
 
 spec =
     Test.group "Enso Arrays" <|
@@ -41,7 +41,7 @@ spec =
         Test.specify "should propagate dataflow errors" <|
             err = Error.throw (Illegal_State.Error "Foo")
             res = Array.new err
-            res . should_fail_with Illegal_State.Error
+            res . should_fail_with Illegal_State
 
         Test.specify "should not sort in place" <|
             arr = make_enso_array [3, 1, 2]

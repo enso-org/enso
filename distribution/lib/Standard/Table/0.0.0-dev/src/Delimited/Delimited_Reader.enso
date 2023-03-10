@@ -185,7 +185,9 @@ detect_metadata file format =
                     False -> trailing_line_separator
                 has_any_content = reader.getVisitedCharactersCount > 0
                 Detected_File_Metadata.Value headers effective_line_separator has_trailing_line_separator has_any_content
-    result.catch File_Error.Not_Found (_->(Detected_File_Metadata.Value Nothing Nothing False False))
+    result.catch File_Error error-> case error of
+        File_Error.Not_Found _ -> Detected_File_Metadata.Value Nothing Nothing False False
+        _ -> Error.throw error
 
 ## PRIVATE
    Checks if the file has a newline at the end.

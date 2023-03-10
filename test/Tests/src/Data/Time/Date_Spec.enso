@@ -136,9 +136,9 @@ spec_with name create_new_date parse_date =
             date_1<date_2 . should_be_false
 
             datetime = Date_Time.new 2021 1 2 12 40
-            Ordering.compare date_1 datetime . should_fail_with Incomparable_Values.Error
-            date_1<datetime . should_fail_with Incomparable_Values.Error
-            date_1>=datetime . should_fail_with Incomparable_Values.Error
+            Ordering.compare date_1 datetime . should_fail_with Incomparable_Values
+            date_1<datetime . should_fail_with Incomparable_Values
+            date_1>=datetime . should_fail_with Incomparable_Values
             date_1==datetime . should_be_false
 
         Test.specify "should create date before epoch start" <|
