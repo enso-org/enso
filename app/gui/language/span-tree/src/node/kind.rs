@@ -20,10 +20,10 @@ pub enum Kind {
     Chained(Chained),
     /// A node representing operation (operator or function) of parent Infix, Section or Prefix.
     Operation,
-    /// A node being a target (or "self") parameter of parent Infix, Section or Prefix.
-    This(This),
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
     Argument(Argument),
+    /// A node representing a named argument. Always contains two tokens and an `Argument` node.
+    NamedArgument,
     /// A node being a unmodifiable token in macro.
     Token,
     /// A node being a placeholder for inserting new child to Prefix or Operator chain. It should
@@ -41,8 +41,11 @@ impl Kind {
     pub fn chained() -> Chained {
         default()
     }
-    pub fn this() -> This {
-        default()
+    pub fn chained_this() -> Chained {
+        Chained::this()
+    }
+    pub fn this() -> Argument {
+        Self::argument().with_name(Some(Argument::THIS.into()))
     }
     pub fn argument() -> Argument {
         default()
@@ -67,10 +70,17 @@ impl Kind {
         matches!(self, Self::Operation { .. })
     }
     pub fn is_this(&self) -> bool {
-        matches!(self, Self::This { .. })
+        matches!(
+            self,
+            Self::Argument(Argument { name, .. }) | Self::Chained(Chained { name, .. })
+            if name.as_deref() == Some(Argument::THIS)
+        )
     }
     pub fn is_argument(&self) -> bool {
         matches!(self, Self::Argument { .. })
+    }
+    pub fn is_named_argument(&self) -> bool {
+        matches!(self, Self::NamedArgument)
     }
     pub fn is_token(&self) -> bool {
         matches!(self, Self::Token { .. })
@@ -87,10 +97,7 @@ impl Kind {
 
     /// Match the value with `Kind::InsertionPoint(ExpectedArgument(_))`.
     pub fn is_expected_argument(&self) -> bool {
-        match self {
-            Self::InsertionPoint(t) => t.kind.is_expected_argument(),
-            _ => false,
-        }
+        matches!(self, Self::InsertionPoint(t) if t.kind.is_expected_argument())
     }
 
     /// Match any kind that can be a function parameter. This includes `This`, `Argument` and
@@ -105,10 +112,10 @@ impl Kind {
 
 impl Kind {
     /// Name getter.
-    pub fn name(&self) -> Option<&String> {
+    pub fn name(&self) -> Option<&str> {
         match self {
-            Self::Argument(t) => t.name.as_ref(),
-            Self::InsertionPoint(t) => t.name.as_ref(),
+            Self::Argument(t) => t.name.as_deref(),
+            Self::InsertionPoint(t) => t.name.as_deref(),
             _ => None,
         }
     }
@@ -118,7 +125,6 @@ impl Kind {
         match self {
             Self::Argument(t) => t.tp.as_ref(),
             Self::InsertionPoint(t) => t.tp.as_ref(),
-            Self::This(t) => t.tp.as_ref(),
             _ => None,
         }
     }
@@ -126,7 +132,6 @@ impl Kind {
     /// Removable flag getter.
     pub fn removable(&self) -> bool {
         match self {
-            Self::This(t) => t.removable,
             Self::Argument(t) => t.removable,
             _ => false,
         }
@@ -136,7 +141,6 @@ impl Kind {
     /// information.
     pub fn argument_info(&self) -> Option<ArgumentInfo> {
         Some(match self {
-            Self::This(t) => ArgumentInfo::this(t.tp.clone(), t.call_id),
             Self::Argument(t) =>
                 ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.call_id, t.tag_values.clone()),
             Self::InsertionPoint(t) =>
@@ -145,11 +149,30 @@ impl Kind {
         })
     }
 
+    /// Get a reference to the name of an argument represented by this node, if available. Returns
+    /// `None` if the node could not be attached with the argument information.
+    pub fn argument_name(&self) -> Option<&str> {
+        match self {
+            Self::Chained(t) => t.name.as_deref(),
+            Self::Argument(t) => t.name.as_deref(),
+            Self::InsertionPoint(t) => t.name.as_deref(),
+            _ => None,
+        }
+    }
+
+    /// Get the definition index of an argument represented by this node, if available. Returns
+    /// `None` if the node could not be attached with the argument information.
+    pub fn definition_index(&self) -> Option<usize> {
+        match self {
+            Self::Argument(t) => t.definition_index,
+            _ => None,
+        }
+    }
+
     /// Get the function call AST ID associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
             Self::Chained(t) => t.call_id,
-            Self::This(t) => t.call_id,
             Self::Argument(t) => t.call_id,
             Self::InsertionPoint(t) => t.call_id,
             _ => None,
@@ -161,11 +184,7 @@ impl Kind {
     pub fn set_argument_info(&mut self, argument_info: ArgumentInfo) -> bool {
         match self {
             Self::Chained(t) => {
-                t.call_id = argument_info.call_id;
-                true
-            }
-            Self::This(t) => {
-                t.tp = argument_info.tp;
+                t.name = argument_info.name;
                 t.call_id = argument_info.call_id;
                 true
             }
@@ -187,14 +206,26 @@ impl Kind {
         }
     }
 
+    /// Argument definition index setter. Returns bool indicating whether the operation was
+    /// possible.
+    pub fn set_definition_index(&mut self, index: usize) -> bool {
+        match self {
+            Self::Argument(t) => {
+                t.definition_index = Some(index);
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// Short string representation. Skips the inner fields and returns only the variant name.
     pub fn variant_name(&self) -> &str {
         match self {
             Self::Root => "Root",
             Self::Chained(_) => "Chained",
             Self::Operation => "Operation",
-            Self::This(_) => "This",
             Self::Argument(_) => "Argument",
+            Self::NamedArgument => "NamedArgument",
             Self::Token => "Token",
             Self::InsertionPoint(_) => "InsertionPoint",
         }
@@ -217,8 +248,10 @@ impl Default for Kind {
 
 /// A node chained with parent node, potentially being a first argument of a nested infix call
 /// expression.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub struct Chained {
+    pub name:    Option<String>,
     /// The AST ID of function application that this Chained is a target of. If this is a part of
     /// an infix operator chain (e.g. `1 + 2 + 3`) and this chained represents `1 + 2`
     /// subexpression, it is effectively a target (`self`) argument of the second `+` operator.
@@ -230,6 +263,11 @@ pub struct Chained {
 // === Setters ===
 
 impl Chained {
+    /// Create chained in `self` position of parent expression.
+    pub fn this() -> Self {
+        Self { name: Some(Argument::THIS.into()), ..default() }
+    }
+
     /// Set Chained `call_id` field. See [`Chained::call_id`] for more information.
     pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
         self.call_id = call_id;
@@ -245,83 +283,22 @@ impl From<Chained> for Kind {
 
 
 
-// ============
-// === This ===
-// ============
-
-/// Kind representing "self" node. For example, in the following expressions, `foo` is considered
-/// "this": `bar foo`, `foo.bar`, `foo + bar`, `foo.+ bar`.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[allow(missing_docs)]
-pub struct This {
-    pub removable: bool,
-    pub tp:        Option<String>,
-    pub call_id:   Option<ast::Id>,
-}
-
-
-// === Getters ===
-
-impl This {
-    /// Name of `This` argument.
-    pub const NAME: &'static str = "self";
-
-    /// Name getter. Please notice that the name of `This` argument is always "self".
-    pub fn name(&self) -> &str {
-        Self::NAME
-    }
-}
-
-
-// === Setters ===
-
-#[allow(missing_docs)]
-impl This {
-    pub fn removable(mut self) -> Self {
-        self.removable = true;
-        self
-    }
-    pub fn typed(mut self, tp: String) -> Self {
-        self.tp = Some(tp);
-        self
-    }
-    pub fn with_removable(mut self, removable: bool) -> Self {
-        self.removable = removable;
-        self
-    }
-    pub fn with_tp(mut self, tp: Option<String>) -> Self {
-        self.tp = tp;
-        self
-    }
-
-    pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
-        self.call_id = call_id;
-        self
-    }
-}
-
-impl From<This> for Kind {
-    fn from(t: This) -> Self {
-        Self::This(t)
-    }
-}
-
-
-
 // ================
 // === Argument ===
 // ================
 
 /// Kind representing "argument" node. For example, in the following expressions, `a`, `b`, and `c`
 /// are considered "arguments": `foo a b c`, `foo + a`.
-#[derive(Clone, Default, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Argument {
-    pub removable:  bool,
-    pub name:       Option<String>,
-    pub tp:         Option<String>,
-    pub call_id:    Option<ast::Id>,
-    pub tag_values: Vec<String>,
+    pub removable:        bool,
+    /// The index of the argument in the function definition.
+    pub definition_index: Option<usize>,
+    pub name:             Option<String>,
+    pub tp:               Option<String>,
+    pub call_id:          Option<ast::Id>,
+    pub tag_values:       Vec<String>,
 }
 
 
@@ -329,16 +306,14 @@ pub struct Argument {
 
 #[allow(missing_docs)]
 impl Argument {
-    pub fn removable(mut self) -> Self {
-        self.removable = true;
-        self
-    }
-    pub fn named(mut self, name: String) -> Self {
-        self.name = Some(name);
-        self
-    }
+    pub const THIS: &'static str = "self";
+
     pub fn typed(mut self, tp: String) -> Self {
         self.tp = Some(tp);
+        self
+    }
+    pub fn removable(mut self) -> Self {
+        self.removable = true;
         self
     }
     pub fn with_removable(mut self, rm: bool) -> Self {
@@ -355,6 +330,10 @@ impl Argument {
     }
     pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
         self.call_id = call_id;
+        self
+    }
+    pub fn indexed(mut self, index: usize) -> Self {
+        self.definition_index = Some(index);
         self
     }
 }
@@ -389,17 +368,16 @@ pub struct InsertionPoint {
 
 #[allow(missing_docs)]
 impl InsertionPoint {
-    pub fn before_target() -> Self {
-        Self::default().with_kind(InsertionPointType::BeforeTarget)
+    pub fn expected_argument(index: usize) -> Self {
+        Self::default().with_kind(InsertionPointType::ExpectedArgument { index, named: false })
     }
-    pub fn after_target() -> Self {
-        Self::default().with_kind(InsertionPointType::AfterTarget)
+    pub fn expected_named_argument_erased(index: usize) -> Self {
+        Self::default().with_kind(InsertionPointType::ExpectedArgument { index, named: true })
     }
-    pub fn append() -> Self {
-        Self::default().with_kind(InsertionPointType::Append)
-    }
-    pub fn expected_argument(ix: usize) -> Self {
-        Self::default().with_kind(InsertionPointType::ExpectedArgument(ix))
+    pub fn expected_named_argument(index: usize, name: impl Str) -> Self {
+        let kind = InsertionPointType::ExpectedArgument { index, named: true };
+        let name = Some(name.into());
+        Self::default().with_kind(kind).with_name(name)
     }
 }
 
@@ -408,24 +386,13 @@ impl InsertionPoint {
 
 #[allow(missing_docs)]
 impl InsertionPoint {
-    pub fn named(mut self, name: String) -> Self {
-        self.name = Some(name);
-        self
-    }
-    pub fn typed(mut self, tp: String) -> Self {
-        self.tp = Some(tp);
-        self
-    }
     pub fn with_kind(mut self, kind: InsertionPointType) -> Self {
         self.kind = kind;
         self
     }
+
     pub fn with_name(mut self, name: Option<String>) -> Self {
         self.name = name;
-        self
-    }
-    pub fn with_tp(mut self, tp: Option<String>) -> Self {
-        self.tp = tp;
         self
     }
 }
@@ -447,30 +414,22 @@ impl From<InsertionPoint> for Kind {
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum InsertionPointType {
-    // FIXME: Why we need both before and after?
-    BeforeTarget,
-    AfterTarget,
+    BeforeArgument(usize),
     Append,
     // FIXME: When this insert type can be assigned to node without name?
-    /// Ast should be inserted as an argument at given index into the chain.
+    /// AST should be inserted as an argument at given index into the chain.
     /// Note that this is just argument index in the application, it may be not the same as the
     /// index of the function parameter, as `this` argument might be passed using the `this.func`
     /// notation.
-    ExpectedArgument(usize),
+    ExpectedArgument {
+        index: usize,
+        named: bool,
+    },
 }
 
 // === Matchers ===
 #[allow(missing_docs)]
 impl InsertionPointType {
-    pub fn is_before_target(&self) -> bool {
-        matches!(self, Self::BeforeTarget { .. })
-    }
-    pub fn is_after_target(&self) -> bool {
-        matches!(self, Self::AfterTarget { .. })
-    }
-    pub fn is_append(&self) -> bool {
-        matches!(self, Self::Append { .. })
-    }
     pub fn is_expected_argument(&self) -> bool {
         matches!(self, Self::ExpectedArgument { .. })
     }

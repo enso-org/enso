@@ -79,7 +79,7 @@ type Error
 
              example_catch =
                  error = Error.throw (Illegal_Argument.Error "My message")
-                 error.catch Illegal_Argument.Error (err -> err.message)
+                 error.catch Illegal_Argument (err -> err.message)
 
        > Example
          Catching any dataflow error and turning it into a regular value.

@@ -108,6 +108,9 @@
 - [Fixed missing result preview when editing nodes.][5757]
 - [Application retries its initialization after failures][5802], allowing a
   reconnecting after connectivity problems.
+- [Named arguments syntax is now recognized in IDE][5774]. Connections to
+  function arguments will now use named argument syntax instead of inserting
+  wildcards on all preceding arguments.
 
 #### EnsoGL (rendering engine)
 
@@ -506,10 +509,11 @@
 [5699]: https://github.com/enso-org/enso/pull/5699
 [5719]: https://github.com/enso-org/enso/pull/5719
 [5721]: https://github.com/enso-org/enso/pull/5721
-[5779]: https://github.com/enso-org/enso/pull/5779
 [5757]: https://github.com/enso-org/enso/pull/5757
-[5802]: https://github.com/enso-org/enso/pull/5802
+[5774]: https://github.com/enso-org/enso/pull/5774
+[5779]: https://github.com/enso-org/enso/pull/5779
 [5785]: https://github.com/enso-org/enso/pull/5785
+[5802]: https://github.com/enso-org/enso/pull/5802
 
 #### Enso Compiler
 
