@@ -1283,18 +1283,18 @@ spec =
             "abcddd".find "ab(?<cee>c(d+))" . group "cee" . text . should_equal "cddd"
 
         Test.specify "should throw No_Such_Group for an out-of-range group number" <|
-            "abcddd".find "ab(c(d+))" . group 3 . text . should_fail_with No_Such_Group.Error
-            "abcddd".find "ab(c(d+))" . group 12 . text . should_fail_with No_Such_Group.Error
-            "abcddd".find "ab(c(d+))" . group (-1) . text . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(c(d+))" . group 3 . text . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group 12 . text . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group (-1) . text . should_fail_with No_Such_Group
 
         Test.specify "should throw No_Such_Group for an invalid group name" <|
-            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . text . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . text . should_fail_with No_Such_Group
 
         Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
-            "abcddd".find "ab(c(d+))" . group "dee" . text . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(c(d+))" . group "dee" . text . should_fail_with No_Such_Group
 
         Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
-            "abcddd".find "ab(c(((((((" . group 0 . text . should_fail_with Regex_Syntax_Error.Error
+            "abcddd".find "ab(c(((((((" . group 0 . text . should_fail_with Regex_Syntax_Error
 
         Test.specify ".group should return Nothing if the group did not participate in the match" <|
             match_c = "abc".find "ab((c)|(d))"
