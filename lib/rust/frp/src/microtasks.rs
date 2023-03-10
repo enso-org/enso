@@ -1,8 +1,8 @@
-//! This module contains implementation of task scheduler that is used in implementation of
-//! some FRP nodes. The scheduler exploits details of JavaScript event loop to schedule deferred
-//! tasks in a way that is more useful than using `setTimeout`, and allow us to implement FRP
-//! nodes that require their execution to be deferred after current function execution, but before
-//! the current animation frame is painted.
+//! This module contains implementation of task scheduler that is used in some FRP nodes. The
+//! scheduler uses details of JavaScript event loop to schedule deferred tasks in a way that is
+//! more useful than using `setTimeout`. That allow us to implement FRP nodes that require their
+//! execution to be deferred after current function execution, but before the current animation
+//! frame is painted.
 //!
 //! # Event loop tasks
 //!
@@ -10,12 +10,12 @@
 //! which certain events are handled within JavaScript code. When a JavaScript program runs, it
 //! executes a series of tasks, such as receiving network data, handling `setTimeout` timers,
 //! handling mouse and keyboard events or rendering. Those macrotasks are scheduled to the
-//! javascript event loop, and are executed sequentially on a single thread.
+//! Javascript event loop, and are executed sequentially on a single thread.
 //!
 //!
 //! # Microtasks
 //!
-//! In some scenarios, it i useful to allow the currently executing program to complete, and then
+//! In some scenarios, it is useful to allow the currently executing program to complete, and then
 //! execute additional logic before next macrotask begins. This is where microtasks come in.
 //! Microtasks are a way of scheduling tasks that should be performed after the current task has
 //! finished, but before the next macrotask in the event loop is executed. Microtasks are executed
@@ -62,7 +62,7 @@
 //! microtasks until the queue is empty, there's a real risk of getting the event loop endlessly
 //! processing microtasks. In order to prevent completely blocking rendering, the scheduler has a
 //! safety mechanism that prevents it from processing schedule queue more than
-//! [`MAX_RESURSIVE_MICROTASKS`] times from within a single event loop task. If the limit is
+//! [`MAX_RECURSIVE_MICROTASKS`] times from within a single event loop task. If the limit is
 //! reached, an error will be raised and further scheduled tasks will continue execution after the
 //! next animation frame.
 //!
@@ -96,7 +96,7 @@ use enso_web::Promise;
 /// Maximum number of times a new microtask can be scheduled from within previously scheduled
 /// microtask handler. A safety mechanism to prevent infinite loops. See [`next_microtask`] for more
 /// information.
-const MAX_RESURSIVE_MICROTASKS: usize = 1000;
+const MAX_RECURSIVE_MICROTASKS: usize = 1000;
 
 
 
@@ -109,7 +109,7 @@ const MAX_RESURSIVE_MICROTASKS: usize = 1000;
 /// frame. All tasks scheduled with this function will be performed in the same order as they were
 /// scheduled. Further microtasks are scheduled in the same render loop as long as `next_microtask`
 /// is recursively called within the scheduled task, up to a safety limit defined by
-/// [`MAX_RESURSIVE_MICROTASKS`]. If the limit is reached, an error will be raised and further tasks
+/// [`MAX_RECURSIVE_MICROTASKS`]. If the limit is reached, an error will be raised and further tasks
 /// will be scheduled after next animation frame.
 pub fn next_microtask(f: impl FnOnce() + 'static) -> callback::Handle {
     SCHEDULER.with(|scheduler| scheduler.add(f))
@@ -229,7 +229,7 @@ impl SchedulerData {
 
     fn run_all(&self) {
         let current_count = self.schedule_depth.get();
-        let task_limit_reached = current_count >= MAX_RESURSIVE_MICROTASKS;
+        let task_limit_reached = current_count >= MAX_RECURSIVE_MICROTASKS;
         if task_limit_reached {
             error!(
                 "Too many microtasks scheduled. This is a safety limit to prevent infinite loops. \

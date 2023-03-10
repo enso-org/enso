@@ -136,13 +136,41 @@ impl Network {
 
     /// Delay and deduplicate the incoming events. Once an event is received, it will be emitted
     /// after the current program execution finishes, but before returning to the event loop. If
-    /// multiple events are received within the same , only the last one will be emitted.
+    /// multiple events are received within the same microtask, only the last one will be emitted.
     ///
     /// Use [`Network::batch`] if you want to collect all emitted values within a microtask.
     ///
+    /// ```text
     /// Input:       ───────1──2─3───────────
     /// Microtasks:  ── ▶──── ▶──── ▶──── ▶──
     /// Output:      ─────────1─────3────────
+    /// ```
+    ///
+    /// This node is useful when dealing with a diamond-shaped network, where a single source event
+    /// is flowing into multiple subgraphs, and those subgraphs eventually merge into a single node.
+    /// That final node would ordinarily receive multiple events for the same source event, once per
+    /// execution of each subgraph. It is usually a waste of resources to process those intermediate
+    /// events, and it can even lead to logical errors, as those events may contain partially
+    /// outdated data. This node can be used to deduplicate the events and only process the most
+    /// up-to-date one once all subgraphs have finished their execution.
+    ///
+    /// Example network with a diamond-shaped subgraph:
+    /// ```text
+    ///  clickPosition
+    ///     /   \
+    ///    /     \
+    ///  posX   absPosY
+    ///    \     /
+    ///     \   /
+    ///  combinedPosition
+    ///
+    /// Microtasks:       ▶─────────── ▶─────── ▶─────────── ▶───────
+    /// clickPosition:    ─(1,-2)─────          ─(2,-3)─────
+    /// posX:             ─1──────────          ─2──────────
+    /// absPosY:          ─2──────────          ─3──────────
+    /// combinedPosition: ─(1,0)(1,2)─          ─(2,2)(2,3)─
+    /// debounced:                     ─(1,2)──              ─(2,3)──
+    /// ```
     ///
     /// Note: See documentation of [`crate::microtasks`] module for more details about microtasks.
     pub fn debounce<T>(&self, label: Label, event: &T) -> Stream<Output<T>>
@@ -157,9 +185,11 @@ impl Network {
     /// Use [`Network::debounce`] if you want to receive only the latest value emitted within a
     /// microtask.
     ///
+    /// ```text
     /// Input:       ───────1────2─3────────────
     /// Microtasks:  ── ▶───── ▶───── ▶───── ▶──
     /// Output:      ──────────[1]────[2,3]─────
+    /// ```
     ///
     /// Note: See documentation of [`crate::microtasks`] module for more details about microtasks.
     pub fn batch<T>(&self, label: Label, input: &T) -> Stream<Vec<Output<T>>>
