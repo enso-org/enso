@@ -332,8 +332,9 @@ define_sdf_shapes! {
 
     // === Triangle ===
 
-    /// Isosceles Triangle
-    /// This is an exact SDF. Growing it will result in a triangle with rounded corners.
+    /// Isosceles Triangle pointing up.
+    /// This is an exact SDF. The calculated distance is exact both inside and outside of shape's
+    /// bounds. Growing it will result in a triangle with rounded corners.
     /// Adapted from https://iquilezles.org/articles/distfunctions2d/
     Triangle (width:f32, height:f32) {
         vec2 q = vec2(width * 0.5, height);
