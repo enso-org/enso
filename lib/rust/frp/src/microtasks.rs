@@ -1,6 +1,10 @@
 //! This module contains implementation of microtask scheduler that is used in implementation of
 //! some FRP nodes.
-
+//!
+//! TODO: better docs
+//!
+//! Read more about microtasks:
+/// https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide
 use crate::prelude::*;
 use enso_callback::traits::*;
 
