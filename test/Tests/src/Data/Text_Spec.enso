@@ -1314,6 +1314,10 @@ spec =
         Test.specify "can return a vector of all match groups" <|
             "abc".find "ab((c)|(d))" . groups . should_equal ['abc', 'c', 'c', Nothing]
 
+        Test.specify "should default to group 0 in .span and .grapheme_span" <|
+            "abacadae".find "a[bc]" . span . should_equal (Utf_16_Span.Value (0.up_to 2) "abacadae")
+            'a\u{301}e\u{301}o\u{301}'.find 'e\u{301}' . grapheme_span . should_equal (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
+
         Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
             "abacadae".find_all "a[bc]" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
             "abacadae".find_all "a." . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
