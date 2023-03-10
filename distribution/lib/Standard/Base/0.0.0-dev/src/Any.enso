@@ -106,23 +106,20 @@ type Any
                  a == 147
     == : Any -> Boolean
     == self that =
-        case Meta.is_same_object self that of
-            True -> True
-            False ->
-                # If there is No_Such_Conversion, then `self` and `that` are probably
-                # host or polyglot values, so we just compare them with the default comparator.
-                eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Comparator
-                eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Comparator
-                similar_type = Meta.is_same_object eq_self eq_that
-                case similar_type of
-                    False -> False
-                    True ->
-                        case Meta.is_same_object eq_self Default_Comparator of
-                            True -> Comparable.equals_builtin self that
-                            False ->
-                                case eq_self.compare self that of
-                                    Ordering.Equal -> True
-                                    _ -> False
+        # If there is No_Such_Conversion, then `self` and `that` are probably
+        # host or polyglot values, so we just compare them with the default comparator.
+        eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Comparator
+        eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Comparator
+        similar_type = Meta.is_same_object eq_self eq_that
+        case similar_type of
+            False -> False
+            True ->
+                case Meta.is_same_object eq_self Default_Comparator of
+                    True -> Comparable.equals_builtin self that
+                    False ->
+                        case eq_self.compare self that of
+                            Ordering.Equal -> True
+                            _ -> False
 
     ## ALIAS Inequality
 
