@@ -139,10 +139,7 @@ type Comparable
 type Default_Comparator
     compare : Any -> Any -> (Ordering|Nothing)
     compare x y =
-        # If equals_builtin returns Nothing, x and y are incomparable and thus, it makes
-        # no sense to try it passing into less_than_builtin
         case Comparable.equals_builtin x y of
-            Nothing -> Nothing
             True -> Ordering.Equal
             False ->
                 case Comparable.less_than_builtin x y of
