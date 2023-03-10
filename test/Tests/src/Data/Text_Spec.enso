@@ -1270,6 +1270,18 @@ spec =
         Test.specify "should allow access to the entire match text" <|
             "abcddd".find "ab(c(d+))" . text . should_equal "abcddd"
 
+        Test.specify "should allow access to groups via .get" <|
+            "abcddd".find "ab(c(d+))" . get 0 . should_equal "abcddd"
+            "abcddd".find "ab(c(d+))" . get 1 . should_equal "cddd"
+            "abcddd".find "ab(c(d+))" . get 2 . should_equal "ddd"
+            "abcddd".find "ab(c(d+))" . get 3 if_missing="MISSING" . should_equal "MISSING"
+
+        Test.specify "should allow access to groups via .at" <|
+            "abcddd".find "ab(c(d+))" . at 0 . should_equal "abcddd"
+            "abcddd".find "ab(c(d+))" . at 1 . should_equal "cddd"
+            "abcddd".find "ab(c(d+))" . at 2 . should_equal "ddd"
+            "abcddd".find "ab(c(d+))" . at 3 . should_fail_with Index_Out_Of_Bounds.Error
+
         Test.specify "should allow access to match groups" <|
             "abcddd".find "ab(c(d+))" . group 0 . should_equal "abcddd"
             "abcddd".find "ab(c(d+))" . group 1 . should_equal "cddd"

@@ -9,7 +9,10 @@ import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Index_Out_Of_Bounds
+import project.Error.Error
 import project.Nothing.Nothing
+import project.Panic.Panic
 
 type Match_2
     ## internal_regex_result : RegexResult (Truffle)
@@ -201,13 +204,26 @@ type Match_2
         named_group_names = self.pattern.group_names
         spans = named_group_names.map name-> self.group name default=default
         Map.from_vector (named_group_names.zip spans)
-    ##
-        ## PRIVATE
 
-           Returns the start character index of the match's region.
-        start_position : Integer
-        start_position self = Unimplemented.throw "This is an interface only."
+    ## Gets the grapheme span matched by the group with the provided index, or
+       a default value if the group did not participate in the match.
+       If the identifier is invalid then `if_missing` is returned.
 
-        ## Returns the end character index of the match's region.
-        end_position : Integer
-        end_position self = Unimplemented.throw "This is an interface only."
+       Arguments:
+       - id: The integer index or name of that group.
+       - if_missing: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing =
+        self.group index . catch No_Such_Group (_-> if_missing)
+
+    ## Gets the grapheme span matched by the group with the provided index, or
+       a default value if the group did not participate in the match.
+       If the identifier is invalid then Index_Out_Of_Bounds is thrown.
+
+       Arguments:
+       - id: The integer index or name of that group.
+       - if_missing: The value to return if the index is out of bounds.
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        self.group index . catch No_Such_Group _->
+            Error.throw (Index_Out_Of_Bounds.Error index self.pattern.group_count)
