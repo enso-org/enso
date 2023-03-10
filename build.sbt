@@ -412,14 +412,6 @@ val jackson = Seq(
   "com.fasterxml.jackson.module"    %% "jackson-module-scala"    % jacksonVersion
 )
 
-// === JAXB ================================================================
-
-val jaxbVersion = "4.0.0"
-val jaxb = Seq(
-  "jakarta.xml.bind" % "jakarta.xml.bind-api" % jaxbVersion % Benchmark,
-  "com.sun.xml.bind" % "jaxb-impl"            % jaxbVersion % Benchmark
-)
-
 // === JMH ====================================================================
 
 val jmhVersion = "1.35"
@@ -1428,7 +1420,7 @@ lazy val runtime = (project in file("engine/runtime"))
     ), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
+    libraryDependencies ++= jmh ++ circe ++ Seq(
       "com.ibm.icu"         % "icu4j"                 % icuVersion,
       "com.chuusai"        %% "shapeless"             % shapelessVersion,
       "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
