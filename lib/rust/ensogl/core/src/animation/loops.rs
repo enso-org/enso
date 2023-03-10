@@ -267,7 +267,7 @@ fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::Copy1<Duration>) 
         let callbacks = callbacks.clone_ref();
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
 
-        TickPhases::new(h_cell.clone())
+        TickPhases::new(&h_cell)
             .then(move || on_frame_start.emit(frame_time))
             .then(move || on_before_animations.emit(time_info))
             .then(move || callbacks.run_all(frame_time))
@@ -277,7 +277,7 @@ fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::Copy1<Duration>) 
                 output.on_before_rendering.emit(time_info);
                 drop(_profiler);
             })
-            .run();
+            .schedule();
     }
 }
 

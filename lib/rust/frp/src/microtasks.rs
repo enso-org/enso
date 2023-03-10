@@ -204,15 +204,15 @@ impl SchedulerData {
 #[must_use]
 #[allow(missing_debug_implementations)]
 pub struct TickPhases<T> {
-    handle_cell: Rc<Cell<callback::Handle>>,
+    handle_cell: Weak<Cell<callback::Handle>>,
     phase_list:  T,
 }
 
 
 impl TickPhases<Nil> {
     /// Create a new empty phases list.
-    pub fn new(handle_cell: Rc<Cell<callback::Handle>>) -> Self {
-        TickPhases { handle_cell, phase_list: Nil }
+    pub fn new(handle_cell: &Rc<Cell<callback::Handle>>) -> Self {
+        TickPhases { handle_cell: handle_cell.downgrade(), phase_list: Nil }
     }
 }
 
@@ -228,41 +228,231 @@ impl<T> TickPhases<T> {
 
     /// Schedule the phases for execution. The phases will be performed asynchronously in order,
     /// once the current microtask queue is emptied.
-    pub fn run(self)
-    where Self: TaskPhasesRunImpl {
-        TaskPhasesRunImpl::run(self);
+    pub fn schedule(self)
+    where Self: TaskPhasesScheduleImpl {
+        TaskPhasesScheduleImpl::schedule(self);
     }
 }
 
 /// Implementation of [`RunnablePhases`] run method for a list of phases. This needs to be a trait,
 /// so there is a way to specialize the implementation for different variants.
-pub trait TaskPhasesRunImpl {
+pub trait TaskPhasesScheduleImpl {
     /// Schedule the phases for execution. The phases will be performed asynchronously in order,
     /// once the current microtask queue is emptied.
-    fn run(self);
+    fn schedule(self);
 }
 
-impl TaskPhasesRunImpl for TickPhases<Nil> {
-    fn run(self) {}
+impl TaskPhasesScheduleImpl for TickPhases<Nil> {
+    fn schedule(self) {}
 }
 
-impl<H, T> TaskPhasesRunImpl for TickPhases<Cons<H, T>>
+impl<H, T> TaskPhasesScheduleImpl for TickPhases<Cons<H, T>>
 where
-    TickPhases<T>: TaskPhasesRunImpl + 'static,
+    TickPhases<T>: TaskPhasesScheduleImpl + 'static,
     H: FnOnce() + 'static,
 {
-    fn run(self) {
-        let Cons(head, tail) = self.phase_list;
-        let tail_phases = TickPhases { handle_cell: self.handle_cell.clone(), phase_list: tail };
-        let handle = next_microtask_late(move || {
-            head();
-            tail_phases.run();
-        });
-        self.handle_cell.set(handle);
+    fn schedule(self) {
+        if let Some(handle_cell) = self.handle_cell.upgrade() {
+            let Cons(head, tail) = self.phase_list;
+            let tail_phases =
+                TickPhases { handle_cell: self.handle_cell.clone(), phase_list: tail };
+            let handle = next_microtask_late(move || {
+                head();
+                tail_phases.schedule();
+            });
+            handle_cell.set(handle);
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[derive(Derivative, CloneRef, Debug, Default)]
+    #[derivative(Clone(bound = ""))]
+    struct Collector<T> {
+        vec: Rc<RefCell<Vec<T>>>,
+    }
+
+    impl<T> Collector<T> {
+        fn push(&self, value: T) {
+            self.vec.borrow_mut().push(value);
+        }
+
+        fn flush(&self) -> Vec<T> {
+            flush_microtasks();
+            self.vec.take()
+        }
+
+        #[track_caller]
+        fn flush_and_assert_ordered(&self, length: usize)
+        where T: Ord + Debug {
+            let data = self.flush();
+            let is_sorted = data.windows(2).all(|w| w[0] <= w[1]);
+            assert!(is_sorted, "Expected ordered, got {:?}", data);
+            assert_eq!(data.len(), length, "Expected length {length}, got {:?}", data);
+        }
+    }
+
+    #[test]
+    fn scheduled_microtask_runs() {
+        let collector = Collector::default();
+        next_microtask(f!(collector.push(1))).forget();
+        assert_eq!(collector.flush(), [1]);
+    }
+    #[test]
+    fn scheduled_late_microtask_runs() {
+        let collector = Collector::default();
+        next_microtask_late(f!(collector.push(1))).forget();
+        collector.flush_and_assert_ordered(1);
+    }
+
+    #[test]
+    fn dropped_microtasks_do_not_run() {
+        let collector = Collector::default();
+
+        next_microtask(f!(collector.push(1))).forget();
+
+        let _ = next_microtask(|| assert!(false));
+        let _ = next_microtask_late(|| assert!(false));
+
+        collector.flush_and_assert_ordered(1);
+    }
+
+    #[test]
+    fn scheduled_microtasks_run_in_order() {
+        let collector = Collector::default();
+        next_microtask(f!(collector.push(1))).forget();
+        next_microtask(f!(collector.push(2))).forget();
+        next_microtask(f!(collector.push(3))).forget();
+        collector.flush_and_assert_ordered(3);
+    }
+
+    #[test]
+    fn nested_microtasks_order() {
+        let collector = Collector::default();
+        next_microtask(f!([collector] () {
+            collector.push(1);
+            next_microtask(f!(collector.push(4))).forget();
+        }))
+        .forget();
+        next_microtask(f!([collector] () {
+            collector.push(2);
+            next_microtask(f!(collector.push(5))).forget();
+        }))
+        .forget();
+        next_microtask(f!(collector.push(3))).forget();
+
+        collector.flush_and_assert_ordered(5);
+    }
+
+    #[test]
+    fn mixed_early_and_late_order() {
+        let collector = Collector::default();
+        next_microtask_late(f!(collector.push(5))).forget();
+        next_microtask(f!(collector.push(1))).forget();
+        next_microtask(f!(collector.push(2))).forget();
+        next_microtask_late(f!(collector.push(6))).forget();
+        next_microtask(f!(collector.push(3))).forget();
+        next_microtask_late(f!(collector.push(7))).forget();
+        next_microtask(f!(collector.push(4))).forget();
+        collector.flush_and_assert_ordered(7);
+    }
+
+    #[test]
+    fn mixed_early_and_late_nested_order() {
+        let collector = Collector::default();
+
+        next_microtask_late(f!([collector] () {
+            collector.push(7);
+            next_microtask(f!(collector.push(11))).forget();
+        }))
+        .forget();
+
+        next_microtask(f!([collector] () {
+            collector.push(1);
+            next_microtask_late(f!(collector.push(10))).forget();
+        }))
+        .forget();
+
+        next_microtask(f!([collector] () {
+            collector.push(2);
+            next_microtask(f!(collector.push(6))).forget();
+        }))
+        .forget();
+
+        next_microtask(f!(collector.push(3))).forget();
+
+        next_microtask_late(f!([collector] () {
+            collector.push(8);
+            next_microtask_late(f!(collector.push(12))).forget();
+        }))
+        .forget();
+
+        next_microtask(f!(collector.push(4))).forget();
+        next_microtask_late(f!(collector.push(9))).forget();
+        next_microtask(f!(collector.push(5))).forget();
+
+        collector.flush_and_assert_ordered(12);
+    }
+
+    #[test]
+    fn simple_tick_phases_order() {
+        let collector = Collector::default();
+        let cell = default();
+        TickPhases::new(&cell)
+            .then(f!(collector.push(1)))
+            .then(f!(collector.push(2)))
+            .then(f!(collector.push(3)))
+            .schedule();
+        collector.flush_and_assert_ordered(3);
+    }
+
+    #[test]
+    fn dropped_tick_phases() {
+        let collector = Collector::default();
+        let cell = default();
+        TickPhases::new(&cell)
+            .then(f!(collector.push(1)))
+            .then(f!(collector.push(2)))
+            .then(f!(collector.push(3)))
+            .schedule();
+        drop(cell);
+        collector.flush_and_assert_ordered(0);
+    }
+
+    #[test]
+    fn dropped_tick_phases_mid_execution() {
+        let collector = Collector::default();
+        let cell = default();
+        TickPhases::new(&cell)
+            .then(f!(collector.push(1)))
+            .then(f!([collector] () {
+                collector.push(2);
+                drop(cell);
+            }))
+            .then(f!(collector.push(3)))
+            .schedule();
+        collector.flush_and_assert_ordered(2);
+    }
+
+    #[test]
+    fn tick_phases_with_nested_tasks() {
+        let collector = Collector::default();
+        let cell = default();
+        TickPhases::new(&cell)
+            .then(f!([collector] () {
+                collector.push(1);
+                next_microtask(f!(collector.push(2))).forget();
+                next_microtask_late(f!(collector.push(3))).forget();
+            }))
+            .then(f!(collector.push(4)))
+            .then(f!([collector] () {
+                collector.push(5);
+                next_microtask(f!(collector.push(6))).forget();
+            }))
+            .schedule();
+        collector.flush_and_assert_ordered(6);
+    }
 }

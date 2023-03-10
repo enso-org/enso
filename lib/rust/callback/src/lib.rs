@@ -40,6 +40,7 @@ pub use callback_types::*;
 
 /// Handle to a callback. When the handle is dropped, the callback is removed.
 #[derive(Clone, CloneRef, Debug, Default)]
+#[must_use]
 pub struct Handle {
     rc: Rc<()>,
 }
