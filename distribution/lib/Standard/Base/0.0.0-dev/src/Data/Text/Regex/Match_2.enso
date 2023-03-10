@@ -16,8 +16,7 @@ type Match_2
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (pattern : Pattern_2) (internal_regex_result : Any) (input : Text)
 
-    ## PRIVATE
-       Returns the start character of group n.
+    ## Returns the start character of group n.
 
        Arguments:
        - n: the integer group number. Note that the groups explicitly
@@ -26,17 +25,14 @@ type Match_2
     start : Integer -> Integer
     start self n = self.internal_regex_result.getStart n
 
-    ## PRIVATE
-       Returns the start character of group n
+    ## Returns the start character of group n
 
        Arguments:
        - n: the integer group number
     end : Integer -> Integer
     end self n = self.internal_regex_result.getEnd n
 
-    ## PRIVATE
-
-       Gets the UTF16 span matched by the group with the provided identifier, or
+    ## Gets the UTF16 span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
        exists for the provided identifier, a `No_Such_Group` is returned.
 
@@ -76,9 +72,7 @@ type Match_2
                 range = Range.new (self.start n) (self.end n)
                 Utf_16_Span.Value range self.input
 
-    ## PRIVATE
-
-       Gets the grapheme span matched by the group with the provided identifier, or
+    ## Gets the grapheme span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
        exists for the provided identifier, a `No_Such_Group` is returned.
 
@@ -111,9 +105,7 @@ type Match_2
       Nothing -> Nothing
       utf_16_span -> utf_16_span.to_grapheme_span
 
-    ## PRIVATE
-
-       Gets the grapheme span matched by the group with the provided identifier, or
+    ## Gets the grapheme span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
        exists for the provided identifier, a `No_Such_Group` is returned.
 
@@ -140,6 +132,10 @@ type Match_2
     group self id default=Nothing = case self.grapheme_span id default of
         Nothing -> Nothing
         span -> span.text
+
+    ## Gets the grapheme span matched by the entire pattern.
+    text : Text
+    text self = self.group 0
 
     ## Gets a vector containing the results of _all_ of the capturing groups in
        the pattern, replacing the value of groups that did not participate in
@@ -206,17 +202,6 @@ type Match_2
         spans = named_group_names.map name-> self.group name default=default
         Map.from_vector (named_group_names.zip spans)
     ##
-        ## PRIVATE
-
-           Returns the span matched by the group with the provided identifier, or
-           `Nothing` if the group did not participate in the match.
-
-
-           Arguments:
-           - id: The identifier for the group to fetch the end index for.
-        span : Integer | Text -> Span | Nothing ! No_Such_Group
-        span self _ = Unimplemented.throw "This is an interface only."
-
         ## PRIVATE
 
            Returns the start character index of the match's region.

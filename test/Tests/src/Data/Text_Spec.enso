@@ -1267,7 +1267,10 @@ spec =
         Test.specify "should be possible in case-insensitive mode" <|
             "MY".find "my" Case_Sensitivity.Insensitive . group 0 . should_equal "MY"
 
-        Test.specify "should allow access to match groups " <|
+        Test.specify "should allow access to the entire match text" <|
+            "abcddd".find "ab(c(d+))" . text . should_equal "abcddd"
+
+        Test.specify "should allow access to match groups" <|
             "abcddd".find "ab(c(d+))" . group 0 . should_equal "abcddd"
             "abcddd".find "ab(c(d+))" . group 1 . should_equal "cddd"
             "abcddd".find "ab(c(d+))" . group 2 . should_equal "ddd"
