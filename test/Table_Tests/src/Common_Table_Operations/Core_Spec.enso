@@ -34,7 +34,7 @@ spec setup =
             column_1.name . should_equal "bar"
             column_1.to_vector . should_equal [4, 5, 6]
 
-            table.at "nonexistent column name" . should_fail_with No_Such_Column.Error
+            table.at "nonexistent column name" . should_fail_with No_Such_Column
 
         Test.specify "should allow selecting columns by index" <|
             column_1 = table.at
@@ -61,10 +61,10 @@ spec setup =
             column_6.name . should_equal "abcd123"
             column_6.to_vector . should_equal [19, 20, 21]
 
-            table.at 100 . should_fail_with Index_Out_Of_Bounds.Error
+            table.at 100 . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
-            table.at (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
+            table.at (Pair.new 1 2) . should_fail_with Illegal_Argument
             table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
 
     Test.group prefix+"Table.get" <|
@@ -93,7 +93,7 @@ spec setup =
             table.get 100 column_1 . name . should_equal "foo"
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
-            table.get (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
+            table.get (Pair.new 1 2) . should_fail_with Illegal_Argument
             table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
 
     Test.group prefix+"Table.set" <|
@@ -117,10 +117,10 @@ spec setup =
 
         Test.specify "should allow adding a column" <|
             bar2 = table.get "bar" . rename "bar2"
-            table.set bar2 set_mode=Set_Mode.Update . should_fail_with Missing_Column.Error
+            table.set bar2 set_mode=Set_Mode.Update . should_fail_with Missing_Column
 
             foo = table.get "bar" . rename "foo"
-            table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column.Error
+            table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column
 
         Test.specify "should not affect existing columns that depended on the old column being replaced" <|
             t1 = table_builder [["X", [1,2,3]]]
@@ -135,7 +135,8 @@ spec setup =
         Test.specify "should gracefully handle expression failures" <|
             t1 = table_builder [["X", [1,2,3]]]
             t1.set "[unknown] + 10" new_name="Z" . should_fail_with No_Such_Column
-            t1.set "[[[[" . should_fail_with Expression_Error.Syntax_Error
+            t1.set "[[[[" . should_fail_with Expression_Error
+            t1.set "[[[[" . catch . should_be_a Expression_Error.Syntax_Error
 
         Test.specify "should forward expression problems" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
@@ -226,11 +227,11 @@ spec setup =
             table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
 
         Test.specify "should correctly handle errors" <|
-            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds.Error
+            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds
             err = table.rows.at -6
-            err.should_fail_with Index_Out_Of_Bounds.Error
+            err.should_fail_with Index_Out_Of_Bounds
             err.catch . should_equal (Index_Out_Of_Bounds.Error -6 4)
 
-            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds.Error
-            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds.Error
-            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column.Error
+            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds
+            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds
+            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column

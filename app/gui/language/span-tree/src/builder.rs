@@ -46,9 +46,9 @@ pub trait Builder<T: Payload>: Sized {
     }
 
     /// Add an Empty-type child to node.
-    fn add_empty_child(mut self, offset: usize, insert_type: node::InsertionPointType) -> Self {
+    fn add_empty_child(mut self, offset: usize, kind: impl Into<node::Kind>) -> Self {
         let child = node::Child {
-            node:       Node::<T>::new().with_kind(insert_type),
+            node:       Node::<T>::new().with_kind(kind),
             offset:     offset.into(),
             ast_crumbs: vec![],
         };

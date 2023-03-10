@@ -157,25 +157,25 @@ spec_write suffix test_sheet_name =
         Test.specify 'should result in Invalid_Location error if trying to write in a bad location' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location.Error
-            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location.Error
-            sub_clothes.write out (Excel (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location.Error
+            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location
+            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location
+            sub_clothes.write out (Excel (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location
             out.delete_if_exists
 
         Test.specify 'should result in Range_Exceeded error if trying to write in too small a range' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (Excel (Cell_Range "Another!A1:B2")) . should_fail_with Range_Exceeded.Error
+            sub_clothes.write out (Excel (Cell_Range "Another!A1:B2")) . should_fail_with Range_Exceeded
             out.delete_if_exists
 
         Test.specify 'should result in Existing_Data error if in Error mode and trying to replace' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
-            sub_clothes.write out (Excel (Worksheet 1)) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data.Error
-            sub_clothes.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data.Error
-            sub_clothes.write out (Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data.Error
-            sub_clothes.write out (Excel (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data.Error
+            sub_clothes.write out (Excel (Worksheet 1)) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
+            sub_clothes.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
+            sub_clothes.write out (Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
+            sub_clothes.write out (Excel (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -183,7 +183,9 @@ spec_write suffix test_sheet_name =
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
-            sub_clothes.write out (Excel (Worksheet "Testing")) on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Error.Already_Exists
+            result = sub_clothes.write out (Excel (Worksheet "Testing")) on_existing_file=Existing_File_Behavior.Error
+            result.should_fail_with File_Error
+            result.catch.should_be_a File_Error.Already_Exists
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -320,7 +322,7 @@ spec_write suffix test_sheet_name =
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
-            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch.Error
+            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
             out.delete_if_exists
 
         Test.specify 'should fail to append to a sheet by name if extra columns' <|
@@ -328,7 +330,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch.Error
+            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -337,8 +339,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Worksheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument.Error
-            extra_another.write out (Excel (Worksheet "Another") False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument.Error
+            extra_another.write out (Excel (Worksheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
+            extra_another.write out (Excel (Worksheet "Another") False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -347,7 +349,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
-            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch.Error
+            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -356,7 +358,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch.Error
+            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -365,7 +367,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Cell_Range "Another!A1:D5")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Range_Exceeded.Error
+            extra_another.write out (Excel (Cell_Range "Another!A1:D5")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Range_Exceeded
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -374,23 +376,25 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Cell_Range "Random!B3")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Existing_Data.Error
+            extra_another.write out (Excel (Cell_Range "Random!B3")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Existing_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
         Test.specify "should fail if the target file is read-only" <|
             f = enso_project.data / "transient" / "permission."+suffix
+            if f.exists then Util.set_writable f True
             f.delete_if_exists
 
-            initial_data = "MY DATA"
+            initial_data = Table.new [["Y", [10, 20, 30]]]
             initial_data.write f
             Util.set_writable f False
 
             t1 = Table.new [["X", [1, 2, 3]]]
             [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior->
                 r1 = t1.write f (Excel (Worksheet "Another")) on_existing_file=behavior
-                r1.should_fail_with File_Error.Access_Denied
-                f.read Plain_Text . should_equal initial_data
+                r1.should_fail_with File_Error
+                r1.catch.should_be_a File_Error.Access_Denied
+                f.read . read "EnsoSheet" . should_equal initial_data
 
             Util.set_writable f True
             f.delete
@@ -402,7 +406,8 @@ spec_write suffix test_sheet_name =
             f = parent / "foo."+suffix
             t1 = Table.new [["X", [1, 2, 3]]]
             r1 = t1.write f (Excel (Worksheet "Another"))
-            r1.should_fail_with File_Error.Not_Found
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Not_Found
 
         Test.specify "should allow to write and read-back Unicode characters" <|
             encodings = enso_project.data / "transient" / "encodings."+suffix
@@ -445,66 +450,66 @@ spec =
             check_range (Excel_Range.from_address "Test!R1C1:R5C3") 'Test' [1, 1, 5, 3]
 
         Test.specify 'should fail gracefully for invalid patterns' <|
-            Excel_Range.from_address "Test!$$QA1" . should_fail_with Illegal_Argument.Error
-            Excel_Range.from_address "Test!BADADDRESS" . should_fail_with Illegal_Argument.Error
+            Excel_Range.from_address "Test!$$QA1" . should_fail_with Illegal_Argument
+            Excel_Range.from_address "Test!BADADDRESS" . should_fail_with Illegal_Argument
 
         Test.specify 'should allow Range creation for a cell' <|
             check_range (Excel_Range.for_cell "Hello World" 123 14) 'Hello World' [14, 123, 14, 123] True
             check_range (Excel_Range.for_cell "Hello World" "DS" 14) 'Hello World' [14, 123, 14, 123] True
             Excel_Range.for_cell "Test" 123 14 . address . should_equal "Test!DS14"
             Excel_Range.for_cell "Hello World" 123 14 . address . should_equal "'Hello World'!DS14"
-            Excel_Range.for_cell "Test" 20000 1 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_cell "Test" "ZZZ" 1 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_cell "Test" 0 1 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_cell "Test" 1 10000000 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_cell "Test" 1 0 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_cell "Test" 20000 1 . should_fail_with Illegal_Argument
+            Excel_Range.for_cell "Test" "ZZZ" 1 . should_fail_with Illegal_Argument
+            Excel_Range.for_cell "Test" 0 1 . should_fail_with Illegal_Argument
+            Excel_Range.for_cell "Test" 1 10000000 . should_fail_with Illegal_Argument
+            Excel_Range.for_cell "Test" 1 0 . should_fail_with Illegal_Argument
 
         Test.specify 'should allow Range creation for a range' <|
             check_range (Excel_Range.for_range "Hello World" 55 120 123 14) 'Hello World' [14, 55, 120, 123]
             check_range (Excel_Range.for_range "Hello World" "BC" 120 "DS" 14) 'Hello World' [14, 55, 120, 123]
             Excel_Range.for_range "Test" 55 120 123 14 . address . should_equal "Test!BC14:DS120"
             Excel_Range.for_range "Hello World" 55 120 123 14 . address . should_equal "'Hello World'!BC14:DS120"
-            Excel_Range.for_range "Test" 20000 1 123 14 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_range "Test" "ZZZ" 1 123 14 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_range "Test" 0 1 123 14 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_range "Test" 5 1 20000 14 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_range "Test" 5 1 0 14 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_range "Test" 5 0 123 14 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_range "Test" 5 10000000 123 14 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_range "Test" 5 1 123 0 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_range "Test" 5 1 123 10000000 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_range "Test" 20000 1 123 14 . should_fail_with Illegal_Argument
+            Excel_Range.for_range "Test" "ZZZ" 1 123 14 . should_fail_with Illegal_Argument
+            Excel_Range.for_range "Test" 0 1 123 14 . should_fail_with Illegal_Argument
+            Excel_Range.for_range "Test" 5 1 20000 14 . should_fail_with Illegal_Argument
+            Excel_Range.for_range "Test" 5 1 0 14 . should_fail_with Illegal_Argument
+            Excel_Range.for_range "Test" 5 0 123 14 . should_fail_with Illegal_Argument
+            Excel_Range.for_range "Test" 5 10000000 123 14 . should_fail_with Illegal_Argument
+            Excel_Range.for_range "Test" 5 1 123 0 . should_fail_with Illegal_Argument
+            Excel_Range.for_range "Test" 5 1 123 10000000 . should_fail_with Illegal_Argument
 
         Test.specify 'should allow Range creation for a column' <|
             check_range (Excel_Range.for_columns "Hello World" 123) 'Hello World' [Nothing, 123, Nothing, 123]
             check_range (Excel_Range.for_columns "Hello World" "DS") 'Hello World' [Nothing, 123, Nothing, 123]
             Excel_Range.for_columns "Test" 123 . address . should_equal "Test!DS"
             Excel_Range.for_columns "Hello World" 123 . address . should_equal "'Hello World'!DS"
-            Excel_Range.for_columns "Test" 20000 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_columns "Test" "ZZZ" . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_columns "Test" 0 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_columns "Test" 20000 . should_fail_with Illegal_Argument
+            Excel_Range.for_columns "Test" "ZZZ" . should_fail_with Illegal_Argument
+            Excel_Range.for_columns "Test" 0 . should_fail_with Illegal_Argument
 
         Test.specify 'should allow Range creation for columns' <|
             check_range (Excel_Range.for_columns "Hello World" "BC" 123) 'Hello World' [Nothing, 55, Nothing, 123]
             check_range (Excel_Range.for_columns "Hello World" 55 "DS") 'Hello World' [Nothing, 55, Nothing, 123]
             Excel_Range.for_columns "Test" 55 123 . address . should_equal "Test!BC:DS"
             Excel_Range.for_columns "Hello World" "BC" "DS" . address . should_equal "'Hello World'!BC:DS"
-            Excel_Range.for_columns "Test" 55 20000 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_columns "Test" 55 "ZZZ" . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_columns "Test" 55 0 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_columns "Test" 55 20000 . should_fail_with Illegal_Argument
+            Excel_Range.for_columns "Test" 55 "ZZZ" . should_fail_with Illegal_Argument
+            Excel_Range.for_columns "Test" 55 0 . should_fail_with Illegal_Argument
 
         Test.specify 'should allow Range creation for a row' <|
             check_range (Excel_Range.for_rows "Hello World" 123) 'Hello World' [123, Nothing, 123, Nothing]
             Excel_Range.for_rows "Test" 123 . address . should_equal "Test!123"
             Excel_Range.for_rows "Hello World" 123 . address . should_equal "'Hello World'!123"
-            Excel_Range.for_rows "Test" 20000000 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_rows "Test" 0 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_rows "Test" 20000000 . should_fail_with Illegal_Argument
+            Excel_Range.for_rows "Test" 0 . should_fail_with Illegal_Argument
 
         Test.specify 'should allow Range creation for rows' <|
             check_range (Excel_Range.for_rows "Hello World" 55 123) 'Hello World' [55, Nothing, 123, Nothing]
             Excel_Range.for_rows "Test" 55 123 . address . should_equal "Test!55:123"
             Excel_Range.for_rows "Hello World" 55 123 . address . should_equal "'Hello World'!55:123"
-            Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument.Error
-            Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument
+            Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument
 
     xlsx_sheet = enso_project.data / "TestSheet.xlsx"
     xlsx_path = xlsx_sheet.path
@@ -660,25 +665,39 @@ spec =
     Test.group "Problems" <|
         Test.specify "should handle non-existing file gracefully" <|
             bad_file = enso_project.data / "DoesNotExists.xlsx"
-            bad_file.read (Excel (Cell_Range "Sheet1!A:C")) . should_fail_with File_Error.Not_Found
+            result = bad_file.read (Excel (Cell_Range "Sheet1!A:C"))
+            result.should_fail_with File_Error
+            result.catch.should_be_a File_Error.Not_Found
 
         Test.specify "should handle wrong xls_format gracefully" <|
-            xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File_Error.IO_Error
-            xls_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File_Error.IO_Error
+            r1 = xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=True)
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Corrupted_Format
+
+            r2 = xls_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=False)
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Corrupted_Format
 
         Test.specify "should handle malformed XLS files gracefully" <|
             bad_file = enso_project.data / "transient" / "malformed.xls"
             "not really an XLS file contents...".write bad_file on_existing_file=Existing_File_Behavior.Overwrite
 
             r1 = bad_file.read
-            r1.should_fail_with File_Error.Corrupted_Format
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Corrupted_Format
             r1.catch.to_display_text.should_contain "is corrupted"
 
-            bad_file.read Excel . should_fail_with File_Error.Corrupted_Format
-            bad_file.read (Excel Sheet_Names) . should_fail_with File_Error.Corrupted_Format
+            r1a = bad_file.read Excel
+            r1a.should_fail_with File_Error
+            r1a.catch.should_be_a File_Error.Corrupted_Format
+
+            r1b = bad_file.read (Excel Sheet_Names)
+            r1b.should_fail_with File_Error
+            r1b.catch.should_be_a File_Error.Corrupted_Format
 
             r2 = bad_file.read (Excel (Cell_Range "Sheet1!A:C"))
-            r2.should_fail_with File_Error.Corrupted_Format
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Corrupted_Format
             r2.catch.to_display_text.should_contain "is corrupted"
 
             bad_file.delete

@@ -99,9 +99,9 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow to store dataflow errors and raise them on access" <|
         vec = [Error.throw (My_Error.Value "foo"), "bar"]
         vec.at 1 . should_equal "bar"
-        vec.at 0 . should_fail_with My_Error.Value
+        vec.at 0 . should_fail_with My_Error
         vec.get 1 . should_equal "bar"
-        vec.get 0 . should_fail_with My_Error.Value
+        vec.get 0 . should_fail_with My_Error
 
     Test.specify "should allow accessing elements with negative indices" <|
         [1,2,3].at -1 . should_equal 3
@@ -112,8 +112,8 @@ spec = Test.group "Vectors" <|
         [1,2,3].get -3 . should_equal 1
 
     Test.specify "should correctly handle out of bounds access" <|
-        [1,2,3].at -4 . should_fail_with Index_Out_Of_Bounds.Error
-        [1,2,3].at 3 . should_fail_with Index_Out_Of_Bounds.Error
+        [1,2,3].at -4 . should_fail_with Index_Out_Of_Bounds
+        [1,2,3].at 3 . should_fail_with Index_Out_Of_Bounds
         [1,2,3].get -4 . should_equal Nothing
         [1,2,3].get 3 . should_equal Nothing
         [1,2,3].get -4 "???" . should_equal "???"
@@ -167,7 +167,7 @@ spec = Test.group "Vectors" <|
         vec.filter (x -> x > 3) . should_equal [4, 5]
         vec.filter (x -> x == 1) . should_equal [1]
         vec.filter (x -> x < 0) . should_equal []
-        vec.filter (x -> if x == 2 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error.Value
+        vec.filter (x -> if x == 2 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
 
     Test.specify "should filter elements by Filter_Condition" <|
         vec = [1, 2, 3, 4, 5]
@@ -185,7 +185,7 @@ spec = Test.group "Vectors" <|
         vec.filter (Filter_Condition.Is_In []) . should_equal []
         vec.filter (Filter_Condition.Not_In [7, 3, 2, 2]) . should_equal [1, 4, 5]
 
-        Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) No_Such_Method.Error
+        Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) No_Such_Method
         vec.filter Filter_Condition.Is_True . should_equal []
         vec.filter Filter_Condition.Is_False . should_equal []
         vec.filter Filter_Condition.Is_Nothing . should_equal []
@@ -213,7 +213,7 @@ spec = Test.group "Vectors" <|
         txtvec.filter (Filter_Condition.Less than="a") . should_equal []
         txtvec.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
-        Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types.Error
+        Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types
         txtvec.filter Filter_Condition.Is_True . should_equal []
         txtvec.filter (Filter_Condition.Is_In [1, 2]) . should_equal []
         txtvec.filter (Filter_Condition.Is_In ["bbb", 's\u0301', "bbb", "FOOBAR"]) . should_equal ["bbb", "ś"]
@@ -259,15 +259,15 @@ spec = Test.group "Vectors" <|
     Test.specify "should filter elements with indices" <|
         [0, 10, 2, 2].filter_with_index (==) . should_equal [0, 2]
         ([1, 2, 3, 4].filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
-        ([1, 2, 3, 4].filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error.Value
+        ([1, 2, 3, 4].filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
 
     Test.specify "should partition elements" <|
         [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) . should_equal <| Pair.new [2, 4] [1, 3, 5]
-        ([1, 2, 3, 4].partition x-> if x == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error.Value
+        ([1, 2, 3, 4].partition x-> if x == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
 
     Test.specify "should partition elements with indices" <|
         ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair.new ["a", "c"] ["b", "d"])
-        ["a", "b", "c", "d"].partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error.Value
+        ["a", "b", "c", "d"].partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
 
     Test.specify "should allow to join a vector of text elements to form a single text" <|
         ["a", "b", "c"].join . should_equal "abc"
@@ -338,7 +338,7 @@ spec = Test.group "Vectors" <|
         [1, 2, 3, 4, 5, 6].short_display_text max_entries=3 . should_equal "[1, 2, 3 and 3 more elements]"
         (0.up_to 100).to_vector.short_display_text max_entries=2 . should_equal "[0, 1 and 98 more elements]"
 
-        [].short_display_text max_entries=0 . should_fail_with Illegal_Argument.Error
+        [].short_display_text max_entries=0 . should_fail_with Illegal_Argument
 
     Test.specify "should define equality" <|
         [1,2,3]==[1,2] . should_be_false
@@ -348,7 +348,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should define concatenation" <|
         concat = [1, 2, 3] + [4, 5, 6]
         concat.should_equal [1, 2, 3, 4, 5, 6]
-        [1, 2, 3]+1 . should_fail_with Type_Error.Error
+        [1, 2, 3]+1 . should_fail_with Type_Error
 
     Test.specify "should allow finding a value" <|
         input = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -358,10 +358,10 @@ spec = Test.group "Vectors" <|
         input.find (x -> x%3 == 2) start=3 . should_equal 5
         input.find (x -> x%3 == 2) start=-3 . should_equal 8
         input.find (x -> x%3 == 2) start=10 . should_fail_with Not_Found
-        input.find (x -> x%3 == 2) start=11 . should_fail_with Index_Out_Of_Bounds.Error
+        input.find (x -> x%3 == 2) start=11 . should_fail_with Index_Out_Of_Bounds
         input.find (x -> x%3 == 2) start=11 . catch . should_equal (Index_Out_Of_Bounds.Error 11 11)
-        input.find (x -> x%3 == 2) start=100 . should_fail_with Index_Out_Of_Bounds.Error
-        input.find (x -> x%3 == 2) start=-100 . should_fail_with Index_Out_Of_Bounds.Error
+        input.find (x -> x%3 == 2) start=100 . should_fail_with Index_Out_Of_Bounds
+        input.find (x -> x%3 == 2) start=-100 . should_fail_with Index_Out_Of_Bounds
         input.find (x -> x%3 == 3) if_missing=Nothing . should_equal Nothing
 
     Test.specify "should allow finding the index of a value" <|
@@ -373,9 +373,9 @@ spec = Test.group "Vectors" <|
         input.index_of 2 start=3 . should_equal 5
         input.index_of 2 start=-2 . should_equal 8
         input.index_of 2 start=10 . should_equal Nothing
-        input.index_of 2 start=11 . should_fail_with Index_Out_Of_Bounds.Error
+        input.index_of 2 start=11 . should_fail_with Index_Out_Of_Bounds
         input.index_of 2 start=11 . catch . should_equal (Index_Out_Of_Bounds.Error 11 11)
-        input.index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds.Error
+        input.index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should allow finding the last index of a value" <|
         input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
@@ -384,9 +384,9 @@ spec = Test.group "Vectors" <|
         [].last_index_of 5 . should_equal Nothing
         input.last_index_of 2 start=4 . should_equal 1
         input.last_index_of 2 start=-1 . should_equal 8
-        input.last_index_of 2 start=10 . should_fail_with Index_Out_Of_Bounds.Error
+        input.last_index_of 2 start=10 . should_fail_with Index_Out_Of_Bounds
         input.last_index_of 2 start=10 . catch . should_equal (Index_Out_Of_Bounds.Error 10 10)
-        input.last_index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds.Error
+        input.last_index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should be convertible to a list" <|
         [].to_list . should_equal List.Nil
@@ -412,21 +412,21 @@ spec = Test.group "Vectors" <|
 
         vec.take (2.up_to 4) . should_equal [3, 4]
         vec.take (0.up_to 0) . should_equal []
-        vec.take (100.up_to 100) . should_fail_with Index_Out_Of_Bounds.Error
+        vec.take (100.up_to 100) . should_fail_with Index_Out_Of_Bounds
         vec.take (100.up_to 100) . catch . should_equal (Index_Out_Of_Bounds.Error 100 6)
         vec.take (0.up_to 100) . should_equal vec
-        [].take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds.Error
+        [].take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds
         [].take (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
-        vec.take (100.up_to 99) . should_fail_with Index_Out_Of_Bounds.Error
+        vec.take (100.up_to 99) . should_fail_with Index_Out_Of_Bounds
 
         vec.drop (2.up_to 4) . should_equal [1, 2, 5, 6]
         vec.drop (0.up_to 0) . should_equal vec
-        vec.drop (100.up_to 100) . should_fail_with Index_Out_Of_Bounds.Error
+        vec.drop (100.up_to 100) . should_fail_with Index_Out_Of_Bounds
         vec.drop (100.up_to 100) . catch . should_equal (Index_Out_Of_Bounds.Error 100 6)
         vec.drop (0.up_to 100) . should_equal []
-        [].drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds.Error
+        [].drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds
         [].drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
-        vec.drop (100.up_to 99) . should_fail_with Index_Out_Of_Bounds.Error
+        vec.drop (100.up_to 99) . should_fail_with Index_Out_Of_Bounds
 
         vec.take (First 4) . should_equal first_four
         vec.take (First 0) . should_equal []
@@ -465,8 +465,8 @@ spec = Test.group "Vectors" <|
         vec.take (Every 2 first=100) . should_equal []
         vec.take (Every 200) . should_equal [1]
         [].take (Every 2) . should_equal []
-        vec.take (Every 0) . should_fail_with Illegal_Argument.Error
-        [].take (Every 0) . should_fail_with Illegal_Argument.Error
+        vec.take (Every 0) . should_fail_with Illegal_Argument
+        [].take (Every 0) . should_fail_with Illegal_Argument
 
         vec.drop (Every 1) . should_equal []
         vec.drop (Every 3) . should_equal [2, 3, 5, 6]
@@ -475,11 +475,11 @@ spec = Test.group "Vectors" <|
         vec.drop (Every 2 first=100) . should_equal vec
         vec.drop (Every 200) . should_equal [2, 3, 4, 5, 6]
         [].drop (Every 2) . should_equal []
-        vec.drop (Every 0) . should_fail_with Illegal_Argument.Error
-        [].drop (Every 0) . should_fail_with Illegal_Argument.Error
+        vec.drop (Every 0) . should_fail_with Illegal_Argument
+        [].drop (Every 0) . should_fail_with Illegal_Argument
 
         vec.take (By_Index 0) . should_equal [1]
-        [].take (By_Index 0) . should_fail_with Index_Out_Of_Bounds.Error
+        [].take (By_Index 0) . should_fail_with Index_Out_Of_Bounds
         vec.take (By_Index []) . should_equal []
         vec.take (By_Index [-1, -1]) . should_equal [6, 6]
         vec.take (By_Index [0, 0, 3.up_to 100]) . should_equal [1, 1, 4, 5, 6]
@@ -487,8 +487,8 @@ spec = Test.group "Vectors" <|
         vec.take (By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . should_equal [1, 3, 5, 2, 4, 6]
         vec.take (By_Index [1.up_to 3, 2.up_to 5]) . should_equal [2, 3, 3, 4, 5]
         vec.take (By_Index [2.up_to 5, 1.up_to 3]) . should_equal [3, 4, 5, 2, 3]
-        vec.take (By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds.Error
-        vec.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds.Error
+        vec.take (By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds
+        vec.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds
 
         vec.drop (By_Index 0) . should_equal [2, 3, 4, 5, 6]
         vec.drop (By_Index []) . should_equal vec
@@ -498,8 +498,8 @@ spec = Test.group "Vectors" <|
         vec.drop (By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . should_equal []
         vec.drop (By_Index [1.up_to 3, 2.up_to 5]) . should_equal [1, 6]
         vec.drop (By_Index [2.up_to 5, 1.up_to 3]) . should_equal [1, 6]
-        vec.drop (By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds.Error
-        vec.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds.Error
+        vec.drop (By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds
+        vec.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds
 
         [1, 3, 5, 6, 8, 9, 10, 11, 13].take (While (x-> x%2 == 1)) . should_equal [1, 3, 5]
         [1, 2, 3] . take (While (_ > 10)) . should_equal []
@@ -559,11 +559,11 @@ spec = Test.group "Vectors" <|
         [Time_Of_Day.new 12, Time_Of_Day.new 10 30].sort . should_equal [Time_Of_Day.new 10 30, Time_Of_Day.new 12]
         [Date_Time.new 2000 12 30 12 30, Date_Time.new 2000 12 30 12 00].sort . should_equal [Date_Time.new 2000 12 30 12 00, Date_Time.new 2000 12 30 12 30]
 
-        ["aa", 2].sort . should_fail_with Incomparable_Values.Error
-        [2, Date.new 1999].sort . should_fail_with Incomparable_Values.Error
-        [Date_Time.new 1999 1 1 12 30, Date.new 1999].sort . should_fail_with Incomparable_Values.Error
-        [Date_Time.new 1999 1 1 12 30, Time_Of_Day.new 12 30].sort . should_fail_with Incomparable_Values.Error
-        Test.expect_panic_with ([3,2,1].to_array.sort 42) Type_Error.Error
+        ["aa", 2].sort . should_fail_with Incomparable_Values
+        [2, Date.new 1999].sort . should_fail_with Incomparable_Values
+        [Date_Time.new 1999 1 1 12 30, Date.new 1999].sort . should_fail_with Incomparable_Values
+        [Date_Time.new 1999 1 1 12 30, Time_Of_Day.new 12 30].sort . should_fail_with Incomparable_Values
+        Test.expect_panic_with ([3,2,1].to_array.sort 42) Type_Error
 
     Test.specify "should leave the original vector unchanged" <|
         non_empty_vec = [2, 4, 2, 3, 2, 3]
@@ -609,7 +609,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should correctly propagate error through map" <|
         [1, 2, 3].map Error.throw . catch . should_equal 1
         fun a = if a == 3 then Error.throw (My_Error.Value a) else a
-        [1, 2, 3, 4].map fun . catch My_Error.Value . should_equal (My_Error.Value 3)
+        [1, 2, 3, 4].map fun . catch My_Error . should_equal (My_Error.Value 3)
 
     Test.specify "should pad elements" <|
         [].pad 3 0 . should_equal [0, 0, 0]
@@ -634,17 +634,17 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow inserting elements" <|
         [2, 3].insert . should_equal [2, 3, Nothing]
         [2, 3].insert item=1 . should_equal [2, 3, 1]
-        [2, 3].insert 100 item=1 . should_fail_with Index_Out_Of_Bounds.Error
+        [2, 3].insert 100 item=1 . should_fail_with Index_Out_Of_Bounds
         [2, 3].insert 0 item=1 . should_equal [1, 2, 3]
         [2, 3].insert 0 . should_equal [Nothing, 2, 3]
         [2, 3].insert 2 . should_equal [2, 3, Nothing]
         [1, 2, 3].insert -1 item=4 . should_equal [1, 2, 4, 3]
-        [1, 2, 3].insert -20 item=4 . should_fail_with Index_Out_Of_Bounds.Error
+        [1, 2, 3].insert -20 item=4 . should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should allow removing elements" <|
         [1, 2, 3].remove . should_equal [1, 2]
-        [1, 2, 3].remove 100 . should_fail_with Index_Out_Of_Bounds.Error
-        [1, 2, 3].remove -123 . should_fail_with Index_Out_Of_Bounds.Error
+        [1, 2, 3].remove 100 . should_fail_with Index_Out_Of_Bounds
+        [1, 2, 3].remove -123 . should_fail_with Index_Out_Of_Bounds
         [1, 2, 3].remove 0 . should_equal [2, 3]
         [1, 2, 3].remove -1 . should_equal [1, 2]
 

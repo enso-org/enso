@@ -17,7 +17,7 @@
   "scripts": {
     "typecheck": "npx tsc --noEmit",
     "build": "npx --yes tsup src/runner/index.ts --format=cjs --dts --sourcemap",
-    "build-shader-extractor": "npx --yes tsup --format=cjs --target=esnext src/shader-extractor/shader-extractor.ts --dts --sourcemap",
+    "build-asset-extractor": "npx --yes tsup --format=cjs --target=esnext src/asset-extractor/asset-extractor.ts --dts --sourcemap",
     "build-runtime-libs": "npx --yes esbuild --bundle --platform=node --format=cjs src/runtime-libs/runtime-libs.ts",
     "lint": "npx --yes eslint src"
   },

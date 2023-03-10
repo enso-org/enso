@@ -8,8 +8,6 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
 use json_rpc::test_util::transport::mock::MockTransport;
 use serde_json::json;
-use span_tree::node;
-use span_tree::node::InsertionPointType;
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 
@@ -102,10 +100,7 @@ fn span_tree_args() {
         // an additional prefix application argument.
         [_, second] => {
             let Node { children, kind, .. } = &second.node;
-            let _expected_kind =
-                node::Kind::insertion_point().with_kind(InsertionPointType::ExpectedArgument(0));
             assert!(children.is_empty());
-            // assert_eq!(kind,&node::Kind::from(expected_kind));
             assert_eq!(kind.argument_info().as_ref(), Some(&expected_arg1_param));
         }
         _ => panic!("Expected only two children in the span tree's root"),
@@ -117,8 +112,8 @@ fn span_tree_args() {
     match get_inputs().root.children.as_slice() {
         // The tree here should have two nodes under root - one with given Ast and second for
         // an additional prefix application argument.
-        [_, second] => {
-            let Node { children, kind, .. } = &second.node;
+        [_target, argument] => {
+            let Node { children, kind, .. } = &argument.node;
             assert!(children.is_empty());
             assert_eq!(kind.argument_info().as_ref(), Some(&expected_arg1_param));
         }
@@ -149,12 +144,12 @@ fn span_tree_args() {
     assert_eq!(get_param(2), None);
 
     graph.set_expression(id, "bar Base").unwrap();
-    assert_eq!(get_param(0), Some(span_tree::ArgumentInfo::this(None, None)));
+    assert_eq!(get_param(0), Some(default()));
     assert_eq!(get_param(1), None);
     assert_eq!(get_param(2), None);
 
     graph.set_expression(id, "Base.bar").unwrap();
-    assert_eq!(get_param(0), Some(span_tree::ArgumentInfo::this(None, None)));
+    assert_eq!(get_param(0), Some(default()));
     assert_eq!(get_param(1), Some(default()));
     assert_eq!(get_param(2), None);
 
