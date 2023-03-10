@@ -167,10 +167,8 @@ type Any
                  a > 147
     > : Any -> Boolean ! Incomparable_Values
     > self that =
-        same_comps = have_same_comparators self that
-        case same_comps.is_error of
-            True -> Error.throw same_comps
-            False -> case (Comparable.from self).compare self that of
+        assert_same_comparators self that <|
+            case (Comparable.from self).compare self that of
                 Ordering.Greater -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
@@ -198,10 +196,8 @@ type Any
                  a >= 147
     >= : Any -> Boolean ! Incomparable_Values
     >= self that =
-        same_comps = have_same_comparators self that
-        case same_comps.is_error of
-            True -> Error.throw same_comps
-            False -> case (Comparable.from self).compare self that of
+        assert_same_comparators self that <|
+            case (Comparable.from self).compare self that of
                 Ordering.Equal -> True
                 Ordering.Greater -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
@@ -229,10 +225,8 @@ type Any
                  a < 147
     < : Any -> Boolean ! Incomparable_Values
     < self that =
-        same_comps = have_same_comparators self that
-        case same_comps.is_error of
-            True -> Error.throw same_comps
-            False -> case (Comparable.from self).compare self that of
+        assert_same_comparators self that <|
+            case (Comparable.from self).compare self that of
                 Ordering.Less -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
@@ -262,10 +256,8 @@ type Any
                  a < 147
     <= : Any -> Boolean ! Incomparable_Values
     <= self that =
-        same_comps = have_same_comparators self that
-        case same_comps.is_error of
-            True -> Error.throw same_comps
-            False -> case (Comparable.from self).compare self that of
+        assert_same_comparators self that <|
+            case (Comparable.from self).compare self that of
                 Ordering.Equal -> True
                 Ordering.Less -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
@@ -459,12 +451,12 @@ type Any
 
 
 ## PRIVATE
-   Returns True if the given objects have the same Comparator type, otherwise
-   throws Type_Error
-have_same_comparators : Any -> Any -> Boolean ! Type_Error
-have_same_comparators this that =
+   Checks if the comparators for the given objects are both of the same type. If so,
+   proceeds with the given action, and if not, throws `Type_Error`.
+assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Type_Error
+assert_same_comparators this that ~action =
     comp_this = Comparable.from this
     comp_that = Comparable.from that
     case Meta.is_same_object comp_this comp_that of
+        True -> action
         False -> Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that")
-        True -> True
