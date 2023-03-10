@@ -1,6 +1,7 @@
 package org.enso.languageserver.search
 
 import org.enso.docs.generator.DocsGenerator
+import org.enso.docs.sections.DocSectionsBuilder
 import org.enso.polyglot.Suggestion
 
 import java.util.UUID

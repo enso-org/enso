@@ -35,7 +35,7 @@ public class ObjectComparator implements Comparator<Object> {
   public ObjectComparator() {
     this(
         (a) -> (b) -> {
-          throw new ClassCastException("Incomparable keys.");
+          throw new CompareException(a, b);
         });
   }
 
@@ -121,7 +121,7 @@ public class ObjectComparator implements Comparator<Object> {
 
     // Text
     if (thisValue instanceof String thisString && thatValue instanceof String thatString) {
-      return convertComparatorResult(textComparator.apply(thisString).apply(thatString));
+      return convertComparatorResult(textComparator.apply(thisString).apply(thatString), thisString, thatString);
     }
 
     // DateTimes
@@ -145,14 +145,14 @@ public class ObjectComparator implements Comparator<Object> {
     }
 
     // Fallback to Enso
-    return convertComparatorResult(fallbackComparator.apply(thisValue).apply(thatValue));
+    return convertComparatorResult(fallbackComparator.apply(thisValue).apply(thatValue), thisValue, thatValue);
   }
 
-  private static int convertComparatorResult(Value comparatorResult) {
+  private static int convertComparatorResult(Value comparatorResult, Object leftOperand, Object rightOperand) {
     if (comparatorResult.isNumber() && comparatorResult.fitsInInt()) {
       return comparatorResult.asInt();
     } else {
-      throw new ClassCastException("Comparator returned a non-integer value: " + comparatorResult);
+      throw new CompareException(leftOperand, rightOperand);
     }
   }
 }

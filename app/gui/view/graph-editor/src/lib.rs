@@ -652,6 +652,7 @@ ensogl::define_endpoints_2! {
         has_detached_edge                      (bool),
         on_edge_add                            (EdgeId),
         on_edge_drop                           (EdgeId),
+        on_edge_drop_overlapping               (EdgeId),
         on_edge_drop_to_create_node            (EdgeId),
         on_edge_source_set                     ((EdgeId,EdgeEndpoint)),
         on_edge_source_set_with_target_not_set ((EdgeId,EdgeEndpoint)),
@@ -1622,11 +1623,15 @@ impl GraphEditorModelWithNetwork {
 
             selected    <- vis_is_selected.on_true();
             deselected  <- vis_is_selected.on_false();
-            output.visualization_preprocessor_changed <+
-                node_model.visualization.frp.preprocessor.map(move |preprocessor|
-                    (node_id,preprocessor.clone()));
             output.on_visualization_select <+ selected.constant(Switch::On(node_id));
             output.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
+
+            preprocessor_changed <-
+                node_model.visualization.frp.preprocessor.map(move |preprocessor| {
+                    (node_id,preprocessor.clone())
+                });
+            output.visualization_preprocessor_changed <+ preprocessor_changed.gate(&node.visualization_visible);
+
 
             metadata <- any(...);
             metadata <+ node_model.visualization.frp.preprocessor.map(visualization::Metadata::new);
@@ -2953,8 +2958,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         on_new_edge_source <- new_edge_source.constant(());
         on_new_edge_target <- new_edge_target.constant(());
 
-        overlapping_edges       <= out.on_edge_target_set._1().map(f!((t) model.overlapping_edges(t)));
-        out.on_edge_drop <+ overlapping_edges;
+        overlapping_edges            <= out.on_edge_target_set._1().map(f!((t) model.overlapping_edges(t)));
+        out.on_edge_drop_overlapping <+ overlapping_edges;
 
         drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
         drop_edges     <- any (drop_on_bg_up,clicked_to_drop_edge);
@@ -3621,7 +3626,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     // === Drop ===
 
-    eval out.on_edge_drop    ((id) model.remove_edge(id));
+    eval out.on_edge_drop_overlapping ((id) model.remove_edge(id));
+    eval out.on_edge_drop             ((id) model.remove_edge(id));
 
 
 

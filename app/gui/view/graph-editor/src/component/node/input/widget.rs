@@ -458,13 +458,15 @@ impl LazyDropdown {
                     is_open <- all(is_open, &init)._0();
                     dropdown.set_open <+ is_open.on_change();
 
-                    // initialize selection before emitting output. We do not want to emit the
-                    // selected value immediately after initialization, without actual user action.
-                    init.emit(());
-                    output_value <+ first_selected_entry.on_change();
+                    // Emit the output value only after actual user action. This prevents the
+                    // dropdown from emitting its initial value when it is opened, which can
+                    // represent slightly different version of code than actually written.
+                    output_value <+ first_selected_entry.sample(&dropdown.user_select_action);
 
                 }
 
+
+                init.emit(());
                 *self = LazyDropdown::Initialized(dropdown, network);
             }
         }

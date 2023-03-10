@@ -187,7 +187,7 @@ pub struct NonVariableFaceHeader {
 
 impl NonVariableFaceHeader {
     /// Constructor.
-    pub fn new(width: Width, weight: Weight, style: Style) -> Self {
+    pub const fn new(width: Width, weight: Weight, style: Style) -> Self {
         Self { width, weight, style }
     }
 

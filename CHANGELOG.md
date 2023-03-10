@@ -109,6 +109,11 @@
 - [A new table visualisation is added.][5806] It has a new visual design and
   loads data lazily from the backend, which allows it to handle larger datasets
   without freezing the IDE.
+- [Application retries its initialization after failures][5802], allowing a
+  reconnecting after connectivity problems.
+- [Named arguments syntax is now recognized in IDE][5774]. Connections to
+  function arguments will now use named argument syntax instead of inserting
+  wildcards on all preceding arguments.
 
 #### EnsoGL (rendering engine)
 
@@ -509,6 +514,8 @@
 [5779]: https://github.com/enso-org/enso/pull/5779
 [5757]: https://github.com/enso-org/enso/pull/5757
 [5806]: https://github.com/enso-org/enso/pull/5806
+[5802]: https://github.com/enso-org/enso/pull/5802
+[5774]: https://github.com/enso-org/enso/pull/5774
 
 #### Enso Compiler
 
@@ -605,6 +612,8 @@
 - [Use sbt runEngineDistribution][5609]
 - [Update to GraalVM 22.3.1][5602]
 - [Cache library bindings to optimize import/export resolution][5700]
+- [Comparators support partial ordering][5778]
+- [Use SHA-1 for calculating hashes of modules' IR and bindings][5791]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -702,6 +711,8 @@
 [5609]: https://github.com/enso-org/enso/pull/5609
 [5602]: https://github.com/enso-org/enso/pull/5602
 [5700]: https://github.com/enso-org/enso/pull/5700
+[5778]: https://github.com/enso-org/enso/pull/5778
+[5791]: https://github.com/enso-org/enso/pull/5791
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -15,6 +15,7 @@ import project.Nothing.Nothing
 import project.System.File.File
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Json import Invalid_JSON
 
 polyglot java import org.enso.base.file_format.FileFormatSPI
 
@@ -146,7 +147,8 @@ type JSON_File
     read : File -> Problem_Behavior -> Any
     read self file _ =
         text = file.read_text
-        Json.parse text
+        Json.parse text . catch Invalid_JSON error->
+            Error.throw (File_Error.Corrupted_Format file error.to_display_text error)
 
     ## PRIVATE
        Implements the `Data.parse` for this `File_Format`

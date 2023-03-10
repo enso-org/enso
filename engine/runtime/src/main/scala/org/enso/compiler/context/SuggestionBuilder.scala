@@ -8,6 +8,7 @@ import org.enso.compiler.pass.resolve.{
   TypeNames,
   TypeSignatures
 }
+import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
@@ -654,6 +655,14 @@ object SuggestionBuilder {
 
   /** TODO[DB] enable conversions when they get the runtime support. */
   private val ConversionsEnabled: Boolean = false
+
+  /** Creates the suggestion builder for a module.
+    *
+    * @param module the module to index
+    * @return the suggestions builder for the module
+    */
+  def apply(module: Module): SuggestionBuilder[CharSequence] =
+    SuggestionBuilder(module.getSource.getCharacters)
 
   /** Create the suggestion builder.
     *

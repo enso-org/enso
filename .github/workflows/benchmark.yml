@@ -3,11 +3,8 @@
 
 name: Benchmark Engine
 on:
-  push:
-    branches:
-      - develop
   schedule:
-    - cron: 0 5 * * 2-6
+    - cron: 0 0 * * *
   workflow_dispatch:
     inputs:
       just-check:
@@ -53,17 +50,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend benchmark runtime enso
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -75,7 +69,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
+    timeout-minutes: 480
 env:
   ENSO_BUILD_MINIMAL_RUN: ${{ true == inputs.just-check }}
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

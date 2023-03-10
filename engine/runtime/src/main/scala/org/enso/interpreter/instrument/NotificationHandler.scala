@@ -115,14 +115,21 @@ object NotificationHandler {
       libraryName: LibraryName,
       libraryVersion: LibraryVersion,
       location: Path
-    ): Unit = sendMessage(
-      Api.LibraryLoaded(
-        namespace = libraryName.namespace,
-        name      = libraryName.name,
-        version   = libraryVersion.toString,
-        location  = location.toFile
+    ): Unit = {
+      sendMessage(
+        Api.LibraryLoaded(
+          namespace = libraryName.namespace,
+          name      = libraryName.name,
+          version   = libraryVersion.toString,
+          location  = location.toFile
+        )
       )
-    )
+      endpoint.sendToSelf(
+        Api.Request(
+          Api.DeserializeLibrarySuggestions(libraryName)
+        )
+      )
+    }
 
     /** @inheritdoc */
     override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
