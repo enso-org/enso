@@ -107,7 +107,7 @@ spec setup =
         if test_selection.is_nan_and_nothing_distinct.not then
             Test.specify "this backend treats NaN as Nothing" <|
                 t3.at "X" . to_vector . should_equal [2.0, 1.5, Nothing, Nothing]
-                t3.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation.Error
+                t3.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation
 
         Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
             t = table_builder [["X", [1, 2, 3, 4]], ["Y", [Nothing, "", Nothing, Nothing]], ["Z", [Nothing, True, False, Nothing]]]

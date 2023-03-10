@@ -121,7 +121,7 @@ spec =
             object.get "bar" . should_equal Nothing
             object.get "bar" 1 . should_equal 1
             object.at "foo" . should_equal "bar"
-            object.at "bar" . should_fail_with No_Such_Key.Error
+            object.at "bar" . should_fail_with No_Such_Key
             Json.parse "null" . get "foo" . should_equal Nothing
             Json.parse "null" . get "foo" 1 . should_equal 1
 
@@ -132,7 +132,7 @@ spec =
         Test.specify "should be able to get a value by index" <|
             Json.parse "[1, 2, 3, 4, 5]" . at 2 . should_equal 3
             Json.parse "[1, 2, 3, 4, 5]" . at -2 . should_equal 4
-            Json.parse "[1, 2, 3, 4, 5]" . at 5 . should_fail_with Index_Out_Of_Bounds.Error
+            Json.parse "[1, 2, 3, 4, 5]" . at 5 . should_fail_with Index_Out_Of_Bounds
             Json.parse "[1, 2, 3, 4, 5]" . get 2 . should_equal 3
             Json.parse "[1, 2, 3, 4, 5]" . get -2 . should_equal 4
             Json.parse "[1, 2, 3, 4, 5]" . get 5 . should_equal Nothing

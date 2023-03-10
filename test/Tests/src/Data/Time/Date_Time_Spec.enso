@@ -330,12 +330,12 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1<time_2 . should_be_false
 
             tod = Time_Of_Day.new 4 0 10
-            Ordering.compare time_1 tod . should_fail_with Incomparable_Values.Error
-            time_1<tod . should_fail_with Incomparable_Values.Error
+            Ordering.compare time_1 tod . should_fail_with Incomparable_Values
+            time_1<tod . should_fail_with Incomparable_Values
             time_1==tod . should_be_false
 
             date = Date.new 2021 1 1
-            Ordering.compare time_1 date . should_fail_with Incomparable_Values.Error
+            Ordering.compare time_1 date . should_fail_with Incomparable_Values
             time_1==date . should_be_false
 
         Test.specify "simple computations before Enso epoch should produce a warning" <|

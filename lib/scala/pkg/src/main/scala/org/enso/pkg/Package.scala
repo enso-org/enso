@@ -43,6 +43,9 @@ case class Package[F](
   val bindingsCacheDirectory: F = internalDirectory
     .getChild(Package.cacheDirName)
     .getChild(Package.bindingsCacheDirName)
+  val suggestionsCacheDirectory: F = internalDirectory
+    .getChild(Package.cacheDirName)
+    .getChild(Package.suggestionsCacheDirName)
 
   /** Sets the package name.
     *
@@ -82,8 +85,28 @@ case class Package[F](
     irCacheDirectory.getChild(ensoVersion)
   }
 
+  /** Gets the bindings cache root location within this package for a given Enso
+    * version.
+    *
+    * This will create the location if it does not exist.
+    *
+    * @param ensoVersion the enso version to get the cache root for
+    * @return the cache root location
+    */
   def getBindingsCacheRootForPackage(ensoVersion: String): F = {
     bindingsCacheDirectory.getChild(ensoVersion)
+  }
+
+  /** Gets the suggestions cache root location within this package for a given
+    * Enso version.
+    *
+    * This will create the location if it does not exist.
+    *
+    * @param ensoVersion the enso version to get the cache root for
+    * @return the cache root location
+    */
+  def getSuggestionsCacheRootForPackage(ensoVersion: String): F = {
+    suggestionsCacheDirectory.getChild(ensoVersion)
   }
 
   /** Changes the package name.
@@ -495,4 +518,5 @@ object Package {
   val cacheDirName              = "cache"
   val irCacheDirName            = "ir"
   val bindingsCacheDirName      = "bindings"
+  val suggestionsCacheDirName   = "suggestions"
 }

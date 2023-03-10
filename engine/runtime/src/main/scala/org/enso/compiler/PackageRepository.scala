@@ -2,6 +2,7 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
+import org.apache.commons.lang3.StringUtils
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
@@ -32,6 +33,7 @@ import org.enso.text.buffer.Rope
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
 import scala.jdk.OptionConverters.RichOption
+import scala.jdk.CollectionConverters.{IterableHasAsJava, SeqHasAsJava}
 import scala.util.{Failure, Try, Using}
 
 /** Manages loaded packages and modules. */
@@ -60,6 +62,9 @@ trait PackageRepository {
 
   /** Get a sequence of currently loaded packages. */
   def getLoadedPackages: Seq[Package[TruffleFile]]
+
+  /** Get a sequence of currently loaded packages. */
+  def getLoadedPackagesJava: java.lang.Iterable[Package[TruffleFile]]
 
   /** Get a sequence of currently loaded modules. */
   def getLoadedModules: Seq[Module]
@@ -574,6 +579,10 @@ object PackageRepository {
     override def getLoadedPackages: Seq[Package[TruffleFile]] =
       loadedPackages.values.toSeq.flatten
 
+    override def getLoadedPackagesJava
+      : java.lang.Iterable[Package[TruffleFile]] =
+      loadedPackages.flatMap(_._2).asJava
+
     /** @inheritdoc */
     override def getLoadedModule(qualifiedName: String): Option[Module] =
       loadedModules.get(qualifiedName)
@@ -604,8 +613,6 @@ object PackageRepository {
       syntheticModule: Module,
       refs: List[QualifiedName]
     ): Unit = {
-      import scala.jdk.CollectionConverters._
-
       assert(syntheticModule.isSynthetic)
       if (!loadedModules.contains(syntheticModule.getName.toString)) {
         loadedModules.put(syntheticModule.getName.toString, syntheticModule)
@@ -708,10 +715,9 @@ object PackageRepository {
     }
 
     private def readManifest(file: TruffleFile): Try[String] = {
-      import scala.jdk.CollectionConverters._
       if (file.exists())
         Using(file.newBufferedReader) { reader =>
-          reader.lines().iterator().asScala.mkString("\n")
+          StringUtils.join(reader.lines().iterator(), "\n")
         }
       else Failure(PackageManager.PackageNotFound())
     }

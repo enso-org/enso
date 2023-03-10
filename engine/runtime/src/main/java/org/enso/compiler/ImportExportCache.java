@@ -6,7 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
-import org.bouncycastle.util.encoders.Hex;
+import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -15,15 +15,13 @@ import org.enso.pkg.SourceFile;
 import scala.collection.immutable.Map;
 import scala.jdk.CollectionConverters;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 
-public class ImportExportCache extends Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
+public final class ImportExportCache extends Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
     private final LibraryName libraryName;
 
@@ -38,12 +36,21 @@ public class ImportExportCache extends Cache<ImportExportCache.CachedBindings, I
 
     @Override
     protected byte[] metadata(String sourceDigest, String blobDigest, CachedBindings entry) {
-        var mapper = new ObjectMapper();
         try {
-            return mapper.writeValueAsString(new Metadata(sourceDigest, blobDigest)).getBytes(metadataCharset);
+            return objectMapper.writeValueAsString(new Metadata(sourceDigest, blobDigest)).getBytes(metadataCharset);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    protected boolean needsSourceDigestVerification() {
+        return true;
+    }
+
+    @Override
+    protected boolean needsDataDigestVerification() {
+        return false;
     }
 
     @Override
@@ -56,12 +63,13 @@ public class ImportExportCache extends Cache<ImportExportCache.CachedBindings, I
     }
 
     @Override
-    protected Optional<Metadata> metadataFromBytes(byte[] bytes) {
+    protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger) {
         var maybeJsonString = new String(bytes, Cache.metadataCharset);
         var mapper = new ObjectMapper();
         try {
-            return Optional.of(mapper.readValue(maybeJsonString, ImportExportCache.Metadata.class));
+            return Optional.of(objectMapper.readValue(maybeJsonString, ImportExportCache.Metadata.class));
         } catch (JsonProcessingException e) {
+            logger.log(logLevel, "Failed to deserialize library's metadata: " + e.getMessage(), e);
             return Optional.empty();
         }
     }
@@ -79,22 +87,6 @@ public class ImportExportCache extends Cache<ImportExportCache.CachedBindings, I
                 .map(pkg -> computeDigestOfLibrarySources(pkg.listSourcesJava(), logger));
     }
 
-    private String computeDigestOfLibrarySources(List<SourceFile<TruffleFile>> pkgSources, TruffleLogger logger) {
-        pkgSources.sort(Comparator.comparing(o -> o.qualifiedName().toString()));
-
-        var digest = messageDigest();
-        pkgSources.forEach(source ->
-            {
-                try {
-                    digest.update(source.file().readAllBytes());
-                } catch (IOException e) {
-                    logger.log(logLevel, "failed to compute digest for " + source.qualifiedName().toString(), e);
-                }
-            }
-        );
-        return Hex.toHexString(digest.digest());
-    }
-
     @Override
     @SuppressWarnings("unchecked")
     protected Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
@@ -103,15 +95,15 @@ public class ImportExportCache extends Cache<ImportExportCache.CachedBindings, I
                     pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
             var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
             var distribution = context.getDistributionManager();
-            var pathSegments = CollectionConverters.ListHasAsScala(Arrays.asList(
+            var pathSegments = new String[]{
                     pkg.namespace(),
                     pkg.name(),
                     pkg.config().version(),
                     Info.ensoVersion(),
                     libraryName.namespace()
-            )).asScala();
+            };
             var path = distribution.LocallyInstalledDirectories().irCacheDirectory()
-                    .resolve(pathSegments.mkString("/"));
+                    .resolve(StringUtils.join(pathSegments, "/"));
             var globalCacheRoot = context.getTruffleFile(path.toFile());
             return new Cache.Roots(localCacheRoot, globalCacheRoot);
         });
@@ -162,6 +154,9 @@ public class ImportExportCache extends Cache<ImportExportCache.CachedBindings, I
             @JsonProperty("blob_hash") String blobHash) implements Cache.Metadata {}
 
     private static final String bindingsCacheDataExtension = ".bindings";
+
     private static final String bindingsCacheMetadataExtension =".bindings.meta";
+
+    private final static ObjectMapper objectMapper = new ObjectMapper();
 
 }

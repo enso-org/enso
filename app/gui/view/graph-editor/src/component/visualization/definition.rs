@@ -59,11 +59,13 @@ impl Signature {
 /// Generic definition of a visualization. Provides information about the visualization `Signature`,
 /// and a way to create new instances.
 #[derive(Clone, CloneRef, Derivative)]
-#[derivative(Debug)]
+#[derivative(Debug, PartialEq, Eq, Hash)]
 #[allow(missing_docs)]
 pub struct Definition {
     pub signature:   Signature,
     #[derivative(Debug = "ignore")]
+    #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
     pub constructor: Rc<dyn Fn(&Application) -> InstantiationResult>,
 }
 

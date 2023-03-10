@@ -55,7 +55,7 @@ spec =
             t3.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B", "T1"."A" AS "bar" FROM "T1" AS "T1"', []]
 
         Test.specify "should fail if at is called for a non-existent column" <|
-            t1.at "undefined" . should_fail_with No_Such_Column.Error
+            t1.at "undefined" . should_fail_with No_Such_Column
 
         Test.specify "should allow to limit the amount of returned results" <|
             t2 = t1.limit 5

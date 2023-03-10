@@ -51,7 +51,7 @@ write_file table format file on_existing_file match_columns on_problems =
    If the file does not exist or is empty, it acts like a regular overwrite.
 append_to_file : Table -> Delimited_Format -> File -> Match_Columns -> Problem_Behavior -> Any
 append_to_file table format file match_columns on_problems =
-    Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument.Error <|
+    Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument <|
         inferring_format = format.with_line_endings Infer
         metadata = Delimited_Reader.detect_metadata file inferring_format
         preexisting_headers = metadata.headers
@@ -135,7 +135,7 @@ write_to_stream table format stream on_problems related_file=Nothing separator_o
      instead of the one from `format`.
 write_to_writer : Table -> Delimited_Format -> Writer -> Text | Nothing -> Boolean -> Nothing
 write_to_writer table format java_writer separator_override=Nothing needs_leading_newline=False =
-    column_formatters = Panic.recover Illegal_Argument.Error <| case format.value_formatter of
+    column_formatters = Panic.recover Illegal_Argument <| case format.value_formatter of
         Nothing -> table.columns.map column-> case column.storage_type of
             Storage.Text -> TextFormatter.new
             _ ->
