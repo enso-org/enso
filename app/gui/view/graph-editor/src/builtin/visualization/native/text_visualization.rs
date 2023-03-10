@@ -72,7 +72,7 @@ use text_provider::TextProvider;
 /// not needed, as it will be cropped. For example, a value of 100, would mean that the
 /// visualisation would request 100 characters per chunk, even if it can only show 10 characters at
 /// once in the available viewport.
-pub const CHARS_PER_CHUNK: usize = 20;
+pub const GRAPHEMES_PER_CHUNK: usize = 20;
 /// Extra chunks to load around the visible grid to ensure smooth scrolling. Extra chunks are
 /// loaded in each direction around the visible grid. So a value of 5 with a base grid of 20x10 will
 /// load 25x15 grid.
@@ -413,7 +413,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             item_width <- item_width_update.map(f!([]((_, _, font_name, font_size)) {
                 let font_size = *font_size;
                 let char_width = measure_character_width(font_name, font_size);
-                CHARS_PER_CHUNK as f32 * char_width
+                GRAPHEMES_PER_CHUNK as f32 * char_width
             })).on_change();
             item_update <- all(init, item_width, font_size);
             text_grid.set_entries_size <+ item_update.map(f!([]((_, _, item_height)) {
@@ -493,7 +493,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
             scroll_positition <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
 
-            longest_line_with_init <- all(&init, &text_provider.chars_in_longest_line)._1();
+            longest_line_with_init <- all(&init, &text_provider.graphemes_in_longest_line)._1();
             lines_with_init        <- all(&init, &text_provider.line_count)._1();
 
             longest_line <- longest_line_with_init.on_change();

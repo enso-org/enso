@@ -27,7 +27,6 @@ use ide_view::graph_editor::builtin::visualization::native::text_visualization::
 use ide_view::graph_editor::builtin::visualization::native::text_visualization::text_provider::StringTextProvider;
 use ide_view::graph_editor::builtin::visualization::native::text_visualization::DebugTableGridVisualisation;
 use ide_view::graph_editor::builtin::visualization::native::text_visualization::DebugTextGridVisualisation;
-use ide_view::graph_editor::builtin::visualization::native::text_visualization::CHARS_PER_CHUNK;
 
 
 
@@ -79,7 +78,7 @@ fn init_table_vis(app: &Application) -> DebugTableGridVisualisation {
 }
 
 fn init_text_vis(app: &Application) -> DebugTextGridVisualisation {
-    let sample_text_data = StringTextProvider::new(sample_text(), CHARS_PER_CHUNK);
+    let sample_text_data = StringTextProvider::new(sample_text());
     let grid = DebugTextGridVisualisation::new(app.clone_ref());
     grid.set_text_provider(sample_text_data);
     grid.frp.set_size.emit(Vector2::new(200.0, 200.0));

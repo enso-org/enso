@@ -16,11 +16,25 @@ use super::GridPosition;
 use super::GridSize;
 use super::GridWindow;
 use enso_prelude::serde_reexports::Deserialize;
+use unicode_segmentation::UnicodeSegmentation;
 
 
 
 /// Width of a divider (e.g., space between columns) in the table in characters.
 const DIVIDER_WIDTH_IN_CHARS: usize = 3;
+
+fn grapheme_count<T: AsRef<str>>(s: T) -> usize {
+    UnicodeSegmentation::graphemes(s.as_ref(), true).count()
+}
+
+fn grapheme_chunks<T: AsRef<str>>(s: T) -> impl Iterator<Item = String> {
+    UnicodeSegmentation::graphemes(s.as_ref(), true)
+        .chunks(GRAPHEMES_PER_CHUNK)
+        .into_iter()
+        .map(|chunk| chunk.into_iter().collect::<String>())
+        .collect_vec()
+        .into_iter()
+}
 
 // ===========================
 // === Text Provider Trait ===
@@ -48,7 +62,7 @@ ensogl::define_endpoints_2! {
     Input {}
     Output {
         line_count(u32),
-        chars_in_longest_line(u32),
+        graphemes_in_longest_line(u32),
         table_specification(Option<TableSpecification>),
         data_refresh(),
     }
@@ -211,8 +225,8 @@ fn cum_sum_chunks(values: &[Option<ColumnWidth>]) -> Vec<usize> {
     let mut cum_sum = Vec::new();
     let mut sum = 0;
     for value in values {
-        sum = sum + value.unwrap_or_default().div_ceil(CHARS_PER_CHUNK);
-        cum_sum.push(sum.clone());
+        sum += value.unwrap_or_default().div_ceil(GRAPHEMES_PER_CHUNK);
+        cum_sum.push(sum);
     }
     cum_sum
 }
@@ -261,29 +275,19 @@ impl TableSpecification {
         self.iter_row_items_per_line().nth(line) == Some(TableItem::Divider)
     }
 
-    /// Return the width of the content column at the given index in chars.
+    /// Return the width of the content column at the given index in glyphs.
     fn column_width(&self, index: usize) -> usize {
         let column_width = self.columns.get(index).copied().flatten().unwrap_or_default();
-        let heading_width = self
-            .column_names
-            .get(index)
-            .cloned()
-            .flatten()
-            .map(|x| x.chars().count())
-            .unwrap_or_default();
+        let heading_width =
+            self.column_names.get(index).cloned().flatten().map(grapheme_count).unwrap_or_default();
         column_width.max(heading_width)
     }
 
     /// Return the height of the content row at the given index in lines.
     fn row_height(&self, index: usize) -> usize {
         let row_height = self.rows.get(index).copied().flatten().unwrap_or_default();
-        let heading_height = self
-            .column_names
-            .get(index)
-            .cloned()
-            .flatten()
-            .map(|x| x.lines().count())
-            .unwrap_or_default();
+        let heading_height =
+            self.column_names.get(index).cloned().flatten().map(grapheme_count).unwrap_or_default();
         row_height.max(heading_height)
     }
 
@@ -347,8 +351,8 @@ impl TableSpecification {
         self.columns.len()
     }
 
-    /// Return the width of the table in characters.
-    pub fn width_in_chars(&self) -> usize {
+    /// Return the width of the table in graphemes.
+    pub fn width_in_graphemes(&self) -> usize {
         let res = self.iter_column_items().map(|x| x.size()).sum();
         res
     }
@@ -417,7 +421,7 @@ impl TableSpecification {
         let column_content_width: usize = self
             .columns
             .iter()
-            .map(|width| width.map(|value| value.div_ceil(CHARS_PER_CHUNK)).unwrap_or(1))
+            .map(|width| width.map(|value| value.div_ceil(GRAPHEMES_PER_CHUNK)).unwrap_or(1))
             .sum();
         let column_content_height: usize = self.rows.iter().map(|height| height.unwrap_or(1)).sum();
 
@@ -461,11 +465,11 @@ impl TableSpecification {
     /// each chunk in the item.
     fn iter_column_items_per_chunk(&self) -> impl Iterator<Item = TableItem> + '_ {
         self.iter_column_items().flat_map(|item| match item {
-            TableItem::Content { size, index, .. } => (0..size.div_ceil(CHARS_PER_CHUNK))
+            TableItem::Content { size, index, .. } => (0..size.div_ceil(GRAPHEMES_PER_CHUNK))
                 .map(|offset| TableItem::Content { size: 1, index, offset })
                 .collect_vec(),
             TableItem::Divider => iter::once(TableItem::Divider).collect_vec(),
-            TableItem::Heading { size, .. } => (0..size.div_ceil(CHARS_PER_CHUNK))
+            TableItem::Heading { size, .. } => (0..size.div_ceil(GRAPHEMES_PER_CHUNK))
                 .map(|offset| TableItem::Heading { size: 1, offset })
                 .collect_vec(),
         })
@@ -506,7 +510,7 @@ impl TableSpecification {
             ) => {
                 // If a heading is larger than the content, we can get overhang items that do not
                 // have a corresponding content item and need to be empty.
-                let is_overhang_column = column_offset * CHARS_PER_CHUNK
+                let is_overhang_column = column_offset * GRAPHEMES_PER_CHUNK
                     >= self.columns.get(column_index).copied().flatten().unwrap_or(0);
                 let is_overhang_row =
                     row_offset >= self.rows.get(row_index).copied().flatten().unwrap_or(0);
@@ -593,7 +597,7 @@ impl TableSpecification {
         self.row_names
             .iter()
             .filter_map(|name| name.as_ref())
-            .map(|name| name.chars().count())
+            .map(grapheme_count)
             .max()
             .unwrap_or(1)
     }
@@ -625,35 +629,28 @@ impl From<TableSpecificationData> for TableSpecification {
 /// A text provider that is backed by a string.
 #[derive(Debug)]
 pub struct StringTextProvider {
-    text:       String,
-    frp:        Frp,
-    chunk_size: usize,
+    text: String,
+    frp:  Frp,
 }
 
 impl StringTextProvider {
     /// Create a new [`StringTextProvider`].
-    pub fn new(text: String, chunk_size: usize) -> Self {
+    pub fn new(text: String) -> Self {
         let frp = Frp::new();
 
         let line_count = text.lines().count() as u32;
         frp.private().output.line_count.emit(line_count);
-        let longest_line_frp = &frp.private().output.chars_in_longest_line;
-        let longest_line = text.lines().map(|line| line.chars().count()).max().unwrap_or(0) as u32;
+        let longest_line_frp = &frp.private().output.graphemes_in_longest_line;
+        let longest_line = text.lines().map(grapheme_count).max().unwrap_or(0) as u32;
         longest_line_frp.emit(longest_line);
 
-        Self { text, frp, chunk_size }
+        Self { text, frp }
     }
 }
 
 impl TextProvider for StringTextProvider {
     fn get_slice(&self, line: usize, chunk_index: usize) -> Option<String> {
-        self.text.lines().nth(line).and_then(|line| {
-            line.chars()
-                .chunks(self.chunk_size)
-                .into_iter()
-                .nth(chunk_index)
-                .map(|chunk| chunk.collect::<String>())
-        })
+        self.text.lines().nth(line).and_then(|line| grapheme_chunks(line).nth(chunk_index))
     }
 
     fn frp(&self) -> &Frp {
@@ -678,7 +675,10 @@ impl DebugGridTextProvider {
         let frp = Frp::new();
 
         frp.private().output.line_count.emit(line_count);
-        frp.private().output.chars_in_longest_line.emit(column_count * CHARS_PER_CHUNK as u32);
+        frp.private()
+            .output
+            .graphemes_in_longest_line
+            .emit(column_count * GRAPHEMES_PER_CHUNK as u32);
 
         let spec = TableSpecification {
             columns: Self::column_widths(column_count, line_count),
@@ -694,11 +694,11 @@ impl DebugGridTextProvider {
 
     fn column_widths(column_count: u32, row_count: u32) -> Vec<Option<usize>> {
         let mut widths = Vec::with_capacity(column_count as usize);
-        let max_row_index_text_width = row_count.to_string().chars().count();
+        let max_row_index_text_width = grapheme_count(row_count.to_string());
         let divider_width = 1;
 
         for column_ix in 0..column_count {
-            let column_index_text_width = column_ix.to_string().chars().count();
+            let column_index_text_width = grapheme_count(column_ix.to_string());
             let width = max_row_index_text_width + divider_width + column_index_text_width;
             widths.push(Some(width));
         }
@@ -803,7 +803,7 @@ impl BackendTextProvider {
             line_count <- grid_data_update.map(|grid_data| grid_data.data.line_count);
             longest_line <- grid_data_update.map(|grid_data| grid_data.data.longest_line);
 
-            output.chars_in_longest_line <+ longest_line.map(f!([longest_observed_line](longest_line) {
+            output.graphemes_in_longest_line <+ longest_line.map(f!([longest_observed_line](longest_line) {
                     let observed_value = longest_observed_line.get();
                     let longest_line = observed_value.max(*longest_line);
                     longest_observed_line.set(longest_line);
@@ -849,7 +849,7 @@ fn text_preprocessor(
                 .expect("Could not serialise [`GridPosition`] as JSON string."),
             serde_json::to_string(&grids_size)
                 .expect("Could not serialise [`GridSize`] as JSON string."),
-            serde_json::to_string(&(CHARS_PER_CHUNK as u32))
+            serde_json::to_string(&(GRAPHEMES_PER_CHUNK as u32))
                 .expect("Could not serialise [`u32`] as JSON string."),
         ],
     )
@@ -871,7 +871,7 @@ fn lazy_table_preprocessor(
                 .expect("Could not serialise [`TablePosition`] as JSON string."),
             serde_json::to_string(&grids_size.map(|size| size.max(0)))
                 .expect("Could not serialise [`GridSize`] as JSON string."),
-            serde_json::to_string(&(CHARS_PER_CHUNK as u32))
+            serde_json::to_string(&(GRAPHEMES_PER_CHUNK as u32))
                 .expect("Could not serialise [`u32`] as JSON string."),
         ],
     )
@@ -937,7 +937,8 @@ impl BackendTableProvider {
             });
             grid_data_update <- grid_data_update.map(|data| data.clone()).unwrap();
             chunks_update <- grid_data_update.map(|grid_data| grid_data.chunks.clone());
-            table_spec_update <- grid_data_update.map(|grid_data| grid_data.table_specification_update.clone());
+            table_spec_update <- grid_data_update.map(|grid_data|
+                grid_data.table_specification_update.clone());
 
             eval table_spec_update([table_specification](table_spec_update) {
                 table_specification.borrow_mut().update(table_spec_update);
@@ -957,10 +958,15 @@ impl BackendTableProvider {
                 table_specification.borrow().grid_size_in_chunks()
             }));
 
-            chars_in_longest_line <- table_spec_update.map(f_!([table_specification] table_specification.borrow().width_in_chars() as u32)).on_change();
+            graphemes_in_longest_line <- table_spec_update.map(
+                f_!([table_specification]
+                    table_specification.borrow().width_in_graphemes() as u32
+                )
+            ).on_change();
             line_count <- grid_size._1().map(|line_count| *line_count as u32).on_change();
 
-            output.chars_in_longest_line <+ chars_in_longest_line.map(f!([longest_observed_line](longest_line) {
+            output.graphemes_in_longest_line <+ graphemes_in_longest_line.map(
+                f!([longest_observed_line](longest_line) {
                     let observed_value = longest_observed_line.get();
                     let longest_line = observed_value.max(*longest_line);
                     longest_observed_line.set(longest_line);
@@ -1063,10 +1069,9 @@ impl From<String> for LazyGridData {
         let numbered_lines = lines.enumerate();
         let chunks = numbered_lines
             .flat_map(|(line_ix, line)| {
-                let chunks = line.chars().chunks(CHARS_PER_CHUNK);
+                let chunks = grapheme_chunks(line);
                 let numbered_chunks = chunks.into_iter().enumerate();
                 let chunks_with_position = numbered_chunks.map(move |(chunk_ix, chunk)| {
-                    let chunk = chunk.collect::<String>();
                     let pos = GridPosition::new(chunk_ix as i32, line_ix as i32);
                     (pos, Some(chunk))
                 });
@@ -1336,7 +1341,7 @@ mod tests {
     pub fn test_divider_locations() {
         let specification = TableSpecification {
             rows: vec![Some(2), Some(1)],
-            columns: vec![Some(2 * CHARS_PER_CHUNK), Some(3 * CHARS_PER_CHUNK)],
+            columns: vec![Some(2 * GRAPHEMES_PER_CHUNK), Some(3 * GRAPHEMES_PER_CHUNK)],
             ..default()
         };
 
@@ -1357,7 +1362,7 @@ mod tests {
         //  2| ___ | _ |
         //  -|-----+---+
         let rows = vec![Some(2), Some(1)];
-        let columns = vec![Some(CHARS_PER_CHUNK * 5 / 2), Some(CHARS_PER_CHUNK)];
+        let columns = vec![Some(GRAPHEMES_PER_CHUNK * 5 / 2), Some(GRAPHEMES_PER_CHUNK)];
         let column_names = vec![Some("A".to_string()), Some("B".to_string())];
         let row_names = vec![Some("1".to_string()), Some("2".to_string())];
         let spec = TableSpecification::new_with_names(columns, rows, column_names, row_names);
@@ -1435,8 +1440,8 @@ mod tests {
         //   | A_ | B |
         //  1| _  | _ |
         let rows = vec![Some(1)];
-        let columns = vec![Some(CHARS_PER_CHUNK), Some(CHARS_PER_CHUNK)];
-        let column_names = vec![Some("A".repeat(CHARS_PER_CHUNK * 2)), Some("B".to_string())];
+        let columns = vec![Some(GRAPHEMES_PER_CHUNK), Some(GRAPHEMES_PER_CHUNK)];
+        let column_names = vec![Some("A".repeat(GRAPHEMES_PER_CHUNK * 2)), Some("B".to_string())];
         let row_names = vec![Some("1".to_string())];
         let spec = TableSpecification::new_with_names(columns, rows, column_names, row_names);
 
