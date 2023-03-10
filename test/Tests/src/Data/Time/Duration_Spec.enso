@@ -58,12 +58,12 @@ spec =
             periods = [(Period.new days=1), (Period.new 0), (Period.new years=30), (Period.new years=3 months=2)]
             durations.each duration->
                 periods.each period->
-                    (duration + period).should_fail_with Time_Error.Error
-                    (duration - period).should_fail_with Time_Error.Error
-                    (period + duration).should_fail_with Time_Error.Error
-                    (period - duration).should_fail_with Time_Error.Error
-                    (duration > period).should_fail_with Type_Error.Error
-                    (duration < period).should_fail_with Type_Error.Error
+                    (duration + period).should_fail_with Time_Error
+                    (duration - period).should_fail_with Time_Error
+                    (period + duration).should_fail_with Time_Error
+                    (period - duration).should_fail_with Time_Error
+                    (duration > period).should_fail_with Type_Error
+                    (duration < period).should_fail_with Type_Error
 
         Test.specify "Date_Time supports adding and subtracting Duration" <|
             ((Date_Time.new 2022 10 1 hour=10) + (Duration.new hours=2)) . should_equal (Date_Time.new 2022 10 1 hour=12)

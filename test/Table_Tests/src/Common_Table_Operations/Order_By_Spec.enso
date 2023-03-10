@@ -271,4 +271,4 @@ spec setup =
         if setup.is_database.not then
             Test.specify "should raise Incomparable_Values if ordering by incomparable values" <|
                 t = table_builder [["X", [My_Type.Foo 42, My_Type.Foo "a"]]]
-                t.order_by "X" . should_fail_with Incomparable_Values.Error
+                t.order_by "X" . should_fail_with Incomparable_Values

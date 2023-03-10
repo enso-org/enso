@@ -31,8 +31,10 @@ spec =
             identity.get 0 0 . should_equal [1]
             identity.get 1 0 . should_equal [0]
             identity.get 1 1 . should_equal [1]
-            identity.get 10 10 . should_fail_with Matrix_Error.Index_Out_Of_Bounds
-            identity.get -1 -1 . should_fail_with Matrix_Error.Index_Out_Of_Bounds
+            identity.get 10 10 . should_fail_with Matrix_Error
+            identity.get 10 10 . catch . should_be_a Matrix_Error.Index_Out_Of_Bounds
+            identity.get -1 -1 . should_fail_with Matrix_Error
+            identity.get -1 -1 . catch . should_be_a Matrix_Error.Index_Out_Of_Bounds
 
         Test.specify "should be able to add a scalar" <|
             zeros+1 . should_equal ones
@@ -126,8 +128,10 @@ spec =
             identity.get 0 0 . should_equal [1, 0]
             identity.get 1 0 . should_equal [0, 0]
             identity.get 1 1 . should_equal [1, 0]
-            identity.get 10 10 . should_fail_with Matrix_Error.Index_Out_Of_Bounds
-            identity.get -1 -1 . should_fail_with Matrix_Error.Index_Out_Of_Bounds
+            identity.get 10 10 . should_fail_with Matrix_Error
+            identity.get 10 10 . catch . should_be_a Matrix_Error.Index_Out_Of_Bounds
+            identity.get -1 -1 . should_fail_with Matrix_Error
+            identity.get -1 -1 . catch . should_be_a Matrix_Error.Index_Out_Of_Bounds
 
         Test.specify "should be able to add a scalar" <|
             zeros+1 . should_equal ones
@@ -222,8 +226,10 @@ spec =
             identity.get 0 0 . should_equal [1, 0, 0]
             identity.get 1 0 . should_equal [0, 0, 0]
             identity.get 1 1 . should_equal [1, 0, 0]
-            identity.get 10 10 . should_fail_with Matrix_Error.Index_Out_Of_Bounds
-            identity.get -1 -1 . should_fail_with Matrix_Error.Index_Out_Of_Bounds
+            identity.get 10 10 . should_fail_with Matrix_Error
+            identity.get 10 10 . catch . should_be_a Matrix_Error.Index_Out_Of_Bounds
+            identity.get -1 -1 . should_fail_with Matrix_Error
+            identity.get -1 -1 . catch . should_be_a Matrix_Error.Index_Out_Of_Bounds
 
         Test.specify "should be able to add a scalar" <|
             zeros+1 . should_equal ones
@@ -318,8 +324,10 @@ spec =
             identity.get 0 0 . should_equal [1, 0, 0, 0]
             identity.get 1 0 . should_equal [0, 0, 0, 0]
             identity.get 1 1 . should_equal [1, 0, 0, 0]
-            identity.get 10 10 . should_fail_with Matrix_Error.Index_Out_Of_Bounds
-            identity.get -1 -1 . should_fail_with Matrix_Error.Index_Out_Of_Bounds
+            identity.get 10 10 . should_fail_with Matrix_Error
+            identity.get 10 10 . catch . should_be_a Matrix_Error.Index_Out_Of_Bounds
+            identity.get -1 -1 . should_fail_with Matrix_Error
+            identity.get -1 -1 . catch . should_be_a Matrix_Error.Index_Out_Of_Bounds
 
         Test.specify "should be able to add a scalar" <|
             zeros+1 . should_equal ones

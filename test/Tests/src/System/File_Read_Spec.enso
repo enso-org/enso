@@ -13,7 +13,8 @@ spec =
     Test.group "Auto_Detect" <|
         Test.specify "should raise an error when reading an unknown file" <|
             bytes = sample_xxx.read
-            bytes.should_fail_with File_Error.Unsupported_Type
+            bytes.should_fail_with File_Error
+            bytes.catch.should_be_a File_Error.Unsupported_Type
 
         Test.specify "should be able to read a text file" <|
             content = sample_txt.read
@@ -70,6 +71,7 @@ spec =
         Test.specify "should gracefully handle malformed files" <|
             f1 = enso_project.data / "sample-malformed.json"
             r1 = f1.read
-            r1.should_fail_with File_Error.Corrupted_Format
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Corrupted_Format
 
 main = Test_Suite.run_main spec
