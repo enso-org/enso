@@ -333,6 +333,8 @@
   and renamed them to `match`, `find`, `find_all` (respectively).][5721]
 - [Updated `rename_columns` to new API. Added `first_row`, `second_row` and
   `last_row` to Table types][5719]
+- [Remove many regex compile flags; separated `match` into `match` and
+  `match_all`.][5785]
 - [Aligned names of columns created by column operations.][5850]
 
 [debug-shortcuts]:
@@ -509,10 +511,11 @@
 [5699]: https://github.com/enso-org/enso/pull/5699
 [5719]: https://github.com/enso-org/enso/pull/5719
 [5721]: https://github.com/enso-org/enso/pull/5721
-[5779]: https://github.com/enso-org/enso/pull/5779
 [5757]: https://github.com/enso-org/enso/pull/5757
-[5802]: https://github.com/enso-org/enso/pull/5802
 [5774]: https://github.com/enso-org/enso/pull/5774
+[5779]: https://github.com/enso-org/enso/pull/5779
+[5785]: https://github.com/enso-org/enso/pull/5785
+[5802]: https://github.com/enso-org/enso/pull/5802
 [5850]: https://github.com/enso-org/enso/pull/5850
 
 #### Enso Compiler
