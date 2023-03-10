@@ -1206,7 +1206,7 @@ type Table
                 new_name = p.first
                 Aggregate_Helper.make_aggregate_column self agg new_name . catch
 
-            partitioned = results.partition (_.is_a Internal_Column.Value)
+            partitioned = results.partition (_.is_a Internal_Column)
 
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use

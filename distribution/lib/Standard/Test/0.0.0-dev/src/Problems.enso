@@ -25,7 +25,7 @@ test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothi
 test_problem_handling action expected_problems result_checker =
     error_checker error_result =
         first_problem = expected_problems.first
-        first_problem_type = Meta.meta first_problem . constructor . value
+        first_problem_type = Meta.type_of first_problem
         error_result . should_fail_with first_problem_type frames_to_skip=3
         error_result.catch . should_equal first_problem frames_to_skip=3
     warnings_checker warnings =

@@ -1412,7 +1412,7 @@ spec setup =
             new_table = table.aggregate [Group_By "Float", Count]
             problems = Problems.get_attached_warnings new_table
             problems.length . should_equal 1
-            problems.at 0 . is_a Floating_Point_Equality.Error . should_be_true
+            problems.at 0 . should_be_a Floating_Point_Equality
             problems.at 0 . location . should_equal "Float"
 
     if is_database then
