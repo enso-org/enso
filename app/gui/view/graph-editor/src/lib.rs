@@ -14,6 +14,7 @@
 #![feature(unboxed_closures)]
 #![feature(iter_intersperse)]
 #![feature(int_roundings)]
+#![feature(test)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

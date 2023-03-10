@@ -95,7 +95,7 @@ type GridVector = Vector2<i32>;
 
 /// Position of a chunk in a table. Addressed by table cell first, then by chunk index/line within
 /// the cell.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, Hash)]
 pub struct TablePosition {
     /// Position of the cell in the table in columns and rows.
     pub cell:  GridPosition,

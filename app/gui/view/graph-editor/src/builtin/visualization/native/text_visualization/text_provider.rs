@@ -71,8 +71,30 @@ type RowHeight = usize;
 /// We allow for a table specification to be partially specified, i.e., some of the information may
 /// be `None`. This is used to allow for lazy initialisation of the layout and incremental updates
 /// as the table is updated.
-#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct TableSpecification {
+    /// The width of each column in characters.
+    pub columns:      Vec<Option<ColumnWidth>>,
+    /// The height of each row in lines.
+    pub rows:         Vec<Option<RowHeight>>,
+    /// The name of each column.
+    pub column_names: Vec<Option<String>>,
+    /// The name of each row.
+    pub row_names:    Vec<Option<String>>,
+
+    // Caches
+    column_width_cumulative:  Vec<ColumnWidth>,
+    column_chunks_cumulative: Vec<ColumnWidth>,
+    row_height_cumulative:    Vec<RowHeight>,
+    table_to_grid_cache:      RefCell<HashMap<TablePosition, GridPosition>>,
+    grid_to_table_cache:      RefCell<HashMap<GridPosition, TablePosition>>,
+    grid_view_to_table_item:  RefCell<HashMap<GridPosition, TableContentItem>>,
+}
+
+/// Helper struct for serialisation and deserialization. Contains the data of the
+/// `[TableSpecification]` that is transferred from the backend.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+struct TableSpecificationData {
     /// The width of each column in characters.
     pub columns:      Vec<Option<ColumnWidth>>,
     /// The height of each row in lines.
@@ -173,13 +195,63 @@ fn resize_and_insert<T: Clone>(values: &[(usize, T)], target: &mut Vec<Option<T>
     }
 }
 
+fn cum_sum<T: Clone + Add<Output = T> + Zero>(values: &[Option<T>]) -> Vec<T> {
+    let mut cum_sum = Vec::new();
+    let mut sum = T::zero();
+    for value in values {
+        if let Some(value) = value {
+            sum = sum + value.clone();
+        }
+        cum_sum.push(sum.clone());
+    }
+    cum_sum
+}
+
+fn cum_sum_chunks(values: &[Option<ColumnWidth>]) -> Vec<usize> {
+    let mut cum_sum = Vec::new();
+    let mut sum = 0;
+    for value in values {
+        sum = sum + value.unwrap_or_default().div_ceil(CHARS_PER_CHUNK);
+        cum_sum.push(sum.clone());
+    }
+    cum_sum
+}
+
 impl TableSpecification {
+    /// Create a new table specification from the given column and row widths.
+    pub fn new(columns: Vec<Option<ColumnWidth>>, rows: Vec<Option<RowHeight>>) -> Self {
+        Self::new_with_names(columns, rows, Vec::new(), Vec::new())
+    }
+
+    /// Create a new table specification from the given column and row widths and names.
+    pub fn new_with_names(
+        columns: Vec<Option<ColumnWidth>>,
+        rows: Vec<Option<RowHeight>>,
+        column_names: Vec<Option<String>>,
+        row_names: Vec<Option<String>>,
+    ) -> Self {
+        let mut new = Self { columns, rows, column_names, row_names, ..default() };
+        new.update_caches();
+        new
+    }
+
     /// Update the specification with the given update.
     fn update(&mut self, update: &TableSpecificationUpdate) {
         resize_and_insert(&update.column_widths, &mut self.columns);
         resize_and_insert(&update.row_heights, &mut self.rows);
         resize_and_insert(&update.column_names, &mut self.column_names);
         resize_and_insert(&update.row_names, &mut self.row_names);
+
+        self.update_caches()
+    }
+
+    fn update_caches(&mut self) {
+        self.column_width_cumulative = cum_sum(&self.columns);
+        self.row_height_cumulative = cum_sum(&self.rows);
+        self.column_chunks_cumulative = cum_sum_chunks(&self.columns);
+
+        self.table_to_grid_cache.borrow_mut().clear();
+        self.grid_to_table_cache.borrow_mut().clear();
     }
 
     /// Return whether the given line of the GridView should be a divider.
@@ -287,17 +359,24 @@ impl TableSpecification {
         &self,
         table_position: TablePosition,
     ) -> GridPosition {
+        // First check cache.
+        let cache_item = self.table_to_grid_cache.borrow().get(&table_position).copied();
+        if let Some(cache_item) = cache_item {
+            return cache_item;
+        }
+        // If not in cache, compute.
         let TablePosition { cell, chunk } = table_position;
         let (col, row) = (cell.x as usize, cell.y as usize);
-        let chunk_x = self
-            .columns
-            .iter()
-            .take(col)
-            .fold(0, |acc, x| acc + x.unwrap_or(0).div_ceil(CHARS_PER_CHUNK))
-            + chunk.x as usize;
+        debug_assert_eq!(self.column_chunks_cumulative.len(), self.columns.len());
+        debug_assert_eq!(self.row_height_cumulative.len(), self.rows.len());
+        let chunk_x =
+            if col < 1 { 0 } else { self.column_chunks_cumulative[col - 1] } + chunk.x as usize;
         let chunk_y =
-            self.rows.iter().take(row).fold(0, |acc, x| acc + x.unwrap_or(0)) + chunk.y as usize;
-        GridPosition::new(chunk_x as i32, chunk_y as i32)
+            if row < 1 { 0 } else { self.row_height_cumulative[row - 1] } + chunk.y as usize;
+        let result = GridPosition::new(chunk_x as i32, chunk_y as i32);
+        // And store in cache.
+        self.table_to_grid_cache.borrow_mut().insert(table_position, result);
+        result
     }
 
     /// Convert the given character chunk / line position into a cell / chunk / line position.
@@ -307,39 +386,29 @@ impl TableSpecification {
         &self,
         grid_position: GridPosition,
     ) -> TablePosition {
+        // First check cache.
+        let cached_item = self.grid_to_table_cache.borrow().get(&grid_position).copied();
+        if let Some(cached_item) = cached_item {
+            return cached_item;
+        }
+
+        // If not in cache, compute.
         let (chunk_x, chunk_y) = (grid_position.x as usize, grid_position.y as usize);
-        let mut column_ix = 0;
-        let mut row_ix = 0;
-        let mut all_column_width = 0;
-        let mut all_row_height = 0;
-        for (i, width) in self.columns.iter().enumerate() {
-            if let Some(width) = width {
-                all_column_width += width;
-                if chunk_x < all_column_width {
-                    column_ix = i;
-                    // We want to remember the width before the current column.
-                    all_column_width -= width;
-                    break;
-                }
-            }
-        }
-        for (i, height) in self.rows.iter().enumerate() {
-            if let Some(height) = height {
-                all_row_height += height;
-                if chunk_y < all_row_height {
-                    row_ix = i;
-                    // We want to remember the height before the current row.
-                    all_row_height -= height;
-                    break;
-                }
-            }
-        }
-        let chunk_x = chunk_x - all_column_width;
-        let chunk_y = chunk_y - all_row_height;
+        let column_ix = self.column_width_cumulative.partition_point(|x| *x < chunk_x);
+        let row_ix = self.row_height_cumulative.partition_point(|x| *x < chunk_y);
+
+        let chunk_x = chunk_x
+            - (self.column_width_cumulative[column_ix]
+                - self.columns[column_ix].unwrap_or_default());
+        let chunk_y =
+            chunk_y - (self.row_height_cumulative[row_ix] - self.rows[row_ix].unwrap_or_default());
         let cell = GridPosition::new(column_ix as i32, row_ix as i32);
         let chunk = GridPosition::new(chunk_x as i32, chunk_y as i32);
 
-        TablePosition { cell, chunk }
+        let result = TablePosition { cell, chunk };
+        // And update cache.
+        self.grid_to_table_cache.borrow_mut().insert(grid_position, result);
+        result
     }
 
     /// Return the size of the grid in chunks/lines. This includes the dividers, but not the
@@ -417,6 +486,10 @@ impl TableSpecification {
         &self,
         position: ChunkCoordinate,
     ) -> Option<TableContentItem> {
+        if let Some(item) = self.grid_view_to_table_item.borrow().get(&position) {
+            return Some(*item);
+        }
+
         let row_item = self.iter_row_items_per_line().nth(position.y as usize)?;
         let column_item = self.iter_column_items_per_chunk().nth(position.x as usize)?;
 
@@ -426,7 +499,7 @@ impl TableSpecification {
         let column = position.x as usize;
 
         use TableItem::*;
-        match (column_item, row_item) {
+        let result = match (column_item, row_item) {
             (
                 Content { index: column_index, offset: column_offset, .. },
                 Content { index: row_index, offset: row_offset, .. },
@@ -498,7 +571,11 @@ impl TableSpecification {
                 left:   false,
                 right:  false,
             }),
+        };
+        if let Some(result) = result {
+            self.grid_view_to_table_item.borrow_mut().insert(position, result);
         }
+        result
     }
 
     /// Return height of the column names in lines.
@@ -529,6 +606,13 @@ impl TableSpecification {
     /// Return the name of the row at the given index.
     pub fn row_name(&self, row_ix: usize) -> Option<&str> {
         self.row_names.get(row_ix).and_then(|name| name.as_ref()).map(|x| &**x)
+    }
+}
+
+impl From<TableSpecificationData> for TableSpecification {
+    fn from(value: TableSpecificationData) -> Self {
+        let TableSpecificationData { columns, rows, column_names, row_names } = value;
+        TableSpecification::new_with_names(columns, rows, column_names, row_names)
     }
 }
 
@@ -597,10 +681,11 @@ impl DebugGridTextProvider {
         frp.private().output.chars_in_longest_line.emit(column_count * CHARS_PER_CHUNK as u32);
 
         let spec = TableSpecification {
-            columns:      Self::column_widths(column_count, line_count),
-            rows:         iter::repeat(Some(1)).take(line_count as usize).collect(),
+            columns: Self::column_widths(column_count, line_count),
+            rows: iter::repeat(Some(1)).take(line_count as usize).collect(),
             column_names: vec![],
-            row_names:    vec![],
+            row_names: vec![],
+            ..default()
         };
         frp.private().output.table_specification.emit(Some(spec));
 
@@ -1022,7 +1107,7 @@ type TableChunk = (TablePosition, String);
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 struct TableData {
     chunks:              Vec<TableChunk>,
-    table_specification: TableSpecification,
+    table_specification: TableSpecificationData,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
@@ -1138,11 +1223,10 @@ mod tests {
 
     #[test]
     fn convert_grid_position_to_table_position() {
-        let specification = TableSpecification {
-            rows: vec![Some(2), Some(1)],
-            columns: vec![Some(2), Some(2)],
-            ..default()
-        };
+        let rows = vec![Some(2), Some(1)];
+        let columns = vec![Some(2), Some(2)];
+        let specification = TableSpecification::new(columns, rows);
+
         let table_position =
             specification.grid_content_position_to_table_position(GridPosition::new(0, 0));
         assert_eq!(table_position.cell, GridPosition::new(0, 0));
@@ -1160,17 +1244,15 @@ mod tests {
 
         let table_position =
             specification.grid_content_position_to_table_position(GridPosition::new(0, 2));
-        assert_eq!(table_position.cell, GridPosition::new(0, 1));
-        assert_eq!(table_position.chunk, GridPosition::new(0, 0));
+        assert_eq!(table_position.cell, GridPosition::new(0, 0));
+        assert_eq!(table_position.chunk, GridPosition::new(0, 2));
     }
 
     #[test]
     fn test_table_position_to_grid_position() {
-        let specification = TableSpecification {
-            rows: vec![Some(2), Some(1)],
-            columns: vec![Some(2), Some(2)],
-            ..default()
-        };
+        let rows = vec![Some(2), Some(1)];
+        let columns = vec![Some(2), Some(2)];
+        let specification = TableSpecification::new(rows, columns);
 
         let grid_position =
             specification.backend_table_position_to_grid_content_position(TablePosition {
@@ -1274,12 +1356,11 @@ mod tests {
         //  -|-----+---+
         //  2| ___ | _ |
         //  -|-----+---+
-        let spec = TableSpecification {
-            rows:         vec![Some(2), Some(1)],
-            columns:      vec![Some(CHARS_PER_CHUNK * 5 / 2), Some(CHARS_PER_CHUNK)],
-            column_names: vec![Some("A".to_string()), Some("B".to_string())],
-            row_names:    vec![Some("1".to_string()), Some("2".to_string())],
-        };
+        let rows = vec![Some(2), Some(1)];
+        let columns = vec![Some(CHARS_PER_CHUNK * 5 / 2), Some(CHARS_PER_CHUNK)];
+        let column_names = vec![Some("A".to_string()), Some("B".to_string())];
+        let row_names = vec![Some("1".to_string()), Some("2".to_string())];
+        let spec = TableSpecification::new_with_names(columns, rows, column_names, row_names);
 
         let assert_item = |column: usize, row: usize, item: TableContentItem| {
             assert_eq!(
@@ -1292,69 +1373,72 @@ mod tests {
         };
 
         use TableContentItem::*;
-        // Top left corner of the table
-        assert_item(0, 0, Empty);
-        // Column Headings
-        assert_item(1, 0, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(2, 0, ColumnHeading { column_index: 0, chunk_index: 0, line_index: 0 });
-        assert_item(3, 0, ColumnHeading { column_index: 0, chunk_index: 1, line_index: 0 });
-        assert_item(4, 0, ColumnHeading { column_index: 0, chunk_index: 2, line_index: 0 });
-        assert_item(5, 0, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(6, 0, ColumnHeading { column_index: 1, chunk_index: 0, line_index: 0 });
-        assert_item(7, 0, Divider { bottom: true, top: true, left: false, right: false });
 
-        // Second Row (divider under the column headings)
-        assert_item(0, 1, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(1, 1, Divider { bottom: true, top: true, left: true, right: true });
-        assert_item(2, 1, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(3, 1, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(4, 1, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(5, 1, Divider { bottom: true, top: true, left: true, right: true });
-        assert_item(6, 1, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(7, 1, Divider { bottom: true, top: true, left: true, right: false });
+        // Test multiple access to ensure correct caching
+        for _ in 0..10 {
+            // Top left corner of the table
+            assert_item(0, 0, Empty);
+            // Column Headings
+            assert_item(1, 0, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(2, 0, ColumnHeading { column_index: 0, chunk_index: 0, line_index: 0 });
+            assert_item(3, 0, ColumnHeading { column_index: 0, chunk_index: 1, line_index: 0 });
+            assert_item(4, 0, ColumnHeading { column_index: 0, chunk_index: 2, line_index: 0 });
+            assert_item(5, 0, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(6, 0, ColumnHeading { column_index: 1, chunk_index: 0, line_index: 0 });
+            assert_item(7, 0, Divider { bottom: true, top: true, left: false, right: false });
 
-        // Third Row (First line of first content row)
-        assert_item(0, 2, RowHeading { row_index: 0, chunk_index: 0, line_index: 0 });
-        assert_item(1, 2, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(2, 2, Content { content_index: GridPosition::new(0, 0) });
-        assert_item(3, 2, Content { content_index: GridPosition::new(1, 0) });
-        assert_item(4, 2, Content { content_index: GridPosition::new(2, 0) });
-        assert_item(5, 2, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(6, 2, Content { content_index: GridPosition::new(3, 0) });
-        assert_item(7, 2, Divider { bottom: true, top: true, left: false, right: false });
+            // Second Row (divider under the column headings)
+            assert_item(0, 1, Divider { bottom: false, top: false, left: true, right: true });
+            assert_item(1, 1, Divider { bottom: true, top: true, left: true, right: true });
+            assert_item(2, 1, Divider { bottom: false, top: false, left: true, right: true });
+            assert_item(3, 1, Divider { bottom: false, top: false, left: true, right: true });
+            assert_item(4, 1, Divider { bottom: false, top: false, left: true, right: true });
+            assert_item(5, 1, Divider { bottom: true, top: true, left: true, right: true });
+            assert_item(6, 1, Divider { bottom: false, top: false, left: true, right: true });
+            assert_item(7, 1, Divider { bottom: true, top: true, left: true, right: false });
 
-        // Fourth Row (Second line of first content row)
-        assert_item(0, 3, RowHeading { row_index: 0, chunk_index: 0, line_index: 1 });
-        assert_item(1, 3, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(2, 3, Content { content_index: GridPosition::new(0, 1) });
-        assert_item(3, 3, Content { content_index: GridPosition::new(1, 1) });
-        assert_item(4, 3, Content { content_index: GridPosition::new(2, 1) });
-        assert_item(5, 3, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(6, 3, Content { content_index: GridPosition::new(3, 1) });
-        assert_item(7, 3, Divider { bottom: true, top: true, left: false, right: false });
+            // Third Row (First line of first content row)
+            assert_item(0, 2, RowHeading { row_index: 0, chunk_index: 0, line_index: 0 });
+            assert_item(1, 2, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(2, 2, Content { content_index: GridPosition::new(0, 0) });
+            assert_item(3, 2, Content { content_index: GridPosition::new(1, 0) });
+            assert_item(4, 2, Content { content_index: GridPosition::new(2, 0) });
+            assert_item(5, 2, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(6, 2, Content { content_index: GridPosition::new(3, 0) });
+            assert_item(7, 2, Divider { bottom: true, top: true, left: false, right: false });
+
+            // Fourth Row (Second line of first content row)
+            assert_item(0, 3, RowHeading { row_index: 0, chunk_index: 0, line_index: 1 });
+            assert_item(1, 3, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(2, 3, Content { content_index: GridPosition::new(0, 1) });
+            assert_item(3, 3, Content { content_index: GridPosition::new(1, 1) });
+            assert_item(4, 3, Content { content_index: GridPosition::new(2, 1) });
+            assert_item(5, 3, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(6, 3, Content { content_index: GridPosition::new(3, 1) });
+            assert_item(7, 3, Divider { bottom: true, top: true, left: false, right: false });
 
 
-        // Fifth Row (First line of second content row)
-        assert_item(0, 4, RowHeading { row_index: 1, chunk_index: 0, line_index: 0 });
-        assert_item(1, 4, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(2, 4, Content { content_index: GridPosition::new(0, 2) });
-        assert_item(3, 4, Content { content_index: GridPosition::new(1, 2) });
-        assert_item(4, 4, Content { content_index: GridPosition::new(2, 2) });
-        assert_item(5, 4, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(6, 4, Content { content_index: GridPosition::new(3, 2) });
-        assert_item(7, 4, Divider { bottom: true, top: true, left: false, right: false });
+            // Fifth Row (First line of second content row)
+            assert_item(0, 4, RowHeading { row_index: 1, chunk_index: 0, line_index: 0 });
+            assert_item(1, 4, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(2, 4, Content { content_index: GridPosition::new(0, 2) });
+            assert_item(3, 4, Content { content_index: GridPosition::new(1, 2) });
+            assert_item(4, 4, Content { content_index: GridPosition::new(2, 2) });
+            assert_item(5, 4, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(6, 4, Content { content_index: GridPosition::new(3, 2) });
+            assert_item(7, 4, Divider { bottom: true, top: true, left: false, right: false });
+        }
     }
 
     #[test]
     fn test_overlong_column_name() {
         //   | A_ | B |
         //  1| _  | _ |
-        let spec = TableSpecification {
-            rows:         vec![Some(1)],
-            columns:      vec![Some(CHARS_PER_CHUNK), Some(CHARS_PER_CHUNK)],
-            column_names: vec![Some("A".repeat(CHARS_PER_CHUNK * 2)), Some("B".to_string())],
-            row_names:    vec![Some("1".to_string())],
-        };
+        let rows = vec![Some(1)];
+        let columns = vec![Some(CHARS_PER_CHUNK), Some(CHARS_PER_CHUNK)];
+        let column_names = vec![Some("A".repeat(CHARS_PER_CHUNK * 2)), Some("B".to_string())];
+        let row_names = vec![Some("1".to_string())];
+        let spec = TableSpecification::new_with_names(columns, rows, column_names, row_names);
 
         let assert_item = |column: usize, row: usize, item: TableContentItem| {
             assert_eq!(
@@ -1366,32 +1450,35 @@ mod tests {
             );
         };
 
-        use TableContentItem::*;
-        // First Row (divider under the column headings)
-        assert_item(0, 0, Empty);
-        assert_item(1, 0, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(2, 0, ColumnHeading { column_index: 0, chunk_index: 0, line_index: 0 });
-        assert_item(3, 0, ColumnHeading { column_index: 0, chunk_index: 1, line_index: 0 });
-        assert_item(4, 0, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(5, 0, ColumnHeading { column_index: 1, chunk_index: 0, line_index: 0 });
-        assert_item(6, 0, Divider { bottom: true, top: true, left: false, right: false });
+        // Test multiple times to make sure the cache is working
+        for _ in 0..2 {
+            use TableContentItem::*;
+            // First Row (divider under the column headings)
+            assert_item(0, 0, Empty);
+            assert_item(1, 0, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(2, 0, ColumnHeading { column_index: 0, chunk_index: 0, line_index: 0 });
+            assert_item(3, 0, ColumnHeading { column_index: 0, chunk_index: 1, line_index: 0 });
+            assert_item(4, 0, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(5, 0, ColumnHeading { column_index: 1, chunk_index: 0, line_index: 0 });
+            assert_item(6, 0, Divider { bottom: true, top: true, left: false, right: false });
 
-        // Second Row (divider under the row headings)
-        assert_item(0, 1, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(1, 1, Divider { bottom: true, top: true, left: true, right: true });
-        assert_item(2, 1, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(3, 1, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(4, 1, Divider { bottom: true, top: true, left: true, right: true });
-        assert_item(5, 1, Divider { bottom: false, top: false, left: true, right: true });
-        assert_item(6, 1, Divider { bottom: true, top: true, left: true, right: false });
+            // Second Row (divider under the row headings)
+            assert_item(0, 1, Divider { bottom: false, top: false, left: true, right: true });
+            assert_item(1, 1, Divider { bottom: true, top: true, left: true, right: true });
+            assert_item(2, 1, Divider { bottom: false, top: false, left: true, right: true });
+            assert_item(3, 1, Divider { bottom: false, top: false, left: true, right: true });
+            assert_item(4, 1, Divider { bottom: true, top: true, left: true, right: true });
+            assert_item(5, 1, Divider { bottom: false, top: false, left: true, right: true });
+            assert_item(6, 1, Divider { bottom: true, top: true, left: true, right: false });
 
-        // Third Row (first line of first content row)
-        assert_item(0, 2, RowHeading { row_index: 0, chunk_index: 0, line_index: 0 });
-        assert_item(1, 2, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(2, 2, Content { content_index: GridPosition::new(0, 0) });
-        assert_item(3, 2, Empty);
-        assert_item(4, 2, Divider { bottom: true, top: true, left: false, right: false });
-        assert_item(5, 2, Content { content_index: GridPosition::new(1, 0) });
-        assert_item(6, 2, Divider { bottom: true, top: true, left: false, right: false });
+            // Third Row (first line of first content row)
+            assert_item(0, 2, RowHeading { row_index: 0, chunk_index: 0, line_index: 0 });
+            assert_item(1, 2, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(2, 2, Content { content_index: GridPosition::new(0, 0) });
+            assert_item(3, 2, Empty);
+            assert_item(4, 2, Divider { bottom: true, top: true, left: false, right: false });
+            assert_item(5, 2, Content { content_index: GridPosition::new(1, 0) });
+            assert_item(6, 2, Divider { bottom: true, top: true, left: false, right: false });
+        }
     }
 }
