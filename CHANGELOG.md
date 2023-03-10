@@ -333,6 +333,7 @@
   and renamed them to `match`, `find`, `find_all` (respectively).][5721]
 - [Updated `rename_columns` to new API. Added `first_row`, `second_row` and
   `last_row` to Table types][5719]
+- [Aligned names of columns created by column operations.][5850]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -512,6 +513,7 @@
 [5757]: https://github.com/enso-org/enso/pull/5757
 [5802]: https://github.com/enso-org/enso/pull/5802
 [5774]: https://github.com/enso-org/enso/pull/5774
+[5850]: https://github.com/enso-org/enso/pull/5850
 
 #### Enso Compiler
 

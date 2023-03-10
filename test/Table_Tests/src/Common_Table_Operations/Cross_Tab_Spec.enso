@@ -169,3 +169,26 @@ spec setup =
                     False ->
                         err.should_fail_with Invalid_Aggregation
                         err.catch . should_equal (Invalid_Aggregation.Error "Sum TextValue" [0, 4, 7] "Cannot convert to a number.")
+
+        Test.specify "should correctly handle uncommon blank fields" pending="TODO: this should be fixed as part of https://github.com/enso-org/enso/issues/5151" <|
+            table = table_builder [["Key", [" ", "x", "x", "x", "", "", "", Nothing, Nothing]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+            t1 = table.cross_tab
+            # TODO
+            t1.column_names . should_equal ["x", "Column_1", "Column_2"]
+
+        Test.specify "should correctly handle uncommon characters in fields becoming column names" <|
+            table = table_builder [["Key", ["💡🎉🌻", "ąęź", "ąęź", '\n\n', "😊", "😊", "🌻", "😊", "🌻"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+            t1 = table.cross_tab
+            t1.column_names . should_equal ["💡🎉🌻", "🌻", "😊", "ąęź", '\n\n']
+            t1.row_count . should_equal 1
+            t1.at "💡🎉🌻" . to_vector . should_equal [1]
+            t1.at "🌻" . to_vector . should_equal [2]
+            t1.at "😊" . to_vector . should_equal [3]
+            t1.at "ąęź" . to_vector . should_equal [2]
+            t1.at '\n\n' . to_vector . should_equal [1]
+
+        Test.specify "should fail gracefully if an effective column name would contain invalid characters" <|
+            table = table_builder [["Key", ['x', 'x', 'y\0', '\0', 'y\0', 'z', 'z', 'z', 'z']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+            r1 = table.cross_tab
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text . should_contain "must not contain the NUL character"
