@@ -175,7 +175,7 @@ fn init(app: Application) {
     // This is a testing string left here for convenience.
     // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
     area.set_content(content);
-    area.set_font("mplus1p");
+    area.set_font(ensogl_text::font::DEFAULT_FONT);
     area.set_property_default(color::Rgba::black());
     area.deprecated_focus();
     area.hover();
