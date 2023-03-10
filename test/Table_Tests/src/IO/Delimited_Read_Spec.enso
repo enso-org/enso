@@ -94,11 +94,13 @@ spec =
         Test.specify "should correctly handle file opening issues" <|
             nonexistent_file = enso_project.data / "a_filename_that_does_not_exist.foobar"
             r1 = Data.read nonexistent_file (Delimited "," headers=True value_formatter=Nothing)
-            r1.should_fail_with File_Error.Not_Found
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Not_Found
 
             directory = enso_project.data
             r2 = Data.read directory (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error
-            r2.should_fail_with File_Error.IO_Error
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.IO_Error
 
         Test.specify "should work with all kinds of line endings" <|
             path name = enso_project.data / 'transient' / name
@@ -123,7 +125,7 @@ spec =
 
             # Currently mixed line endings are not supported.
             'a,b,c\nd,e,f\r1,2,3'.write (path 'mixed.csv')
-            Data.read (path 'mixed.csv') (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error . should_fail_with Invalid_Row.Error
+            Data.read (path 'mixed.csv') (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error . should_fail_with Invalid_Row
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
@@ -226,11 +228,13 @@ spec =
         Test.specify "should fail in presence of a mismatched quote" <|
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb->
                 r1 = Data.read (enso_project.data / "mismatched_quote.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems=pb
-                r1.should_fail_with File_Error.Corrupted_Format
+                r1.should_fail_with File_Error
+                r1.catch.should_be_a File_Error.Corrupted_Format
                 r1.catch.to_display_text.should_contain "quote has been opened but never closed"
 
                 r2 = Data.read (enso_project.data / "mismatched_quote2.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems=pb
-                r2.should_fail_with File_Error.Corrupted_Format
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Corrupted_Format
 
         Test.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =
@@ -315,10 +319,10 @@ spec =
         Test.specify "should check arguments" <|
             path = (enso_project.data / "simple_empty.csv")
             pb = Problem_Behavior.Report_Error
-            path.read (Delimited "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument.Error
-            path.read (Delimited "," headers=False . with_quotes quote='🚧') pb . should_fail_with Illegal_Argument.Error
-            path.read (Delimited "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument.Error
-            path.read (Delimited 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument.Error
+            path.read (Delimited "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument
+            path.read (Delimited "," headers=False . with_quotes quote='🚧') pb . should_fail_with Illegal_Argument
+            path.read (Delimited "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument
+            path.read (Delimited 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument
 
         Test.specify "should correctly guess column types" <|
             t = (enso_project.data / "data_small.csv") . read (Delimited "," headers=True)

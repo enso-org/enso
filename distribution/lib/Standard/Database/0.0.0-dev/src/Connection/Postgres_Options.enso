@@ -98,7 +98,7 @@ default_postgres_port =
     hardcoded_port = 5432
     case Environment.get "PGPORT" of
         Nothing -> hardcoded_port
-        port -> Integer.parse port . catch Number_Parse_Error.Error (_->hardcoded_port)
+        port -> Integer.parse port . catch Number_Parse_Error (_->hardcoded_port)
 
 ## PRIVATE
 default_postgres_database = Environment.get "PGDATABASE" "postgres"

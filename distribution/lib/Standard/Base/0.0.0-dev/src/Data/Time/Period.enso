@@ -5,7 +5,6 @@ import project.Data.Time.Duration.Duration
 import project.Data.Ordering.Comparable
 import project.Data.Ordering.Incomparable
 import project.Data.Text.Text
-import project.Error.Common.Incomparable_Values
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Time_Error.Time_Error

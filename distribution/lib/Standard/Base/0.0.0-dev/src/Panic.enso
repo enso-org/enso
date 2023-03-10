@@ -104,7 +104,7 @@ type Panic
        > Example
          Handling a specific type of panic.
 
-             Panic.catch Illegal_Argument.Error (Panic.throw (Illegal_Argument.Error "Oh no!" Nothing)) error->
+             Panic.catch Illegal_Argument (Panic.throw (Illegal_Argument.Error "Oh no!" Nothing)) error->
                  "Caught an `Illegal_Argument`: "+error.payload.message
 
        > Example
@@ -142,12 +142,12 @@ type Panic
        > Example
          Converting an expected panic to a dataflow error.
 
-             Panic.recover Illegal_Argument.Error (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
+             Panic.recover Illegal_Argument (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
 
        > Example
          Converting one of many expected panic types to a dataflow error.
 
-             Panic.recover [Illegal_Argument.Error, Illegal_State.Error] (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
+             Panic.recover [Illegal_Argument, Illegal_State] (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
     recover : (Vector Any | Any) -> Any -> Any
     recover expected_types ~action =
         types_to_check = case expected_types of
@@ -174,7 +174,7 @@ type Panic
        - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
     handle_wrapped_dataflow_error : Any -> Any
     handle_wrapped_dataflow_error ~action =
-        Panic.catch Wrapped_Dataflow_Error.Error action caught_panic->
+        Panic.catch Wrapped_Dataflow_Error action caught_panic->
             Error.throw caught_panic.payload.payload
 
 @Builtin_Type
