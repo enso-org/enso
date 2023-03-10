@@ -34,7 +34,6 @@ serde_json = { workspace = true }
 sourcemap = "6.0"
 span-tree = { path = "../../language/span-tree" }
 unicode-segmentation = "1.10.1"
-span-tree = { path = "../../language/span-tree" }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 wasm-bindgen = { workspace = true }
 
