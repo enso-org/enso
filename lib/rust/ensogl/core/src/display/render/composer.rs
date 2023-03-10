@@ -23,7 +23,7 @@ pub struct ComposerModel {
     context : Context,
     width : i32,
     height : i32,
-    pixel_ratio : i32,
+    pixel_ratio : f32,
 }
 
 impl {
@@ -34,7 +34,7 @@ impl {
     , variables: &UniformScope
     , width: i32
     , height: i32
-    , pixel_ratio: i32
+    , pixel_ratio: f32
     ) -> Self {
         let pipeline  = pipeline.clone_ref();
         let passes    = default();
@@ -52,7 +52,7 @@ impl {
     }
 
     /// Resize the composer and reinitialize all of its layers.
-    pub fn resize(&mut self, width: i32, height: i32, pixel_ratio: i32) {
+    pub fn resize(&mut self, width: i32, height: i32, pixel_ratio: f32) {
         self.width = width;
         self.height = height;
         self.pixel_ratio = pixel_ratio;
@@ -118,7 +118,7 @@ impl ComposerPass {
         mut pass: Box<dyn pass::Definition>,
         width: i32,
         height: i32,
-        pixel_ratio: i32,
+        pixel_ratio: f32,
     ) -> Self {
         let instance = pass::Instance::new(context, variables, width, height, pixel_ratio);
         pass.initialize(&instance);

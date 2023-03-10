@@ -544,10 +544,11 @@ type File
        The `with_input_stream` method should be preferred whenever possible.
     new_input_stream : Vector File_Access -> Input_Stream ! File_Error
     new_input_stream self open_options =
-        opts = open_options . map (_.to_java) . to_array
-        stream = File_Error.handle_java_exceptions self (self.input_stream opts)
-        resource = Managed_Resource.register stream close_stream
-        Input_Stream.Value self resource
+        if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
+            opts = open_options . map (_.to_java) . to_array
+            stream = File_Error.handle_java_exceptions self (self.input_stream opts)
+            resource = Managed_Resource.register stream close_stream
+            Input_Stream.Value self resource
 
     ## ADVANCED
 

@@ -7,6 +7,7 @@ use enso_text::unit::*;
 use crate::iter::LeafIterator;
 use crate::iter::TreeFragment;
 use crate::ArgumentInfo;
+use crate::SpanTree;
 
 use enso_text as text;
 
@@ -59,9 +60,10 @@ impl<T> DerefMut for Node<T> {
 
 // === API ===
 
-impl<T: Payload> Node<T> {
+impl<T> Node<T> {
     /// Constructor.
-    pub fn new() -> Self {
+    pub fn new() -> Self
+    where T: Default {
         default()
     }
 
@@ -80,7 +82,7 @@ impl<T: Payload> Node<T> {
 // === Kind utils ===
 
 #[allow(missing_docs)]
-impl<T: Payload> Node<T> {
+impl<T> Node<T> {
     pub fn parenthesized(&self) -> bool {
         self.parenthesized
     }
@@ -98,6 +100,9 @@ impl<T: Payload> Node<T> {
     }
     pub fn is_argument(&self) -> bool {
         self.kind.is_argument()
+    }
+    pub fn is_named_argument(&self) -> bool {
+        self.kind.is_named_argument()
     }
     pub fn is_token(&self) -> bool {
         self.kind.is_token()
@@ -121,8 +126,8 @@ impl<T: Payload> Node<T> {
 
 #[allow(missing_docs)]
 impl<T> Node<T> {
-    pub fn with_kind(mut self, k: impl Into<Kind>) -> Self {
-        self.kind = k.into();
+    pub fn with_kind(mut self, kind: impl Into<Kind>) -> Self {
+        self.kind = kind.into();
         self
     }
     pub fn with_size(mut self, size: ByteDiff) -> Self {
@@ -148,7 +153,7 @@ impl<T> Node<T> {
 
 #[allow(missing_docs)]
 impl<T> Node<T> {
-    pub fn name(&self) -> Option<&String> {
+    pub fn name(&self) -> Option<&str> {
         self.kind.name()
     }
     pub fn tp(&self) -> Option<&String> {
@@ -157,8 +162,11 @@ impl<T> Node<T> {
     pub fn argument_info(&self) -> Option<ArgumentInfo> {
         self.kind.argument_info()
     }
-    pub fn set_argument_info(&mut self, i: ArgumentInfo) {
-        self.kind.set_argument_info(i);
+    pub fn set_argument_info(&mut self, info: ArgumentInfo) {
+        self.kind.set_argument_info(info);
+    }
+    pub fn set_definition_index(&mut self, definition_index: usize) {
+        self.kind.set_definition_index(definition_index);
     }
 }
 
@@ -180,7 +188,7 @@ pub struct Child<T = ()> {
     pub ast_crumbs: ast::Crumbs,
 }
 
-impl<T: Payload> Child<T> {
+impl<T> Child<T> {
     /// Payload mapping utility.
     pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Child<S> {
         let node = self.node.map(f);
@@ -307,8 +315,11 @@ impl InvalidCrumb {
 // ===========
 
 /// A reference to node inside some specific tree.
-#[derive(Clone, Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
 pub struct Ref<'a, T = ()> {
+    /// The span tree that the node is a part of.
+    pub span_tree:   &'a SpanTree<T>,
     /// The node's ref.
     pub node:        &'a Node<T>,
     /// Span begin's offset counted from the root expression.
@@ -328,13 +339,14 @@ pub struct NodeFoundByAstCrumbs<'a, 'b, T = ()> {
     pub ast_crumbs: &'b [ast::Crumb],
 }
 
-impl<'a, T: Payload> Ref<'a, T> {
+impl<'a, T> Ref<'a, T> {
     /// Constructor.
-    pub fn new(node: &'a Node<T>) -> Self {
+    pub fn root(span_tree: &'a SpanTree<T>) -> Self {
         let span_offset = default();
         let crumbs = default();
         let ast_crumbs = default();
-        Self { node, span_offset, crumbs, ast_crumbs }
+        let node = &span_tree.root;
+        Self { span_tree, node, span_offset, crumbs, ast_crumbs }
     }
 
     /// Get span of current node.
@@ -346,27 +358,33 @@ impl<'a, T: Payload> Ref<'a, T> {
 
     /// Get the reference to child with given index. Fails if index if out of bounds.
     pub fn child(self, index: usize) -> FallibleResult<Self> {
-        let node = self.node;
-        let crumbs = self.crumbs;
-        let mut span_offset = self.span_offset;
-        let mut ast_crumbs = self.ast_crumbs;
-        let count = node.children.len();
+        let Ref { span_tree, node, mut span_offset, crumbs, mut ast_crumbs } = self;
 
         match node.children.get(index) {
-            None => Err(InvalidCrumb::new(count, index, &crumbs).into()),
+            None => Err(InvalidCrumb::new(node.children.len(), index, &crumbs).into()),
             Some(child) => {
                 let node = &child.node;
                 span_offset += child.offset;
                 let crumbs = crumbs.into_sub(index);
-                ast_crumbs.extend(child.ast_crumbs.iter().cloned());
-                Ok(Self { node, span_offset, crumbs, ast_crumbs })
+                ast_crumbs.extend_from_slice(&child.ast_crumbs);
+                Ok(Self { span_tree, node, span_offset, crumbs, ast_crumbs })
             }
         }
     }
 
+    /// Get the reference to parent of this node. Returns `None` when this is a root. Note that this
+    /// is a potentially expensive operation, as it traverses the tree towards the parent starting
+    /// from the root node.
+    pub fn parent(&self) -> FallibleResult<Option<Self>> {
+        match self.crumbs.split_last() {
+            Some((_, parent_crumbs)) =>
+                Ok(Some(self.span_tree.root_ref().get_descendant(parent_crumbs)?)),
+            None => Ok(None),
+        }
+    }
+
     /// Iterator over all direct children producing `Ref`s.
-    pub fn children_iter(self) -> impl Iterator<Item = Ref<'a, T>>
-    where T: Clone {
+    pub fn children_iter(self) -> impl DoubleEndedIterator<Item = Ref<'a, T>> {
         let children_count = self.node.children.len();
         (0..children_count).map(move |i| self.clone().child(i).unwrap())
     }
@@ -393,10 +411,16 @@ impl<'a, T: Payload> Ref<'a, T> {
         self,
         crumbs: impl IntoIterator<Item = &'b Crumb>,
     ) -> FallibleResult<Ref<'a, T>> {
-        let mut iter = crumbs.into_iter();
-        match iter.next() {
-            Some(index) => self.child(*index).and_then(|child| child.get_descendant(iter)),
-            None => Ok(self),
+        crumbs.into_iter().try_fold(self, |node, crumb| node.child(*crumb))
+    }
+
+    /// Get the reference to last child of this node. Returns `None` when this node has no children.
+    pub fn last_child(self) -> Option<Self> {
+        if self.node.children.is_empty() {
+            None
+        } else {
+            let index = self.node.children.len() - 1;
+            Some(self.child(index).expect("Index was already checked to be in bounds."))
         }
     }
 
@@ -462,7 +486,7 @@ impl<'a, T> Deref for Ref<'a, T> {
 
 // === Specialized Iterators ===
 
-impl<'a, T: Payload> Ref<'a, T> {
+impl<'a, T> Ref<'a, T> {
     /// Perform a depth-first-search algorithm on the `SpanTree`. The order of the layers will be
     /// preserved - after all children of a node will be traversed, the next node sibling will be
     /// traversed and then it's children.
@@ -512,9 +536,22 @@ impl<'a, T: Payload> Ref<'a, T> {
     }
 
     /// Perform a full (traverse all nodes) depth-first-search algorithm on the `SpanTree`. Just
-    /// like `dfs`, but without data attached.
+    /// like `dfs_with_layer_data`, but without data attached.
     pub fn dfs(self, mut on_node: impl FnMut(&mut Self)) {
         self.partial_dfs_with_layer_data((), |t, _| (true, on_node(t)))
+    }
+
+    /// Perform a depth-first-search algorithm on the `SpanTree`. Stop searching after the first
+    /// node for which the predicate returns `true`.
+    pub fn find_node(self, mut predicate: impl FnMut(&Self) -> bool) -> Option<Self> {
+        let mut queue = vec![self];
+        loop {
+            match queue.pop() {
+                None => break None,
+                Some(node) if predicate(&node) => break Some(node),
+                Some(node) => queue.extend(node.children_iter().rev()),
+            }
+        }
     }
 }
 
@@ -540,7 +577,7 @@ pub struct RefMut<'a, T = ()> {
     pub ast_crumbs:  ast::Crumbs,
 }
 
-impl<'a, T: Payload> RefMut<'a, T> {
+impl<'a, T> RefMut<'a, T> {
     /// Constructor.
     pub fn new(node: &'a mut Node<T>) -> Self {
         let offset = default();
@@ -734,6 +771,7 @@ mod test {
     use crate::builder::Builder;
     use crate::builder::TreeBuilder;
     use crate::node;
+    use crate::node::InsertionPoint;
     use crate::node::InsertionPointType;
     use crate::Crumbs;
     use crate::SpanTree;
@@ -805,8 +843,8 @@ mod test {
 
         let tree: SpanTree = TreeBuilder::new(7)
             .add_leaf(0, 1, node::Kind::this(), vec![LeftOperand])
-            .add_empty_child(1, InsertionPointType::AfterTarget)
             .add_leaf(1, 1, node::Kind::Operation, vec![Operator])
+            .add_empty_child(2, InsertionPointType::BeforeArgument(0))
             .add_child(2, 5, node::Kind::argument(), vec![RightOperand])
             .add_leaf(0, 3, node::Kind::Operation, vec![Func])
             .add_leaf(3, 1, node::Kind::this(), vec![Arg])
@@ -825,8 +863,8 @@ mod test {
         for case in cases {
             let (crumbs, expected_crumbs, expected_remaining_ast_crumbs) = case;
             let result = root.clone().get_descendant_by_ast_crumbs(crumbs).unwrap();
-            assert_eq!(result.node.crumbs.as_slice(), *expected_crumbs);
-            assert_eq!(result.ast_crumbs, expected_remaining_ast_crumbs.as_slice());
+            assert_eq!(result.node.crumbs.as_slice(), *expected_crumbs, "{case:?}");
+            assert_eq!(result.ast_crumbs, expected_remaining_ast_crumbs.as_slice(), "{case:?}");
         }
     }
 
@@ -837,15 +875,15 @@ mod test {
         // An example with single call and expected arguments.
         // See also `generate::test::generating_span_tree_for_unfinished_call`
         let tree: SpanTree = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::chained(), ast::crumbs::Crumbs::default())
+            .add_child(0, 8, node::Kind::chained_this(), ast::crumbs::Crumbs::default())
             .add_child(0, 8, node::Kind::Operation, ast::crumbs::Crumbs::default())
             .add_leaf(0, 4, node::Kind::this(), LeftOperand)
             .add_leaf(4, 1, node::Kind::Operation, Operator)
             .add_leaf(5, 3, node::Kind::argument(), RightOperand)
             .done()
-            .add_empty_child(8, InsertionPointType::ExpectedArgument(0))
+            .add_empty_child(8, InsertionPoint::expected_argument(0))
             .done()
-            .add_empty_child(8, InsertionPointType::ExpectedArgument(1))
+            .add_empty_child(8, InsertionPoint::expected_named_argument(1, "foo"))
             .build();
 
         let cases =

@@ -111,6 +111,9 @@
 - [Improved Component Browser Filtering][4115]. The best match is always
   selected first, and the groups are rearranged, so the best matches are on the
   bottom.
+- [Named arguments syntax is now recognized in IDE][5774]. Connections to
+  function arguments will now use named argument syntax instead of inserting
+  wildcards on all preceding arguments.
 
 #### EnsoGL (rendering engine)
 
@@ -512,6 +515,7 @@
 [5757]: https://github.com/enso-org/enso/pull/5757
 [5802]: https://github.com/enso-org/enso/pull/5802
 [4115]: https://github.com/enso-org/enso/pull/4115
+[5774]: https://github.com/enso-org/enso/pull/5774
 
 #### Enso Compiler
 
