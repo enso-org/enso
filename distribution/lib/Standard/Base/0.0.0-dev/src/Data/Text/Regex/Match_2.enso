@@ -104,9 +104,13 @@ type Match_2
        (Pattern_2.lookup_group 3) will return 3. If the caller tries to get group 3,
        Match_2.group will return the default value.
     grapheme_span : Integer | Text -> Any | Nothing -> Span ! No_Such_Group
-    grapheme_span self id=0 default=Nothing = case self.span id default of
-      Nothing -> Nothing
-      utf_16_span -> utf_16_span.to_grapheme_span
+    grapheme_span self id=0 default=Nothing =
+        result = self.span id default
+        case result == default of
+            True -> default
+            False -> case result of
+                Nothing -> Nothing
+                utf_16_span : Utf_16_Span -> utf_16_span.to_grapheme_span
 
     ## Gets the grapheme span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
@@ -132,9 +136,13 @@ type Match_2
        (Pattern_2.lookup_group 3) will return 3. If the caller tries to get group 3,
        Match_2.group will return the default value.
     group : Integer | Text -> Any | Nothing -> Text ! No_Such_Group
-    group self id default=Nothing = case self.grapheme_span id default of
-        Nothing -> Nothing
-        span -> span.text
+    group self id default=Nothing =
+        result = self.grapheme_span id default
+        case result == default of
+            True -> default
+            False -> case result of
+                Nothing -> Nothing
+                span -> span.text
 
     ## Gets the grapheme span matched by the entire pattern.
     text : Text

@@ -36,6 +36,9 @@ type Pattern_2
 
     ## Tries to match the provided `input` against the pattern `self`.
 
+       Returns a Match_2 containing the matched text and its match groups, or
+       nothing if the match failed.
+
        Arguments:
        - input: The text to match the pattern described by `self` against.
     match : Text -> Match_2 | Nothing
@@ -47,7 +50,8 @@ type Pattern_2
 
     ## Tries to match the provided `input` against the pattern `self`.
 
-       Returns a Vector of Match_2 objects.
+       Returns a Vector of Match_2 objects, each containing the matched text
+       and its match groups.
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
@@ -62,6 +66,28 @@ type Pattern_2
             Match_Iterator_Value.Last _ -> Nothing
         go it
         builder.to_vector
+
+    ## Tries to match the provided `input` against the pattern `self`.
+
+       Returns a Text containing the matched text and its match groups, or
+       nothing if the match failed.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+    find : Text -> Text | Nothing
+    find self input =
+        match_to_group_maybe (self.match input)
+
+    ## Tries to match the provided `input` against the pattern `self`.
+
+       Returns a Vector of Text objects, each containing the matched text
+       and its match groups.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+    find_all : Text -> Vector Text
+    find_all self input =
+        self.match_all input . map match_to_group_maybe
 
     ## PRIVATE
 
@@ -190,3 +216,9 @@ read_group_map : Any -> Text -> Integer | Nothing
 read_group_map polyglot_map name =
     map = polyglot_map_to_map polyglot_map
     map.get name
+
+## PRIVATE
+match_to_group_maybe : Match_2 | Nothing -> Text | Nothing
+match_to_group_maybe match = case match of
+    Nothing -> Nothing
+    _ -> match.group 0

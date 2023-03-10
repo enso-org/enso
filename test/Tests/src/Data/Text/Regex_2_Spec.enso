@@ -192,106 +192,43 @@ spec =
                match_2.at 3 . start 0 . should_equal 3
                match_2.at 3 . end 0 . should_equal 3
 
-        Test.group "The default regex engine's Pattern.find" <|
-            engine = Default_Engine.new
+    Test.group "The default regex engine's Pattern.find" <|
+        Test.specify "should be able to `find` the first instance of the pattern in the input" <|
+            pattern = Regex_2.compile "(..)"
+            input = "abcdefghij"
+            match = pattern.find input
+            match . should_be_a Text
+            match . should_equal "ab"
 
-            Test.specify "should be able to `find` the first instance of the pattern in the input" <|
-                pattern = engine.compile "(..)" []
-                input = "abcdefghij"
-                match = pattern.find input mode=Matching_Mode.First
-                match . should_be_a Text
-                match . should_equal "ab"
+        Test.specify "should return `Nothing` if there are no matches in first mode" <|
+            pattern = Regex_2.compile "(aa)"
+            input = "abcdefghij"
+            match = pattern.find input
+            match . should_equal Nothing
 
-            Test.specify "should return `Nothing` if there are no matches in first mode" <|
-                pattern = engine.compile "(aa)" []
-                input = "abcdefghij"
-                match = pattern.find input mode=Matching_Mode.First
-                match . should_equal Nothing
+        Test.specify "should be able to `find` the all instances of the pattern in the input" <|
+            pattern = Regex_2.compile "(..)"
+            input = "abcdefghij"
+            match = pattern.find_all input
+            match.length . should_equal 5
+            match.at 0 . should_equal "ab"
+            match.at 1 . should_equal "cd"
+            match.at 2 . should_equal "ef"
+            match.at 3 . should_equal "gh"
+            match.at 4 . should_equal "ij"
 
-            Test.specify "should be able to `find` at most N instances of the pattern in the input" <|
-                pattern = engine.compile "(..)" []
-                input = "abcdefghij"
-                match = pattern.find input mode=3
-                match.length . should_equal 3
-                match.at 0 . should_equal "ab"
-                match.at 1 . should_equal "cd"
-                match.at 2 . should_equal "ef"
+        Test.specify "should return `[]` when an all match match fails" <|
+            pattern = Regex_2.compile "(aa)"
+            input = "abcdefghij"
+            match = pattern.find_all input
+            match . should_equal []
 
-            Test.specify "should `find` fewer than N instances when there are fewer than N in the input" <|
-                pattern = engine.compile "(..)" []
-                input = "abcdef"
-                match = pattern.find input mode=5
-                match.length . should_equal 3
-                match.at 0 . should_equal "ab"
-                match.at 1 . should_equal "cd"
-                match.at 2 . should_equal "ef"
+        Test.specify "should correctly handle edge cases where one-letter matches happen at the end of the word" <|
+            Regex_2.compile "(a+|1+)" . find_all "a1a1" . should_equal ["a", "1", "a", "1"]
+            Regex_2.compile "([a]+|[1]+)" . find_all "a1a1" . should_equal ["a", "1", "a", "1"]
+            Regex_2.compile "([0-9]+|[^0-9]+)" . find_all "a1b2" . should_equal ["a", "1", "b", "2"]
 
-            Test.specify "should return `Nothing` when a counted match fails" <|
-                pattern = engine.compile "(aa)" []
-                input = "abcdefghij"
-                match = pattern.find input mode=3
-                match . should_equal Nothing
-
-            Test.specify "should be able to `find` the all instances of the pattern in the input" <|
-                pattern = engine.compile "(..)" []
-                input = "abcdefghij"
-                match = pattern.find input mode=Regex_Mode.All
-                match.length . should_equal 5
-                match.at 0 . should_equal "ab"
-                match.at 1 . should_equal "cd"
-                match.at 2 . should_equal "ef"
-                match.at 3 . should_equal "gh"
-                match.at 4 . should_equal "ij"
-
-            Test.specify "should return `Nothing` when an all match match fails" <|
-                pattern = engine.compile "(aa)" []
-                input = "abcdefghij"
-                match = pattern.find input mode=Regex_Mode.All
-                match . should_equal Nothing
-
-            Test.specify "should be able to `find` the pattern against the entire input" <|
-                pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
-                input = "aa ab abc a bc bcd"
-                match = pattern.find input mode=Regex_Mode.Full
-                match . should_be_a Text
-                match . should_equal input
-
-            Test.specify "should return `Nothing` if a full find does not match the entire input" <|
-                pattern = engine.compile "(..)" []
-                input = "aa ab"
-                full_match = pattern.find input mode=Regex_Mode.Full
-                full_match . should_equal Nothing
-
-            Test.specify "should be able to `find` the pattern against bounded input" <|
-                pattern = engine.compile "(..)" []
-                input = "abcdefghij"
-                match = pattern.find input mode=(Regex_Mode.Bounded 2 8)
-                match.length . should_equal 3
-                match.at 0 . should_equal "cd"
-                match.at 1 . should_equal "ef"
-                match.at 2 . should_equal "gh"
-
-                match_2 = pattern.find input mode=(Regex_Mode.Bounded 2 8 mode=10)
-                match_2.length . should_equal 3
-                match_2.at 0 . should_equal "cd"
-                match_2.at 1 . should_equal "ef"
-                match_2.at 2 . should_equal "gh"
-
-                match_3 = pattern.find input mode=(Regex_Mode.Bounded 2 8 mode=2)
-                match_3.length . should_equal 2
-                match_3.at 0 . should_equal "cd"
-                match_3.at 1 . should_equal "ef"
-
-            Test.specify "should correctly handle edge cases where one-letter matches happen at the end of the word" <|
-                engine.compile "(a+|1+)" [] . find "a1a1" . should_equal ["a", "1", "a", "1"]
-                engine.compile "([a]+|[1]+)" [] . find "a1a1" . should_equal ["a", "1", "a", "1"]
-                engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" . should_equal ["a", "1", "b", "2"]
-
-                engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=5 . should_equal ["a", "1", "b", "2"]
-                engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=4 . should_equal ["a", "1", "b", "2"]
-                engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=3 . should_equal ["a", "1", "b"]
-                engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=(Regex_Mode.Bounded 1 3) . should_equal ["1", "b"]
-
+    ##
         Test.group "The default regex engine's Pattern.split" <|
             engine = Default_Engine.new
 
@@ -498,13 +435,13 @@ spec =
             groups = match.named_groups
             groups.keys.sort . should_equal ["empty", "letters"]
             groups.size . should_equal 2
-            groups.at "letters" . text . should_equal "abc a bc bcd"
+            groups.at "letters" . should_equal "abc a bc bcd"
             groups.at "empty" . should_equal Nothing
 
         Test.specify "should replace unmatched groups by a user-specified value" <|
             groups = match.named_groups "UNMATCHED"
             groups.size . should_equal 2
-            groups.at "letters" . text . should_equal "abc a bc bcd"
+            groups.at "letters" . should_equal "abc a bc bcd"
             groups.at "empty" . should_equal "UNMATCHED"
 
     ##
