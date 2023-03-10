@@ -70,42 +70,40 @@ const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onChange }
      * So there is no need to pass a value to onChange function.
      */
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const CreateEmptyTemplate = React.useMemo(
-        () => (
-            <button
-                className="h-40 cursor-pointer"
-                onClick={() => {
-                    onChange()
-                }}
+    const CreateEmptyTemplate = (
+        <button
+            className="h-40 cursor-pointer"
+            onClick={() => {
+                onChange()
+            }}
+        >
+            <div
+                style={{ backgroundImage: borderBgImg }}
+                className={`flex h-full w-full rounded-2xl text-[#${borderColor}]`}
             >
-                <div
-                    style={{ backgroundImage: borderBgImg }}
-                    className={`flex h-full w-full rounded-2xl text-[#${borderColor}]`}
-                >
-                    <div className="m-auto text-center">
-                        <button>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={0.5}
-                                stroke="currentColor"
-                                className="w-20 h-20"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
-                        </button>
-                        <p className="font-[600] text-sm">New empty project</p>
-                    </div>
+                <div className="m-auto text-center">
+                    <button>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={0.5}
+                            stroke="currentColor"
+                            className="w-20 h-20"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                    </button>
+                    <p className="font-[600] text-sm">New empty project</p>
                 </div>
-            </button>
-        ),
-        []
+            </div>
+        </button>
     )
+
     return (
         <>
             {CreateEmptyTemplate}
