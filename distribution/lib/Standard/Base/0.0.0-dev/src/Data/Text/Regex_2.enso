@@ -1,0 +1,82 @@
+import project.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Text.Prim_Text_Helper
+import project.Data.Text.Regex.Pattern_2.Pattern_2
+import project.Data.Text.Text
+import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Syntax_Error
+
+polyglot java import java.util.regex.Pattern as Java_Pattern
+
+## Compile the provided `expression` into a regex pattern that can be used for
+   matching.
+
+   Arguments
+   - expression: The text representing the regular expression that you want to
+     compile.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+
+   ? Why Compile?
+     While many regex engines are able to cache ad-hoc patterns, it is often
+     useful to be able to manually retain a pattern that you have computed. This
+     function exists so you can hold onto the resultant `Pattern_2` object,
+     instead of immediately proceeding to match using it.
+compile : Text -> Boolean | Nothing -> Pattern_2 ! Regex_Syntax_Error
+compile self expression case_insensitive=Nothing =
+    options_string = if case_insensitive == True then "usgi" else "usg"
+
+    internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
+        Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
+
+    Pattern_2.Value internal_regex_object
+
+## ADVANCED
+
+   Escape the special characters in `expression` such that the result is a
+   valid literal pattern for the original string.
+
+   Arguments:
+   - expression: The expression to escape metacharacters in.
+
+   > Example
+     Turn a Text into a regex that matches that string exactly.
+
+         import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+         import Standard.Base.Data.Text.Regex.Regex_Option.Regex_Option
+
+         example_escape =
+             literal_string = "\!\.|abcde"
+             engine = Default_Engine.new
+             engine.escape literal_string
+escape : Text -> Text
+escape self expression = Java_Pattern.quote expression
+
+## An error that is emitted when there is no such group in the match for the
+   provided `id`.
+
+   Arguments:
+   - id: The identifier of the group that was asked for but does not exist.
+type No_Such_Group
+    Error (id : Text | Integer)
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the `No_Such_Group`.
+    to_display_text : Text
+    to_display_text self = case self.id of
+        _ : Integer -> "No group exists with the index " + self.id.to_text + "."
+        _ : Text -> "No group exists with the name " + self.id + "."
+
+## A syntax error reported by the Truffle regex compiler.
+type Regex_Syntax_Error
+    ## PRIVATE
+
+       Arguments:
+       - message: A description of the erroneous syntax.
+    Error message

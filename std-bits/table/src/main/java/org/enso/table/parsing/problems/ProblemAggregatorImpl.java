@@ -25,8 +25,8 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
   }
 
   @Override
-  public void reportMismatchedQuote() {
-    throw new MismatchedQuote();
+  public void reportMismatchedQuote(String cellText) {
+    throw new MismatchedQuote(cellText);
   }
 
   @Override

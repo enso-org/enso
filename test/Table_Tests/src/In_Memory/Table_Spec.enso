@@ -95,6 +95,8 @@ spec =
             Table.from_rows [] [] . should_fail_with Illegal_Argument
             Table.from_rows [] [[]] . should_fail_with Illegal_Argument
 
+            Table.new [["X", [1,2,3]], ["", [4,5,6]]] . should_fail_with Illegal_Argument
+
         Test.specify "should be internally guarded against creating a table without columns" <|
             Test.expect_panic_with (Java_Table.new []) IllegalArgumentException
 

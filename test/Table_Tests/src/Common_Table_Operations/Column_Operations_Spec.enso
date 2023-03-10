@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Arithmetic_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table.Errors import all
 
@@ -209,3 +210,77 @@ spec setup =
             s1.ends_with "ar" . to_vector . should_equal [True, True, False, False, Nothing]
             s1.ends_with "a" . to_vector . should_equal [False, False, False, False, Nothing]
             s1.ends_with "b" Case_Sensitivity.Insensitive . to_vector . should_equal [False, False, False, True, Nothing]
+
+    Test.group prefix+"Colum Operations - Names" <|
+        t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]]
+        Test.specify "arithmetic" <|
+            ((t.at "a") + 42) . name . should_equal "[a] + 42"
+            ((t.at "a") - (t.at "c")) . name . should_equal "[a] - [c]"
+            ((t.at "a") * (t.at "c")) . name . should_equal "[a] * [c]"
+            ((t.at "a") / (t.at "c")) . name . should_equal "[a] / [c]"
+            ((t.at "a") % (t.at "c")) . name . should_equal "[a] % [c]"
+            ((t.at "a") ^ (t.at "c")) . name . should_equal "[a] ^ [c]"
+            ((t.at "b") + 'xyz') . name . should_equal "[b] + 'xyz'"
+            ((t.at "b") + '\0') . name . should_equal "[b] + '\0'"
+
+        Test.specify "comparison" <|
+            ((t.at "b") == '\0\0') . name . should_equal "[b] == '\0\0'"
+            ((t.at "b") != '\0\0') . name . should_equal "[b] != '\0\0'"
+            ((t.at "a") < 0) . name . should_equal "[a] < 0"
+            ((t.at "a") <= 0) . name . should_equal "[a] <= 0"
+            ((t.at "a") > 0) . name . should_equal "[a] > 0"
+            ((t.at "a") >= 0) . name . should_equal "[a] >= 0"
+            ((t.at "b").between (t.at "c") 42) . name . should_equal "[b] between [c] and 42"
+
+        Test.specify "logical" <|
+            ((t.at "d") || False) . name . should_equal "[d] || False"
+            ((t.at "d") && True) . name . should_equal "[d] && True"
+            ((t.at "d").not) . name . should_equal "not [d]"
+            ((t.at "d").iif 10 20) . name . should_equal "if [d] then 10 else 20"
+
+        Test.specify "text" <|
+            t.at "b" . equals_ignore_case "abc" . name . should_equal "equals_ignore_case([b], 'abc')"
+            t.at "b" . starts_with "abc" . name . should_equal "starts_with([b], 'abc')"
+            t.at "b" . contains "abc" . name . should_equal "contains([b], 'abc')"
+            t.at "b" . like "%abc%" . name . should_equal "[b] like '%abc%'"
+            t.at "b" . ends_with "abc" . name . should_equal "ends_with([b], 'abc')"
+            t.at "b" . is_empty . name . should_equal "[b] is empty"
+
+        Test.specify "nulls" <|
+            t.at "a" . coalesce [Nothing, 42] . name . should_equal "coalesce([a], Nothing, 42)"
+            t.at "a" . is_missing . name . should_equal "[a] is null"
+            t.at "a" . is_present . name . should_equal "is_present([a])"
+            t.at "a" . is_blank . name . should_equal "is_blank([a])"
+            t.at "a" . fill_missing 100 . name . should_equal "fill_missing([a], 100)"
+
+        Test.specify "misc"
+            t.at "a" . min [1, 2] . name . should_equal "min([a], 1, 2)"
+            t.at "a" . max 33 . name . should_equal "max([a], 33)"
+            t.at "a" . is_in [1, 2, 3] . name . should_equal "[a] in [1, 2, 3]"
+
+        Test.specify "composed operations" <|
+            # These look a bit weird, but they are consistent with the column name escaping scheme.
+            ((t.at "a" + 42) * (t.at "c")) . name . should_equal "[[a]] + 42] * [c]"
+            ((t.at "a" + 42) * (t.at "c") - 33) . name . should_equal "[[[a]]]] + 42]] * [c]]] - 33"
+
+        Test.specify "sort" <|
+            t.at "a" . sort . name . should_equal "a"
+
+        if setup.is_database.not then
+            Test.specify "parse" <|
+                t2 = table_builder [["X", ["1", "2", "3"]]]
+                t2.at "X" . parse . name . should_equal "X"
+
+            Test.specify "map and zip" <|
+                t.at "a" . map (x -> x + 1) . name . should_equal "a"
+                t.at "a" . zip (t.at "b") [_, _] . name . should_equal "[a] x [b]"
+
+    Test.group prefix+"Column.rename" <|
+        Test.specify "should not allow illegal names" <|
+            t = table_builder [["a", [1, 2, 3]]]
+            c = t.at "a"
+
+            c.rename Nothing . should_fail_with Illegal_Argument
+            c.rename '' . should_fail_with Illegal_Argument
+            c.rename 'a\0b' . should_fail_with Illegal_Argument
+            c.rename '\0' . should_fail_with Illegal_Argument
