@@ -1,18 +1,14 @@
 package org.enso.interpreter.test;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -137,6 +133,38 @@ public class MetaIsATest extends TestBase {
       } else {
         assertFalse("Value " + v + " shall not be instance of itself", r.isBoolean() && r.asBoolean());
       }
+    }
+  }
+
+  @Test
+  public void constructorVariants() throws Exception {
+    var g = ValuesGenerator.create(ctx);
+    var found = new HashMap<Value, Value>();
+    final List<Value> values = g.constructorsAndValuesAndSumType();
+    for (var v1 : values) {
+      for (var v2 : values) {
+        assertTypeWithCheck(g, v1, v2, found);
+      }
+    }
+    assertEquals("Just one: " + found, 1, found.size());
+  }
+
+  private void assertTypeWithCheck(ValuesGenerator g, Value type, Value value, Map<Value, Value> found) {
+    var r = isACheck.execute(value, type);
+    Value withTypeCaseOf;
+    try {
+       withTypeCaseOf = g.withType(type);
+    } catch (IllegalArgumentException ex) {
+      assertFalse("It is not a type: " + type + " value: " + value, r.asBoolean());
+      return;
+    }
+    var is = withTypeCaseOf.execute(value);
+    assertTrue("Returns boolean for " + withTypeCaseOf, is.fitsInInt());
+    if (r.asBoolean()) {
+      assertEquals("True is 1 for " + type + " check of " + value, 1, is.asInt());
+      found.put(type, value);
+    } else {
+        assertEquals("False is 0 for " + type + " check of " + value, 0, is.asInt());
     }
   }
 

@@ -56,13 +56,13 @@ spec =
             val1 = (UPair.Value 1 2)
             val2 = (UPair.Value 2 1)
             err = Ordering.compare val1 val2
-            err.catch.is_a Incomparable_Values.Error . should_be_true
+            err.should_fail_with Incomparable_Values
             Meta.is_same_object err.catch.left val1 . should_be_true
             Meta.is_same_object err.catch.right val2 . should_be_true
 
         Test.specify "should throw Type_Error when comparing different types" <|
-            Ordering.compare (UPair.Value 1 2) (Ord.Value 2) . should_fail_with Type_Error.Error
-            Ordering.compare 1 Nothing . should_fail_with Type_Error.Error
+            Ordering.compare (UPair.Value 1 2) (Ord.Value 2) . should_fail_with Type_Error
+            Ordering.compare 1 Nothing . should_fail_with Type_Error
 
     Test.group "Ordering" <|
         Test.specify "should allow conversion to sign representation" <|
@@ -98,15 +98,15 @@ spec =
             Ordering.Greater.and_then Ordering.Greater . should_equal Ordering.Greater
 
         Test.specify "should handle partial ordering of Decimal type" <|
-            Ordering.compare Number.nan 42.0 . should_fail_with Incomparable_Values.Error
-            Ordering.compare 42.0 Number.nan . should_fail_with Incomparable_Values.Error
+            Ordering.compare Number.nan 42.0 . should_fail_with Incomparable_Values
+            Ordering.compare 42.0 Number.nan . should_fail_with Incomparable_Values
             Ordering.compare 42.5 67.9 . should_equal Ordering.Less
             Meta.is_same_object (Comparable.from Number.nan) (Comparable.from 42.0) . should_be_true
 
         Test.specify "should fail with Type_Error for wrong type of that" <|
-            Ordering.compare Ordering.Less 1 . should_fail_with Type_Error.Error
-            Ordering.compare Ordering.Less Nothing . should_fail_with Type_Error.Error
-            Ordering.compare Ordering.Less "Hello" . should_fail_with Type_Error.Error
+            Ordering.compare Ordering.Less 1 . should_fail_with Type_Error
+            Ordering.compare Ordering.Less Nothing . should_fail_with Type_Error
+            Ordering.compare Ordering.Less "Hello" . should_fail_with Type_Error
 
 
 main = Test_Suite.run_main spec

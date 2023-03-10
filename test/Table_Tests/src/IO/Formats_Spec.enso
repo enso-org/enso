@@ -32,7 +32,8 @@ spec = Test.group 'Various File Format support on Table' <|
         f1 = (transient / "test4.unknown-format")
         f1.delete_if_exists
         r1 = t1.write f1
-        r1.should_fail_with File_Error.Unsupported_Output_Type
+        r1.should_fail_with File_Error
+        r1.catch.should_be_a File_Error.Unsupported_Output_Type
         r1.catch.format . should_equal f1
         r1.catch.to_display_text . should_equal "Values of type Table cannot be written as format test4.unknown-format."
 
@@ -40,7 +41,8 @@ spec = Test.group 'Various File Format support on Table' <|
         f2.delete_if_exists
         my_format = Plain_Text Encoding.ascii
         r2 = t1.write f2 my_format
-        r2.should_fail_with File_Error.Unsupported_Output_Type
+        r2.should_fail_with File_Error
+        r2.catch.should_be_a File_Error.Unsupported_Output_Type
         r2.catch.format . should_equal my_format
 
 main = Test_Suite.run_main spec

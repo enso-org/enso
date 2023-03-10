@@ -38,7 +38,7 @@ pub struct LeafIterator<'a, T> {
     fragment:  TreeFragment,
 }
 
-impl<'a, T: Payload> Iterator for LeafIterator<'a, T> {
+impl<'a, T> Iterator for LeafIterator<'a, T> {
     type Item = node::Ref<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {

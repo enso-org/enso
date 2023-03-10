@@ -136,6 +136,11 @@ ensogl_core::define_endpoints_2! { <T: (DropdownValue)>
         /// working with multiselect dropdown, use `selected_entries` instead.
         single_selected_entry(Option<T>),
 
+        /// Emitted when the user actually selects an entry. This is different from
+        /// `selected_entries`, which is emitted each time the selection changes, including when the
+        /// selection is changed by the user or programmatically by setting `set_selected_entries`.
+        user_select_action(),
+
         /// Whether or not the dropdown is currently open.
         is_open(bool),
     }
@@ -230,6 +235,7 @@ impl<T: DropdownValue> Frp<T> {
             output.single_selected_entry <+ selection_changed.map(
                 f!((()) model.get_single_selected_entry())
             ).on_change();
+            output.user_select_action <+_ model.grid.entry_accepted;
 
             // === Keyboard navigation ===
             model.grid.accept_selected_entry <+ input.toggle_focused_entry;
