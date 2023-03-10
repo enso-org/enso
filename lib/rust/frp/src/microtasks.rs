@@ -1,10 +1,79 @@
-//! This module contains implementation of microtask scheduler that is used in implementation of
-//! some FRP nodes.
+//! This module contains implementation of task scheduler that is used in implementation of
+//! some FRP nodes. The scheduler exploits details of JavaScript event loop to schedule deferred
+//! tasks in a way that is more useful than using `setTimeout`, and allow us to implement FRP
+//! nodes that require their execution to be deferred after current function execution, but before
+//! the current animation frame is painted.
 //!
-//! TODO: better docs
+//! # Event loop tasks
 //!
-//! Read more about microtasks:
-/// https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide
+//! JavaScript event loop tasks (also known as macrotasks) are a way of organizing the order in
+//! which certain events are handled within JavaScript code. When a JavaScript program runs, it
+//! executes a series of tasks, such as receiving network data, handling `setTimeout` timers,
+//! handling mouse and keyboard events or rendering. Those macrotasks are scheduled to the
+//! javascript event loop, and are executed sequentially on a single thread.
+//!
+//!
+//! # Microtasks
+//!
+//! In some scenarios, it i useful to allow the currently executing program to complete, and then
+//! execute additional logic before next macrotask begins. This is where microtasks come in.
+//! Microtasks are a way of scheduling tasks that should be performed after the current task has
+//! finished, but before the next macrotask in the event loop is executed. Microtasks are executed
+//! in the order in which they were added to the microtask queue. Notably, the microtask queue
+//! is guaranteed to be processed before the browser is allowed to perform a repaint, which means
+//! that microtasks are a good way to schedule tasks that need to be performed before the next
+//! animation frame, even if the currently executed task is a `requestAnimationFrame` handler.
+//!
+//! Examples of JavaScript microtasks include promise callbacks, process.nextTick(), and mutation
+//! observers. These tasks are executed in the order in which they were added to the microtask
+//! queue.
+//!
+//! event loop tasks: onClick event            compute styles  requestAnimationFrame   paint
+//!                   ╠══════════╦═════╦═══╦═  ╚═════════════  ╠═══════════╦════════   ╚══════
+//! microtasks:       ╙───┬──┬─ A╙─┬─ B╙─ C╙─                  ╙───┬───── A╙────────
+//! scheduled microtasks: A  B     C                               A
+//!
+//! In this diagram, first microtask within the macrotask is representing the initial handler of
+//! given task, as passed to `addEventListener`, `setTimeout` or `requestAnimationFrame`. The event
+//! loop also contains native tasks that don't execute any JS code, e.g. paint.
+//!
+//!
+//! Read about microtasks in more details here:
+//! https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide
+//!
+//!
+//! # Scheduler
+//!
+//! This module contains implementation of microtask scheduler, which allows us to schedule
+//! microtasks from within our own code. The scheduler manages two tasks queues with different
+//! priorities:
+//! - [`next_microtask`] queue, which executes its tasks immediately after the current task has
+//!  finished, but before returning control to event loop.
+//! - [`next_microtask_late`] queue, which executes its tasks after all tasks scheduled with
+//! `next_microtask` have been executed.
+//!
+//! When a new task is scheduled within a microtask handler, it will be handled within the same
+//! event loop task. The late task queue will only start processing tasks after the normal
+//! queue has been fully processed, including all tasks scheduled within other tasks. If late
+//! tasks spawn another set of tasks, the whole process will be repeated, all within the same
+//! event loop task.
+//!
+//! Since microtasks can themselves enqueue more microtasks, and the event loop continues processing
+//! microtasks until the queue is empty, there's a real risk of getting the event loop endlessly
+//! processing microtasks. In order to prevent completely blocking rendering, the scheduler has a
+//! safety mechanism that prevents it from processing schedule queue more than
+//! [`MAX_RESURSIVE_MICROTASKS`] times from within a single event loop task. If the limit is
+//! reached, an error will be raised and further scheduled tasks will continue execution after the
+//! next animation frame.
+//!
+//! # Rendering loop
+//!
+//! All of our render loop tasks are scheduled with [`next_microtask_late`]. That way rendering
+//! logic is guaranteed to be executed after all other normal priority tasks has been performed,
+//! including all tasks enqueued within those tasks. That means all FRP nodes that use the scheduler
+//! (e.g. `debounce` or `batch`) will be guaranteed to be fully processed before the rendering logic
+//! is executed.
+
 use crate::prelude::*;
 use enso_callback::traits::*;
 
@@ -201,10 +270,11 @@ impl SchedulerData {
 // === TickPhases ===
 // ==================
 
-/// A type that represents a list of phases that should be performed within the same browser task,
-/// one after another. The phases are always performed in the same order as they were added,
-/// allowing the microtask queue to be emptied between each phase. Each phase is queued using
-/// `next_microtask_late` at the end of the previous phase.
+/// A type that represents a list of late microtask handlers that should scheduled within the same
+/// browser task, one after another. The phases are always performed in the same order as they were
+/// added, allowing the microtask queue to be emptied between each phase. Each phase is queued using
+/// `next_microtask_late` at the end of the previous phase, guaranteeing that any microtasks
+/// scheduled within given phase will be executed before the next phase is started.
 #[must_use]
 #[allow(missing_debug_implementations)]
 pub struct TickPhases<T> {

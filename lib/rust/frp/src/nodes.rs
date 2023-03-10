@@ -135,8 +135,8 @@ impl Network {
     }
 
     /// Delay and deduplicate the incoming events. Once an event is received, it will be emitted
-    /// after the current microtask execution is finished. If multiple events are received within
-    /// the same , only the last one will be emitted.
+    /// after the current program execution finishes, but before returning to the event loop. If
+    /// multiple events are received within the same , only the last one will be emitted.
     ///
     /// Use [`Network::batch`] if you want to collect all emitted values within a microtask.
     ///
@@ -150,8 +150,9 @@ impl Network {
         self.register(OwnedDebounce::new(label, event))
     }
 
-    /// Batch all incoming events emitted within a single microtask. The batch is emitted after the
-    /// current microtask execution is finished. All emitted batches are guaranteed to be non-empty.
+    /// Batch all incoming events emitted within a single microtask. The batch will be emitted
+    /// after the current program execution finishes, but before returning to the event loop. All
+    /// emitted batches are guaranteed to be non-empty.
     ///
     /// Use [`Network::debounce`] if you want to receive only the latest value emitted within a
     /// microtask.
