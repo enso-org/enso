@@ -1,6 +1,16 @@
-/** @file Configuration for the authentication module of the Dashboard. */
+/** @file Configuration for the authentication module of the Dashboard.
+ *
+ * This file contains the constants and types necessary to configure the AWS Amplify library. The
+ * authentication module in this package is a wrapper over the Amplify library. The Amplify library
+ * is used to authenticate users. Users must be authenticated to access all features of the
+ * dashboard or IDE. Users can sign up, sign in, sign out, etc., via this module. Amplify performs
+ * these actions by communicating with "Cognito user pools". These pools are databases connected to
+ * federated identity providers like Google and GitHub. They contain information about users (e.g.,
+ * their email addresses), and provide the APIs to authenticate the users. To communicate with these
+ * pools, Amplify must be configured prior to use. This file defines all the information needed to
+ * connect to and use these pools. */
 
-
+import * as shared from '../../../../../client/shared'
 
 // =================
 // === Constants ===
@@ -9,13 +19,11 @@
 /** AWS region in which our Cognito pool is located. */
 export const AWS_REGION: AwsRegion = 'eu-west-1'
 /** URL used as the OAuth redirect when running in the desktop app. */
-export const DESKTOP_REDIRECT: OAuthRedirect = 'enso://auth'
+export const DESKTOP_REDIRECT = `${shared.DEEP_LINK_SCHEME}://auth` as const
 /** Complete list of OAuth scopes used by the app. */
 export const OAUTH_SCOPES: OAuthScope[] = ['email', 'openid']
 /** OAuth response type used in the OAuth flows. */
 export const OAUTH_RESPONSE_TYPE: OAuthResponseType = 'code'
-
-
 
 // =============
 // === Types ===
@@ -50,7 +58,7 @@ type OAuthResponseType = 'code'
  * an OAuth flow (e.g., sign-in or sign-out) has completed. These must match the values set in the
  * Cognito pool and during the creation of the OAuth client. See the `enso-org/cloud-v2` repo for
  * details. */
-export type OAuthRedirect = 'enso://auth' | 'http://localhost:8081' | 'https://cloud.enso.org'
+export type OAuthRedirect = typeof DESKTOP_REDIRECT | 'http://localhost:8081' | 'https://cloud.enso.org'
 /** Callback used to open URLs for the OAuth flow. This is only used in the desktop app (i.e., not in
  * the cloud). This is because in the cloud we just keep the user in their browser, but in the app
  * we want to open OAuth URLs in the system browser. This is because the user can't be expected to
@@ -60,8 +68,6 @@ export type OAuthUrlOpener = (url: string, redirectUrl: string) => void
  * by the app. This is only used in the desktop app (i.e., not in the cloud). This is used when the
  * user is redirected back to the app from the system browser, after completing an OAuth flow. */
 export type RegisterOpenAuthenticationUrlCallbackFn = () => void
-
-
 
 // =====================
 // === AmplifyConfig ===
@@ -83,8 +89,6 @@ export interface AmplifyConfig {
     redirectSignOut: OAuthRedirect
     responseType: OAuthResponseType
 }
-
-
 
 // ===========================
 // === NestedAmplifyConfig ===

@@ -2,8 +2,6 @@
 import * as React from "react";
 import * as loggerProvider from "./providers/logger";
 
-
-
 // ======================
 // === useAsyncEffect ===
 // ======================
@@ -24,33 +22,32 @@ import * as loggerProvider from "./providers/logger";
  * @param deps - The list of dependencies that, when updated, trigger the asynchronous fetch.
  * @returns value - The current value of the state controlled by this hook. */
 export function useAsyncEffect<T>(
-    initialValue: T,
-    fetch: () => Promise<T>,
-    deps?: React.DependencyList
+  initialValue: T,
+  fetch: () => Promise<T>,
+  deps?: React.DependencyList
 ): [T] {
-    const logger = loggerProvider.useLogger();
-    const [value, setValue] = React.useState<T>(initialValue);
+  const logger = loggerProvider.useLogger();
+  const [value, setValue] = React.useState<T>(initialValue);
 
-    React.useEffect(() => {
-        let active = true;
+  React.useEffect(() => {
+    let active = true;
 
-        /** Declare the async data fetching function. */
-        const load = async () => {
-            const result = await fetch();
+    /** Declare the async data fetching function. */
+    const load = async () => {
+      const result = await fetch();
 
-            /** Set state with the result if `active` is true. This prevents race conditions by
-             * making it so that only the latest async fetch will update the state on completion. */
-            if (!active) return;
-            setValue(result);
-        };
+      /** Set state with the result if `active` is true. This prevents race conditions by
+       * making it so that only the latest async fetch will update the state on completion. */
+      if (!active) return;
+      setValue(result);
+    };
 
-        load().catch((error) => logger.error("Error while fetching data", error));
+    load().catch((error) => logger.error("Error while fetching data", error));
+    /** Cancel any future `setValue` calls. */
+    return () => {
+      active = false;
+    };
+  }, deps);
 
-        /** Cancel any future `setValue` calls. */
-        return () => {
-            active = false;
-        };
-    }, deps);
-
-    return [value];
+  return [value];
 }

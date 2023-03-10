@@ -119,15 +119,15 @@ class Main {
                         options.groups.startup.options.entry.default
                 ) {
                     const hideAuth = () => {
-                       const auth = document.getElementById('dashboard')
-                       const root = document.getElementById('root')
-                       if (auth) auth.style.display = 'none'
-                       if (root) root.style.display = 'block'
+                        const auth = document.getElementById('dashboard')
+                        const root = document.getElementById('root')
+                        if (auth) auth.style.display = 'none'
+                        if (root) root.style.display = 'block'
                     }
                     const props: AppProps = {
                         logger,
-                        // This package is an Electron desktop app (i.e., not in the Cloud), so
-                        // we're running on the desktop.
+                        /** This package is an Electron desktop app (i.e., not in the Cloud), so
+                         * we're running on the desktop. */
                         runningOnDesktop: true,
                         onAuthenticated: () => {
                             hideAuth()

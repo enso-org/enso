@@ -4,7 +4,7 @@ import * as React from 'react'
 
 export const handleEvent =
     <T>(callback: () => Promise<T>) =>
-        async (event: React.FormEvent) => {
-            event.preventDefault()
-            await callback()
-        }
+    async (event: React.FormEvent) => {
+        event.preventDefault()
+        await callback()
+    }
