@@ -240,13 +240,16 @@ spec =
 
                 format3 = format . with_quotes quote_escape="\"
                 r3 = Data.read (enso_project.data / "mismatched_quote3.csv") format3 on_problems=pb
-                r3.should_fail_with File_Error.Corrupted_Format
+                r3.should_fail_with File_Error
+                r3.catch.should_be_a File_Error.Corrupted_Format
 
                 r4 = Data.read (enso_project.data / "mismatched_quote4.csv") format on_problems=pb
-                r4.should_fail_with File_Error.Corrupted_Format
+                r4.should_fail_with File_Error
+                r4.catch.should_be_a File_Error.Corrupted_Format
 
                 r5 = Data.read (enso_project.data / "mismatched_quote5.csv") format on_problems=pb
-                r5.should_fail_with File_Error.Corrupted_Format
+                r5.should_fail_with File_Error
+                r5.catch.should_be_a File_Error.Corrupted_Format
 
         Test.specify "should fail in presence of a mismatched quote (2)" pending="TODO: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb->
@@ -257,7 +260,8 @@ spec =
                 contents = 'a,b,c\n1,2,3\nabc,def,"g h i\\"'
                 contents.write f6 on_existing_file=Existing_File_Behavior.Overwrite
                 r6 = Data.read f6 format3 on_problems=pb
-                r6.should_fail_with File_Error.Corrupted_Format
+                r6.should_fail_with File_Error
+                r6.catch.should_be_a File_Error.Corrupted_Format
                 f6.delete
 
         Test.specify "should handle quotes if they are opened in the middle of an unquoted cell in a sane way" pending="TODO: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
