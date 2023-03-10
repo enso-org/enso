@@ -1,4 +1,4 @@
-/** @file Compatible with the desktop and the web client */
+/** @file Make the projectManager support both desktop and web side. */
 import { ProjectManager } from 'enso-studio-content/src/project_manager'
 import * as auth from '../../authentication/providers/auth'
 import { Project, ProjectState, useBackendService } from '../service'
@@ -7,14 +7,14 @@ import { Project, ProjectState, useBackendService } from '../service'
 // === Types ===
 // =============
 
-/** Temp declare ProjectManager.createProject returned value */
+/** Temp declare ProjectManager.createProject returned value. */
 interface CreateProjectResult {
     result: {
         projectId: string
         projectName: string
     }
 }
-/** Temp declare ProjectManager.createProject returned value */
+/** Temp declare ProjectManager.createProject returned value. */
 interface ListProjectResult {
     result: {
         projects: {
@@ -24,7 +24,7 @@ interface ListProjectResult {
     }
 }
 
-/** All platform adapter need suit to this interface */
+/** All platform adapter need suit to this interface. */
 interface ProjectManagerAdapter {
     createProject(projectName: string, projectTemplateName?: string): Promise<Project>
     listProjects(): Promise<Project[]>
@@ -35,7 +35,7 @@ interface ProjectManagerAdapter {
 // ===============================
 
 // === useProjectManagerDesktopClient ===
-/** Implement the project manager desktop side adapter(electron) */
+/** Implement the project manager desktop side adapter(electron). */
 const useProjectManagerDesktopClient = (
     projectManager?: ProjectManager
 ): ProjectManagerAdapter | null => {
@@ -81,7 +81,7 @@ const useProjectManagerDesktopClient = (
 }
 
 // === useProjectManagerWebClient ===
-/** Implement the project manager web side adapter(web) */
+/** Implement the project manager web side adapter(web). */
 const useProjectManagerWebClient = (): ProjectManagerAdapter => {
     const backendService = useBackendService()
     return {
@@ -98,8 +98,12 @@ const useProjectManagerWebClient = (): ProjectManagerAdapter => {
     }
 }
 
-/** the useProjectManageAdapter options */
+/** The options of useProjectManageAdapter. */
 interface UseProjectManageAdapterOptions {
+    /**
+     * If true, this package is Electron desktop app,
+     * else it is a standalone React app
+     */
     runningOnDesktop: boolean
     projectManager?: ProjectManager
 }
@@ -115,6 +119,10 @@ const useProjectManageAdapter = (
     const projectManagerDesktopClient = useProjectManagerDesktopClient(projectManager)
     const projectManagerWebClient = useProjectManagerWebClient()
 
+    /**
+     * If runningOnDesktop is true, Enso will automatically inject the projectManager,
+     * so we can assert that projectManagerDesktopClient is not null.
+     */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return runningOnDesktop ? projectManagerDesktopClient! : projectManagerWebClient
 }
