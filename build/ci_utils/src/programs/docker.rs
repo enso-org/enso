@@ -281,6 +281,19 @@ impl BuildOptions {
         }
     }
 
+    /// Get the environment variable and pass its value to docker build as a build argument.
+    ///
+    /// Build argument name will be the same as the environment variable name.
+    /// If the environment variable is not set, an error is raised.
+    pub fn add_build_arg_from_env(
+        &mut self,
+        variable: impl crate::env::accessor::RawVariable,
+    ) -> Result {
+        let value = variable.get_raw()?;
+        self.build_args.insert(variable.name().into(), Some(value));
+        Ok(())
+    }
+
     pub fn add_build_arg_from_env_or<R>(
         &mut self,
         name: impl AsRef<str>,
