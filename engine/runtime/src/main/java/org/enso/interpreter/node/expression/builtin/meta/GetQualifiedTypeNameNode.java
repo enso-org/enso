@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.Types;
 
@@ -12,8 +13,12 @@ import org.enso.interpreter.runtime.type.Types;
     description = "Returns a qualified type name of the given value.",
     autoRegister = false)
 public class GetQualifiedTypeNameNode extends Node {
-  Text execute(@AcceptsError Object value) {
+  Object execute(@AcceptsError Object value) {
     var typeName = Types.getName(value);
+    if (typeName == null) {
+      return EnsoContext.get(this).getBuiltins().nothing();
+    }
+
     return Text.create(typeName);
   }
 }

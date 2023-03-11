@@ -227,14 +227,62 @@ spec =
 
         Test.specify "should fail in presence of a mismatched quote" <|
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb->
-                r1 = Data.read (enso_project.data / "mismatched_quote.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems=pb
+                format = (Delimited "," headers=True value_formatter=Nothing)
+                r1 = Data.read (enso_project.data / "mismatched_quote.csv") format on_problems=pb
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Corrupted_Format
                 r1.catch.to_display_text.should_contain "quote has been opened but never closed"
+                r1.catch.to_display_text.should_contain '["\n7,8,9\n]'
 
-                r2 = Data.read (enso_project.data / "mismatched_quote2.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems=pb
+                r2 = Data.read (enso_project.data / "mismatched_quote2.csv") format on_problems=pb
                 r2.should_fail_with File_Error
                 r2.catch.should_be_a File_Error.Corrupted_Format
+
+                format3 = format . with_quotes quote_escape="\"
+                r3 = Data.read (enso_project.data / "mismatched_quote3.csv") format3 on_problems=pb
+                r3.should_fail_with File_Error
+                r3.catch.should_be_a File_Error.Corrupted_Format
+
+                r4 = Data.read (enso_project.data / "mismatched_quote4.csv") format on_problems=pb
+                r4.should_fail_with File_Error
+                r4.catch.should_be_a File_Error.Corrupted_Format
+
+                r5 = Data.read (enso_project.data / "mismatched_quote5.csv") format on_problems=pb
+                r5.should_fail_with File_Error
+                r5.catch.should_be_a File_Error.Corrupted_Format
+
+        Test.specify "should fail in presence of a mismatched quote (2)" pending="TODO: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb->
+                format = (Delimited "," headers=True value_formatter=Nothing)
+                format3 = format . with_quotes quote_escape="\"
+                f6 = enso_project.data / "transient" / "mismatched_quote3.csv"
+                # There is no trailing newline compared to regular `mismatched_quote3.csv`.
+                contents = 'a,b,c\n1,2,3\nabc,def,"g h i\\"'
+                contents.write f6 on_existing_file=Existing_File_Behavior.Overwrite
+                r6 = Data.read f6 format3 on_problems=pb
+                r6.should_fail_with File_Error
+                r6.catch.should_be_a File_Error.Corrupted_Format
+                f6.delete
+
+        Test.specify "should handle quotes if they are opened in the middle of an unquoted cell in a sane way" pending="TODO: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
+            t1 = Data.read (enso_project.data / "mismatched_quote_at_end.csv") (Delimited "," headers=True value_formatter=Nothing)
+            t1.column_names . should_equal ["a", "b", "c"]
+            t1.at 'a' . to_vector . should_equal ['1', 'abc', '7']
+            t1.at 'b' . to_vector . should_equal ['2', 'def', '8']
+            t1.at 'c' . to_vector . should_equal ['3', 'g h i"', '9']
+
+            t2 = Data.read (enso_project.data / "weird_quoting_stuff.csv") (Delimited "," headers=True value_formatter=Nothing)
+            t2.column_names . should_equal ["A", "B", "C", "D", "E"]
+            t2.at 'A' . to_vector . should_equal ['Te,s"t', 'Te,s"t']
+            t2.at 'B' . to_vector . should_equal ['An " other', 'An " other"']
+            t2.at 'C' . to_vector . should_equal ['He\nllo', 'He\nllo']
+            t2.at 'D' . to_vector . should_equal ['This is an escaped quote \\"', 'This is an escaped quote \\"']
+            t2.at 'E' . to_vector . should_equal ['Excel escapes "" with 8 quotes """"""', 'Excel escapes "" with 8 quotes """"""']
+
+            t3 = Data.read (enso_project.data / "weird_quoting_stuff2.csv") (Delimited "," headers=True value_formatter=Nothing)
+            IO.println t3
+            t3.column_names.should_equal ["A", "B", "C"]
+            t3.print
 
         Test.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =

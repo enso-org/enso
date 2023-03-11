@@ -108,26 +108,19 @@ type Any
     == self that =
         # If there is No_Such_Conversion, then `self` and `that` are probably
         # host or polyglot values, so we just compare them with the default comparator.
-        eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Unordered_Comparator
-        eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Unordered_Comparator
-        case Meta.is_same_object eq_self Incomparable of
-            True -> False
-            False ->
-                similar_type = Meta.is_same_object eq_self eq_that
-                case similar_type of
-                    False -> False
-                    True ->
-                        case eq_self.is_ordered of
-                            True ->
-                                res = eq_self.compare self that
-                                case res of
-                                    Ordering.Equal -> True
-                                    _ -> False
-                            False ->
-                                res = eq_self.equals self that
-                                case res of
-                                    Nothing -> False
-                                    _ -> res
+        eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Comparator
+        eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Comparator
+        similar_type = Meta.is_same_object eq_self eq_that
+        case similar_type of
+            False -> False
+            True ->
+                case Meta.is_same_object eq_self Default_Comparator of
+                    # Shortcut for objects with Default_Comparator, because of the performance.
+                    True -> Comparable.equals_builtin self that
+                    False ->
+                        case eq_self.compare self that of
+                            Ordering.Equal -> True
+                            _ -> False
 
     ## ALIAS Inequality
 
@@ -159,8 +152,10 @@ type Any
        Arguments:
        - that: The value to compare `self` against.
 
-       To have `>` properly defined, a type must have an associated ordered comparator.
-       See `Ordering.enso` for information how comparators work.
+       To be comparable, a custom object must have an associated comparator
+       which will return `Ordering.Less/Greater` for unequal values. Otherwise,
+       this will raise `Incomparable_Values` error. See `Ordering.enso` for
+       information how comparators work.
 
        > Example
          Checking if the variable `a` is greater than `147`.
@@ -172,7 +167,7 @@ type Any
                  a > 147
     > : Any -> Boolean ! Incomparable_Values
     > self that =
-        assert_ordered_comparators self that <|
+        assert_same_comparators self that <|
             case (Comparable.from self).compare self that of
                 Ordering.Greater -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
@@ -184,8 +179,6 @@ type Any
 
        Arguments:
        - that: The value to compare `self` against.
-
-       To have `>=` defined, a type must define both `>` and `==`.
 
        ! Implementing Greater Than or Equal
          While it is often possible to implement a more efficient version of this
@@ -203,12 +196,12 @@ type Any
                  a >= 147
     >= : Any -> Boolean ! Incomparable_Values
     >= self that =
-        assert_ordered_comparators self that <|
+        assert_same_comparators self that <|
             case (Comparable.from self).compare self that of
-                Ordering.Less -> False
                 Ordering.Equal -> True
                 Ordering.Greater -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
+                _ -> False
 
     ## ALIAS Less Than
 
@@ -217,8 +210,10 @@ type Any
        Arguments:
        - that: The value to compare `self` against.
 
-       To have `<` properly defined, a type must have an associated ordered comparator.
-       See `Ordering.enso` for information how comparators work.
+       To be comparable, a custom object must have an associated comparator
+       which will return `Ordering.Less/Greater` for unequal values. Otherwise,
+       this will raise `Incomparable_Values` error. See `Ordering.enso` for
+       information how comparators work.
 
        > Example
          Checking if the variable `a` is less than `147`.
@@ -230,7 +225,7 @@ type Any
                  a < 147
     < : Any -> Boolean ! Incomparable_Values
     < self that =
-        assert_ordered_comparators self that <|
+        assert_same_comparators self that <|
             case (Comparable.from self).compare self that of
                 Ordering.Less -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
@@ -261,12 +256,12 @@ type Any
                  a < 147
     <= : Any -> Boolean ! Incomparable_Values
     <= self that =
-        assert_ordered_comparators self that <|
+        assert_same_comparators self that <|
             case (Comparable.from self).compare self that of
-                Ordering.Less -> True
                 Ordering.Equal -> True
-                Ordering.Greater -> False
+                Ordering.Less -> True
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
+                _ -> False
 
     ## Checks if the type is an instance of `Nothing`.
 
@@ -456,13 +451,12 @@ type Any
 
 
 ## PRIVATE
-   Checks if both comparators of the given objects are both of same type and ordered.
-   If they are not of same type, a `Type_Error` is thrown.
-   If the comparators are either `Incomparable`, or unordered, `False` is returned.
-assert_ordered_comparators : Any -> (Any -> Any) -> Any ! (Type_Error | Incomparable_Values)
-assert_ordered_comparators this that ~action =
+   Checks if the comparators for the given objects are both of the same type. If so,
+   proceeds with the given action, and if not, throws `Type_Error`.
+assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Type_Error
+assert_same_comparators this that ~action =
     comp_this = Comparable.from this
     comp_that = Comparable.from that
-    if (Meta.is_same_object comp_this comp_that).not then Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that") else
-        if Meta.is_same_object comp_this Incomparable || comp_this.is_ordered.not then Error.throw (Incomparable_Values.Error this that) else
-            action
+    case Meta.is_same_object comp_this comp_that of
+        True -> action
+        False -> Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that")

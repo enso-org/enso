@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite
@@ -62,8 +62,8 @@ spec =
                     (duration - period).should_fail_with Time_Error
                     (period + duration).should_fail_with Time_Error
                     (period - duration).should_fail_with Time_Error
-                    (duration > period).should_fail_with Type_Error
-                    (duration < period).should_fail_with Type_Error
+                    (duration > period).should_fail_with Incomparable_Values
+                    (duration < period).should_fail_with Incomparable_Values
 
         Test.specify "Date_Time supports adding and subtracting Duration" <|
             ((Date_Time.new 2022 10 1 hour=10) + (Duration.new hours=2)) . should_equal (Date_Time.new 2022 10 1 hour=12)

@@ -29,6 +29,7 @@ import project.Data.Value_Type.Value_Type
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
+import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
@@ -1136,7 +1137,7 @@ type Table
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename expression
+        result = new_column.rename (Naming_Helpers.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 

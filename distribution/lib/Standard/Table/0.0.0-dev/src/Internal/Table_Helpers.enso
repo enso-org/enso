@@ -393,15 +393,20 @@ unify_result_type_for_union column_set all_tables allow_type_widening problem_bu
                 problem_builder.report_other_warning (No_Common_Type.Error column_set.name)
             common_type
         False ->
-            first_column = columns.find (c-> c.is_nothing.not)
+            is_not_nothing c = case c of
+                Nothing -> False
+                _ -> True
+            first_column = columns.find is_not_nothing
             first_type = first_column.value_type
             if first_type == Value_Type.Mixed then Value_Type.Mixed else
                 first_wrong_column = columns.find if_missing=Nothing col->
-                    col.is_nothing.not && col.value_type != first_type
-                if first_wrong_column.is_nothing then first_type else
-                    got_type = first_wrong_column.value_type
-                    problem_builder.report_other_warning (Column_Type_Mismatch.Error column_set.name first_type got_type)
-                    Nothing
+                    is_not_nothing col && col.value_type != first_type
+                case first_wrong_column of
+                    Nothing -> first_type
+                    _ ->
+                        got_type = first_wrong_column.value_type
+                        problem_builder.report_other_warning (Column_Type_Mismatch.Error column_set.name first_type got_type)
+                        Nothing
 
 ## PRIVATE
    A helper method that gets the columns from the provided table that are

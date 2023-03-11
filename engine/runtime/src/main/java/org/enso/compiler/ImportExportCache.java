@@ -13,10 +13,8 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
 import scala.collection.immutable.Map;
-import scala.jdk.CollectionConverters;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -69,7 +67,7 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
         try {
             return Optional.of(objectMapper.readValue(maybeJsonString, ImportExportCache.Metadata.class));
         } catch (JsonProcessingException e) {
-            logger.log(logLevel, "Failed to deserialize library's metadata: " + e.getMessage(), e);
+            logger.log(logLevel, "Failed to deserialize library's metadata.", e);
             return Optional.empty();
         }
     }
