@@ -4,6 +4,7 @@
 import * as cognito from "./cognito";
 import * as authConfig from "./config";
 import * as config from "../config";
+import * as app from '../components/app';
 
 // =================
 // === Constants ===
@@ -39,8 +40,7 @@ const AMPLIFY_CONFIGS = {
 
 /** Configuration for the authentication service. */
 export interface AuthConfig {
-  /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
-  runningOnDesktop: boolean;
+  platform: app.Platform,
 }
 
 // ===================
@@ -60,23 +60,23 @@ export interface AuthService {
  * This function should only be called once, and the returned service should be used throughout the
  * application. This is because it performs global configuration of the Amplify library. */
 export const initAuthService = (authConfig: AuthConfig): AuthService => {
-  const { runningOnDesktop } = authConfig;
-  const amplifyConfig = loadAmplifyConfig(runningOnDesktop);
+  const { platform } = authConfig;
+  const amplifyConfig = loadAmplifyConfig(platform);
   const cognitoClient = new cognito.CognitoImpl(amplifyConfig);
   return { cognito: cognitoClient };
 };
 
 const loadAmplifyConfig = (
-  runningOnDesktop: boolean
+    platform: app.Platform,
 ): authConfig.AmplifyConfig => {
   /** Load the environment-specific Amplify configuration. */
   const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
 
   /** Set the redirect URLs for the OAuth flows, depending on our environment. */
-  baseConfig.redirectSignIn = runningOnDesktop
+  baseConfig.redirectSignIn = platform === app.Platform.desktop
     ? authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect
     : config.ACTIVE_CONFIG.cloudRedirect;
-  baseConfig.redirectSignOut = runningOnDesktop
+  baseConfig.redirectSignOut = platform === app.Platform.desktop
     ? authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect
     : config.ACTIVE_CONFIG.cloudRedirect;
 

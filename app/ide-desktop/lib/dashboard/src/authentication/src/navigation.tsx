@@ -1,6 +1,5 @@
 /** @file Helper decorator for defining virtual router definition with a react component. */
 
-import * as React from "react";
 import * as router from "react-router-dom";
 
 // ==================

@@ -8,7 +8,7 @@ const props: app.AppProps = {
   logger: console,
   /** This package is a standalone React app (i.e., IDE deployed to the Cloud), so we're not
    * running on the desktop. */
-  runningOnDesktop: false,
+  platform: app.Platform.cloud,
   onAuthenticated: () => {},
 };
 

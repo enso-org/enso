@@ -2,7 +2,10 @@
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
 /** This import is unused in this file, but React doesn't work without it, under Electron. This is
- * probably because it gets tree-shaken out of the bundle, so we need to explicitly import it. */
+ * probably because it gets tree-shaken out of the bundle, so we need to explicitly import it.
+ * Unlike all other imports in this project, this one is not `pascalCase`. We use `React` instead of
+ * `react` here. This is because if the import is named any differently then React doesn't get
+ * included in the final bundle. */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as React from "react";
 import * as reactDOM from "react-dom/client";
@@ -35,3 +38,4 @@ export const run = (props: AppProps) => {
 };
 
 export type AppProps = app.AppProps;
+export const Platform = app.Platform;

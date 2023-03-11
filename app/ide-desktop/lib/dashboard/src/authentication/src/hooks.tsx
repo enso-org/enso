@@ -1,5 +1,5 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
-import * as React from "react";
+import * as react from "react";
 import * as loggerProvider from "./providers/logger";
 
 // ======================
@@ -24,12 +24,12 @@ import * as loggerProvider from "./providers/logger";
 export function useAsyncEffect<T>(
   initialValue: T,
   fetch: () => Promise<T>,
-  deps?: React.DependencyList
-): [T] {
+  deps?: react.DependencyList
+): T {
   const logger = loggerProvider.useLogger();
-  const [value, setValue] = React.useState<T>(initialValue);
+  const [value, setValue] = react.useState<T>(initialValue);
 
-  React.useEffect(() => {
+  react.useEffect(() => {
     let active = true;
 
     /** Declare the async data fetching function. */
@@ -49,5 +49,5 @@ export function useAsyncEffect<T>(
     };
   }, deps);
 
-  return [value];
+  return value;
 }

@@ -40,7 +40,7 @@ export const SessionProvider = (props: SessionProviderProps) => {
   /** Register an async effect that will fetch the user's session whenever the `refresh` state is
    * incremented. This is useful when a user has just logged in (as their cached credentials are
    * out of date, so this will update them). */
-  const [session] = hooks.useAsyncEffect(
+  const session = hooks.useAsyncEffect(
     results.None,
     async () => {
       const session = await userSession();

@@ -19,7 +19,7 @@ enum HttpMethod {
 // ============
 
 /** A JavaScript object that can be serialized to a JSON value for an HTTP body. */
-type Json = Record<string, any>;
+type Json = Record<string, unknown>;
 
 // ====================
 // === HttpResponse ===
@@ -104,9 +104,6 @@ export class Client {
    * tokens. */
   defaultHeaders?: Headers;
 
-  /** Returns a new {@link ClientBuilder} that can be used to create an HTTP {@link Client}. */
-  static builder = () => new ClientBuilder();
-
   /** Returns a builder for an HTTP GET request to the specified URL. */
   get = (url: string) => this.request(HttpMethod.get, url);
 
@@ -139,25 +136,3 @@ export class Client {
   };
 }
 
-// =====================
-// === ClientBuilder ===
-// =====================
-
-/** Builder for a new HTTP {@link Client}. */
-class ClientBuilder {
-  /** Default headers that are included in every HTTP request sent by the client. */
-  private _defaultHeaders: Headers = new Headers();
-
-  /** Sets the default headers that will be included in every HTTP request sent by the client. */
-  defaultHeaders = (headers: Headers) => {
-    this._defaultHeaders = headers;
-    return this;
-  };
-
-  /** Finalizes the builder and returns a fully-initialized HTTP {@link Client}. */
-  build = () => {
-    const client = new Client();
-    client.defaultHeaders = this._defaultHeaders;
-    return client;
-  };
-}

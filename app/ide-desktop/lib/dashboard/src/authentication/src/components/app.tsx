@@ -34,7 +34,7 @@
  * {@link router.Route}s require fully authenticated users (c.f.
  * {@link authProvider.FullUserSession}). */
 
-import * as React from "react";
+import * as react from "react";
 import * as toast from "react-hot-toast";
 import * as router from "react-router-dom";
 
@@ -52,6 +52,18 @@ import * as session from "../authentication/providers/session";
 /** Path to the root of the app (i.e., the Cloud dashboard). */
 export const DASHBOARD_PATH = "/";
 
+// ================
+// === Platform ===
+// ================
+
+/** Defines the platform the application is running on. */
+export enum Platform {
+    /** Application is running on a desktop (i.e., in Electron). */
+    desktop = "desktop",
+    /** Application is running in the browser (i.e., in the cloud). */
+    cloud = "cloud",
+}
+
 // ===========
 // === App ===
 // ===========
@@ -60,8 +72,7 @@ export const DASHBOARD_PATH = "/";
 export interface AppProps {
   /** Logger to use for logging. */
   logger: loggerProvider.Logger;
-  /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
-  runningOnDesktop: boolean;
+  platform: Platform;
   onAuthenticated: () => void;
 }
 
@@ -72,9 +83,9 @@ export interface AppProps {
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const App = (props: AppProps) => {
-  const { runningOnDesktop } = props;
+  const { platform } = props;
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const Router = runningOnDesktop ? router.MemoryRouter : router.BrowserRouter;
+  const Router = platform === Platform.desktop ? router.MemoryRouter : router.BrowserRouter;
   /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
    * will redirect the user between the login/register pages and the dashboard. */
   return (
@@ -100,7 +111,7 @@ const App = (props: AppProps) => {
 const AppRouter = (props: AppProps) => {
   const { logger, onAuthenticated } = props;
   const navigate = router.useNavigate();
-  const memoizedAuthService = React.useMemo(() => {
+  const memoizedAuthService = react.useMemo(() => {
     const authConfig = { navigate, ...props };
     return authService.initAuthService(authConfig);
   }, [navigate, props]);
@@ -110,16 +121,15 @@ const AppRouter = (props: AppProps) => {
       <session.SessionProvider userSession={userSession}>
         <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
           <router.Routes>
-            <React.Fragment>
+            <react.Fragment>
               {/* Protected pages are visible to authenticated users. */}
               <router.Route element={<authProvider.ProtectedLayout />}>
-                <router.Route index element={<DashboardContainer />} />
                 <router.Route
                   path={DASHBOARD_PATH}
                   element={<DashboardContainer />}
                 />
               </router.Route>
-            </React.Fragment>
+            </react.Fragment>
           </router.Routes>
         </authProvider.AuthProvider>
       </session.SessionProvider>

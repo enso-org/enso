@@ -90,6 +90,7 @@ export const createBackend = (
 ): Backend => {
   const headers = new Headers();
   headers.append("Authorization", `Bearer ${accessToken}`);
-  const client = http.Client.builder().defaultHeaders(headers).build();
+  const client = new http.Client()
+  client.defaultHeaders = headers;
   return new Backend(client, logger);
 };

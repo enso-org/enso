@@ -1,6 +1,6 @@
 /** @file Defines the React provider for the {@link Logger} interface, along with a hook to use the
  * provider via the shared React context. */
-import * as React from "react";
+import * as react from "react";
 
 // ==============
 // === Logger ===
@@ -24,7 +24,7 @@ export interface Logger {
 type LoggerContextType = Logger;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const LoggerContext = React.createContext<LoggerContextType>(
+const LoggerContext = react.createContext<LoggerContextType>(
   {} as LoggerContextType
 );
 
@@ -33,7 +33,7 @@ const LoggerContext = React.createContext<LoggerContextType>(
 // ======================
 
 interface LoggerProviderProps {
-  children: React.ReactNode;
+  children: react.ReactNode;
   logger: Logger;
 }
 
@@ -49,4 +49,4 @@ export const LoggerProvider = (props: LoggerProviderProps) => {
 // === useLogger ===
 // =================
 
-export const useLogger = () => React.useContext(LoggerContext);
+export const useLogger = () => react.useContext(LoggerContext);
