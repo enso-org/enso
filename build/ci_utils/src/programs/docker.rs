@@ -100,7 +100,7 @@ impl Docker {
         debug!("{:?}", command);
         let output = command.output_ok().await?;
         trace!("Output: {:?}", output);
-        let built_image_id = std::str::from_utf8(&output.stdout)?
+        let built_image_id = std::str::from_utf8(&output.stderr)?
             .lines()
             .inspect(|line| debug!("{}", line))
             .filter(|line| !line.is_empty())
