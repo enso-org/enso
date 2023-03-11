@@ -187,7 +187,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         throw Column.raiseNothingName();
       } else {
         name = boxed.toString();
-        // We want to fail hard on invalid colum names stemming from invalid input values and make the user fix the data before cross_tab, to avoid data corruption.
+        // We want to fail hard on invalid colum names stemming from invalid input values and make
+        // the user fix the data before cross_tab, to avoid data corruption.
         Column.ensureNameIsValid(name);
       }
 
@@ -202,7 +203,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         }
 
         // Check again to ensure that the appended aggregate name does not invalidate the name.
-        // We do not check aggregateName itself before, because it _is_ allowed for it to be empty - meaning just key names will be used and that is fine.
+        // We do not check aggregateName itself before, because it _is_ allowed for it to be empty -
+        // meaning just key names will be used and that is fine.
         Column.ensureNameIsValid(effectiveName);
         effectiveName = outputTableNameDeduplicator.makeUnique(effectiveName);
 
