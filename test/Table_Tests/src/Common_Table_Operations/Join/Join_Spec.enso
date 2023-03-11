@@ -16,8 +16,6 @@ type My_Type
     Value x y
 
 type My_Type_Comparator
-    is_ordered = True
-
     compare my_1 my_2 =
         comp = Comparable.from my_1.x
         comp.compare (my_1.x + my_1.y) (my_2.x + my_2.y)

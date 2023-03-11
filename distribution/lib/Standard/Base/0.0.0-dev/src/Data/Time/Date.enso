@@ -4,7 +4,6 @@ import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Time.Date_Time
@@ -627,6 +626,3 @@ is_weekend date =
 ## PRIVATE
 fits_in_range start end date =
     (start <= date) && (date < end)
-
-
-Comparable.from (_:Date) = Default_Ordered_Comparator
