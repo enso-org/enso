@@ -118,6 +118,7 @@ define_modifiers! {
     Translate    translate     (child)         (v:Vector2<Pixels>)
     Rotation     rotation      (child)         (angle:Radians)
     Scale        scale         (child)         (value:f32)
+    FlipY        flip_y        (child)         ()
     Union        union         (child1,child2) ()
     Difference   difference    (child1,child2) ()
     Intersection intersection  (child1,child2) ()
