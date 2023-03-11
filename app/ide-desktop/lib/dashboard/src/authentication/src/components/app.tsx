@@ -7,7 +7,7 @@
  * components. For example, it defines a {@link toast.Toaster}, which is used to display temporary
  * notifications to the user. These global components are defined at the top of the {@link App} so
  * that they are available to all of the child components.
- * 
+ *
  * The {@link App} also defines various providers (e.g., {@link authProvider.AuthProvider}).
  * Providers are a React-specific concept that allows components to access global state without
  * having to pass it down through the component tree. For example, the
@@ -58,10 +58,10 @@ export const DASHBOARD_PATH = "/";
 
 /** Defines the platform the application is running on. */
 export enum Platform {
-    /** Application is running on a desktop (i.e., in Electron). */
-    desktop = "desktop",
-    /** Application is running in the browser (i.e., in the cloud). */
-    cloud = "cloud",
+  /** Application is running on a desktop (i.e., in Electron). */
+  desktop = "desktop",
+  /** Application is running in the browser (i.e., in the cloud). */
+  cloud = "cloud",
 }
 
 // ===========
@@ -85,7 +85,8 @@ export interface AppProps {
 const App = (props: AppProps) => {
   const { platform } = props;
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const Router = platform === Platform.desktop ? router.MemoryRouter : router.BrowserRouter;
+  const Router =
+    platform === Platform.desktop ? router.MemoryRouter : router.BrowserRouter;
   /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
    * will redirect the user between the login/register pages and the dashboard. */
   return (
@@ -103,7 +104,7 @@ const App = (props: AppProps) => {
 // =================
 
 /** Router definition for the app.
- * 
+ *
  * The only reason the {@link AppRouter} component is separate from the {@link App} component is
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */

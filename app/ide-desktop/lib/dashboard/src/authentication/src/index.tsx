@@ -11,7 +11,7 @@ import * as React from "react";
 import * as reactDOM from "react-dom/client";
 
 import App, * as app from "./components/app";
-import * as loggerProvider from './providers/logger'
+import * as loggerProvider from "./providers/logger";
 import "./styles/index.css";
 
 // ===========
@@ -24,10 +24,10 @@ import "./styles/index.css";
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
  * for redirecting the user to/from the login page). */
 export const run = (
-    /** Logger to use for logging. */
-    logger: loggerProvider.Logger,
-    platform: app.Platform,
-    onAuthenticated: () => void,
+  /** Logger to use for logging. */
+  logger: loggerProvider.Logger,
+  platform: app.Platform,
+  onAuthenticated: () => void
 ) => {
   logger.log("Starting authentication/dashboard UI.");
   /** The `id` attribute of the root element that the app will be rendered into. */

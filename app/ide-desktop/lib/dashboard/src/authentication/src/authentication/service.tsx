@@ -4,7 +4,7 @@
 import * as cognito from "./cognito";
 import * as authConfig from "./config";
 import * as config from "../config";
-import * as app from '../components/app';
+import * as app from "../components/app";
 
 // =================
 // === Constants ===
@@ -40,7 +40,7 @@ const AMPLIFY_CONFIGS = {
 
 /** Configuration for the authentication service. */
 export interface AuthConfig {
-  platform: app.Platform,
+  platform: app.Platform;
 }
 
 // ===================
@@ -67,18 +67,20 @@ export const initAuthService = (authConfig: AuthConfig): AuthService => {
 };
 
 const loadAmplifyConfig = (
-    platform: app.Platform,
+  platform: app.Platform
 ): authConfig.AmplifyConfig => {
   /** Load the environment-specific Amplify configuration. */
   const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
 
   /** Set the redirect URLs for the OAuth flows, depending on our environment. */
-  baseConfig.redirectSignIn = platform === app.Platform.desktop
-    ? authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect
-    : config.ACTIVE_CONFIG.cloudRedirect;
-  baseConfig.redirectSignOut = platform === app.Platform.desktop
-    ? authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect
-    : config.ACTIVE_CONFIG.cloudRedirect;
+  baseConfig.redirectSignIn =
+    platform === app.Platform.desktop
+      ? (authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect)
+      : config.ACTIVE_CONFIG.cloudRedirect;
+  baseConfig.redirectSignOut =
+    platform === app.Platform.desktop
+      ? (authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect)
+      : config.ACTIVE_CONFIG.cloudRedirect;
 
   return baseConfig as authConfig.AmplifyConfig;
 };

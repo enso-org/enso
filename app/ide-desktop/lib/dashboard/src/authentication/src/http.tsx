@@ -135,4 +135,3 @@ export class Client {
     return new HttpResponse(response);
   };
 }
-
