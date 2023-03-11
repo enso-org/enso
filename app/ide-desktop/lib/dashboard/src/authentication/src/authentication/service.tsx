@@ -74,10 +74,10 @@ const loadAmplifyConfig = (
 
   /** Set the redirect URLs for the OAuth flows, depending on our environment. */
   baseConfig.redirectSignIn = runningOnDesktop
-    ? authConfig.DESKTOP_REDIRECT
+    ? authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect
     : config.ACTIVE_CONFIG.cloudRedirect;
   baseConfig.redirectSignOut = runningOnDesktop
-    ? authConfig.DESKTOP_REDIRECT
+    ? authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect
     : config.ACTIVE_CONFIG.cloudRedirect;
 
   return baseConfig as authConfig.AmplifyConfig;
