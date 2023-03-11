@@ -8,6 +8,7 @@ edition = "2021"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+enso-bitmap = { path = "../../../bitmap" }
 enso-frp = { path = "../../../frp" }
 enso-prelude = { path = "../../../prelude" }
 enso-shapely = { path = "../../../shapely" }
@@ -21,6 +22,7 @@ xi-rope = { version = "0.3.0" }
 owned_ttf_parser = { workspace = true }
 bincode = { workspace = true }
 serde = { version = "1", features = ["rc"] }
+serde_json = { workspace = true }
 ordered-float = { workspace = true }
 ensogl-text-font-family = { path = "src/font/family" }
 rustybuzz = { workspace = true }
@@ -29,3 +31,7 @@ rustybuzz = { workspace = true }
 rand = { version = "0.8.5", default-features = false }
 rand_chacha = "0.3.1"
 wasm-bindgen-test = { workspace = true }
+
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
