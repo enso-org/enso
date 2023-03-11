@@ -90,6 +90,9 @@ spec setup =
             t1.at "y" . to_vector . should_equal [2, 1]
             t1.at "z" . to_vector . should_equal [1, 1]
 
+            t2 = table2.cross_tab ["Group", "Group"] "Key"
+            t2.column_names . should_equal ["Group", "x", "y", "z"]
+
         Test.specify "should allow multiple values aggregates" <|
             t1 = table.cross_tab values=[Count, Sum "Value"]
             t1.column_names . should_equal ["x Count", "x Sum Value", "y Count", "y Sum Value", "z Count", "z Sum Value"]
@@ -128,27 +131,34 @@ spec setup =
             err2.should_fail_with Column_Indexes_Out_Of_Range
             err2.catch.indexes . should_equal [42]
 
-        Test.specify "should fail if aggregate values contain invalid expressions" pending="TODO?" <|
+        Test.specify "should fail if aggregate values contain invalid expressions" <|
             err1 = table.cross_tab values=[Sum "[MISSING]*10"]
             err1.should_fail_with Invalid_Aggregate_Column
             err1.catch.name . should_equal "[MISSING]*10"
             err1.catch.expression_error . should_equal (No_Such_Column.Error "MISSING")
 
-            err2 = table.cross_tab values=[Sum "[[[["]
+            err2 = table.cross_tab values=[Sum "[[["]
             err2.should_fail_with Invalid_Aggregate_Column
-            err2.catch.name . should_equal "[[[["
-            err1.catch.expression_error . should_be_a Expression_Error.Syntax_Error
+            err2.catch.name . should_equal "[[["
+            err2.catch.expression_error . should_be_a Expression_Error.Syntax_Error
 
         Test.specify "should not allow Group_By for values" <|
             err1 = table.cross_tab [] "Key" values=[Count, Group_By "Value"] on_problems=Problem_Behavior.Ignore
             err1.should_fail_with Illegal_Argument
 
-        Test.specify "should gracefully handle duplicate aggregate names" pending="TODO: this should be fixed as part of https://github.com/enso-org/enso/issues/5151" <|
-            action = table.cross_tab [] "Key" values=[Count new_name="Agg1", Sum "Value" new_name="Agg1"]
+        Test.specify "should gracefully handle duplicate aggregate names" <|
+            action = table.cross_tab [] "Key" values=[Count new_name="Agg1", Sum "Value" new_name="Agg1"] on_problems=_
             tester table =
                 table.column_names . should_equal ["x Agg1", "x Agg1_1", "y Agg1", "y Agg1_1", "z Agg1", "z Agg1_1"]
-            problems = [Duplicate_Output_Column_Names.Error ["Agg1"]]
+            problems = [Duplicate_Output_Column_Names.Error ["x Agg1", "y Agg1", "z Agg1"]]
             Problems.test_problem_handling action problems tester
+
+            table3 = table2.rename_columns (Map.from_vector [["Group", "x"]])
+            action3 = table3.cross_tab ["x"] "Key" on_problems=_
+            tester3 table =
+                table.column_names . should_equal ["x", "x_1", "y", "z"]
+            problems3 = [Duplicate_Output_Column_Names.Error ["x"]]
+            Problems.test_problem_handling action3 problems3 tester3
 
         Test.specify "should fail on invalid aggregations" <|
             table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["TextValue", ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
@@ -170,25 +180,45 @@ spec setup =
                         err.should_fail_with Invalid_Aggregation
                         err.catch . should_equal (Invalid_Aggregation.Error "Sum TextValue" [0, 4, 7] "Cannot convert to a number.")
 
-        Test.specify "should correctly handle uncommon blank fields" pending="TODO: this should be fixed as part of https://github.com/enso-org/enso/issues/5151" <|
-            table = table_builder [["Key", [" ", "x", "x", "x", "", "", "", Nothing, Nothing]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+        Test.specify "should allow non-Text columns to be used as name" <|
+            table = table_builder [["Key", [1, 1, 1, 2, 2, 1, 3, 3, 1]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             t1 = table.cross_tab
-            # TODO
-            t1.column_names . should_equal ["x", "Column_1", "Column_2"]
+            t1.column_names . should_equal ["1", "2", "3"]
+            t1.row_count . should_equal 1
+            t1.at "1" . to_vector . should_equal [5]
+            t1.at "2" . to_vector . should_equal [2]
+            t1.at "3" . to_vector . should_equal [2]
 
         Test.specify "should correctly handle uncommon characters in fields becoming column names" <|
-            table = table_builder [["Key", ["💡🎉🌻", "ąęź", "ąęź", '\n\n', "😊", "😊", "🌻", "😊", "🌻"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = table.cross_tab
-            t1.column_names . should_equal ["💡🎉🌻", "🌻", "😊", "ąęź", '\n\n']
+            table = table_builder [["Key", ["💡🎉🌻", "ąęź", "ąęź", '\n\n', "😊", "😊", "🌻", "😊", "🌻", " "]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]]
+            t1 = table.cross_tab . sort_columns
+            t1.column_names . should_equal ['\n\n', ' ', 'ąęź', '🌻', '💡🎉🌻', '😊']
             t1.row_count . should_equal 1
             t1.at "💡🎉🌻" . to_vector . should_equal [1]
             t1.at "🌻" . to_vector . should_equal [2]
             t1.at "😊" . to_vector . should_equal [3]
             t1.at "ąęź" . to_vector . should_equal [2]
             t1.at '\n\n' . to_vector . should_equal [1]
+            t1.at " " . to_vector . should_equal [1]
 
         Test.specify "should fail gracefully if an effective column name would contain invalid characters" <|
             table = table_builder [["Key", ['x', 'x', 'y\0', '\0', 'y\0', 'z', 'z', 'z', 'z']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             r1 = table.cross_tab
             r1.should_fail_with Illegal_Argument
             r1.catch.to_display_text . should_contain "must not contain the NUL character"
+
+            r2 = table2.cross_tab [] "Key" values=[Average "Value" new_name='x\0']
+            r2.print
+            r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "must not contain the NUL character"
+
+        Test.specify "should fail gracefully if an effective column name would be empty or null" <|
+            table = table_builder [["Key", [" ", "x", "x", "x", "", "", "", "y", "y"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+            r1 = table.cross_tab
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text . should_contain "cannot be empty"
+
+            table2 = table_builder [["Key", [" ", "x", "x", "x", Nothing, Nothing, Nothing, "y", "y"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+            r2 = table2.cross_tab
+            r2 . should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "cannot be Nothing"

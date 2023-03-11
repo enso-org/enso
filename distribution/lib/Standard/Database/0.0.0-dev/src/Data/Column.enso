@@ -633,8 +633,8 @@ type Column
 
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
-    is_missing : Column
-    is_missing self =
+    is_nothing : Column
+    is_nothing self =
         new_name = self.naming_helpers.to_expression_text self + " is null"
         self.make_unary_op "IS_NULL" new_name new_type=SQL_Type.boolean
 
@@ -666,7 +666,7 @@ type Column
     is_present : Column
     is_present self =
         new_name = self.naming_helpers.function_name "is_present" [self]
-        self.is_missing.not . rename new_name
+        self.is_nothing.not . rename new_name
 
     ## PRIVATE
        Returns a column of booleans with `True` at the positions where this
@@ -683,7 +683,7 @@ type Column
         new_name = self.naming_helpers.function_name "is_blank" [self]
         is_blank = case self.sql_type.is_definitely_text of
             True -> self.is_empty
-            False -> self.is_missing
+            False -> self.is_nothing
         result = case treat_nans_as_blank && self.sql_type.is_definitely_double of
             True -> is_blank || self.is_nan
             False -> is_blank
@@ -693,10 +693,25 @@ type Column
 
        Returns a new column where missing values have been replaced with the
        provided default.
-    fill_missing : Any -> Column
-    fill_missing self default =
-        new_name = self.naming_helpers.function_name "fill_missing" [self, default]
+    fill_nothing : Any -> Column
+    fill_nothing self default =
+        new_name = self.naming_helpers.function_name "fill_nothing" [self, default]
         self.make_binary_op "FILL_NULL" default new_name
+
+    ## ALIAS Fill Empty
+
+       Returns a new column where empty Text values have been replaced with the
+       provided default.
+
+       Arguments:
+       - default: The value to replace missing values with. If this argument
+         is a column, the value from `default` at the corresponding position
+         will be used.
+    fill_empty : Column | Any -> Column
+    fill_empty self default =
+        new_name = self.naming_helpers.function_name "fill_empty" [self, default]
+        result = self.is_empty.iif default self
+        result.rename new_name
 
     ## Returns a new column, containing the same elements as `self`, but with
        the given name.
@@ -875,7 +890,7 @@ type Column
                    expected.
                 is_in_not_null = self.make_op "IS_IN" operands=non_nulls new_name=new_name new_type=SQL_Type.boolean
                 result = case nulls.not_empty of
-                    True -> is_in_not_null || self.is_missing
+                    True -> is_in_not_null || self.is_nothing
                     False -> is_in_not_null
                 result.rename new_name
             _ : Array -> self.is_in (Vector.from_polyglot_array vector)
@@ -889,7 +904,7 @@ type Column
                    our columns too. That is because, we want the containment check
                    for `NULL` to work the same way as for any other value.
                 in_subquery = Query.Select [Pair.new column.name column.expression] column.context
-                has_nulls_expression = SQL_Expression.Operation "BOOL_OR" [column.is_missing.expression]
+                has_nulls_expression = SQL_Expression.Operation "BOOL_OR" [column.is_nothing.expression]
                 has_nulls_subquery = Query.Select [Pair.new "has_nulls" has_nulls_expression] column.context
                 new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
                 Column.Value new_name self.connection SQL_Type.boolean new_expr self.context

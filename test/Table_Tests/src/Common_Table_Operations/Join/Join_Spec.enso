@@ -643,7 +643,7 @@ spec setup =
             r2.at 3 . should_equal [3, 30, 7, 7, 200]
 
             t4_3 = table_builder [["X", [Nothing, 2, 3]], ["Y", [10, 20, 30]]]
-            t4_4 = t4_3.set (t4_3.at "X" . fill_missing 7) new_name="C"
+            t4_4 = t4_3.set (t4_3.at "X" . fill_nothing 7) new_name="C"
             t7 = t4_4.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Full
             within_table t7 <|
                 expect_column_names ["X", "Y", "C", "Right_X", "Z"] t7

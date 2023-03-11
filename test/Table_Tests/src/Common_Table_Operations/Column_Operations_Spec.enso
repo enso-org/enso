@@ -33,8 +33,8 @@ spec setup =
             (x == Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
         Test.specify "should allow to check which values are null"
-            x.is_missing.to_vector . should_equal [False, False, False, True]
-            (x + Nothing).is_missing.to_vector . should_equal [True, True, True, True]
+            x.is_nothing.to_vector . should_equal [False, False, False, True]
+            (x + Nothing).is_nothing.to_vector . should_equal [True, True, True, True]
 
         Test.specify "Column equality should handle nulls correctly" pending="TODO" <|
             a = [2, 3, Nothing, Nothing]
@@ -68,6 +68,15 @@ spec setup =
             t = table_builder [["A", a], ["B", b]]
             ((t.at "A") == (t.at "B")) . to_vector . should_equal r_sensitive
             ((t.at "A").equals_ignore_case (t.at "B")) . to_vector . should_equal r_insensitive
+
+        Test.specify "should allow to fill empty/nothing values" <|
+            t = table_builder [["X", ["a", "", " ", Nothing, "b"]]]
+
+            c1 = t.at "X" . fill_nothing "NA"
+            c1.to_vector . should_equal ["a", "", " ", "NA", "b"]
+
+            c2 = t.at "X" . fill_empty "<empty>"
+            c2.to_vector . should_equal ["a", "<empty>", " ", "<empty>", "b"]
 
         Test.specify "should report a warning if checking equality on floating point columns" <|
             t = table_builder [["X", [1.0, 2.1, 3.2]], ["Y", [1.0, 2.0, 3.2]]]
@@ -245,13 +254,14 @@ spec setup =
             t.at "b" . like "%abc%" . name . should_equal "[b] like '%abc%'"
             t.at "b" . ends_with "abc" . name . should_equal "ends_with([b], 'abc')"
             t.at "b" . is_empty . name . should_equal "[b] is empty"
+            t.at "b" . fill_empty "<empty>" . name . should_equal "fill_empty([b], '<empty>')"
 
         Test.specify "nulls" <|
             t.at "a" . coalesce [Nothing, 42] . name . should_equal "coalesce([a], Nothing, 42)"
-            t.at "a" . is_missing . name . should_equal "[a] is null"
+            t.at "a" . is_nothing . name . should_equal "[a] is null"
             t.at "a" . is_present . name . should_equal "is_present([a])"
             t.at "a" . is_blank . name . should_equal "is_blank([a])"
-            t.at "a" . fill_missing 100 . name . should_equal "fill_missing([a], 100)"
+            t.at "a" . fill_nothing 100 . name . should_equal "fill_nothing([a], 100)"
 
         Test.specify "misc"
             t.at "a" . min [1, 2] . name . should_equal "min([a], 1, 2)"

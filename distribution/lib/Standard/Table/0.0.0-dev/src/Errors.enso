@@ -424,7 +424,7 @@ type Row_Count_Mismatch
         "The number of rows in the left table ("+self.left_rows.to_text+") does not match the number of rows in the right table ("+self.right_rows.to_text+")."
 
 type Invalid_Aggregate_Column
-    ## Indicates that a provided name is not found within available column not
+    ## Indicates that a provided name is not found within available columns nor
        represents a valid expression.
     Error (name : Text) (expression_error : Expression_Error | No_Such_Column | Nothing)
 

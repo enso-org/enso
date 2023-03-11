@@ -75,7 +75,7 @@ spec = Test.group "Columns" <|
     Test.specify "should allow to fill missing values from another column" <|
         nulled = Column.from_vector "col" [0, Nothing, 4, 5, Nothing, Nothing]
         defaults = Column.from_vector "def" [1, 2, 10, 20, Nothing, 30]
-        r = nulled.fill_missing defaults
+        r = nulled.fill_nothing defaults
         r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
 
     Test.specify "should allow to count duplicate value occurences" <|

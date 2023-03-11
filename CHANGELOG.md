@@ -336,6 +336,8 @@
 - [Remove many regex compile flags; separated `match` into `match` and
   `match_all`.][5785]
 - [Aligned names of columns created by column operations.][5850]
+- [Improved `cross_tab`. Renamed `fill_missing` and `is_missing` to
+  `fill_nothing` and `is_nothing`. Added `fill_empty`.][5863]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -517,6 +519,7 @@
 [5785]: https://github.com/enso-org/enso/pull/5785
 [5802]: https://github.com/enso-org/enso/pull/5802
 [5850]: https://github.com/enso-org/enso/pull/5850
+[5863]: https://github.com/enso-org/enso/pull/5863
 
 #### Enso Compiler
 
