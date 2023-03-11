@@ -1,5 +1,6 @@
 ## Internal text utilities for inspecting text primitives.
 
+import project.Any.Any
 import project.Data.Text.Text
 
 ## PRIVATE
@@ -7,3 +8,17 @@ import project.Data.Text.Text
    Forces flattening of a text value.
 optimize : Text
 optimize text = @Builtin_Method "Prim_Text_Helper.optimize"
+
+## PRIVATE
+
+   Compile the regex using the Truffle regex library.
+
+   Returns a Java RegexObject (Truffle)
+   (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
+
+   Arguments:
+   - pattern: the regex to compile
+   - options: string containing traditional regex flags (for example, "g"
+    as in "/foo/g"
+compile_regex : Text -> Text -> Any
+compile_regex pattern options = @Builtin_Method "Prim_Text_Helper.compile_regex"
