@@ -17,7 +17,6 @@ type T
     Value a b
 
 type T_Comparator
-    is_ordered = True
     compare t1 t2 = Comparable.from t1.a . compare t1.a t2.a
     hash t = Comparable.from t.a . hash t.a
 

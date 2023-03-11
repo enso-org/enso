@@ -332,11 +332,21 @@ define_sdf_shapes! {
 
     // === Triangle ===
 
+    /// Isosceles Triangle pointing up.
+    /// This is an exact SDF. The calculated distance is exact both inside and outside of shape's
+    /// bounds. Growing it will result in a triangle with rounded corners.
+    /// Adapted from https://iquilezles.org/articles/distfunctions2d/
     Triangle (width:f32, height:f32) {
-        vec2  norm  = normalize(vec2(height,width/2.0));
-        float pos_y = -position.y - height/2.0;
-        float dist  = max(abs(position).x*norm.x + position.y*norm.y - height/2.0*norm.y, pos_y);
-        return bound_sdf(dist,bounding_box(width,height/2.0));
+        vec2 q = vec2(width * 0.5, height);
+        vec2 p = vec2(abs(position.x), height * 0.5 - position.y);
+        vec2 a = p - q * clamp(dot(p,q) / dot(q,q), 0.0, 1.0);
+        vec2 b = p - q * vec2(clamp(p.x / q.x, 0.0, 1.0), 1.0);
+        float s = -sign(q.y);
+        vec2 d1 = vec2(dot(a,a), s * (p.x * q.y - p.y * q.x));
+        vec2 d2 = vec2(dot(b,b), s * (p.y - q.y));
+        vec2 d = min(d1, d2);
+        float dist = -sqrt(d.x) * sign(d.y);
+        return bound_sdf(dist,bounding_box(width * 0.5, height * 0.5));
     }
 
 

@@ -3,7 +3,6 @@ import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
@@ -356,5 +355,3 @@ type Time_Of_Day
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
     format : Text -> Text
     format self pattern = @Builtin_Method "Time_Of_Day.format"
-
-Comparable.from (_:Time_Of_Day) = Default_Ordered_Comparator

@@ -3,7 +3,6 @@ import project.Data.Numbers.Integer
 import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Incomparable
 import project.Data.Text.Text
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
