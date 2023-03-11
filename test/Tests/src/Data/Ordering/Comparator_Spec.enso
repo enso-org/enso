@@ -15,7 +15,6 @@ type Ord
 
 # The comparison is reverted, i.e., `x < y` gives result for `y.number < x.number`.
 type Ord_Comparator
-    is_ordered = True
     compare x y = (Comparable.from y.number) . compare y.number x.number
     hash x = (Comparable.from x.number) . hash x.number
 
@@ -24,7 +23,11 @@ Comparable.from (_:Ord) = Ord_Comparator
 type No_Ord
     Value number
 
-Comparable.from (_:No_Ord) = Incomparable
+type No_Ord_Comparator
+    compare x y = Nothing
+    hash x = 0
+
+Comparable.from (_:No_Ord) = No_Ord_Comparator
 
 # Tests
 
@@ -67,7 +70,7 @@ spec = Test.group "Object Comparator" <|
         ((default_comparator (Ord.Value 1) (Ord.Value 1)) == 0) . should_equal True
 
     Test.specify "should fail gracefully for incomparable items" <|
-        (default_comparator 1 True).catch . should_equal (Incomparable_Values.Error 1 True)
+        (default_comparator 1 True) . should_fail_with Incomparable_Values
         (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values
 
 main = Test_Suite.run_main spec

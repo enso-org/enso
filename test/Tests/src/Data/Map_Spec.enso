@@ -3,7 +3,6 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.No_Such_Key.No_Such_Key
 import Standard.Base.Data.Time.Date_Time.Date_Time
 from Standard.Base.Data.Map import Map
-from Standard.Base.Data.Ordering import Default_Unordered_Comparator
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -76,10 +75,10 @@ spec =
             empty_map.is_empty . should_be_true
             non_empty.is_empty . should_be_false
 
-        Test.specify "should get default unordered comparator for polyglot maps" <|
-            Comparable.from (Map.empty) . should_equal Default_Unordered_Comparator
-            Comparable.from (js_empty_dict) . should_equal Default_Unordered_Comparator
-            Comparable.from (JavaMap.of "A" 1 "B" 2) . should_equal Default_Unordered_Comparator
+        Test.specify "should get the default comparator for polyglot maps" <|
+            Comparable.from (Map.empty) . should_equal Default_Comparator
+            Comparable.from (js_empty_dict) . should_equal Default_Comparator
+            Comparable.from (JavaMap.of "A" 1 "B" 2) . should_equal Default_Comparator
 
         Test.specify "should compare two hash maps" <|
             (Map.singleton "a" 1).should_equal (Map.singleton "a" 1)
