@@ -1,4 +1,38 @@
-/** @file File containing the `App` React component, which is the entrypoint into our React application. */
+/** @file File containing the {@link App} React component, which is the entrypoint into our React
+ * application.
+ *
+ * # Providers
+ *
+ * The {@link App} component is responsible for defining the global context used by child
+ * components. For example, it defines a {@link toast.Toaster}, which is used to display temporary
+ * notifications to the user. These global components are defined at the top of the {@link App} so
+ * that they are available to all of the child components.
+ * 
+ * The {@link App} also defines various providers (e.g., {@link authProvider.AuthProvider}).
+ * Providers are a React-specific concept that allows components to access global state without
+ * having to pass it down through the component tree. For example, the
+ * {@link authProvider.AuthProvider} wraps the entire application, and provides the context
+ * necessary for child components to use the {@link authProvider.useAuth} hook. The
+ * {@link authProvider.useAuth} hook lets child components access the user's authentication session
+ * (i.e., email, username, etc.) and it also provides methods for signing the user in, etc.
+ *
+ * Providers consist of a provider component that wraps the application, a context object defined
+ * by the provider component, and a hook that can be used by child components to access the context.
+ * All of the providers are initialized here, at the {@link App} component to ensure that they are
+ * available to all of the child components.
+ *
+ * # Routes and Authentication
+ *
+ * The {@link AppRouter} component defines the layout of the application, in terms of navigation. It
+ * consists of a list of {@link router.Route}s, as well as the HTTP pathnames that the
+ * {@link router.Route}s can be accessed by.
+ *
+ * The {@link router.Route}s are grouped by authorization level. Some routes are
+ * accessed by unauthenticated (i.e., not signed in) users. Some routes are accessed by partially
+ * authenticated users (c.f. {@link authProvider.PartialUserSession}). That is, users who have
+ * signed up but who have not completed email verification or set a username. The remaining
+ * {@link router.Route}s require fully authenticated users (c.f.
+ * {@link authProvider.FullUserSession}). */
 
 import * as React from "react";
 import * as toast from "react-hot-toast";
@@ -57,7 +91,11 @@ const App = (props: AppProps) => {
 // === AppRouter ===
 // =================
 
-/** Router definition for the app. */
+/** Router definition for the app.
+ * 
+ * The only reason the {@link AppRouter} component is separate from the {@link App} component is
+ * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
+ * component as the component that defines the provider. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouter = (props: AppProps) => {
   const { logger, onAuthenticated } = props;
