@@ -71,8 +71,7 @@ object EditionsGetProjectSettingsHandler {
     * [[EditionsGetProjectSettingsHandler]].
     *
     * @param timeout request timeout
-    * @param projectSettingsManager a reference to the
-    *                               [[ProjectSettingsManager]]
+    * @param projectSettingsManager a reference to the [[ProjectSettingsManager]]
     */
   def props(timeout: FiniteDuration, projectSettingsManager: ActorRef): Props =
     Props(

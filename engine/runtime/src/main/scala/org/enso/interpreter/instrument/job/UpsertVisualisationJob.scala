@@ -250,7 +250,7 @@ object UpsertVisualisationJob {
         case _: ThreadInterruptedException
             if retryCount < MaxEvaluationRetryCount =>
           ctx.executionService.getLogger.log(
-            Level.WARNING,
+            Level.FINE,
             s"Evaluation of visualisation was interrupted. Retrying [${retryCount + 1}]."
           )
           evaluateModuleExpression(module, expression, retryCount + 1)
