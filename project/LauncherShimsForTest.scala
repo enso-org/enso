@@ -11,7 +11,7 @@ object LauncherShimsForTest {
       val log = state.value.log
       Cargo.run(
         Seq("build", "-p", "launcher-shims"),
-        log         = log
+        log = log
       )
     }
 }

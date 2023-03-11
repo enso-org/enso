@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Default_Ordered_Comparator
 import project.Nothing.Nothing
 
 from project.Data.Boolean.Boolean import True, False
@@ -90,5 +89,3 @@ type Boolean
     if_then : Any -> Any | Nothing
     if_then self ~on_true = @Builtin_Method "Boolean.if_then"
 
-
-Comparable.from (_:Boolean) = Default_Ordered_Comparator
