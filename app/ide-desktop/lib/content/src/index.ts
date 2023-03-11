@@ -123,17 +123,14 @@ class Main {
                         if (auth) auth.style.display = 'none'
                         if (root) root.style.display = 'block'
                     }
-                    const props: authentication.AppProps = {
-                        logger,
-                        /** This package is an Electron desktop app (i.e., not in the Cloud), so
-                         * we're running on the desktop. */
-                        platform: authentication.Platform.desktop,
-                        onAuthenticated: () => {
-                            hideAuth()
-                            appInstance.run()
-                        },
-                    }
-                    authentication.run(props)
+                    /** This package is an Electron desktop app (i.e., not in the Cloud), so
+                     * we're running on the desktop. */
+                    const platform = authentication.Platform.desktop;
+                    const onAuthenticated = () => {
+                        hideAuth()
+                        appInstance.run()
+                    };
+                    authentication.run(logger, platform, onAuthenticated)
                 } else {
                     appInstance.run()
                 }

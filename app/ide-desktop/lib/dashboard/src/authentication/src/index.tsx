@@ -10,8 +10,8 @@
 import * as React from "react";
 import * as reactDOM from "react-dom/client";
 
-import App from "./components/app";
-import * as app from "./components/app";
+import App, * as app from "./components/app";
+import * as loggerProvider from './providers/logger'
 import "./styles/index.css";
 
 // ===========
@@ -23,8 +23,12 @@ import "./styles/index.css";
  * Running this function finds a `div` element with the ID `dashboard`, and renders the
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
  * for redirecting the user to/from the login page). */
-export const run = (props: AppProps) => {
-  const { logger } = props;
+export const run = (
+    /** Logger to use for logging. */
+    logger: loggerProvider.Logger,
+    platform: app.Platform,
+    onAuthenticated: () => void,
+) => {
   logger.log("Starting authentication/dashboard UI.");
   /** The `id` attribute of the root element that the app will be rendered into. */
   const rootElementId = "dashboard";
@@ -34,6 +38,7 @@ export const run = (props: AppProps) => {
     logger.error(`Could not find root element with ID '${rootElementId}'.`);
     return;
   }
+  const props = { logger, platform, onAuthenticated };
   reactDOM.createRoot(root).render(<App {...props} />);
 };
 
