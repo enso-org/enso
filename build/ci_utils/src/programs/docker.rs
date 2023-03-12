@@ -6,9 +6,25 @@ use crate::extensions::child::ChildExt;
 use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::process::Stdio;
-use std::str::FromStr;
 
-
+/// Get the docker image identifier from the `docker build` command output.
+///
+/// It is not that trivial, as the format of the output is not exactly stable. Please see the
+/// unit tests at the end of the module for examples of the output.
+fn get_image_id_from_build_output(output: &std::process::Output) -> Result<ImageId> {
+    trace!("Output: {:?}", output);
+    let built_image_id = std::str::from_utf8(&output.stdout)?
+        .lines()
+        .inspect(|line| debug!("{}", line))
+        .filter(|line| !line.is_empty())
+        .last()
+        .with_context(|| "Docker provided no output.")?
+        .split(' ')
+        .last()
+        .with_context(|| "The last line has no space!")?;
+    debug!("Image {} successfully built!", built_image_id);
+    Ok(ImageId::from_str(built_image_id)?)
+}
 
 #[derive(Clone, Debug, PartialEq, Ord, PartialOrd, Eq, Hash)]
 pub enum NetworkDriver {
@@ -99,18 +115,8 @@ impl Docker {
         command.arg("build").args(options.args());
         debug!("{:?}", command);
         let output = command.output_ok().await?;
-        trace!("Output: {:?}", output);
-        let built_image_id = std::str::from_utf8(&output.stdout)?
-            .lines()
-            .inspect(|line| debug!("{}", line))
-            .filter(|line| !line.is_empty())
-            .last()
-            .with_context(|| "Docker provided no output.")?
-            .split(' ')
-            .last()
-            .with_context(|| "The last line has no space!")?;
-        debug!("Image {} successfully built!", built_image_id);
-        Ok(ImageId(built_image_id.into()))
+        let built_image_id = get_image_id_from_build_output(&output)?;
+        Ok(built_image_id)
     }
 
     pub fn run_cmd(&self, options: &RunOptions) -> Result<Command> {
@@ -545,13 +551,21 @@ impl RunOptions {
     }
 }
 
-#[derive(Clone, Display, Debug)]
+#[derive(Clone, Display, Debug, PartialEq, Eq, Hash)]
 pub struct ImageId(pub String);
+
+impl std::str::FromStr for ImageId {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Ok(ImageId(s.into()))
+    }
+}
 
 #[derive(Clone, Debug, Display, Deref, AsRef)]
 pub struct ContainerId(pub String);
 
-impl FromStr for ContainerId {
+impl std::str::FromStr for ContainerId {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -562,6 +576,7 @@ impl FromStr for ContainerId {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::windows::process::ExitStatusExt;
 
     #[tokio::test]
     #[ignore]
@@ -594,6 +609,37 @@ mod tests {
         crate::fs::tokio::write(&dockerfile, sample_dockerfile).await?;
         let opts = BuildOptions::new(temp.path());
         dbg!(Docker.build(opts).await?);
+        Ok(())
+    }
+
+    #[cfg(target_os = "windows")]
+    #[tokio::test]
+    async fn build_test_windows() -> Result {
+        setup_logging()?;
+        let temp = tempfile::tempdir()?;
+        let sample_dockerfile = r#"
+            FROM mcr.microsoft.com/windows/servercore:ltsc2019
+            RUN powershell -Command "Write-Host 'Hello World'"
+            CMD ["powershell", "-Command", "Write-Host 'Hello World'"]
+        "#;
+        let dockerfile = temp.path().join("Dockerfile");
+        crate::fs::tokio::write(&dockerfile, sample_dockerfile).await?;
+        let opts = BuildOptions::new(temp.path());
+        dbg!(Docker.build(opts).await?);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn parse_build_id_from_output() -> Result {
+        // Sample output from Windows, Docker version 20.10.20, build 9fdeb9c
+        // (native Windows container)
+        let output = std::process::Output {
+            status: std::process::ExitStatus::from_raw(0),
+            stdout: (*b"Sending build context to Docker daemon  2.048kB\r\r\nStep 1/3 : FROM mcr.microsoft.com/windows/servercore:ltsc2019\n ---> 617dd5ead5b8\nStep 2/3 : RUN powershell -Command \"Write-Host 'Hello World'\"\n ---> Running in 1678cebd108d\nHello World\nRemoving intermediate container 1678cebd108d\n ---> 1bd602c665d1\nStep 3/3 : CMD [\"powershell\", \"-Command\", \"Write-Host 'Hello World'\"]\n ---> Running in 77699e63daf4\nRemoving intermediate container 77699e63daf4\n ---> 46114159dd22\nSuccessfully built 46114159dd22\n").into(),
+            stderr: (*b"\nUse 'docker scan' to run Snyk tests against images to find vulnerabilities and learn how to fix them\n").into(),
+        };
+        let id = get_image_id_from_build_output(&output)?;
+        assert_eq!(id, ImageId("46114159dd22".into()));
         Ok(())
     }
 }
