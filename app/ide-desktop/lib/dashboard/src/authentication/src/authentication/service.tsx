@@ -104,8 +104,15 @@ export interface AuthService {
 export const initAuthService = (authConfig: AuthConfig): AuthService => {
   const { logger, platform, navigate } = authConfig;
   const amplifyConfig = loadAmplifyConfig(logger, platform, navigate);
-  const cognitoClient = new cognito.CognitoImpl(logger, platform, amplifyConfig);
-  return { cognito: cognitoClient, registerAuthEventListener: listen.registerAuthEventListener };
+  const cognitoClient = new cognito.CognitoImpl(
+    logger,
+    platform,
+    amplifyConfig
+  );
+  return {
+    cognito: cognitoClient,
+    registerAuthEventListener: listen.registerAuthEventListener,
+  };
 };
 
 const loadAmplifyConfig = (
@@ -198,47 +205,47 @@ const setDeepLinkHandler = (
 /** If the user is being redirected after clicking the registration confirmation link in their
  * email, then the URL will be for the confirmation page path. */
 const isConfirmRegistrationRedirect = (url: URL) =>
-    url.pathname === CONFIRM_REGISTRATION_PATHNAME;
+  url.pathname === CONFIRM_REGISTRATION_PATHNAME;
 
 /** If the user is being redirected after a sign-out, then query args will be present. */
 const isSignInRedirect = (url: URL) =>
-    url.pathname === SIGN_IN_PATHNAME && url.search !== "";
+  url.pathname === SIGN_IN_PATHNAME && url.search !== "";
 
 /** When the user is being redirected from a federated identity provider, then we need to pass the
  * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */
 const handleAuthResponse = (url: string) => {
-    void (async () => {
-        // Temporarily override the `window.location` object so that Amplify doesn't try
-        // to call `window.location.replaceState` (which doesn't work in the renderer
-        // process because of Electron's `webSecurity`). This is a hack, but it's the
-        // only way to get Amplify to work with a custom URL protocol in Electron.
-        //
-        // Note that this entire hack must happen within an async IIFE block, because we
-        // need to be sure to restore the original `window.location.replaceState`
-        // function before any non-Amplify code runs, which we can't guarantee if
-        // `_handleAuthResponse` is allowed to complete asynchronously.
-        //
-        // # Safety
-        //
-        // It is safe to disable the `unbound-method` lint here because we intentionally want to use
-        // the original `window.history.replaceState` function, which is not bound to the
-        // `window.history` object.
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        const replaceState = window.history.replaceState;
-        window.history.replaceState = () => false;
-        try {
-            // # Safety
-            //
-            // It is safe to disable the `no-unsafe-member-access` and `no-unsafe-call` lints here
-            // because we know that the `Auth` object has the `_handleAuthResponse` method, and we
-            // know that it is safe to call it with the `url` argument. There is no way to prove
-            // this to the TypeScript compiler, because these methods are intentionally not part of
-            // the public AWS Amplify API.
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-            await (amplify.Auth as any)._handleAuthResponse(url);
-        } finally {
-            // Restore the original `window.location.replaceState` function.
-            window.history.replaceState = replaceState;
-        }
-    })();
+  void (async () => {
+    /** Temporarily override the `window.location` object so that Amplify doesn't try to call
+     * `window.location.replaceState` (which doesn't work in the renderer process because of
+     * Electron's `webSecurity`). This is a hack, but it's the only way to get Amplify to work
+     * with a custom URL protocol in Electron.
+     *
+     * Note that this entire hack must happen within an async IIFE block, because we need to be
+     * sure to restore the original `window.location.replaceState` function before any
+     * non-Amplify code runs, which we can't guarantee if `_handleAuthResponse` is allowed to
+     * complete asynchronously.
+     *
+     * # Safety
+     *
+     * It is safe to disable the `unbound-method` lint here because we intentionally want to use
+     * the original `window.history.replaceState` function, which is not bound to the
+     * `window.history` object. */
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const replaceState = window.history.replaceState;
+    window.history.replaceState = () => false;
+    try {
+      /** # Safety
+       *
+       * It is safe to disable the `no-unsafe-member-access` and `no-unsafe-call` lints here
+       * because we know that the `Auth` object has the `_handleAuthResponse` method, and we
+       * know that it is safe to call it with the `url` argument. There is no way to prove
+       * this to the TypeScript compiler, because these methods are intentionally not part of
+       * the public AWS Amplify API. */
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      await (amplify.Auth as any)._handleAuthResponse(url);
+    } finally {
+      /** Restore the original `window.location.replaceState` function. */
+      window.history.replaceState = replaceState;
+    }
+  })();
 };

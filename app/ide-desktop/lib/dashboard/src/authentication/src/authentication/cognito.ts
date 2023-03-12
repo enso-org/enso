@@ -180,7 +180,11 @@ export class CognitoImpl implements Cognito {
     private readonly logger: loggerProvider.Logger
     private readonly platform: app.Platform
 
-    constructor(logger: loggerProvider.Logger, platform: app.Platform, amplifyConfig: config.AmplifyConfig) {
+    constructor(
+        logger: loggerProvider.Logger,
+        platform: app.Platform,
+        amplifyConfig: config.AmplifyConfig
+    ) {
         this.logger = logger
         this.platform = platform
 
@@ -207,7 +211,8 @@ export class CognitoImpl implements Cognito {
      * location history in the desktop application.
      *
      * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
-    customState = () => (this.platform === app.Platform.desktop ? window.location.pathname : undefined)
+    customState = () =>
+        this.platform === app.Platform.desktop ? window.location.pathname : undefined
     userSession = userSession
     signUp = (username: string, password: string) => signUp(username, password, this.platform)
     confirmSignUp = confirmSignUp
@@ -379,8 +384,6 @@ const intoConfirmSignUpErrorOrThrow = (error: AmplifyError): ConfirmSignUpError 
     throw error
 }
 
-
-
 // ========================
 // === SignInWithGoogle ===
 // ========================
@@ -390,10 +393,8 @@ const signInWithGoogle = async (customState?: string) =>
         provider: amplify.CognitoHostedUIIdentityProvider.Google,
         customState,
     })
-        // We don't care about the details in the success case, just that it happened.
+        /** We don't care about the details in the success case, just that it happened. */
         .then(() => null)
-
-
 
 // ========================
 // === SignInWithGoogle ===
@@ -403,10 +404,8 @@ const signInWithGitHub = async () =>
     amplify.Auth.federatedSignIn({
         customProvider: GITHUB_PROVIDER,
     })
-        // We don't care about the details in the success case, just that it happened.
+        /** We don't care about the details in the success case, just that it happened. */
         .then(() => null)
-
-
 
 // ==========================
 // === SignInWithPassword ===
@@ -414,7 +413,7 @@ const signInWithGitHub = async () =>
 
 const signInWithPassword = async (username: string, password: string) =>
     results.Result.wrapAsync(() => amplify.Auth.signIn(username, password))
-        // We don't care about the details in the success case, just that it happened.
+        /** We don't care about the details in the success case, just that it happened. */
         .then(result => result.map(() => null))
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
         .then(result => result.mapErr(intoSignInWithPasswordErrorOrThrow))
