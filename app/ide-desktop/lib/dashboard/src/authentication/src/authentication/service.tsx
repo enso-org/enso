@@ -95,16 +95,16 @@ export interface AuthService {
  * This function should only be called once, and the returned service should be used throughout the
  * application. This is because it performs global configuration of the Amplify library. */
 export const initAuthService = (authConfig: AuthConfig): AuthService => {
-    const { logger, platform, navigate } = authConfig;
-    const amplifyConfig = loadAmplifyConfig(logger, platform, navigate);
-    const cognitoClient = new cognito.CognitoImpl(platform, amplifyConfig);
-    return { cognito: cognitoClient };
+  const { logger, platform, navigate } = authConfig;
+  const amplifyConfig = loadAmplifyConfig(logger, platform, navigate);
+  const cognitoClient = new cognito.CognitoImpl(platform, amplifyConfig);
+  return { cognito: cognitoClient };
 };
 
 const loadAmplifyConfig = (
-    logger: loggerProvider.Logger,
-    platform: app.Platform,
-    navigate: (url: string) => void
+  logger: loggerProvider.Logger,
+  platform: app.Platform,
+  navigate: (url: string) => void
 ): authConfig.AmplifyConfig => {
   /** Load the environment-specific Amplify configuration. */
   const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
@@ -139,11 +139,11 @@ const loadAmplifyConfig = (
 };
 
 const openUrlWithExternalBrowser = (url: string) => {
-    /** See {@link AuthenticationApi} for safety details. */
-    // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const authenticationApi: AuthenticationApi = window.authenticationApi;
-    authenticationApi.openUrlInSystemBrowser(url);
+  /** See {@link AuthenticationApi} for safety details. */
+  // @ts-expect-error
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authenticationApi: AuthenticationApi = window.authenticationApi;
+  authenticationApi.openUrlInSystemBrowser(url);
 };
 
 /** Set the callback that will be invoked when a deep link to the application is opened.
@@ -164,29 +164,29 @@ const openUrlWithExternalBrowser = (url: string) => {
  * All URLs that don't have a pathname that starts with {@link AUTHENTICATION_PATHNAME_BASE} will be
  * ignored by this handler. */
 const setDeepLinkHandler = (
-    logger: loggerProvider.Logger,
-    navigate: (url: string) => void
+  logger: loggerProvider.Logger,
+  navigate: (url: string) => void
 ) => {
-    const onDeepLink = (url: string) => {
-        const parsedUrl = new URL(url);
+  const onDeepLink = (url: string) => {
+    const parsedUrl = new URL(url);
 
-        if (isConfirmRegistrationRedirect(parsedUrl)) {
-            /** Navigate to a relative URL to handle the confirmation link. */
-            const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
-            navigate(redirectUrl);
-        } else {
-            logger.error(`${url} is an unrecognized deep link. Ignoring.`)
-        }
-    };
+    if (isConfirmRegistrationRedirect(parsedUrl)) {
+      /** Navigate to a relative URL to handle the confirmation link. */
+      const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
+      navigate(redirectUrl);
+    } else {
+      logger.error(`${url} is an unrecognized deep link. Ignoring.`);
+    }
+  };
 
-    /** See {@link AuthenticationApi} for safety details. */
-    // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const authenticationApi: AuthenticationApi = window.authenticationApi;
-    authenticationApi.setDeepLinkHandler(onDeepLink);
+  /** See {@link AuthenticationApi} for safety details. */
+  // @ts-expect-error
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authenticationApi: AuthenticationApi = window.authenticationApi;
+  authenticationApi.setDeepLinkHandler(onDeepLink);
 };
 
 /** If the user is being redirected after clicking the registration confirmation link in their
  * email, then the URL will be for the confirmation page path. */
 const isConfirmRegistrationRedirect = (url: URL) =>
-    url.pathname === CONFIRM_REGISTRATION_PATHNAME;
+  url.pathname === CONFIRM_REGISTRATION_PATHNAME;

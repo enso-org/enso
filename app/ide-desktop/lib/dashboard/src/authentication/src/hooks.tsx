@@ -15,7 +15,8 @@ import * as loggerProvider from "./providers/logger";
  * every input field, so we can use a custom hook to handle this for us. */
 export const useInput = (initialValue: string) => {
   const [value, setValue] = react.useState(initialValue);
-  const onChange = (event: react.ChangeEvent<HTMLInputElement>) => setValue(event.target.value);
+  const onChange = (event: react.ChangeEvent<HTMLInputElement>) =>
+    setValue(event.target.value);
   const bind = { value, onChange };
   return { value, bind };
 };

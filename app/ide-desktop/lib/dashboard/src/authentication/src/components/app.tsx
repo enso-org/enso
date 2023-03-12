@@ -131,20 +131,24 @@ const AppRouter = (props: AppProps) => {
       <session.SessionProvider userSession={userSession}>
         <authProvider.AuthProvider
           authService={memoizedAuthService}
-          onAuthenticated={onAuthenticated}>
+          onAuthenticated={onAuthenticated}
+        >
           <router.Routes>
             <react.Fragment>
               {/* Login & registration pages are visible to unauthenticated users. */}
               <router.Route element={<authProvider.GuestLayout />}>
-                <router.Route path={REGISTRATION_PATH} element={<RegistrationContainer />} />
+                <router.Route
+                  path={REGISTRATION_PATH}
+                  element={<RegistrationContainer />}
+                />
                 <router.Route path={LOGIN_PATH} element={<LoginContainer />} />
               </router.Route>
               {/* Protected pages are visible to authenticated users. */}
               <router.Route element={<authProvider.ProtectedLayout />}>
-              <router.Route
-                path={DASHBOARD_PATH}
-                element={<DashboardContainer />}
-              />
+                <router.Route
+                  path={DASHBOARD_PATH}
+                  element={<DashboardContainer />}
+                />
               </router.Route>
               {/* Other pages are visible to unauthenticated and authenticated users. */}
               <router.Route

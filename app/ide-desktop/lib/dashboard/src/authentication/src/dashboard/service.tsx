@@ -12,7 +12,7 @@ import * as loggerProvider from "../providers/logger";
 
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: OpenProjectRequestBody = {
-    forceCreate: false,
+  forceCreate: false,
 };
 
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
@@ -23,7 +23,7 @@ const LIST_PROJECTS_PATH = "projects";
 const CREATE_PROJECT_PATH = "projects";
 /** Relative HTTP path to the "close project" endpoint of the Cloud backend API. */
 const closeProjectPath = (projectId: ProjectId) =>
-    `projects/${projectId}/close`;
+  `projects/${projectId}/close`;
 /** Relative HTTP path to the "get project" endpoint of the Cloud backend API. */
 const getProjectPath = (projectId: ProjectId) => `projects/${projectId}`;
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
@@ -49,49 +49,47 @@ export interface Organization {
  * However the format of the version numbers is the same for both, so we can use the same type for
  * both. We just need this enum to disambiguate. */
 export enum VersionType {
-    backend = "Backend",
-    ide = "Ide",
+  backend = "Backend",
+  ide = "Ide",
 }
 
 /** A version describing a release of the backend or IDE. */
 export interface Version {
-    versionType: VersionType;
-    ami: string | undefined;
-    created: string;
-    /** This field name does not follow the naming convention. This field name is snake case on the
-     * backend. The case must match here for JSON deserialization to work. */
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    version_number: string;
+  versionType: VersionType;
+  ami: string | undefined;
+  created: string;
+  /** This field name does not follow the naming convention. This field name is snake case on the
+   * backend. The case must match here for JSON deserialization to work. */
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  version_number: string;
 }
 
 /** Possible states that a project can be in. */
 export enum ProjectState {
-    created = "Created",
-    new = "New",
-    openInProgress = "OpenInProgress",
-    opened = "Opened",
-    closed = "Closed",
+  created = "Created",
+  new = "New",
+  openInProgress = "OpenInProgress",
+  opened = "Opened",
+  closed = "Closed",
 }
 
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
-    type: ProjectState;
+  type: ProjectState;
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project {
-    organizationId: string;
-    projectId: ProjectId;
-    name: string;
-    state: ProjectStateType;
-    packageName: string;
-    address: string | null;
-    ami: string | null;
-    ideVersion: Version | null;
-    engineVersion: Version | null;
+  organizationId: string;
+  projectId: ProjectId;
+  name: string;
+  state: ProjectStateType;
+  packageName: string;
+  address: string | null;
+  ami: string | null;
+  ideVersion: Version | null;
+  engineVersion: Version | null;
 }
-
-
 
 // =================
 // === Endpoints ===
@@ -99,21 +97,19 @@ export interface Project {
 
 /** HTTP response body for the "list projects" endpoint. */
 interface ListProjectsResponseBody {
-    projects: Project[];
+  projects: Project[];
 }
 
 /** HTTP request body for the "create project" endpoint. */
 export type CreateProjectRequestBody = {
-    projectName: string;
-    projectTemplateName: string | undefined;
-}
+  projectName: string;
+  projectTemplateName: string | undefined;
+};
 
 /** HTTP request body for the "open project" endpoint. */
 export type OpenProjectRequestBody = {
-    forceCreate: boolean;
-}
-
-
+  forceCreate: boolean;
+};
 
 // ===============
 // === Backend ===
@@ -164,7 +160,6 @@ export class Backend {
         return response.model<Organization>();
       });
 
-  // FIXME [NP]: Remove all these methods and their associated types
   /** Returns a list of projects belonging to the current user, from the Cloud backend API. */
   listProjects = (): Promise<Project[]> =>
     this.get(LIST_PROJECTS_PATH)
