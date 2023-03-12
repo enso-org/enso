@@ -146,7 +146,7 @@ impl Mouse {
         let click_count = variables.add_or_panic("mouse_click_count", 0);
         let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
         let target = Rc::new(Cell::new(target));
-        let mouse_manager = MouseManager::new(&root.clone_ref().into());
+        let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
             f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {

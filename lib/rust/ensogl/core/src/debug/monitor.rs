@@ -174,8 +174,9 @@ impl Config {
 pub struct Dom {
     #[deref]
     rc:             Rc<DomData>,
-    pause_on_press: Rc<web::Closure<dyn Fn()>>,
-    play_on_press:  Rc<web::Closure<dyn Fn()>>,
+    on_pause_press: Rc<web::Closure<dyn Fn()>>,
+    on_play_press:  Rc<web::Closure<dyn Fn()>>,
+    on_main_press:  Rc<web::Closure<dyn Fn()>>,
 }
 
 /// Internal representation of `Dom`.
@@ -195,16 +196,20 @@ impl Dom {
     pub fn new(frp: &api::Public, config: &Config, screen_shape: Shape) -> Self {
         let data = DomData::new(config, screen_shape);
         let button = &data.control_button;
-        let pause_on_press = web::Closure::<dyn Fn()>::new(f!(frp.pause_data_processing()));
-        let play_on_press = web::Closure::<dyn Fn()>::new(f!(frp.resume_data_processing()));
-        let pause_on_press_fn = pause_on_press.as_ref().unchecked_ref();
-        let play_on_press_fn = play_on_press.as_ref().unchecked_ref();
-        button.pause.add_event_listener_with_callback("mousedown", pause_on_press_fn).unwrap();
-        button.play.add_event_listener_with_callback("mousedown", play_on_press_fn).unwrap();
+        let on_pause_press = web::Closure::<dyn Fn()>::new(f!(frp.pause_data_processing()));
+        let on_play_press = web::Closure::<dyn Fn()>::new(f!(frp.resume_data_processing()));
+        let on_main_press = web::Closure::<dyn Fn()>::new(f!(frp.on_main_press()));
+        let on_pause_press_fn = on_pause_press.as_ref().unchecked_ref();
+        let on_play_press_fn = on_play_press.as_ref().unchecked_ref();
+        let on_main_press_fn = on_main_press.as_ref().unchecked_ref();
+        button.pause.add_event_listener_with_callback("mousedown", on_pause_press_fn).unwrap();
+        button.play.add_event_listener_with_callback("mousedown", on_play_press_fn).unwrap();
+        data.plot_area.add_event_listener_with_callback("mousedown", on_main_press_fn).unwrap();
         let rc = Rc::new(data);
-        let pause_on_press = Rc::new(pause_on_press);
-        let play_on_press = Rc::new(play_on_press);
-        Self { rc, pause_on_press, play_on_press }
+        let on_pause_press = Rc::new(on_pause_press);
+        let on_play_press = Rc::new(on_play_press);
+        let on_main_press = Rc::new(on_main_press);
+        Self { rc, on_pause_press, on_play_press, on_main_press }
     }
 }
 
@@ -223,7 +228,6 @@ impl DomData {
 
         root.set_style_or_warn("display", "flex");
         root.set_style_or_warn("align-items", "stretch");
-        root.set_style_or_warn("pointer-events", "none");
         root.set_style_or_warn("font-family", FONTS);
         root.set_style_or_warn("font-size", "12px");
 
@@ -237,7 +241,6 @@ impl DomData {
         let details = web::document.create_div_or_panic();
         details.set_style_or_warn("height", "100%");
         details.set_style_or_warn("overflow", "scroll");
-        details.set_style_or_warn("pointer-events", "auto");
         details.set_style_or_warn("padding-left", "8px");
         details.set_style_or_warn("padding-right", "8px");
         details.set_style_or_warn("margin-left", "4px");
@@ -316,7 +319,6 @@ pub struct MainArea {
 impl MainArea {
     fn new(config: &Config) -> Self {
         let root = web::document.create_div_or_panic();
-        root.set_style_or_warn("pointer-events", "none");
         root.set_style_or_warn("overflow", "hidden");
         root.set_style_or_warn("border-radius", "6px");
         root.set_style_or_warn("border", "2px solid #000000c4");
@@ -401,12 +403,10 @@ impl ControlButton {
 
         let pause = web::document.create_div_or_panic();
         pause.set_inner_html(pause_icon);
-        pause.set_style_or_warn("pointer-events", "auto");
         root.append_child(&pause).unwrap();
 
         let play = web::document.create_div_or_panic();
         play.set_inner_html(play_icon);
-        play.set_style_or_warn("pointer-events", "auto");
         play.set_style_or_warn("display", "none");
         root.append_child(&play).unwrap();
         Self { root, pause, play }
@@ -438,6 +438,7 @@ crate::define_endpoints_2! {
     Input {
         pause_data_processing(),
         resume_data_processing(),
+        on_main_press(),
     }
     Output {}
 }
@@ -498,7 +499,7 @@ impl Monitor {
                 init <- source_();
                 init_shape <- scene.frp.shape.sample(&init);
                 screen_shape <- any(&init_shape, &scene.frp.shape);
-                pos_on_click <- mouse.position_top_left.sample(&mouse.down_primary);
+                pos_on_click <- mouse.position_top_left.sample(&self.frp.input.on_main_press);
                 pos_on_label_click <- pos_on_click.filter(move |p| p.x < label_width as f32);
                 pos_on_plot_click <- pos_on_click.filter(move |p| p.x > label_width as f32);
                 plot_drag <- bool(&mouse.up_primary, &pos_on_plot_click);
