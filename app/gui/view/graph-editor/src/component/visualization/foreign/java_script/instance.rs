@@ -115,7 +115,6 @@ impl InstanceModel {
         let bg_blue = bg_color.blue * 255.0;
         let bg_hex = format!("rgba({},{},{},{})", bg_red, bg_green, bg_blue, bg_color.alpha);
         root_node.dom().set_style_or_warn("background", bg_hex);
-
         Ok(root_node)
     }
 
@@ -247,6 +246,14 @@ impl InstanceModel {
     fn set_layer(&self, layer: Layer) {
         layer.apply_for_html_component(&self.scene, &self.root_node)
     }
+
+    fn set_active(&self, active: bool) {
+        if active {
+            self.root_node.set_style_or_warn("pointer-events", "auto");
+        } else {
+            self.root_node.set_style_or_warn("pointer-events", "none");
+        }
+    }
 }
 
 
@@ -273,6 +280,7 @@ impl Instance {
         let frp = visualization::instance::Frp::new(&network);
         let model = InstanceModel::from_class(class, scene)?;
         model.set_dom_layer(&scene.dom.layers.back);
+        model.set_active(false);
         Ok(Instance { model, frp, network }.init_frp(scene).init_preprocessor_change_callback())
     }
 
@@ -288,6 +296,7 @@ impl Instance {
                 }
             });
             eval frp.set_layer ((layer) model.set_layer(*layer));
+            eval frp.is_active ((is_active) model.set_active(*is_active));
         }
         frp.pass_events_to_dom_if_active(scene, network);
         self

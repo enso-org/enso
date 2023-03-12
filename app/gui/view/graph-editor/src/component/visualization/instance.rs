@@ -179,7 +179,7 @@ impl Frp {
             def preprocessor_change = any_mut();
             on_preprocessor_change  <- preprocessor_change.sampler();
             def data_receive_error  = source();
-            is_active               <- bool(&inputs.deactivate,&inputs.activate);
+            is_active               <- bool(&inputs.deactivate, &inputs.activate);
         };
         preprocessor_change.emit(PreprocessorConfiguration::default());
         let on_data_receive_error = data_receive_error.clone_ref().into();
