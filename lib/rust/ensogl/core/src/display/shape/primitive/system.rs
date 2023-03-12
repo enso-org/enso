@@ -368,13 +368,12 @@ impl ShapeSystemModel {
     /// Constructor.
     #[profile(Detail)]
     pub fn new(shape: def::AnyShape, pointer_events: bool, definition_path: &'static str) -> Self {
-        let sprite_system = SpriteSystem::new();
+        let sprite_system = SpriteSystem::new(definition_path);
         let material = Rc::new(RefCell::new(Self::default_material()));
         let geometry_material = Rc::new(RefCell::new(Self::default_geometry_material()));
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let do_not_use_shape_definition = default();
-        world::with_context(|ctx| ctx.add_symbol_label(sprite_system.symbol.id, definition_path));
         let definition_path = Immutable(definition_path);
         Self {
             sprite_system,

@@ -81,7 +81,9 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
     }
 
     pub fn new_draw_call(&self, symbol_id: SymbolId) {
-        let label = world::with_context(|ctx| ctx.symbol_label(symbol_id).unwrap_or("Unknown"));
+        let label = world::with_context(|ctx| {
+            ctx.get_symbol(symbol_id).map(|t| t.label).unwrap_or("Unknown")
+        });
         self.rc.borrow_mut().stats_data.new_draw_call(label);
     }
 }

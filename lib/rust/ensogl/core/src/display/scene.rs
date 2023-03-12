@@ -826,8 +826,8 @@ impl SceneData {
         self.layers.main.camera()
     }
 
-    pub fn new_symbol(&self) -> Symbol {
-        world::with_context(|t| t.new())
+    pub fn new_symbol(&self, label: &'static str) -> Symbol {
+        world::with_context(|t| t.new(label))
     }
 
     fn update_shape(&self) -> bool {

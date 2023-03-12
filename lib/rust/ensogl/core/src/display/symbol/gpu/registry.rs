@@ -97,7 +97,6 @@ pub struct SymbolRegistry {
     pub style_sheet:    style::Sheet,
     pub theme_manager:  theme::Manager,
     pub layers:         scene::HardcodedLayers,
-    pub symbol_labels:  Rc<RefCell<HashMap<SymbolId, &'static str>>>,
 }
 
 impl SymbolRegistry {
@@ -118,7 +117,6 @@ impl SymbolRegistry {
         let style_sheet = style::Sheet::new();
         let theme_manager = theme::Manager::from(&style_sheet);
         let layers = scene::HardcodedLayers::new();
-        let symbol_labels = default();
         Self {
             run_mode,
             symbols,
@@ -134,31 +132,26 @@ impl SymbolRegistry {
             style_sheet,
             theme_manager,
             layers,
-            symbol_labels,
         }
     }
 
     /// Creates a new `Symbol`.
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(&self) -> Symbol {
+    pub fn new(&self, label: &'static str) -> Symbol {
         let dirty = self.dirty.clone();
         let stats = &self.stats;
         let id_value = self.next_id.get();
         self.next_id.set(id_value + 1);
         let id = SymbolId::new(id_value);
         let on_mut = move || dirty.set(id);
-        let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
+        let symbol = Symbol::new(stats, label, id, &self.global_id_provider, on_mut);
         symbol.set_context(self.context.borrow().as_ref());
         self.symbols.borrow_mut().insert(id, symbol.clone_ref());
         symbol
     }
 
-    pub fn add_symbol_label(&self, symbol_id: SymbolId, label: &'static str) {
-        self.symbol_labels.borrow_mut().insert(symbol_id, label);
-    }
-
-    pub fn symbol_label(&self, symbol_id: SymbolId) -> Option<&'static str> {
-        self.symbol_labels.borrow().get(&symbol_id).copied()
+    pub fn get_symbol(&self, id: SymbolId) -> Option<Symbol> {
+        self.symbols.borrow().get(&id)
     }
 
     /// Set the GPU context. In most cases, this happens during app initialization or during context

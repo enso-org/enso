@@ -32,7 +32,7 @@ use ensogl_core::display::symbol::geometry::SpriteSystem;
 pub fn main() {
     let world = World::new().displayed_in("root");
     let navigator = Navigator::new(&world.default_scene, &world.default_scene.camera());
-    let sprite_system = SpriteSystem::new();
+    let sprite_system = SpriteSystem::new("test_sprite_system");
 
     let sprite2 = sprite_system.new_instance();
     let sprite1 = sprite_system.new_instance();
