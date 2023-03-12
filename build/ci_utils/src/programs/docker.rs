@@ -100,15 +100,15 @@ impl Docker {
         debug!("{:?}", command);
         let output = command.output_ok().await?;
         trace!("Output: {:?}", output);
-        let built_image_id = std::str::from_utf8(&output.stderr)?
+        let built_image_id = std::str::from_utf8(&output.stdout)?
             .lines()
             .inspect(|line| debug!("{}", line))
             .filter(|line| !line.is_empty())
             .last()
-            .ok_or_else(|| anyhow!("Docker provided no output"))?
+            .with_context(|| "Docker provided no output.")?
             .split(' ')
             .last()
-            .ok_or_else(|| anyhow!("The last line has no space!"))?;
+            .with_context(|| "The last line has no space!")?;
         debug!("Image {} successfully built!", built_image_id);
         Ok(ImageId(built_image_id.into()))
     }
@@ -576,6 +576,23 @@ mod tests {
     #[ignore]
     async fn build() -> Result {
         let opts = BuildOptions::new(r"C:\Users\mwu\ci\image\windows\");
+        dbg!(Docker.build(opts).await?);
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn build_test_linux() -> Result {
+        setup_logging()?;
+        let temp = tempfile::tempdir()?;
+        let sample_dockerfile = r#"
+            FROM ubuntu:22.04
+            RUN apt-get update && apt-get install -y curl
+            CMD ["curl", "http://www.google.com"]
+        "#;
+        let dockerfile = temp.path().join("Dockerfile");
+        crate::fs::tokio::write(&dockerfile, sample_dockerfile).await?;
+        let opts = BuildOptions::new(temp.path());
         dbg!(Docker.build(opts).await?);
         Ok(())
     }
