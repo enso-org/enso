@@ -385,7 +385,7 @@ spec =
             (very_negative >= hundred_factorial).should_be_false
             (very_negative >= Nothing).should_fail_with Type_Error
 
-        Test.specify "should be ordered by Default_Ordered_Comparator" <|
+        Test.specify "should be ordered by the default comparator" <|
             Ordering.compare 1 2 . should_equal Ordering.Less
             Ordering.compare 1 1 . should_equal Ordering.Equal
             Ordering.compare 1 0 . should_equal Ordering.Greater

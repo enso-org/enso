@@ -17,7 +17,7 @@
   "scripts": {
     "typecheck": "npx tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "build": "ts-node bundle.ts",
+    "build": "(cd ../dashboard/src/authentication && npx tailwindcss -i src/styles/index.css -o ../../../content/src/dashboard.css -c tailwind.config.ts --minify) && ts-node bundle.ts",
     "watch": "ts-node watch.ts",
     "start": "ts-node start.ts"
   },

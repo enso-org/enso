@@ -38,4 +38,4 @@ jobs:
           echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
       - name: Check Code Formatting
         run: |
-          sbt "scalafmtCheckAll; javafmtCheckAll"
+          sbt "scalafmtCheckAll; javafmtCheckAll; scalafmtSbtCheck"

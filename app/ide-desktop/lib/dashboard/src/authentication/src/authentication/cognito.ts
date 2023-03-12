@@ -6,11 +6,9 @@
 import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
+import * as app from '../components/app'
 
-import * as loggerProvider from '../providers/logger'
 import * as config from './config'
-
-
 
 // =================
 // === Constants ===
@@ -23,8 +21,6 @@ const KNOWN_ERRORS = {
         message: 'User cannot be confirmed. Current status is CONFIRMED',
     },
 }
-
-
 
 // ====================
 // === AmplifyError ===
@@ -67,8 +63,6 @@ const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
     }
 }
 
-
-
 // ===============
 // === Cognito ===
 // ===============
@@ -81,12 +75,9 @@ const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
  * they return. The caller can then handle them via pattern matching on the {@link results.Result}
  * type. */
 export interface Cognito {
-    /** Returns the current {@link UserSession}.
+    /** Returns the current {@link UserSession}, or `None` if the user is not logged in.
      *
-     * Will refresh the {@link UserSession} if it has expired.
-     *
-     * @returns `UserSession` if the user is logged in, `None` otherwise.
-     * @throws An error if failed due to an unknown error. */
+     * Will refresh the {@link UserSession} if it has expired. */
     userSession: () => Promise<results.Option<UserSession>>
     /** Sign up with the given parameters (i.e., username and password).
      *
@@ -107,21 +98,19 @@ export interface Cognito {
     ) => Promise<results.Result<null, ConfirmSignUpError>>
 }
 
-
-
 // ===================
 // === CognitoImpl ===
 // ===================
 
 /** A class implementing the {@link Cognito} API by wrapping AWS Amplify functions. */
 export class CognitoImpl implements Cognito {
-    private readonly fromDesktop: boolean
+    private readonly platform: app.Platform
 
     constructor(
-        fromDesktop: boolean,
+        platform: app.Platform,
         amplifyConfig: config.AmplifyConfig
     ) {
-        this.fromDesktop = fromDesktop
+        this.platform = platform
 
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
          * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
@@ -134,11 +123,9 @@ export class CognitoImpl implements Cognito {
     // === Interface `impl`s ===
 
     userSession = userSession
-    signUp = (username: string, password: string) => signUp(username, password, this.fromDesktop)
+    signUp = (username: string, password: string) => signUp(username, password, this.platform)
     confirmSignUp = confirmSignUp
 }
-
-
 
 // ====================
 // === AssertString ===
@@ -147,21 +134,15 @@ export class CognitoImpl implements Cognito {
 /** Type signature for a function that asserts that a parameter is a string. */
 type AssertString = (param: any, message: string) => asserts param is string
 
-/** Asserts that a parameter is a string.
+/** Asserts that a parameter is a string; throws an error `message` if the assertion fails.
  *
  * Used both to assert that a parameter is a string at runtime, and to inform TypeScript that a
- * parameter is a string.
- *
- * @param param - The parameter to assert.
- * @param message - The error message to throw if the assertion fails.
- * @throws An error if the assertion fails. */
+ * parameter is a string. */
 const assertString: AssertString = (param, message) => {
     if (typeof param !== 'string') {
         throw new Error(message)
     }
 }
-
-
 
 // ===================
 // === UserSession ===
@@ -186,22 +167,21 @@ const userSession = () =>
         .then(result => result.map(parseUserSession))
         .then(result => result.toOption())
 
-type CurrentSessionErrorKind = 'NoCurrentUser'
+const NO_CURRENT_USER_ERROR_KIND = 'NoCurrentUser' as const
+type CurrentSessionErrorKind = typeof NO_CURRENT_USER_ERROR_KIND
 
 const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind => {
     if (error === 'No current user') {
-        return 'NoCurrentUser'
+        return NO_CURRENT_USER_ERROR_KIND
     } else {
         throw error
     }
 }
 
-/** Returns the current `CognitoUserSession`.
+/** Returns the current `CognitoUserSession` if the user is logged in, or `CurrentSessionErrorKind`
+ * otherwise.
  *
- * Will refresh the session if it has expired.
- *
- * @returns `CognitoUserSession` if the user is logged in, `CurrentSessionErrorKind`
- * otherwise. */
+ * Will refresh the session if it has expired. */
 const getAmplifyCurrentSession = () =>
     results.Result.wrapAsync(() => amplify.Auth.currentSession()).then(result =>
         result.mapErr(intoCurrentSessionErrorKind)
@@ -214,7 +194,6 @@ const parseUserSession = (session: cognito.CognitoUserSession): UserSession => {
     assertString(payload.email, 'Payload does not have an email field.')
     const email = payload.email
     const accessToken = session.getAccessToken().getJwtToken()
-
     return { email, accessToken }
 }
 
@@ -224,9 +203,9 @@ const parseUserSession = (session: cognito.CognitoUserSession): UserSession => {
 // === SignUp ===
 // ==============
 
-const signUp = (username: string, password: string, fromDesktop: boolean) =>
+const signUp = (username: string, password: string, platform: app.Platform) =>
     results.Result.wrapAsync(() => {
-        const params = intoSignUpParams(username, password, fromDesktop)
+        const params = intoSignUpParams(username, password, platform)
         return amplify.Auth.signUp(params)
     })
         /** The contents of a successful response are not relevant, so we discard them. */
@@ -237,7 +216,7 @@ const signUp = (username: string, password: string, fromDesktop: boolean) =>
 const intoSignUpParams = (
     username: string,
     password: string,
-    fromDesktop: boolean
+    platform: app.Platform,
 ): amplify.SignUpParams => ({
     username,
     password,
@@ -251,7 +230,7 @@ const intoSignUpParams = (
          * It is necessary to disable the naming convention rule here, because the key is expected
          * to appear exactly as-is in Cognito, so we must match it. */
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        'custom:fromDesktop': fromDesktop ? 'true' : 'false',
+        'custom:fromDesktop': platform === app.Platform.desktop ? 'true' : 'false',
     },
 })
 

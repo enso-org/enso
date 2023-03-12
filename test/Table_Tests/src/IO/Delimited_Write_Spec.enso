@@ -329,7 +329,7 @@ spec =
 
         Test.specify "should append to a file, matching columns by position" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
-            appending_table = Table.new [["AA", [33,44]], ["", [Nothing, 0]], ["hmmm", ["a","BB"]]]
+            appending_table = Table.new [["AA", [33,44]], ["...", [Nothing, 0]], ["hmmm", ["a","BB"]]]
 
             test_append initial_file_format append_format expected_table =
                 file = (enso_project.data / "transient" / "append_by_position.csv")

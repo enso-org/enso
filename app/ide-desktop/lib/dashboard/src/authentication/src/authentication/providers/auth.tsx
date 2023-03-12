@@ -26,8 +26,6 @@ const MESSAGES = {
     pleaseWait: "Please wait...",
 };
 
-
-
 // =============
 // === Types ===
 // =============
@@ -64,8 +62,6 @@ export interface PartialUserSession {
     /** User's email address. */
     email: string;
 }
-
-
 
 // ===================
 // === AuthContext ===
@@ -113,8 +109,6 @@ interface AuthContextType {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 
-
-
 // ====================
 // === AuthProvider ===
 // ====================
@@ -143,7 +137,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
      *
      * When invoked, retrieves the access token (if available) from the storage method chosen when
      * Amplify was configured (e.g. local storage). If the token is not available, returns
-     * `undefined`.  If the token has expired, automatically refreshes the token and returns the new
+     * `undefined`. If the token has expired, automatically refreshes the token and returns the new
      * token. */
     react.useEffect(() => {
         const fetchSession = async () => {
@@ -176,7 +170,6 @@ export const AuthProvider = (props: AuthProviderProps) => {
                  * view to the IDE. */
                 onAuthenticated();
             }
-
             setUserSession(userSession);
             setInitialized(true);
         };
@@ -233,7 +226,8 @@ export const AuthProvider = (props: AuthProviderProps) => {
 
     return (
         <AuthContext.Provider value={value}>
-            {/* Only render the underlying app after we assert for the presence of a current user. */}
+            {/** Only render the underlying app after we assert for the presence of a current
+              * user. */}
             {initialized && children}
         </AuthContext.Provider>
     );
@@ -253,19 +247,15 @@ const isUserFacingError = (value: unknown): value is UserFacingError => {
     return typeof value === "object" && value !== null && "message" in value;
 };
 
-
-
 // ===============
 // === useAuth ===
 // ===============
 
 /** A React hook that provides access to the authentication context.
  *
- * Only the hook is exported, and not the context, because we only want to use the hook directly
- * and never the context component. */
+ * Only the hook is exported, and not the context, because we only want to use the hook directly and
+ * never the context component. */
 export const useAuth = () => react.useContext(AuthContext);
-
-
 
 // =======================
 // === ProtectedLayout ===
@@ -282,8 +272,6 @@ export const ProtectedLayout = () => {
     return <router.Outlet context={session} />;
 };
 
-
-
 // ===================
 // === GuestLayout ===
 // ===================
@@ -292,14 +280,12 @@ export const ProtectedLayout = () => {
 export const GuestLayout = () => {
     const { session } = useAuth();
 
-    if (session?.state == "full") {
+    if (session?.state === "full") {
         return <router.Navigate to={app.DASHBOARD_PATH} />;
     }
 
     return <router.Outlet />;
 };
-
-
 
 // ==========================
 // === useFullUserSession ===

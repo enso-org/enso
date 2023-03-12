@@ -73,7 +73,7 @@ public final class SuggestionsCache
     try {
       return Optional.of(objectMapper.readValue(maybeJsonString, SuggestionsCache.Metadata.class));
     } catch (JsonProcessingException e) {
-      logger.log(logLevel, "Failed to deserialize suggestions' metadata: " + e.getMessage(), e);
+      logger.log(logLevel, "Failed to deserialize suggestions' metadata.", e);
       return Optional.empty();
     }
   }

@@ -8,8 +8,6 @@ type My
     Data x
 
 type My_Comparator
-    is_ordered = True
-
     compare my_1 my_2 =
         comparator = Comparable.from my_2.x
         comparator.compare my_2.x my_1.x

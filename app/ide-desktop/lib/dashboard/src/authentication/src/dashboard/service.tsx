@@ -6,8 +6,6 @@ import * as http from "../http";
 import * as config from "../config";
 import * as loggerProvider from "../providers/logger";
 
-
-
 // =================
 // === Constants ===
 // =================
@@ -31,8 +29,6 @@ const getProjectPath = (projectId: ProjectId) => `projects/${projectId}`;
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
 const openProjectPath = (projectId: ProjectId) => `projects/${projectId}/open`;
 
-
-
 // =============
 // === Types ===
 // =============
@@ -42,9 +38,9 @@ export type ProjectId = string;
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface Organization {
-    id: string;
-    userEmail: string;
-    name: string;
+  id: string;
+  userEmail: string;
+  name: string;
 }
 
 /** Type of application that a {@link Version} applies to.
@@ -107,13 +103,13 @@ interface ListProjectsResponseBody {
 }
 
 /** HTTP request body for the "create project" endpoint. */
-export interface CreateProjectRequestBody {
+export type CreateProjectRequestBody = {
     projectName: string;
     projectTemplateName: string | undefined;
 }
 
 /** HTTP request body for the "open project" endpoint. */
-export interface OpenProjectRequestBody {
+export type OpenProjectRequestBody = {
     forceCreate: boolean;
 }
 
@@ -125,122 +121,121 @@ export interface OpenProjectRequestBody {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class Backend {
-    private client: http.Client;
-    private logger: loggerProvider.Logger;
+  private client: http.Client;
+  private logger: loggerProvider.Logger;
 
-    /** Creates a new instance of the {@link Backend} API client.
-     *
-     * @throws An error if the `Authorization` header is not set on the given `client`. */
-    constructor(client: http.Client, logger: loggerProvider.Logger) {
-        this.client = client;
-        this.logger = logger;
+  /** Creates a new instance of the {@link Backend} API client.
+   *
+   * @throws An error if the `Authorization` header is not set on the given `client`. */
+  constructor(client: http.Client, logger: loggerProvider.Logger) {
+    this.client = client;
+    this.logger = logger;
+    /** All of our API endpoints are authenticated, so we expect the `Authorization` header to be
+     * set. */
+    if (!this.client.defaultHeaders?.has("Authorization")) {
+      throw new Error("Authorization header not set.");
+    }
+  }
 
-        /** All of our API endpoints are authenticated, so we expect the `Authorization` header to
-         * be set. */
-        if (!this.client.defaultHeaders?.has("Authorization")) {
-            throw new Error("Authorization header not set.");
+  /** Returns a {@link RequestBuilder} for an HTTP GET request to the given path. */
+  get = (path: string) =>
+    this.client.get(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+
+  /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
+  post = (path: string) =>
+    this.client.post(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+
+  /** Logs the error that occurred and throws a new one with a more user-friendly message. */
+  errorHandler = (message: string) => (error: Error) => {
+    this.logger.error(error.message);
+    throw new Error(message);
+  };
+
+  /** Returns organization info for the current user, from the Cloud backend API.
+   *
+   * @returns `null` if status code 401 or 404 was received. */
+  getUser = (): Promise<Organization | null> =>
+    this.get(GET_USER_PATH)
+      .send()
+      .then((response) => {
+        if (response.status() === 401 || response.status() === 404) {
+          return null;
         }
+        return response.model<Organization>();
+      });
+
+  // FIXME [NP]: Remove all these methods and their associated types
+  /** Returns a list of projects belonging to the current user, from the Cloud backend API. */
+  listProjects = (): Promise<Project[]> =>
+    this.get(LIST_PROJECTS_PATH)
+      .send()
+      .then(async (response) => {
+        if (response.status() === 401 || response.status() === 404) {
+          return [];
+        }
+
+        const model = await response.model<ListProjectsResponseBody>();
+        return model.projects;
+      });
+
+  /** Creates a project for the current user, on the Cloud backend API.
+   *
+   * @throws An error if a 401 or 404 status code was received. */
+  createProject = async (body: CreateProjectRequestBody): Promise<Project> => {
+    const request = this.post(CREATE_PROJECT_PATH).json(body);
+    const response = await request.send();
+
+    if (response.status() === 401 || response.status() === 404) {
+      throw new Error("Unable to create project.");
     }
 
-    /** Returns a {@link RequestBuilder} for an HTTP GET request to the given path. */
-    get = (path: string) => this.client.get(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+    return response.model<Project>();
+  };
 
-    /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
-    post = (path: string) => this.client.post(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+  /** Closes the project identified by the given project ID, on the Cloud backend API.
+   *
+   * @throws An error if a 401 or 404 status code was received. */
+  closeProject = async (projectId: ProjectId): Promise<void> => {
+    const path = closeProjectPath(projectId);
+    const request = this.post(path);
+    const response = await request.send();
 
-    /** Logs the error that occurred and throws a new one with a more user-friendly message. */
-    errorHandler = (message: string) => (error: Error) => {
-        this.logger.error(error.message);
-        throw new Error(message);
-    };
+    if (response.status() === 401 || response.status() === 404) {
+      throw new Error("Unable to close project.");
+    }
+  };
 
-    /** Returns organization info for the current user, from the Cloud backend API.
-     *
-     * @returns `null` if status code 401 or 404 was received. */
-    getUser = (): Promise<Organization | null> =>
-        this.get(GET_USER_PATH)
-            .send()
-            .then((response) => {
-                if (response.status() === 401 || response.status() === 404) {
-                    return null;
-                }
+  /** Returns project details for the specified project ID, from the Cloud backend API.
+   *
+   * @throws An error if a 401 or 404 status code was received. */
+  getProject = async (projectId: ProjectId): Promise<Project> => {
+    const path = getProjectPath(projectId);
+    const request = this.get(path);
+    const response = await request.send();
 
-                return response.model<Organization>();
-            });
+    if (response.status() === 401 || response.status() === 404) {
+      throw new Error("Unable to get project details.");
+    }
 
-    /** Returns a list of projects belonging to the current user, from the Cloud backend API. */
-    listProjects = (): Promise<Project[]> =>
-        this.get(LIST_PROJECTS_PATH)
-            .send()
-            .then(async (response) => {
-                if (response.status() == 401 || response.status() == 404) {
-                    return [];
-                }
+    return response.model<Project>();
+  };
 
-                const model = await response.model<ListProjectsResponseBody>();
-                return model.projects;
-            });
+  /** Sets project to an open state, on the Cloud backend API.
+   *
+   * @throws An error if a 401 or 404 status code was received. */
+  openProject = async (
+    projectId: ProjectId,
+    body: OpenProjectRequestBody = DEFAULT_OPEN_PROJECT_BODY
+  ): Promise<void> => {
+    const path = openProjectPath(projectId);
+    const request = this.get(path).json(body);
+    const response = await request.send();
 
-    /** Creates a project for the current user, on the Cloud backend API.
-     *
-     * @throws An error if a 401 or 404 status code was received. */
-    createProject = async (body: CreateProjectRequestBody): Promise<Project> => {
-        const request = this.post(CREATE_PROJECT_PATH).json(body);
-        const response = await request.send();
-
-        if (response.status() == 401 || response.status() == 404) {
-            throw new Error("Unable to create project.");
-        }
-
-        return response.model<Project>();
-    };
-
-    /** Closes the project identified by the given project ID, on the Cloud backend API.
-     *
-     * @throws An error if a 401 or 404 status code was received. */
-    closeProject = async (projectId: ProjectId): Promise<void> => {
-        const path = closeProjectPath(projectId);
-        const request = this.post(path);
-        const response = await request.send();
-
-        if (response.status() == 401 || response.status() == 404) {
-            throw new Error("Unable to close project.");
-        }
-    };
-
-    /** Returns project details for the specified project ID, from the Cloud backend API.
-     *
-     * @throws An error if a 401 or 404 status code was received. */
-    getProject = async (projectId: ProjectId): Promise<Project> => {
-        const path = getProjectPath(projectId);
-        const request = this.get(path);
-        const response = await request.send();
-
-        if (response.status() == 401 || response.status() == 404) {
-            throw new Error("Unable to get project details.");
-        }
-
-        return response.model<Project>();
-    };
-
-    /** Sets project to an open state, on the Cloud backend API.
-     *
-     * @throws An error if a 401 or 404 status code was received. */
-    openProject = async (
-        projectId: ProjectId,
-        body: OpenProjectRequestBody = DEFAULT_OPEN_PROJECT_BODY
-    ): Promise<void> => {
-        const path = openProjectPath(projectId);
-        const request = this.get(path).json(body);
-        const response = await request.send();
-
-        if (response.status() == 401 || response.status() == 404) {
-            throw new Error("Unable to open project.");
-        }
-    };
+    if (response.status() === 401 || response.status() === 404) {
+      throw new Error("Unable to open project.");
+    }
+  };
 }
-
-
 
 // =====================
 // === createBackend ===
@@ -253,11 +248,12 @@ export class Backend {
  * working. This should be removed entirely in favour of creating the backend once and using it from
  * the context. */
 export const createBackend = (
-    accessToken: string,
-    logger: loggerProvider.Logger
+  accessToken: string,
+  logger: loggerProvider.Logger
 ): Backend => {
-    const headers = new Headers();
-    headers.append("Authorization", `Bearer ${accessToken}`);
-    const client = http.Client.builder().defaultHeaders(headers).build();
-    return new Backend(client, logger);
+  const headers = new Headers();
+  headers.append("Authorization", `Bearer ${accessToken}`);
+  const client = new http.Client();
+  client.defaultHeaders = headers;
+  return new Backend(client, logger);
 };
