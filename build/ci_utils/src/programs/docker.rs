@@ -578,6 +578,27 @@ mod tests {
     use super::*;
     use std::os::windows::process::ExitStatusExt;
 
+    fn get_kernel_version() -> Result<u32> {
+        let mut sysinfo = sysinfo::System::new();
+        sysinfo.refresh_all();
+        let ret = sysinfo
+            .kernel_version()
+            .with_context(|| "Failed to get OS kernel version.")?
+            .parse2()?;
+        debug!("OS kernel version: {ret}.");
+        Ok(ret)
+    }
+
+    /// See the tag listing on https://hub.docker.com/_/microsoft-windows-servercore
+    fn get_windows_image_tag(kernel_version: u32) -> Result<&'static str> {
+        Ok(match kernel_version {
+            20348..=u32::MAX => "ltsc2022",
+            17763..=20347 => "ltsc2019",
+            14393..=17762 => "ltsc2016",
+            _ => anyhow::bail!("Unsupported OS kernel version: {kernel_version}."),
+        })
+    }
+
     #[tokio::test]
     #[ignore]
     async fn network() -> Result {
@@ -602,8 +623,7 @@ mod tests {
         let temp = tempfile::tempdir()?;
         let sample_dockerfile = r#"
             FROM ubuntu:22.04
-            RUN apt-get update && apt-get install -y curl
-            CMD ["curl", "http://www.google.com"]
+            RUN echo "Hello, world!"
         "#;
         let dockerfile = temp.path().join("Dockerfile");
         crate::fs::tokio::write(&dockerfile, sample_dockerfile).await?;
@@ -617,11 +637,19 @@ mod tests {
     async fn build_test_windows() -> Result {
         setup_logging()?;
         let temp = tempfile::tempdir()?;
-        let sample_dockerfile = r#"
-            FROM mcr.microsoft.com/windows/servercore:ltsc2019
-            RUN powershell -Command "Write-Host 'Hello World'"
-            CMD ["powershell", "-Command", "Write-Host 'Hello World'"]
-        "#;
+        // Select appropriate base image, depending on OS version.
+        // newer)
+        let mut sysinfo = sysinfo::System::new();
+        sysinfo.refresh_all();
+        let kernel_version = get_kernel_version()?;
+        let tag = get_windows_image_tag(kernel_version)?;
+
+        let sample_dockerfile = format!(
+            r#"
+            FROM mcr.microsoft.com/windows/nanoserver:{tag}
+            RUN cmd /c "echo Hello World"
+        "#
+        );
         let dockerfile = temp.path().join("Dockerfile");
         crate::fs::tokio::write(&dockerfile, sample_dockerfile).await?;
         let opts = BuildOptions::new(temp.path());
@@ -633,6 +661,7 @@ mod tests {
     async fn parse_build_id_from_output() -> Result {
         // Sample output from Windows, Docker version 20.10.20, build 9fdeb9c
         // (native Windows container)
+        // Newer docker versions (up to 23, at least) are compatible.
         let output = std::process::Output {
             status: std::process::ExitStatus::from_raw(0),
             stdout: (*b"Sending build context to Docker daemon  2.048kB\r\r\nStep 1/3 : FROM mcr.microsoft.com/windows/servercore:ltsc2019\n ---> 617dd5ead5b8\nStep 2/3 : RUN powershell -Command \"Write-Host 'Hello World'\"\n ---> Running in 1678cebd108d\nHello World\nRemoving intermediate container 1678cebd108d\n ---> 1bd602c665d1\nStep 3/3 : CMD [\"powershell\", \"-Command\", \"Write-Host 'Hello World'\"]\n ---> Running in 77699e63daf4\nRemoving intermediate container 77699e63daf4\n ---> 46114159dd22\nSuccessfully built 46114159dd22\n").into(),
