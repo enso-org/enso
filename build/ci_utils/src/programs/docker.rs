@@ -285,6 +285,22 @@ impl BuildOptions {
     ///
     /// Build argument name will be the same as the environment variable name.
     /// If the environment variable is not set, an error is raised.
+    /// ```
+    /// use ide_ci::define_env_var;
+    /// use ide_ci::prelude::*;
+    /// use ide_ci::programs::docker::BuildOptions;
+    /// define_env_var! {DOCKER_USERNAME, String;};
+    /// let mut options = BuildOptions::new(".");
+    ///
+    /// // Variable is not set, so this will fail.
+    /// assert!(options.add_build_arg_from_env(DOCKER_USERNAME).is_err());
+    /// assert!(options.build_args.is_empty());
+    ///
+    /// // Set the variable and try again.
+    /// DOCKER_USERNAME.set("my_username".into()).unwrap();
+    /// options.add_build_arg_from_env(DOCKER_USERNAME).unwrap();
+    /// assert_eq!(options.build_args.get("DOCKER_USERNAME"), Some(&Some("my_username".into())));
+    /// ```
     pub fn add_build_arg_from_env(
         &mut self,
         variable: impl crate::env::accessor::RawVariable,
