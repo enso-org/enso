@@ -1,6 +1,4 @@
 /** @file Login container responsible for rendering and interactions in sign in flow. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import * as React from "react";
 import * as router from "react-router-dom";
 import * as fontawesome from "@fortawesome/react-fontawesome";
 import * as fontawesomeIcons from "@fortawesome/free-brands-svg-icons";
@@ -10,9 +8,7 @@ import * as hooks from "../../hooks";
 import withRouter from "../../navigation";
 import * as utils from "../../utils";
 import * as app from "../../components/app";
-import * as Icons from "../../components/svg";
-
-
+import * as icons from "../../components/svg";
 
 // =================
 // === Constants ===
@@ -48,25 +44,25 @@ const loginContainer = () => {
                     onClick={utils.handleEvent(signInWithGoogle)}
                     className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
-          <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
-            <fontawesome.FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
-          </span>
+                    <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
+                      <fontawesome.FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
+                    </span>
                     <span>Login with Google</span>
                 </button>
                 <button
                     onClick={utils.handleEvent(signInWithGitHub)}
                     className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
-          <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
-            <fontawesome.FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
-          </span>
+                    <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
+                      <fontawesome.FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
+                    </span>
                     <span>Login with Github</span>
                 </button>
                 <div className="relative mt-10 h-px bg-gray-300">
                     <div className="absolute left-0 top-0 flex justify-center w-full -mt-2">
-            <span className="bg-white px-4 text-xs text-gray-500 uppercase">
-              Or Login With Email
-            </span>
+                        <span className="bg-white px-4 text-xs text-gray-500 uppercase">
+                          Or Login With Email
+                        </span>
                     </div>
                 </div>
                 <div className="mt-10">
@@ -84,9 +80,9 @@ const loginContainer = () => {
                             </label>
                             <div className="relative">
                                 <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                  <span>
-                    <Icons.Svg data={Icons.PATHS.at} />
-                  </span>
+                                    <span>
+                                      <icons.Svg data={icons.PATHS.at} />
+                                    </span>
                                 </div>
 
                                 <input
@@ -109,9 +105,9 @@ const loginContainer = () => {
                             </label>
                             <div className="relative">
                                 <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                  <span>
-                    <Icons.Svg data={Icons.PATHS.lock} />
-                  </span>
+                                    <span>
+                                      <icons.Svg data={icons.PATHS.lock} />
+                                    </span>
                                 </div>
 
                                 <input
@@ -133,8 +129,8 @@ const loginContainer = () => {
                             >
                                 <span className="mr-2 uppercase">Login</span>
                                 <span>
-                  <Icons.Svg data={Icons.PATHS.rightArrow} />
-                </span>
+                                    <icons.Svg data={icons.PATHS.rightArrow} />
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -145,14 +141,14 @@ const loginContainer = () => {
                         className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
                     >
             <span>
-              <Icons.Svg data={Icons.PATHS.createAccount} />
+              <icons.Svg data={icons.PATHS.createAccount} />
             </span>
-                        <span className="ml-2">You don&apos;t have an account?</span>
-                    </router.Link>
-                </div>
-            </div>
+            <span className="ml-2">You don&apos;t have an account?</span>
+          </router.Link>
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 const parseUrlSearchParams = (search: string) => {

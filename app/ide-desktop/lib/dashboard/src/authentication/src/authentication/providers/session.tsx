@@ -25,41 +25,37 @@ const MAIN_PAGE_URL = "http://localhost:8080";
  * of the `AuthProvider` component when the counter is incremented. */
 const INITIAL_REFRESH_COUNT = 0;
 
-
-
 // ======================
 // === SessionContext ===
 // ======================
 
 interface SessionContextType {
-    session: results.Option<cognito.UserSession>;
+  session: results.Option<cognito.UserSession>;
 }
 
 /** See {@link AuthContext} for safety details. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const SessionContext = react.createContext<SessionContextType>(
-    {} as SessionContextType
+  {} as SessionContextType
 );
-
-
 
 // =======================
 // === SessionProvider ===
 // =======================
 
 interface SessionProviderProps {
-    registerAuthEventListener: (callback: listen.ListenerCallback) => void;
-    userSession: () => Promise<results.Option<cognito.UserSession>>;
-    children: react.ReactNode;
+  registerAuthEventListener: (callback: listen.ListenerCallback) => void;
+  userSession: () => Promise<results.Option<cognito.UserSession>>;
+  children: react.ReactNode;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const SessionProvider = (props: SessionProviderProps) => {
-    const { children, userSession, registerAuthEventListener } = props;
+  const { children, userSession, registerAuthEventListener } = props;
 
-    /** Flag used to avoid rendering child components until we've fetched the user's session at
-     * least once. Avoids flash of the login screen when the user is already logged in. */
-    const [initialized, setInitialized] = react.useState(false);
+  /** Flag used to avoid rendering child components until we've fetched the user's session at least
+   * once. Avoids flash of the login screen when the user is already logged in. */
+  const [initialized, setInitialized] = react.useState(false);
 
     // State that, when incremented, forces a refresh of the user session. This is useful when a
     // user has just logged in (so their cached credentials are out of date). Should be used via the
@@ -76,7 +72,7 @@ export const SessionProvider = (props: SessionProviderProps) => {
     /** Register an async effect that will fetch the user's session whenever the `refresh` state is
      * incremented. This is useful when a user has just logged in (as their cached credentials are
      * out of date, so this will update them). */
-    const [session] = hooks.useAsyncEffect(
+    const session = hooks.useAsyncEffect(
         results.None,
         async () => {
             const session = await userSession();
@@ -122,8 +118,6 @@ export const SessionProvider = (props: SessionProviderProps) => {
         </SessionContext.Provider>
     );
 };
-
-
 
 // ==================
 // === useSession ===

@@ -4,7 +4,6 @@ import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text_Ordering.Text_Ordering
-import project.Error.Common.Incomparable_Values
 import project.Nothing.Nothing
 
 from project.Data.Boolean import True, False

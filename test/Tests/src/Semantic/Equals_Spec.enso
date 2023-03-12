@@ -15,8 +15,7 @@ type CustomEqType
         CustomEqType.C2 f1 f2 -> f1 + f2
 
 type CustomEqType_Comparator
-    is_ordered = False
-    equals o1 o2 = o1.sum == o2.sum
+    compare o1 o2 = if o1.sum == o2.sum then Ordering.Equal else Nothing
     hash o =
         comp = Comparable.from o.sum
         comp.hash o.sum
@@ -27,8 +26,7 @@ type Child
     Value number
 
 type Child_Comparator
-    is_ordered = False
-    equals child1 child2 = child1.number % 100 == child2.number % 100
+    compare child1 child2 = if child1.number % 100 == child2.number % 100 then Ordering.Equal else Nothing
     hash child =
         comp = Comparable.from child.number
         comp.hash (child.number % 100)

@@ -4,4 +4,4 @@ import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType
-public class DefaultOrderedComparator extends Builtin {}
+public class DefaultComparator extends Builtin {}

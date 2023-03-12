@@ -110,13 +110,14 @@ impl EntryData {
     }
 
     fn update_selected(&self, selected: bool) {
+        let old = self.selected_label();
         let was_selected = self.selected.replace(selected);
         if selected != was_selected {
             let new = self.selected_label();
             if let Some(label) = self.deferred_label.take() {
                 new.set_content(label);
             }
-            self.display_object.remove_all_children();
+            self.display_object.remove_child(old);
             self.display_object.add_child(new);
         }
     }

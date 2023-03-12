@@ -30,8 +30,7 @@ import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
 import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.ordering.Comparable;
-import org.enso.interpreter.node.expression.builtin.ordering.DefaultOrderedComparator;
-import org.enso.interpreter.node.expression.builtin.ordering.DefaultUnorderedComparator;
+import org.enso.interpreter.node.expression.builtin.ordering.DefaultComparator;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
 import org.enso.interpreter.node.expression.builtin.text.Text;
@@ -86,8 +85,7 @@ public class Builtins {
   private final Boolean bool;
   private final Ordering ordering;
   private final Comparable comparable;
-  private final DefaultOrderedComparator defaultOrderedComparator;
-  private final DefaultUnorderedComparator defaultUnorderedComparator;
+  private final DefaultComparator defaultComparator;
   private final System system;
   private final Special special;
 
@@ -135,8 +133,7 @@ public class Builtins {
     error = new Error(this, context);
     ordering = getBuiltinType(Ordering.class);
     comparable = getBuiltinType(Comparable.class);
-    defaultUnorderedComparator = getBuiltinType(DefaultUnorderedComparator.class);
-    defaultOrderedComparator = getBuiltinType(DefaultOrderedComparator.class);
+    defaultComparator = getBuiltinType(DefaultComparator.class);
     system = new System(this);
     number = new Number(this);
     bool = this.getBuiltinType(Boolean.class);
@@ -598,12 +595,8 @@ public class Builtins {
     return comparable;
   }
 
-  public DefaultOrderedComparator defaultOrderedComparator() {
-    return defaultOrderedComparator;
-  }
-
-  public DefaultUnorderedComparator defaultUnorderedComparator() {
-    return defaultUnorderedComparator;
+  public DefaultComparator defaultComparator() {
+    return defaultComparator;
   }
 
   /** @return the container for the dataflow error-related builtins */

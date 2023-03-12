@@ -105,7 +105,8 @@ final class SerializationManager(
   ): Future[Boolean] = {
     logger.log(
       debugLogLevel,
-      s"Requesting serialization for module [${module.getName}]."
+      "Requesting serialization for module [{}].",
+      module.getName
     )
     val duplicatedIr = compiler.updateMetadata(
       module.getIr,
@@ -148,7 +149,8 @@ final class SerializationManager(
   ): Future[Boolean] = {
     logger.log(
       Level.INFO,
-      s"Requesting serialization for library [$libraryName]."
+      "Requesting serialization for library [{}].",
+      libraryName
     )
 
     val task: Callable[Boolean] =
@@ -180,7 +182,8 @@ final class SerializationManager(
   ): Callable[Boolean] = () => {
     logger.log(
       debugLogLevel,
-      s"Running serialization for bindings [$libraryName]."
+      "Running serialization for bindings [{}].",
+      libraryName
     )
     startSerializing(libraryName.toQualifiedName)
     val bindingsCache = new ImportExportCache.CachedBindings(
@@ -285,13 +288,15 @@ final class SerializationManager(
         case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
           logger.log(
             Level.FINE,
-            s"Restored suggestions for library [$libraryName]."
+            "Restored suggestions for library [{}].",
+            libraryName
           )
           result
         case _ =>
           logger.log(
             Level.FINEST,
-            s"Unable to load suggestions for library [$libraryName]."
+            "Unable to load suggestions for library [{}].",
+            libraryName
           )
           None
       }
@@ -312,13 +317,15 @@ final class SerializationManager(
         case result @ Some(_: ImportExportCache.CachedBindings) =>
           logger.log(
             Level.FINE,
-            s"Restored bindings for library [$libraryName]."
+            "Restored bindings for library [{}].",
+            libraryName
           )
           result
         case _ =>
           logger.log(
             Level.FINEST,
-            s"Unable to load bindings for library [${libraryName}]."
+            "Unable to load bindings for library [{}].",
+            libraryName
           )
           None
       }
@@ -359,20 +366,23 @@ final class SerializationManager(
           module.setLoadedFromCache(true)
           logger.log(
             debugLogLevel,
-            s"Restored IR from cache for module [${module.getName}] at stage [${loadedCache.compilationStage()}]."
+            "Restored IR from cache for module [{}] at stage [{}].",
+            Array(module.getName, loadedCache.compilationStage())
           )
 
           if (!relinkedIrChecks.contains(false)) {
             module.setHasCrossModuleLinks(true)
             logger.log(
               debugLogLevel,
-              s"Restored links (early phase) in module [${module.getName}]."
+              "Restored links (early phase) in module [{}].",
+              module.getName
             )
             Some(true)
           } else {
             logger.log(
               debugLogLevel,
-              s"Could not restore links (early phase) in module [${module.getName}]."
+              "Could not restore links (early phase) in module [{}].",
+              module.getName
             )
             module.setHasCrossModuleLinks(false)
             Some(false)
@@ -380,7 +390,8 @@ final class SerializationManager(
         case None =>
           logger.log(
             debugLogLevel,
-            s"Unable to load a cache for module [${module.getName}]."
+            "Unable to load a cache for module [{}].",
+            module.getName
           )
           None
       }
@@ -476,7 +487,8 @@ final class SerializationManager(
         val jobCount = waitingCount + isSerializing.size
         logger.log(
           debugLogLevel,
-          s"Waiting for $jobCount serialization jobs to complete."
+          "Waiting for #{} serialization jobs to complete.",
+          jobCount
         )
 
         // Bound the waiting loop
@@ -535,7 +547,8 @@ final class SerializationManager(
   ): Callable[Boolean] = { () =>
     logger.log(
       debugLogLevel,
-      s"Running serialization for module [$name]."
+      "Running serialization for module [{}].",
+      name
     )
     startSerializing(name)
     try {

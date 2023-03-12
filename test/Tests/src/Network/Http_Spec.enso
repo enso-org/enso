@@ -40,7 +40,7 @@ spec =
             http = HTTP.new (version = version_setting)
             http.version.should_equal version_setting
         Test.specify "should throw error when requesting invalid URI" <|
-            HTTP.new.get "not a uri" . should_fail_with Syntax_Error.Error
+            HTTP.new.get "not a uri" . should_fail_with Syntax_Error
 
         Test.specify "should send Get request using fetch" <|
             expected_response = Json.parse <| '''
@@ -85,7 +85,7 @@ spec =
             res = HTTP.fetch url_get
             res.parse_json.should_equal expected_response
         Test.specify "should return error if the fetch method fails" <|
-            HTTP.fetch "http://undefined_host" . should_fail_with Request_Error.Error
+            HTTP.fetch "http://undefined_host" . should_fail_with Request_Error
 
         Test.specify "should send Head request" <|
             res = HTTP.new.head url_get

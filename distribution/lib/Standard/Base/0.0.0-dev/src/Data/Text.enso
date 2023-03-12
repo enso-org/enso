@@ -5,7 +5,6 @@ import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Meta
 
-from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Text_Utils
@@ -118,5 +117,3 @@ type Text
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self
-
-Comparable.from (_:Text) = Default_Ordered_Comparator
