@@ -11,6 +11,7 @@ use std::process::Stdio;
 ///
 /// It is not that trivial, as the format of the output is not exactly stable. Please see the
 /// unit tests at the end of the module for examples of the output.
+#[context("Failed to get the image identifier from the output: {output:?}.")]
 fn get_image_id_from_build_output(output: &std::process::Output) -> Result<ImageId> {
     trace!("Output: {:?}", output);
     let built_image_id = std::str::from_utf8(&output.stdout)?
@@ -335,6 +336,7 @@ impl BuildOptions {
     pub fn args(&self) -> Vec<OsString> {
         let mut ret = Vec::new();
         ret.push(self.context.clone().into());
+        ret.push("--quiet".into());
         if let Some(target) = self.target.as_ref() {
             ret.push("--target".into());
             ret.push(target.clone());
@@ -576,8 +578,16 @@ impl std::str::FromStr for ContainerId {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+
+    #[cfg(target_os = "windows")]
     use std::os::windows::process::ExitStatusExt;
 
+    #[cfg(target_os = "linux")]
+    use std::os::unix::process::ExitStatusExt;
+
+    // This function might be unused, depending on what platform-specific tests are compiled.
+    #[allow(dead_code)]
     fn get_kernel_version() -> Result<u32> {
         let mut sysinfo = sysinfo::System::new();
         sysinfo.refresh_all();
@@ -590,6 +600,8 @@ mod tests {
     }
 
     /// See the tag listing on https://hub.docker.com/_/microsoft-windows-servercore
+    // This function might be unused, depending on what platform-specific tests are compiled.
+    #[allow(dead_code)]
     fn get_windows_image_tag(kernel_version: u32) -> Result<&'static str> {
         Ok(match kernel_version {
             20348..=u32::MAX => "ltsc2022",
@@ -635,6 +647,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     #[tokio::test]
     async fn build_test_windows() -> Result {
+        use std::os::windows::process::ExitStatusExt;
         setup_logging()?;
         let temp = tempfile::tempdir()?;
         // Select appropriate base image, depending on OS version.
@@ -654,21 +667,6 @@ mod tests {
         crate::fs::tokio::write(&dockerfile, sample_dockerfile).await?;
         let opts = BuildOptions::new(temp.path());
         dbg!(Docker.build(opts).await?);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn parse_build_id_from_output() -> Result {
-        // Sample output from Windows, Docker version 20.10.20, build 9fdeb9c
-        // (native Windows container)
-        // Newer docker versions (up to 23, at least) are compatible.
-        let output = std::process::Output {
-            status: std::process::ExitStatus::from_raw(0),
-            stdout: (*b"Sending build context to Docker daemon  2.048kB\r\r\nStep 1/3 : FROM mcr.microsoft.com/windows/servercore:ltsc2019\n ---> 617dd5ead5b8\nStep 2/3 : RUN powershell -Command \"Write-Host 'Hello World'\"\n ---> Running in 1678cebd108d\nHello World\nRemoving intermediate container 1678cebd108d\n ---> 1bd602c665d1\nStep 3/3 : CMD [\"powershell\", \"-Command\", \"Write-Host 'Hello World'\"]\n ---> Running in 77699e63daf4\nRemoving intermediate container 77699e63daf4\n ---> 46114159dd22\nSuccessfully built 46114159dd22\n").into(),
-            stderr: (*b"\nUse 'docker scan' to run Snyk tests against images to find vulnerabilities and learn how to fix them\n").into(),
-        };
-        let id = get_image_id_from_build_output(&output)?;
-        assert_eq!(id, ImageId("46114159dd22".into()));
         Ok(())
     }
 }
