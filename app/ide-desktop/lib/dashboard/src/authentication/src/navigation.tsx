@@ -1,9 +1,6 @@
 /** @file Helper decorator for defining virtual router definition with a react component. */
 
-import * as React from "react";
 import * as router from "react-router-dom";
-
-
 
 // ==================
 // === withRouter ===
@@ -13,15 +10,14 @@ import * as router from "react-router-dom";
  * routing in the browser. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const withRouter = <T extends object>(Component: React.FC<T>) => {
-    /** Adds window navigation props to given component that emulate normal routing in the browser. */
-    const componentWithRouterProp = (props: T) => {
-        const location = router.useLocation();
-        const navigate = router.useNavigate();
-        const params = router.useParams();
-        return <Component {...props} router={{ location, navigate, params }} />;
-    };
-
-    return componentWithRouterProp;
+  /** Adds window navigation props to given component that emulate normal routing in the browser. */
+  const componentWithRouterProp = (props: T) => {
+    const location = router.useLocation();
+    const navigate = router.useNavigate();
+    const params = router.useParams();
+    return <Component {...props} router={{ location, navigate, params }} />;
+  };
+  return componentWithRouterProp;
 };
 
 export default withRouter;

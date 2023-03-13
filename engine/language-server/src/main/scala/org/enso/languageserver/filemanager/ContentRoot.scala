@@ -2,6 +2,7 @@ package org.enso.languageserver.filemanager
 
 import io.circe.syntax.EncoderOps
 import io.circe.{Encoder, Json}
+import org.enso.logger.masking.{MaskedPath, ToLogString}
 
 import java.io.File
 import java.util.UUID
@@ -115,7 +116,7 @@ object ContentRoot {
 case class ContentRootWithFile(
   contentRoot: ContentRoot,
   file: File
-) {
+) extends ToLogString {
 
   /** The unique identifier of the content root. */
   def id: UUID = contentRoot.id
@@ -125,4 +126,10 @@ case class ContentRootWithFile(
     * @return a protocol content root
     */
   def toContentRoot: ContentRoot = contentRoot
+
+  /** @inheritdoc */
+  override def toLogString(shouldMask: Boolean): String =
+    s"ContentRootWithFile(contentRoot=$contentRoot," +
+    s"file=${MaskedPath(file.toPath).toLogString(shouldMask)}" +
+    ")"
 }

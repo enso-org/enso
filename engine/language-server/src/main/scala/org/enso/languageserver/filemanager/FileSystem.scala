@@ -20,7 +20,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
   private val tenMb: Int = 1 * 1024 * 1024 * 10
 
   /** The stride used by the [[FileSystem]] when processing a file in chunks. */
-  val fileChunkSize: Int = tenMb
+  private val fileChunkSize: Int = tenMb
 
   import FileSystemApi._
 

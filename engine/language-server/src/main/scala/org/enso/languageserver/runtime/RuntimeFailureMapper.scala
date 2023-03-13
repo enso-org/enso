@@ -123,8 +123,8 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
       case Some(value) =>
         contentRootManager.findRelativePath(value).recoverWith { error =>
           logger.warn(
-            s"Could not resolve a path within a failure, " +
-            s"so it will contain none: $error"
+            "Could not resolve a path within a failure, so it will contain none.",
+            error
           )
           Future.successful(None)
         }

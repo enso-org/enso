@@ -4,7 +4,6 @@ import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -687,5 +686,3 @@ type Date_Time
     format : Text -> Text
     format self pattern = @Builtin_Method "Date_Time.format"
 
-
-Comparable.from (_:Date_Time) = Default_Ordered_Comparator

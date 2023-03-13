@@ -172,8 +172,8 @@ type Statistic
             if skip_moments.not && result.is_nothing then report_error statistics else
                 statistics.map statistic-> case statistic of
                     Statistic.Count -> counter.count
-                    Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values.Error) else counter.minimum
-                    Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values.Error) else counter.maximum
+                    Statistic.Minimum -> if counter.comparatorError then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.minimum
+                    Statistic.Maximum -> if counter.comparatorError then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.maximum
                     Statistic.Covariance series -> calculate_correlation_statistics data series . covariance
                     Statistic.Pearson series -> calculate_correlation_statistics data series . pearsonCorrelation
                     Statistic.Spearman series -> calculate_spearman_rank data series
@@ -220,8 +220,8 @@ type Statistic
 
                     row = Panic.throw_wrapped_if_error <| statistics.map s-> case s of
                         Statistic.Count -> counter.count
-                        Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values.Error) else counter.minimum
-                        Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values.Error) else counter.maximum
+                        Statistic.Minimum -> if counter.comparatorError then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.minimum
+                        Statistic.Maximum -> if counter.comparatorError then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.maximum
                         _ -> if result.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute " + s.to_text + " on numerical data sets.")) else result.compute (to_moment_statistic s)
                     output.append row
 
@@ -289,7 +289,7 @@ to_moment_statistic s = case s of
 wrap_java_call : Any -> Any
 wrap_java_call ~function =
     report_unsupported _ = Error.throw (Illegal_Argument.Error ("Can only compute correlations on numerical data sets."))
-    handle_unsupported = Panic.catch Unsupported_Argument_Types.Error handler=report_unsupported
+    handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_unsupported
 
     handle_unsupported <| Illegal_Argument.handle_java_exception <| function
 
