@@ -81,18 +81,18 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
   setUsername: (
-      accessToken: string,
-      username: string,
-      email: string
+    accessToken: string,
+    username: string,
+    email: string
   ) => Promise<void>;
   signInWithGoogle: () => Promise<null>;
   signInWithGitHub: () => Promise<null>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (
-      email: string,
-      code: string,
-      password: string
+    email: string,
+    code: string,
+    password: string
   ) => Promise<void>;
   signOut: () => Promise<void>;
   /** Session containing the currently authenticated user's authentication information.
@@ -270,24 +270,24 @@ export const AuthProvider = (props: AuthProviderProps) => {
   };
 
   const forgotPassword = async (email: string) =>
-  cognito.forgotPassword(email).then((result) => {
+    cognito.forgotPassword(email).then((result) => {
       if (result.ok) {
-          toast.success(MESSAGES.forgotPasswordSuccess);
-          navigate(app.RESET_PASSWORD_PATH);
+        toast.success(MESSAGES.forgotPasswordSuccess);
+        navigate(app.RESET_PASSWORD_PATH);
       } else {
-          toast.error(result.val.message);
+        toast.error(result.val.message);
       }
-  });
+    });
 
-const resetPassword = async (email: string, code: string, password: string) =>
-  cognito.forgotPasswordSubmit(email, code, password).then((result) => {
+  const resetPassword = async (email: string, code: string, password: string) =>
+    cognito.forgotPasswordSubmit(email, code, password).then((result) => {
       if (result.ok) {
-          toast.success(MESSAGES.resetPasswordSuccess);
-          navigate(app.LOGIN_PATH);
+        toast.success(MESSAGES.resetPasswordSuccess);
+        navigate(app.LOGIN_PATH);
       } else {
-          toast.error(result.val.message);
+        toast.error(result.val.message);
       }
-  });
+    });
 
   const signOut = () =>
     cognito

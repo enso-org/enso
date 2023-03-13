@@ -198,9 +198,9 @@ const setDeepLinkHandler = (
       navigate(app.LOGIN_PATH);
     } else if (isSignInRedirect(parsedUrl)) {
       handleAuthResponse(url);
-    /** If the user is being redirected from a password reset email, then we need to navigate to
-     * the password reset page, with the verification code and email passed in the URL so they
-     * can be filled in automatically. */
+      /** If the user is being redirected from a password reset email, then we need to navigate to
+       * the password reset page, with the verification code and email passed in the URL so they
+       * can be filled in automatically. */
     } else if (isResetPasswordRedirect(parsedUrl)) {
       /** Navigate to a relative URL to handle the password reset. */
       const redirectUrl = `${app.RESET_PASSWORD_PATH}${parsedUrl.search}`;
@@ -236,12 +236,11 @@ const isSignInRedirect = (url: URL) =>
 /** If the user is being redirected after clicking the reset password confirmation link in their
  * email, then the URL will be for the confirm password reset path. */
 const isResetPasswordRedirect = (url: URL) =>
-    url.pathname === app.RESET_PASSWORD_PATH;
+  url.pathname === app.RESET_PASSWORD_PATH;
 
 /** If the user is being redirected after finishing the password reset flow,
  * then the URL will be for the login page. */
-const isLoginRedirect = (url: URL) =>
-    url.pathname === LOGIN_PATHNAME;
+const isLoginRedirect = (url: URL) => url.pathname === LOGIN_PATHNAME;
 
 /** When the user is being redirected from a federated identity provider, then we need to pass the
  * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */
