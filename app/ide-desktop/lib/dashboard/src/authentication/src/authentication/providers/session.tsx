@@ -42,7 +42,7 @@ export const SessionProvider = (props: SessionProviderProps) => {
    * out of date, so this will update them). */
   const session = hooks.useAsyncEffect(
     results.None,
-    async () => {
+    async (_signal) => {
       const session = await userSession();
       setInitialized(true);
       return session;
