@@ -12,6 +12,25 @@ For description of the options, just use `-h`.
 
 It queries only successful benchmark runs. If there are no successful benchmarks
 in a given period, no results will be written.
+
+The process of the script is roughly as follows:
+- Gather all the benchmark results from GH API into job reports (JobReport dataclass)
+    - Use cache if possible to avoid unnecessary GH API queries
+- Transform the gathered results into data for a particular benchmark sorted
+  by an appropriate commit timestamp.
+    - BenchmarkData class
+
+
+Dependencies for the script:
+- GH CLI utility
+    - Used for convenience to do the GH API queries.
+    - It needs to be installed, and you should also authenticate.
+- Python version >= 3.7
+- Python 3rd party packages:
+    - pandas
+        - Used for convenience for a very simple data processing
+    - jinja2
+        - Used as a template engine for the HTML.
 """
 
 import json
@@ -29,6 +48,9 @@ from csv import DictWriter
 from datetime import datetime, timedelta
 from os import path
 from typing import List, Dict, Optional, Any, Union
+import pandas as pd
+import numpy as np
+import jinja2
 
 from dataclasses import dataclass
 
@@ -36,6 +58,11 @@ BENCH_RUN_NAME = "Benchmark Engine"
 DATE_FORMAT = "%Y-%m-%d"
 # Workflod ID of engine benchmarks, got via `gh api '/repos/enso-org/enso/actions/workflows'`
 BENCH_WORKFLOW_ID = 29450898
+GH_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+""" Date format as returned from responses in GH API"""
+ENSO_COMMIT_BASE_URL = "https://github.com/enso-org/enso/commit/"
+JINJA_TEMPLATE = "template_jinja.html"
+""" Path to the Jinja HTML template """
 
 
 @dataclass
@@ -45,6 +72,7 @@ class Author:
 
 @dataclass
 class Commit:
+    """ Corresponds to the commit from GH API """
     id: str
     author: Author
     timestamp: str
@@ -52,23 +80,79 @@ class Commit:
 
 
 @dataclass
-class BenchRun:
+class JobRun:
+    """
+    Gathered via the GH API. Defines a single run of an Engine benchmark job.
+    """
     id: str
     display_title: str
     html_url: str
     run_attempt: int
+    """ An event as defined by the GitHub API, for example 'push' or 'schedule' """
     event: str
     head_commit: Commit
 
 
 @dataclass
-class BenchReport:
+class JobReport:
+    """
+    Gathered via the GH API - a report that is pushed as an aritfact to the job.
+    Contains a XML file with scores for all the benchmarks.
+    """
     label_score_dict: Dict[str, float]
-    bench_run: BenchRun
+    """ A mapping of benchmark labels to their scores """
+    bench_run: JobRun
 
 
-def _parse_bench_run_from_json(obj: Dict[Any, Any]) -> BenchRun:
-    return BenchRun(
+@dataclass
+class BenchmarkData:
+    """
+    Data for a single benchmark compiled from all the job reports.
+    """
+    @dataclass
+    class Entry:
+        score: float
+        commit_id: str
+        commit_msg: str
+        commit_url: str
+        commit_author: str
+        commit_timestamp: datetime
+        bench_run_url: str
+        bench_run_event: str
+    label: str
+    """ Label for the benchmark, as reported by org.enso.interpreter.bench.BenchmarksRunner """
+    entries: List[Entry]
+    """ Entries sorted by timestamps """
+
+
+@dataclass
+class ChartRow:
+    timestamp: datetime
+    score: float
+    tooltip: str
+
+
+@dataclass
+class TemplateBenchData:
+    id: str
+    rows: List[ChartRow]
+    score_diffs: List[str]
+    """ S string that is displayed in the selection info """
+    commit_ids: List[str]
+    commit_msgs: List[str]
+    commit_authors: List[str]
+    commit_urls: List[str]
+
+
+@dataclass
+class JinjaData:
+    bench_datas: List[TemplateBenchData]
+    since: datetime
+    until: datetime
+
+
+def _parse_bench_run_from_json(obj: Dict[Any, Any]) -> JobRun:
+    return JobRun(
         id=str(obj["id"]),
         html_url=obj["html_url"],
         run_attempt=int(obj["run_attempt"]),
@@ -85,14 +169,14 @@ def _parse_bench_run_from_json(obj: Dict[Any, Any]) -> BenchRun:
     )
 
 
-def _parse_bench_report_from_json(obj: Dict[Any, Any]) -> BenchReport:
-    return BenchReport(
+def _parse_bench_report_from_json(obj: Dict[Any, Any]) -> JobReport:
+    return JobReport(
         bench_run=_parse_bench_run_from_json(obj["bench_run"]),
         label_score_dict=obj["label_score_dict"]
     )
 
 
-def _bench_report_to_json(bench_report: BenchReport) -> Dict[Any, Any]:
+def _bench_report_to_json(bench_report: JobReport) -> Dict[Any, Any]:
     return {
         "bench_run": {
             "id": bench_report.bench_run.id,
@@ -113,7 +197,7 @@ def _bench_report_to_json(bench_report: BenchReport) -> Dict[Any, Any]:
     }
 
 
-def _parse_bench_report_from_xml(bench_report_xml: str, bench_run: BenchRun) -> "BenchReport":
+def _parse_bench_report_from_xml(bench_report_xml: str, bench_run: JobRun) -> "JobReport":
     logging.debug(f"Parsing BenchReport from {bench_report_xml}")
     with open(bench_report_xml, "r") as f:
         lines = f.readlines()
@@ -130,7 +214,7 @@ def _parse_bench_report_from_xml(bench_report_xml: str, bench_run: BenchRun) -> 
             score = score_match.group("score")
             assert label, "label element must be before score element"
             label_score_dict[label] = float(score)
-    return BenchReport(
+    return JobReport(
         label_score_dict=label_score_dict,
         bench_run=bench_run
     )
@@ -157,11 +241,17 @@ def _invoke_gh_api(endpoint: str,
         f"/repos/enso-org/enso{endpoint}" + ("" if len(query_str) == 0 else "?" + query_str)
     ]
     logging.info(f"Running subprocess `{' '.join(cmd)}`")
-    ret = subprocess.run(cmd, check=True, text=result_as_text, capture_output=True)
-    if result_as_text:
-        return json.loads(ret.stdout)
-    else:
-        return ret.stdout
+    try:
+        ret = subprocess.run(cmd, check=True, text=result_as_text, capture_output=True)
+        if result_as_text:
+            return json.loads(ret.stdout)
+        else:
+            return ret.stdout
+    except subprocess.CalledProcessError as err:
+        print("Command `" + " ".join(cmd) + "` FAILED with errcode " + str(err.returncode))
+        print(err.stdout)
+        print(err.stderr)
+        exit(err.returncode)
 
 
 class Cache:
@@ -173,7 +263,7 @@ class Cache:
         assert path.exists(dirname) and path.isdir(dirname)
         self._dir = dirname
         # Keys are BenchRun ids
-        self._items: Dict[str, BenchReport] = {}
+        self._items: Dict[str, JobReport] = {}
         for fname in os.listdir(dirname):
             fname_without_ext, ext = path.splitext(fname)
             if _is_benchrun_id(fname_without_ext) and ext == ".json":
@@ -190,14 +280,14 @@ class Cache:
         assert _is_benchrun_id(key)
         return key in self._items
 
-    def __getitem__(self, item: str) -> Optional[BenchReport]:
+    def __getitem__(self, item: str) -> Optional[JobReport]:
         if not _is_benchrun_id(item):
             return None
         else:
             return self._items[item]
 
-    def __setitem__(self, bench_run_id: str, bench_report: BenchReport) -> None:
-        assert isinstance(bench_report, BenchReport)
+    def __setitem__(self, bench_run_id: str, bench_report: JobReport) -> None:
+        assert isinstance(bench_report, JobReport)
         assert isinstance(bench_run_id, str)
         assert _is_benchrun_id(bench_run_id)
         self._items[bench_run_id] = bench_report
@@ -232,7 +322,7 @@ class FakeCache:
         return 0
 
 
-def get_bench_runs(since: datetime, until: datetime) -> List[BenchRun]:
+def get_bench_runs(since: datetime, until: datetime) -> List[JobRun]:
     logging.info(f"Looking for all successful Engine benchmark workflow run actions from {since} to {until}")
     query_fields = {
         "branch": "develop",
@@ -262,7 +352,16 @@ def get_bench_runs(since: datetime, until: datetime) -> List[BenchRun]:
     return parsed_bench_runs
 
 
-def get_bench_report(bench_run: BenchRun, cache: Cache, temp_dir: str) -> BenchReport:
+def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional[JobReport]:
+    """
+    Extracts some data from the given bench_run, which was fetched via the GH API,
+    optionally getting it from the cache.
+    An artifact in GH can expire, in such case, returns None.
+    :param bench_run:
+    :param cache:
+    :param temp_dir: Used for downloading and unzipping artifacts.
+    :return: None if the corresponding artifact expired.
+    """
     if bench_run.id in cache:
         logging.info(f"Getting bench run with ID {bench_run.id} from cache")
         return cache[bench_run.id]
@@ -279,6 +378,14 @@ def get_bench_report(bench_run: BenchRun, cache: Cache, temp_dir: str) -> BenchR
             bench_report_artifact = artifact
     assert bench_report_artifact, "Benchmark Report artifact not found"
     artifact_id = str(bench_report_artifact["id"])
+    if bench_report_artifact["expired"]:
+        created_at = bench_report_artifact["created_at"]
+        updated_at = bench_report_artifact["updated_at"]
+        expires_at = bench_report_artifact["expires_at"]
+        logging.warning(f"Artifact with ID {artifact_id} from bench report {bench_run.id} has expired. "
+                        f"created_at={created_at}, updated_at={updated_at}, expires_at={expires_at}")
+        return None
+
     # Get contents of the ZIP artifact file
     artifact_ret = _invoke_gh_api(f"/actions/artifacts/{artifact_id}/zip", result_as_text=False)
     zip_file_name = os.path.join(temp_dir, artifact_id + ".zip")
@@ -313,7 +420,7 @@ CSV_FIELDNAMES = [
 ]
 
 
-def write_bench_reports_to_csv(bench_reports: List[BenchReport], csv_fname: str) -> None:
+def write_bench_reports_to_csv(bench_reports: List[JobReport], csv_fname: str) -> None:
     logging.info(f"Writing {len(bench_reports)} benchmark reports to {csv_fname}")
     assert len(bench_reports) > 0
     with open(csv_fname, "w") as csv_file:
@@ -349,6 +456,105 @@ def populate_cache(cache_dir: str) -> Cache:
     return cache
 
 
+def create_data_for_benchmark(bench_reports: List[JobReport], bench_label: str) -> BenchmarkData:
+    """
+    Iterates through all the bench_reports and gathers all the data for the given
+    bench_label, i.e., for a single benchmark.
+    In every JobReport, there is just one score value for a particular `bench_label`.
+    That is why we have to iterate all the job reports.
+    :param bench_reports All bench reports gathered from the GH API.
+    :return:
+    """
+    entries: List[BenchmarkData.Entry] = []
+    for bench_report in bench_reports:
+        commit_id = bench_report.bench_run.head_commit.id
+        # Not all benchmark labels have to be present in all job reports.
+        if bench_label in bench_report.label_score_dict:
+            entries.append(BenchmarkData.Entry(
+                score=bench_report.label_score_dict[bench_label],
+                commit_id=bench_report.bench_run.head_commit.id,
+                commit_msg=bench_report.bench_run.head_commit.message,
+                commit_url=ENSO_COMMIT_BASE_URL + commit_id,
+                commit_author=bench_report.bench_run.head_commit.author.name,
+                commit_timestamp=datetime.strptime(bench_report.bench_run.head_commit.timestamp, GH_DATE_FORMAT),
+                bench_run_url=bench_report.bench_run.html_url,
+                bench_run_event=bench_report.bench_run.event
+            ))
+    # Sort the entries
+    sorted_entries = sorted(entries, key=lambda entry: entry.commit_timestamp)
+    return BenchmarkData(bench_label, sorted_entries)
+
+
+def _label_to_id(label: str) -> str:
+    return label.replace(".", "_")
+
+
+def create_template_data(bench_data: BenchmarkData) -> TemplateBenchData:
+    """
+    From the given benchmark data, creates data that will be passed into
+    the Jinja template.
+    """
+    logging.debug(f"Creating template data for benchmark with label '{bench_data.label}'")
+
+    def diff_str(score_diff: float, score_diff_perc: float) -> str:
+        if not np.isnan(score_diff):
+            diff_str = "+" if score_diff > 0 else ""
+            diff_str += "{:.5f}".format(score_diff)
+            diff_str += " ("
+            diff_str += "+" if score_diff_perc > 0 else ""
+            diff_str += "{:.5f}".format(score_diff_perc * 100)
+            diff_str += "%)"
+            return diff_str
+        else:
+            return "NA"
+
+    # Use pandas to get differences between scores, along with percentual
+    # difference.
+    score_series = pd.Series((entry.score for entry in bench_data.entries))
+    score_diffs = score_series.diff()
+    score_diffs_perc = score_series.pct_change()
+
+    # Create rows for each benchmark
+    chart_rows: List[ChartRow] = []
+    for i in range(len(bench_data.entries)):
+        entry = bench_data.entries[i]
+        score_diff = score_diffs[i]
+        score_diff_perc = score_diffs_perc[i]
+        tooltip = "score = " + str(entry.score) + "\\n"
+        tooltip += "date = " + str(entry.commit_timestamp) + "\\n"
+        tooltip += "diff = " + diff_str(score_diff, score_diff_perc)
+        chart_rows.append(
+            ChartRow(
+                score=entry.score,
+                timestamp=entry.commit_timestamp,
+                tooltip=tooltip
+            )
+        )
+    score_diffs_str = [diff_str(score_diff, score_diff_perc) for score_diff, score_diff_perc in zip(score_diffs, score_diffs_perc)]
+    return TemplateBenchData(
+        id=_label_to_id(bench_data.label),
+        rows=chart_rows,
+        score_diffs=score_diffs_str,
+        commit_authors=[entry.commit_author for entry in bench_data.entries],
+        commit_ids=[entry.commit_id for entry in bench_data.entries],
+        # Take just the first row of a commit message and replace all ' with ".
+        commit_msgs=[entry.commit_msg.splitlines()[0].replace("'", "\"") for entry in bench_data.entries],
+        commit_urls=[entry.commit_url for entry in bench_data.entries],
+    )
+
+
+def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) -> None:
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader("."))
+    jinja_template = jinja_env.get_template(template_file)
+    generated_html = jinja_template.render({
+        "since": jinja_data.since,
+        "until": jinja_data.until,
+        "bench_datas": jinja_data.bench_datas
+    })
+    with open(html_out_fname, "w") as html_file:
+        html_file.write(generated_html)
+
+
 if __name__ == '__main__':
     default_since = datetime.now() - timedelta(days=14)
     default_until = datetime.now()
@@ -357,16 +563,16 @@ if __name__ == '__main__':
     arg_parser.add_argument("-s", "--since", action="store",
                             default=default_since,
                             type=lambda s: datetime.strptime(s, DATE_FORMAT),
-                            help=f"The date from which the benchmark results will be gathered. Format is {DATE_FORMAT}."
+                            help=f"The date from which the benchmark results will be gathered. Format is " + DATE_FORMAT.replace("%", "%%") + ". "
                                  f"The default is 14 days before")
     arg_parser.add_argument("-u", "--until", action="store",
                             default=default_until,
                             type=lambda s: datetime.strptime(s, "%Y-%m-%d"),
-                            help=f"The date until which the benchmark results will be gathered. Format is {DATE_FORMAT}"
+                            help=f"The date until which the benchmark results will be gathered. Format is " + DATE_FORMAT.replace("%", "%%") + ". "
                                  f"The default is today")
     arg_parser.add_argument("-o", "--output",
                             default="Engine_Benchs/data/benchs.csv",
-                            help="Output CSV file")
+                            help="Output CSV file. Makes sense only when used with --create-csv argument")
     arg_parser.add_argument("-c", "--cache", action="store",
                             default=path.expanduser("~/.cache/enso_bench_cmp"),
                             help="Cache directory. Makes sense only iff specified with --use-cache argument")
@@ -376,6 +582,10 @@ if __name__ == '__main__':
     arg_parser.add_argument("--use-cache", action="store_true",
                             default=False,
                             help="Whether the cache directory should be used")
+    arg_parser.add_argument("--create-csv", action="store_true",
+                            default=False,
+                            help="Whether an intermediate `benchs.csv` should be created. "
+                                 "Appropriate to see whether the benchmark downloading was successful.")
     arg_parser.add_argument("-v", "--verbose", action="store_true")
     args = arg_parser.parse_args()
     if args.verbose:
@@ -410,11 +620,37 @@ if __name__ == '__main__':
         cache = FakeCache()
 
     bench_runs = get_bench_runs(since, until)
-    if len(bench_runs) > 0:
-        bench_reports = [get_bench_report(bench_run, cache, temp_dir) for bench_run in bench_runs]
-        write_bench_reports_to_csv(bench_reports, csv_fname)
-        print(f"Benchmarks written to {csv_fname}")
-    else:
+    if len(bench_runs) == 0:
         print(f"No successful benchmarks found within period since {since} until {until}")
         exit(1)
+    job_reports: List[JobReport] = []
+    for bench_run in bench_runs:
+        job_report = get_bench_report(bench_run, cache, temp_dir)
+        if job_report:
+            job_reports.append(job_report)
+    logging.debug(f"Got {len(job_reports)} job reports")
+    if args.create_csv:
+        write_bench_reports_to_csv(job_reports, csv_fname)
+        logging.info(f"Benchmarks written to {csv_fname}")
+
+    # Create a separate datatable for each benchmark label
+    # with 'label' and 'commit_timestamp' as columns.
+    bench_labels: List[str] = list(job_reports[0].label_score_dict.keys())
+    template_bench_datas: List[TemplateBenchData] = []
+    for bench_label in bench_labels:
+        bench_data = create_data_for_benchmark(job_reports, bench_label)
+        template_bench_datas.append(create_template_data(bench_data))
+    jinja_data = JinjaData(
+        since=since,
+        until=until,
+        bench_datas=template_bench_datas
+    )
+
+    # Render Jinja template with jinja_data
+    render_html(jinja_data, JINJA_TEMPLATE, "index.html")
+    index_html_path = os.path.join(os.getcwd(), "index.html")
+
+    print(f"The generated HTML is in {index_html_path}")
+    print(f"Open file://{index_html_path} in the browser")
+
 
