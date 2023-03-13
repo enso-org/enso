@@ -261,22 +261,22 @@ export const AuthProvider = (props: AuthProviderProps) => {
     toast.success(MESSAGES.setUsernameSuccess);
   };
 
-    const signOut = () =>
-        cognito
-            .signOut()
-            .then(() => toast.success(MESSAGES.signOutSuccess))
-            .then(() => {});
+  const signOut = () =>
+    cognito
+      .signOut()
+      .then(() => toast.success(MESSAGES.signOutSuccess))
+      .then(() => {});
 
-    const value = {
-        signUp: withLoadingToast(signUp),
-        confirmSignUp: withLoadingToast(confirmSignUp),
-        setUsername,
-        signInWithGoogle: cognito.signInWithGoogle,
-        signInWithGitHub: cognito.signInWithGitHub,
-        signInWithPassword: withLoadingToast(signInWithPassword),
-        signOut,
-        session: userSession,
-    };
+  const value = {
+    signUp: withLoadingToast(signUp),
+    confirmSignUp: withLoadingToast(confirmSignUp),
+    setUsername,
+    signInWithGoogle: cognito.signInWithGoogle,
+    signInWithGitHub: cognito.signInWithGitHub,
+    signInWithPassword: withLoadingToast(signInWithPassword),
+    signOut,
+    session: userSession,
+  };
 
   return (
     <AuthContext.Provider value={value}>

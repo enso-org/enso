@@ -452,8 +452,6 @@ const intoSignInWithPasswordErrorOrThrow = (error: AmplifyError): SignInWithPass
     throw error
 }
 
-
-
 // ===============
 // === SignOut ===
 // ===============
