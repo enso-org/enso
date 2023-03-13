@@ -30,8 +30,6 @@ type My
         My.Data x1 y1 -> My.Data y1 x1
 
 type My_Comparator
-    is_ordered = True
-
     compare left right =
         left_sum = left.x + left.y
         right_sum = right.x + right.y
@@ -86,14 +84,16 @@ spec =
             r2.at "bar" . to_vector . should_equal []
 
         Test.specify "should handle error scenarios gracefully" <|
-            Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument.Error
-            Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument.Error
-            Table.new [] . should_fail_with Illegal_Argument.Error
+            Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
+            Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
+            Table.new [] . should_fail_with Illegal_Argument
 
-            Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument.Error
-            Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with Index_Out_Of_Bounds.Error
-            Table.from_rows [] [] . should_fail_with Illegal_Argument.Error
-            Table.from_rows [] [[]] . should_fail_with Illegal_Argument.Error
+            Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument
+            Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with Index_Out_Of_Bounds
+            Table.from_rows [] [] . should_fail_with Illegal_Argument
+            Table.from_rows [] [[]] . should_fail_with Illegal_Argument
+
+            Table.new [["X", [1,2,3]], ["", [4,5,6]]] . should_fail_with Illegal_Argument
 
         Test.specify "should be internally guarded against creating a table without columns" <|
             Test.expect_panic_with (Java_Table.new []) IllegalArgumentException
@@ -153,7 +153,7 @@ spec =
             t.at 's\u0301ciana' . to_vector . should_equal [1, 2, 3]
             t.at 'cafe\u0301' . to_vector . should_equal [4, 5, 6]
             t.at 'café' . to_vector . should_equal [4, 5, 6]
-            t.at 'sciana' . should_fail_with No_Such_Column.Error
+            t.at 'sciana' . should_fail_with No_Such_Column
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
@@ -291,49 +291,49 @@ spec =
     Test.group "Filling Missing Values" <|
         Test.specify "should coerce non-coercible types to Object" <|
             strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
-            strs_filled = strs.fill_missing False
+            strs_filled = strs.fill_nothing False
             strs_filled.to_vector . should_equal ["a", False, "b", False]
             strs_filled.storage_type . should_equal Storage.Any
 
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_missing "X"
+            ints_filled = ints.fill_nothing "X"
             ints_filled.to_vector . should_equal [1, "X", 2, "X"]
             ints_filled.storage_type . should_equal Storage.Any
 
             bools = Column.from_vector 'x' [True, False, Nothing]
-            bools_filled = bools.fill_missing "X"
+            bools_filled = bools.fill_nothing "X"
             bools_filled.to_vector . should_equal [True, False, "X"]
             bools_filled.storage_type . should_equal Storage.Any
 
         Test.specify "should coerce long and double types to double" <|
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_missing 0.5
+            ints_filled = ints.fill_nothing 0.5
             ints_filled.to_vector . should_equal [1.0, 0.5, 2.0, 0.5]
             ints_filled.storage_type . should_equal Storage.Decimal
 
             decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
-            decimals_filled = decimals.fill_missing 42
+            decimals_filled = decimals.fill_nothing 42
             decimals_filled.to_vector . should_equal [0.5, 42.0, 42.0, 0.25]
             decimals_filled.storage_type . should_equal Storage.Decimal
 
         Test.specify "should keep String, Boolean, Long and Double type" <|
             strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
-            strs_filled = strs.fill_missing "X"
+            strs_filled = strs.fill_nothing "X"
             strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
             strs_filled.storage_type . should_equal Storage.Text
 
             bools = Column.from_vector 'x' [True, False, Nothing]
-            bools_filled = bools.fill_missing False
+            bools_filled = bools.fill_nothing False
             bools_filled.to_vector . should_equal [True, False, False]
             bools_filled.storage_type . should_equal Storage.Boolean
 
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_missing 42
+            ints_filled = ints.fill_nothing 42
             ints_filled.to_vector . should_equal [1, 42, 2, 42]
             ints_filled.storage_type . should_equal Storage.Integer
 
             decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
-            decimals_filled = decimals.fill_missing 1.0
+            decimals_filled = decimals.fill_nothing 1.0
             decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
             decimals_filled.storage_type . should_equal Storage.Decimal
 
@@ -448,7 +448,7 @@ spec =
             r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
 
             r6 = df.order_by (['mixed_dates'])
-            r6 . should_fail_with Incomparable_Values.Error
+            r6 . should_fail_with Incomparable_Values
 
     Test.group "Sorting Columns" <|
         Test.specify 'should sort columns with specified ordering and missing placement' <|
@@ -751,7 +751,7 @@ spec =
 
         Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|
             t = Table.new [["X", [My.Data 1 2, My.Data 3 4, My.Data 1 2]]]
-            t.distinct . should_fail_with Illegal_Argument.Error
+            t.distinct . should_fail_with Illegal_Argument
 
     Test.group "[In-Memory] Table.filter" <|
         Test.specify "by a custom predicate" <|
@@ -908,13 +908,13 @@ spec =
     Test.group "[In-Memory-specific] Table.join" <|
         Test.specify "should correctly report unsupported cross-backend joins" <|
             t = Table.new [["X", [1, 2, 3]]]
-            t.join 42 . should_fail_with Type_Error.Error
+            t.join 42 . should_fail_with Type_Error
 
             db = Database.connect (SQLite In_Memory)
             db_table = db.upload_table "test" (Table.new [["Y", [4, 5, 6]]])
 
             r = t.join db_table
-            r.should_fail_with Illegal_Argument.Error
+            r.should_fail_with Illegal_Argument
             r.catch.message . contains "cross-backend" . should_be_true
 
 main = Test_Suite.run_main spec

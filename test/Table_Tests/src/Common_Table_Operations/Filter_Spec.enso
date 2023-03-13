@@ -45,7 +45,7 @@ spec setup =
             v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
                 True -> v.should_equal []
-                False -> v.should_fail_with SQL_Error.Error
+                False -> v.should_fail_with SQL_Error
 
             t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [100]
             t.filter "X" (Filter_Condition.Less than=(t.at "Y")) . at "X" . to_vector . should_equal [3]
@@ -67,7 +67,7 @@ spec setup =
             v = t.filter "X" (Filter_Condition.Equal to=52) . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
                 True -> v.should_equal []
-                False -> v.should_fail_with SQL_Error.Error
+                False -> v.should_fail_with SQL_Error
 
             t.filter "X" (Filter_Condition.Greater than=(t.at "Y")) . at "X" . to_vector . should_equal ["abb", "baca"]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y")) . at "X" . to_vector . should_equal ["abb", "baca", "b", "c"]
@@ -154,7 +154,7 @@ spec setup =
         Test.specify "should check types for text operations" <|
             t = table_builder [["ix", [1, 2, 3, 4]], ["X", [Nothing, "A", "", " "]]]
             check_problem result =
-                result.should_fail_with Invalid_Value_Type.Error
+                result.should_fail_with Invalid_Value_Type
                 result.catch.expected . should_equal Value_Type.Char
 
             check_problem (t.filter "X" (Filter_Condition.Starts_With (t.at "ix")))
@@ -175,7 +175,7 @@ spec setup =
             check_problem (t.filter "ix" Filter_Condition.Not_Empty)
 
             check_scalar_type_error_handling name action =
-                action.should_fail_with Type_Error.Error
+                action.should_fail_with Type_Error
                 action.catch . should_equal (Type_Error.Error Text Integer name)
 
             check_scalar_type_error_handling "prefix" (t.filter "X" (Filter_Condition.Starts_With 42))
@@ -222,11 +222,11 @@ spec setup =
             v1 = t.filter "X" (Filter_Condition.Is_In ["c", "f", "b", "b", "b", 15, Nothing]) . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
                 True -> v1.should_equal ["b", "f"]
-                False -> v1.should_fail_with SQL_Error.Error
+                False -> v1.should_fail_with SQL_Error
             v2 = t.filter "ix" (Filter_Condition.Is_In ["c", 3, 2, "a"]) . at "ix" . to_vector
             case test_selection.allows_mixed_type_comparisons of
                 True -> v2.should_equal [2, 3]
-                False -> v2.should_fail_with SQL_Error.Error
+                False -> v2.should_fail_with SQL_Error
 
             t2 = table_builder [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
             t2.filter "A" (Filter_Condition.Is_In (t1.at "bool")) . at "A" . to_vector . should_equal [True, True]
@@ -254,7 +254,7 @@ spec setup =
         Test.specify "should check types of boolean operations" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
             check_problem result =
-                result.should_fail_with Invalid_Value_Type.Error
+                result.should_fail_with Invalid_Value_Type
                 result.catch.expected . should_equal Value_Type.Boolean
 
             check_problem <| t.filter "ix" Filter_Condition.Is_True
@@ -266,12 +266,12 @@ spec setup =
 
         Test.specify "should handle selection errors: unknown column name" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            t.filter "unknown column" . should_fail_with No_Such_Column.Error
+            t.filter "unknown column" . should_fail_with No_Such_Column
             t.filter "unknown column" . catch . should_equal (No_Such_Column.Error "unknown column")
 
         Test.specify "should handle selection errors: out of bounds index" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            t.filter 4 . should_fail_with Index_Out_Of_Bounds.Error
+            t.filter 4 . should_fail_with Index_Out_Of_Bounds
             t.filter 4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 1)
 
         Test.specify "should report issues: floating point equality" <|
@@ -339,11 +339,14 @@ spec setup =
 
         Test.specify "fail gracefully" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
-            t.filter_by_expression "[ix" . should_fail_with Expression_Error.Syntax_Error
-            t.filter_by_expression "NOT(b,False)" . should_fail_with Expression_Error.Argument_Mismatch
-            t.filter_by_expression "Starts_With(b)" . should_fail_with Expression_Error.Argument_Mismatch
-            t.filter_by_expression "[missing]" . should_fail_with No_Such_Column.Error
-            t.filter_by_expression "[ix]" . should_fail_with Invalid_Value_Type.Error
+            t.filter_by_expression "[ix" . should_fail_with Expression_Error
+            t.filter_by_expression "[ix" . catch . should_be_a Expression_Error.Syntax_Error
+            t.filter_by_expression "is_empty([b],False)" . should_fail_with Expression_Error
+            t.filter_by_expression "is_empty([b],False)" . catch . should_be_a Expression_Error.Argument_Mismatch
+            t.filter_by_expression "Starts_With([b])" . should_fail_with Expression_Error
+            t.filter_by_expression "Starts_With([b])" . catch . should_be_a Expression_Error.Argument_Mismatch
+            t.filter_by_expression "[missing]" . should_fail_with No_Such_Column
+            t.filter_by_expression "[ix]" . should_fail_with Invalid_Value_Type
 
         Test.specify "should report issues: floating point equality" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10.0, 2.0001, 2.0, 4.5, -2.0]]]

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.text;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
@@ -45,6 +46,7 @@ public abstract class RegexCompileNode extends Node {
     return compile(pattern.toString(), options.toString());
   }
 
+  @TruffleBoundary
   Object compile(String pattern, String options) {
     var ctx = EnsoContext.get(this);
     var env = ctx.getEnvironment();

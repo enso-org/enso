@@ -4,6 +4,7 @@ import org.enso.base.time.Date_Time_Utils;
 import org.enso.base.time.Date_Utils;
 import org.enso.base.time.TimeUtilsBase;
 import org.enso.base.time.Time_Of_Day_Utils;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.graalvm.polyglot.Value;
 
 import java.time.DateTimeException;
@@ -74,10 +75,7 @@ public class Time_Utils {
 
   /** @return default Date Time formatter for parsing a Date_Time. */
   public static DateTimeFormatter default_zoned_date_time_formatter() {
-    return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            .optionalStart().parseLenient().appendOffsetId().optionalEnd()
-            .optionalStart().appendLiteral('[').parseCaseSensitive().appendZoneRegionId().appendLiteral(']')
-            .toFormatter();
+    return Core_Date_Utils.defaultZonedDateTimeFormatter();
   }
 
   /** @return default Date Time formatter for writing a Date_Time. */
@@ -94,13 +92,7 @@ public class Time_Utils {
    * @return ISO format date time string
    */
   public static String normaliseISODateTime(String dateString) {
-    if (dateString != null && dateString.length() > 10 && dateString.charAt(10) == ' ') {
-      var builder = new StringBuilder(dateString);
-      builder.replace(10, 11, "T");
-      return builder.toString();
-    }
-
-    return dateString;
+    return Core_Date_Utils.normaliseISODateTime(dateString);
   }
 
   public static String local_date_format(LocalDate date, Object format) {

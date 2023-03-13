@@ -6,7 +6,7 @@ import scala.sys.process._
 
 /** A wrapper for executing the command `cargo`. */
 object Cargo {
-  private val cargoCmd = "cargo"
+  private val cargoCmd            = "cargo"
   private var wasCargoOk: Boolean = false
 
   /** Executes the command `cargo $args`. */
@@ -48,13 +48,13 @@ object Cargo {
   }
 
   /** Checks that cargo is installed. Logs an error and returns false if not. */
-  def cargoOk(log: ManagedLogger): Boolean = if (wasCargoOk) true else {
+  def cargoOk(log: ManagedLogger): Boolean = if (wasCargoOk) true
+  else {
     try {
       s"$cargoCmd version".!!
       wasCargoOk = true
       true
-    }
-    catch {
+    } catch {
       case _: RuntimeException =>
         log.error(s"The command `cargo` isn't on path. Did you install cargo?")
         false

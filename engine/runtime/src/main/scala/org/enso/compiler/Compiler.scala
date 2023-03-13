@@ -107,7 +107,8 @@ class Compiler(
     if (!builtins.isIrInitialized) {
       logger.log(
         Compiler.defaultLogLevel,
-        s"Initialising IR for [${builtins.getModule.getName}]."
+        "Initialising IR for [{}].",
+        builtins.getModule.getName
       )
 
       builtins.initializeBuiltinsSource()
@@ -169,7 +170,7 @@ class Compiler(
       case None =>
         logger.log(
           Level.SEVERE,
-          s"No package found in the compiler environment. Aborting."
+          "No package found in the compiler environment. Aborting."
         )
       case Some(pkg) =>
         val packageModule = packageRepository.getModuleMap.get(
@@ -179,8 +180,8 @@ class Compiler(
           case None =>
             logger.log(
               Level.SEVERE,
-              s"Could not find entry point for compilation in package " +
-              s"[${pkg.namespace}.${pkg.name}]."
+              "Could not find entry point for compilation in package [{}]",
+              s"${pkg.namespace}.${pkg.name}"
             )
           case Some(m) =>
             logger.log(
@@ -267,7 +268,8 @@ class Compiler(
       ) {
         logger.log(
           Compiler.defaultLogLevel,
-          s"Some imported modules' caches were invalided, forcing invalidation of ${module.getName.toString}"
+          "Some imported modules' caches were invalided, forcing invalidation of {}",
+          module.getName.toString
         )
         module.getCache.invalidate(context)
         parseModule(module)
@@ -287,14 +289,15 @@ class Compiler(
           if (!flags.contains(false)) {
             logger.log(
               Compiler.defaultLogLevel,
-              s"Restored links (late phase) for module [${module.getName}]."
+              "Restored links (late phase) for module [{}].",
+              module.getName
             )
           } else {
             hasInvalidModuleRelink = true
             logger.log(
               Compiler.defaultLogLevel,
-              s"Failed to restore links (late phase) for module " +
-              s"[${module.getName}]."
+              "Failed to restore links (late phase) for module [{}].",
+              module.getName
             )
             uncachedParseModule(module, isGenDocs = false)
           }
@@ -377,7 +380,8 @@ class Compiler(
         if (generateCode) {
           logger.log(
             Compiler.defaultLogLevel,
-            s"Generating code for module [${module.getName}]."
+            "Generating code for module [{}].",
+            module.getName
           )
 
           truffleCodegen(module.getIr, module.getSource, module.getScope)
@@ -396,7 +400,8 @@ class Compiler(
         } else {
           logger.log(
             Compiler.defaultLogLevel,
-            s"Skipping serialization for [${module.getName}]."
+            "Skipping serialization for [{}].",
+            module.getName
           )
         }
       }
@@ -485,7 +490,8 @@ class Compiler(
   ): Unit = {
     logger.log(
       Compiler.defaultLogLevel,
-      s"Parsing the module [${module.getName}]."
+      "Parsing module [{}].",
+      module.getName
     )
     module.ensureScopeExists(context)
     module.getScope.reset()
@@ -517,7 +523,8 @@ class Compiler(
   private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
     logger.log(
       Compiler.defaultLogLevel,
-      s"Loading module `${module.getName}` from source."
+      "Loading module [{}] from source.",
+      module.getName
     )
     module.ensureScopeExists(context)
     module.getScope.reset()

@@ -44,7 +44,7 @@ pub struct Instance {
     pub context:     Context,
     pub width:       i32,
     pub height:      i32,
-    pub pixel_ratio: i32,
+    pub pixel_ratio: f32,
 }
 
 impl Instance {
@@ -55,7 +55,7 @@ impl Instance {
         variables: &UniformScope,
         width: i32,
         height: i32,
-        pixel_ratio: i32,
+        pixel_ratio: f32,
     ) -> Self {
         let variables = variables.clone_ref();
         let context = context.clone();

@@ -31,8 +31,7 @@ public abstract class HasCustomComparatorNode extends Node {
 
   /**
    * Returns true if the given atom has a custom comparator, that is a comparator that is different
-   * than the default (internal) ones. The default comparators are {@code
-   * Default_Unordered_Comparator} and {@code Default_Ordered_Comparator}.
+   * than the default (internal) ones.
    *
    * @param atom Atom for which we check whether it has custom comparator
    * @return true iff the given atom has a custom comparator

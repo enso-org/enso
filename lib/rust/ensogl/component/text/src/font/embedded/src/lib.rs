@@ -131,9 +131,7 @@ pub fn embedded_family_definitions_ext() -> HashMap<family::Name, family::Defini
                 "DejaVuSansMono-Bold.ttf".to_string(),
             ),
         ]));
-    map.insert("dejavusans".into(), dejavusans.clone());
-    map.insert("dejavusansmono".into(), dejavusansmono.clone());
-    map.insert("default".into(), dejavusans);
-    map.insert("default-mono".into(), dejavusansmono);
+    map.insert("dejavusans".into(), dejavusans);
+    map.insert("dejavusansmono".into(), dejavusansmono);
     map
 }

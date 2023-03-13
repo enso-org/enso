@@ -42,6 +42,7 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.StreamSupport;
 
 import scala.jdk.javaapi.OptionConverters;
 
@@ -357,7 +358,7 @@ public class EnsoContext {
     if (file == null) {
       return Optional.empty();
     }
-    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
+    return StreamSupport.stream(packageRepository.getLoadedPackagesJava().spliterator(), true)
         .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
         .findFirst();
   }

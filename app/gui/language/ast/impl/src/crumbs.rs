@@ -107,9 +107,16 @@ impl LineDoesNotContainAst {
     }
 }
 
-#[derive(Debug, Display, Fail, Clone, Copy)]
-struct MismatchedCrumbType;
+#[derive(Debug, Fail, Clone, Copy)]
+#[fail(display = "The crumb '{}' is not applicable to '{}' shape.", crumb, shape)]
+struct MismatchedCrumbType {
+    shape: &'static str,
+    crumb: &'static str,
+}
 
+#[derive(Debug, Fail, Clone, Copy)]
+#[fail(display = "The crumb refers to a non-Child tree variant.")]
+struct NonChildTreeCrumb;
 
 
 // =============
@@ -265,14 +272,14 @@ macro_rules! impl_crumbs {
             fn get(&self, crumb:&Self::Crumb) -> FallibleResult<&Ast> {
                 match (self,crumb) {
                     $((Shape::$id(shape),Crumb::$id(crumb)) => shape.get(crumb),)*
-                    _ => Err(MismatchedCrumbType.into())
+                    (shape, crumb) => Err(MismatchedCrumbType { shape: shape.variant_name(), crumb: crumb.variant_name() }.into())
                 }
             }
 
             fn set(&self, crumb:&Self::Crumb, new_ast:Ast) -> FallibleResult<Self> {
                 match (self,crumb) {
                     $((Shape::$id(shape),Crumb::$id(crumb)) => Ok(shape.set(crumb,new_ast)?.into()),)*
-                    _ => Err(MismatchedCrumbType.into())
+                    (shape, crumb) => Err(MismatchedCrumbType { shape: shape.variant_name(), crumb: crumb.variant_name() }.into())
                 }
             }
 
@@ -285,7 +292,7 @@ macro_rules! impl_crumbs {
         }
 
         /// Crumb identifies location of child AST in an AST node. Allows for a single step AST traversal.
-        #[derive(Clone,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
+        #[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
         #[allow(missing_docs)]
         pub enum Crumb {
             $($id($crumb_id),)*
@@ -301,6 +308,13 @@ macro_rules! impl_crumbs {
                     }
                 }
             )*
+
+            /// Get the Crumb variant name as a static string. Does not contain the module path.
+            pub fn variant_name(&self) -> &'static str {
+                match self {
+                    $(Self::$id{..} => stringify!($id),)*
+                }
+            }
         }
     }
 }
@@ -613,7 +627,7 @@ impl Crumbable for crate::Tree<Ast> {
             .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?
         {
             SpanSeed::Child(crate::SpanSeedChild { node }) => Ok(node),
-            _ => Err(MismatchedCrumbType.into()),
+            _ => Err(NonChildTreeCrumb.into()),
         }
     }
 
@@ -635,7 +649,7 @@ impl Crumbable for crate::Tree<Ast> {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TreeCrumb {
     pub index: usize,
 }

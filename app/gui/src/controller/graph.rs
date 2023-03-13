@@ -450,9 +450,12 @@ impl EndpointInfo {
         self.ast.set_traversing(&self.full_ast_crumbs()?, ast_to_set)
     }
 
-    /// Erases given port. Returns new root Ast.
-    pub fn erase(&self) -> FallibleResult<Ast> {
-        self.port()?.erase(&self.ast)
+    /// Erases given port. Returns new root Ast and crumbs pointing to the nearest insertion point.
+    pub fn erase(
+        &self,
+        context: &impl SpanTreeContext,
+    ) -> FallibleResult<(Ast, span_tree::Crumbs)> {
+        self.port()?.erase(&self.ast, context)
     }
 }
 
@@ -730,21 +733,24 @@ impl Handle {
         self.place_node_and_dependencies_lines_after(source_node, destination_node)
     }
 
-    /// Remove the connections from the graph.
+    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
+    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
+    /// returned, no update is necessary.
     pub fn disconnect(
         &self,
         connection: &Connection,
         context: &impl SpanTreeContext,
-    ) -> FallibleResult {
+    ) -> FallibleResult<Option<span_tree::Crumbs>> {
         let _transaction_guard = self.get_or_open_transaction("Disconnect");
         let info = self.destination_info(connection, context)?;
 
+        let mut new_destination_crumbs = None;
         let updated_expression = if connection.destination.var_crumbs.is_empty() {
             let port = info.port()?;
-            let only_insertion_points_after =
-                info.chained_ports_after().all(|p| p.node.is_insertion_point());
-            if port.is_action_available(Action::Erase) && only_insertion_points_after {
-                info.erase()
+            if port.is_action_available(Action::Erase) {
+                let (ast, crumbs) = info.erase(context)?;
+                new_destination_crumbs = Some(crumbs);
+                Ok(ast)
             } else {
                 info.set(Ast::blank())
             }
@@ -752,7 +758,8 @@ impl Handle {
             info.set_ast(Ast::blank())
         }?;
 
-        self.set_expression_ast(connection.destination.node, updated_expression)
+        self.set_expression_ast(connection.destination.node, updated_expression)?;
+        Ok(new_destination_crumbs)
     }
 
     /// Obtain the definition information for this graph from the module's AST.
@@ -879,7 +886,8 @@ impl Handle {
         let port = node_span_tree.get_node(crumbs)?;
         let new_node_ast = if expression_text.as_ref().is_empty() {
             if port.is_action_available(Action::Erase) {
-                port.erase(&node_ast)?
+                let (ast, _) = port.erase(&node_ast, context)?;
+                ast
             } else {
                 port.set(&node_ast, Ast::blank())?
             }
@@ -1039,6 +1047,7 @@ pub mod tests {
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;
     use parser::Parser;
+    use span_tree::generate::MockContext;
 
 
 
@@ -1720,7 +1729,9 @@ main =
         struct Case {
             dest_node_expr:     &'static str,
             dest_node_expected: &'static str,
+            info:               Option<CalledMethodInfo>,
         }
+
 
         impl Case {
             fn run(&self) {
@@ -1730,25 +1741,57 @@ main =
                 let expected = format!("{}{}", MAIN_PREFIX, self.dest_node_expected);
                 let this = self.clone();
                 test.run(|graph| async move {
-                    let connections = connections(&graph).unwrap();
-                    let connection = connections.connections.first().unwrap();
-                    graph.disconnect(connection, &span_tree::generate::context::Empty).unwrap();
-                    let new_main = graph.definition().unwrap().ast.repr();
-                    assert_eq!(new_main, expected, "Case {this:?}");
+                    let error_message = format!("{this:?}");
+                    let ctx = match this.info.clone() {
+                        Some(info) => {
+                            let nodes = graph.nodes().expect(&error_message);
+                            let dest_node_id = nodes.last().expect(&error_message).id();
+                            MockContext::new_single(dest_node_id, info)
+                        }
+                        None => MockContext::default(),
+                    };
+                    let connections = graph.connections(&ctx).expect(&error_message);
+                    let connection = connections.connections.first().expect(&error_message);
+                    graph.disconnect(connection, &ctx).expect(&error_message);
+                    let new_main = graph.definition().expect(&error_message).ast.repr();
+                    assert_eq!(new_main, expected, "{error_message}");
                 })
             }
         }
 
+        let info = || {
+            Some(CalledMethodInfo {
+                parameters: vec![
+                    span_tree::ArgumentInfo::named("arg1"),
+                    span_tree::ArgumentInfo::named("arg2"),
+                    span_tree::ArgumentInfo::named("arg3"),
+                ],
+                ..default()
+            })
+        };
+
+        #[rustfmt::skip]
         let cases = &[
-            Case { dest_node_expr: "foo var", dest_node_expected: "foo _" },
-            Case { dest_node_expr: "foo var a", dest_node_expected: "foo _ a" },
-            Case { dest_node_expr: "foo a var", dest_node_expected: "foo a" },
-            Case { dest_node_expr: "var + a", dest_node_expected: "_ + a" },
-            Case { dest_node_expr: "a + var", dest_node_expected: "a + _" },
-            Case { dest_node_expr: "var + b + c", dest_node_expected: "_ + b + c" },
-            Case { dest_node_expr: "a + var + c", dest_node_expected: "a + _ + c" },
-            Case { dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
+            Case { info: None, dest_node_expr: "var + a", dest_node_expected: "_ + a" },
+            Case { info: None, dest_node_expr: "a + var", dest_node_expected: "a + _" },
+            Case { info: None, dest_node_expr: "var + b + c", dest_node_expected: "b + c" },
+            Case { info: None, dest_node_expr: "a + var + c", dest_node_expected: "a + c" },
+            Case { info: None, dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
+            Case { info: None, dest_node_expr: "foo var", dest_node_expected: "foo _" },
+            Case { info: None, dest_node_expr: "foo var a", dest_node_expected: "foo a" },
+            Case { info: None, dest_node_expr: "foo a var", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo var", dest_node_expected: "foo" },
+            Case { info: info(), dest_node_expr: "foo var a", dest_node_expected: "foo arg2=a" },
+            Case { info: info(), dest_node_expr: "foo a var", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo arg2=var a", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo arg1=var a", dest_node_expected: "foo arg2=a" },
             Case {
+                info: info(),
+                dest_node_expr: "foo arg2=var a c",
+                dest_node_expected: "foo a arg3=c"
+            },
+            Case {
+                info: None,
                 dest_node_expr:     "f\n        bar a var",
                 dest_node_expected: "f\n        bar a _",
             },

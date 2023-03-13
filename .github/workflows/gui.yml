@@ -48,17 +48,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -70,7 +67,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-build-backend-macos:
     name: Build Backend (macos)
     runs-on:
@@ -108,17 +104,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -130,7 +123,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-build-backend-windows:
     name: Build Backend (windows)
     runs-on:
@@ -170,17 +162,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -192,7 +181,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
     runs-on:
@@ -232,17 +220,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -254,7 +239,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-build-wasm-macos:
     name: Build GUI (WASM) (macos)
     runs-on:
@@ -292,17 +276,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -314,7 +295,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-build-wasm-windows:
     name: Build GUI (WASM) (windows)
     runs-on:
@@ -354,17 +334,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -376,7 +353,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-cancel-workflow-linux:
     name: Cancel Previous Runs
     runs-on:
@@ -425,17 +401,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -447,7 +420,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-native-test-linux:
     name: Native GUI tests (linux)
     runs-on:
@@ -487,17 +459,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run wasm test --no-wasm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -509,7 +478,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-package-ide-linux:
     name: Package IDE (linux)
     needs:
@@ -552,17 +520,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run ide build --wasm-source current-ci-run --backend-source current-ci-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -574,7 +539,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-package-ide-macos:
     name: Package IDE (macos)
     needs:
@@ -615,13 +579,11 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run ide build --wasm-source current-ci-run --backend-source current-ci-run
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
@@ -630,7 +592,6 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
           CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -642,7 +603,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-package-ide-windows:
     name: Package IDE (windows)
     needs:
@@ -685,19 +645,16 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run ide build --wasm-source current-ci-run --backend-source current-ci-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -709,7 +666,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-wasm-test-linux:
     name: WASM GUI tests (linux)
     runs-on:
@@ -749,17 +705,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run wasm test --no-native
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -771,6 +724,5 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

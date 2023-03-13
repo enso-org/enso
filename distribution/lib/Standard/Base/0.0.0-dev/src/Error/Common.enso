@@ -150,7 +150,7 @@ type Incomparable_Values
        Arguments:
        - left: The left value (first operand)
        - right: The right value (second operand)
-    Error left=Nothing right=Nothing
+    Error left right
 
     ## UNSTABLE
 
@@ -165,10 +165,10 @@ type Incomparable_Values
        Catches possible errors from comparing values and throws an
        `Incomparable_Values` if any occur.
     handle_errors ~function =
-        handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values.Error)
+        handle t = Panic.catch t handler=(_-> Error.throw (Incomparable_Values.Error Nothing Nothing))
         handle_cmp_exc = Panic.catch CompareException handler=(exc-> Error.throw (Incomparable_Values.Error exc.getLeftOperand exc.getRightOperand))
 
-        handle ClassCastException <| handle No_Such_Method.Error <| handle Type_Error.Error <| handle Unsupported_Argument_Types.Error <| handle_cmp_exc <|
+        handle ClassCastException <| handle No_Such_Method <| handle Type_Error <| handle Unsupported_Argument_Types <| handle_cmp_exc <|
             function
 
 @Builtin_Type
