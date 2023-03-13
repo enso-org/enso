@@ -1,18 +1,10 @@
 package org.enso.languageserver.protocol.json
 
 import io.circe.generic.auto._
-import org.enso.cli.task.notifications.TaskNotificationApi.{
-  TaskFinished,
-  TaskProgressUpdate,
-  TaskStarted
-}
+import org.enso.cli.task.notifications.TaskNotificationApi.{TaskFinished, TaskProgressUpdate, TaskStarted}
 import org.enso.jsonrpc.Protocol
-import org.enso.languageserver.capability.CapabilityApi.{
-  AcquireCapability,
-  ForceReleaseCapability,
-  GrantCapability,
-  ReleaseCapability
-}
+import org.enso.languageserver.ai.AICompletion
+import org.enso.languageserver.capability.CapabilityApi.{AcquireCapability, ForceReleaseCapability, GrantCapability, ReleaseCapability}
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
@@ -78,6 +70,7 @@ object JsonRpc {
     .registerRequest(GetSuggestionsDatabaseVersion)
     .registerRequest(InvalidateSuggestionsDatabase)
     .registerRequest(Completion)
+    .registerRequest(AICompletion)
     .registerRequest(RenameProject)
     .registerRequest(ProjectInfo)
     .registerRequest(EditionsListAvailable)

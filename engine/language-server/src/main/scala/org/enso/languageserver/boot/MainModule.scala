@@ -77,6 +77,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     ContentRoot.Project(serverConfig.contentRootUuid),
     new File(serverConfig.contentRootPath)
   )
+
+  private val openAiKey = sys.env.get("OPENAI_API_KEY")
+  private val openAiCfg = openAiKey.map(AICompletionConfig)
+
   val languageServerConfig = Config(
     contentRoot,
     FileManagerConfig(timeout    = 3.seconds),
@@ -84,7 +88,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     PathWatcherConfig(),
     ExecutionContextConfig(),
     directoriesConfig,
-    serverConfig.profilingConfig
+    serverConfig.profilingConfig,
+    openAiCfg
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 

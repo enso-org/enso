@@ -37,8 +37,10 @@ pub mod action;
 pub mod breadcrumbs;
 pub mod component;
 
+use crate::controller::graph::executed::Handle;
+use crate::model::execution_context::QualifiedMethodPointer;
+use crate::model::execution_context::Visualization;
 pub use action::Action;
-
 
 
 // =================
@@ -92,6 +94,16 @@ pub struct CannotExecuteWhenEditingNode;
 
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Fail)]
+#[fail(display = "An action cannot be executed when searcher is run without `this` argument.")]
+pub struct CannotRunWithoutThisArgument;
+
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Fail)]
+#[fail(display = "No visualization data received for an AI suggestion.")]
+pub struct NoAIVisualizationDataReceived;
+
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Fail)]
 #[fail(display = "Cannot commit expression in current mode ({:?}).", mode)]
 pub struct CannotCommitExpression {
     mode: Mode,
@@ -103,12 +115,12 @@ pub struct CannotCommitExpression {
 // =====================
 
 /// The notification emitted by Searcher Controller
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Notification {
     /// A new Suggestion list is available.
     NewActionList,
+    AISuggestionUpdated(String),
 }
-
 
 
 // ===================
@@ -152,7 +164,6 @@ impl Default for Actions {
         Self::Loading
     }
 }
-
 
 
 // ===================
@@ -288,7 +299,7 @@ impl ParsedInput {
                 chain.wrapped.args.push(argument);
             }
             Some(chain)
-        // If there isn't any expression part, the pattern is the whole input.
+            // If there isn't any expression part, the pattern is the whole input.
         } else if let Some(sast) = pattern_sast {
             let chain = ast::prefix::Chain::from_ast_non_strict(&sast.wrapped);
             Some(ast::Shifted::new(self.pattern_offset, chain))
@@ -312,7 +323,6 @@ impl Display for ParsedInput {
         write!(f, "{}", self.repr())
     }
 }
-
 
 
 // ================
@@ -368,7 +378,6 @@ impl ThisNode {
         Ok(())
     }
 }
-
 
 
 // ===========================
@@ -720,12 +729,64 @@ impl Searcher {
         self.notifier.notify(Notification::NewActionList);
     }
 
+    const AI_QUERY_PREFIX: &'static str = "AI:";
+    const AI_QUERY_ACCEPT_TOKEN: &'static str = "#";
+    const AI_STOP_SEQUENCE: &'static str = "`";
+
+    async fn accept_ai_query(
+        query: String,
+        this: ThisNode,
+        graph: Handle,
+        notifier: notification::Publisher<Notification>,
+    ) -> FallibleResult {
+        let vis_ptr = QualifiedMethodPointer::from_qualified_text(
+            "Standard.Visualization.AI",
+            "Standard.Visualization.AI",
+            "build_ai_prompt",
+        )?;
+        let goal_arg = format!("\"{}\"", query);
+        let stop_arg = format!("\"{}\"", Self::AI_STOP_SEQUENCE);
+        let vis = Visualization::new(this.id, vis_ptr, vec![goal_arg, stop_arg]);
+        let mut result = graph.attach_visualization(vis.clone()).await?;
+        let next = result.next().await.ok_or(NoAIVisualizationDataReceived)?;
+        let prompt = std::str::from_utf8(&next)?;
+        graph.detach_visualization(vis.id).await?;
+        let completion = graph.get_ai_completion(&prompt, Self::AI_STOP_SEQUENCE).await?;
+        notifier.publish(Notification::AISuggestionUpdated(completion)).await;
+        Ok(())
+    }
+
+    fn handle_ai_query(&self, query: String) -> FallibleResult {
+        let query = query.trim_start_matches(Self::AI_QUERY_PREFIX);
+        if !query.ends_with(Self::AI_QUERY_ACCEPT_TOKEN) {
+            return Ok(());
+        }
+        let query = query.trim_end_matches(Self::AI_QUERY_ACCEPT_TOKEN).trim().to_string();
+        let this = self.this_arg.clone();
+        if this.is_none() {
+            return Err(CannotRunWithoutThisArgument.into());
+        }
+        let this = this.as_ref().as_ref().unwrap().clone();
+        let graph = self.graph.clone_ref();
+        let notifier = self.notifier.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(e) = Self::accept_ai_query(query, this, graph, notifier).await {
+                error!("error when handling AI query: {e}");
+            }
+        });
+
+        Ok(())
+    }
+
     /// Set the Searcher Input.
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String) -> FallibleResult {
+        if new_input.starts_with(Self::AI_QUERY_PREFIX) {
+            return self.handle_ai_query(new_input);
+        }
         debug!("Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input, self.ide.parser())?;
         let old_expr = self.data.borrow().input.expression.repr();
@@ -1608,7 +1669,6 @@ impl Drop for EditGuard {
 }
 
 
-
 // === SimpleFunctionCall ===
 
 /// A simple function call is an AST where function is a single identifier with optional
@@ -1658,7 +1718,6 @@ fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
         Ast::new(shape, None)
     }
 }
-
 
 
 // =============
