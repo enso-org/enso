@@ -76,13 +76,13 @@ pub async fn latest_nightly_release(repo: &github::repo::Handle<impl IsRepo>) ->
 /// Keeps the version of Enso, edition name and whether this version should be treated as a release.
 ///
 /// Basically this is everything that is needed to define the version of the build.
-#[derive(Clone, Derivative, Serialize, Deserialize, Shrinkwrap, PartialEq, Eq)]
+#[derive(Clone, Derivative, Serialize, Deserialize, Deref, PartialEq, Eq)]
 #[derivative(Debug)]
 pub struct Versions {
     /// The version of Enso.
     ///
     /// Currently it also doubles as the edition name. In future we might want to separate them.
-    #[shrinkwrap(main_field)]
+    #[deref]
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub version: Version,
 
@@ -233,7 +233,7 @@ pub fn same_core_version(a: &Version, b: &Version) -> bool {
 }
 
 pub fn generate_rc_prerelease(index: u32) -> Result<Prerelease> {
-    Prerelease::from_str(&format!("{}.{}", RC_BUILD_PREFIX, index))
+    Prerelease::from_str(&format!("{RC_BUILD_PREFIX}.{index}"))
 }
 
 #[instrument(ret)]

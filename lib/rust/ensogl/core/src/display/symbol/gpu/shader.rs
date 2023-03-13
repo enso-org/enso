@@ -62,7 +62,7 @@ pub struct ShaderData {
     geometry_material   : Material,
     surface_material    : Material,
     program             : Rc<RefCell<Option<shader::Program>>>,
-    shader_compiler_job : Option<shader_compiler::JobHandler>,
+    shader_compiler_job : Option<shader_compiler::JobHandle>,
     dirty               : Dirty,
     stats               : Stats,
     profiler            : Option<profiler::Debug>,
@@ -119,48 +119,71 @@ impl {
         }
     }
 
+    /// Get the shader code in GLSL 310 format. The shader parameters will not be bound to any
+    /// particular mesh and thus this code can be used for optimization purposes only.
+    pub fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
+        let bindings = self.collect_variables().map(|(name, decl)| {
+            let scope = if decl.tp.uniform_or_function_parameter_only() {
+                ScopeType::Global
+            } else {
+                ScopeType::Mesh(crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance)
+            };
+            VarBinding::new(name, decl, Some(scope))
+        }).collect_vec();
+        self.gen_gpu_code(glsl::Version::V310, &bindings)
+    }
+
+    /// Generate the final GLSL code based on the provided bindings.
+    pub fn gen_gpu_code(
+            &self,
+            glsl_version: glsl::Version,
+            bindings:&[VarBinding]
+        ) -> crate::system::gpu::shader::Code {
+        debug_span!("Generating GPU code.").in_scope(|| {
+            let mut shader_cfg = builder::ShaderConfig::new(glsl_version);
+            let mut shader_builder = builder::ShaderBuilder::new(glsl_version);
+
+            for binding in bindings {
+                let name = &binding.name;
+                let tp   = &binding.decl.tp;
+                match binding.scope {
+                    None => {
+                        warn!("Default shader values are not implemented yet. \
+                               This will cause visual glitches.");
+                        shader_cfg.add_uniform(name,tp);
+                    },
+                    Some(scope_type) => match scope_type {
+                        ScopeType::Symbol => shader_cfg.add_uniform   (name,tp),
+                        ScopeType::Global => shader_cfg.add_uniform   (name,tp),
+                        _                 => shader_cfg.add_attribute (name,tp),
+                    }
+                }
+            }
+
+            self.geometry_material.outputs().iter().for_each(|(name,decl)|{
+                shader_cfg.add_shared_attribute(name,&decl.tp);
+            });
+
+            shader_cfg.add_output("color", glsl::PrimType::Vec4);
+            self.surface_material.outputs().iter().for_each(|(name,decl)|{
+                shader_cfg.add_output(name,&decl.tp);
+            });
+
+            let vertex_code = self.geometry_material.code().clone();
+            let fragment_code = self.surface_material.code().clone();
+            shader_builder.compute(&shader_cfg, vertex_code, fragment_code);
+            shader_builder.build()
+        })
+    }
+
     /// Check dirty flags and update the state accordingly.
     pub fn update<F: 'static + Fn(&[VarBinding], &shader::Program)>
     (&mut self, bindings:Vec<VarBinding>, on_ready:F) {
         debug_span!("Updating.").in_scope(|| {
             if let Some(context) = &self.context {
                 if self.dirty.check_all() {
-
                     self.stats.inc_shader_compile_count();
-
-                    let mut shader_cfg     = builder::ShaderConfig::new();
-                    let mut shader_builder = builder::ShaderBuilder::new();
-
-                    for binding in &bindings {
-                        let name = &binding.name;
-                        let tp   = &binding.decl.tp;
-                        match binding.scope {
-                            None => {
-                                warn!("Default shader values are not implemented yet. \
-                                       This will cause visual glitches.");
-                                shader_cfg.add_uniform(name,tp);
-                            },
-                            Some(scope_type) => match scope_type {
-                                ScopeType::Symbol => shader_cfg.add_uniform   (name,tp),
-                                ScopeType::Global => shader_cfg.add_uniform   (name,tp),
-                                _                 => shader_cfg.add_attribute (name,tp),
-                            }
-                        }
-                    }
-
-                    self.geometry_material.outputs().iter().for_each(|(name,decl)|{
-                        shader_cfg.add_shared_attribute(name,&decl.tp);
-                    });
-
-                    shader_cfg.add_output("color", glsl::PrimType::Vec4);
-                    self.surface_material.outputs().iter().for_each(|(name,decl)|{
-                        shader_cfg.add_output(name,&decl.tp);
-                    });
-
-                    let vertex_code = self.geometry_material.code().clone();
-                    let fragment_code = self.surface_material.code().clone();
-                    shader_builder.compute(&shader_cfg, vertex_code, fragment_code);
-                    let code = shader_builder.build();
+                    let code = self.gen_gpu_code(glsl::Version::V300, &bindings);
 
                     *self.program.borrow_mut() = None;
                     let program = self.program.clone_ref();
@@ -177,16 +200,19 @@ impl {
     }
 
     fn cancel_previous_shader_compiler_job_and_use_new_one
-    (&mut self, handler: shader_compiler::JobHandler) {
+    (&mut self, handler: shader_compiler::JobHandle) {
         // Dropping the previous handler.
         self.shader_compiler_job = Some(handler);
     }
 
     /// Traverses the shader definition and collects all attribute names.
-    pub fn collect_variables(&self) -> BTreeMap<String,VarDecl> {
-        let geometry_material_inputs = self.geometry_material.inputs().clone();
-        let surface_material_inputs  = self.surface_material.inputs().clone();
-        geometry_material_inputs.into_iter().chain(surface_material_inputs).collect()
+    pub fn collect_variables(&self) -> impl Iterator<Item=(String, VarDecl)> {
+        let geometry_inputs = self.geometry_material.inputs().iter();
+        let surface_inputs = self.surface_material.inputs().iter();
+        geometry_inputs.chain(surface_inputs)
+            .map(|(name, declaration)| (name.clone(), declaration.clone()))
+            .collect_vec()
+            .into_iter()
     }
 }}
 

@@ -9,7 +9,9 @@ use crate::FailedIde;
 
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
+use enso_web::sleep;
 use ensogl::application::Application;
+use std::time::Duration;
 use uuid::Uuid;
 
 
@@ -22,6 +24,13 @@ use uuid::Uuid;
 //     download required version of Engine. This should be handled properly when implementing
 //     https://github.com/enso-org/ide/issues/1034
 const PROJECT_MANAGER_TIMEOUT_SEC: u64 = 2 * 60 * 60;
+
+/// Times to wait for the subsequent IDE initialization retry.
+///
+/// The IDE initialization is prone to connectivity problems, therefore we retry it several times.
+/// The number of retries is equal to this slice length.
+const INITIALIZATION_RETRY_TIMES: &[Duration] =
+    &[Duration::from_secs(1), Duration::from_secs(2), Duration::from_secs(4)];
 
 
 
@@ -46,14 +55,12 @@ pub struct ProjectNotFound {
 #[derive(Clone, Debug)]
 pub struct Initializer {
     config: config::Startup,
-    logger: Logger,
 }
 
 impl Initializer {
     /// Create [`Initializer`] with given configuration.
     pub fn new(config: config::Startup) -> Self {
-        let logger = Logger::new("ide::Initializer");
-        Self { config, logger }
+        Self { config }
     }
 
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
@@ -75,7 +82,7 @@ impl Initializer {
             config::InitialView::Project => view.switch_view_to_project(),
         }
 
-        if enso_config::ARGS.emit_user_timing_measurements.unwrap_or_default() {
+        if enso_config::ARGS.groups.profile.options.emit_user_timing_measurements.value {
             ensogl_app.display.connect_profiler_to_user_timing();
         }
         let status_bar = view.status_bar().clone_ref();
@@ -83,17 +90,29 @@ impl Initializer {
         // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
         //      issues to user, such information should be properly passed
         //      in case of setup failure.
-        match self.initialize_ide_controller().await {
-            Ok(controller) => {
-                let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
-                info!("Setup done.");
-                Ok(ide)
-            }
-            Err(error) => {
-                let message = format!("Failed to initialize application: {error}");
-                error!("{message}");
-                status_bar.add_event(ide_view::status_bar::event::Label::new(message));
-                Err(FailedIde { view })
+
+        let mut retry_after = INITIALIZATION_RETRY_TIMES.iter();
+        loop {
+            match self.initialize_ide_controller().await {
+                Ok(controller) => {
+                    let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
+                    info!("Setup done.");
+                    break Ok(ide);
+                }
+                Err(error) => {
+                    let message = format!("Failed to initialize application: {error}");
+                    error!("{message}");
+                    match retry_after.next() {
+                        Some(time) => {
+                            error!("Retrying after {} seconds", time.as_secs_f32());
+                            sleep(*time).await;
+                        }
+                        None => {
+                            status_bar.add_event(ide_view::status_bar::event::Label::new(message));
+                            break Err(FailedIde { view });
+                        }
+                    }
+                }
             }
         }
     }
@@ -140,7 +159,7 @@ impl Initializer {
         &self,
         endpoint: &str,
     ) -> FallibleResult<Rc<dyn project_manager::API>> {
-        let transport = WebSocket::new_opened(self.logger.clone_ref(), endpoint).await?;
+        let transport = WebSocket::new_opened(endpoint).await?;
         let mut project_manager = project_manager::Client::new(transport);
         project_manager.set_timeout(std::time::Duration::from_secs(PROJECT_MANAGER_TIMEOUT_SEC));
         executor::global::spawn(project_manager.runner());
@@ -163,7 +182,6 @@ impl Initializer {
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct WithProjectManager {
-    pub logger:          Logger,
     #[derivative(Debug = "ignore")]
     pub project_manager: Rc<dyn project_manager::API>,
     pub project_name:    ProjectName,
@@ -172,8 +190,7 @@ pub struct WithProjectManager {
 impl WithProjectManager {
     /// Constructor.
     pub fn new(project_manager: Rc<dyn project_manager::API>, project_name: ProjectName) -> Self {
-        let logger = Logger::new("initializer::WithProjectManager");
-        Self { logger, project_manager, project_name }
+        Self { project_manager, project_name }
     }
 
     /// Create and initialize a new Project Model, for a project with name passed in constructor.
@@ -181,16 +198,16 @@ impl WithProjectManager {
     /// If the project with given name does not exist yet, it will be created.
     pub async fn initialize_project_model(self) -> FallibleResult<model::Project> {
         let project_id = self.get_project_or_create_new().await?;
-        let logger = &self.logger;
         let project_manager = self.project_manager;
-        model::project::Synchronized::new_opened(logger, project_manager, project_id).await
+        model::project::Synchronized::new_opened(project_manager, project_id).await
     }
 
     /// Creates a new project and returns its id, so the newly connected project can be opened.
     pub async fn create_project(&self) -> FallibleResult<Uuid> {
         use project_manager::MissingComponentAction::Install;
         info!("Creating a new project named '{}'.", self.project_name);
-        let version = enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
+        let version = &enso_config::ARGS.groups.engine.options.preferred_version.value;
+        let version = (!version.is_empty()).as_some_from(|| version.clone());
         let name = &self.project_name;
         let response = self.project_manager.create_project(name, &None, &version, &Install);
         Ok(response.await?.project_id)
@@ -249,7 +266,7 @@ pub fn register_views(app: &Application) {
     type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
     app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
 
-    if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
+    if enso_config::ARGS.groups.startup.options.platform.value == "web" {
         app.views.register::<ide_view::window_control_buttons::View>();
     }
 }
@@ -271,7 +288,6 @@ mod test {
 
     #[wasm_bindgen_test(async)]
     async fn get_project_or_create_new() {
-        let logger = Logger::new("test");
         let mock_client = project_manager::MockClient::default();
         let project_name = ProjectName::new_unchecked("TestProject");
         let project = project_manager::ProjectMetadata {
@@ -288,7 +304,7 @@ mod test {
         expect_call!(mock_client.list_projects(count) => Ok(project_lists));
 
         let project_manager = Rc::new(mock_client);
-        let initializer = WithProjectManager { logger, project_manager, project_name };
+        let initializer = WithProjectManager { project_manager, project_name };
         let project = initializer.get_project_or_create_new().await;
         assert_eq!(expected_id, project.expect("Couldn't get project."))
     }

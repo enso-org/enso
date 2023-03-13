@@ -54,6 +54,15 @@ impl Git {
             repository_root: path.as_ref().to_path_buf(),
         })
     }
+
+    /// Clone a repository into a new directory.
+    #[context("Failed to clone git repository {} into {}.", url.as_str(), path.as_ref().display())]
+    pub async fn clone(&self, path: impl AsRef<Path>, url: &Url) -> Result<Context> {
+        let path = path.as_ref();
+        crate::fs::tokio::create_dir_if_missing(path).await?;
+        self.cmd()?.arg(Command::Clone).arg(url.as_str()).arg(path).run_ok().await?;
+        Context::new(path).await
+    }
 }
 
 /// The wrapper over `Git` program invocation context.
@@ -85,10 +94,7 @@ impl Context {
     ///
     /// The caller is responsible for ensuring that the `working_dir` is a subdirectory of the
     /// `repository_root`.
-    pub async fn new_unchecked(
-        repository_root: impl AsRef<Path>,
-        working_dir: impl AsRef<Path>,
-    ) -> Self {
+    pub fn new_unchecked(repository_root: impl AsRef<Path>, working_dir: impl AsRef<Path>) -> Self {
         Self {
             repository_root: repository_root.as_ref().to_path_buf(),
             working_dir:     working_dir.as_ref().to_path_buf(),
@@ -255,8 +261,12 @@ impl GitCommand {
 }
 
 /// A top-level command for git.
+///
+/// The full reference is available in the [official docs](https://git-scm.com/docs/git#_git_commands).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Command {
+    /// Clone a repository into a new directory.
+    Clone,
     /// Remove untracked files from the working tree.
     Clean,
     /// Show changes between commits, commit and working tree, etc.
@@ -276,6 +286,7 @@ pub enum Command {
 impl AsRef<OsStr> for Command {
     fn as_ref(&self) -> &OsStr {
         OsStr::new(match self {
+            Command::Clone => "clone",
             Command::Clean => "clean",
             Command::Diff => "diff",
             Command::Init => "init",
@@ -372,7 +383,7 @@ mod tests {
     async fn repo_root() -> Result {
         let git = Context::new(".").await?;
         let diff = git.repository_root().await?;
-        println!("{:?}", diff);
+        println!("{diff:?}");
         Ok(())
     }
 
@@ -381,7 +392,7 @@ mod tests {
     async fn call_diff() -> Result {
         let git = Context::new(".").await?;
         let diff = git.diff_against("origin/develop").await?;
-        println!("{:?}", diff);
+        println!("{diff:?}");
         Ok(())
     }
 }

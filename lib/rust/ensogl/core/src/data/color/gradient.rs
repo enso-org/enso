@@ -73,9 +73,9 @@ where [Color:RefInto<Glsl>] {
         let args = t.control_points.iter().map(|control_point| {
             let offset = control_point.offset.glsl();
             let color  = control_point.color.glsl();
-            iformat!("gradient_control_point({offset},{color})")
+            format!("gradient_control_point({offset},{color})")
         }).join(",");
-        iformat!("gradient({args})").into()
+        format!("gradient({args})").into()
     }
 }}
 
@@ -151,16 +151,16 @@ impl<Gradient> ContentRef for SdfSampler<Gradient> {
 impls! {[G:RefInto<Glsl>] From< SdfSampler<G>> for Glsl { |g| { (&g).into() } }}
 impls! {[G:RefInto<Glsl>] From<&SdfSampler<G>> for Glsl {
     |g| {
-        let size   = iformat!("{g.size.glsl()}");
-        let offset = iformat!("-shape.sdf.distance + {g.spread.glsl()}");
-        let norm   = iformat!("clamp(({offset}) / ({size}))");
+        let size   = format!("{}", g.size.glsl());
+        let offset = format!("-shape.sdf.distance + {}", g.spread.glsl());
+        let norm   = format!("clamp(({offset}) / ({size}))");
         let t      = match &g.slope {
             Slope::Linear        => norm,
-            Slope::Smooth        => iformat!("smoothstep(0.0,1.0,{norm})"),
-            Slope::Exponent(exp) => iformat!("pow({norm},{exp.glsl()})"),
-            Slope::InvExponent(exp) => iformat!("1.0-pow(1.0-{norm},{exp.glsl()})"),
+            Slope::Smooth        => format!("smoothstep(0.0,1.0,{norm})"),
+            Slope::Exponent(exp) => format!("pow({norm},{})", exp.glsl()),
+            Slope::InvExponent(exp) => format!("1.0-pow(1.0-{norm},{})", exp.glsl()),
         };
-        let expr   = iformat!("sample({g.gradient.glsl()},{t})");
+        let expr   = format!("sample({},{t})", g.gradient.glsl());
         expr.into()
     }
 }}

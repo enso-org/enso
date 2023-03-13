@@ -43,7 +43,7 @@ final class EmptyUserConfigReader extends SystemReader {
 
   /** @inheritdoc */
   override def openJGitConfig(parent: Config, fs: FS): FileBasedConfig =
-    proxy.openJGitConfig(parent, fs)
+    new EmptyConfig(parent, fs)
 
   /** @inheritdoc */
   override def getCurrentTime: Long =

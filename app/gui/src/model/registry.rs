@@ -66,7 +66,7 @@ impl<Handle: Clone + CloneRef> CloneRef for Entry<Handle> {
 impl<Handle: Debug> Debug for Entry<Handle> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            Entry::Loaded(handle) => write!(f, "Entry::Loaded({:?})", handle),
+            Entry::Loaded(handle) => write!(f, "Entry::Loaded({handle:?})"),
             Entry::Loading(_) => write!(f, "Entry::Loading"),
         }
     }
@@ -110,7 +110,12 @@ where K: Clone + Eq + Hash
         }
     }
 
-    async fn get(&self, key: &K) -> Result<Option<Rc<V>>, LoadingError> {
+    /// Get item under the key.
+    ///
+    /// This functions return handle to item under `key` if it's already loaded. If it is in
+    /// loading state (because another task is loading it asynchronously), it will be wait for that
+    /// loading to finish.
+    pub async fn get(&self, key: &K) -> FallibleResult<Option<Rc<V>>> {
         loop {
             let entry = self.registry.borrow_mut().get(key);
             match entry {

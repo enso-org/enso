@@ -2,21 +2,37 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.context.SuggestionBuilder
 import org.enso.compiler.core.IR
+import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.docs.sections.DocSectionsBuilder
+import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.Suggestion
 
 import java.io.NotSerializableException
+import java.util
 import java.util.concurrent.{
+  Callable,
+  CompletableFuture,
   ConcurrentHashMap,
+  Future,
   LinkedBlockingDeque,
   ThreadPoolExecutor,
   TimeUnit
 }
 import java.util.logging.Level
-import scala.collection.mutable
 
-class SerializationManager(compiler: Compiler) {
+import scala.collection.mutable
+import scala.jdk.OptionConverters.RichOptional
+
+final class SerializationManager(
+  compiler: Compiler,
+  docSectionsBuilder: DocSectionsBuilder = DocSectionsBuilder()
+) {
+
+  import SerializationManager._
 
   /** The debug logging level. */
   private val debugLogLevel = Level.FINE
@@ -38,7 +54,7 @@ class SerializationManager(compiler: Compiler) {
     * This map is accessed concurrently.
     */
   private val isWaitingForSerialization =
-    collection.concurrent.TrieMap[QualifiedName, Runnable]()
+    collection.concurrent.TrieMap[QualifiedName, Future[Boolean]]()
 
   /** The runtime's environment. */
   private val env = compiler.context.getEnvironment
@@ -79,13 +95,18 @@ class SerializationManager(compiler: Compiler) {
     * mutated beneath it.
     *
     * @param module the module to serialize
-    * @return `true` if `module` has been scheduled for serialization, `false`
-    *         otherwise
+    * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
+    * @return Future referencing the serialization task. On completion Future will return
+    *         `true` if `module` has been successfully serialized, `false` otherwise
     */
-  def serialize(module: Module, useGlobalCacheLocations: Boolean): Boolean = {
+  def serializeModule(
+    module: Module,
+    useGlobalCacheLocations: Boolean
+  ): Future[Boolean] = {
     logger.log(
       debugLogLevel,
-      s"Requesting serialization for module [${module.getName}]."
+      "Requesting serialization for module [{}].",
+      module.getName
     )
     val duplicatedIr = compiler.updateMetadata(
       module.getIr,
@@ -93,7 +114,7 @@ class SerializationManager(compiler: Compiler) {
     )
     duplicatedIr.preorder.foreach(_.passData.prepareForSerialization(compiler))
 
-    val task = doSerialize(
+    val task = doSerializeModule(
       module.getCache,
       duplicatedIr,
       module.getCompilationStage,
@@ -102,13 +123,214 @@ class SerializationManager(compiler: Compiler) {
       useGlobalCacheLocations
     )
     if (compiler.context.getEnvironment.isCreateThreadAllowed) {
-      isWaitingForSerialization.put(module.getName, task)
-      pool.execute(task)
+      isWaitingForSerialization.synchronized {
+        val future = pool.submit(task)
+        isWaitingForSerialization.put(module.getName, future)
+        future
+      }
     } else {
-      task.run()
+      try {
+        CompletableFuture.completedFuture(task.call())
+      } catch {
+        case e: Throwable =>
+          logger.log(
+            debugLogLevel,
+            s"Serialization task failed in module [${module.getName}].",
+            e
+          )
+          CompletableFuture.completedFuture(false)
+      }
     }
+  }
 
-    true
+  def serializeLibrary(
+    libraryName: LibraryName,
+    useGlobalCacheLocations: Boolean
+  ): Future[Boolean] = {
+    logger.log(
+      Level.INFO,
+      "Requesting serialization for library [{}].",
+      libraryName
+    )
+
+    val task: Callable[Boolean] =
+      doSerializeLibrary(libraryName, useGlobalCacheLocations)
+    if (compiler.context.getEnvironment.isCreateThreadAllowed) {
+      isWaitingForSerialization.synchronized {
+        val future = pool.submit(task)
+        isWaitingForSerialization.put(libraryName.toQualifiedName, future)
+        future
+      }
+    } else {
+      try {
+        CompletableFuture.completedFuture(task.call())
+      } catch {
+        case e: Throwable =>
+          logger.log(
+            debugLogLevel,
+            s"Serialization task failed for library [$libraryName].",
+            e
+          )
+          CompletableFuture.completedFuture(false)
+      }
+    }
+  }
+
+  private def doSerializeLibrary(
+    libraryName: LibraryName,
+    useGlobalCacheLocations: Boolean
+  ): Callable[Boolean] = () => {
+    logger.log(
+      debugLogLevel,
+      "Running serialization for bindings [{}].",
+      libraryName
+    )
+    startSerializing(libraryName.toQualifiedName)
+    val bindingsCache = new ImportExportCache.CachedBindings(
+      libraryName,
+      new ImportExportCache.MapToBindings(
+        compiler.packageRepository
+          .getModulesForLibrary(libraryName)
+          .map { module =>
+            val ir = module.getIr
+            val bindings = ir.unsafeGetMetadata(
+              BindingAnalysis,
+              "Non-parsed module used in ImportResolver"
+            )
+            val abstractBindings = bindings.prepareForSerialization(compiler)
+            (module.getName, abstractBindings)
+          }
+          .toMap
+      ),
+      compiler.packageRepository
+        .getPackageForLibraryJava(libraryName)
+        .map(_.listSourcesJava())
+    )
+    try {
+      val result =
+        try {
+          new ImportExportCache(libraryName)
+            .save(bindingsCache, compiler.context, useGlobalCacheLocations)
+            .isPresent
+        } catch {
+          case e: NotSerializableException =>
+            logger.log(
+              Level.SEVERE,
+              s"Could not serialize bindings [$libraryName].",
+              e
+            )
+            throw e
+          case e: Throwable =>
+            logger.log(
+              Level.SEVERE,
+              s"Serialization of bindings `$libraryName` failed: ${e.getMessage}`",
+              e
+            )
+            throw e
+        }
+
+      try {
+        val suggestions = new util.ArrayList[Suggestion]()
+        compiler.packageRepository
+          .getModulesForLibrary(libraryName)
+          .flatMap { module =>
+            SuggestionBuilder(module)
+              .build(module.getName, module.getIr)
+              .toVector
+          }
+          .map(generateDocumentation)
+          .foreach(suggestions.add)
+        val cachedSuggestions =
+          new SuggestionsCache.CachedSuggestions(
+            libraryName,
+            new SuggestionsCache.Suggestions(suggestions),
+            compiler.packageRepository
+              .getPackageForLibraryJava(libraryName)
+              .map(_.listSourcesJava())
+          )
+        new SuggestionsCache(libraryName)
+          .save(cachedSuggestions, compiler.context, false)
+          .isPresent
+      } catch {
+        case e: NotSerializableException =>
+          logger.log(
+            Level.SEVERE,
+            s"Could not serialize suggestions [$libraryName].",
+            e
+          )
+          throw e
+        case e: Throwable =>
+          logger.log(
+            Level.SEVERE,
+            s"Serialization of suggestions `$libraryName` failed: ${e.getMessage}`",
+            e
+          )
+          throw e
+      }
+
+      result
+    } finally {
+      finishSerializing(libraryName.toQualifiedName)
+    }
+  }
+
+  def deserializeSuggestions(
+    libraryName: LibraryName
+  ): Option[SuggestionsCache.CachedSuggestions] = {
+    if (isWaitingForSerialization(libraryName)) {
+      abort(libraryName)
+      None
+    } else {
+      while (isSerializingLibrary(libraryName)) {
+        Thread.sleep(100)
+      }
+      new SuggestionsCache(libraryName).load(compiler.context).toScala match {
+        case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
+          logger.log(
+            Level.FINE,
+            "Restored suggestions for library [{}].",
+            libraryName
+          )
+          result
+        case _ =>
+          logger.log(
+            Level.FINEST,
+            "Unable to load suggestions for library [{}].",
+            libraryName
+          )
+          None
+      }
+    }
+  }
+
+  def deserializeLibraryBindings(
+    libraryName: LibraryName
+  ): Option[ImportExportCache.CachedBindings] = {
+    if (isWaitingForSerialization(libraryName)) {
+      abort(libraryName)
+      None
+    } else {
+      while (isSerializingLibrary(libraryName)) {
+        Thread.sleep(100)
+      }
+      new ImportExportCache(libraryName).load(compiler.context).toScala match {
+        case result @ Some(_: ImportExportCache.CachedBindings) =>
+          logger.log(
+            Level.FINE,
+            "Restored bindings for library [{}].",
+            libraryName
+          )
+          result
+        case _ =>
+          logger.log(
+            Level.FINEST,
+            "Unable to load bindings for library [{}].",
+            libraryName
+          )
+          None
+      }
+
+    }
   }
 
   /** Deserializes the requested module from the cache if possible.
@@ -128,33 +350,39 @@ class SerializationManager(compiler: Compiler) {
       abort(module)
       None
     } else {
-      while (isSerializing(module)) {
+      while (isSerializingModule(module)) {
         Thread.sleep(100)
       }
 
-      module.getCache.load(compiler.context) match {
-        case Some(ModuleCache.CachedModule(ir, stage, _)) =>
+      module.getCache.load(compiler.context).toScala match {
+        case Some(loadedCache) =>
           val relinkedIrChecks =
-            ir.preorder.map(_.passData.restoreFromSerialization(this.compiler))
-          module.unsafeSetIr(ir)
-          module.unsafeSetCompilationStage(stage)
+            loadedCache
+              .moduleIR()
+              .preorder
+              .map(_.passData.restoreFromSerialization(this.compiler))
+          module.unsafeSetIr(loadedCache.moduleIR())
+          module.unsafeSetCompilationStage(loadedCache.compilationStage())
           module.setLoadedFromCache(true)
           logger.log(
             debugLogLevel,
-            s"Restored IR from cache for module [${module.getName}] at stage [$stage]."
+            "Restored IR from cache for module [{}] at stage [{}].",
+            Array(module.getName, loadedCache.compilationStage())
           )
 
           if (!relinkedIrChecks.contains(false)) {
             module.setHasCrossModuleLinks(true)
             logger.log(
               debugLogLevel,
-              s"Restored links (early phase) in module [${module.getName}]."
+              "Restored links (early phase) in module [{}].",
+              module.getName
             )
             Some(true)
           } else {
             logger.log(
               debugLogLevel,
-              s"Could not restore links (early phase) in module [${module.getName}]."
+              "Could not restore links (early phase) in module [{}].",
+              module.getName
             )
             module.setHasCrossModuleLinks(false)
             Some(false)
@@ -162,7 +390,8 @@ class SerializationManager(compiler: Compiler) {
         case None =>
           logger.log(
             debugLogLevel,
-            s"Unable to load a cache for module [${module.getName}]."
+            "Unable to load a cache for module [{}].",
+            module.getName
           )
           None
       }
@@ -175,8 +404,18 @@ class SerializationManager(compiler: Compiler) {
     * @return `true` if `module` is currently being serialized, `false`
     *         otherwise
     */
-  def isSerializing(module: Module): Boolean = {
+  def isSerializingModule(module: Module): Boolean = {
     isSerializing.contains(module.getName)
+  }
+
+  def isSerializingLibrary(library: LibraryName): Boolean = {
+    isSerializing.contains(library.toQualifiedName)
+  }
+
+  private def isWaitingForSerialization(name: QualifiedName): Boolean = {
+    isWaitingForSerialization.synchronized {
+      isWaitingForSerialization.contains(name)
+    }
   }
 
   /** Checks if the provided module is waiting for serialization.
@@ -185,7 +424,27 @@ class SerializationManager(compiler: Compiler) {
     * @return `true` if `module` is waiting for serialization, `false` otherwise
     */
   def isWaitingForSerialization(module: Module): Boolean = {
-    isWaitingForSerialization.contains(module.getName)
+    isWaitingForSerialization(module.getName)
+  }
+
+  /** Checks if the provided library's bindings are waiting for serialization.
+    *
+    * @param library the library to check
+    * @return `true` if `library` is waiting for serialization, `false` otherwise
+    */
+  def isWaitingForSerialization(library: LibraryName): Boolean = {
+    isWaitingForSerialization(library.toQualifiedName)
+  }
+
+  def abort(name: QualifiedName): Boolean = {
+    isWaitingForSerialization.synchronized {
+      if (isWaitingForSerialization(name)) {
+        isWaitingForSerialization
+          .remove(name)
+          .map(_.cancel(false))
+          .getOrElse(false)
+      } else false
+    }
   }
 
   /** Requests that serialization of `module` be aborted.
@@ -198,12 +457,20 @@ class SerializationManager(compiler: Compiler) {
     *         otherwise
     */
   def abort(module: Module): Boolean = {
-    if (isWaitingForSerialization(module)) {
-      pool.remove(
-        isWaitingForSerialization.remove(module.getName).getOrElse(return false)
-      )
-      true
-    } else false
+    abort(module.getName)
+  }
+
+  /** Requests that serialization of library's bindings be aborted.
+    *
+    * If the library is already in the process of serialization it will not be
+    * aborted.
+    *
+    * @param library the library for which to abort serialization
+    * @return `true` if serialization for `library` was aborted, `false`
+    *         otherwise
+    */
+  def abort(library: LibraryName): Boolean = {
+    abort(library.toQualifiedName)
   }
 
   /** Performs shutdown actions for the serialization manager.
@@ -214,10 +481,14 @@ class SerializationManager(compiler: Compiler) {
   def shutdown(waitForPendingJobCompletion: Boolean = false): Unit = {
     if (!pool.isShutdown) {
       if (waitForPendingJobCompletion && this.hasJobsRemaining) {
-        val jobCount = isWaitingForSerialization.size + isSerializing.size
+        val waitingCount = isWaitingForSerialization.synchronized {
+          isWaitingForSerialization.size
+        }
+        val jobCount = waitingCount + isSerializing.size
         logger.log(
           debugLogLevel,
-          s"Waiting for $jobCount serialization jobs to complete."
+          "Waiting for #{} serialization jobs to complete.",
+          jobCount
         )
 
         // Bound the waiting loop
@@ -250,8 +521,11 @@ class SerializationManager(compiler: Compiler) {
   /** @return `true` if there are remaining serialization jobs, `false`
     *         otherwise
     */
-  private def hasJobsRemaining: Boolean =
-    isWaitingForSerialization.nonEmpty || isSerializing.nonEmpty
+  private def hasJobsRemaining: Boolean = {
+    isWaitingForSerialization.synchronized {
+      isWaitingForSerialization.nonEmpty || isSerializing.nonEmpty
+    }
+  }
 
   /** Create the task that serializes the provided module IR when it is run.
     *
@@ -260,19 +534,21 @@ class SerializationManager(compiler: Compiler) {
     * @param stage the compilation stage of the module
     * @param name the name of the module being serialized
     * @param source the source of the module being serialized
+    * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
     * @return the task that serialies the provided `ir`
     */
-  private def doSerialize(
+  private def doSerializeModule(
     cache: ModuleCache,
     ir: IR.Module,
     stage: Module.CompilationStage,
     name: QualifiedName,
     source: Source,
-    useGlobalCaches: Boolean
-  ): Runnable = { () =>
+    useGlobalCacheLocations: Boolean
+  ): Callable[Boolean] = { () =>
     logger.log(
       debugLogLevel,
-      s"Running serialization for module [$name]."
+      "Running serialization for module [{}].",
+      name
     )
     startSerializing(name)
     try {
@@ -280,20 +556,32 @@ class SerializationManager(compiler: Compiler) {
         if (stage.isAtLeast(Module.CompilationStage.AFTER_STATIC_PASSES)) {
           Module.CompilationStage.AFTER_STATIC_PASSES
         } else stage
-      cache.save(
-        ModuleCache.CachedModule(ir, fixedStage, source),
-        compiler.context,
-        useGlobalCaches
-      )
+      cache
+        .save(
+          new ModuleCache.CachedModule(ir, fixedStage, source),
+          compiler.context,
+          useGlobalCacheLocations
+        )
+        .map(_ => true)
+        .orElse(false)
     } catch {
       case e: NotSerializableException =>
         logger.log(
           Level.SEVERE,
-          s"Could not serialize module [$name]."
+          s"Could not serialize module [$name].",
+          e
         )
         throw e
+      case e: Throwable =>
+        logger.log(
+          Level.SEVERE,
+          s"Serialization of module `$name` failed: ${e.getMessage}`",
+          e
+        )
+        throw e
+    } finally {
+      finishSerializing(name)
     }
-    finishSerializing(name)
   }
 
   /** Sets the module described by `name` as serializing.
@@ -301,7 +589,9 @@ class SerializationManager(compiler: Compiler) {
     * @param name the name of the module to set as serializing
     */
   private def startSerializing(name: QualifiedName): Unit = {
-    isWaitingForSerialization.remove(name)
+    isWaitingForSerialization.synchronized {
+      isWaitingForSerialization.remove(name)
+    }
     isSerializing.add(name)
   }
 
@@ -327,7 +617,45 @@ class SerializationManager(compiler: Compiler) {
       )
       .asScala
   }
+
+  /** Generate the documentation for the given suggestion.
+    *
+    * @param suggestion the initial suggestion
+    * @return the suggestion with documentation fields set
+    */
+  private def generateDocumentation(suggestion: Suggestion): Suggestion =
+    suggestion match {
+      case module: Suggestion.Module =>
+        val docSections = module.documentation.map(docSectionsBuilder.build)
+        module.copy(documentationSections = docSections)
+
+      case constructor: Suggestion.Constructor =>
+        val docSections =
+          constructor.documentation.map(docSectionsBuilder.build)
+        constructor.copy(documentationSections = docSections)
+
+      case tpe: Suggestion.Type =>
+        val docSections = tpe.documentation.map(docSectionsBuilder.build)
+        tpe.copy(documentationSections = docSections)
+
+      case method: Suggestion.Method =>
+        val docSections = method.documentation.map(docSectionsBuilder.build)
+        method.copy(documentationSections = docSections)
+
+      case conversion: Suggestion.Conversion =>
+        val docSections = conversion.documentation.map(docSectionsBuilder.build)
+        conversion.copy(documentationSections = docSections)
+
+      case function: Suggestion.Function =>
+        val docSections = function.documentation.map(docSectionsBuilder.build)
+        function.copy(documentationSections = docSections)
+
+      case local: Suggestion.Local =>
+        val docSections = local.documentation.map(docSectionsBuilder.build)
+        local.copy(documentationSections = docSections)
+    }
 }
+
 object SerializationManager {
 
   /** The maximum number of serialization threads allowed. */
@@ -338,4 +666,11 @@ object SerializationManager {
 
   /** The thread keep-alive time in seconds. */
   val threadKeepalive: Long = 3
+
+  implicit private class LibraryOps(val libraryName: LibraryName)
+      extends AnyVal {
+    def toQualifiedName: QualifiedName =
+      QualifiedName(List(libraryName.namespace), libraryName.name)
+  }
+
 }

@@ -169,15 +169,14 @@ impl NavigatorModel {
             simulator.update_target_value(|p| p - diff);
         });
 
-        let resize_callback =
-            camera.add_screen_update_callback(enclose!((mut simulator,camera) move |_| {
-                let position = camera.position();
-                simulator.set_value(position);
-                simulator.set_target_value(position);
-                simulator.set_velocity(default());
-            }));
+        let resize_callback = camera.add_screen_update_callback(f_!([simulator, camera] {
+            let position = camera.position();
+            simulator.set_value(position);
+            simulator.set_target_value(position);
+            simulator.set_velocity(default());
+        }));
 
-        let zoom_callback = f!([camera,simulator,settings] (zoom:ZoomEvent) {
+        let zoom_callback = f!([camera, simulator, settings] (zoom: ZoomEvent) {
             let point = zoom.focus;
             let normalized = normalize_point2(point,camera.screen().into());
             let normalized = normalized_to_range2(normalized, -1.0, 1.0);
@@ -258,11 +257,11 @@ define_endpoints_2! {
 // =================
 
 /// Navigator enables camera navigation with mouse interactions.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct Navigator {
     #[allow(missing_docs)]
     pub frp: Frp,
-    #[shrinkwrap(main_field)]
+    #[deref]
     model:   Rc<NavigatorModel>,
 }
 

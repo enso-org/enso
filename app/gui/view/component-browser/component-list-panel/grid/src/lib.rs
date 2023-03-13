@@ -474,8 +474,7 @@ impl Model {
     }
 
     fn entry_to_select_after_reset(&self, info: &content::Info) -> Option<(Row, Col)> {
-        let top_module_sections =
-            (0..info.namespace_section_count).into_iter().map(SectionId::Namespace);
+        let top_module_sections = (0..info.namespace_section_count).map(SectionId::Namespace);
         let sections = iter::once(SectionId::Popular)
             .chain(top_module_sections)
             .chain(iter::once(SectionId::LocalScope));

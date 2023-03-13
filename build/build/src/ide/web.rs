@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 use crate::ide::web::env::CSC_KEY_PASSWORD;
 use crate::paths::generated;
+use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use crate::project::gui::BuildInfo;
 use crate::project::wasm;
 use crate::project::ProcessWrapper;
@@ -9,17 +10,23 @@ use crate::project::ProcessWrapper;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
-use ide_ci::github::RepoRef;
 use ide_ci::io::download_all;
-use ide_ci::program::command;
+use ide_ci::ok_ready_boxed;
+use ide_ci::program::command::FallibleManipulator;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
-use octocrab::models::repos::Content;
 use std::process::Stdio;
 use tempfile::TempDir;
 use tokio::process::Child;
 use tracing::Span;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod google_font;
 
 
 
@@ -35,10 +42,6 @@ pub const IDE_ASSETS_URL: &str =
 
 pub const ARCHIVED_ASSET_FILE: &str = "ide-assets-main/content/assets/";
 
-pub const GOOGLE_FONTS_REPOSITORY: RepoRef = RepoRef { owner: "google", name: "fonts" };
-
-pub const GOOGLE_FONT_DIRECTORY: &str = "ofl";
-
 pub mod env {
     use super::*;
 
@@ -49,8 +52,10 @@ pub mod env {
         ENSO_BUILD_PROJECT_MANAGER, PathBuf;
         ENSO_BUILD_GUI, PathBuf;
         ENSO_BUILD_ICONS, PathBuf;
-        ENSO_BUILD_GUI_WASM, PathBuf;
-        ENSO_BUILD_GUI_JS_GLUE, PathBuf;
+        /// List of files that should be copied to the Gui.
+        ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
+        /// The main JS bundle to load WASM and JS wasm-pack bundles.
+        ENSO_BUILD_GUI_ENSOGL_APP, PathBuf;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
         ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
@@ -94,33 +99,11 @@ pub mod env {
 #[derive(Clone, Debug)]
 pub struct IconsArtifacts(pub PathBuf);
 
-impl command::FallibleManipulator for IconsArtifacts {
+impl FallibleManipulator for IconsArtifacts {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
         command.set_env(env::ENSO_BUILD_ICONS, &self.0)?;
         Ok(())
     }
-}
-
-#[context("Failed to download Google font '{family}'.")]
-#[instrument(fields(output_path = %output_path.as_ref().display()), ret, err, skip(octocrab))]
-pub async fn download_google_font(
-    octocrab: &Octocrab,
-    family: &str,
-    output_path: impl AsRef<Path>,
-) -> Result<Vec<Content>> {
-    let destination_dir = output_path.as_ref();
-    let repo = GOOGLE_FONTS_REPOSITORY.handle(octocrab);
-    let path = format!("{GOOGLE_FONT_DIRECTORY}/{family}");
-    let files = repo.repos().get_content().path(path).send().await?;
-    let ttf_files =
-        files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect_vec();
-    for file in &ttf_files {
-        let destination_file = destination_dir.join(&file.name);
-        let url = file.download_url.as_ref().context("Missing 'download_url' in the reply.")?;
-        let reply = ide_ci::io::web::client::download(&octocrab.client, url).await?;
-        ide_ci::io::web::stream_to_file(reply, &destination_file).await?;
-    }
-    Ok(ttf_files)
 }
 
 /// Fill the directory under `output_path` with the assets.
@@ -131,6 +114,17 @@ pub async fn download_js_assets(output_path: impl AsRef<Path>) -> Result {
     let mut archive = zip::ZipArchive::new(std::io::Cursor::new(archive))?;
     ide_ci::archive::zip::extract_subtree(&mut archive, &archived_asset_prefix, output)?;
     Ok(())
+}
+
+/// Get a relative path to the Project Manager executable in the PM bundle.
+pub fn path_to_executable_in_pm_bundle(
+    artifact: &generated::ProjectManagerBundle,
+) -> Result<&Path> {
+    artifact
+        .bin
+        .project_managerexe
+        .strip_prefix(artifact)
+        .context("Failed to generate in-bundle path to Project Manager executable.")
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -160,9 +154,9 @@ pub enum Command {
 /// Things that are common to `watch` and `build`.
 #[derive(Debug)]
 pub struct ContentEnvironment<Assets, Output> {
-    asset_dir:   Assets,
-    wasm:        wasm::Artifact,
-    output_path: Output,
+    pub asset_dir:   Assets,
+    pub wasm:        wasm::Artifact,
+    pub output_path: Output,
 }
 
 impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
@@ -175,22 +169,27 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         let installation = ide.install();
         let asset_dir = TempDir::new()?;
         let assets_download = download_js_assets(&asset_dir);
-        let fonts_download = download_google_font(&ide.octocrab, "mplus1", &asset_dir);
+        let fonts_download =
+            google_font::download_google_font(&ide.cache, &ide.octocrab, "mplus1", &asset_dir);
         let (wasm, _, _, _) =
             try_join4(wasm, installation, assets_download, fonts_download).await?;
+        wasm.symlink_ensogl_dist(&ide.linked_dist)?;
         ide.write_build_info(build_info)?;
         Ok(ContentEnvironment { asset_dir, wasm, output_path })
     }
 }
 
-impl<Assets: AsRef<Path>, Output: AsRef<Path>> command::FallibleManipulator
+impl<Assets: AsRef<Path>, Output: AsRef<Path>> FallibleManipulator
     for ContentEnvironment<Assets, Output>
 {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
+        let artifacts_for_gui =
+            self.wasm.files_to_ship().into_iter().map(|file| file.to_path_buf()).collect_vec();
+
         command
             .set_env(env::ENSO_BUILD_GUI, self.output_path.as_ref())?
-            .set_env(env::ENSO_BUILD_GUI_WASM, &self.wasm.wasm())?
-            .set_env(env::ENSO_BUILD_GUI_JS_GLUE, &self.wasm.js_glue())?
+            .set_env(env::ENSO_BUILD_GUI_WASM_ARTIFACTS, &artifacts_for_gui)?
+            .set_env(env::ENSO_BUILD_GUI_ENSOGL_APP, &self.wasm.ensogl_app())?
             .set_env(env::ENSO_BUILD_GUI_ASSETS, self.asset_dir.as_ref())?;
         Ok(())
     }
@@ -211,12 +210,45 @@ pub fn target_os_flag(os: OS) -> Result<&'static str> {
     }
 }
 
+/// Context information about Project Manager bundle that we provide to the client.
 #[derive(Clone, Debug)]
+pub struct ProjectManagerInfo {
+    /// Latest bundled engine version, that will be used as this IDE's default.
+    pub latest_bundled_engine: Version,
+    /// Root of the Project Manager bundle.
+    pub bundle_location:       PathBuf,
+    /// Relative path from the bundle location.
+    pub pm_executable:         PathBuf,
+}
+
+impl ProjectManagerInfo {
+    /// Collect information about the bundle that the client will need.
+    pub fn new(bundle: &crate::project::backend::Artifact) -> Result<Self> {
+        let latest_bundled_engine = bundle.latest_engine_version()?.clone();
+        let bundle_location = bundle.path.to_path_buf();
+        let pm_executable = path_to_executable_in_pm_bundle(&bundle.path)?.to_path_buf();
+        Ok(Self { latest_bundled_engine, bundle_location, pm_executable })
+    }
+}
+
+impl FallibleManipulator for ProjectManagerInfo {
+    fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
+        command.set_env(env::ENSO_BUILD_PROJECT_MANAGER, &self.bundle_location)?;
+        command.set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, &self.pm_executable)?;
+        command.set_env(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, &self.latest_bundled_engine)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
 pub struct IdeDesktop {
     pub build_sbt:   generated::RepoRootBuildSbt,
     pub package_dir: generated::RepoRootAppIdeDesktop,
+    #[derivative(Debug = "ignore")]
     pub octocrab:    Octocrab,
     pub cache:       ide_ci::cache::Cache,
+    pub linked_dist: RepoRootTargetEnsoglPackLinkedDist,
 }
 
 impl IdeDesktop {
@@ -230,6 +262,7 @@ impl IdeDesktop {
             package_dir: repo_root.app.ide_desktop.clone(),
             octocrab,
             cache,
+            linked_dist: repo_root.target.ensogl_pack.linked_dist.clone(),
         }
     }
 
@@ -267,14 +300,26 @@ impl IdeDesktop {
         dest = %output_path.as_ref().display(),
         build_info,
         err))]
-    pub async fn build_content(
+    pub async fn build_content<P: AsRef<Path>>(
         &self,
         wasm: impl Future<Output = Result<wasm::Artifact>>,
         build_info: &BuildInfo,
-        output_path: impl AsRef<Path>,
-    ) -> Result {
+        output_path: P,
+    ) -> Result<ContentEnvironment<TempDir, P>> {
         let env = ContentEnvironment::new(self, wasm, build_info, output_path).await?;
         //env.apply();
+        self.npm()?
+            .try_applying(&env)?
+            .workspace(Workspaces::Content)
+            .run("lint", EMPTY_ARGS)
+            .run_ok()
+            .await?;
+        self.npm()?
+            .try_applying(&env)?
+            .workspace(Workspaces::Content)
+            .run("typecheck", EMPTY_ARGS)
+            .run_ok()
+            .await?;
         self.npm()?
             .try_applying(&env)?
             .workspace(Workspaces::Content)
@@ -282,9 +327,7 @@ impl IdeDesktop {
             .run_ok()
             .await?;
 
-        debug!(assets=?env.asset_dir, "Still kept");
-        drop(env); // does this extend the lifetime?
-        Ok(())
+        Ok(env)
     }
 
 
@@ -295,7 +338,6 @@ impl IdeDesktop {
         &self,
         wasm: impl Future<Output = Result<wasm::Artifact>>,
         build_info: &BuildInfo,
-        shell: bool,
     ) -> Result<Watcher> {
         // When watching we expect our artifacts to be served through server, not appear in any
         // specific location on the disk.
@@ -303,23 +345,16 @@ impl IdeDesktop {
         let watch_environment =
             ContentEnvironment::new(self, wasm, build_info, output_path).await?;
         Span::current().record("wasm", watch_environment.wasm.as_ref().as_str());
-        let child_process = if shell {
-            ide_ci::os::default_shell()
-                .cmd()?
-                .current_dir(&self.package_dir)
-                .try_applying(&watch_environment)?
-                .stdin(Stdio::inherit())
-                .spawn()?
-        } else {
-            self.npm()?
-                .try_applying(&watch_environment)?
-                .workspace(Workspaces::Content)
-                .run("watch", EMPTY_ARGS)
-                .spawn_intercepting()?
-        };
+        let child_process = self
+            .npm()?
+            .try_applying(&watch_environment)?
+            .workspace(Workspaces::Content)
+            .run("watch", EMPTY_ARGS)
+            .spawn_intercepting()?;
         Ok(Watcher { child_process, watch_environment })
     }
 
+    /// Build the full Electron package, using the electron-builder.
     #[tracing::instrument(name="Preparing distribution of the IDE.", skip_all, fields(
         dest = %output_path.as_ref().display(),
         ?gui,
@@ -344,35 +379,19 @@ impl IdeDesktop {
         }
 
         self.npm()?.install().run_ok().await?;
-
-        let engine_version_to_use = project_manager.engine_versions.iter().max();
-        if engine_version_to_use.is_none() {
-            warn!("Bundled Project Manager does not contain any Engine.");
-        }
-
-        let pm_in_bundle = project_manager
-            .path
-            .bin
-            .project_managerexe
-            .strip_prefix(&project_manager.path)
-            .context("Failed to generate in-bundle path to Project Manager executable")?;
-
-        let content_build = self
+        let pm_bundle = ProjectManagerInfo::new(project_manager)?;
+        let client_build = self
             .npm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
-            .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
-            .set_env_opt(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, engine_version_to_use)?
-            .set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, pm_in_bundle)?
+            .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
             .run("build", EMPTY_ARGS)
             .run_ok();
 
-        // &input.repo_root.dist.icons
         let icons_dist = TempDir::new()?;
         let icons_build = self.build_icons(&icons_dist);
-        let (icons, _content) = try_join(icons_build, content_build).await?;
-
+        let (icons, _content) = try_join(icons_build, client_build).await?;
 
         let python_path = if TARGET_OS == OS::MacOS {
             // On macOS electron-builder will fail during DMG creation if there is no python2
@@ -404,6 +423,55 @@ impl IdeDesktop {
             .arg("--")
             .arg(target_os_flag(target_os)?)
             .args(target_args)
+            .run_ok()
+            .await?;
+
+        Ok(())
+    }
+
+    /// Spawn the watch script for the client.
+    pub async fn watch(
+        &self,
+        wasm_watch_job: BoxFuture<
+            'static,
+            Result<crate::project::PerhapsWatched<crate::project::Wasm>>,
+        >,
+        build_info: BoxFuture<'static, Result<BuildInfo>>,
+        get_project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
+        ide_options: Vec<String>,
+    ) -> Result {
+        let npm_install_job = self.npm()?.install().run_ok();
+        // TODO: This could be possibly optimized by awaiting WASM a bit later, and passing its
+        //       future to the ContentEnvironment. However, the code would get a little tricky.
+        //       Should be reconsidered in the future, based on actual timings.
+        let (_npm_installed, watched_wasm, project_manager) =
+            try_join!(npm_install_job, wasm_watch_job, get_project_manager)?;
+
+        let pm_bundle = ProjectManagerInfo::new(&project_manager)?;
+
+        let temp_dir_for_gui = TempDir::new()?;
+        let content_env = ContentEnvironment::new(
+            self,
+            ok_ready_boxed(watched_wasm.as_ref().clone()),
+            &build_info.await?,
+            &temp_dir_for_gui,
+        )
+        .await?;
+
+        let mut script_args = Vec::new();
+        if !ide_options.is_empty() {
+            script_args.push("--");
+            script_args.extend(ide_options.iter().map(String::as_str));
+        }
+
+
+        let temp_dir_for_ide = TempDir::new()?;
+        self.npm()?
+            .try_applying(&content_env)?
+            .set_env(env::ENSO_BUILD_IDE, temp_dir_for_ide.path())?
+            .try_applying(&pm_bundle)?
+            .workspace(Workspaces::Enso)
+            .run("watch", script_args)
             .run_ok()
             .await?;
 

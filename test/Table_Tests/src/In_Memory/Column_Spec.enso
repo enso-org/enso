@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Column
 import Standard.Table.Data.Storage.Storage
@@ -10,6 +11,8 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+
+main = Test_Suite.run_main spec
 
 spec = Test.group "Columns" <|
     test_column = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
@@ -29,8 +32,8 @@ spec = Test.group "Columns" <|
         test_column.at 0 . should_equal 1
         test_column.at 2 . should_equal 5
         test_column.at 5 . should_equal 6
-        test_column.at 6 . should_fail_with Index_Out_Of_Bounds.Error
-        empty_column.at 0 . should_fail_with Index_Out_Of_Bounds.Error
+        test_column.at 6 . should_fail_with Index_Out_Of_Bounds
+        empty_column.at 0 . should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should be able to take the first n elements" <|
         expected_1 = Column.from_vector "Test" [1, 3, 5]
@@ -58,11 +61,11 @@ spec = Test.group "Columns" <|
 
     Test.specify "should be able to get the first element" <|
         test_column.first . should_equal 1
-        empty_column.first.should_fail_with Index_Out_Of_Bounds.Error
+        empty_column.first.should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should be able to get the last element" <|
         test_column.last . should_equal 6
-        empty_column.last.should_fail_with Index_Out_Of_Bounds.Error
+        empty_column.last.should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should be able to be reversed" <|
         expected_1 = Column.from_vector "Test" [6, 4, 2, 5, 3, 1]
@@ -72,7 +75,7 @@ spec = Test.group "Columns" <|
     Test.specify "should allow to fill missing values from another column" <|
         nulled = Column.from_vector "col" [0, Nothing, 4, 5, Nothing, Nothing]
         defaults = Column.from_vector "def" [1, 2, 10, 20, Nothing, 30]
-        r = nulled.fill_missing defaults
+        r = nulled.fill_nothing defaults
         r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
 
     Test.specify "should allow to count duplicate value occurences" <|
@@ -90,4 +93,15 @@ spec = Test.group "Columns" <|
         (test_column * 1.5).storage_type . should_equal Storage.Decimal
         (test_column + another).storage_type . should_equal Storage.Integer
 
-main = Test_Suite.run_main spec
+    Test.specify "should not allow invalid column names" <|
+        c1 = Column.from_vector "" [1, 2, 3]
+        c1.should_fail_with Illegal_Argument
+
+        c2 = Column.from_vector Nothing [1, 2, 3]
+        c2.should_fail_with Illegal_Argument
+
+        c3 = Column.from_vector '\0' [1, 2, 3]
+        c3.should_fail_with Illegal_Argument
+
+        c4 = Column.from_vector 'foo\0bar' [1, 2, 3]
+        c4.should_fail_with Illegal_Argument

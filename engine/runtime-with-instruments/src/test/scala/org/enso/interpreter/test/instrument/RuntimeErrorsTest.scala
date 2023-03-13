@@ -176,7 +176,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       TestMessages.panic(
         contextId,
@@ -184,7 +185,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       TestMessages.panic(
         contextId,
@@ -192,7 +194,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       context.executionComplete(contextId)
     )
@@ -263,7 +266,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
-        )
+        ),
+        builtin = true
       ),
       context.executionComplete(contextId)
     )
@@ -348,12 +352,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(40, 9)
-    val yId        = metadata.addItem(58, 2)
-    val mainResId  = metadata.addItem(65, 12)
+    val xId        = metadata.addItem(46, 9)
+    val yId        = metadata.addItem(64, 2)
+    val mainResId  = metadata.addItem(71, 12)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |main =
         |    x = undefined
@@ -954,12 +958,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(40, 7)
-    val yId        = metadata.addItem(56, 5)
-    val mainResId  = metadata.addItem(66, 12)
+    val xId        = metadata.addItem(46, 7)
+    val yId        = metadata.addItem(62, 5)
+    val mainResId  = metadata.addItem(72, 12)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |main =
         |    x = 1 + foo
@@ -1255,7 +1259,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "9 (Integer)",
           Seq(xId)
-        )
+        ),
+        builtin = false
       ),
       TestMessages.panic(
         contextId,
@@ -1308,18 +1313,85 @@ class RuntimeErrorsTest
     context.consumeOut shouldEqual List("3")
   }
 
+  it should "send updates when NPE is resolved in method" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(146, 3, "aaa")
+
+    val code =
+      """from Standard.Base import all
+        |polyglot java import java.lang.NullPointerException
+        |
+        |foo =
+        |    Panic.throw NullPointerException.new
+        |
+        |main =
+        |    x = foo
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(xId, code, "foo")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.panic(
+        contextId,
+        xId,
+        Api.MethodPointer(moduleName, moduleName, "foo"),
+        Api.ExpressionUpdate.Payload.Panic(
+          "java.lang.NullPointerException",
+          Seq(xId)
+        ),
+        None
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
+  }
+
   it should "send updates when dataflow error is resolved in method" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(98, 3)
-    val yId        = metadata.addItem(110, 5)
-    val mainResId  = metadata.addItem(120, 12)
+    val xId        = metadata.addItem(71, 3)
+    val yId        = metadata.addItem(83, 5)
+    val mainResId  = metadata.addItem(93, 12)
 
     val code =
-      """import Standard.Base.IO
-        |import Standard.Base.Error.Error
+      """from Standard.Base import all
         |
         |foo =
         |    Error.throw 9
@@ -1389,7 +1461,7 @@ class RuntimeErrorsTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(4, 4), model.Position(4, 17)),
+              model.Range(model.Position(3, 4), model.Position(3, 17)),
               "10002 - 10000"
             )
           ),
@@ -1482,7 +1554,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       TestMessages.panic(
         contextId,
@@ -1490,7 +1563,8 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
-        )
+        ),
+        builtin = true
       ),
       context.executionComplete(contextId)
     )
@@ -1514,8 +1588,8 @@ class RuntimeErrorsTest
     context.receiveNIgnorePendingExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING),
-      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING_BUILTIN),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("MyError")

@@ -137,8 +137,18 @@ fn doc_comments() {
         " foo",
     ];
     #[rustfmt::skip]
-    test(&lines.join("\n"), block![
-        (Documented (#((Section " Test indent handling")) #(())) (Ident foo))]);
+    test!(&lines.join("\n"), (Documented (#((Section " Test indent handling")) #(())) (Ident foo)));
+    #[rustfmt::skip]
+    let lines = vec![
+        " ## Test indent handling",
+        "  ",
+        " foo",
+    ];
+    #[rustfmt::skip]
+    test!(&lines.join("\n"),
+        (Documented
+         (#((Section " Test indent handling")) #(() ()))
+         (Ident foo)));
 }
 
 
@@ -830,6 +840,9 @@ fn export() {
 fn metadata_raw() {
     let code = [
         "x",
+        "",
+        "",
+        "",
         "#### METADATA ####",
         r#"[[{"index":{"value":7},"size":{"value":8}},"5bad897e-099b-4b00-9348-64092636746d"]]"#,
     ];
@@ -1366,6 +1379,11 @@ fn illegal_foreign_body() {
     test_invalid("foreign 4 * 4");
     test_invalid("foreign foo = \"4\"");
     test_invalid("foreign js foo = 4");
+}
+
+#[test]
+fn unexpected_tokens_in_inner_macro_segment() {
+    test_invalid("from Foo import all What_Is_This_Doing_Here hiding Bar");
 }
 
 

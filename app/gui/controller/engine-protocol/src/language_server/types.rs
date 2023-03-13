@@ -120,6 +120,11 @@ pub enum Notification {
     #[serde(rename = "text/autoSave")]
     TextAutoSave(TextAutoSave),
 
+    /// This is a notification sent from the server to the clients to inform them of any changes
+    /// made to files that they have open.
+    #[serde(rename = "text/didChange")]
+    TextDidChange(FileEditList),
+
     /// Sent from the server to the client to inform about new information for certain expressions
     /// becoming available. This notification is superseded by executionContext/expressionUpdates.
     #[serde(rename = "executionContext/expressionValuesComputed")]
@@ -211,7 +216,7 @@ pub struct ExpressionUpdate {
     pub expression_id:  ExpressionId,
     #[serde(rename = "type")] // To avoid collision with the `type` keyword.
     pub typename: Option<String>,
-    pub method_pointer: Option<SuggestionId>,
+    pub method_pointer: Option<MethodPointer>,
     pub profiling_info: Vec<ProfilingInfo>,
     pub from_cache:     bool,
     pub payload:        ExpressionUpdatePayload,
@@ -232,7 +237,9 @@ pub enum ProfilingInfo {
 #[allow(missing_docs)]
 #[serde(tag = "type")]
 pub enum ExpressionUpdatePayload {
-    Value,
+    Value {
+        warnings: Option<Warnings>,
+    },
     #[serde(rename_all = "camelCase")]
     DataflowError {
         trace: Vec<ExpressionId>,
@@ -247,6 +254,20 @@ pub enum ExpressionUpdatePayload {
         message:  Option<String>,
         progress: Option<f64>,
     },
+}
+
+/// Information about warnings associated with the value.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[allow(missing_docs)]
+pub struct Warnings {
+    /// The number of attached warnings.
+    pub count: usize,
+    /// If the value has a single warning attached, this field contains textual representation of
+    /// gg
+    ///
+    /// the attached warning. In general, warning values should be obtained by attaching an
+    /// appropriate visualization to a value.
+    pub value: Option<String>,
 }
 
 
@@ -665,6 +686,15 @@ pub struct FileEdit {
     pub old_version: Sha3_224,
     pub new_version: Sha3_224,
 }
+
+/// A list of file edits.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct FileEditList {
+    pub edits: Vec<FileEdit>,
+}
+
 
 
 // ========================
@@ -1101,8 +1131,8 @@ impl<T> FieldUpdate<T> {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
+#[serde(tag = "type")]
 pub enum SuggestionArgumentUpdate {
     #[serde(rename_all = "camelCase")]
     Add { index: usize, argument: SuggestionEntryArgument },
@@ -1226,7 +1256,7 @@ pub mod test {
             method_pointer: None,
             profiling_info: default(),
             from_cache:     false,
-            payload:        ExpressionUpdatePayload::Value,
+            payload:        ExpressionUpdatePayload::Value { warnings: None },
         }
     }
 
@@ -1234,7 +1264,7 @@ pub mod test {
     /// method pointer.
     pub fn value_update_with_method_ptr(
         id: ExpressionId,
-        method_pointer: SuggestionId,
+        method_pointer: MethodPointer,
     ) -> ExpressionUpdate {
         ExpressionUpdate {
             expression_id:  id,
@@ -1242,7 +1272,7 @@ pub mod test {
             method_pointer: Some(method_pointer),
             profiling_info: default(),
             from_cache:     false,
-            payload:        ExpressionUpdatePayload::Value,
+            payload:        ExpressionUpdatePayload::Value { warnings: None },
         }
     }
 

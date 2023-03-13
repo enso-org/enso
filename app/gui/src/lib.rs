@@ -43,6 +43,7 @@
 #![feature(assert_matches)]
 #![feature(hash_drain_filter)]
 #![feature(unwrap_infallible)]
+#![feature(if_let_guard)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -62,7 +63,6 @@
 extern crate core;
 
 use prelude::*;
-use wasm_bindgen::prelude::*;
 
 
 // ==============
@@ -126,14 +126,16 @@ pub mod prelude {
     pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
 
-// Those imports are required to have all examples entry points visible in IDE.
+// These imports are required to have all entry points (such as examples) and `before_main`
+// functions (such as the dynamic-asset loader), available in the IDE.
 #[allow(unused_imports)]
-mod examples {
+mod imported_for_entry_points {
     use enso_debug_scene::*;
+    use ensogl_dynamic_assets::*;
     use ensogl_examples::*;
 }
 #[allow(unused_imports)]
-use examples::*;
+use imported_for_entry_points::*;
 mod profile_workflow;
 
 

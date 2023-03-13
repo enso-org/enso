@@ -26,6 +26,7 @@ pub enum DisplayModes {
     DebugSdf,
     DebugShapeAaSpan,
     DebugInstanceId,
+    CachedShapesTexture,
 }
 
 // This is not derived, as then [`num_enum::TryFromPrimitive`] will return the default value for
@@ -49,7 +50,7 @@ impl DisplayModes {
 
     /// Name of the code.
     pub fn name(self) -> String {
-        format!("display_mode_{:?}", self).to_snake_case()
+        format!("display_mode_{self:?}").to_snake_case()
     }
 
     /// Check if the display mode allows mouse interactions in GUI. The display modes that do not
@@ -57,6 +58,7 @@ impl DisplayModes {
     pub fn allow_mouse_events(self) -> bool {
         match self {
             DisplayModes::Normal => true,
+            DisplayModes::CachedShapesTexture => false,
             DisplayModes::DebugSpriteUv => true,
             DisplayModes::DebugSpriteOverview => false,
             DisplayModes::DebugSpriteGrid => false,

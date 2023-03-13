@@ -66,7 +66,7 @@ class RepoInitializationSpec
 
         expectMsgAllOf(
           InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
+          InitializedEvent.VersionsRepoInitialized
         )
     }
 
@@ -96,7 +96,7 @@ class RepoInitializationSpec
 
         expectMsgAllOf(
           InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
+          InitializedEvent.VersionsRepoInitialized
         )
     }
 
@@ -123,7 +123,7 @@ class RepoInitializationSpec
         version1 shouldEqual SchemaVersion.CurrentVersion
         expectMsgAllOf(
           InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
+          InitializedEvent.VersionsRepoInitialized
         )
 
         // remove schema and re-initialize
@@ -138,7 +138,7 @@ class RepoInitializationSpec
         version2 shouldEqual SchemaVersion.CurrentVersion
         expectMsgAllOf(
           InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
+          InitializedEvent.VersionsRepoInitialized
         )
     }
 
@@ -199,7 +199,7 @@ class RepoInitializationSpec
           version2 shouldEqual SchemaVersion.CurrentVersion
           expectMsgAllOf(
             InitializedEvent.SuggestionsRepoInitialized,
-            InitializedEvent.FileVersionsRepoInitialized
+            InitializedEvent.VersionsRepoInitialized
           )
         }
     }
@@ -210,7 +210,7 @@ class RepoInitializationSpec
     Config(
       root,
       FileManagerConfig(timeout = 3.seconds.dilated),
-      VcsManagerConfig(timeout  = 5.seconds.dilated),
+      VcsManagerConfig(),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
       ProjectDirectoriesConfig.initialize(root.file),

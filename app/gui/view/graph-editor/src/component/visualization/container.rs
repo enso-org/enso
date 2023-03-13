@@ -239,7 +239,6 @@ impl display::Object for View {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct ContainerModel {
-    logger:             Logger,
     display_object:     display::object::Instance,
     /// Internal root for all sub-objects. Will be moved when the visualisation
     /// container position is changed by dragging.
@@ -260,15 +259,14 @@ pub struct ContainerModel {
 
 impl ContainerModel {
     /// Constructor.
-    pub fn new(logger: &Logger, app: &Application, registry: visualization::Registry) -> Self {
+    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let scene = &app.display.default_scene;
-        let logger = Logger::new_sub(logger, "visualization_container");
         let display_object = display::object::Instance::new();
         let drag_root = display::object::Instance::new();
         let visualization = default();
         let vis_frp_connection = default();
         let view = View::new(scene.clone_ref());
-        let fullscreen_view = fullscreen::Panel::new(&logger, scene);
+        let fullscreen_view = fullscreen::Panel::new(scene);
         let scene = scene.clone_ref();
         let is_fullscreen = default();
         let size = default();
@@ -276,7 +274,6 @@ impl ContainerModel {
         view.add_child(&action_bar);
 
         Self {
-            logger,
             display_object,
             drag_root,
             visualization,
@@ -473,18 +470,18 @@ impl display::Object for ContainerModel {
 /// Container that wraps a `visualization::Instance` for rendering and interaction in the GUI.
 ///
 /// The API to interact with the visualization is exposed through the `Frp`.
-#[derive(Clone, CloneRef, Debug, Derivative, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Derivative, Deref)]
 #[allow(missing_docs)]
 pub struct Container {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub model: Rc<ContainerModel>,
     pub frp:   Frp,
 }
 
 impl Container {
     /// Constructor.
-    pub fn new(logger: &Logger, app: &Application, registry: visualization::Registry) -> Self {
-        let model = Rc::new(ContainerModel::new(logger, app, registry));
+    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
+        let model = Rc::new(ContainerModel::new(app, registry));
         let frp = Frp::new();
         Self { model, frp }.init(app)
     }
@@ -495,7 +492,6 @@ impl Container {
         let model = &self.model;
         let scene = &self.model.scene;
         let scene_shape = scene.shape();
-        let logger = &self.model.logger;
         let action_bar = &model.action_bar.frp;
         let registry = &model.registry;
         let selection = Animation::new(network);
@@ -503,6 +499,17 @@ impl Container {
         frp::extend! { network
             eval  frp.set_visibility    ((v) model.set_visibility(*v));
             eval_ frp.toggle_visibility (model.toggle_visibility());
+
+            visualisation_uninitialised <- frp.set_visualization.map(|t| t.is_none());
+            default_visualisation <- visualisation_uninitialised.on_true().map(|_| {
+                Some(visualization::Registry::default_visualisation())
+            });
+            vis_input_type <- frp.set_vis_input_type.gate(&visualisation_uninitialised).unwrap();
+            default_visualisation_for_type <- vis_input_type.map(f!((tp) {
+               registry.default_visualization_for_type(tp)
+            }));
+            default_visualisation <- any(&default_visualisation, &default_visualisation_for_type);
+
             eval  frp.set_data          ((t) model.set_visualization_data(t));
             frp.source.size    <+ frp.set_size;
             frp.source.visible <+ frp.set_visibility;
@@ -528,10 +535,10 @@ impl Container {
         // === Switching Visualizations ===
 
         frp::extend! { network
-            new_vis_definition <- any(frp.set_visualization,vis_after_cycling);
+            new_vis_definition <- any(frp.set_visualization,vis_after_cycling,default_visualisation);
             let preprocessor   =  &frp.source.preprocessor;
             frp.source.visualisation <+ new_vis_definition.map(f!(
-                [model,action_bar,app,logger,preprocessor](vis_definition) {
+                [model,action_bar,app,preprocessor](vis_definition) {
 
                 if let Some(definition) = vis_definition {
                     match definition.new_instance(&app) {
@@ -541,7 +548,7 @@ impl Container {
                             action_bar.set_selected_visualization.emit(path);
                         },
                         Err(err) => {
-                            warning!(logger,"Failed to instantiate visualization: {err:?}");
+                            warn!("Failed to instantiate visualization: {err:?}");
                         },
                     };
                 }
@@ -621,14 +628,14 @@ impl Container {
             selected_definition  <- action_bar.visualisation_selection.map(f!([registry](path)
                 path.as_ref().and_then(|path| registry.definition_from_path(path))
             ));
-            eval selected_definition([app,model,logger,preprocessor](definition)  {
+            eval selected_definition([app,model,preprocessor](definition)  {
                 let vis = definition.as_ref().map(|d| d.new_instance(&app));
                 match vis {
                     Some(Ok(vis))  => model.set_visualization(vis,&preprocessor),
                     Some(Err(err)) => {
-                        warning!(logger,"Failed to instantiate visualisation: {err:?}");
+                        warn!("Failed to instantiate visualisation: {err:?}");
                     },
-                    None => warning!(logger,"Invalid visualisation selected."),
+                    None => warn!("Invalid visualisation selected."),
                 };
             });
             frp.source.visualisation <+ selected_definition;
@@ -665,7 +672,7 @@ impl Container {
         // This is not optimal the optimal solution to this problem, as it also means that we have
         // an animation on an invisible component running.
         frp.set_size.emit(Vector2(DEFAULT_SIZE.0, DEFAULT_SIZE.1));
-        frp.set_visualization.emit(Some(visualization::Registry::default_visualisation()));
+        frp.set_visualization.emit(None);
         self
     }
 

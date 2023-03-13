@@ -57,6 +57,7 @@ impl<T: mix::Mixable + frp::Data> Animation<T>
 where mix::Repr<T>: inertia::Value
 {
     /// Constructor. The initial value of the animation is set to `default`.
+    #[profile(Debug)]
     pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
             value_src <- any_mut::<T>();
@@ -133,13 +134,13 @@ where mix::Repr<T>: inertia::Value
 ///    any animation. This is different behavior from the previous implementation, where even
 ///    setting the value for the first time would create animation between `default()` value and the
 ///    new target. If your code depends on this behavior, it needs to be changed.
-#[derive(CloneRef, Derivative, Debug, Shrinkwrap)]
+#[derive(CloneRef, Derivative, Debug, Deref)]
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 #[allow(non_camel_case_types)]
 pub struct DEPRECATED_Animation<T: mix::Mixable>
 where <T as mix::Mixable>::Repr: inertia::Value {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub simulator: inertia::DynSimulator<T::Repr>,
     pub value:     frp::Stream<T>,
 }

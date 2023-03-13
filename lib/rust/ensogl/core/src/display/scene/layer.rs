@@ -7,7 +7,6 @@ use crate::data::dirty;
 use crate::data::OptVec;
 use crate::display;
 use crate::display::camera::Camera2d;
-use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::ShapeSystemFlavor;
 use crate::display::shape::system::Shape;
 use crate::display::shape::system::ShapeInstance;
@@ -20,7 +19,6 @@ use crate::display::symbol::SymbolId;
 use enso_data_structures::dependency_graph::DependencyGraph;
 use enso_shapely::shared;
 use smallvec::alloc::collections::BTreeSet;
-use std::any::TypeId;
 
 
 
@@ -30,7 +28,7 @@ use std::any::TypeId;
 
 bitflags::bitflags! {
     /// A set of flags associated with each [`Layer`].
-    #[derive(Shrinkwrap)]
+    #[derive(Deref)]
     pub struct LayerFlags: u8 {
         /// When layer is `MAIN_PASS_VISIBLE`, it will be rendered during standard color buffer
         /// render pass. Layers without this flag are not rendered in main pass, but can still be
@@ -222,16 +220,10 @@ impl Layer {
     }
 
     /// Instantiate the provided [`ShapeProxy`].
-    pub fn instantiate<S>(
-        &self,
-        scene: &Scene,
-        data: &S::ShapeData,
-    ) -> (ShapeInstance<S>, LayerShapeBinding)
-    where
-        S: Shape,
-    {
+    pub fn instantiate<S>(&self, data: &S::ShapeData) -> (ShapeInstance<S>, LayerShapeBinding)
+    where S: Shape {
         let (shape_system_info, symbol_id, shape_instance, global_instance_id) =
-            self.shape_system_registry.instantiate(scene, data);
+            self.shape_system_registry.instantiate(data);
         self.add_shape(shape_system_info, symbol_id);
         (shape_instance, LayerShapeBinding::new(self, global_instance_id))
     }
@@ -1150,16 +1142,16 @@ shared! { ShapeSystemRegistry
 /// the same type on the same layer. Read the docs of [`ShapeProxy`] to learn more.
 #[derive(Default,Debug)]
 pub struct ShapeSystemRegistryData {
-    shape_system_map : HashMap<(TypeId, ShapeSystemFlavor),ShapeSystemRegistryEntry>,
-    shape_system_flavors: HashMap<TypeId, Vec<ShapeSystemFlavor>>,
+    shape_system_map : HashMap<(ShapeSystemId, ShapeSystemFlavor),ShapeSystemRegistryEntry>,
+    shape_system_flavors: HashMap<ShapeSystemId, Vec<ShapeSystemFlavor>>,
 }
 
 impl {
     /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>
-    (&mut self, scene:&Scene, data: &S::ShapeData) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
+    (&mut self, data: &S::ShapeData) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
     where S : Shape {
-        self.with_get_or_register_mut::<S,_,_>(scene, data, |entry| {
+        self.with_get_or_register_mut::<S,_,_>(data, |entry| {
             let system = entry.shape_system;
             let system_id = ShapeSystem::<S>::id();
             let (shape_instance, global_instance_id) = system.instantiate();
@@ -1191,7 +1183,7 @@ impl {
 
         // Intentional short-circuit - avoid computing `total_system_instances` when we know there
         // are still more instances in the currently processed entry.
-        let no_more_instances = entry_is_empty && self.total_system_instances(*system_id) == 0;
+        let no_more_instances = entry_is_empty && self.total_system_instances(system_id) == 0;
 
         (no_more_instances, system_id, PhantomData)
     }
@@ -1205,7 +1197,7 @@ impl ShapeSystemRegistryData {
     where
         S: Shape,
     {
-        let id = TypeId::of::<S>();
+        let id = ShapeSystemId::of::<S>();
         self.shape_system_map.get_mut(&(id, flavor)).and_then(|t| {
             let shape_system = t.shape_system.downcast_mut::<ShapeSystem<S>>();
             let instance_count = &mut t.instance_count;
@@ -1219,15 +1211,14 @@ impl ShapeSystemRegistryData {
     // T: ShapeSystemInstance
     fn register<S>(
         &mut self,
-        scene: &Scene,
         data: &S::ShapeData,
     ) -> ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>
     where
         S: Shape,
     {
-        let id = TypeId::of::<S>();
+        let id = ShapeSystemId::of::<S>();
         let flavor = S::flavor(data);
-        let system = ShapeSystem::<S>::new(scene, data);
+        let system = ShapeSystem::<S>::new(data);
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
         self.shape_system_map.entry((id, flavor)).insert_entry(entry);
@@ -1237,25 +1228,19 @@ impl ShapeSystemRegistryData {
     }
 
     /// Get total number of shape instances from shape systems of given type and all flavors.
-    fn total_system_instances(&self, system_id: TypeId) -> usize {
+    fn total_system_instances(&self, system_id: ShapeSystemId) -> usize {
         let Some(flavors) = self.shape_system_flavors.get(&system_id) else { return 0 };
         flavors.iter().map(|f| self.shape_system_map[&(system_id, *f)].instance_count).sum()
     }
 
-    fn with_get_or_register_mut<S, F, Out>(
-        &mut self,
-        scene: &Scene,
-        data: &S::ShapeData,
-        f: F,
-    ) -> Out
+    fn with_get_or_register_mut<S, F, Out>(&mut self, data: &S::ShapeData, f: F) -> Out
     where
         F: FnOnce(ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>) -> Out,
-        S: Shape,
-    {
+        S: Shape, {
         let flavor = S::flavor(data);
         match self.get_mut(flavor) {
             Some(entry) => f(entry),
-            None => f(self.register(scene, data)),
+            None => f(self.register(data)),
         }
     }
 }

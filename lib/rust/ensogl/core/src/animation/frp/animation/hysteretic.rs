@@ -54,7 +54,7 @@ crate::define_endpoints! {
 // ===========================
 
 /// Animation that has a delayed onset and offset.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct HystereticAnimation {
     #[allow(missing_docs)]
     pub frp: FrpEndpoints,

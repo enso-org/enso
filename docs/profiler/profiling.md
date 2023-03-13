@@ -49,7 +49,8 @@ performing **objective**s.
 
 - **Project startup**  
   Time from selecting a project from the Hello Screen to a working graph view of
-  the project. Sub-processes:
+  the project. See also [engine startup](engine-startup.md) for non-IDE details
+  on a similar topic. Sub-processes:
 
   - **Graph Editor initialization**  
     Time needed to display fully-functional graph editor (not colored).

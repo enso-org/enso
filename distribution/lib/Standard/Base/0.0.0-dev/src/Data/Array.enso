@@ -146,7 +146,7 @@ type Array
 
             [3,2,1].to_array.sort
     sort : (Any -> Any -> Ordering) -> Array
-    sort self comparator=(_.compare_to _) =
+    sort self comparator=(Ordering.compare _ _) =
         self.sort_builtin comparator
 
     ## Identity.

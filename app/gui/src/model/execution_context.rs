@@ -9,7 +9,6 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::MethodPointer;
-use engine_protocol::language_server::SuggestionId;
 use engine_protocol::language_server::VisualisationConfiguration;
 use ensogl::data::color;
 use flo_stream::Subscriber;
@@ -57,7 +56,7 @@ pub struct ComputedValueInfo {
     pub typename:    Option<ImString>,
     pub payload:     ExpressionUpdatePayload,
     /// If the expression is a method call (i.e. can be entered), this points to the target method.
-    pub method_call: Option<SuggestionId>,
+    pub method_call: Option<MethodPointer>,
 }
 
 impl From<ExpressionUpdate> for ComputedValueInfo {
@@ -117,7 +116,7 @@ impl ComputedValueInfoRegistry {
 
     /// Look up the registry for information about given expression.
     pub fn get(&self, id: &ExpressionId) -> Option<Rc<ComputedValueInfo>> {
-        self.map.borrow_mut().get(id).cloned()
+        self.map.borrow().get(id).cloned()
     }
 
     /// Obtain a `Future` with data from this registry. If data is not available yet, the future
@@ -279,8 +278,9 @@ impl From<QualifiedMethodPointer> for MethodPointer {
 
 impl From<&QualifiedMethodPointer> for MethodPointer {
     fn from(qualified_method_pointer: &QualifiedMethodPointer) -> Self {
-        let module = qualified_method_pointer.module.clone().into();
-        let defined_on_type = qualified_method_pointer.defined_on_type.clone().into();
+        let module = qualified_method_pointer.module.to_string_with_main_segment();
+        let defined_on_type =
+            qualified_method_pointer.defined_on_type.to_string_with_main_segment();
         let name = qualified_method_pointer.name.name().to_owned();
         MethodPointer { module, defined_on_type, name }
     }
@@ -580,9 +580,13 @@ mod tests {
         let update2 = value_update_with_type(expr2, &typename2);
         registry.apply_updates(vec![update1, update2]);
         assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.clone().into()));
-        assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value));
+        assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value {
+            warnings: None,
+        }));
         assert_eq!(registry.get(&expr2).unwrap().typename, Some(typename2.into()));
-        assert!(matches!(registry.get(&expr2).unwrap().payload, ExpressionUpdatePayload::Value));
+        assert!(matches!(registry.get(&expr2).unwrap().payload, ExpressionUpdatePayload::Value {
+            warnings: None,
+        }));
         let notification = test.expect_completion(subscriber.next()).unwrap();
         assert_eq!(notification, vec![expr1, expr2]);
 
@@ -591,7 +595,9 @@ mod tests {
         let update2 = value_update_with_dataflow_panic(expr3, error_msg);
         registry.apply_updates(vec![update1, update2]);
         assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.into()));
-        assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value));
+        assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value {
+            warnings: None,
+        }));
         assert!(registry.get(&expr2).unwrap().typename.is_none());
         assert!(matches!(
             registry.get(&expr2).unwrap().payload,

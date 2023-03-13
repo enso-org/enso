@@ -17,7 +17,11 @@ import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
+import org.enso.interpreter.runtime.error.{
+  DataflowError,
+  PanicSentinel,
+  WithWarnings
+}
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
@@ -82,43 +86,12 @@ object ProgramExecutionSupport {
         enterables += fun.getExpressionId -> fun.getCall
       }
 
-    def notifyPendingCacheItems(cache: RuntimeCache): Unit = {
-      val knownKeys   = cache.getWeights.entrySet
-      val cachedKeys  = cache.getKeys
-      val pendingKeys = new collection.mutable.HashSet[UUID]()
-
-      knownKeys.forEach { e =>
-        if (e.getValue > 0) {
-          if (!cachedKeys.contains(e.getKey)) {
-            pendingKeys.add(e.getKey)
-          }
-        }
-      }
-      if (pendingKeys.nonEmpty) {
-        val ids = pendingKeys.map { key =>
-          Api.ExpressionUpdate(
-            key,
-            None,
-            None,
-            Vector.empty,
-            true,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
-          )
-        }
-        val msg = Api.Response(
-          Api.ExpressionUpdates(contextId, ids.toSet)
-        )
-        ctx.endpoint.sendToClient(msg)
-      }
-    }
-
     executionFrame match {
       case ExecutionFrame(
             ExecutionItem.Method(module, cons, function),
             cache,
             syncState
           ) =>
-        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module.toString,
           cons.item,
@@ -143,7 +116,6 @@ object ProgramExecutionSupport {
             .orElseThrow(() =>
               new ModuleNotFoundForExpressionIdException(expressionId)
             )
-        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module,
           callData,
@@ -262,11 +234,11 @@ object ProgramExecutionSupport {
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
-    val reason          = Option(error.getMessage).getOrElse(error.getClass.toString)
+    val reason          = VisualizationResult.findExceptionMessage(error)
     val message = error match {
       case _: ThreadInterruptedException =>
         val message = s"Execution of function $itemName interrupted."
-        ctx.executionService.getLogger.log(Level.WARNING, message)
+        ctx.executionService.getLogger.log(Level.FINE, message)
         message
       case _ =>
         val message = s"Execution of function $itemName failed ($reason)."
@@ -282,7 +254,7 @@ object ProgramExecutionSupport {
     * @param ctx the runtime context
     * @return the API message describing the error
     */
-  def getExecutionOutcome(
+  private def getExecutionOutcome(
     t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] =
     getDiagnosticOutcome.orElse(getFailureOutcome).lift(t)
@@ -299,7 +271,7 @@ object ProgramExecutionSupport {
       val section = Option(ctx.executionService.getSourceLocation(ex))
       val source  = section.flatMap(sec => Option(sec.getSource))
       Api.ExecutionResult.Diagnostic.error(
-        ex.getMessage,
+        VisualizationResult.findExceptionMessage(ex),
         source.flatMap(src => findFileByModuleName(src.getName)),
         section.map(LocationResolver.sectionToRange),
         section
@@ -310,7 +282,7 @@ object ProgramExecutionSupport {
   }
 
   /** Extract information about the failure from the provided exception. */
-  def getFailureOutcome(implicit
+  private def getFailureOutcome(implicit
     ctx: RuntimeContext
   ): PartialFunction[Throwable, Api.ExecutionResult.Failure] = {
     case ex: TypeNotFoundException =>
@@ -372,6 +344,27 @@ object ProgramExecutionSupport {
         case error: DataflowError =>
           Api.ExpressionUpdate.Payload.DataflowError(
             ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
+          )
+        case panic: AbstractTruffleException =>
+          Api.ExpressionUpdate.Payload
+            .Panic(
+              VisualizationResult.findExceptionMessage(panic),
+              ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
+            )
+        case withWarnings: WithWarnings =>
+          val warningsCount = withWarnings.getWarningsCount
+          val warning =
+            if (warningsCount == 1) {
+              val warnings = withWarnings.getWarningsArray(null)
+              Option(ctx.executionService.toDisplayString(warnings(0).getValue))
+            } else {
+              None
+            }
+          Api.ExpressionUpdate.Payload.Value(
+            Some(
+              Api.ExpressionUpdate.Payload.Value
+                .Warnings(warningsCount, warning)
+            )
           )
         case _ =>
           Api.ExpressionUpdate.Payload.Value()
@@ -467,7 +460,7 @@ object ProgramExecutionSupport {
     val result = errorOrVisualisationData match {
       case Left(_: ThreadInterruptedException) =>
         ctx.executionService.getLogger.log(
-          Level.WARNING,
+          Level.FINE,
           s"Visualisation thread interrupted ${visualisation.expressionId}."
         )
         Completion.Interrupted

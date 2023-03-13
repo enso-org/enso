@@ -2,10 +2,11 @@ package org.enso.languageserver.data
 
 import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.filemanager.ContentRootWithFile
-import org.enso.logger.masking.{MaskingUtils, ToLogString}
+import org.enso.logger.masking.{MaskedPath, ToLogString}
 
 import java.io.File
 import java.nio.file.{Files, Path}
+
 import scala.concurrent.duration._
 
 /** Configuration of the path watcher.
@@ -55,11 +56,22 @@ object FileManagerConfig {
 
 /** Configuration of the VCS manager.
   *
-  * @param timeout vcs operation timeout
+  * @param initTimeout vcs init operation timeout
+  * @param timeout default vcs operation timeout
+  * @param asyncInit flag indicating that vcs initialization should be non-blocking
   */
-case class VcsManagerConfig(timeout: FiniteDuration) {
+case class VcsManagerConfig(
+  initTimeout: FiniteDuration,
+  timeout: FiniteDuration,
+  asyncInit: Boolean
+) {
   val dataDirectory: Path =
     Path.of(ProjectDirectoriesConfig.DataDirectory)
+}
+
+object VcsManagerConfig {
+  def apply(asyncInit: Boolean = true): VcsManagerConfig =
+    VcsManagerConfig(initTimeout = 5.seconds, 5.seconds, asyncInit)
 }
 
 /** Configuration of the execution context.
@@ -94,9 +106,7 @@ case class ProjectDirectoriesConfig(root: File) extends ToLogString {
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String = {
-    val rootString =
-      if (shouldMask) MaskingUtils.toMaskedPath(root.toPath)
-      else root.toString
+    val rootString = MaskedPath(root.toPath).toLogString(shouldMask)
     s"DirectoriesConfig($rootString)"
   }
 
@@ -145,22 +155,16 @@ case class Config(
 ) extends ToLogString {
 
   /** @inheritdoc */
-  override def toLogString(shouldMask: Boolean): String = {
-    val maskedRoot =
-      if (shouldMask) {
-        MaskingUtils.toMaskedPath(projectContentRoot.file.toPath)
-      } else {
-        projectContentRoot
-      }
+  override def toLogString(shouldMask: Boolean): String =
     s"Config(" +
-    s"projectContentRoot=$maskedRoot, " +
+    s"projectContentRoot=${projectContentRoot.toLogString(shouldMask)}, " +
     s"fileManager=$fileManager, " +
     s"vcsManager=$vcsManager, " +
     s"pathWatcher=$pathWatcher, " +
     s"executionContext=$executionContext, " +
     s"directories=${directories.toLogString(shouldMask)}" +
-    s")"
-  }
+    ")"
+
 }
 object Config {
   def ensoPackageConfigName: String = "package.yaml"

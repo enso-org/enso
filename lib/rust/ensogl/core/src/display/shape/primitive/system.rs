@@ -65,8 +65,8 @@ use crate::system::gpu::types::*;
 
 use crate::display;
 use crate::display::object::instance::GenericLayoutApi;
-use crate::display::scene::Scene;
 use crate::display::shape::primitive::shader;
+use crate::display::shape::Var;
 use crate::display::symbol;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
@@ -78,14 +78,34 @@ use crate::system::gpu::data::InstanceIndex;
 use super::def;
 
 
+// ==============
+// === Export ===
+// ==============
+
+pub mod cached;
+
+pub use cached::AnyCachedShape;
+pub use cached::CachedShape;
+
+
 
 // =====================
 // === ShapeSystemId ===
 // =====================
 
-newtype_prim_no_default_no_display! {
-    /// The ID of a user generated shape system.
-    ShapeSystemId(std::any::TypeId);
+/// The ID of a user generated shape system.
+#[derive(Copy, Clone, CloneRef, Eq, Hash, Ord, PartialOrd, PartialEq, Debug)]
+pub struct ShapeSystemId {
+    type_id: std::any::TypeId,
+}
+
+impl ShapeSystemId {
+    /// Return an identifier unique to the given [`Shape`] type.
+    #[inline(always)]
+    pub fn of<S: Shape>() -> Self {
+        let type_id = std::any::TypeId::of::<S>();
+        Self { type_id }
+    }
 }
 
 
@@ -102,6 +122,7 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type GpuParams: Debug;
     type SystemData: CustomSystemData<Self>;
     type ShapeData: Debug;
+    fn definition_path() -> &'static str;
     fn pointer_events() -> bool;
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
@@ -127,12 +148,11 @@ pub trait InstanceParamsTrait {
 /// such data. In case a shape system does not need any custom data, the empty tuple will be used.
 pub trait CustomSystemData<S: Shape> {
     /// Constructor.
-    fn new(scene: &Scene, data: &ShapeSystemStandardData<S>, shape_data: &S::ShapeData) -> Self;
+    fn new(data: &ShapeSystemStandardData<S>, shape_data: &S::ShapeData) -> Self;
 }
 
 impl<S: Shape> CustomSystemData<S> for () {
-    fn new(_scene: &Scene, _data: &ShapeSystemStandardData<S>, _shape_data: &S::ShapeData) -> Self {
-    }
+    fn new(_data: &ShapeSystemStandardData<S>, _shape_data: &S::ShapeData) -> Self {}
 }
 
 
@@ -250,8 +270,8 @@ pub struct ShapeSystemStandardData<S: Shape> {
 
 impl<S: Shape> ShapeSystem<S> {
     /// The ID of this shape system.
-    pub const fn id() -> ShapeSystemId {
-        ShapeSystemId::new(std::any::TypeId::of::<S>())
+    pub fn id() -> ShapeSystemId {
+        ShapeSystemId::of::<S>()
     }
 
     /// Reference to the underlying sprite system.
@@ -261,14 +281,15 @@ impl<S: Shape> ShapeSystem<S> {
 
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(scene: &Scene, shape_data: &S::ShapeData) -> Self {
-        let style_watch = display::shape::StyleWatch::new(&scene.style_sheet);
+    pub fn new(shape_data: &S::ShapeData) -> Self {
+        let style_watch =
+            display::world::with_context(|t| display::shape::StyleWatch::new(&t.style_sheet));
         let shape_def = S::shape_def(&style_watch);
         let events = S::pointer_events();
-        let model = display::shape::ShapeSystemModel::new(shape_def, events);
+        let model = display::shape::ShapeSystemModel::new(shape_def, events, S::definition_path());
         let gpu_params = S::new_gpu_params(&model);
         let standard = ShapeSystemStandardData { gpu_params, model, style_watch };
-        let user = CustomSystemData::<S>::new(scene, &standard, shape_data);
+        let user = CustomSystemData::<S>::new(&standard, shape_data);
         standard.model.init();
         let data = Rc::new(ShapeSystemData { standard, user });
         Self { data }.init_refresh_on_style_change()
@@ -339,18 +360,20 @@ pub struct ShapeSystemModel {
     /// code. For example, the text system uses this field, as its material fully describes how to
     /// render glyphs.
     pub do_not_use_shape_definition: Rc<Cell<bool>>,
+    pub definition_path: Immutable<&'static str>,
 }
 
 impl ShapeSystemModel {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(shape: def::AnyShape, pointer_events: bool) -> Self {
+    pub fn new(shape: def::AnyShape, pointer_events: bool, definition_path: &'static str) -> Self {
         let sprite_system = SpriteSystem::new();
         let material = Rc::new(RefCell::new(Self::default_material()));
         let geometry_material = Rc::new(RefCell::new(Self::default_geometry_material()));
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let do_not_use_shape_definition = default();
+        let definition_path = Immutable(definition_path);
         Self {
             sprite_system,
             shape,
@@ -358,6 +381,7 @@ impl ShapeSystemModel {
             geometry_material,
             pointer_events,
             do_not_use_shape_definition,
+            definition_path,
         }
     }
 
@@ -376,13 +400,14 @@ impl ShapeSystemModel {
         material.add_input_def::<Vector2<i32>>("mouse_position");
         material.add_input_def::<i32>("mouse_click_count");
         material.add_input("display_mode", 0);
+        material.add_input_def::<texture::FloatSampler>("pass_cached_shapes");
         material.add_output("id", Vector4::<f32>::zero());
         material
     }
 
     fn default_geometry_material() -> Material {
         let mut material = SpriteSystem::default_geometry_material();
-        material.set_before_main(shader::builder::glsl_prelude_and_codes());
+        material.set_before_main(shader::builder::glsl_prelude_and_constants());
         // The GLSL vertex shader implementing automatic shape padding for anti-aliasing. See the
         // docs of [`aa_side_padding`] to learn more about the concept of shape padding.
         //
@@ -419,7 +444,7 @@ impl ShapeSystemModel {
                 vec2 padded_size = input_size + padding2;
                 vec2 uv_scale = padded_size / input_size;
                 vec2 uv_offset = padding / input_size;
-                input_uv = vertex_uv * uv_scale - uv_offset;
+                input_uv = input_uv * uv_scale - uv_offset;
 
                 // We need to recompute the vertex position with the padding.
                 input_local = vec3((input_uv - input_alignment) * input_size, 0.0);
@@ -439,9 +464,23 @@ impl ShapeSystemModel {
 
     /// Generates the shape again. It is called on shape definition change, e.g. after theme update.
     fn reload_shape(&self) {
-        if !self.do_not_use_shape_definition.get() {
-            let code = shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
+        if let Some(shader) = crate::display::world::PRECOMPILED_SHADERS
+            .with_borrow(|map| map.get(*self.definition_path).cloned())
+        {
+            let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.fragment);
             self.material.borrow_mut().set_code(code);
+            let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.vertex);
+            self.geometry_material.borrow_mut().set_code(code);
+        } else {
+            if !display::world::with_context(|t| t.run_mode.get().is_shader_extraction()) {
+                let path = *self.definition_path;
+                warn!("No precompiled shader found for '{path}'. This will affect performance.");
+            }
+            if !self.do_not_use_shape_definition.get() {
+                let code =
+                    shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
+                self.material.borrow_mut().set_code(code);
+            }
         }
         self.reload_material();
     }
@@ -519,6 +558,35 @@ where
 }
 
 
+// =================
+// === Parameter ===
+// =================
+
+/// A type which can be a shape parameter.
+///
+/// All types representable in Glsl (primitives, Vectors etc.) implements this by default.
+pub trait Parameter {
+    /// The type representation in GLSL. To be usable, it should implement [`Storable`] trait.
+    type GpuType;
+    /// The type representation in shader definition code.
+    type Variable;
+
+    /// A constructor of [`Self::Variable`] representing parameter with given name.
+    ///
+    /// The `name` should contain the obligatory `input_` prefix.
+    fn create_var(name: &str) -> Self::Variable;
+}
+
+impl<T: Storable> Parameter for T {
+    type GpuType = T;
+    type Variable = Var<T>;
+
+    default fn create_var(name: &str) -> Self::Variable {
+        name.into()
+    }
+}
+
+
 
 // ==============
 // === Macros ===
@@ -549,9 +617,37 @@ macro_rules! shape {
     };
 }
 
+// FIXME[WD]: This macro was left in the code because glyphs are not able to use the shader
+//    precompilation pipeline. It will be removed in the next PR:
+//    https://www.pivotaltracker.com/story/show/184304289
+/// Defines a new shape system. This is the macro that you want to use to define new shapes. The
+/// shapes will be automatically managed in a highly efficient manner by the [`ShapeSystem`].
+#[macro_export]
+macro_rules! shape_old {
+    (
+        $(type SystemData = $system_data:ident;)?
+        $(type ShapeData = $shape_data:ident;)?
+        $(flavor = $flavor:path;)?
+        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
+        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
+        ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
+    ) => {
+        $crate::_shape_old! {
+            $(SystemData($system_data))?
+            $(ShapeData($shape_data))?
+            $(flavor = [$flavor];)?
+            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
+            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
+            $(pointer_events = $pointer_events;)?
+            [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
+        }
+    };
+}
+
 /// Internal helper for the [`shape`] macro.
 #[macro_export]
-macro_rules! _shape {
+macro_rules! _shape_old {
     (
         $(SystemData($system_data:ident))?
         $(ShapeData($shape_data:ident))?
@@ -589,7 +685,7 @@ macro_rules! _shape {
             // =============
 
             /// The type of the shape. It also contains the parameters of the shape. The parameters
-            /// are stored in this type in order to simplify bounds for utlities managing shape
+            /// are stored in this type in order to simplify bounds for utilities managing shape
             /// systems. For example, if we would like to handle any shape with given parameters,
             /// we will be processing [`ShapeSystem<S>`] and we can add bounds to [`S`] to reflect
             /// what parameters it should contain.
@@ -604,6 +700,11 @@ macro_rules! _shape {
                 type GpuParams = GpuParams;
                 type SystemData = ($($system_data)?);
                 type ShapeData = ($($shape_data)?);
+
+                fn definition_path() -> &'static str {
+                    root_call_path!()
+                }
+
                 fn pointer_events() -> bool {
                     let _out = true;
                     $(let _out = $pointer_events;)?
@@ -684,6 +785,177 @@ macro_rules! _shape {
             #[allow(missing_docs)]
             pub struct GpuParams {
                 $(pub $gpu_param: gpu::data::Buffer<$gpu_param_type>),*
+            }
+
+
+            // ============
+            // === View ===
+            // ============
+
+            /// A view of the defined shape. You can place the view in your objects and it will
+            /// automatically initialize on-demand.
+            pub type View = $crate::gui::component::ShapeView<Shape>;
+        }
+    };
+}
+
+
+/// Internal helper for the [`shape`] macro.
+#[macro_export]
+macro_rules! _shape {
+    (
+        $(SystemData($system_data:ident))?
+        $(ShapeData($shape_data:ident))?
+        $(flavor = [$flavor:path];)?
+        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
+        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
+        [$style:ident]
+        ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
+        {$($body:tt)*}
+    ) => {
+
+        pub use shape_system_definition::Shape;
+        pub use shape_system_definition::View;
+
+        #[allow(unused_variables)]
+        #[allow(unused_qualifications)]
+        #[allow(unused_imports)]
+        mod shape_system_definition {
+            use super::*;
+            use $crate::prelude::*;
+            use $crate::display;
+            use $crate::display::symbol::geometry::Sprite;
+            use $crate::system::gpu;
+            use $crate::system::gpu::data::Attribute;
+            use $crate::display::shape::ShapeSystemId;
+            use $crate::display::shape::ShapeOps;
+            use $crate::display::shape::PixelDistance;
+            use $crate::display::shape::system::ProxyParam;
+            use $crate::system::gpu::data::InstanceIndex;
+            use $crate::display::shape::system::*;
+
+
+            // =============
+            // === Shape ===
+            // =============
+
+            /// The type of the shape. It also contains the parameters of the shape. The parameters
+            /// are stored in this type in order to simplify bounds for utilities managing shape
+            /// systems. For example, if we would like to handle any shape with given parameters,
+            /// we will be processing [`ShapeSystem<S>`] and we can add bounds to [`S`] to reflect
+            /// what parameters it should contain.
+            #[allow(missing_docs)]
+            #[derive(AsRef, Debug, Deref)]
+            pub struct Shape {
+                pub params: InstanceParams,
+            }
+
+            impl $crate::display::shape::system::Shape for Shape {
+                type InstanceParams = InstanceParams;
+                type GpuParams = GpuParams;
+                type SystemData = ($($system_data)?);
+                type ShapeData = ($($shape_data)?);
+
+                fn definition_path() -> &'static str {
+                    root_call_path!()
+                }
+
+                fn pointer_events() -> bool {
+                    let _out = true;
+                    $(let _out = $pointer_events;)?
+                    _out
+                }
+
+                fn always_above() -> Vec<ShapeSystemId> {
+                    vec![$($( ShapeSystem::<$always_above_1 $(::$always_above_2)*::Shape>::id() ),*)?]
+                }
+
+                fn always_below() -> Vec<ShapeSystemId> {
+                    vec![$($(
+                        ShapeSystem::<$always_below_1 $(::$always_below_2)*::Shape> :: id()
+                    ),*)?]
+                }
+
+                fn new_instance_params(
+                    gpu_params: &Self::GpuParams,
+                    id: InstanceIndex
+                ) -> Shape {
+                    $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
+                    let params = Self::InstanceParams { $($gpu_param),* };
+                    Shape { params }
+                }
+
+                fn new_gpu_params(
+                    shape_system: &display::shape::ShapeSystemModel
+                ) -> Self::GpuParams {
+                    $(
+                        let name = stringify!($gpu_param);
+                        let val  = gpu::data::default::gpu_default::<<$gpu_param_type as Parameter>::GpuType>();
+                        let $gpu_param = shape_system.add_input(name,val);
+                    )*
+                    Self::GpuParams {$($gpu_param),*}
+                }
+
+                fn shape_def(__style_watch__: &display::shape::StyleWatch)
+                -> display::shape::primitive::def::AnyShape {
+                    #[allow(unused_imports)]
+                    use $crate::display::style::data::DataMatch;
+                    use $crate::data::color;
+                    use $crate::display::shape::*;
+
+                    __style_watch__.reset();
+                    let $style  = __style_watch__;
+                    // Silencing warnings about not used style.
+                    let _unused = &$style;
+                    $(
+                        let $gpu_param = <$gpu_param_type as Parameter>::create_var(concat!("input_",stringify!($gpu_param)));
+                        // Silencing warnings about not used shader input variables.
+                        let _unused = &$gpu_param;
+                    )*
+                    $($body)*
+                }
+
+                $(fn flavor(data: &Self::ShapeData) -> $crate::display::shape::system::ShapeSystemFlavor {
+                    $flavor(data)
+                })?
+            }
+
+            /// Register the shape definition in the global shape registry. It is used for shader
+            /// compilation during build.
+            #[before_main]
+            pub fn register_shape() {
+                $crate::display::world::SHAPES_DEFINITIONS.with(|shapes| {
+                    let definition_path = Shape::definition_path();
+                    let cons = Box::new(|| {
+                        let view: Box<dyn $crate::gui::component::AnyShapeView> =
+                            Box::new(View::new());
+                        view
+                    });
+                    let def = $crate::display::world::ShapeDefinition { definition_path, cons };
+                    shapes.borrow_mut().push(def);
+                });
+            }
+
+            /// An initialized, GPU-bound shape definition. All changed parameters are immediately
+            /// reflected in the [`Buffer`] and will be synchronised with GPU before next frame is
+            /// drawn.
+            #[derive(Debug)]
+            #[allow(missing_docs)]
+            pub struct InstanceParams {
+                $(pub $gpu_param : ProxyParam<Attribute<<$gpu_param_type as Parameter>::GpuType>>),*
+            }
+
+            impl InstanceParamsTrait for InstanceParams {
+                fn swap(&self, other: &Self) {
+                    $(self.$gpu_param.swap(&other.$gpu_param);)*
+                }
+            }
+
+            #[derive(Clone, CloneRef, Debug)]
+            #[allow(missing_docs)]
+            pub struct GpuParams {
+                $(pub $gpu_param: gpu::data::Buffer<<$gpu_param_type as Parameter>::GpuType>),*
             }
 
 

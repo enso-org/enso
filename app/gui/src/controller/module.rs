@@ -14,7 +14,7 @@ use double_representation::name::QualifiedName;
 use double_representation::text::apply_code_change_to_id_map;
 use engine_protocol::language_server;
 use engine_protocol::types::Sha3_224;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -42,22 +42,16 @@ pub struct Handle {
     pub model:           model::Module,
     pub language_server: Rc<language_server::Connection>,
     pub parser:          Parser,
-    pub logger:          Logger,
 }
 
 impl Handle {
     /// Create a module controller for given path.
     #[profile(Task)]
-    pub async fn new(
-        parent: impl AnyLogger,
-        path: Path,
-        project: &dyn model::project::API,
-    ) -> FallibleResult<Self> {
-        let logger = Logger::new_sub(parent, format!("Module Controller {}", path));
+    pub async fn new(path: Path, project: &dyn model::project::API) -> FallibleResult<Self> {
         let model = project.module(path).await?;
         let language_server = project.json_rpc();
         let parser = project.parser();
-        Ok(Handle { model, language_server, parser, logger })
+        Ok(Handle { model, language_server, parser })
     }
 
     /// Save the module to file.
@@ -95,7 +89,7 @@ impl Handle {
                 "The module controller ast was not synchronized with text editor \
                 content!\n >>> Module: {my_code}\n >>> Editor: {code}"
             );
-            let actual_ast = self.parser.parse(code, default())?.try_into()?;
+            let actual_ast = self.parser.parse(code, default()).try_into()?;
             self.model.update_ast(actual_ast)?;
         }
         Ok(())
@@ -107,13 +101,7 @@ impl Handle {
         id: double_representation::graph::Id,
         suggestion_db: Rc<model::SuggestionDatabase>,
     ) -> FallibleResult<controller::Graph> {
-        controller::Graph::new(
-            &self.logger,
-            self.model.clone_ref(),
-            suggestion_db,
-            self.parser.clone_ref(),
-            id,
-        )
+        controller::Graph::new(self.model.clone_ref(), suggestion_db, self.parser.clone_ref(), id)
     }
 
     /// Returns a graph controller for graph in this module's subtree identified by `id` without
@@ -124,7 +112,6 @@ impl Handle {
         suggestion_db: Rc<model::SuggestionDatabase>,
     ) -> controller::Graph {
         controller::Graph::new_unchecked(
-            &self.logger,
             self.model.clone_ref(),
             suggestion_db,
             self.parser.clone_ref(),
@@ -184,11 +171,10 @@ impl Handle {
         parser: Parser,
         repository: Rc<model::undo_redo::Repository>,
     ) -> FallibleResult<Self> {
-        let logger = Logger::new("Mocked Module Controller");
-        let ast = parser.parse(code.to_string(), id_map)?.try_into()?;
+        let ast = parser.parse(code.to_string(), id_map).try_into()?;
         let metadata = default();
         let model = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
-        Ok(Handle { model, language_server, parser, logger })
+        Ok(Handle { model, language_server, parser })
     }
 
     #[cfg(test)]
@@ -214,15 +200,14 @@ mod test {
     use ast::Ast;
     use ast::BlockLine;
     use enso_text::index::*;
-    use parser_scala::Parser;
+    use parser::Parser;
     use uuid::Uuid;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[wasm_bindgen_test]
+    #[test]
     fn update_ast_after_text_change() {
         TestWithLocalPoolExecutor::set_up().run_task(async {
             let ls = language_server::Connection::new_mock_rc(default());
-            let parser = Parser::new().unwrap();
+            let parser = Parser::new();
             let location = Path::from_mock_module_name("Test");
             let code = "2+2";
             let uuid1 = Uuid::new_v4();
@@ -250,7 +235,10 @@ mod test {
                                 Some(uuid1),
                             ),
                             loff: 0,
-                            opr:  Ast::new(ast::Opr { name: "+".to_string() }, Some(uuid2)),
+                            opr:  Ast::new(
+                                ast::Opr { name: "+".to_string(), right_assoc: false },
+                                Some(uuid2),
+                            ),
                             roff: 0,
                             rarg: Ast::new(
                                 ast::Number { base: None, int: "2".to_string() },

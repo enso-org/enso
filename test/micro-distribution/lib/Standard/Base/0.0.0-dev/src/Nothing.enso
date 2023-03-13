@@ -1,2 +1,5 @@
+from project.Data.Boolean.Boolean import True
+
 @Builtin_Type
 type Nothing
+    is_nothing self = True

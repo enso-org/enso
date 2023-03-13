@@ -2,7 +2,6 @@ package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
 import io.circe.parser.parse
-
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.lib.Repository
@@ -27,8 +26,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
     sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
     Config(
       testContentRoot,
-      FileManagerConfig(timeout = 3.seconds),
-      VcsManagerConfig(timeout  = 5.seconds),
+      FileManagerConfig(timeout  = 3.seconds),
+      VcsManagerConfig(asyncInit = false),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(testContentRoot.file),

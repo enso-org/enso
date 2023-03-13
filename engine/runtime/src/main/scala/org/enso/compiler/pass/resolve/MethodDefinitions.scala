@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType}
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType, Type}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -16,7 +16,7 @@ import org.enso.compiler.pass.desugar.{
 
 import scala.annotation.unused
 
-/** Resolves the correct `this` argument type for method definitions and stores
+/** Resolves the correct `self` argument type for method definitions and stores
   * the resolution in the method's metadata.
   */
 case object MethodDefinitions extends IRPass {
@@ -91,7 +91,8 @@ case object MethodDefinitions extends IRPass {
         method.methodReference.typePointer.flatMap(
           _.getMetadata(this)
         ) match {
-          case Some(Resolution(ResolvedType(_, tp))) if tp.members.nonEmpty =>
+          case Some(Resolution(ResolvedType(_, tp)))
+              if canGenerateStaticWrappers(tp) =>
             val dup = method.duplicate()
             val static = dup.copy(body =
               IR.Function.Lambda(
@@ -110,7 +111,8 @@ case object MethodDefinitions extends IRPass {
               )
             )
             List(method, static)
-          case _ => List(method)
+          case _ =>
+            List(method)
         }
 
       case other => List(other)
@@ -118,6 +120,14 @@ case object MethodDefinitions extends IRPass {
 
     ir.copy(bindings = withStaticAliases)
   }
+
+  // Generate static wrappers for
+  // 1. Types having at least one type constructor
+  // 2. All builtin types except for Nothing. Nothing's eigentype is Nothing and not Nothing.type,
+  //    would lead to overriding conflicts.
+  //    TODO: Remvoe the hardcoded type once Enso's annotations can define parameters.
+  private def canGenerateStaticWrappers(tp: Type): Boolean =
+    tp.members.nonEmpty || (tp.builtinType && (tp.name != "Nothing"))
 
   private def resolveType(
     typePointer: IR.Name,

@@ -26,7 +26,7 @@ use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 use flo_stream::Subscriber;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 // ==============
@@ -577,7 +577,6 @@ impl ComponentsProvider {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger:           Logger,
     data:             Rc<RefCell<Data>>,
     breadcrumbs:      Breadcrumbs,
     notifier:         notification::Publisher<Notification>,
@@ -595,14 +594,13 @@ pub struct Searcher {
 impl Searcher {
     /// Create new Searcher Controller.
     pub async fn new(
-        parent: impl AnyLogger,
         ide: controller::Ide,
         project: &model::Project,
         method: language_server::MethodPointer,
         mode: Mode,
     ) -> FallibleResult<Self> {
-        let graph = controller::ExecutedGraph::new(&parent, project.clone_ref(), method).await?;
-        Self::new_from_graph_controller(parent, ide, project, graph, mode)
+        let graph = controller::ExecutedGraph::new(project.clone_ref(), method).await?;
+        Self::new_from_graph_controller(ide, project, graph, mode)
     }
 
     /// Abort editing and perform cleanup.
@@ -613,14 +611,12 @@ impl Searcher {
     /// Create new Searcher Controller, when you have Executed Graph Controller handy.
     #[profile(Task)]
     pub fn new_from_graph_controller(
-        parent: impl AnyLogger,
         ide: controller::Ide,
         project: &model::Project,
         graph: controller::ExecutedGraph,
         mode: Mode,
     ) -> FallibleResult<Self> {
         let project = project.clone_ref();
-        let logger = Logger::new_sub(parent, "Searcher Controller");
         let database = project.suggestion_db();
         let data = if let Mode::EditNode { node_id } = mode {
             Data::new_with_edited_node(&graph.graph(), &database, node_id)?
@@ -639,7 +635,6 @@ impl Searcher {
         });
         let breadcrumbs = Breadcrumbs::new();
         let ret = Self {
-            logger,
             graph,
             this_arg,
             ide,
@@ -1145,7 +1140,7 @@ impl Searcher {
     /// The current list will be set as "Loading" and Language Server will be requested for a new
     /// list - once it be retrieved, the new list will be set and notification will be emitted.
     #[profile(Debug)]
-    fn reload_list(&self) {
+    pub fn reload_list(&self) {
         let this_type = self.this_arg_type_for_next_completion();
         let return_types = match self.data.borrow().input.next_completion_id() {
             CompletedFragmentId::Function => vec![],
@@ -1227,10 +1222,12 @@ impl Searcher {
                     info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(responses.iter());
                     let mut data = this.data.borrow_mut();
+                    list.update_filtering(&data.input.pattern);
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
                     data.components =
                         this.make_component_list(completions, &this_type, &return_types);
+                    data.components.update_filtering(&data.input.pattern);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
@@ -1239,6 +1236,7 @@ impl Searcher {
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =
                         this.make_component_list(this.database.keys(), &this_type, &return_types);
+                    data.components.update_filtering(&data.input.pattern);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1305,6 +1303,7 @@ impl Searcher {
             &self.database,
             module_name.as_ref(),
             &*favorites,
+            self.ide.are_component_browser_private_entries_visible(),
         );
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
@@ -1451,8 +1450,13 @@ fn component_list_builder_with_favorites<'a>(
     suggestion_db: &model::SuggestionDatabase,
     local_scope_module: QualifiedNameRef,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
+    private_entries_visibile: bool,
 ) -> component::builder::List {
-    let mut builder = component::builder::List::new();
+    let mut builder = if private_entries_visibile {
+        component::builder::List::new_with_private_components()
+    } else {
+        component::builder::List::new()
+    };
     if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
         builder = builder.with_local_scope_module_id(id);
     }
@@ -1774,7 +1778,6 @@ pub mod test {
             let searcher_target = graph.graph().nodes().unwrap().last().unwrap().id();
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
-            let logger = Logger::new("Searcher"); // new_empty
             let module_name = crate::test::mock::data::module_qualified_name();
             let database = suggestion_database_with_mock_entries(code_range);
             let mut ide = controller::ide::MockAPI::new();
@@ -1784,16 +1787,16 @@ pub mod test {
             project.expect_qualified_name().returning_st(move || project_qname.clone());
             project.expect_name().returning_st(move || project_name.clone());
             let project = Rc::new(project);
-            ide.expect_parser().return_const(Parser::new_or_panic());
+            ide.expect_parser().return_const(Parser::new());
             let current_project = project.clone_ref();
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
+            ide.expect_are_component_browser_private_entries_visible().returning_st(|| false);
             let node_metadata_guard = default();
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
                 graph,
-                logger,
                 database,
                 ide: Rc::new(ide),
                 data: default(),
@@ -1999,7 +2002,7 @@ pub mod test {
 
         // Known functions cases
         searcher.set_input("Test.test_method ".to_string()).unwrap();
-        searcher.set_input(iformat!("{MODULE_NAME}.test_method ")).unwrap();
+        searcher.set_input(format!("{MODULE_NAME}.test_method ")).unwrap();
         searcher.set_input("testFunction2 \"str\" ".to_string()).unwrap();
 
         // Unknown functions case
@@ -2112,7 +2115,10 @@ pub mod test {
             assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry3.name && e2.name()
     == entry9.name);
         } else {
-            ipanic!("Wrong top modules in Component List: {components.top_modules().collect::<Vec<_>>():?}");
+            panic!(
+                "Wrong top modules in Component List: {:?}",
+                components.top_modules().collect::<Vec<_>>()
+            );
         }
         let favorites = &components.favorites;
         assert_eq!(favorites.len(), 2);
@@ -2127,7 +2133,7 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn parsed_input() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
 
         fn args_reprs(prefix: &ast::prefix::Chain) -> Vec<String> {
             prefix.args.iter().map(|arg| arg.repr()).collect()
@@ -2190,9 +2196,7 @@ pub mod test {
         let expression = parsed.expression.unwrap();
         assert_eq!(expression.off, 0);
         assert_eq!(expression.func.repr(), "foo");
-        assert_eq!(args_reprs(&expression), vec![" bar".to_string()]);
-        assert_eq!(parsed.pattern_offset, 1);
-        assert_eq!(parsed.pattern.as_str(), "(baz ");
+        assert_eq!(args_reprs(&expression), vec![" bar".to_string(), " (baz".to_string()]);
     }
 
     fn are_same(
@@ -2276,10 +2280,10 @@ pub mod test {
             }
 
             fn run(&self) {
-                let parser = Parser::new_or_panic();
+                let parser = Parser::new();
                 let ast = parser.parse_line_ast(self.before).unwrap();
                 let new_ast = apply_this_argument("foo", &ast);
-                assert_eq!(new_ast.repr(), self.after, "Case {:?} failed: {:?}", self, ast);
+                assert_eq!(new_ast.repr(), self.after, "Case {self:?} failed: {ast:?}");
             }
         }
 
@@ -2428,7 +2432,7 @@ pub mod test {
 
         let module = searcher.graph.graph().module.clone_ref();
         // Setup searcher.
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let picked_method = FragmentAddedByPickingSuggestion {
             id:                CompletedFragmentId::Function,
             picked_suggestion: action::Suggestion::FromDatabase(entry4),
@@ -2511,7 +2515,7 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn simple_function_call_parsing() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
 
         let ast = parser.parse_line_ast("foo").unwrap();
         let call = SimpleFunctionCall::try_new(&ast).expect("Returned None for \"foo\"");

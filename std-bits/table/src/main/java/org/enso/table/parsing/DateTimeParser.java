@@ -17,11 +17,13 @@ public class DateTimeParser extends BaseTimeParser {
 
   private static ZonedDateTime parse(String text, DateTimeFormatter formatter)
       throws DateTimeParseException {
-    try {
-      return ZonedDateTime.parse(text, formatter);
-    } catch (DateTimeParseException ignored) {
-      return LocalDateTime.parse(text, formatter).atZone(ZoneId.systemDefault());
+    var datetime = formatter.parseBest(text, ZonedDateTime::from, LocalDateTime::from);
+    if (datetime instanceof ZonedDateTime zdt) {
+      return zdt;
+    } else if (datetime instanceof LocalDateTime ldt) {
+      return ldt.atZone(ZoneId.systemDefault());
     }
+    throw new DateTimeParseException("Invalid date time", text, 0);
   }
 
   @Override

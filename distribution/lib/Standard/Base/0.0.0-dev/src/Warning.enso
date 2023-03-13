@@ -27,6 +27,12 @@ type Warning
 
     ## UNSTABLE
 
+       Are any warnings attached to the value?
+    has_warnings : Any -> Boolean
+    has_warnings value = has_warnings_builtin value
+
+    ## UNSTABLE
+
        Gets all the warnings attached to the given value. Warnings are returned in the
        reverse-chronological order with respect to their attachment time.
     get_all : Any -> Vector Warning
@@ -43,6 +49,50 @@ type Warning
        - warnings: vector of warnings to set to the value.
     set : Any -> Vector Warning -> Any
     set value warnings = set_array value warnings.to_array
+
+    ## UNSTABLE
+       ADVANCED
+       Returns the provided value with any warnings removed from it.
+
+       Arguments:
+       - value: the value from which warnings should be removed.
+    clear : Any -> Any
+    clear value = Warning.set value []
+
+    ## UNSTABLE
+       ADVANCED
+       Executes the provided function with the given argument with its warnings
+       suspended.
+
+       Inside of the provided function, the argument value will have no warnings
+       attached. The result will inherit the warnings from the original argument
+       as well as any warnings that were attached to it inside of the function.
+
+       Arguments:
+       - arg: the value to pass to the function whose warnings should be
+         suspended.
+       - function: the function to execute with the given argument.
+
+       > Example
+         Detect warnings reported during a call to `bar` and raise them as
+         errors, but also ensure that the result inherits any warnings
+         originally attached to `foo`.
+
+             Warning.with_suspended foo foo->
+                result = bar foo
+                ## This will contain warnings reported during execution of
+                   `bar`, but it will not be tainted with earlier warnings
+                   coming from `foo`.
+                inner_warnings = Warning.get_all result . map .value
+                if inner_warnings.is_empty then result else
+                    Error.throw inner_warnings.first
+    with_suspended : Any -> (Any -> Any) -> Any
+    with_suspended arg function =
+       ## The case-of is used to ensure that warnings of `arg` will be inherited
+          by the result.
+       case arg of
+           _ -> function (Warning.clear arg)
+
 
     ## UNSTABLE
        Maps warnings attached to a value.
@@ -204,6 +254,12 @@ create payload origin = @Builtin_Method "Warning.create"
    and, compared to `Warning.attach` requires an explicit stacktrace associated with it.
 attach_with_stacktrace : Any -> Any -> Vector Stack_Trace_Element -> Any
 attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
+
+## PRIVATE
+
+   Builtin function that sees if any warnings attached.
+has_warnings_builtin : Any -> Array Warning
+has_warnings_builtin value = @Builtin_Method "Warning.has_warnings_builtin"
 
 ## PRIVATE
 

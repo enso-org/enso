@@ -17,8 +17,8 @@
   "private": true,
   "workspaces": [
     "lib/client",
-    "lib/common",
     "lib/content",
+    "lib/content-config",
     "lib/copy-plugin",
     "lib/icons",
     "lib/server"

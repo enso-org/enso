@@ -95,7 +95,7 @@ object Runtime {
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.OpenFileNotification],
-        name  = "openFileNotification"
+        name  = "setModuleSourcesNotification"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.EditFileNotification],
@@ -206,6 +206,10 @@ object Runtime {
         name  = "suggestionsDatabaseModuleUpdateNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.SuggestionsDatabaseSuggestionsLoadedNotification],
+        name  = "suggestionsDatabaseSuggestionsLoadedNotification"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.AnalyzeModuleInScopeJobFinished],
         name  = "analyzeModuleInScopeJobFinished"
       ),
@@ -216,14 +220,6 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexResponse],
         name  = "invalidateModulesIndexResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VerifyModulesIndexRequest],
-        name  = "verifyModulesIndexRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VerifyModulesIndexResponse],
-        name  = "verifyModulesIndexResponse"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.GetTypeGraphRequest],
@@ -268,6 +264,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.LockReleaseFailed],
         name  = "lockReleaseFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.DeserializeLibrarySuggestions],
+        name  = "deserializeLibrarySuggestions"
       )
     )
   )
@@ -385,10 +385,22 @@ object Runtime {
       sealed trait Payload
       object Payload {
 
-        /** An empty payload. Indicates that the expression was computed to a
-          * value.
+        /** Indicates that the expression was computed to a value.
+          *
+          * @param warnings information about attached warnings.
           */
-        case class Value() extends Payload
+        case class Value(warnings: Option[Value.Warnings] = None)
+            extends Payload
+
+        object Value {
+
+          /** Information about warnings associated with the value.
+            *
+            * @param count the number of attached warnings.
+            * @param warning textual representation of the attached warning.
+            */
+          case class Warnings(count: Int, warning: Option[String])
+        }
 
         /** TBD
           */
@@ -1289,11 +1301,10 @@ object Runtime {
       */
     final case class InvalidStackItemError(contextId: ContextId) extends Error
 
-    /** A notification sent to the server about switching a file to literal
-      * contents.
+    /** A notification sent to the server about opening a file.
       *
       * @param path the file being moved to memory.
-      * @param contents the current file contents.
+      * @param contents the current module's contents.
       */
     final case class OpenFileNotification(
       path: File,
@@ -1503,6 +1514,25 @@ object Runtime {
         ")"
     }
 
+    /** A notification about the suggestions of the loaded library.
+      *
+      * @param libraryName the name of the loaded library
+      * @param suggestions the loaded suggestions
+      */
+    final case class SuggestionsDatabaseSuggestionsLoadedNotification(
+      libraryName: LibraryName,
+      suggestions: Vector[Suggestion]
+    ) extends ApiNotification
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "SuggestionsDatabaseSuggestionsLoadedNotification(" +
+        s"libraryName=$libraryName," +
+        s"suggestions=${suggestions.map(_.toLogString(shouldMask))}" +
+        ")"
+    }
+
     /** A notification about the finished background analyze job. */
     final case class AnalyzeModuleInScopeJobFinished() extends ApiNotification
 
@@ -1511,20 +1541,6 @@ object Runtime {
 
     /** Signals that the module indexes has been invalidated. */
     final case class InvalidateModulesIndexResponse() extends ApiResponse
-
-    /** A request to verify the modules in the suggestions database.
-      *
-      * @param modules the list of modules
-      */
-    final case class VerifyModulesIndexRequest(modules: Seq[String])
-        extends ApiRequest
-
-    /** A response to the module verification request.
-      *
-      * @param remove the list of modules to remove from suggestions database.
-      */
-    final case class VerifyModulesIndexResponse(remove: Seq[String])
-        extends ApiResponse
 
     /** A request for the type hierarchy graph. */
     final case class GetTypeGraphRequest() extends ApiRequest
@@ -1638,6 +1654,16 @@ object Runtime {
       *                     this failure
       */
     final case class LockReleaseFailed(errorMessage: String) extends ApiResponse
+
+    /** A request to deserialize the library suggestions.
+      *
+      * Does not have a companion response message. The response will be
+      * delivered asynchronously as a notification.
+      *
+      * @param libraryName the name of the loaded library.
+      */
+    final case class DeserializeLibrarySuggestions(libraryName: LibraryName)
+        extends ApiRequest
 
     private lazy val mapper = {
       val factory = new CBORFactory()

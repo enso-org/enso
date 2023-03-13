@@ -1,3 +1,6 @@
+# This file is auto-generated. Do not edit it manually!
+# Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
+
 name: Generate a new version
 on:
   workflow_dispatch:
@@ -18,7 +21,7 @@ on:
         required: true
         type: string
 jobs:
-  enso-build-cli-ci-gen-promote-release-job-linux:
+  enso-build-ci-gen-promote-release-job-linux:
     name: Promote release (linux)
     runs-on:
       - self-hosted
@@ -57,18 +60,15 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - id: promote
         run: ./run release promote ${{ inputs.designator }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -80,7 +80,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     outputs:
       ENSO_EDITION: ${{ steps.promote.outputs.ENSO_EDITION }}
       ENSO_RELEASE_MODE: ${{ steps.promote.outputs.ENSO_RELEASE_MODE }}
@@ -88,10 +87,10 @@ jobs:
   release:
     name: Release
     needs:
-      - enso-build-cli-ci-gen-promote-release-job-linux
+      - enso-build-ci-gen-promote-release-job-linux
     uses: ./.github/workflows/release.yml
     with:
-      version: ${{ needs.enso-build-cli-ci-gen-promote-release-job-linux.outputs.ENSO_VERSION }}
+      version: ${{ needs.enso-build-ci-gen-promote-release-job-linux.outputs.ENSO_VERSION }}
     secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

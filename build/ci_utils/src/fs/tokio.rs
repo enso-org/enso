@@ -1,3 +1,5 @@
+//! Asynchronous filesystem operations using tokio.
+
 use crate::prelude::*;
 
 use tokio::fs::File;
@@ -77,15 +79,6 @@ pub async fn remove_dir_if_exists(path: impl AsRef<Path>) -> Result {
     }
 }
 
-pub async fn perhaps_remove_dir_if_exists(dry_run: bool, path: impl AsRef<Path>) -> Result {
-    if dry_run {
-        info!("Would remove directory {}.", path.as_ref().display());
-        Ok(())
-    } else {
-        remove_dir_if_exists(path).await
-    }
-}
-
 /// Recreate directory, so it exists and is empty.
 pub async fn reset_dir(path: impl AsRef<Path>) -> Result {
     let path = path.as_ref();
@@ -123,4 +116,91 @@ pub async fn append(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Resul
         .write_all(contents.as_ref())
         .await
         .with_context(|| format!("Failed to write to file {}.", path.as_ref().display()))
+}
+
+/// Copy a file between directory subtrees, preserving the relative path.
+///
+/// Source file must be within the source directory subtree. Path can be either relative or
+/// absolute.
+///
+/// Example:
+/// ```
+/// use ide_ci::prelude::*;
+///
+/// use ide_ci::fs::tokio::copy_between;
+/// #[tokio::main]
+/// async fn main() -> Result {
+///     let tmp1 = tempfile::tempdir()?;
+///     let relative_path = PathBuf::from_iter(["bin", "program"]);
+///     let contents = "Hello, world!";
+///     ide_ci::fs::tokio::write(tmp1.path().join_iter(&relative_path), contents).await?;
+///     let tmp2 = tempfile::tempdir()?;
+///     copy_between(tmp1.path(), tmp2.path(), &relative_path).await?;
+///
+///     let copied =
+///         ide_ci::fs::tokio::read_to_string(tmp2.path().join_iter(&relative_path)).await?;
+///     assert_eq!(contents, copied);
+///     Ok(())
+/// }
+/// ```
+pub async fn copy_between(
+    source_dir: impl AsRef<Path>,
+    destination_dir: impl AsRef<Path>,
+    source_file: impl AsRef<Path>,
+) -> Result<PathBuf> {
+    let source_file = source_file.as_ref();
+    let source_file = if source_file.is_absolute() {
+        source_file.strip_prefix(source_dir.as_ref()).with_context(|| {
+            format!(
+                "Failed to strip prefix {} from {}.",
+                source_dir.as_ref().display(),
+                source_file.display()
+            )
+        })?
+    } else {
+        source_file
+    };
+    let source_path = source_dir.as_ref().join(source_file);
+    let destination_path = destination_dir.as_ref().join(source_file);
+    copy(&source_path, &destination_path)
+        .instrument(info_span!("copy_between", ?source_path, ?destination_path))
+        .await?;
+    Ok(destination_path)
+}
+
+/// Asynchronous version of [`crate::fs::copy`].
+pub async fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -> Result {
+    let source_file = source_file.as_ref().to_path_buf();
+    let destination_file = destination_file.as_ref().to_path_buf();
+    tokio::task::spawn_blocking(move || crate::fs::copy(&source_file, &destination_file)).await?
+}
+
+
+/// Remove a regular file.
+///
+/// Does not fail if the file is not found.
+#[context("Failed to remove file {}", path.as_ref().display())]
+pub async fn remove_file_if_exists(path: impl AsRef<Path>) -> Result<()> {
+    let result = tokio::fs::remove_file(&path).await;
+    match result {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        result => result.anyhow_err(),
+    }
+}
+
+/// Fail if the given path does not exist.
+pub async fn require_exist(path: impl AsRef<Path>) -> Result {
+    if metadata(&path).await.is_ok() {
+        trace!("{} does exist.", path.as_ref().display());
+        Ok(())
+    } else {
+        bail!("{} does not exist.", path.as_ref().display())
+    }
+}
+
+/// Asynchronous version of [`crate::fs::copy_to`].
+pub async fn copy_to(source_file: impl AsRef<Path>, dest_dir: impl AsRef<Path>) -> Result<PathBuf> {
+    let source_file = source_file.as_ref().to_path_buf();
+    let dest_dir = dest_dir.as_ref().to_path_buf();
+    tokio::task::spawn_blocking(move || crate::fs::copy_to(&source_file, &dest_dir)).await?
 }

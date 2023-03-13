@@ -55,7 +55,8 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |""".stripMargin
 
       val error = the[InterpreterException] thrownBy eval(code)
-      error.getMessage should include("java.io.IOException")
+      error.getMessage should not include "java.io.IOException"
+      error.getMessage should include("nonexistentcommandxyz")
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }

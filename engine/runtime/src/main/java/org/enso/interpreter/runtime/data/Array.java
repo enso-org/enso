@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -9,6 +10,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.Warning;
@@ -25,7 +27,7 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 public final class Array implements TruffleObject {
   private final Object[] items;
-  private @CompilerDirectives.CompilationFinal Boolean withWarnings;
+  private Boolean withWarnings;
 
   /**
    * Creates a new array
@@ -37,6 +39,7 @@ public final class Array implements TruffleObject {
       description = "Creates an array with given elements.",
       autoRegister = false)
   public Array(Object... items) {
+    assert noNulls(items);
     this.items = items;
   }
 
@@ -47,9 +50,25 @@ public final class Array implements TruffleObject {
    */
   @Builtin.Method(
       description = "Creates an uninitialized array of a given size.",
-      autoRegister = false)
-  public Array(long size) {
-    this.items = new Object[(int) size];
+      autoRegister = false,
+      name = "new")
+  public static Array allocate(long size) {
+    var arr = new Object[(int) size];
+    var ctx = EnsoContext.get(null);
+    var nothing = ctx.getBuiltins().nothing();
+    for (int i = 0; i < arr.length; i++) {
+      arr[i] = nothing;
+    }
+    return new Array(arr);
+  }
+
+  private static final boolean noNulls(Object[] arr) {
+    for (int i = 0; i < arr.length; i++) {
+      if (arr[i] == null) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** @return the elements of this array as a java array. */
@@ -75,14 +94,20 @@ public final class Array implements TruffleObject {
    * @throws InvalidArrayIndexException when the index is out of bounds.
    */
   @ExportMessage
-  public Object readArrayElement(long index, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+  public Object readArrayElement(
+      long index,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached BranchProfile errProfile,
+      @Cached BranchProfile hasWarningsProfile)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     if (index >= items.length || index < 0) {
+      errProfile.enter();
       throw InvalidArrayIndexException.create(index);
     }
 
     var v = items[(int) index];
     if (this.hasWarnings(warnings)) {
+      hasWarningsProfile.enter();
       Warning[] extracted = this.getWarnings(null, warnings);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
@@ -93,13 +118,13 @@ public final class Array implements TruffleObject {
   }
 
   public long length() {
-    return this.getItems().length;
+    return items.length;
   }
 
   /** @return an empty array */
   @Builtin.Method(description = "Creates an empty Array", autoRegister = false)
-  public static Object empty() {
-    return new Array();
+  public static Array empty() {
+    return allocate(0);
   }
 
   /** @return an identity array */

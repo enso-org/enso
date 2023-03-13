@@ -59,7 +59,7 @@ pub fn run(
     if attrs.len() == 1 && &attrs[0].to_string() == "boxed" {
         is_boxed = true;
     } else if !attrs.is_empty() {
-        panic!("Unsupported attributes: {:?}", attrs);
+        panic!("Unsupported attributes: {attrs:?}");
     }
     let mut decl = syn::parse_macro_input!(input as DeriveInput);
     let (enum_attrs, variant_types_attrs, variants_attrs) =
@@ -382,7 +382,7 @@ fn parse_attr(attr: &Attribute) -> Option<Attr> {
                 _ => panic!("Unexpected value in string argument to helper-attribute."),
             }
         })),
-        _ => panic!("Unsupported helper-attribute name: {:?}.", path),
+        _ => panic!("Unsupported helper-attribute name: {path:?}."),
     }
 }
 

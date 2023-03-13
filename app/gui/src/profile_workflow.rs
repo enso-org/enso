@@ -1,7 +1,6 @@
 //! Defines profilable workflows, and an entry point that runs a specified workflow.
 
 use crate::integration_test::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_debug_api as debug_api;
 
@@ -18,7 +17,10 @@ pub async fn main() {
     // Run selected workflow.
     let need_workflow = "`profile` entry point requires --workflow argument. \
     Try --workflow=help to see a list of options.";
-    let selected = enso_config::ARGS.test_workflow.as_ref().expect(need_workflow);
+    let selected = &enso_config::ARGS.groups.profile.options.workflow.value;
+    if selected.is_empty() {
+        panic!("{need_workflow}");
+    }
     reflect_match!(match selected as options {
         "collapse_nodes" => profile_collapse_nodes().await,
         "create_node" => profile_create_node().await,

@@ -9,12 +9,19 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.node.BaseNode.TailStatus;
+import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 
 /** An exception type for user thrown panic exceptions. */
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "payload")
@@ -76,17 +83,35 @@ public class PanicException extends AbstractTruffleException {
     return true;
   }
 
+  static UnresolvedSymbol toDisplayText(IndirectInvokeMethodNode payloads) {
+    var ctx = EnsoContext.get(payloads);
+    var scope = ctx.getBuiltins().panic().getDefinitionScope();
+    return UnresolvedSymbol.build("to_display_text", scope);
+  }
+
   @ExportMessage
   Object getExceptionMessage(
-      @CachedLibrary(limit = "5") InteropLibrary payloads,
+      @Cached IndirectInvokeMethodNode payloads,
+      @Cached(value = "toDisplayText(payloads)", allowUncached = true)
+          UnresolvedSymbol toDisplayText,
       @CachedLibrary(limit = "3") InteropLibrary strings,
       @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
+    var ctx = EnsoContext.get(payloads);
+    var text =
+        payloads.execute(
+            null,
+            State.create(ctx),
+            toDisplayText,
+            payload,
+            new Object[] {payload},
+            new CallArgumentInfo[] {new CallArgumentInfo("self")},
+            DefaultsExecutionMode.EXECUTE,
+            ArgumentsExecutionMode.EXECUTE,
+            TailStatus.NOT_TAIL,
+            0);
     try {
-      return Text.create(strings.asString(payloads.invokeMember(payload, "to_display_text")));
-    } catch (UnsupportedTypeException
-        | UnsupportedMessageException
-        | ArityException
-        | UnknownIdentifierException e) {
+      return Text.create(strings.asString(text));
+    } catch (UnsupportedMessageException e) {
       return Text.create(typeToDisplayTextNode.execute(payload));
     }
   }

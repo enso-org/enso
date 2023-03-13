@@ -96,7 +96,7 @@ impl Group {
         let name = if entry.defined_in.is_top_element() || entry.defined_in.is_main_module() {
             let project = &entry.defined_in.project().project;
             let module = entry.defined_in.name();
-            format!("{}.{}", project, module)
+            format!("{project}.{module}")
         } else {
             entry.defined_in.name().to_owned()
         };
@@ -218,8 +218,10 @@ impl Group {
             (MatchInfo::DoesNotMatch, MatchInfo::DoesNotMatch) => cmp::Ordering::Equal,
             (MatchInfo::DoesNotMatch, MatchInfo::Matches { .. }) => cmp::Ordering::Greater,
             (MatchInfo::Matches { .. }, MatchInfo::DoesNotMatch) => cmp::Ordering::Less,
-            (MatchInfo::Matches { subsequence: lhs }, MatchInfo::Matches { subsequence: rhs }) =>
-                lhs.compare_scores(rhs),
+            (
+                MatchInfo::Matches { subsequence: lhs, .. },
+                MatchInfo::Matches { subsequence: rhs, .. },
+            ) => lhs.compare_scores(rhs),
         }
     }
 

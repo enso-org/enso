@@ -91,7 +91,7 @@ class BaseServerTest
     Config(
       testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
-      VcsManagerConfig(timeout  = 5.seconds),
+      VcsManagerConfig(),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig(testContentRoot.file),
@@ -171,7 +171,8 @@ class BaseServerTest
       VcsManager.props(
         config.vcsManager,
         Git.withEmptyUserConfig(
-          Some(config.vcsManager.dataDirectory)
+          Some(config.vcsManager.dataDirectory),
+          config.vcsManager.asyncInit
         ),
         contentRootManagerWrapper,
         zioExec
@@ -207,7 +208,6 @@ class BaseServerTest
     val contextRegistry =
       system.actorOf(
         ContextRegistry.props(
-          suggestionsRepo,
           config,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnectorProbe.ref,
@@ -248,11 +248,6 @@ class BaseServerTest
     )
     Await.ready(initializationComponent.init(), timeout)
     system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
-    runtimeConnectorProbe.receiveN(1)
-    suggestionsHandler ! Api.Response(
-      UUID.randomUUID(),
-      Api.VerifyModulesIndexResponse(Seq())
-    )
 
     val environment         = fakeInstalledEnvironment()
     val languageHome        = LanguageHome.detectFromExecutableLocation(environment)

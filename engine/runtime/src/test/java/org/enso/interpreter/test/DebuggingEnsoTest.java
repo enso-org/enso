@@ -22,7 +22,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,7 +39,6 @@ import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebuggingEnsoTest {
@@ -185,9 +183,6 @@ public class DebuggingEnsoTest {
     }
   }
 
-  /**
-   * Host values in the stack frame are handled specially, because of https://github.com/oracle/graal/issues/5513
-   */
   @Test
   public void testHostValues() {
      Value fooFunc = createEnsoMethod("""
@@ -210,15 +205,12 @@ public class DebuggingEnsoTest {
           assertTrue(pathValue.isReadable());
           assertFalse(pathValue.isInternal());
           assertFalse(pathValue.hasReadSideEffects());
-          assertTrue(pathValue.toDisplayString().startsWith("HostObject"));
 
           DebugValue listValue = scope.getDeclaredValue("list");
-          // ArrayList is internally represented as Enso list, but as an object
-          // initialized in host context, it suffers from the issue mentioned in
-          // https://github.com/oracle/graal/issues/5513. Therefore, we display
-          // it just as 'HostObject' in the debugger.
           assertNotNull(listValue);
-          assertTrue(listValue.toDisplayString().startsWith("HostObject"));
+          assertTrue(listValue.isArray());
+          assertEquals(10, listValue.getArray().get(0).asInt());
+          assertEquals(20, listValue.getArray().get(1).asInt());
         }
       }
       event.getSession().suspendNextExecution();
@@ -406,7 +398,9 @@ public class DebuggingEnsoTest {
     Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, methodName);
     List<Integer> lineNumbers = new ArrayList<>();
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
-      steps.remove().onSuspend(event);
+      if (!steps.isEmpty()) {
+        steps.remove().onSuspend(event);
+      }
       lineNumbers.add(
           event.getSourceSection().getStartLine()
       );
@@ -535,48 +529,6 @@ public class DebuggingEnsoTest {
         Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1))
     );
     testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
-  }
-
-  /**
-   * Steps through some stdlib methods, enumerates all the values in frames and checks if all
-   * the host values are wrapped.
-   *
-   * Note that this is essentially a check whether the workaround for https://github.com/oracle/graal/issues/5513 works.
-   */
-  @Test
-  public void testAllHostObjectsAreWrapped() {
-    Value fooFunc = createEnsoMethod("""
-        from Standard.Base import Vector
-        foo x =
-            vec = [5, 5, 1, 2, 1]
-            vec.distinct
-        """, "foo");
-    List<FrameEntry> frames = new ArrayList<>();
-    try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
-      DebugScope topScope = event.getTopStackFrame().getScope();
-      var frameEntry = new FrameEntry(topScope.getName(), event.getReturnValue());
-      for (DebugValue declaredValue : topScope.getDeclaredValues()) {
-        frameEntry.addValue(declaredValue);
-      }
-      frames.add(frameEntry);
-      event.prepareStepInto(1);
-    })) {
-      session.suspendNextExecution();
-      fooFunc.execute(0);
-    }
-    // Throughout Vector.distinct call, there will definitely be at least one host object
-    // in one of the stack frames.
-    long hostObjectValues = frames.stream()
-        .filter(frameEntry ->
-            frameEntry
-                .values
-                .values()
-                .stream()
-                .anyMatch(displayString -> displayString.contains("HostObject"))
-        )
-        .count();
-    assertTrue(frames.size() > 1);
-    assertTrue(hostObjectValues > 1);
   }
 
   private static final class FrameEntry {

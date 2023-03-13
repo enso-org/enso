@@ -1,3 +1,6 @@
+# This file is auto-generated. Do not edit it manually!
+# Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
+
 name: Release
 on:
   workflow_dispatch:
@@ -13,7 +16,7 @@ on:
         required: true
         type: string
 jobs:
-  enso-build-cli-ci-gen-draft-release-linux:
+  enso-build-ci-gen-draft-release-linux:
     name: Create a release draft.
     runs-on:
       - self-hosted
@@ -52,16 +55,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - id: prepare
         run: ./run release create-draft
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     outputs:
       ENSO_RELEASE_ID: ${{ steps.prepare.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ steps.prepare.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-job-build-wasm-linux:
+  enso-build-ci-gen-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
     runs-on:
       - self-hosted
@@ -100,17 +101,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -122,11 +120,10 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
-  enso-build-cli-ci-gen-job-deploy-gui-linux:
+  enso-build-ci-gen-job-deploy-gui-linux:
     name: Upload GUI to S3 (linux)
     needs:
-      - enso-build-cli-ci-gen-upload-ide-linux
+      - enso-build-ci-gen-upload-ide-linux
     runs-on:
       - self-hosted
       - Linux
@@ -164,19 +161,16 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run release deploy-gui
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -188,12 +182,11 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
-  enso-build-cli-ci-gen-job-deploy-runtime-linux:
+  enso-build-ci-gen-job-deploy-runtime-linux:
     name: Upload Runtime to ECR (linux)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-upload-backend-linux
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-upload-backend-linux
     runs-on:
       - self-hosted
       - Linux
@@ -231,21 +224,18 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run release deploy-runtime
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.ECR_PUSH_RUNTIME_ACCESS_KEY_ID }}
           AWS_DEFAULT_REGION: eu-west-1
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY }}
-          ENSO_BUILD_ECR_REPOSITORY: runtime
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
-        timeout-minutes: 360
+          crate_ECR_REPOSITORY: runtime
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -257,14 +247,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-job-upload-backend-linux:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-linux:
     name: Upload Backend (linux)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-ci-gen-draft-release-linux
     runs-on:
       - self-hosted
       - Linux
@@ -302,17 +291,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -324,14 +310,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-job-upload-backend-macos:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-macos:
     name: Upload Backend (macos)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-ci-gen-draft-release-linux
     runs-on:
       - macos-latest
     steps:
@@ -367,17 +352,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -389,14 +371,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-job-upload-backend-windows:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-windows:
     name: Upload Backend (windows)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-ci-gen-draft-release-linux
     runs-on:
       - self-hosted
       - Windows
@@ -434,17 +415,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -456,19 +434,18 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-publish-release-linux:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-publish-release-linux:
     name: Publish release (linux)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-deploy-gui-linux
-      - enso-build-cli-ci-gen-job-deploy-runtime-linux
-      - enso-build-cli-ci-gen-upload-ide-linux
-      - enso-build-cli-ci-gen-upload-ide-macos
-      - enso-build-cli-ci-gen-upload-ide-windows
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-deploy-gui-linux
+      - enso-build-ci-gen-job-deploy-runtime-linux
+      - enso-build-ci-gen-upload-ide-linux
+      - enso-build-ci-gen-upload-ide-macos
+      - enso-build-ci-gen-upload-ide-windows
     runs-on:
       - self-hosted
       - Linux
@@ -506,17 +483,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run release publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -528,19 +502,18 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
       AWS_REGION: us-west-1
       AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-upload-ide-linux:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-linux:
     name: Build IDE (linux)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-build-wasm-linux
-      - enso-build-cli-ci-gen-job-upload-backend-linux
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-build-wasm-linux
+      - enso-build-ci-gen-job-upload-backend-linux
     runs-on:
       - self-hosted
       - Linux
@@ -578,17 +551,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -600,16 +570,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-upload-ide-macos:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-macos:
     name: Build IDE (macos)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-build-wasm-linux
-      - enso-build-cli-ci-gen-job-upload-backend-macos
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-build-wasm-linux
+      - enso-build-ci-gen-job-upload-backend-macos
     runs-on:
       - macos-latest
     steps:
@@ -645,13 +614,11 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
@@ -660,7 +627,6 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
           CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -672,16 +638,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-upload-ide-windows:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-windows:
     name: Build IDE (windows)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-build-wasm-linux
-      - enso-build-cli-ci-gen-job-upload-backend-windows
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-build-wasm-linux
+      - enso-build-ci-gen-job-upload-backend-windows
     runs-on:
       - self-hosted
       - Windows
@@ -719,19 +684,16 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
-        timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -743,10 +705,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
   ENSO_EDITION: ${{ inputs.version }}

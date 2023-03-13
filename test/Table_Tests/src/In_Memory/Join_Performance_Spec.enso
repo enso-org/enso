@@ -25,10 +25,11 @@ spec =
             t4.at "X" . to_vector . should_equal <| vec
             t4.at "Z" . to_vector . should_equal <| vec2.reverse
 
-            expected_max_time_ms = r1.first.total_milliseconds * 5 + 100
+            base_ms = r1.first.total_milliseconds
+            expected_max_time_ms = base_ms * 5 + 100
             runtime_ms = r2.first.total_milliseconds
             if runtime_ms > expected_max_time_ms then
-                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
+                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+base_ms.to_text+"ms. The maximum time threshold for this operation to be deemed efficient has been estimated at "+expected_max_time_ms.to_text+"ms."
 
         Test.specify "should efficiently compute equality joins mixed with other secondary conditions" <|
             vec = 0.up_to n . to_vector
@@ -48,10 +49,11 @@ spec =
             t4.at "X" . to_vector . should_equal <| vec
             t4.at "Z" . to_vector . should_equal <| vec2.reverse
 
-            expected_max_time_ms = r1.first.total_milliseconds * 5 + 100
+            base_ms = r1.first.total_milliseconds
+            expected_max_time_ms = base_ms * 5 + 100
             runtime_ms = r2.first.total_milliseconds
             if runtime_ms > expected_max_time_ms then
-                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
+                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+base_ms.to_text+"ms. The maximum time threshold for this operation to be deemed efficient has been estimated at "+expected_max_time_ms.to_text+"ms."
 
         Test.specify "should efficiently compute case-insensitive equality joins" <|
             unique_text_for_number prefix i =
@@ -77,10 +79,11 @@ spec =
             t4.at "Right_X" . to_vector . should_equal uppers
             t4.at "Z" . to_vector . should_equal <| 1.up_to n+1 . to_vector . reverse
 
-            expected_max_time_ms = r1.first.total_milliseconds * 5 + 100
+            base_ms = r1.first.total_milliseconds
+            expected_max_time_ms = base_ms * 5 + 100
             runtime_ms = r2.first.total_milliseconds
             if runtime_ms > expected_max_time_ms then
-                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 3x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
+                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 3x"+n.to_text+" with the same result size took "+base_ms.to_text+"ms. The maximum time threshold for this operation to be deemed efficient has been estimated at "+expected_max_time_ms.to_text+"ms."
 
         Test.specify "should efficiently compute Between joins" pending="TODO in task https://www.pivotaltracker.com/story/show/183913337" <|
             xs = 0.up_to n . map x-> x * 20
@@ -106,9 +109,10 @@ spec =
             t4.at "X" . to_vector . should_equal ((xs.flat_map x-> [x, x]) . drop (Last 1))
             t4.at "l" . to_vector . should_equal (ls.zip (ls.drop 1) . flatten)+[ls.last]
 
-            expected_max_time_ms = r1.first.total_milliseconds * 5 + 100
+            base_ms = r1.first.total_milliseconds
+            expected_max_time_ms = base_ms * 5 + 100
             runtime_ms = r2.first.total_milliseconds
             if runtime_ms > expected_max_time_ms then
-                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
+                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+base_ms.to_text+"ms. The maximum time threshold for this operation to be deemed efficient has been estimated at "+expected_max_time_ms.to_text+"ms."
 
 main = Test_Suite.run_main spec

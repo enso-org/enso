@@ -35,7 +35,7 @@ impl Case {
     pub fn from_markdown(marked_code: impl Str) -> Case {
         // Regexp that matches either «sth» or »sth« into a group named `introduced` or `used`,
         // respectively. See: https://regex101.com/r/pboF8O/2 for detailed explanation.
-        let regex = format!(r"«(?P<{}>[^»]*)»|»(?P<{}>[^«]*)«", INTRODUCED, USED);
+        let regex = format!(r"«(?P<{INTRODUCED}>[^»]*)»|»(?P<{USED}>[^«]*)«");
         // As this is test utils, we don't try nicely handling failure nor reusing the compiled
         // regexp between calls to save some cycles.
         let regex = Regex::new(&regex).unwrap();
@@ -87,7 +87,7 @@ impl Replacer for MarkdownReplacer {
         } else if let Some(used) = captures.name(USED) {
             (Kind::Used, used)
         } else {
-            panic!("Unexpected capture: expected named capture `{}` or `{}`.", INTRODUCED, USED)
+            panic!("Unexpected capture: expected named capture `{INTRODUCED}` or `{USED}`.")
         };
 
         let span = self.processor.process_match(captures, &matched, dst);
@@ -135,7 +135,7 @@ impl<'a> IdentifierValidator<'a> {
 
     /// Marks given identifier as checked.
     pub fn validate_identifier(&mut self, name: &str) {
-        let err = iformat!("{self.name}: unexpected identifier `{name}` validated");
+        let err = format!("{}: unexpected identifier `{name}` validated", self.name);
         let used = self.validations.get_mut(name).expect(&err);
         *used = HasBeenValidated::Yes;
     }
@@ -151,7 +151,7 @@ impl<'a> IdentifierValidator<'a> {
             let crumbs = &identifier.crumbs;
             let ast_result = self.ast.get_traversing(crumbs);
             let ast = ast_result.expect("failed to retrieve ast from crumb");
-            let name_err = || ipanic!("Failed to use AST {ast.repr()} as an identifier name");
+            let name_err = || panic!("Failed to use AST {} as an identifier name", ast.repr());
             let name = ast::identifier::name(ast).unwrap_or_else(name_err);
             assert_eq!(name, identifier.item)
         }
@@ -172,7 +172,7 @@ impl<'a> Drop for IdentifierValidator<'a> {
                 )
             }
         } else {
-            DEBUG!("Skipping identifier validation, because thread is already in panic.");
+            debug!("Skipping identifier validation, because thread is already in panic.");
         }
     }
 }

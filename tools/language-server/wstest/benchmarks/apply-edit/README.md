@@ -5,16 +5,11 @@ message and waits for the visualization message on binary WebSocket.
 
 ## Run
 
-Build Enso distribution.
+Build Enso distribution. Start the Language Server and redirect ouput to
+`language-server.log`
 
 ```bash
-sbt buildEngineDistribution
-```
-
-Start the Language Server and redirect ouput to `language-server.log`
-
-```bash
-built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso \
+sbt runEngineDistribution \
   --log-level trace \
   --server \
   --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 \

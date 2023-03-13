@@ -24,6 +24,11 @@ float alpha = shape.color.repr.raw.a;
 // ===========================
 
 float alpha_no_aa = alpha > ID_ALPHA_THRESHOLD ? 1.0 : 0.0;
+// We need to set a default value for `output_id`, as shader optimizer may remove the following
+// branching which results in a code that does never write to `output_id` shader output. Such a code
+// is an invalid shader, as every shader has to have a code that writes to all outputs (even if it
+// does not happen if some conditions are met).
+output_id = vec4(0.0);
 if (pointer_events_enabled) {
     output_id = encode(input_global_instance_id,alpha_no_aa);
 }
@@ -38,10 +43,16 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
     output_color = srgba(shape.color).raw;
     output_color.rgb *= alpha;
 
+} else if (input_display_mode == DISPLAY_MODE_CACHED_SHAPES_TEXTURE) {
+    output_color = rgba(shape.color).raw;
+    // The signed distance is stored in the texture's alpha channel in a special way. See
+    // [`crate::display::shape::primitive::system::cached`] documentation for details.
+    output_color.a = -shape.sdf.distance / CACHED_SHAPE_MAX_DISTANCE / 2.0 + 0.5;
+
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SHAPE_AA_SPAN) {
     output_color = srgba(shape.color).raw;
     output_color.rgb *= alpha;
-    output_color = outside_of_uv() ? vec4(1.0,0.0,0.0,1.0) : output_color;
+    output_color = outside_of_uv() ? vec4(1.0, 0.0, 0.0, 1.0) : output_color;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SDF) {
     float zoom = zoom();

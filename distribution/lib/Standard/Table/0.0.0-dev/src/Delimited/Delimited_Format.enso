@@ -15,9 +15,9 @@ type Delimited_Format
        When reading this format, the following problems may occur:
        - If a row does not match the first row's column count, the function
          raises an `Invalid_Row`.
-       - If a quote is opened and never closed, a `Mismatched_Quote` problem is
-         reported.
        - If an empty file is passed, an `Empty_File_Error` is thrown.
+       - If a quote is opened and never closed, a `File_Error.Corrupted_Format`
+         error is raised.
 
        Arguments:
        - delimiter: The delimiter character to split the file into columns. An
@@ -65,8 +65,8 @@ type Delimited_Format
     for_web content_type _ =
         parts = content_type.split ";" . map .trim
 
-        charset_part = parts.find if_missing=Nothing (x->x.starts_with "charset=")
-        encoding = if charset_part.if_nothing then Encoding.utf_8 else
+        charset_part = parts.find if_missing=Nothing (x-> x.starts_with "charset=")
+        encoding = if charset_part.is_nothing then Encoding.utf_8 else
             parsed = Encoding.from_name (charset_part.drop 8)
             if parsed.is_error then Encoding.utf_8 else parsed
 
@@ -88,9 +88,10 @@ type Delimited_Format
         Delimited_Reader.read_text text self Report_Warning
 
     ## Implements the `Table.write` for this `File_Format`.
-    write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
+    write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems =
-        Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
+        r = Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
+        r.if_not_error file
 
     ## PRIVATE
        Clone the instance with some properties overridden.

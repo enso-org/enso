@@ -5,6 +5,8 @@ from Standard.Table import Table, Column
 from Standard.Test import Test
 import Standard.Test.Extensions
 
+polyglot java import org.enso.base_test_helpers.FileSystemHelper
+
 Table.should_equal self expected =
     self_cols = self.columns
     that_cols = expected.columns
@@ -22,3 +24,7 @@ normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_
     case newline_at_end of
         True -> string.lines.join line_separator suffix=line_separator
         False -> string.lines.join line_separator
+
+set_writable file writable =
+    path = file.absolute.path
+    FileSystemHelper.setWritable path writable

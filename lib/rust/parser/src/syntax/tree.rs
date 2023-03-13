@@ -498,6 +498,33 @@ pub struct DocComment<'s> {
     pub newlines: Vec<token::Newline<'s>>,
 }
 
+impl<'s> DocComment<'s> {
+    /// Return the contents of the comment, with leading whitespace, the `##` token, and following
+    /// empty lines removed; newlines will be normalized.
+    pub fn content(&self) -> String {
+        let mut buf = String::new();
+        macro_rules! emit_token {
+            ($buf:expr, $token:expr) => {{
+                $buf.push_str(&$token.left_offset.code.repr);
+                $buf.push_str(&$token.code.repr);
+            }};
+        }
+        for element in &self.elements {
+            match element {
+                TextElement::Section { text } => buf.push_str(&text.code.repr),
+                TextElement::Escape { token } => emit_token!(buf, token),
+                TextElement::Newline { newline } => {
+                    buf.push_str(&newline.left_offset.code.repr);
+                    buf.push('\n');
+                }
+                // Unreachable.
+                TextElement::Splice { .. } => continue,
+            }
+        }
+        buf
+    }
+}
+
 impl<'s> span::Builder<'s> for DocComment<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.open).add(&mut self.elements).add(&mut self.newlines)
@@ -781,7 +808,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
         (_, Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }))
         if opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
             let mut lhs = lhs.token.clone();
-            lhs.left_offset += arg.span.left_offset.clone();
+            lhs.left_offset += arg.span.left_offset;
             Tree::named_app(func, None, lhs, opr.clone(), rhs.clone(), None)
         }
         (_, Variant::Group(Group { open: Some(open), body: Some(body), close: Some(close) }))
@@ -789,14 +816,14 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             = &body.variant
         && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
             let mut open = open.clone();
-            open.left_offset += arg.span.left_offset.clone();
+            open.left_offset += arg.span.left_offset;
             let open = Some(open);
             let close = Some(close.clone());
             Tree::named_app(func, open, lhs.token.clone(), opr.clone(), rhs.clone(), close)
         }
         (_, Variant::Ident(Ident { token })) if token.is_default => {
             let mut token = token.clone();
-            token.left_offset += arg.span.left_offset.clone();
+            token.left_offset += arg.span.left_offset;
             Tree::default_app(func, token)
         }
         _ => Tree::app(func, arg)
@@ -1320,6 +1347,13 @@ impl<'s> Tree<'s> {
         self.visit_item(&mut visitor);
         visitor.code
     }
+
+    /// Return source code of this AST, excluding initial whitespace.
+    pub fn trimmed_code(&self) -> String {
+        let mut visitor = CodePrinterVisitor::default();
+        self.variant.visit_item(&mut visitor);
+        visitor.code
+    }
 }
 
 
@@ -1389,5 +1423,63 @@ impl<'s> Tree<'s> {
     pub fn map_mut<T>(&mut self, f: impl Fn(&mut Tree<'s>) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit_mut(&mut visitor);
+    }
+}
+
+
+// === ItemFnVisitor ===
+
+impl<'s> Tree<'s> {
+    /// Apply the provided function to each [`Token`] or [`Tree`] that is a child of the node.
+    pub fn visit_items<F>(&self, f: F)
+    where F: for<'a> FnMut(item::Ref<'s, 'a>) {
+        struct ItemFnVisitor<F> {
+            f: F,
+        }
+        impl<F> Visitor for ItemFnVisitor<F> {}
+        impl<'a, 's: 'a, F> ItemVisitor<'s, 'a> for ItemFnVisitor<F>
+        where F: FnMut(item::Ref<'s, 'a>)
+        {
+            fn visit_item(&mut self, item: item::Ref<'s, 'a>) -> bool {
+                (self.f)(item);
+                false
+            }
+        }
+        self.variant.visit_item(&mut ItemFnVisitor { f });
+    }
+}
+
+
+
+// =================
+// === Traversal ===
+// =================
+
+impl<'s> Tree<'s> {
+    /// Return an iterator over the operands of the given left-associative operator, in reverse
+    /// order.
+    pub fn left_assoc_rev<'t, 'o>(&'t self, operator: &'o str) -> LeftAssocRev<'o, 't, 's> {
+        let tree = Some(self);
+        LeftAssocRev { operator, tree }
+    }
+}
+
+/// Iterator over the operands of a particular left-associative operator, in reverse order.
+#[derive(Debug)]
+pub struct LeftAssocRev<'o, 't, 's> {
+    operator: &'o str,
+    tree:     Option<&'t Tree<'s>>,
+}
+
+impl<'o, 't, 's> Iterator for LeftAssocRev<'o, 't, 's> {
+    type Item = &'t Tree<'s>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if let box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) = &self.tree?.variant
+            && opr.code == self.operator {
+            self.tree = lhs.into();
+            rhs.into()
+        } else {
+            self.tree.take()
+        }
     }
 }

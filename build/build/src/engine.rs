@@ -46,12 +46,19 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
         ("Orders", vec!["data/store_data.xlsx", "src/Main.enso"]),
         ("Restaurants", vec!["data/la_districts.csv", "data/restaurants.csv", "src/Main.enso"]),
         ("Stargazers", vec!["src/Main.enso"]),
+        ("Colorado_COVID", vec![
+            "data/CDPHE_COVID19_County_Status_Metrics.csv",
+            "data/ColoradoGeoData.db",
+            "src/Main.enso",
+        ]),
+        ("KMeans", vec!["src/Main.enso"]),
+        ("NASDAQReturns", vec!["src/Main.enso"]),
     ];
 
     let mut futures = Vec::<BoxFuture<'static, Result>>::new();
     for (project_name, relative_paths) in to_handle {
         for relative_path in relative_paths {
-            let relative_url_base = url_base.join(&format!("{}/", project_name))?;
+            let relative_url_base = url_base.join(&format!("{project_name}/"))?;
             let relative_output_base = output_base.join(project_name.to_lowercase());
             let client = client.clone();
             let future = async move {
@@ -145,7 +152,7 @@ impl From<BuildConfigurationFlags> for BuildConfigurationResolved {
     }
 }
 
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct BuildConfigurationResolved(BuildConfigurationFlags);
 
 impl BuildConfigurationResolved {

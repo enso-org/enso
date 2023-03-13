@@ -15,7 +15,7 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectMetadata;
 use engine_protocol::project_manager::ProjectName;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -38,13 +38,13 @@ const UNNAMED_PROJECT_NAME: &str = "Unnamed";
 #[derive(Clone, CloneRef, Derivative)]
 #[derivative(Debug)]
 pub struct Handle {
-    logger:               Logger,
-    current_project:      Rc<CloneCell<Option<model::Project>>>,
+    current_project: Rc<CloneCell<Option<model::Project>>>,
     #[derivative(Debug = "ignore")]
-    project_manager:      Rc<dyn project_manager::API>,
+    project_manager: Rc<dyn project_manager::API>,
     status_notifications: StatusNotificationPublisher,
-    parser:               Parser,
-    notifications:        notification::Publisher<Notification>,
+    parser: Parser,
+    notifications: notification::Publisher<Notification>,
+    component_browser_private_entries_visibility_flag: Rc<Cell<bool>>,
 }
 
 impl Handle {
@@ -68,18 +68,18 @@ impl Handle {
         project_manager: Rc<dyn project_manager::API>,
         project: Option<model::Project>,
     ) -> Self {
-        let logger = Logger::new("controller::ide::Desktop");
         let current_project = Rc::new(CloneCell::new(project));
         let status_notifications = default();
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let notifications = default();
+        let component_browser_private_entries_visibility_flag = default();
         Self {
-            logger,
             current_project,
             project_manager,
             status_notifications,
             parser,
             notifications,
+            component_browser_private_entries_visibility_flag,
         }
     }
 
@@ -101,6 +101,7 @@ impl API for Handle {
     fn current_project(&self) -> Option<model::Project> {
         self.current_project.get()
     }
+
     fn status_notifications(&self) -> &StatusNotificationPublisher {
         &self.status_notifications
     }
@@ -114,6 +115,17 @@ impl API for Handle {
 
     fn manage_projects(&self) -> FallibleResult<&dyn ManagingProjectAPI> {
         Ok(self)
+    }
+
+    fn are_component_browser_private_entries_visible(&self) -> bool {
+        self.component_browser_private_entries_visibility_flag.get()
+    }
+
+    fn set_component_browser_private_entries_visibility(&self, visibility: bool) {
+        debug!(
+            "Setting the visibility of private entries in the component browser to {visibility}."
+        );
+        self.component_browser_private_entries_visibility_flag.set(visibility);
     }
 }
 
@@ -129,8 +141,8 @@ impl ManagingProjectAPI for Handle {
             let name = make_project_name(&template);
             let name = choose_unique_project_name(&existing_names, &name);
             let name = ProjectName::new_unchecked(name);
-            let version =
-                enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
+            let version = &enso_config::ARGS.groups.engine.options.preferred_version.value;
+            let version = (!version.is_empty()).as_some_from(|| version.clone());
             let action = MissingComponentAction::Install;
 
             let create_result = self
@@ -139,13 +151,17 @@ impl ManagingProjectAPI for Handle {
                 .await?;
             let new_project_id = create_result.project_id;
             let project_mgr = self.project_manager.clone_ref();
-            let new_project = Project::new_opened(&self.logger, project_mgr, new_project_id);
+            let new_project = Project::new_opened(project_mgr, new_project_id);
             self.current_project.set(Some(new_project.await?));
-            let notify = self.notifications.publish(Notification::NewProjectCreated);
-            executor::global::spawn(notify);
+            self.notifications.notify(Notification::NewProjectCreated);
             Ok(())
         }
         .boxed_local()
+    }
+
+    fn close_project(&self) {
+        self.current_project.set(None);
+        self.notifications.notify(Notification::ProjectClosed);
     }
 
     #[profile(Objective)]
@@ -156,11 +172,10 @@ impl ManagingProjectAPI for Handle {
     #[profile(Objective)]
     fn open_project(&self, id: Uuid) -> BoxFuture<FallibleResult> {
         async move {
-            let logger = &self.logger;
             let project_mgr = self.project_manager.clone_ref();
-            let new_project = model::project::Synchronized::new_opened(logger, project_mgr, id);
+            let new_project = model::project::Synchronized::new_opened(project_mgr, id);
             self.current_project.set(Some(new_project.await?));
-            executor::global::spawn(self.notifications.publish(Notification::ProjectOpened));
+            self.notifications.notify(Notification::ProjectOpened);
             Ok(())
         }
         .boxed_local()
@@ -171,7 +186,7 @@ impl ManagingProjectAPI for Handle {
 /// number.
 fn choose_unique_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> String {
     let first_candidate = suggested_name.to_owned();
-    let nth_project_name = |i| iformat!("{suggested_name}_{i}");
+    let nth_project_name = |i| format!("{suggested_name}_{i}");
     let candidates = (1..).map(nth_project_name);
     let mut candidates = iter::once(first_candidate).chain(candidates);
     // The iterator have no end, so we can safely unwrap.

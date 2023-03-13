@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite
@@ -47,7 +47,7 @@ spec =
         Test.specify "should be comparable" <|
             duration_1 = (Duration.new hours=5)
             duration_2 = (Duration.new minutes=1)
-            duration_1.compare_to duration_1 . should_equal Ordering.Equal
+            Ordering.compare duration_1 duration_1 . should_equal Ordering.Equal
             duration_1==duration_1 . should_be_true
             duration_1!=duration_2 . should_be_true
             duration_1>duration_2 . should_be_true
@@ -58,12 +58,12 @@ spec =
             periods = [(Period.new days=1), (Period.new 0), (Period.new years=30), (Period.new years=3 months=2)]
             durations.each duration->
                 periods.each period->
-                    (duration + period).should_fail_with Time_Error.Error
-                    (duration - period).should_fail_with Time_Error.Error
-                    (period + duration).should_fail_with Time_Error.Error
-                    (period - duration).should_fail_with Time_Error.Error
-                    (duration > period).should_fail_with Type_Error.Error
-                    (duration < period).should_fail_with Type_Error.Error
+                    (duration + period).should_fail_with Time_Error
+                    (duration - period).should_fail_with Time_Error
+                    (period + duration).should_fail_with Time_Error
+                    (period - duration).should_fail_with Time_Error
+                    (duration > period).should_fail_with Incomparable_Values
+                    (duration < period).should_fail_with Incomparable_Values
 
         Test.specify "Date_Time supports adding and subtracting Duration" <|
             ((Date_Time.new 2022 10 1 hour=10) + (Duration.new hours=2)) . should_equal (Date_Time.new 2022 10 1 hour=12)

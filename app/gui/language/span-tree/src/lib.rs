@@ -77,19 +77,41 @@ use crate::generate::Context;
 pub struct ArgumentInfo {
     pub name:       Option<String>,
     pub tp:         Option<String>,
+    /// The AST ID of the call expression that this argument is passed to.
+    /// See [`ApplicationBase`] for more details.
+    pub call_id:    Option<ast::Id>,
     pub tag_values: Vec<String>,
 }
 
 impl ArgumentInfo {
     /// Constructor.
-    pub fn new(name: Option<String>, tp: Option<String>, tag_values: Vec<String>) -> Self {
-        Self { name, tp, tag_values }
+    pub fn new(
+        name: Option<String>,
+        tp: Option<String>,
+        call_id: Option<ast::Id>,
+        tag_values: Vec<String>,
+    ) -> Self {
+        Self { name, tp, call_id, tag_values }
+    }
+
+    /// Specialized constructor with argument name.
+    pub fn named(name: impl Str) -> Self {
+        Self::new(Some(name.into()), None, None, default())
     }
 
     /// Specialized constructor for "this" argument.
-    pub fn this(tp: Option<String>) -> Self {
-        let name = Some(node::This::NAME.into());
-        Self { name, tp, tag_values: Vec::new() }
+    pub fn this(tp: Option<String>, call_id: Option<ast::Id>) -> Self {
+        Self::new(Some(node::Argument::THIS.into()), tp, call_id, default())
+    }
+
+    /// Extend the argument info with the given call id.
+    pub fn with_call_id(self, call_id: Option<ast::Id>) -> Self {
+        Self { call_id, ..self }
+    }
+
+    /// Check if this argument info represents an argument with specified name.
+    pub fn has_name(&self, name: &str) -> bool {
+        self.name.as_ref().map_or(false, |n| n == name)
     }
 }
 
@@ -114,7 +136,7 @@ pub struct SpanTree<T = ()> {
     pub root: Node<T>,
 }
 
-impl<T: Payload> SpanTree<T> {
+impl<T> SpanTree<T> {
     /// Create span tree from something that could generate it (usually AST).
     pub fn new(gen: &impl SpanTreeGenerator<T>, context: &impl Context) -> FallibleResult<Self> {
         gen.generate_tree(context)
@@ -122,7 +144,7 @@ impl<T: Payload> SpanTree<T> {
 
     /// Get a reference to the root node.
     pub fn root_ref(&self) -> node::Ref<T> {
-        node::Ref::new(&self.root)
+        node::Ref::root(self)
     }
 
     /// Get a mutable reference to the root node.
@@ -148,7 +170,7 @@ impl<T: Payload> SpanTree<T> {
 
 // === Getters ===
 
-impl<T: Payload> SpanTree<T> {
+impl<T> SpanTree<T> {
     /// Get `ast::Id` of the nested node, if exists.
     pub fn nested_ast_id(&self, crumbs: &Crumbs) -> Option<ast::Id> {
         if self.root_ref().crumbs == crumbs {
@@ -167,5 +189,110 @@ impl<T: Payload> Default for SpanTree<T> {
     fn default() -> Self {
         let root = Node::<T>::new().with_kind(node::Kind::Root);
         Self { root }
+    }
+}
+
+// == Debug utils ==
+
+impl<T> SpanTree<T> {
+    #[allow(dead_code)]
+    /// Get pretty-printed representation of this span tree for debugging purposes. The `code`
+    /// argument should be identical to the expression that was used during generation of this
+    /// span-tree. It will be used to print code fragments associated with each span.
+    ///
+    /// Example output with AST ids removed for clarity:
+    /// ```text
+    /// operator6.join operator31 Join_Kind.Inner ["County"] Root
+    /// operator6.join operator31 Join_Kind.Inner ["County"] ├── Chained
+    /// operator6.join operator31 Join_Kind.Inner ["County"] │   ├── Chained
+    /// operator6.join operator31 Join_Kind.Inner            │   │   ├── Chained
+    /// operator6.join operator31                            │   │   │   ├── Chained
+    /// operator6.join                                       │   │   │   │   ├── Operation
+    /// ▲                                                    │   │   │   │   │   ├── InsertionPoint(BeforeTarget)
+    /// operator6                                            │   │   │   │   │   ├── This
+    ///          ▲                                           │   │   │   │   │   ├── InsertionPoint(AfterTarget)
+    ///          .                                           │   │   │   │   │   ├── Operation
+    ///           join                                       │   │   │   │   │   ├── Argument
+    ///               ▲                                      │   │   │   │   │   ╰── InsertionPoint(Append)
+    ///                operator31                            │   │   │   │   ╰── Argument name="right"
+    ///                           Join_Kind.Inner            │   │   │   ╰── Argument name="join_kind"
+    ///                           ▲                          │   │   │       ├── InsertionPoint(BeforeTarget)
+    ///                           Join_Kind                  │   │   │       ├── This
+    ///                                    ▲                 │   │   │       ├── InsertionPoint(AfterTarget)
+    ///                                    .                 │   │   │       ├── Operation
+    ///                                     Inner            │   │   │       ├── Argument
+    ///                                          ▲           │   │   │       ╰── InsertionPoint(Append)
+    ///                                           ["County"] │   │   ╰── Argument name="on"
+    ///                                           [          │   │       ├── Token
+    ///                                            "County"  │   │       ├── Argument
+    ///                                                    ] │   │       ╰── Token
+    ///                                                     ▲│   ╰── InsertionPoint(ExpectedArgument(3)) name="right_prefix"
+    ///                                                     ▲╰── InsertionPoint(ExpectedArgument(4)) name="on_problems"
+    /// ```
+    pub fn debug_print(&self, code: &str) -> String {
+        use std::fmt::Write;
+
+        let mut code = code.to_string();
+        let code_padding = self.root.size.as_usize().saturating_sub(code.len());
+        for _ in 0..code_padding {
+            code.push(' ');
+        }
+
+        let mut buffer = String::new();
+        let span_padding = " ".repeat(code.len() + 1);
+
+        struct PrintState {
+            indent:       String,
+            num_children: usize,
+        }
+        let state = PrintState { indent: String::new(), num_children: 1 };
+        self.root_ref().dfs_with_layer_data(state, |node, state| {
+            let span = node.span();
+            let node_code = &code[span];
+            buffer.push_str(&span_padding[0..node.span_offset.into()]);
+            let mut written = node.span_offset.into();
+            if node_code.is_empty() {
+                buffer.push('▲');
+                written += 1;
+            } else {
+                buffer.push_str(node_code);
+                written += node_code.len();
+            }
+            buffer.push_str(&span_padding[written..]);
+
+            let indent = if let Some(index) = node.crumbs.last() {
+                let is_last = *index == state.num_children - 1;
+                let indent_targeted = if is_last { "╰── " } else { "├── " };
+                let indent_continue = if is_last { "    " } else { "│   " };
+
+                buffer.push_str(&state.indent);
+                buffer.push_str(indent_targeted);
+                format!("{}{}", state.indent, indent_continue)
+            } else {
+                state.indent.clone()
+            };
+
+            buffer.push_str(node.kind.variant_name());
+            if let node::Kind::InsertionPoint(inner) = &node.kind {
+                write!(buffer, "({:?})", inner.kind).unwrap();
+            }
+
+            if let Some(name) = node.kind.name() {
+                write!(buffer, " name={name:?}").unwrap();
+            }
+
+            if let Some(call_id) = node.kind.call_id() {
+                write!(buffer, " call_id={call_id:?}").unwrap();
+            }
+
+            if let Some(ast_id) = node.ast_id {
+                write!(buffer, " ast_id={ast_id:?}").unwrap();
+            }
+            buffer.push('\n');
+
+            let num_children = node.children.len();
+            PrintState { indent, num_children }
+        });
+        buffer
     }
 }

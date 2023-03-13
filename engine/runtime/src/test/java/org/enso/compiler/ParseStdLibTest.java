@@ -160,16 +160,21 @@ public final class ParseStdLibTest extends TestCase {
             // Files containing type expressions not supported by old parser.
             "Data/Index_Sub_Range.enso",
             "Data/Json.enso",
+            "Data/Json/Extensions.enso",
             "Data/List.enso",
             "Data/Pair.enso",
             "Data/Range.enso",
             "Data/Sort_Column_Selector.enso",
             "Data/Text/Extensions.enso",
+            "Data/Text/Regex/Match_2.enso",
+            "Data/Text/Regex/Pattern_2.enso",
             "Data/Text/Regex/Regex_Mode.enso",
             "Data/Value_Type.enso",
             "Data/Vector.enso",
+            "Data/Statistics.enso",
             "Network/HTTP/HTTP_Status_Code.enso",
-            "Internal/Base_Generator.enso"));
+            "Internal/Base_Generator.enso",
+            "System/File.enso"));
   }
 
   private static boolean isKnownToWork(String name) {

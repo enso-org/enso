@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::paths::generated::RepoRootDistWasm;
+use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
@@ -15,6 +16,7 @@ use derivative::Derivative;
 use ide_ci::cache;
 use ide_ci::fs::compressed_size;
 use ide_ci::fs::copy_file_if_different;
+use ide_ci::goodies::shader_tools::ShaderTools;
 use ide_ci::programs::cargo;
 use ide_ci::programs::wasm_opt;
 use ide_ci::programs::wasm_opt::WasmOpt;
@@ -217,6 +219,8 @@ impl IsTarget for Wasm {
             // We want to be able to pass --profile this way.
             WasmPack.require_present_that(VersionReq::parse(">=0.10.1")?).await?;
 
+            ShaderTools.install_if_missing(&cache).await?;
+
             let BuildInput {
                 crate_path,
                 wasm_opt_options,
@@ -236,34 +240,43 @@ impl IsTarget for Wasm {
             info!("Building wasm.");
             let temp_dir = tempdir()?;
             let temp_dist = RepoRootDistWasm::new_root(temp_dir.path());
-            let mut command = WasmPack.cmd()?;
-            command
-                .current_dir(&repo_root)
-                .kill_on_drop(true)
-                .env_remove(ide_ci::programs::rustup::env::RUSTUP_TOOLCHAIN.name())
-                .build()
-                .arg(wasm_pack::Profile::from(*profile))
-                .target(wasm_pack::Target::Web)
-                .output_directory(&temp_dist)
-                .output_name(OUTPUT_NAME)
-                .arg(crate_path)
-                .arg("--")
-                .apply(&cargo::Color::Always)
-                .args(extra_cargo_options);
+            ensogl_pack::build(
+                ensogl_pack::WasmPackOutputs {
+                    out_dir:  temp_dist.path.clone(),
+                    out_name: OUTPUT_NAME.into(),
+                },
+                |args| {
+                    let mut command = WasmPack.cmd()?;
+                    command
+                        .current_dir(&repo_root)
+                        .kill_on_drop(true)
+                        .env_remove(ide_ci::programs::rustup::env::RUSTUP_TOOLCHAIN.name())
+                        .build()
+                        .arg(wasm_pack::Profile::from(*profile))
+                        .target(wasm_pack::Target::Web)
+                        .output_directory(args.out_dir)
+                        .output_name(args.out_name)
+                        .arg(crate_path)
+                        .arg("--")
+                        .apply(&cargo::Color::Always)
+                        .args(extra_cargo_options);
 
-            if let Some(profiling_level) = profiling_level {
-                command.set_env(env::ENSO_MAX_PROFILING_LEVEL, &profiling_level)?;
-            }
-            command.set_env(env::ENSO_MAX_LOG_LEVEL, &log_level)?;
-            command.set_env(env::ENSO_MAX_UNCOLLAPSED_LOG_LEVEL, &uncollapsed_log_level)?;
-            command.run_ok().await?;
+                    if let Some(profiling_level) = profiling_level {
+                        command.set_env(env::ENSO_MAX_PROFILING_LEVEL, &profiling_level)?;
+                    }
+                    command.set_env(env::ENSO_MAX_LOG_LEVEL, &log_level)?;
+                    command.set_env(env::ENSO_MAX_UNCOLLAPSED_LOG_LEVEL, &uncollapsed_log_level)?;
+                    Ok(command)
+                },
+            )
+            .await?;
 
             Self::finalize_wasm(wasm_opt_options, *skip_wasm_opt, *profile, &temp_dist).await?;
 
             ide_ci::fs::create_dir_if_missing(&destination)?;
             let ret = RepoRootDistWasm::new_root(&destination);
             ide_ci::fs::copy(&temp_dist, &ret)?;
-            inner.perhaps_check_size(&ret.wasm_main).await?;
+            inner.perhaps_check_size(&ret.pkg_opt_wasm).await?;
             Ok(Artifact(ret))
         }
         .instrument(span)
@@ -395,20 +408,38 @@ impl IsWatchable for Wasm {
 
 
 #[derive(Clone, Debug, Display, PartialEq, Eq)]
-pub struct Artifact(RepoRootDistWasm);
+pub struct Artifact(pub RepoRootDistWasm);
 
 impl Artifact {
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self(RepoRootDistWasm::new_root(path))
     }
-    pub fn wasm(&self) -> &Path {
-        &self.0.wasm_main
+
+    /// The main JS bundle to load WASM and JS wasm-pack bundles.
+    pub fn ensogl_app(&self) -> &Path {
+        &self.0.index_js
     }
-    pub fn js_glue(&self) -> &Path {
-        &self.0.wasm_glue
+
+    /// Files that should be shipped in the Gui bundle.
+    pub fn files_to_ship(&self) -> Vec<&Path> {
+        // We explicitly deconstruct object, so when new fields are added, we will be forced to
+        // consider whether they should be shipped or not.
+        let RepoRootDistWasm {
+            path: _,
+            dynamic_assets,
+            index_js: _,
+            index_d_ts: _,
+            index_js_map: _,
+            pkg_js,
+            pkg_wasm: _,
+            pkg_opt_wasm,
+        } = &self.0;
+        vec![dynamic_assets.as_path(), pkg_js.as_path(), pkg_opt_wasm.as_path()]
     }
-    pub fn dir(&self) -> &Path {
-        &self.0.path
+
+    pub fn symlink_ensogl_dist(&self, linked_dist: &RepoRootTargetEnsoglPackLinkedDist) -> Result {
+        ide_ci::fs::remove_symlink_dir_if_exists(linked_dist)?;
+        ide_ci::fs::symlink_auto(self, linked_dist)
     }
 }
 
@@ -523,12 +554,12 @@ impl Wasm {
             }
             wasm_opt_command
                 .args(wasm_opt_options)
-                .arg(&temp_dist.wasm_main_raw)
-                .apply(&wasm_opt::Output(&temp_dist.wasm_main))
+                .arg(&temp_dist.pkg_wasm)
+                .apply(&wasm_opt::Output(&temp_dist.pkg_opt_wasm))
                 .run_ok()
                 .await?;
         } else {
-            copy_file_if_different(&temp_dist.wasm_main_raw, &temp_dist.wasm_main)?;
+            copy_file_if_different(&temp_dist.pkg_wasm, &temp_dist.pkg_opt_wasm)?;
         }
         Ok(())
     }

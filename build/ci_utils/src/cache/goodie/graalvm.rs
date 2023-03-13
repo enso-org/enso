@@ -1,6 +1,8 @@
 use crate::prelude::*;
 
+use crate::cache::goodie;
 use crate::cache::goodie::Goodie;
+use crate::cache::Cache;
 use crate::env::known::PATH;
 use crate::github::RepoRef;
 use crate::programs::java;
@@ -45,17 +47,10 @@ pub struct GraalVM {
 }
 
 impl Goodie for GraalVM {
-    fn url(&self) -> BoxFuture<'static, Result<Url>> {
-        let platform_string = self.platform_string();
-        let graal_version = self.graal_version.clone();
-        let client = self.client.clone();
-        async move {
-            let repo = CE_BUILDS_REPOSITORY.handle(&client);
-            let release = repo.find_release_by_text(&graal_version.to_string()).await?;
-            crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
-        }
-        .boxed()
+    fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+        goodie::download_try_future_url(self.url(), cache)
     }
+
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {
         let expected_graal_version = self.graal_version.clone();
@@ -90,6 +85,18 @@ impl Goodie for GraalVM {
 }
 
 impl GraalVM {
+    pub fn url(&self) -> BoxFuture<'static, Result<Url>> {
+        let platform_string = self.platform_string();
+        let graal_version = self.graal_version.clone();
+        let client = self.client.clone();
+        async move {
+            let repo = CE_BUILDS_REPOSITORY.handle(&client);
+            let release = repo.find_release_by_text(&graal_version.to_string()).await?;
+            crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
+        }
+        .boxed()
+    }
+
     pub fn platform_string(&self) -> String {
         let Self { graal_version: _graal_version, java_version, arch, os, client: _client } = &self;
         let os_name = match *os {
@@ -106,7 +113,7 @@ impl GraalVM {
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };
         let java_version = format!("java{}", java_version.0);
-        format!("{}-{}-{}-{}", PACKAGE_PREFIX, java_version, os_name, arch_name)
+        format!("{PACKAGE_PREFIX}-{java_version}-{os_name}-{arch_name}")
     }
 
     pub fn root_directory_name(&self) -> PathBuf {
@@ -140,7 +147,7 @@ mod tests {
     #[ignore]
     async fn test_is_enabled() -> Result {
         setup_logging()?;
-        let graal_version = Version::parse("22.3.0").unwrap();
+        let graal_version = Version::parse("22.3.1").unwrap();
         let java_version = java::LanguageVersion(11);
         let os = TARGET_OS;
         let arch = Arch::X86_64;
@@ -159,14 +166,14 @@ mod tests {
     /// Check that we correctly recognize both the GraalVM version and the Java version.
     #[test]
     fn version_recognize() {
-        let version_string = r"openjdk 11.0.17 2022-10-18
-OpenJDK Runtime Environment GraalVM CE 22.3.0 (build 11.0.17+8-jvmci-22.3-b08)
-OpenJDK 64-Bit Server VM GraalVM CE 22.3.0 (build 11.0.17+8-jvmci-22.3-b08, mixed mode, sharing)";
+        let version_string = r"openjdk 11.0.18 2023-01-17
+OpenJDK Runtime Environment GraalVM CE 22.3.1 (build 11.0.18+10-jvmci-22.3-b13)
+OpenJDK 64-Bit Server VM GraalVM CE 22.3.1 (build 11.0.18+10-jvmci-22.3-b13, mixed mode, sharing)";
 
         let found_graal = graal_version_from_version_string(version_string).unwrap();
-        assert_eq!(found_graal, Version::new(22, 3, 0));
+        assert_eq!(found_graal, Version::new(22, 3, 1));
 
         let found_java = Java.parse_version(version_string).unwrap();
-        assert_eq!(found_java, Version::new(11, 0, 17));
+        assert_eq!(found_java, Version::new(11, 0, 18));
     }
 }

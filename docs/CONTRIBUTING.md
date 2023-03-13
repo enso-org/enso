@@ -151,6 +151,8 @@ In order to build and run Enso you will need the following tools:
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
 - On MacOS and Linux, the `tar` command is required for running some tests. It
   should be installed by default on most distributions.
+- On Windows, the `run` command must be run in the latest version of
+  `Powershell` or in `cmd`.
 - If you want to be able to build the Launcher Native Image, you will need a
   native C compiler for your platform as described in the
   [Native Image Prerequisites](https://www.graalvm.org/reference-manual/native-image/#prerequisites).
@@ -581,17 +583,21 @@ and generate the Enso distribution:
 
 ```bash
 $ sbt buildEngineDistribution
-...
-Engine package created at built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev
+$ sbt runEngineDistribution --help
 ```
+
+Engine package created at
+built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev - use it or
+the `sbt runEngineDistribution` command to invoke Enso.
 
 ##### PowerShell
 
 ```powershell
 sbt.bat buildEngineDistribution
+sbt.bat runEngineDistribution --help
 ```
 
-Then one can execute the launcher:
+One can use the `runEngineDistribution` command or execute the launcher:
 
 ```bash
 $ built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso

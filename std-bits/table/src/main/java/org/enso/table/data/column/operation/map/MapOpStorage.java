@@ -35,10 +35,12 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    * @param n the operation name
    * @param storage the storage to run operation on
    * @param arg the argument to pass to the operation
+   * @param problemBuilder the builder allowing to report computation problems
    * @return the result of running the operation
    */
-  public Storage<?> runMap(String n, S storage, Object arg) {
-    return ops.get(n).runMap(storage, arg);
+  public Storage<?> runMap(
+      String n, S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+    return ops.get(n).runMap(storage, arg, problemBuilder);
   }
 
   /**
@@ -48,10 +50,12 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    * @param n the operation name
    * @param storage the storage to run operation on
    * @param arg the storage containing operation arguments
+   * @param problemBuilder the builder allowing to report computation problems
    * @return the result of running the operation
    */
-  public Storage<?> runZip(String n, S storage, Storage<?> arg) {
-    return ops.get(n).runZip(storage, arg);
+  public Storage<?> runZip(
+      String n, S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+    return ops.get(n).runZip(storage, arg, problemBuilder);
   }
 
   /**
@@ -96,13 +100,15 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
     }
 
     @Override
-    public Storage<?> runMap(String n, S storage, Object arg) {
-      return getOp(n).runMap(storage, arg);
+    public Storage<?> runMap(
+        String n, S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+      return getOp(n).runMap(storage, arg, problemBuilder);
     }
 
     @Override
-    public Storage<?> runZip(String n, S storage, Storage<?> arg) {
-      return getOp(n).runZip(storage, arg);
+    public Storage<?> runZip(
+        String n, S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+      return getOp(n).runZip(storage, arg, problemBuilder);
     }
   }
 }

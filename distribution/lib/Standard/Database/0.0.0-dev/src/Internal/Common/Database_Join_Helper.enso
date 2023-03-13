@@ -4,7 +4,7 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Internal.Join_Helpers
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-from Standard.Table.Errors import Floating_Point_Grouping
+from Standard.Table.Errors import Floating_Point_Equality
 
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
@@ -32,10 +32,10 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
 
     make_equals problem_builder left right =
         if left.sql_type.is_definitely_double then
-            problem_builder.report_other_warning (Floating_Point_Grouping.Error left.name)
+            problem_builder.report_other_warning (Floating_Point_Equality.Error left.name)
         if right.sql_type.is_definitely_double then
-            problem_builder.report_other_warning (Floating_Point_Grouping.Error right.name)
-        SQL_Expression.Operation "=" [resolve_left left, resolve_right right]
+            problem_builder.report_other_warning (Floating_Point_Equality.Error right.name)
+        SQL_Expression.Operation "==" [resolve_left left, resolve_right right]
     make_equals_ignore_case _ left right locale =
         Helpers.assume_default_locale locale <|
             SQL_Expression.Operation "equals_ignore_case" [resolve_left left, resolve_right right]

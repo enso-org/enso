@@ -550,7 +550,7 @@ impl RunContext {
                 ReleaseCommand::Upload => {
                     let artifacts = self.build().await?;
                     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
-                    let release = ide_ci::github::release::ReleaseHandle::new(
+                    let release = ide_ci::github::release::Handle::new(
                         &self.inner.octocrab,
                         repo,
                         release_id,

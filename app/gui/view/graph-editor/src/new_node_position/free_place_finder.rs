@@ -160,7 +160,7 @@ mod tests {
         fn run(&self) {
             let occupied = self.occupied.iter().cloned();
             let result = find_free_place(self.starting_point, self.direction, occupied).unwrap();
-            assert_eq!(result, self.expected_result, "Case {:?} gave wrong result.", self);
+            assert_eq!(result, self.expected_result, "Case {self:?} gave wrong result.");
         }
 
         fn flip(&self, on_x: bool, on_y: bool) -> Self {

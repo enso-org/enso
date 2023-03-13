@@ -171,13 +171,13 @@ public class ErrorCompilerTest extends CompilerTest {
   @Test
   public void malformedImport7() throws Exception {
     var ir = parse("import Foo hiding");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 17, 17);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 7, 17);
   }
 
   @Test
   public void malformedImport8() throws Exception {
     var ir = parse("import Foo hiding X,");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 18, 20);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 7, 20);
   }
 
   @Test

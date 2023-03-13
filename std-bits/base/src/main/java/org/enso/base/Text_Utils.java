@@ -13,6 +13,7 @@ import org.enso.base.text.CaseFoldedString;
 import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
 import org.enso.base.text.Utf16Span;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
@@ -268,14 +269,8 @@ public class Text_Utils {
    * @param str the string to measure
    * @return length of the string
    */
-  private static long grapheme_length(String str) {
-    BreakIterator iter = BreakIterator.getCharacterInstance();
-    iter.setText(str);
-    long len = 0;
-    while (iter.next() != BreakIterator.DONE) {
-      len++;
-    }
-    return len;
+  public static long grapheme_length(String str) {
+    return Core_Text_Utils.computeGraphemeLength(str);
   }
 
   /** Returns a prefix of the string not exceeding the provided grapheme length. */
@@ -565,5 +560,10 @@ public class Text_Utils {
     // Add the remaining part of the string (if any).
     sb.append(str, current_ix, str.length());
     return sb.toString();
+  }
+
+  /** Pretty prints the string, escaping special characters. */
+  public static String pretty_print(String str) {
+    return Core_Text_Utils.prettyPrint(str);
   }
 }

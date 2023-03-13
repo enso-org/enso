@@ -276,7 +276,7 @@ class IrToTruffle(
               dataflowInfo
             )
             val expressionNode =
-              expressionProcessor.run(annotation.expression)
+              expressionProcessor.run(annotation.expression, true)
             val closureName = s"<default::$scopeName>"
             val closureRootNode = ClosureRootNode.build(
               language,
@@ -292,6 +292,7 @@ class IrToTruffle(
           }
           if (!atomCons.isInitialized) {
             atomCons.initializeFields(
+              language,
               localScope,
               assignments.toArray,
               reads.toArray,
@@ -384,8 +385,11 @@ class IrToTruffle(
             // and not attempt to register it in the scope (can't redefined methods).
             // For non-builtin types (or modules) that own the builtin method
             // we have to look up the function and register it in the scope.
-            val x              = methodDef.body.asInstanceOf[IR.Function.Lambda].body
-            val fullMethodName = x.asInstanceOf[IR.Literal.Text]
+            // Static wrappers for instance methods have to be registered always.
+            val fullMethodName = methodDef.body
+              .asInstanceOf[IR.Function.Lambda]
+              .body
+              .asInstanceOf[IR.Literal.Text]
 
             val builtinNameElements = fullMethodName.text.split('.')
             if (builtinNameElements.length != 2) {
@@ -396,8 +400,15 @@ class IrToTruffle(
             val methodName      = builtinNameElements(1)
             val methodOwnerName = builtinNameElements(0)
 
+            val staticWrapper = methodDef.isStaticWrapperForInstanceMethod
+
             val builtinFunction = context.getBuiltins
-              .getBuiltinFunction(methodOwnerName, methodName, language)
+              .getBuiltinFunction(
+                methodOwnerName,
+                methodName,
+                language,
+                staticWrapper
+              )
             builtinFunction.toScala
               .map(Some(_))
               .toRight(
@@ -406,18 +417,44 @@ class IrToTruffle(
                 )
               )
               .left
-              .flatMap(l =>
+              .flatMap { l =>
                 // Builtin Types Number and Integer have methods only for documentation purposes
-                if (
-                  cons == context.getBuiltins.number().getNumber ||
-                  cons == context.getBuiltins.number().getInteger
-                ) Right(None)
+                val number = context.getBuiltins.number()
+                val ok =
+                  staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
+                  !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
+                if (ok) Right(None)
                 else Left(l)
-              )
+              }
               .map(fOpt =>
                 // Register builtin iff it has not been automatically registered at an early stage
-                // of builtins initialization.
-                fOpt.filter(m => !m.isAutoRegister).map(m => m.getFunction)
+                // of builtins initialization or if it is a static wrapper.
+                fOpt
+                  .filter(m => !m.isAutoRegister() || staticWrapper)
+                  .map { m =>
+                    if (staticWrapper) {
+                      // Static wrappers differ in the number of arguments by 1.
+                      // Therefore we cannot simply get the registered function.
+                      // BuiltinRootNode.execute will infer the right order of arguments.
+                      val bodyBuilder =
+                        new expressionProcessor.BuildFunctionBody(
+                          fn.arguments,
+                          fn.body,
+                          effectContext,
+                          true
+                        )
+                      new RuntimeFunction(
+                        m.getFunction.getCallTarget,
+                        null,
+                        new FunctionSchema(
+                          new Array[RuntimeAnnotation](0),
+                          bodyBuilder.args(): _*
+                        )
+                      )
+                    } else {
+                      m.getFunction
+                    }
+                  }
               )
           case fn: IR.Function =>
             val bodyBuilder =
@@ -472,7 +509,7 @@ class IrToTruffle(
                         dataflowInfo
                       )
                       val expressionNode =
-                        expressionProcessor.run(annotation.expression)
+                        expressionProcessor.run(annotation.expression, true)
                       val closureName =
                         s"<default::${expressionProcessor.scopeName}>"
                       val closureRootNode = ClosureRootNode.build(
@@ -781,6 +818,10 @@ class IrToTruffle(
               val fun = actualModule.getScope.getMethods
                 .get(actualModule.getScope.getAssociatedType)
                 .get(method.name)
+              assert(
+                fun != null,
+                s"exported symbol `${method.name}` needs to be registered first in the module "
+              )
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
                 name,
@@ -847,9 +888,13 @@ class IrToTruffle(
     /** Runs the code generation process on the provided piece of [[IR]].
       *
       * @param ir the IR to generate code for
+      * @param subjectToInstrumentation value of subject to instrumentation
       * @return a truffle expression that represents the same program as `ir`
       */
-    def run(ir: IR.Expression): RuntimeExpression = run(ir, false, true)
+    def run(
+      ir: IR.Expression,
+      subjectToInstrumentation: Boolean
+    ): RuntimeExpression = run(ir, false, subjectToInstrumentation)
 
     private def run(
       ir: IR.Expression,
@@ -864,8 +909,9 @@ class IrToTruffle(
         case name: IR.Name                  => processName(name)
         case function: IR.Function          => processFunction(function, binding)
         case binding: IR.Expression.Binding => processBinding(binding)
-        case caseExpr: IR.Case              => processCase(caseExpr)
-        case typ: IR.Type                   => processType(typ)
+        case caseExpr: IR.Case =>
+          processCase(caseExpr, subjectToInstrumentation)
+        case typ: IR.Type => processType(typ)
         case _: IR.Empty =>
           throw new CompilerError(
             "Empty IR nodes should not exist during code generation."
@@ -892,7 +938,7 @@ class IrToTruffle(
       * @return a truffle expression that represents the same program as `ir`
       */
     def runInline(ir: IR.Expression): RuntimeExpression = {
-      val expression = run(ir)
+      val expression = run(ir, false)
       expression
     }
 
@@ -931,8 +977,8 @@ class IrToTruffle(
         val callTarget = defaultRootNode.getCallTarget
         setLocation(CreateThunkNode.build(callTarget), block.location)
       } else {
-        val statementExprs = block.expressions.map(this.run).toArray
-        val retExpr        = this.run(block.returnValue)
+        val statementExprs = block.expressions.map(this.run(_, true)).toArray
+        val retExpr        = this.run(block.returnValue, true)
 
         val blockNode = BlockNode.build(statementExprs, retExpr)
         setLocation(blockNode, block.location)
@@ -964,10 +1010,13 @@ class IrToTruffle(
       * @param caseExpr the case expression to generate code for
       * @return the truffle nodes corresponding to `caseExpr`
       */
-    def processCase(caseExpr: IR.Case): RuntimeExpression =
+    def processCase(
+      caseExpr: IR.Case,
+      subjectToInstrumentation: Boolean
+    ): RuntimeExpression =
       caseExpr match {
         case IR.Case.Expr(scrutinee, branches, isNested, location, _, _) =>
-          val scrutineeNode = this.run(scrutinee)
+          val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
 
           val maybeCases    = branches.map(processCaseBranch)
           val allCasesValid = maybeCases.forall(_.isRight)
@@ -1745,13 +1794,16 @@ class IrToTruffle(
     ): RuntimeExpression =
       application match {
         case IR.Application.Prefix(fn, Nil, true, _, _, _) =>
-          run(fn)
+          run(fn, subjectToInstrumentation)
         case app: IR.Application.Prefix =>
           processApplicationWithArgs(app, subjectToInstrumentation)
         case IR.Application.Force(expr, location, _, _) =>
-          setLocation(ForceNode.build(this.run(expr)), location)
+          setLocation(
+            ForceNode.build(this.run(expr, subjectToInstrumentation)),
+            location
+          )
         case IR.Application.Literal.Sequence(items, location, _, _) =>
-          val itemNodes = items.map(run).toArray
+          val itemNodes = items.map(run(_, subjectToInstrumentation)).toArray
           setLocation(SequenceLiteralNode.build(itemNodes), location)
         case _: IR.Application.Literal.Typeset =>
           setLocation(
@@ -1807,7 +1859,7 @@ class IrToTruffle(
           createOptimised(moduleScope)(scope)(callArgs.toList)
         case _ =>
           ApplicationNode.build(
-            this.run(fn),
+            this.run(fn, subjectToInstrumentation),
             callArgs.toArray,
             defaultsExecutionMode
           )
@@ -1875,7 +1927,8 @@ class IrToTruffle(
             scope.createChild(scopeInfo.scope, flattenToParent = true)
           }
           val argumentExpression =
-            new ExpressionProcessor(childScope, scopeName).run(value)
+            new ExpressionProcessor(childScope, scopeName)
+              .run(value, subjectToInstrumentation)
 
           val result = if (!shouldCreateClosureRootNode) {
             argumentExpression
@@ -1962,7 +2015,7 @@ class IrToTruffle(
       inputArg match {
         case arg: IR.DefinitionArgument.Specified =>
           val defaultExpression = arg.defaultValue
-            .map(new ExpressionProcessor(scope, scopeName).run(_))
+            .map(new ExpressionProcessor(scope, scopeName).run(_, false))
             .orNull
 
           // Note [Handling Suspended Defaults]

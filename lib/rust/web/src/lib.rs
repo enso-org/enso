@@ -10,6 +10,7 @@
 #![feature(specialization)]
 #![feature(auto_traits)]
 #![feature(unsize)]
+#![feature(cell_update)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -26,6 +27,7 @@
 
 use crate::prelude::*;
 
+use std::cell::Cell;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 
@@ -578,14 +580,14 @@ ops! { NodeOps for Node
 
     impl {
         fn append_or_warn(&self, node: &Self) {
-            let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
+            let warn_msg: &str = &format!("Failed to append child {node:?} to {self:?}");
             if self.append_child(node).is_err() {
                 warn!("{warn_msg}")
             };
         }
 
         fn prepend_or_warn(&self, node: &Self) {
-            let warn_msg: &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
+            let warn_msg: &str = &format!("Failed to prepend child \"{node:?}\" to \"{self:?}\"");
             let first_c = self.first_child();
             if self.insert_before(node, first_c.as_ref()).is_err() {
                 warn!("{warn_msg}")
@@ -594,7 +596,7 @@ ops! { NodeOps for Node
 
         fn insert_before_or_warn(&self, node: &Self, ref_node: &Self) {
             let warn_msg: &str =
-                &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
+                &format!("Failed to insert {node:?} before {ref_node:?} in {self:?}");
             if self.insert_before(node, Some(ref_node)).is_err() {
                 warn!("{warn_msg}")
             }
@@ -602,7 +604,7 @@ ops! { NodeOps for Node
 
         fn remove_from_parent_or_warn(&self) {
             if let Some(parent) = self.parent_node() {
-                let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
+                let warn_msg: &str = &format!("Failed to remove {self:?} from parent");
                 if parent.remove_child(self).is_err() {
                     warn!("{warn_msg}")
                 }
@@ -610,7 +612,7 @@ ops! { NodeOps for Node
         }
 
         fn remove_child_or_warn(&self, node: &Self) {
-            let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
+            let warn_msg: &str = &format!("Failed to remove child {node:?} from {self:?}");
             if self.remove_child(node).is_err() {
                 warn!("{warn_msg}")
             }
@@ -633,8 +635,8 @@ ops! { ElementOps for Element
         fn set_attribute_or_warn<T: AsRef<str>, U: AsRef<str>>(&self, name: T, value: U) {
             let name = name.as_ref();
             let value = value.as_ref();
-            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-            let warn_msg: &str = &format!("Failed to set attribute {}", values);
+            let values = format!("\"{name}\" = \"{value}\" on \"{self:?}\"");
+            let warn_msg: &str = &format!("Failed to set attribute {values}");
             if self.set_attribute(name, value).is_err() {
                 warn!("{warn_msg}")
             }
@@ -657,8 +659,8 @@ ops! { HtmlElementOps for HtmlElement
         fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
             let name = name.as_ref();
             let value = value.as_ref();
-            let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
-            let warn_msg: &str = &format!("Failed to set style {}", values);
+            let values = format!("\"{name}\" = \"{value}\" on \"{self:?}\"");
+            let warn_msg: &str = &format!("Failed to set style {values}");
             if self.style().set_property(name, value).is_err() {
                 warn!("{warn_msg}");
             }
@@ -945,5 +947,64 @@ pub trait TimeProvider {
 impl TimeProvider for Performance {
     fn now(&self) -> f64 {
         self.now()
+    }
+}
+
+
+// ====================
+// === FrameCounter ===
+// ====================
+
+type Counter = Rc<Cell<i32>>;
+
+#[derive(Debug)]
+/// A counter that counts the number of frames that have passed since its initialization.
+///
+/// Uses `request_animation_frame` under the hood to count frames.
+pub struct FrameCounter {
+    frames:                Counter,
+    js_on_frame_handle_id: Rc<Cell<i32>>,
+    _closure_handle:       Rc<RefCell<Option<Closure<(dyn FnMut(f64))>>>>,
+}
+
+impl FrameCounter {
+    /// Creates a new frame counter.
+    pub fn start_counting() -> Self {
+        let frames: Counter = default();
+        let frames_handle = Rc::downgrade(&frames);
+        let closure_handle = Rc::new(RefCell::new(None));
+        let closure_handle_internal = Rc::downgrade(&closure_handle);
+        let js_on_frame_handle_id = Rc::new(Cell::new(0));
+        let js_on_frame_handle_id_internal = Rc::downgrade(&js_on_frame_handle_id);
+        *closure_handle.as_ref().borrow_mut() = Some(Closure::new(move |_| {
+            frames_handle.upgrade().map(|fh| fh.as_ref().update(|value| value.saturating_add(1)));
+            if let Some(maybe_handle) = closure_handle_internal.upgrade() {
+                if let Some(handle) = maybe_handle.borrow_mut().as_ref() {
+                    let new_handle_id =
+                        window.request_animation_frame_with_closure_or_panic(handle);
+                    if let Some(handle_id) = js_on_frame_handle_id_internal.upgrade() {
+                        handle_id.as_ref().set(new_handle_id)
+                    }
+                }
+            }
+        }));
+
+        js_on_frame_handle_id.as_ref().set(window.request_animation_frame_with_closure_or_panic(
+            closure_handle.borrow().as_ref().unwrap(),
+        ));
+
+        debug_assert!(closure_handle.borrow().is_some());
+        Self { frames, js_on_frame_handle_id, _closure_handle: closure_handle }
+    }
+
+    /// Returns the number of frames that have passed since the counter was created.
+    pub fn frames_since_start(&self) -> i32 {
+        self.frames.as_ref().get()
+    }
+}
+
+impl Drop for FrameCounter {
+    fn drop(&mut self) {
+        window.cancel_animation_frame_or_warn(self.js_on_frame_handle_id.get());
     }
 }

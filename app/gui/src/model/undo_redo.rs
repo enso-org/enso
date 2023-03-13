@@ -72,17 +72,15 @@ pub trait Aware {
 #[derive(Debug)]
 pub struct Transaction {
     #[allow(missing_docs)]
-    pub logger: Logger,
-    frame:      RefCell<Frame>,
-    urm:        Weak<Repository>,
-    ignored:    Cell<bool>,
+    frame:   RefCell<Frame>,
+    urm:     Weak<Repository>,
+    ignored: Cell<bool>,
 }
 
 impl Transaction {
     /// Create a new transaction, that will add to the given's repository undo stack on destruction.
     pub fn new(urm: &Rc<Repository>, name: String) -> Self {
         Self {
-            logger:  Logger::new_sub(&urm.logger, "Transaction"),
             frame:   RefCell::new(Frame { name, ..default() }),
             urm:     Rc::downgrade(urm),
             ignored: default(),
@@ -134,7 +132,7 @@ impl Drop for Transaction {
                 urm.push_to(Stack::Undo, self.frame.borrow().clone());
                 urm.clear(Stack::Redo);
             } else {
-                info!(
+                debug!(
                     "Dropping the ignored transaction '{}' without pushing a frame to repository.",
                     self.name()
                 )
@@ -168,13 +166,13 @@ impl Display for Frame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Name: {}; ", self.name)?;
         if let Some(m) = &self.module {
-            write!(f, "Module: {}; ", m)?;
+            write!(f, "Module: {m}; ")?;
         }
         if let Some(g) = &self.graph {
-            write!(f, "Graph: {}; ", g)?;
+            write!(f, "Graph: {g}; ")?;
         }
         for (id, code) in &self.snapshots {
-            write!(f, "Code for {}: {}; ", id, code)?;
+            write!(f, "Code for {id}: {code}; ")?;
         }
         Ok(())
     }
@@ -212,23 +210,15 @@ pub struct Data {
 ///
 /// `Repository`, unlike [`Manager`] does not keep any modules (or other model entities) alive and
 /// can be shared with no consequence on project state.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Repository {
-    logger: Logger,
-    data:   RefCell<Data>,
-}
-
-
-impl Default for Repository {
-    fn default() -> Self {
-        Self::new(Logger::new(""))
-    }
+    data: RefCell<Data>,
 }
 
 impl Repository {
     /// Create a new repository.
-    pub fn new(parent: impl AnyLogger) -> Self {
-        Self { logger: Logger::new_sub(parent, "Repository"), data: default() }
+    pub fn new() -> Self {
+        default()
     }
 
     /// Get the currently open transaction. [`None`] if there is none.
@@ -351,10 +341,9 @@ impl Repository {
 /// Undo-Redo manager. Allows undoing or redoing recent actions.
 ///
 /// Owns [`Repository`] and keeps track of open modules.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Manager {
     #[allow(missing_docs)]
-    pub logger:     Logger,
     /// Repository with undo and redo stacks.
     pub repository: Rc<Repository>,
     /// Currently available modules.
@@ -369,9 +358,8 @@ impl Aware for Manager {
 
 impl Manager {
     /// Create a new undo-redo manager.
-    pub fn new(parent: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(parent, "URM");
-        Self { repository: Rc::new(Repository::new(&logger)), modules: default(), logger }
+    pub fn new() -> Self {
+        default()
     }
 
     /// Register a new opened module in the manager.
@@ -604,7 +592,7 @@ main =
         let node = &nodes[0];
 
         // Check initial state.
-        assert_eq!(urm.repository.len(Stack::Undo), 0, "Undo stack not empty: {:?}", urm);
+        assert_eq!(urm.repository.len(Stack::Undo), 0, "Undo stack not empty: {urm:?}");
         assert_eq!(module.ast().to_string(), "main = \n    2 + 2");
 
         // Perform an action.

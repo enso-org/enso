@@ -129,6 +129,7 @@ broken and require further investigation.
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>r</kbd> | Reload the visual interface.                                                                                                   |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>0 - 10</kbd>               | Switch between debug rendering modes (0 is the normal mode).                                                                   |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>`</kbd>                    | Toggle profiling monitor (performance, memory usage, etc).                                                                     |
+| <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>p</kbd>                    | Toggle the visibility of internal components (private API) in the component browser.                                           |
 | <kbd>ctrl</kbd> + <kbd>d</kbd>                                     | Send test data to the selected node.                                                                                           |
 | <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>enter</kbd>              | Push a hardcoded breadcrumb without navigating.                                                                                |
 | <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>arrow up</kbd>           | Pop a breadcrumb without navigating.                                                                                           |

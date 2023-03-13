@@ -347,6 +347,7 @@ ensogl_core::define_endpoints_2! {
         single_line_mode(bool),
         view_width(Option<f32>),
         long_text_truncation_mode(bool),
+        glyph_system    (Option<glyph::System>),
 
         // === Internal API ===
 
@@ -604,7 +605,8 @@ impl Text {
 
             // === Font ===
 
-            eval input.set_font ((t) m.set_font(t));
+            new_glyph_system <- input.set_font.map(f!([m](t) Some(m.set_font(t))));
+            out.glyph_system <+ new_glyph_system;
 
 
             // === Colors ===
@@ -716,10 +718,9 @@ impl TextModel {
         let scene = &app.display.default_scene;
         let selection_map = default();
         let display_object = display::object::Instance::new();
-        let glyph_system = {
-            let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
-            RefCell::new(glyph_system)
-        };
+        let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
+        frp.private.output.glyph_system.emit(Some(glyph_system.clone()));
+        let glyph_system = RefCell::new(glyph_system);
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());
         let layer = CloneRefCell::new(scene.layers.main.clone_ref());
         let lines = Lines::new(Self::new_line_helper(
@@ -1020,6 +1021,7 @@ impl TextModel {
     }
 
     /// Recompute the shape of the provided line index.
+    #[profile(Debug)]
     pub fn shape_line(&self, line: Line) -> ShapedLine {
         let line_range = self.line_range_snapped(line);
         let glyph_sets = self.shape_range(line_range.clone());
@@ -1116,6 +1118,7 @@ impl TextModel {
     /// and to the right of the insertion point. Unfortunately, the current Rustybuzz
     /// implementation does not support such use cases:
     /// https://github.com/RazrFalcon/rustybuzz/issues/54
+    #[profile(Debug)]
     fn update_lines_after_change(&self, changes: Option<&[buffer::Change]>) {
         debug_span!("update_lines_after_change").in_scope(|| {
             self.detach_glyphs_from_cursors();
@@ -1193,6 +1196,7 @@ impl TextModel {
     }
 
     /// Replace selections with new ones.
+    #[profile(Debug)]
     fn replace_selections(&self, do_edit: bool, buffer_selections: &buffer::selection::Group) {
         let mut new_selection_map = SelectionMap::default();
         for buffer_selection in buffer_selections {
@@ -1278,6 +1282,7 @@ impl TextModel {
     }
 
     /// Redraw the given line ranges.
+    #[profile(Debug)]
     fn redraw_sorted_line_ranges(
         &self,
         sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
@@ -1293,6 +1298,7 @@ impl TextModel {
     }
 
     /// Redraw the line. This will re-position all line glyphs.
+    #[profile(Debug)]
     fn redraw_line(&self, view_line: ViewLine) {
         let line = &mut self.lines.borrow_mut()[view_line];
         let default_divs = || NonEmptyVec::singleton(0.0);
@@ -1365,7 +1371,6 @@ impl TextModel {
                             let glyph_render_offset =
                                 render_info.offset.scale(style.font_size.value);
                             glyph.set_color(style.color);
-                            glyph.skip_color_animation();
                             glyph.set_sdf_weight(style.sdf_weight.value);
                             glyph.set_font_size(formatting::Size(
                                 style.font_size.value * magic_scale,
@@ -1439,6 +1444,7 @@ impl TextModel {
     }
 
     /// Attach glyphs to cursors if cursors are in edit mode.
+    #[profile(Debug)]
     pub fn attach_glyphs_to_cursors(&self) {
         for line in ViewLine(0)..=self.buffer.last_view_line_index() {
             self.attach_glyphs_to_cursors_for_line(line)
@@ -1486,6 +1492,7 @@ impl TextModel {
     }
 
     /// Detach all glyphs from cursors and place them back in lines.
+    #[profile(Debug)]
     pub fn detach_glyphs_from_cursors(&self) {
         let selection_map = self.selection_map.borrow();
         for (&line, cursor_map) in &selection_map.location_map {
@@ -1708,14 +1715,15 @@ impl TextModel {
     }
 
     #[profile(Debug)]
-    fn set_font(&self, font_name: &str) {
+    fn set_font(&self, font_name: &str) -> glyph::System {
         let app = &self.app;
         let scene = &app.display.default_scene;
         let glyph_system = font::glyph::System::new(scene, font_name);
-        self.glyph_system.replace(glyph_system);
+        self.glyph_system.replace(glyph_system.clone());
         // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.take_lines();
         self.redraw();
+        glyph_system
     }
 }
 
@@ -1754,6 +1762,7 @@ impl TextModel {
     }
 
     /// Position all lines in the provided line range. The range has to be sorted.
+    #[profile(Debug)]
     fn position_sorted_line_ranges(
         &self,
         sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,

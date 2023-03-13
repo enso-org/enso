@@ -102,13 +102,13 @@ class BufferRegistry(
   override def preStart(): Unit = {
     logger.info("Starting initialization.")
     context.system.eventStream
-      .subscribe(self, InitializedEvent.FileVersionsRepoInitialized.getClass)
+      .subscribe(self, InitializedEvent.VersionsRepoInitialized.getClass)
   }
 
   override def receive: Receive = initializing
 
   private def initializing: Receive = {
-    case InitializedEvent.FileVersionsRepoInitialized =>
+    case InitializedEvent.VersionsRepoInitialized =>
       logger.info("Initiaized.")
       context.become(running(Map.empty))
       unstashAll()

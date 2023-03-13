@@ -1,5 +1,6 @@
-## Matches the first found instance.
-type First
+type Matching_Mode
+    ## Matches the first found instance.
+    First
 
-## Matches the last found instance.
-type Last
+    ## Matches the last found instance.
+    Last
