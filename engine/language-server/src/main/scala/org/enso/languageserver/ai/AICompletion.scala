@@ -2,7 +2,7 @@ package org.enso.languageserver.ai
 
 import org.enso.jsonrpc.{HasParams, HasResult, Method}
 
-case object AICompletion extends Method("ai/completion"){
+case object AICompletion extends Method("ai/completion") {
   case class Params(prompt: String, stopSequence: String)
   case class Result(code: String)
 

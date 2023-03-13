@@ -111,6 +111,8 @@
 - [Named arguments syntax is now recognized in IDE][5774]. Connections to
   function arguments will now use named argument syntax instead of inserting
   wildcards on all preceding arguments.
+- [AI-powered code completions][5910]. It is now possible to get AI-powered
+  completions when using node searcher with Tables.
 
 #### EnsoGL (rendering engine)
 
@@ -520,6 +522,7 @@
 [5802]: https://github.com/enso-org/enso/pull/5802
 [5850]: https://github.com/enso-org/enso/pull/5850
 [5863]: https://github.com/enso-org/enso/pull/5863
+[5910]: https://github.com/enso-org/enso/pull/5910
 
 #### Enso Compiler
 
