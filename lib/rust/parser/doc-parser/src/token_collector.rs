@@ -24,7 +24,7 @@ pub fn parse(input: &str) -> TokenCollector<IgnoredLocation> {
 #[derive(Default, Debug)]
 pub struct TokenCollector<L> {
     pub tokens:    Vec<Token>,
-    location_type: std::marker::PhantomData<L>,
+    location_type: PhantomData<L>,
 }
 
 #[derive(Debug)]

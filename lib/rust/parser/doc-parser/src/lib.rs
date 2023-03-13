@@ -188,7 +188,7 @@ pub struct Lexer {
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VisibleOffset(usize);
 
-impl std::ops::Add<Self> for VisibleOffset {
+impl Add<Self> for VisibleOffset {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         Self(self.0 + rhs.0)
@@ -217,7 +217,9 @@ impl<'a> Warning for &'a str {
     }
 }
 
-impl<T> Warning for T where T: Fn() -> String {
+impl<T> Warning for T
+where T: Fn() -> String
+{
     fn to_string(&self) -> String {
         (self)()
     }
@@ -330,7 +332,7 @@ impl<'a, L> From<Span<'a, L>> for String {
     }
 }
 
-impl<'a, L> fmt::Display for Span<'a, L> {
+impl<'a, L> Display for Span<'a, L> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.text)
     }

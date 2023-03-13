@@ -499,8 +499,8 @@ lazy val `syntax-definition` =
     .settings(
       scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
       libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
-        "org.typelevel"  %% "cats-core"     % catsVersion,
-        "org.typelevel"  %% "kittens"       % kittensVersion
+        "org.typelevel" %% "cats-core" % catsVersion,
+        "org.typelevel" %% "kittens"   % kittensVersion
       )
     )
 
