@@ -270,6 +270,10 @@ object Runtime {
         name  = "deserializeLibrarySuggestions"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.StartBackgroundProcessing],
+        name  = "startBackgroundProcessing"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.BackgroundJobsStartedNotification],
         name  = "backgroundJobsStartedNotification"
       )
@@ -1668,6 +1672,9 @@ object Runtime {
       */
     final case class DeserializeLibrarySuggestions(libraryName: LibraryName)
         extends ApiRequest
+
+    /** A request to start the background jobs processing. */
+    final case class StartBackgroundProcessing() extends ApiRequest
 
     /** A notification about started background jobs. */
     final case class BackgroundJobsStartedNotification() extends ApiNotification
