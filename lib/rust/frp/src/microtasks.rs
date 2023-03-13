@@ -328,8 +328,7 @@ where
     fn schedule(self) {
         if let Some(handle_cell) = self.handle_cell.upgrade() {
             let Cons(head, tail) = self.phase_list;
-            let tail_phases =
-                TickPhases { handle_cell: self.handle_cell.clone(), phase_list: tail };
+            let tail_phases = TickPhases { handle_cell: self.handle_cell, phase_list: tail };
             let handle = next_microtask_late(move || {
                 head();
                 tail_phases.schedule();
@@ -364,8 +363,8 @@ mod tests {
         where T: Ord + Debug {
             let data = self.flush();
             let is_sorted = data.windows(2).all(|w| w[0] <= w[1]);
-            assert!(is_sorted, "Expected ordered, got {:?}", data);
-            assert_eq!(data.len(), length, "Expected length {length}, got {:?}", data);
+            assert!(is_sorted, "Expected ordered, got {data:?}");
+            assert_eq!(data.len(), length, "Expected length {length}, got {data:?}");
         }
     }
 
@@ -388,8 +387,8 @@ mod tests {
 
         next_microtask(f!(collector.push(1))).forget();
 
-        let _ = next_microtask(|| assert!(false));
-        let _ = next_microtask_late(|| assert!(false));
+        let _ = next_microtask(|| unreachable!());
+        let _ = next_microtask_late(|| unreachable!());
 
         collector.flush_and_assert_ordered(1);
     }

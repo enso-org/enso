@@ -448,7 +448,7 @@ impl From<&VisualizationDataChoice> for widget::Entry {
     fn from(choice: &VisualizationDataChoice) -> Self {
         let value: ImString = (&choice.value).into();
         let label = choice.label.as_ref().map_or_else(|| value.clone(), |label| label.into());
-        Self { value, label }
+        Self { required_import: None, value, label }
     }
 }
 

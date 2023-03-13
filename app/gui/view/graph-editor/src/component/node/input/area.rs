@@ -544,6 +544,7 @@ impl Model {
                             (crumbs.clone_ref(), expression)
                         }));
                         area_frp.source.on_port_code_update <+ code_update;
+                        area_frp.source.request_import <+ widget.request_import;
                     }
                 }
 
@@ -905,6 +906,7 @@ ensogl::define_endpoints! {
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
         requested_widgets   (ast::Id, ast::Id),
+        request_import      (ImString),
     }
 }
 

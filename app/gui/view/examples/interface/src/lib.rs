@@ -408,10 +408,23 @@ pub fn expression_mock_trim() -> Expression {
     let param0 = span_tree::ArgumentInfo {
         name: Some("where".to_owned()),
         tp: Some("Location".to_owned()),
-        tag_values: TagValue::from_expressions(
-            &["Location.Start", "Location.End", "Location.Both"],
-            &parser,
-        ),
+        tag_values: vec![
+            TagValue {
+                required_import: None,
+                expression:      "Location.Start".into(),
+                label:           Some("Start".into()),
+            },
+            TagValue {
+                required_import: None,
+                expression:      "Location.End".into(),
+                label:           Some("End".into()),
+            },
+            TagValue {
+                required_import: None,
+                expression:      "Location.Both".into(),
+                label:           Some("Both".into()),
+            },
+        ],
         ..default()
     };
     let param1 = span_tree::ArgumentInfo {

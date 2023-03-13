@@ -37,6 +37,7 @@ ensogl::define_endpoints_2! {
     }
     Output {
         value_changed(Option<ImString>),
+        request_import(ImString),
     }
 }
 
@@ -73,30 +74,37 @@ pub enum Display {
 pub struct Entry {
     /// The expression that should be inserted by the widget. Note that  this expression can still
     /// be preprocessed by the widget before being inserted into the node.
-    pub value: ImString,
+    pub value:           ImString,
+    /// The import that must be present in the module when the widget entry is selected.
+    pub required_import: Option<ImString>,
     /// The text that should be displayed by the widget to represent this option. The exact
     /// appearance of the label is up to the widget implementation.
-    pub label: ImString,
+    pub label:           ImString,
 }
 
 impl From<&span_tree::TagValue> for Entry {
     fn from(tag_value: &span_tree::TagValue) -> Self {
         let value: ImString = (&tag_value.expression).into();
-        let label: ImString =
-            tag_value.label.as_ref().map_or_else(|| value.clone(), |label| label.into());
-        Entry { value, label }
+        let label: ImString = tag_value.label.as_ref().map_or_else(|| value.clone(), Into::into);
+        let required_import = tag_value.required_import.clone().map(Into::into);
+        Entry { value, required_import, label }
     }
 }
 
 impl Entry {
     /// Create an entry with the same value and label.
     pub fn from_value(value: ImString) -> Self {
-        Self { label: value.clone(), value }
+        Self { label: value.clone(), required_import: None, value }
     }
 
     /// Cloning entry value getter.
     pub fn value(&self) -> ImString {
         self.value.clone()
+    }
+
+    /// Cloning entry getter of import that must be present for value insertion to be valid.
+    pub fn required_import(&self) -> Option<ImString> {
+        self.required_import.clone()
     }
 }
 
@@ -126,10 +134,11 @@ pub struct NodeData {
 /// after the endpoints were set, it would not receive previously set endpoint values.
 #[derive(Debug, Clone, CloneRef)]
 struct SampledFrp {
-    set_current_value: frp::Sampler<Option<ImString>>,
-    set_visible:       frp::Sampler<bool>,
-    set_focused:       frp::Sampler<bool>,
-    out_value_changed: frp::Any<Option<ImString>>,
+    set_current_value:  frp::Sampler<Option<ImString>>,
+    set_visible:        frp::Sampler<bool>,
+    set_focused:        frp::Sampler<bool>,
+    out_value_changed:  frp::Any<Option<ImString>>,
+    out_request_import: frp::Any<ImString>,
 }
 
 
@@ -176,7 +185,8 @@ impl View {
             set_visible <- input.set_visible.sampler();
             set_focused <- input.set_focused.sampler();
             let out_value_changed = frp.private.output.value_changed.clone_ref();
-            let sampled_frp = SampledFrp { set_current_value, set_visible, set_focused, out_value_changed };
+            let out_request_import = frp.private.output.request_import.clone_ref();
+            let sampled_frp = SampledFrp { set_current_value, set_visible, set_focused, out_value_changed, out_request_import };
 
             eval widget_data([model, sampled_frp]((meta, node_data)) {
                 model.set_widget_data(&sampled_frp, meta, node_data);
@@ -368,8 +378,15 @@ impl SingleChoiceModel {
 
         let set_current_value = frp.set_current_value.clone_ref();
         let dropdown_output = frp.out_value_changed.clone_ref();
-        let dropdown =
-            LazyDropdown::new(app, display_object, set_current_value, is_open, dropdown_output);
+        let request_import = frp.out_request_import.clone_ref();
+        let dropdown = LazyDropdown::new(
+            app,
+            display_object,
+            set_current_value,
+            is_open,
+            dropdown_output,
+            request_import,
+        );
         let dropdown = Rc::new(RefCell::new(dropdown));
 
         frp::extend! { network
@@ -432,6 +449,7 @@ enum LazyDropdown {
         set_current_value: frp::Sampler<Option<ImString>>,
         is_open:           frp::Sampler<bool>,
         output_value:      frp::Any<Option<ImString>>,
+        request_import:    frp::Any<ImString>,
     },
     Initialized {
         _network:    frp::Network,
@@ -447,6 +465,7 @@ impl LazyDropdown {
         set_current_value: frp::Sampler<Option<ImString>>,
         is_open: frp::Sampler<bool>,
         output_value: frp::Any<Option<ImString>>,
+        request_import: frp::Any<ImString>,
     ) -> Self {
         let app = app.clone_ref();
         let display_object = display_object.clone_ref();
@@ -460,6 +479,7 @@ impl LazyDropdown {
             set_current_value,
             is_open,
             output_value,
+            request_import,
         }
     }
 
@@ -498,6 +518,7 @@ impl LazyDropdown {
                 is_open,
                 set_current_value,
                 output_value,
+                request_import,
             } => {
                 let dropdown = app.new_view::<Dropdown<Entry>>();
                 display_object.add_child(&dropdown);
@@ -517,11 +538,15 @@ impl LazyDropdown {
                     selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
                     dropdown.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
 
-                    dropdown_output <- dropdown.selected_entries.map(|e| e.iter().next().map(Entry::value));
+                    dropdown_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
                     // Emit the output value only after actual user action. This prevents the
                     // dropdown from emitting its initial value when it is opened, which can
                     // represent slightly different version of code than actually written.
-                    output_value <+ dropdown_output.sample(&dropdown.user_select_action);
+                    submitted_entry <- dropdown_entry.sample(&dropdown.user_select_action);
+                    dropdown_out_value <- submitted_entry.map(|e| e.as_ref().map(Entry::value));
+                    dropdown_out_import <- submitted_entry.map(|e| e.as_ref().and_then(Entry::required_import));
+                    request_import <+ dropdown_out_import.unwrap();
+                    output_value <+ dropdown_out_value.sample(&dropdown.user_select_action);
 
                     is_open <- all(is_open, &init)._0();
                     dropdown.set_open <+ is_open.on_change();

@@ -76,80 +76,15 @@ use crate::generate::Context;
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct TagValue {
-    pub expression: String,
+    /// An import that is required to be present when the value is inserted. `None` when no import
+    /// is required. Note that the import might or might not be already present in the module.
+    /// It should only be added if it is not present.
+    pub required_import: Option<String>,
+    /// Code expression that should be inserted into the node AST when this value is selected.
+    pub expression:      String,
     /// Shortened label for the value. `None` when shortening wasn't possible. In that case, the
     /// `expression` should be used as a label.
-    pub label:      Option<String>,
-}
-
-impl TagValue {
-    /// Generate tag value list from an exhaustive list of enso expressions, shortening labels as
-    /// appropriate.
-    pub fn from_expressions<S: AsRef<str>>(
-        expressions: &[S],
-        parser: &parser::Parser,
-    ) -> Vec<Self> {
-        let parsed = expressions.iter().map(|expression| {
-            let expression = expression.as_ref();
-            let line = parser.parse_line_ast(expression);
-            line.map_err(|e| {
-                error!("Failed to parse tag value '{expression}': {e:?}");
-            })
-            .ok()
-        });
-
-        let access_chains = parsed
-            .map(|ast| {
-                ast.as_ref()
-                    .filter(|ast| ast::opr::is_access(ast))
-                    .map(|ast| ast::opr::as_access_chain(ast).unwrap())
-            })
-            .collect_vec();
-
-        let mut only_access_chains_iter = access_chains.iter().flatten();
-
-        // Gather a list of expression reprs from first access chain. Includes each infix element
-        // that can be considered for removal.
-        let operand_reprs: Option<Vec<String>> = only_access_chains_iter.next().map(|chain| {
-            let mut operand_reprs = chain
-                .enumerate_operands()
-                .map(|operand| operand.map_or_default(|op| op.arg.repr()))
-                .collect_vec();
-            // Pop last chain element, as we never want to strip it from the label.
-            let last = operand_reprs.pop();
-
-            // If the last chain element is a "Value" literal, we want to preserve one extra chain
-            // element before it.
-            if last.map_or(false, |last| last == "Value") {
-                operand_reprs.pop();
-            }
-            operand_reprs
-        });
-
-        // Find the number of operands that are common for all access chains.
-        let common_operands_count: usize = operand_reprs.map_or(0, |common_reprs| {
-            only_access_chains_iter.fold(common_reprs.len(), |common_so_far, chain| {
-                let operand_reprs =
-                    chain.enumerate_operands().map(|op| op.map_or_default(|op| op.arg.repr()));
-                operand_reprs
-                    .zip(&common_reprs[0..common_so_far])
-                    .take_while(|(repr, common_repr)| repr == *common_repr)
-                    .count()
-            })
-        });
-
-        let expressions_with_chains = expressions.iter().zip(access_chains.into_iter());
-        expressions_with_chains
-            .map(|(expression, chain)| {
-                let expression = expression.as_ref().to_string();
-                let label = chain.filter(|_| common_operands_count > 0).map(|mut chain| {
-                    chain.erase_leading_operands(common_operands_count);
-                    chain.into_ast().repr()
-                });
-                TagValue { expression, label }
-            })
-            .collect_vec()
-    }
+    pub label:           Option<String>,
 }
 
 
@@ -381,76 +316,5 @@ impl<T> SpanTree<T> {
             PrintState { indent, num_children }
         });
         buffer
-    }
-}
-
-
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use parser::Parser;
-
-    fn run_test_case(expression_and_expected_label: &[(&str, Option<&str>)]) {
-        let parser = Parser::new();
-        let expressions = expression_and_expected_label.iter().map(|(expr, _)| *expr).collect_vec();
-        let tag_values = TagValue::from_expressions(&expressions, &parser);
-        let expected_values = expression_and_expected_label
-            .iter()
-            .map(|(expression, label)| TagValue {
-                expression: expression.to_string(),
-                label:      label.map(ToString::to_string),
-            })
-            .collect_vec();
-
-        assert_eq!(tag_values, expected_values);
-    }
-
-    #[test]
-    fn tag_value_shortening_single_entry() {
-        run_test_case(&[("Location.Start", Some("Start"))]);
-    }
-
-    #[test]
-    fn tag_value_shortening_single_entry_with_value() {
-        run_test_case(&[("Foo.Bar.Value", Some("Bar.Value"))]);
-    }
-
-    #[test]
-    fn tag_value_shortening_common_prefix() {
-        run_test_case(&[
-            ("Location.Start", Some("Start")),
-            ("Location.End", Some("End")),
-            ("Location.Both", Some("Both")),
-        ]);
-    }
-
-    #[test]
-    fn tag_value_shortening_multiple_elements() {
-        run_test_case(&[
-            ("A.B.C.D", Some("C.D")),
-            ("A.B.C.E", Some("C.E")),
-            ("A.B.F.G.H", Some("F.G.H")),
-        ]);
-    }
-
-    #[test]
-    fn tag_value_shortening_no_prefix() {
-        run_test_case(&[("Foo.Bar", None), ("Foo.Baz", None), ("Baz.Qux", None)]);
-    }
-
-    #[test]
-    fn tag_value_non_infix() {
-        run_test_case(&[("Foo Bar", None), ("Foo Baz", None), ("Baz Qux", None)]);
-    }
-
-
-    #[test]
-    fn tag_value_some_infix() {
-        run_test_case(&[("Foo.Bar", Some("Bar")), ("Foo.Baz", Some("Baz")), ("Baz Qux", None)]);
     }
 }
