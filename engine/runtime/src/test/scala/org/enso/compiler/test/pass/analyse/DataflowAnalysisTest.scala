@@ -1472,7 +1472,7 @@ class DataflowAnalysisTest extends CompilerTest {
         |    a = x + 1
         |    b = State.read
         |    a+b . IO.println
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
 
     val codeWithMeta = meta.appendToCode(code)
     val ir = codeWithMeta.preprocessExpression.get.analyse
