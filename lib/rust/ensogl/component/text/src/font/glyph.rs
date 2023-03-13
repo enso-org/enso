@@ -12,7 +12,6 @@ use crate::SdfWeight;
 use crate::Size;
 
 use enso_text::Byte;
-use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
@@ -21,79 +20,15 @@ use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
-use ensogl_core::frp;
-use ensogl_core::frp::io::keyboard::Key;
 use ensogl_core::system::gpu::texture;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::Texture;
-use ensogl_core::system::web::platform;
-use font::FontWithAtlas;
+use font::FontWithGpuData;
 use font::GlyphRenderInfo;
 use font::Style;
 use font::Weight;
 use font::Width;
 use owned_ttf_parser::GlyphId;
-use std::sync::LazyLock;
-
-
-
-// ===============
-// === Hinting ===
-// ===============
-
-/// System- and font-specific hinting properties. They affect the way the font is rasterized. In
-/// order to understand how these variables affect the font rendering, see the GLSL file (the
-/// [`FUNCTIONS`] variable).
-///
-/// Also, you can interactively change the values by holding `ctrl + alt + o` or `ctrl + alt + e`
-/// keys and using the `+` and `-` key to increment or decrement the value.
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug)]
-pub struct Hinting {
-    pub opacity_increase: f32,
-    pub opacity_exponent: f32,
-}
-
-impl Default for Hinting {
-    fn default() -> Self {
-        Self { opacity_increase: 0.0, opacity_exponent: 1.0 }
-    }
-}
-
-static HINTING_MAP: LazyLock<HashMap<(Option<platform::Platform>, &'static str), Hinting>> =
-    LazyLock::new(|| {
-        HashMap::from([
-            ((Some(platform::Platform::MacOS), "mplus1p"), Hinting {
-                opacity_increase: 0.4,
-                opacity_exponent: 4.0,
-            }),
-            ((Some(platform::Platform::Windows), "mplus1p"), Hinting {
-                opacity_increase: 0.3,
-                opacity_exponent: 3.0,
-            }),
-            ((Some(platform::Platform::Linux), "mplus1p"), Hinting {
-                opacity_increase: 0.3,
-                opacity_exponent: 3.0,
-            }),
-        ])
-    });
-
-
-
-// ===========
-// === FRP ===
-// ===========
-
-ensogl_core::define_endpoints_2! {
-    Input {
-        set_color(color::Lcha),
-        skip_color_animation(),
-    }
-
-    Output {
-        target_color(color::Lcha),
-    }
-}
 
 
 
@@ -147,7 +82,7 @@ impl SystemData {
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct ShapeData {
-    pub font: FontWithAtlas,
+    pub font: FontWithGpuData,
 }
 
 impl ShapeData {
@@ -171,9 +106,7 @@ mod glyph_shape {
             font_size: f32,
             color: Vector4<f32>,
             sdf_weight: f32,
-            atlas_index: f32,
-            opacity_increase: f32,
-            opacity_exponent: f32
+            atlas_index: f32
         ) {
             // The shape does not matter. The [`SystemData`] defines custom GLSL code.
             Plane().into()
@@ -202,6 +135,8 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
         });
 
         symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
+        symbol.variables().add_uniform_or_panic("opacity_increase", &font.opacity_increase);
+        symbol.variables().add_uniform_or_panic("opacity_exponent", &font.opacity_exponent);
 
         SystemData {}
     }
@@ -221,12 +156,8 @@ pub struct Glyph {
 
 /// Internal structure of [`Glyph`].
 #[allow(missing_docs)]
-#[derive(Debug, Deref)]
+#[derive(Debug)]
 pub struct GlyphData {
-    // Please note that [`GlyphData`] does not implement [`Clone`]. This FRP network will not be
-    // cloned in the FRP definition and thus will not cause any mem leak.
-    #[deref]
-    pub frp:                Frp,
     pub view:               glyph_shape::View,
     pub glyph_id:           Cell<GlyphId>,
     pub line_byte_offset:   Cell<Byte>,
@@ -234,12 +165,11 @@ pub struct GlyphData {
     pub context:            Context,
     pub properties:         Cell<font::family::NonVariableFaceHeader>,
     pub variations:         RefCell<VariationAxes>,
-    pub color_animation:    color::Animation,
-    pub x_advance:          Rc<Cell<f32>>,
+    pub x_advance:          Cell<f32>,
     /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
     /// Attached glyphs should not be considered part of the line during animation because they
     /// will be moved around, so they need to be ignored when computing the line width.
-    pub attached_to_cursor: Rc<Cell<bool>>,
+    pub attached_to_cursor: Cell<bool>,
 }
 
 
@@ -397,7 +327,12 @@ crate::with_formatting_property_diffs!(define_formatting_property_diffs);
 impl Glyph {
     /// Color getter.
     pub fn color(&self) -> color::Lcha {
-        self.target_color.value()
+        Rgba::from(self.view.color.get()).into()
+    }
+
+    /// Color setter.
+    pub fn set_color(&self, color: color::Lcha) {
+        self.view.color.set(Rgba::from(color).into());
     }
 
     /// SDF-based glyph thickness getter.
@@ -526,7 +461,8 @@ impl WeakGlyph {
 // ==============
 
 #[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone, Copy, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default)]
+#[allow(missing_copy_implementations)]
 /// Mocked version of WebGL context.
 pub struct Context;
 
@@ -549,8 +485,7 @@ fn get_context(scene: &Scene) -> Context {
 #[allow(missing_docs)]
 pub struct System {
     context:  Context,
-    hinting:  Immutable<Hinting>,
-    pub font: FontWithAtlas,
+    pub font: FontWithGpuData,
 }
 
 impl System {
@@ -560,20 +495,14 @@ impl System {
         let scene = scene.as_ref();
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font_name);
-        let platform = platform::current();
-        let hinting = HINTING_MAP.get(&(platform, font.name())).copied().unwrap_or_default();
-        let hinting = Immutable(hinting);
         let context = get_context(scene);
-        Self { context, hinting, font }
+        Self { context, font }
     }
 
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
     /// may be set.
     #[profile(Debug)]
     pub fn new_glyph(&self) -> Glyph {
-        let frp = Frp::new();
-        #[allow(clippy::clone_on_copy)]
-        #[allow(clippy::unit_arg)]
         let context = self.context.clone();
         let display_object = display::object::Instance::new();
         let font = self.font.clone_ref();
@@ -581,78 +510,14 @@ impl System {
         let line_byte_offset = default();
         let properties = default();
         let variations = default();
-        let color_animation = color::Animation::new(frp.network());
         let x_advance = default();
         let attached_to_cursor = default();
         let view = glyph_shape::View::new_with_data(ShapeData { font });
         view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         view.atlas_index.set(0.0);
-        view.opacity_increase.set(self.hinting.opacity_increase);
-        view.opacity_exponent.set(self.hinting.opacity_exponent);
         display_object.add_child(&view);
-
-        let network = frp.network();
-        let scene = scene();
-        let keyboard = &scene.keyboard.frp;
-        frp::extend! { network
-            frp.private.output.target_color <+ frp.set_color;
-            color_animation.target <+ frp.set_color;
-            color_animation.skip <+ frp.skip_color_animation;
-            eval color_animation.value ((c) view.color.set(Rgba::from(c).into()));
-
-
-            // === Debug mode ===
-            // Allows changing hinting parameters on the fly. See [`Hinting`] to learn more.
-
-            debug_mode <- all_with(&keyboard.is_control_down, &keyboard.is_alt_down, |a, b| *a && *b);
-            plus <- keyboard.down.map(|t| t == &Key::Character("=".into()));
-            minus <- keyboard.down.map(|t| t == &Key::Character("-".into()));
-
-            key_e_down <- keyboard.down.map(|t| t == &Key::Character("e".into())).on_true();
-            key_e_up <- keyboard.up.map(|t| t == &Key::Character("e".into())).on_true();
-            key_e <- bool(&key_e_up, &key_e_down);
-
-            key_o_down <- keyboard.down.map(|t| t == &Key::Character("o".into())).on_true();
-            key_o_up <- keyboard.up.map(|t| t == &Key::Character("o".into())).on_true();
-            key_o <- bool(&key_o_up, &key_o_down);
-
-            plus2 <- all_with(&plus, &debug_mode, |a, b| *a && *b);
-            minus2 <- all_with(&minus, &debug_mode, |a, b| *a && *b);
-
-            plus_e <- keyboard.down.gate(&plus2).gate(&key_e);
-            minus_e <- keyboard.down.gate(&minus2).gate(&key_e);
-
-            plus_o <- keyboard.down.gate(&plus2).gate(&key_o);
-            minus_o <- keyboard.down.gate(&minus2).gate(&key_o);
-
-            eval_ plus_o (view.opacity_increase.modify(|t| {
-                let opacity_increase = t + 0.01;
-                warn!("opacity_increase: {opacity_increase}");
-                opacity_increase
-            }));
-
-            eval_ minus_o (view.opacity_increase.modify(|t| {
-                let opacity_increase = t - 0.01;
-                warn!("opacity_increase: {opacity_increase}");
-                opacity_increase
-            }));
-
-            eval_ plus_e (view.opacity_exponent.modify(|t| {
-                let opacity_exponent = t + 0.1;
-                warn!("opacity_exponent: {opacity_exponent}");
-                opacity_exponent
-            }));
-
-            eval_ minus_e (view.opacity_exponent.modify(|t| {
-                let opacity_exponent = t - 0.1;
-                warn!("opacity_exponent: {opacity_exponent}");
-                opacity_exponent
-            }));
-        }
-
         Glyph {
             data: Rc::new(GlyphData {
-                frp,
                 view,
                 display_object,
                 context,
@@ -660,7 +525,6 @@ impl System {
                 line_byte_offset,
                 properties,
                 variations,
-                color_animation,
                 x_advance,
                 attached_to_cursor,
             }),

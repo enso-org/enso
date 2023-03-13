@@ -10,6 +10,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -19,7 +20,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Instantiates a polyglot constructor.",
     autoRegister = false)
 public abstract class InstantiateNode extends Node {
-
+  @Child private HostValueToEnsoNode fromHost = HostValueToEnsoNode.build();
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
@@ -34,7 +35,8 @@ public abstract class InstantiateNode extends Node {
   Object doExecute(
       Object constructor, Object arguments, @Cached("build()") CoerceArrayNode coerce) {
     try {
-      return library.instantiate(constructor, coerce.execute(arguments));
+      var value = library.instantiate(constructor, coerce.execute(arguments));
+      return fromHost.execute(value);
     } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {
       err.enter();
       throw new PanicException(e.getMessage(), this);

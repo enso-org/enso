@@ -1,4 +1,4 @@
-package org.enso.languageserver.search
+package org.enso.docs.sections
 
 import org.enso.polyglot.DocSection
 import org.scalatest.matchers.should.Matchers

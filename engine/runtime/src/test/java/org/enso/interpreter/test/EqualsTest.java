@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -17,7 +16,6 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
@@ -92,7 +90,7 @@ public class EqualsTest extends TestBase {
         context,
         () -> {
           boolean firstResult = equalsNode.execute(firstValue, secondValue);
-          boolean secondResult = equalsNode.execute(firstValue, secondValue);
+          boolean secondResult = equalsNode.execute(secondValue, firstValue);
           assertEquals("equals should be symmetric", firstResult, secondResult);
           return null;
         });
@@ -103,8 +101,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          boolean firstResult = equalsNode.execute(value, value);
-          boolean secondResult = equalsNode.execute(value, value);
+          Object firstResult = equalsNode.execute(value, value);
+          Object secondResult = equalsNode.execute(value, value);
           assertEquals("equals should be consistent", firstResult, secondResult);
           return null;
         });
@@ -115,8 +113,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          boolean uncachedRes = EqualsNodeGen.getUncached().execute(firstVal, secondVal);
-          boolean cachedRes = equalsNode.execute(firstVal, secondVal);
+          Object uncachedRes = EqualsNodeGen.getUncached().execute(firstVal, secondVal);
+          Object cachedRes = equalsNode.execute(firstVal, secondVal);
           assertEquals(
               "Result from uncached EqualsNode should be the same as result from its cached variant",
               uncachedRes,

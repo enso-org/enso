@@ -88,7 +88,7 @@ public final class Module implements TruffleObject {
   private ModuleScope scope;
   private ModuleSources sources;
   private PatchedModuleValues patchedValues;
-  private Map<Source, Module> allSources = new WeakHashMap<>();
+  private final Map<Source, Module> allSources = new WeakHashMap<>();
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
@@ -97,7 +97,7 @@ public final class Module implements TruffleObject {
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
-  private boolean synthetic;
+  private final boolean synthetic;
   private List<QualifiedName> directModulesRefs;
 
   /**

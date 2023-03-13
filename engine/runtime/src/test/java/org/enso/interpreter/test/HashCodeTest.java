@@ -2,6 +2,7 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNodeGen;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -96,9 +98,9 @@ public class HashCodeTest extends TestBase {
     executeInContext(context, () -> {
       long firstHash = hashCodeNode.execute(firstValue);
       long secondHash = hashCodeNode.execute(secondValue);
-      boolean valuesAreEqual = equalsNode.execute(firstValue, secondValue);
+      Object valuesAreEqual = equalsNode.execute(firstValue, secondValue);
       // if o1 == o2 then hash(o1) == hash(o2)
-      if (valuesAreEqual) {
+      if (isTrue(valuesAreEqual)) {
         assertEquals(
             String.format("""
                   If two objects are same, they should have same hash codes:
@@ -115,9 +117,10 @@ public class HashCodeTest extends TestBase {
       }
       // if hash(o1) != hash(o2) then o1 != o2
       if (firstHash != secondHash) {
-        assertFalse(
+        // Here, valuesAreEqual can either be False or Nothing
+        assertTrue(
             "Violated rule: `if hash(o1) != hash(o2) then o1 != o2`",
-            valuesAreEqual
+            isFalse(valuesAreEqual) || isNothing(valuesAreEqual)
         );
       }
       return null;
@@ -150,5 +153,17 @@ public class HashCodeTest extends TestBase {
       );
       return null;
     });
+  }
+
+  private static boolean isTrue(Object obj) {
+    return obj instanceof Boolean objBool && objBool;
+  }
+
+  private static boolean isFalse(Object obj) {
+    return obj instanceof Boolean objBool && !objBool;
+  }
+
+  private static boolean isNothing(Object obj) {
+    return obj == EnsoContext.get(null).getNothing();
   }
 }

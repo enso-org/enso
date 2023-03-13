@@ -255,14 +255,14 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata    = new Metadata
-    val mainBody    = metadata.addItem(31, 52)
-    val xExpr       = metadata.addItem(40, 2)
-    val yExpr       = metadata.addItem(51, 5)
-    val zExpr       = metadata.addItem(65, 1)
-    val mainResExpr = metadata.addItem(71, 12)
+    val mainBody    = metadata.addItem(37, 52)
+    val xExpr       = metadata.addItem(46, 2)
+    val yExpr       = metadata.addItem(57, 5)
+    val zExpr       = metadata.addItem(71, 1)
+    val mainResExpr = metadata.addItem(77, 12)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |main =
         |    x = 42
@@ -318,12 +318,12 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata    = new Metadata
-    val mainBody    = metadata.addItem(72, 39)
-    val xExpr       = metadata.addItem(81, 13)
-    val mainResExpr = metadata.addItem(99, 12)
+    val mainBody    = metadata.addItem(78, 39)
+    val xExpr       = metadata.addItem(87, 13)
+    val mainResExpr = metadata.addItem(105, 12)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |polyglot java import java.time.LocalDate
         |
         |main =
@@ -376,14 +376,14 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata     = new Metadata
-    val mainBody     = metadata.addItem(31, 42)
-    val xExpr        = metadata.addItem(40, 2)
-    val yExpr        = metadata.addItem(51, 5)
-    val mainResExpr  = metadata.addItem(61, 12)
-    val mainRes1Expr = metadata.addItem(72, 1)
+    val mainBody     = metadata.addItem(37, 42)
+    val xExpr        = metadata.addItem(46, 2)
+    val yExpr        = metadata.addItem(57, 5)
+    val mainResExpr  = metadata.addItem(67, 12)
+    val mainRes1Expr = metadata.addItem(78, 1)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |main =
         |    x = 42
@@ -618,13 +618,13 @@ class RuntimeInstrumentTest
 
     // f expression
     metadata.addItem(42, 5)
-    val aExpr    = metadata.addItem(56, 1)
-    val fApp     = metadata.addItem(74, 3)
-    val mainRes  = metadata.addItem(62, 16)
-    val mainExpr = metadata.addItem(31, 47)
+    val aExpr    = metadata.addItem(62, 1)
+    val fApp     = metadata.addItem(80, 3)
+    val mainRes  = metadata.addItem(68, 16)
+    val mainExpr = metadata.addItem(37, 47)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |main =
         |    f x = x + 1
@@ -678,16 +678,16 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val aExpr = metadata.addItem(40, 14)
+    val aExpr = metadata.addItem(46, 14)
     // lambda
-    metadata.addItem(41, 10)
+    metadata.addItem(47, 10)
     // lambda expression
-    metadata.addItem(46, 5)
-    val lamArg  = metadata.addItem(53, 1)
-    val mainRes = metadata.addItem(59, 12)
+    metadata.addItem(52, 5)
+    val lamArg  = metadata.addItem(59, 1)
+    val mainRes = metadata.addItem(65, 12)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |main =
         |    a = (x -> x + 1) 1
@@ -739,14 +739,14 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val aExpr = metadata.addItem(40, 9)
+    val aExpr = metadata.addItem(46, 9)
     // lambda
-    metadata.addItem(41, 5)
-    val lamArg  = metadata.addItem(48, 1)
-    val mainRes = metadata.addItem(54, 12)
+    metadata.addItem(47, 5)
+    val lamArg  = metadata.addItem(54, 1)
+    val mainRes = metadata.addItem(60, 12)
 
     val code =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |main =
         |    a = (_ + 1) 1

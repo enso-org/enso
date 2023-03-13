@@ -49,7 +49,7 @@ class InputRedirectionController(
 
   private def running(liveContexts: Set[ContextData] = Set.empty): Receive = {
     case FeedStandardInput(input, isLineTerminated) =>
-      logger.debug("Feeding stdin [{} bytes]", input.length)
+      logger.debug("Feeding stdin [{} bytes].", input.length)
       if (isLineTerminated) {
         val bytes =
           ByteString.createBuilder

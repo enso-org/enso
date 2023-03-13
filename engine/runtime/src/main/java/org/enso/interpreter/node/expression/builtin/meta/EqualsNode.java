@@ -46,17 +46,18 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.polyglot.MethodNames;
 
 @BuiltinMethod(
     type = "Comparable",
     name = "equals_builtin",
     description = """
       Compares self with other object and returns True iff `self` is exactly the same as
-      the other object, including all its transitively accessible properties or fields.
+      the other object, including all its transitively accessible properties or fields,
+      False otherwise.
+      
       Can handle arbitrary objects, including all foreign objects.
       
-      Does not throw exceptions.
+      Does not throw dataflow errors or panics.
       
       Note that this is different than `Meta.is_same_object`, which checks whether two
       references point to the same object on the heap.
@@ -64,8 +65,6 @@ import org.enso.polyglot.MethodNames;
 )
 @GenerateUncached
 public abstract class EqualsNode extends Node {
-
-  protected static String EQUALS_MEMBER_NAME = MethodNames.Function.EQUALS;
 
   public static EqualsNode build() {
     return EqualsNodeGen.create();
@@ -294,7 +293,7 @@ public abstract class EqualsNode extends Node {
 
   /**
    * There is no specialization for {@link TypesLibrary#hasType(Object)}, because also
-   * primitive values would fall into that specialization and it would be too complicated
+   * primitive values would fall into that specialization, and it would be too complicated
    * to make that specialization disjunctive. So we rather specialize directly for
    * {@link Type types}.
    */
@@ -639,11 +638,6 @@ public abstract class EqualsNode extends Node {
     return selfConstructor == otherConstructor;
   }
 
-  /**
-   * How many {@link EqualsNode} should be created for fields in specialization for atoms.
-   */
-  static final int equalsNodeCountForFields = 10;
-
   static EqualsNode[] createEqualsNodes(int size) {
     EqualsNode[] nodes = new EqualsNode[size];
     Arrays.fill(nodes, EqualsNode.build());
@@ -826,7 +820,7 @@ public abstract class EqualsNode extends Node {
   }
 
   /**
-   * Return true iff object is a primitive value used in some of the specializations
+   * Return true iff object is a primitive value used in some specializations
    * guard. By primitive value we mean any value that can be present in Enso, so,
    * for example, not Integer, as that cannot be present in Enso.
    * All the primitive types should be handled in their corresponding specializations.
@@ -899,10 +893,6 @@ public abstract class EqualsNode extends Node {
     } else {
       return object == null;
     }
-  }
-
-  static boolean isAtom(Object object) {
-    return object instanceof Atom;
   }
 
   @TruffleBoundary

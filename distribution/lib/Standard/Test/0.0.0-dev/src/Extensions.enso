@@ -319,12 +319,19 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
 
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Test_Result
-Any.should_be_a self typ = if self.is_a typ || self==typ then Test_Result.Success else
-    loc = Meta.get_source_location 0
-    expected_type = Meta.get_qualified_type_name typ
-    actual_type = Meta.get_qualified_type_name self
-    message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
-    Test.fail message
+Any.should_be_a self typ =
+    ok = case Meta.meta typ of
+        c : Meta.Constructor -> case Meta.meta self of
+            a : Meta.Atom -> a.constructor == c
+            _ -> False
+        _ -> self.is_a typ || self==typ
+
+    if ok then Test_Result.Success else
+        loc = Meta.get_source_location 3
+        expected_type = Meta.get_qualified_type_name typ
+        actual_type = Meta.get_qualified_type_name self
+        message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
+        Test.fail message
 
 ## Asserts that a value is of a given type.
 
@@ -418,7 +425,7 @@ Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = Test.fail_ma
 Any.should_contain : Any -> Integer -> Test_Result
 Any.should_contain self element frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    contains_result = Panic.catch No_Such_Method.Error (self.contains element) caught_panic->
+    contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
             msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + loc + ")."
             Test.fail msg

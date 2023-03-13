@@ -26,7 +26,7 @@ type_spec name ctor = Test.group name <|
         ctor "A" "B" . at -2 . should_equal "A"
         ctor "A" "B" . at 1 . should_equal "B"
         ctor "A" "B" . at -1 . should_equal "B"
-        ctor "A" "B" . at 2 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor "A" "B" . at 2 . should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should have allow getting by first, second and last" <|
         ctor "A" "B" . first . should_equal "A"
@@ -54,9 +54,9 @@ type_spec name ctor = Test.group name <|
         ctor 1 3 . find (>0) start=1 . should_equal 3
         ctor 1 3 . find (>0) start=2 . should_fail_with Not_Found
         ctor 1 3 . find (>0) start=-1 . should_equal 3
-        ctor 1 3 . find (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
-        ctor 1 3 . find (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
-        ctor 10 30 . find (>0) start=3 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 1 3 . find (>0) start=4 . should_fail_with Index_Out_Of_Bounds
+        ctor 1 3 . find (>0) start=-22 . should_fail_with Index_Out_Of_Bounds
+        ctor 10 30 . find (>0) start=3 . should_fail_with Index_Out_Of_Bounds
         ctor 10 30 . find (>0) start=3 . catch . should_equal (Index_Out_Of_Bounds.Error 3 3)
         ctor 1 3 . find (>3) if_missing=Nothing . should_equal Nothing
 
@@ -69,10 +69,10 @@ type_spec name ctor = Test.group name <|
         ctor 10 30 . index_of (>0) start=1 . should_equal 1
         ctor 10 30 . index_of (>0) start=2 . should_equal Nothing
         ctor 10 30 . index_of (>0) start=-1 . should_equal 1
-        ctor 10 30 . index_of (>0) start=3 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . index_of (>0) start=3 . should_fail_with Index_Out_Of_Bounds
         ctor 10 30 . index_of (>0) start=3 . catch . should_equal (Index_Out_Of_Bounds.Error 3 3)
-        ctor 10 30 . index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
-        ctor 10 30 . index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds
+        ctor 10 30 . index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should allow finding the last index of an item" <|
         ctor 10 30 . last_index_of 10 . should_equal 0
@@ -82,10 +82,10 @@ type_spec name ctor = Test.group name <|
         ctor 10 30 . last_index_of (>20) . should_equal 1
         ctor 10 30 . last_index_of (>0) start=1 . should_equal 1
         ctor 10 30 . last_index_of (>0) start=-1 . should_equal 1
-        ctor 10 30 . last_index_of (>0) start=2 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . last_index_of (>0) start=2 . should_fail_with Index_Out_Of_Bounds
         ctor 10 30 . last_index_of (>0) start=2 . catch . should_equal (Index_Out_Of_Bounds.Error 2 2)
-        ctor 10 30 . last_index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
-        ctor 10 30 . last_index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . last_index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds
+        ctor 10 30 . last_index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should allow folding an operator over its elements" <|
         ctor 10 20 . fold 0 (+) . should_equal 30

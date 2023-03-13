@@ -57,17 +57,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: success() || failure()
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
@@ -97,7 +94,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-ci-check-backend-macos:
     name: Engine (macos)
     runs-on:
@@ -135,17 +131,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: success() || failure()
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
@@ -175,7 +168,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
   enso-build-ci-gen-job-ci-check-backend-windows:
     name: Engine (windows)
     runs-on:
@@ -215,17 +207,14 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
       - if: success() || failure()
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
@@ -255,6 +244,5 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 360
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

@@ -138,7 +138,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
@@ -183,6 +183,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -203,7 +204,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -260,6 +261,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -284,7 +286,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -366,6 +368,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("51")
@@ -386,7 +389,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -477,6 +480,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("51")
@@ -497,7 +501,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -618,6 +622,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("51")
@@ -638,7 +643,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -708,6 +713,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("51")
@@ -765,7 +771,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
@@ -884,6 +890,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
   }
@@ -894,7 +901,7 @@ class RuntimeSuggestionUpdatesTest
     val moduleName = "Enso_Test.Test.Main"
 
     val mainCode =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |import Enso_Test.Test.A
         |from Enso_Test.Test.A export all
@@ -904,7 +911,7 @@ class RuntimeSuggestionUpdatesTest
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
     val aCode =
-      """from Standard.Base.Data.Numbers import Integer
+      """from Standard.Base import all
         |
         |type MyType
         |    MkA a
@@ -950,7 +957,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
@@ -1141,6 +1148,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -1161,13 +1169,13 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """import Standard.Base.IO
+            """from Standard.Base import all
               |
               |import Enso_Test.Test.A
               |from Enso_Test.Test.A export all hiding hello
@@ -1190,6 +1198,7 @@ class RuntimeSuggestionUpdatesTest
           updates = Tree.Root(Vector())
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -1210,13 +1219,13 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """import Standard.Base.IO
+            """from Standard.Base import all
               |
               |main = IO.println "Hello World!"
               |""".stripMargin.linesIterator.mkString("\n")
@@ -1234,6 +1243,7 @@ class RuntimeSuggestionUpdatesTest
           updates = Tree.Root(Vector())
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")

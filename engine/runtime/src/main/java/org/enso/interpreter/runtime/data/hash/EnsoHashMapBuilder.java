@@ -177,7 +177,12 @@ public final class EnsoHashMapBuilder {
 
     @Override
     public boolean equals(Object a, Object b) {
-      return equalsNode.execute(a, b);
+      // Special handling for NaN added as a key inside a map.
+      if (a instanceof Double aDbl && b instanceof Double bDbl && aDbl.isNaN() && bDbl.isNaN()) {
+        return true;
+      } else {
+        return Boolean.TRUE.equals(equalsNode.execute(a, b));
+      }
     }
 
     @Override

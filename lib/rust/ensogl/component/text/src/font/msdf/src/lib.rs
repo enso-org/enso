@@ -49,6 +49,8 @@ pub use texture::*;
 /// Common types.
 pub mod prelude {
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
     pub use enso_types::*;
 }
 
@@ -243,9 +245,10 @@ impl Msdf {
         Self::msdf_from_generation_result_handle(handle, params)
     }
 
-    /// Generate Mutlichannel Signed Distance Field (MSDF) for one glyph by its index in the font.
+    /// Generate Multichannel Signed Distance Field (MSDF) for one glyph by its index in the font.
     ///
     /// For more information about MSDF see [https://github.com/Chlumsky/msdfgen].
+    #[profile(Debug)]
     pub fn generate_by_index(font: &OwnedFace, index: usize, params: &MsdfParameters) -> Msdf {
         let handle = msdfgen_generate_msdf_by_index(
             params.width,

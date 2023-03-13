@@ -30,6 +30,7 @@ class ContentRootManagerActor(config: Config)
     extends Actor
     with LazyLogging
     with UnhandledLogging {
+
   override def preStart(): Unit = {
     context.system.eventStream.subscribe(self, classOf[Api.LibraryLoaded])
   }
@@ -70,8 +71,8 @@ class ContentRootManagerActor(config: Config)
         )
 
         logger.trace(
-          s"Library root for [$namespace.$name:$version] added at " +
-          s"[${MaskedPath(rootPath.toPath).applyMasking()}]."
+          s"Library root for [$namespace.$name:$version] added at [{}].",
+          MaskedPath(rootPath.toPath)
         )
 
         subscribers.foreach { subscriber =>

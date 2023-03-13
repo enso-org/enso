@@ -1,5 +1,6 @@
 package org.enso.table.data.table;
 
+import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -27,8 +28,26 @@ public class Column {
    * @param storage the underlying storage
    */
   public Column(String name, Storage<?> storage) {
+    ensureNameIsValid(name);
     this.name = name;
     this.storage = storage;
+  }
+
+  public static IllegalArgumentException raiseNothingName() throws IllegalArgumentException {
+    throw new IllegalArgumentException("Column name cannot be Nothing.");
+  }
+
+  public static void ensureNameIsValid(String name) {
+    if (name == null) {
+      raiseNothingName();
+    }
+    if (name.isEmpty()) {
+      throw new IllegalArgumentException("Column name cannot be empty.");
+    }
+    if (name.indexOf('\0') >= 0) {
+      String pretty = Text_Utils.pretty_print(name);
+      throw new IllegalArgumentException("Column name "+pretty+" must not contain the NUL character.");
+    }
   }
 
   /**
