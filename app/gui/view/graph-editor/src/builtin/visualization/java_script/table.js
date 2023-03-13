@@ -1,8 +1,8 @@
 /** Table visualization. */
 loadScript('https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js')
-// loadScript('https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-enterprise.min.js')
-// loadStyle('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css')
-// loadStyle('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css')
+// loadScript('https://cdn.jsdelivr.net/npm/ag-grid-enterprise@29.1.0/dist/ag-grid-enterprise.min.js')
+loadStyle('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css')
+loadStyle('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css')
 
 // ============================
 // === Style Initialisation ===
