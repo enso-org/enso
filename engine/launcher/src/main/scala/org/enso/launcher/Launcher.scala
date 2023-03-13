@@ -39,7 +39,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val componentsManager = {
     val manager =
       runtimeVersionManager(cliOptions, alwaysInstallMissing = false)
-    manager.logAvailableComponentsForDebugging()
     manager
   }
   private lazy val configurationManager =

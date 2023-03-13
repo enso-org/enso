@@ -3,7 +3,7 @@ package org.enso.languageserver.filemanager
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestDuration, TestKit, TestProbe}
 import org.apache.commons.lang3.SystemUtils
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
   ContentRootsAddedNotification,
@@ -20,7 +20,6 @@ import org.scalatest.{Inside, OptionValues}
 import java.io.File
 import java.nio.file.{Path => JPath}
 import java.util.UUID
-
 import scala.concurrent.duration.DurationInt
 
 class ContentRootManagerSpec
@@ -50,7 +49,8 @@ class ContentRootManagerSpec
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
       ProjectDirectoriesConfig.initialize(root.file),
-      ProfilingConfig()
+      ProfilingConfig(),
+      StartupConfig()
     )
     rootActor   = system.actorOf(ContentRootManagerActor.props(config))
     rootManager = new ContentRootManagerWrapper(config, rootActor)
