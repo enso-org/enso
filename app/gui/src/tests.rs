@@ -88,8 +88,8 @@ fn span_tree_args() {
 
     let parser = executed_graph.parser();
     let mut invocation_info = entry.invocation_info(suggestion_db, &parser);
-    let expected_this_param = invocation_info.parameters.remove(0);
-    let expected_arg1_param = invocation_info.parameters.remove(0);
+    let expected_this_param = invocation_info.parameters.remove(0).with_call_id(Some(id));
+    let expected_arg1_param = invocation_info.parameters.remove(0).with_call_id(Some(id));
 
     // === Method notation, without prefix application ===
     assert_eq!(get_node().info.expression().repr(), "Base.foo");

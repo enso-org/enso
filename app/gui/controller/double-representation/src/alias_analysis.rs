@@ -9,7 +9,6 @@ use crate::definition::ScopeKind;
 use ast::crumbs::Crumb;
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
-use ast::crumbs::PrefixCrumb;
 use ast::opr::match_named_argument;
 use std::borrow::Borrow;
 
