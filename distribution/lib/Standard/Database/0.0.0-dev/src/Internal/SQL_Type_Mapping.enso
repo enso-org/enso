@@ -11,8 +11,8 @@ type SQL_Type_Mapping
        have at least a few exceptions, and some like SQLite may have very
        limited support). If an SQL_Type that matches the Value_Type cannot be
        found, a closest approximate match is returned instead. If an exact match
-       cannot be found, an `Inexact_Type_???` warning is reported according to
-       the `on_problems` setting.
+       cannot be found, an `Inexact_Type_Coercion` warning is reported according
+       to the `on_problems` setting.
 
        If the conversion is exact, it should be reversible, i.e.
        `sql_type_to_value_type (value_type_to_sql x) = x`.

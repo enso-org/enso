@@ -1,11 +1,12 @@
 package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
-  public static Builder getForType(int type, int size) {
-    return switch (type) {
+  public static Builder getForType(StorageType type, int size) {
+    Builder builder = switch (type) {
       case Storage.Type.OBJECT -> new ObjectBuilder(size);
       case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
       case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
@@ -16,6 +17,8 @@ public abstract class Builder {
       case Storage.Type.DATE_TIME -> new DateTimeBuilder(size);
       default -> new InferredBuilder(size);
     };
+    assert builder.getType().equals(type);
+    return builder;
   }
 
   /**
@@ -66,4 +69,7 @@ public abstract class Builder {
    * @return a storage containing all the items appended so far
    */
   public abstract Storage<?> seal();
+
+  /** @return the current storage type of this builder */
+  public abstract StorageType getType();
 }

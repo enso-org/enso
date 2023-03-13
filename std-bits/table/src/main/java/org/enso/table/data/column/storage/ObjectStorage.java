@@ -6,6 +6,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
+import org.enso.table.data.column.storage.type.StorageType;
 
 /** A column storing arbitrary objects. */
 public final class ObjectStorage extends SpecializedStorage<Object> {
@@ -28,8 +29,8 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
   }
 
   @Override
-  public int getType() {
-    return Type.OBJECT;
+  public StorageType getType() {
+    return StorageType.ANY_OBJECT;
   }
 
   @Override

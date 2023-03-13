@@ -1,7 +1,0 @@
-## PRIVATE
-   Checks if the given `value` fits the provided `value_type` without
-   conversions other than numeric widening.
-fits : Value_Type -> Any -> Boolean
-fits value_type value = case value_type of
-    ## FIXME!!!
-    _ -> False

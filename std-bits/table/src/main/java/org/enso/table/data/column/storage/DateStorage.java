@@ -5,8 +5,8 @@ import java.time.LocalDate;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.DateBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.storage.type.StorageType;
 
 public final class DateStorage extends SpecializedStorage<LocalDate> {
   /**
@@ -36,8 +36,8 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   }
 
   @Override
-  public int getType() {
-    return Type.DATE;
+  public StorageType getType() {
+    return StorageType.DATE;
   }
 
   @Override

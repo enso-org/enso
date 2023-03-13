@@ -7,6 +7,13 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 polyglot java import org.enso.table.data.column.builder.object.Builder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 
+## PRIVATE
+   Gets the value type represented by this Java Storage.
+value_type_of_storage : Java_Storage -> Value_Type
+value_type_of_storage storage = case storage.getStoredType of
+    "Integer" ->
+    ""
+
 ## Represents different types of underlying storage for Columns.
 type Storage
     ## A column storing text data.
