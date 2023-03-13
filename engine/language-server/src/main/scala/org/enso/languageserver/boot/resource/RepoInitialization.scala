@@ -62,9 +62,9 @@ class RepoInitialization(
         eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
         logger.error(
-          "Failed to initialize SQL suggestions repo [{}]. {}",
+          "Failed to initialize SQL suggestions repo [{}].",
           MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
-          ex.getMessage
+          ex
         )
     }
     initAction
@@ -92,9 +92,9 @@ class RepoInitialization(
         eventStream.publish(InitializedEvent.VersionsRepoInitialized)
       case Failure(ex) =>
         logger.error(
-          "Failed to initialize SQL versions repo [{}]. {}",
+          "Failed to initialize SQL versions repo [{}].",
           MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
-          ex.getMessage
+          ex
         )
     }
     initAction
@@ -107,9 +107,9 @@ class RepoInitialization(
     for {
       _ <- Future {
         logger.warn(
-          "Failed to initialize the suggestions database [{}]. {}",
+          "Failed to initialize the suggestions database [{}].",
           MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
-          error.getMessage
+          error
         )
       }
       _ <- Future(db.close())
@@ -136,8 +136,10 @@ class RepoInitialization(
         Future.successful(())
       case error: FileSystemException =>
         logger.error(
-          s"Failed to delete the database file. Attempt #${retries + 1}." +
-          s"The file will be removed during the shutdown. ${error.getMessage}."
+          "Failed to delete the database file. Attempt #{}. " +
+          "The file will be removed during the shutdown.",
+          retries + 1,
+          error
         )
         sys.addShutdownHook(
           FileUtils.deleteQuietly(directoriesConfig.suggestionsDatabaseFile)
@@ -145,9 +147,9 @@ class RepoInitialization(
         Future.failed(error)
       case error: IOException =>
         logger.error(
-          "Failed to delete the database file. Attempt #{}. {}",
+          "Failed to delete the database file. Attempt #{}.",
           retries + 1,
-          error.getMessage
+          error
         )
         if (retries < RepoInitialization.MaxRetries) {
           Thread.sleep(1000)

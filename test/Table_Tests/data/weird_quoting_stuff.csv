@@ -1,0 +1,5 @@
+A,B,C,D,E
+"Te,s""t",An " other,"He
+llo",This is an escaped quote \",Excel escapes "" with 8 quotes """"""
+"Te,s""t",An " other","He
+llo",This is an escaped quote \",Excel escapes "" with 8 quotes """"""

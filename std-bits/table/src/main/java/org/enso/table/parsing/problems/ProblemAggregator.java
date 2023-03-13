@@ -19,7 +19,7 @@ public interface ProblemAggregator {
   void reportLeadingZeroes(String cell);
 
   /** Reports that a mismatched quote has been encountered. */
-  void reportMismatchedQuote();
+  void reportMismatchedQuote(String cellText);
 
   /**
    * Checks if there are any problems already reported.

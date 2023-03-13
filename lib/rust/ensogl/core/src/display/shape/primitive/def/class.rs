@@ -117,6 +117,11 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
         Rotation(self, angle)
     }
 
+    /// Flip the shape upside-down, mirroring it over the X axis.
+    fn flip_y(&self) -> FlipY<Self> {
+        FlipY(self)
+    }
+
     /// Scales the shape by a given value.
     fn scale<S: Into<Var<f32>>>(&self, value: S) -> Scale<Self> {
         Scale(self, value)

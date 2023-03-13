@@ -200,7 +200,7 @@ class JsonConnectionController(
         )
       )
     case Status.Failure(ex) =>
-      logger.error("Failed to initialize the resources. {}", ex.getMessage)
+      logger.error("Failed to initialize resources.", ex)
       receiver ! ResponseError(Some(request.id), ResourcesInitializationError)
       context.system.eventStream.publish(InitializedEvent.InitializationFailed)
       context.become(connected(webActor))

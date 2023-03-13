@@ -27,7 +27,6 @@ jobs:
         run: cargo run --package enso-build-shader-tools --bin create
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
-        timeout-minutes: 360
     outputs:
       ENSO_RELEASE_ID: ${{ steps.step_0.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
@@ -55,7 +54,6 @@ jobs:
         run: cargo run --package enso-build-shader-tools --bin package
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
-        timeout-minutes: 360
     env:
       ENSO_RELEASE_ID: ${{ needs.run-create-linux-latest.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
@@ -83,7 +81,6 @@ jobs:
         run: cargo run --package enso-build-shader-tools --bin package
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
-        timeout-minutes: 360
     env:
       ENSO_RELEASE_ID: ${{ needs.run-create-linux-latest.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
@@ -111,7 +108,6 @@ jobs:
         run: cargo run --package enso-build-shader-tools --bin package
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
-        timeout-minutes: 360
     env:
       ENSO_RELEASE_ID: ${{ needs.run-create-linux-latest.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
@@ -142,7 +138,6 @@ jobs:
         run: cargo run --package enso-build-shader-tools --bin publish
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
-        timeout-minutes: 360
     env:
       ENSO_RELEASE_ID: ${{ needs.run-create-linux-latest.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360

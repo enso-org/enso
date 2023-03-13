@@ -673,7 +673,7 @@ type Table
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
         new_column = Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename expression
+        result = new_column.rename (self.connection.dialect.get_naming_helpers.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
@@ -1206,7 +1206,7 @@ type Table
                 new_name = p.first
                 Aggregate_Helper.make_aggregate_column self agg new_name . catch
 
-            partitioned = results.partition (_.is_a Internal_Column.Value)
+            partitioned = results.partition (_.is_a Internal_Column)
 
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use

@@ -27,8 +27,8 @@ sqlite_specific_spec prefix connection =
             Meta.is_same_object connection (connection.set_schema Nothing) . should_be_true
 
         Test.specify "does not allow changing schema or database" <|
-            connection.set_schema "foo" . should_fail_with SQL_Error.Error
-            connection.set_database "foo" . should_fail_with SQL_Error.Error
+            connection.set_schema "foo" . should_fail_with SQL_Error
+            connection.set_database "foo" . should_fail_with SQL_Error
 
     Test.group prefix+"Tables and Table Types" <|
         tinfo = Name_Generator.random_name "TestTable"
@@ -67,11 +67,11 @@ sqlite_specific_spec prefix connection =
 
     Test.group prefix+"Error Handling" <|
         Test.specify "should wrap errors" <|
-            connection.read (SQL_Query.Raw_SQL "foobar") . should_fail_with SQL_Error.Error
-            connection.execute_update "foobar" . should_fail_with SQL_Error.Error
+            connection.read (SQL_Query.Raw_SQL "foobar") . should_fail_with SQL_Error
+            connection.execute_update "foobar" . should_fail_with SQL_Error
 
             action = connection.read (SQL_Query.Raw_SQL "SELECT A FROM undefined_table")
-            action . should_fail_with SQL_Error.Error
+            action . should_fail_with SQL_Error
             action.catch.to_text . should_equal "There was an SQL error: [SQLITE_ERROR] SQL error or missing database (no such table: undefined_table). [Query was: SELECT A FROM undefined_table]"
 
     tinfo = Name_Generator.random_name "Tinfo"

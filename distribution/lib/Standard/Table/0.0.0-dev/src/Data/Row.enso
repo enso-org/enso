@@ -27,7 +27,9 @@ type Row
     get : (Integer | Text) -> Any -> Any
     get self column ~if_missing=Nothing =
         table_column = self.table.get column
-        if table_column.is_nothing then if_missing else table_column.at self.index
+        case table_column of
+            Nothing -> if_missing
+            _ -> table_column.at self.index
 
     ## Gets the row as a Vector.
     to_vector : Vector
