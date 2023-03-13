@@ -253,8 +253,8 @@ impl model::execution_context::API for ExecutionContext {
 
     fn get_ai_completion<'a>(
         &'a self,
-        prompt: &str,
-        stop: &str,
+        _prompt: &str,
+        _stop: &str,
     ) -> LocalBoxFuture<'a, FallibleResult<String>> {
         futures::future::ready(Ok("".to_string())).boxed_local()
     }

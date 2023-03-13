@@ -425,12 +425,11 @@ impl Searcher {
         let weak_model = Rc::downgrade(&model);
         let notifications = model.controller.subscribe();
         let graph = model.view.graph().clone();
-        let id = input_view.clone();
         spawn_stream_handler(weak_model, notifications, move |notification, _| {
             match notification {
                 Notification::NewActionList => action_list_changed.emit(()),
                 Notification::AISuggestionUpdated(expr) =>
-                    graph.set_node_expression((id, node_view::Expression::new_plain(expr))),
+                    graph.set_node_expression((input_view, node_view::Expression::new_plain(expr))),
             };
             std::future::ready(())
         });
