@@ -30,8 +30,8 @@ spec =
                 actual_mask . should_equal 0
 
             Test.specify "should result in an error when an option is invalid" <|
-                Default_Engine.from_enso_options [""] . should_fail_with Invalid_Option.Error
-                Default_Engine.from_enso_options ["", Regex_Option.Ascii_Matching] . should_fail_with Invalid_Option.Error
+                Default_Engine.from_enso_options [""] . should_fail_with Invalid_Option
+                Default_Engine.from_enso_options ["", Regex_Option.Ascii_Matching] . should_fail_with Invalid_Option
 
         Test.group "The default regex engine (Default_Engine)" <|
 
@@ -66,11 +66,11 @@ spec =
 
             Test.specify "should return a syntax error of the regex syntax is invalid" <|
                 engine = Default_Engine.new
-                engine.compile "^(a" [] . should_fail_with Syntax_Error.Error
+                engine.compile "^(a" [] . should_fail_with Syntax_Error
 
             Test.specify "should throw an invalid options error if an option is invalid" <|
                 engine = Default_Engine.new
-                engine.compile "^a$" ["invalid"] . should_fail_with Invalid_Option.Error
+                engine.compile "^a$" ["invalid"] . should_fail_with Invalid_Option
 
             Test.specify "should escape an expression for use as a literal" <|
                 pattern = "http://example.com"
@@ -402,8 +402,8 @@ spec =
                 match.group 3 . should_equal Nothing
 
             Test.specify "should fail with No_Such_Group_Error if the group did not exist" <|
-                match.group "fail" . should_fail_with No_Such_Group.Error
-                match.group 5 . should_fail_with No_Such_Group.Error
+                match.group "fail" . should_fail_with No_Such_Group
+                match.group 5 . should_fail_with No_Such_Group
 
             Test.specify "should make named groups accessible by index" <|
                 match.group 2 . should_equal (match.group "letters")
@@ -463,8 +463,8 @@ spec =
                 match.start "empty" . should_equal Nothing
 
             Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-                match.start 5 . should_fail_with No_Such_Group.Error
-                match.start "nonexistent" . should_fail_with No_Such_Group.Error
+                match.start 5 . should_fail_with No_Such_Group
+                match.start "nonexistent" . should_fail_with No_Such_Group
 
         Test.group "Match.end" <|
             engine = Default_Engine.new
@@ -484,8 +484,8 @@ spec =
                 match.end "empty" . should_equal Nothing
 
             Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-                match.end 5 . should_fail_with No_Such_Group.Error
-                match.end "nonexistent" . should_fail_with No_Such_Group.Error
+                match.end 5 . should_fail_with No_Such_Group
+                match.end "nonexistent" . should_fail_with No_Such_Group
 
         Test.group "Match.span" <|
             engine = Default_Engine.new
@@ -505,8 +505,8 @@ spec =
                 match.span "empty" . should_equal Nothing
 
             Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
-                match.span 5 . should_fail_with No_Such_Group.Error
-                match.span "nonexistent" . should_fail_with No_Such_Group.Error
+                match.span 5 . should_fail_with No_Such_Group
+                match.span "nonexistent" . should_fail_with No_Such_Group
 
         Test.group "Match.start_position" <|
             engine = Default_Engine.new

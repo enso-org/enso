@@ -112,7 +112,7 @@ type Match_2
                 Nothing -> Nothing
                 utf_16_span : Utf_16_Span -> utf_16_span.to_grapheme_span
 
-    ## Gets the grapheme span matched by the group with the provided identifier, or
+    ## Gets the Text matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
        exists for the provided identifier, a `No_Such_Group` is returned.
 
@@ -144,13 +144,13 @@ type Match_2
                 Nothing -> Nothing
                 span -> span.text
 
-    ## Gets the grapheme span matched by the entire pattern.
-    text : Text
+    ## Gets the Text matched by the entire pattern.
     text self = self.group 0
 
-    ## Gets a vector containing the results of _all_ of the capturing groups in
+    ## Gets a vector containing the Text of _all_ of the capturing groups in
        the pattern, replacing the value of groups that did not participate in
-       the match with `default`.
+       the match with `default`. This vector includes group 0, which contains
+       the entire match.
 
        Arguments:
        - default: The value to return for a given index when the group at that

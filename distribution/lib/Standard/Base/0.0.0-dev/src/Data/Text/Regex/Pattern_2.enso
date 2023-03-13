@@ -37,7 +37,8 @@ type Pattern_2
     ## Tries to match the provided `input` against the pattern `self`.
 
        Returns a Match_2 containing the matched text and its match groups, or
-       nothing if the match failed.
+       nothing if the match failed. If the pattern does not match, an empty
+       vector is returned.
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
@@ -81,7 +82,8 @@ type Pattern_2
     ## Tries to match the provided `input` against the pattern `self`.
 
        Returns a Vector of Text objects, each containing the matched text
-       and its match groups.
+       and its match groups. If the pattern does not match, an empty
+       vector is returned.
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
