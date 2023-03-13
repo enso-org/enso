@@ -362,16 +362,16 @@ class SuggestionsHandlerSpec
 
         val moduleName = "Test.Foo"
         val fooAtom = Suggestion.Constructor(
-          externalId            = None,
-          module                = moduleName,
-          name                  = "Foo",
-          arguments             = Vector(),
-          returnType            = moduleName,
-          documentation         = None
+          externalId    = None,
+          module        = moduleName,
+          name          = "Foo",
+          arguments     = Vector(),
+          returnType    = moduleName,
+          documentation = None
         )
         val module = Suggestion.Module(
-          module                = moduleName,
-          documentation         = None
+          module        = moduleName,
+          documentation = None
         )
 
         val tree = Tree.Root(
@@ -1152,20 +1152,20 @@ class SuggestionsHandlerSpec
           Suggestion.Argument("a", "Any", false, false, None),
           Suggestion.Argument("b", "Any", false, false, None)
         ),
-        returnType            = "Pair",
-        documentation         = Some("Awesome")
+        returnType    = "Pair",
+        documentation = Some("Awesome")
       )
 
     val method: Suggestion.Method =
       Suggestion.Method(
-        externalId            = Some(UUID.randomUUID()),
-        module                = "Test.Main",
-        name                  = "main",
-        arguments             = Seq(),
-        selfType              = "Test.Main",
-        returnType            = "IO",
-        isStatic              = true,
-        documentation         = None
+        externalId    = Some(UUID.randomUUID()),
+        module        = "Test.Main",
+        name          = "main",
+        arguments     = Seq(),
+        selfType      = "Test.Main",
+        returnType    = "IO",
+        isStatic      = true,
+        documentation = None
       )
   }
 
