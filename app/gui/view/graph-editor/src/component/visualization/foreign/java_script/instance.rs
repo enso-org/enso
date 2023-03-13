@@ -249,7 +249,7 @@ impl InstanceModel {
 
     fn set_active(&self, active: bool) {
         if active {
-            self.root_node.set_style_or_warn("pointer-events", "auto");
+            self.root_node.set_style_or_warn("pointer-events", "all");
         } else {
             self.root_node.set_style_or_warn("pointer-events", "none");
         }
