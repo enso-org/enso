@@ -10,16 +10,12 @@
  * pools, Amplify must be configured prior to use. This file defines all the information needed to
  * connect to and use these pools. */
 
-import * as shared from '../../../../../client/shared'
-
 // =================
 // === Constants ===
 // =================
 
 /** AWS region in which our Cognito pool is located. */
 export const AWS_REGION: AwsRegion = 'eu-west-1' as AwsRegion
-/** URL used as the OAuth redirect when running in the desktop app. */
-export const DESKTOP_REDIRECT = `${shared.DEEP_LINK_SCHEME}://auth` as const
 /** Complete list of OAuth scopes used by the app. */
 export const OAUTH_SCOPES: OAuthScope[] = ['email' as OAuthScope, 'openid' as OAuthScope]
 /** OAuth response type used in the OAuth flows. */
@@ -58,11 +54,7 @@ type OAuthResponseType = 'code' & { _brand: 'OAuthResponseType' }
  * an OAuth flow (e.g., sign-in or sign-out) has completed. These must match the values set in the
  * Cognito pool and during the creation of the OAuth client. See the `enso-org/cloud-v2` repo for
  * details. */
-export type OAuthRedirect = (
-    | typeof DESKTOP_REDIRECT
-    | 'http://localhost:8081'
-    | 'https://cloud.enso.org'
-) & { _brand: 'OAuthRedirect' }
+export type OAuthRedirect = string & { _brand: 'OAuthRedirect' };
 /** Callback used to open URLs for the OAuth flow. This is only used in the desktop app (i.e., not in
  * the cloud). This is because in the cloud we just keep the user in their browser, but in the app
  * we want to open OAuth URLs in the system browser. This is because the user can't be expected to

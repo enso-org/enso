@@ -1,14 +1,14 @@
-/** @file Main dashboard container responsible for listing user's projects as well as other
+/** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 
 import * as auth from "../../authentication/providers/auth";
 import withRouter from "../../navigation";
 
-// ==========================
-// === dashboardContainer ===
-// ==========================
+// =================
+// === Dashboard ===
+// =================
 
-const dashboardContainer = () => {
+const Dashboard = () => {
   const { accessToken } = auth.useFullUserSession();
   return (
     <>
@@ -18,4 +18,4 @@ const dashboardContainer = () => {
   );
 };
 
-export default withRouter(dashboardContainer);
+export default withRouter(Dashboard);

@@ -39,7 +39,7 @@ import * as toast from "react-hot-toast";
 import * as router from "react-router-dom";
 
 import * as authProvider from "../authentication/providers/auth";
-import DashboardContainer from "../dashboard/components/dashboard";
+import Dashboard from "../dashboard/components/dashboard";
 import * as authService from "../authentication/service";
 import withRouter from "../navigation";
 import * as loggerProvider from "../providers/logger";
@@ -127,7 +127,7 @@ const AppRouter = (props: AppProps) => {
               <router.Route element={<authProvider.ProtectedLayout />}>
                 <router.Route
                   path={DASHBOARD_PATH}
-                  element={<DashboardContainer />}
+                  element={<Dashboard />}
                 />
               </router.Route>
             </react.Fragment>

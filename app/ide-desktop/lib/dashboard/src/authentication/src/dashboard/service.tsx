@@ -51,8 +51,8 @@ export class Backend {
     this.client.get(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
 
   /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
-  post = (path: string) =>
-    this.client.post(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+  post = (path: string, payload: object) =>
+    this.client.post(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload);
 
   /** Logs the error that occurred and throws a new one with a more user-friendly message. */
   errorHandler = (message: string) => (error: Error) => {
@@ -65,12 +65,12 @@ export class Backend {
    * @returns `null` if status code 401 or 404 was received. */
   getUser = (): Promise<Organization | null> =>
     this.get(GET_USER_PATH)
-      .send()
       .then((response) => {
-        if (response.status() === 401 || response.status() === 404) {
+        if (response.status === http.HttpStatus.unauthorized
+          || response.status === http.HttpStatus.notFound) {
           return null;
         }
-        return response.model<Organization>();
+        return response.json() as Promise<Organization>;
       });
 }
 
@@ -90,7 +90,6 @@ export const createBackend = (
 ): Backend => {
   const headers = new Headers();
   headers.append("Authorization", `Bearer ${accessToken}`);
-  const client = new http.Client();
-  client.defaultHeaders = headers;
+  const client = new http.Client(headers);
   return new Backend(client, logger);
 };

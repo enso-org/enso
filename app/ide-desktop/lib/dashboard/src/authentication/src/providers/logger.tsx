@@ -12,9 +12,9 @@ import * as react from "react";
  * provided by the EnsoGL packager. */
 export interface Logger {
   /** Logs a message to the console. */
-  log: (message?: any, ...optionalParams: any[]) => void;
+  log: (message: unknown, ...optionalParams: unknown[]) => void;
   /** Logs an error message to the console. */
-  error: (message?: any, ...optionalParams: any[]) => void;
+  error: (message: unknown, ...optionalParams: unknown[]) => void;
 }
 
 // =====================

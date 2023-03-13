@@ -60,4 +60,4 @@ export type Environment = 'production' | 'pbuchu'
 // ===========
 
 /** Base URL for requests to our Cloud API backend. */
-type ApiUrl = string
+type ApiUrl = string & { _brand: 'ApiUrl' }

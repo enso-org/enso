@@ -13,18 +13,7 @@ import * as config from './config'
 // === Cognito ===
 // ===============
 
-export interface Cognito {
-    /** Returns the current user's session, or `None` if the user is not logged in.
-     *
-     * Will refresh the session if it has expired. */
-    userSession: () => Promise<results.Option<UserSession>>
-}
-
-// ===================
-// === CognitoImpl ===
-// ===================
-
-export class CognitoImpl implements Cognito {
+export class Cognito {
     constructor(amplifyConfig: config.AmplifyConfig) {
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
          * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
@@ -36,7 +25,10 @@ export class CognitoImpl implements Cognito {
 
     // === Interface `impl`s ===
 
-    userSession = userSession
+    /** Returns the current user's session, or `None` if the user is not logged in.
+     *
+     * Will refresh the session if it has expired. */
+    userSession: () => Promise<results.Option<UserSession>> = userSession
 }
 
 // ====================
