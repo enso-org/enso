@@ -279,7 +279,6 @@ object UpsertVisualisationJob {
               s"[${error.getClass}] ${error.getMessage}",
               error
             )
-          error.printStackTrace()
           Left(
             EvaluationFailed(
               Option(error.getMessage).getOrElse(error.getClass.getSimpleName),

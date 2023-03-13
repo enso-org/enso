@@ -99,7 +99,7 @@ pub struct Completion {
     pub current_version: SuggestionsDatabaseVersion,
 }
 
-/// Response of `completion` method.
+/// Response of `ai/completion` method.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]

@@ -423,10 +423,8 @@ impl Searcher {
         spawn_stream_handler(weak_model, notifications, move |notification, _| {
             match notification {
                 Notification::NewActionList => action_list_changed.emit(()),
-                Notification::AISuggestionUpdated(expr) => {
-                    error!("updating node expression to {}", expr);
-                    graph.set_node_expression((id, node_view::Expression::new_plain(expr)))
-                }
+                Notification::AISuggestionUpdated(expr) =>
+                    graph.set_node_expression((id, node_view::Expression::new_plain(expr))),
             };
             std::future::ready(())
         });

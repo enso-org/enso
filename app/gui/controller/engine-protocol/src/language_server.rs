@@ -199,7 +199,7 @@ trait API {
     #[MethodInput=VcsStatusInput, rpc_name="vcs/status"]
     fn vcs_status(&self, root: Path) -> response::VcsStatus;
 
-    /// Returns the diff between the current state of the project and the specified commit.
+    /// An OpenAI-powered completion to the given prompt, with the given stop sequence.
     #[MethodInput=AiCompletionInput, rpc_name="ai/completion"]
     fn ai_completion(&self, prompt: String, stop_sequence: String) -> response::AiCompletion;
 }}

@@ -492,6 +492,7 @@ pub trait API: Debug {
         futures::future::join_all(detach_actions).boxed_local()
     }
 
+    /// Get an AI completion for the given `prompt`, with specified `stop` sequence.
     fn get_ai_completion<'a>(
         &'a self,
         prompt: &str,
