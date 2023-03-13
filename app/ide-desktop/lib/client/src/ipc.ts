@@ -1,8 +1,6 @@
 /** @file Inter-Process communication configuration of the application. IPC allows the web-view
  * content to exchange information with the Electron application. */
 
-
-
 // ===============
 // === Channel ===
 // ===============

@@ -39,7 +39,7 @@ type Model
     ln_series xs series_name="Values" =
         ln_with_panic x = if x.is_nothing then Nothing else
             if x <= 0 then Panic.throw (Illegal_Argument.Error (series_name + " must be positive.")) else x.ln
-        Panic.recover Illegal_Argument.Error <| xs.map ln_with_panic
+        Panic.recover Illegal_Argument <| xs.map ln_with_panic
 
 ## Use Least Squares to fit a line to the data.
 fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument | Fit_Error

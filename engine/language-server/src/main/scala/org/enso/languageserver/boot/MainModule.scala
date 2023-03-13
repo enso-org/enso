@@ -42,7 +42,7 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
-import org.enso.logger.masking.Masking
+import org.enso.logger.masking.{MaskedPath, Masking}
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -102,7 +102,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       None,
       Some(serverConfig.computeExecutionContext)
     )
-  log.trace(s"Created ActorSystem $system.")
+  log.trace("Created ActorSystem [{}].", system)
 
   private val zioRuntime =
     effect.Runtime.fromExecutionContext(system.dispatcher)
@@ -165,7 +165,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
             monitor
           case Failure(exception) =>
             log.error(
-              s"Failed to create runtime events monitor for $path ($exception)."
+              "Failed to create runtime events monitor for [{}].",
+              MaskedPath(path),
+              exception
             )
             new NoopEventsMonitor
         }
@@ -173,7 +175,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         new NoopEventsMonitor
     }
   log.trace(
-    s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
+    "Started runtime events monitor [{}].",
+    runtimeEventsMonitor.getClass.getName
   )
 
   lazy val runtimeConnector =

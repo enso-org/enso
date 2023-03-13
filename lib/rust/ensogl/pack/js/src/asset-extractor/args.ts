@@ -52,9 +52,7 @@ interface ParseArgsOptionConfig {
 export class Args {
     [key: string]: Option<string | boolean>
     help = new Option('Print help message.', false)
-    outDir = new Option<string>(
-        'The directory the extracted non-optimized shaders will be written to.'
-    )
+    outDir = new Option<string>('The directory the extracted asset sources will be written to.')
 }
 
 export class ArgParser {

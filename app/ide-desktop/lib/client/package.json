@@ -24,6 +24,7 @@
     "electron-is-dev": "^2.0.0",
     "enso-gui-server": "^1.0.0",
     "mime-types": "^2.1.35",
+    "opener": "^1.5.2",
     "string-length": "^5.0.1",
     "yargs": "17.6.2"
   },

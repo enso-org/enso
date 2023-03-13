@@ -165,7 +165,7 @@ spec =
             formatter = Data_Formatter.Value true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
             formatter.format True . should_equal "YES"
             formatter.format False . should_equal "NO"
-            (Data_Formatter.Value true_values=[] false_values=[]).format True . should_fail_with Illegal_Argument.Error
+            (Data_Formatter.Value true_values=[] false_values=[]).format True . should_fail_with Illegal_Argument
 
         Test.specify "should format dates" <|
             formatter = Data_Formatter.Value
@@ -198,8 +198,8 @@ spec =
 
         Test.specify "should correctly pass through errors from custom type's `.to_text` method" pending="TODO: figure out the desired behavior, see: https://www.pivotaltracker.com/story/show/182522644" <|
             formatter = Data_Formatter.Value
-            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State.Error
-            Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State.Error
+            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State
+            Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State
 
     Test.group "DataFormatter builders" <|
         # We create a formatter with all non-default values to ensure that the builders keep the existing values of other properties instead of switching to the constructor's defaults.

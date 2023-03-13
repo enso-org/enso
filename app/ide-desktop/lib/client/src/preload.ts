@@ -6,8 +6,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 import * as ipc from 'ipc'
 
-
-
 // =================
 // === Constants ===
 // =================
@@ -15,8 +13,6 @@ import * as ipc from 'ipc'
 /** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
  * window. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
-
-
 
 // ======================
 // === Profiling APIs ===
@@ -62,8 +58,6 @@ contextBridge.exposeInMainWorld('enso_console', {
     // Print an error message with `console.error`.
     error: (data: any) => ipcRenderer.send('error', data),
 })
-
-
 
 // ==========================
 // === Authentication API ===

@@ -17,6 +17,7 @@ class ContentRootManagerWrapper(
   config: Config,
   contentRootManagerActor: ActorRef
 ) extends ContentRootManager {
+
   implicit private val timeout: Timeout = Timeout(
     2 * config.executionContext.requestTimeout
   )

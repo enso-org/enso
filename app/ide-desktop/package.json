@@ -34,7 +34,7 @@
     "patch-package": "^6.4.7"
   },
   "scripts": {
-    "dev": "PORT=8081 npm exec --workspace enso-studio-dashboard -- react-scripts start",
+    "dev": "PORT=8081 npm exec --workspace enso-studio-dashboard -- craco start",
     "watch": "npm run watch --workspace enso-studio-content",
     "postinstall": "patch-package"
   }
