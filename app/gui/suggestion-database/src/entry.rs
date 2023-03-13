@@ -15,7 +15,6 @@ use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
-use enso_doc_parser::DocParser;
 use enso_doc_parser::DocSection;
 use enso_text::Location;
 use language_server::types::FieldAction;
@@ -584,7 +583,6 @@ impl Entry {
     /// Create entry from the structure deserialized from the Language Server responses.
     pub fn from_ls_entry(
         mut entry: language_server::types::SuggestionEntry,
-        doc_parser: &mut DocParser,
     ) -> Self {
         use language_server::types::SuggestionEntry::*;
 
@@ -607,7 +605,7 @@ impl Entry {
             | Function { documentation, .. }
             | Local { documentation, .. } => {
                 let docs = documentation.as_ref().map(|s| s.as_ref()).unwrap_or_default();
-                let documentation_sections = doc_parser.parse(docs);
+                let documentation_sections = enso_doc_parser::parse(docs);
                 let icon_name = find_icon_name_in_doc_sections(&documentation_sections);
                 (icon_name, documentation_sections)
             }
@@ -659,14 +657,13 @@ impl Entry {
     pub fn apply_modifications(
         &mut self,
         modification: SuggestionsDatabaseModification,
-        doc_parser: &mut DocParser,
     ) -> Vec<failure::Error> {
         let m = modification;
         let module = m.module.map(|f| f.try_map(QualifiedName::from_text)).transpose();
         let return_type = m.return_type.map(|f| f.try_map(QualifiedName::from_text)).transpose();
         let self_type = m.self_type.map(|f| f.try_map(QualifiedName::from_text)).transpose();
         let reexport = m.reexport.map(|f| f.try_map(QualifiedName::from_text)).transpose();
-        let docs = m.documentation.map(|docs| docs.map(|docs| doc_parser.parse(&docs)));
+        let docs = m.documentation.map(|docs| docs.map(|docs| enso_doc_parser::parse(&docs)));
         let update_results = [
             return_type
                 .and_then(|m| Entry::apply_field_update("return_type", &mut self.return_type, m)),
@@ -1140,8 +1137,7 @@ mod test {
             &mut self,
             modification: SuggestionsDatabaseModification,
         ) -> Vec<failure::Error> {
-            let mut doc_parser = DocParser::new();
-            let result = self.modified_entry.apply_modifications(modification, &mut doc_parser);
+            let result = self.modified_entry.apply_modifications(modification);
             assert_eq!(self.modified_entry, self.expected_entry);
             result
         }
@@ -1173,7 +1169,7 @@ mod test {
         test.expected_entry.self_type = Some("local.Project.NewModule.NewType".try_into().unwrap());
         test.expected_entry.return_type =
             "local.Project.NewModule.NewReturnType".try_into().unwrap();
-        test.expected_entry.documentation = DocParser::new().parse(new_documentation);
+        test.expected_entry.documentation = enso_doc_parser::parse(new_documentation);
         test.expected_entry.reexported_in = Some("local.Project.NewReexport".try_into().unwrap());
         let result = test.check_modification(modification);
         assert!(result.is_empty());

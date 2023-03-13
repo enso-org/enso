@@ -4,6 +4,22 @@ use crate::*;
 
 
 
+// ==============================
+// === High-level Parsing API ===
+// ==============================
+
+/// Parse the given documentation text to a collection of [`DocSection`]s.
+pub fn parse(docs: &str) -> Vec<DocSection> {
+    // Although this is semantically a pure function, for efficiency we use one persistent parser
+    // to reuse its buffers.
+    thread_local! {
+        static PARSER: RefCell<DocParser> = Default::default();
+    }
+    PARSER.with_borrow_mut(|parser| parser.parse(docs))
+}
+
+
+
 // ============================
 // === Documentation Parser ===
 // ============================

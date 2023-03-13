@@ -5,6 +5,7 @@
 #![feature(assert_matches)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
+#![feature(local_key_cell_methods)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -27,8 +28,8 @@ use enso_prelude::*;
 
 pub mod doc_sections;
 
-pub use doc_sections::DocParser;
 pub use doc_sections::DocSection;
+pub use doc_sections::parse;
 
 pub(crate) use enso_profiler as profiler;
 pub(crate) use enso_profiler::profile;

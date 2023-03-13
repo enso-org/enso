@@ -326,7 +326,6 @@ pub struct SuggestionDatabase {
     examples:                 RefCell<Vec<Rc<Example>>>,
     version:                  Cell<SuggestionsDatabaseVersion>,
     notifications:            notification::Publisher<Notification>,
-    doc_parser:               RefCell<enso_doc_parser::DocParser>,
 }
 
 impl SuggestionDatabase {
@@ -362,10 +361,9 @@ impl SuggestionDatabase {
         let mut qualified_name_to_id_map = QualifiedNameToIdMap::default();
         let mut method_pointer_to_id_map = MethodPointerToIdMap::default();
         let mut hierarchy_index = HierarchyIndex::default();
-        let mut doc_parser = enso_doc_parser::DocParser::new();
         for ls_entry in response.entries {
             let id = ls_entry.id;
-            let entry = Entry::from_ls_entry(ls_entry.suggestion, &mut doc_parser);
+            let entry = Entry::from_ls_entry(ls_entry.suggestion);
             qualified_name_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
             method_pointer_to_id_map.set(&entry, id);
             entries.insert(id, Rc::new(entry));
@@ -384,7 +382,6 @@ impl SuggestionDatabase {
             examples:                 RefCell::new(examples),
             version:                  Cell::new(response.current_version),
             notifications:            default(),
-            doc_parser:               RefCell::new(doc_parser),
         }
     }
 
@@ -425,8 +422,7 @@ impl SuggestionDatabase {
             let mut hierarchy_index = self.hierarchy_index.borrow_mut();
             match update {
                 entry::Update::Add { id, suggestion } => {
-                    let mut doc_parser = self.doc_parser.borrow_mut();
-                    let entry = Entry::from_ls_entry(*suggestion, &mut doc_parser);
+                    let entry = Entry::from_ls_entry(*suggestion);
                     qn_to_id_map.set_and_warn_if_existed(&Entry::qualified_name(&entry), id);
                     mp_to_id_map.set(&entry, id);
                     hierarchy_index.add(id, &entry, &qn_to_id_map);
@@ -456,8 +452,7 @@ impl SuggestionDatabase {
                         qn_to_id_map.remove_and_warn_if_did_not_exist(&entry.qualified_name());
                         mp_to_id_map.remove(&*entry);
                         hierarchy_index.remove_from_parent(id);
-                        let mut doc_parser = self.doc_parser.borrow_mut();
-                        let errors = entry.apply_modifications(*modification, &mut doc_parser);
+                        let errors = entry.apply_modifications(*modification);
                         hierarchy_index.add(id, entry, &qn_to_id_map);
                         qn_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
                         mp_to_id_map.set(&*entry, id);

@@ -105,8 +105,7 @@ impl Snippet {
     /// Returns a modified suggestion with [`Snippet::documentation_html`] field set. This method
     /// is only intended to be used when defining hardcoded suggestions.
     fn with_documentation(mut self, documentation: &str) -> Self {
-        let mut doc_parser = enso_doc_parser::DocParser::new();
-        self.documentation = Some(doc_parser.parse(documentation));
+        self.documentation = Some(enso_doc_parser::parse(documentation));
         self
     }
 }
