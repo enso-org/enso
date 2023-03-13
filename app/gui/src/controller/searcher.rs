@@ -732,6 +732,7 @@ impl Searcher {
     const AI_QUERY_PREFIX: &'static str = "AI:";
     const AI_QUERY_ACCEPT_TOKEN: &'static str = "#";
     const AI_STOP_SEQUENCE: &'static str = "`";
+    const AI_GOAL_PLACEHOLDER: &'static str = "__$$GOAL$$__";
 
     async fn accept_ai_query(
         query: String,
@@ -744,14 +745,13 @@ impl Searcher {
             "Standard.Visualization.AI",
             "build_ai_prompt",
         )?;
-        let goal_arg = format!("\"{}\"", query);
-        let stop_arg = format!("\"{}\"", Self::AI_STOP_SEQUENCE);
-        let vis = Visualization::new(this.id, vis_ptr, vec![goal_arg, stop_arg]);
+        let vis = Visualization::new(this.id, vis_ptr, vec![]);
         let mut result = graph.attach_visualization(vis.clone()).await?;
         let next = result.next().await.ok_or(NoAIVisualizationDataReceived)?;
         let prompt = std::str::from_utf8(&next)?;
+        let prompt_with_goal = prompt.replace(Self::AI_GOAL_PLACEHOLDER, &query);
         graph.detach_visualization(vis.id).await?;
-        let completion = graph.get_ai_completion(&prompt, Self::AI_STOP_SEQUENCE).await?;
+        let completion = graph.get_ai_completion(&prompt_with_goal, Self::AI_STOP_SEQUENCE).await?;
         notifier.publish(Notification::AISuggestionUpdated(completion)).await;
         Ok(())
     }

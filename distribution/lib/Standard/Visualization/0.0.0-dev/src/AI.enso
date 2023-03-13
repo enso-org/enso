@@ -1,7 +1,9 @@
 from Standard.Base import all
 import Standard.Table.Data.Table.Table
 
-Table.build_ai_prompt self goal stop =
+goal_placeholder = "__$$GOAL$$__"
+
+Table.build_ai_prompt self =
     ops = ["aggregate","filter_by_expression","order_by","row_count","set","select_columns","transpose","join"]
     aggs = ["Count","Average","Sum","Median","First","Last","Maximum","Minimum"]
     joins = ["Inner","Left_Outer","Right_Outer","Full","Left_Exclusive","Right_Exclusive"]
@@ -21,9 +23,9 @@ Table.build_ai_prompt self goal stop =
     joins_prompt = "Available join kinds are: " + (joins . join ",")
     base_prompt = ops_prompt + '\n' + aggs_prompt + '\n' + joins_prompt + '\n' + examples
     columns = self.column_names . map .to_text . join "," "Table[" "];"
-    goal_line = "goal=" + goal + "==>>`"
+    goal_line = "goal=" + goal_placeholder + "==>>`"
     base_prompt + '\n' + columns + goal_line
 
-Any.build_ai_prompt self goal stop = stop + stop + stop + stop + stop
+Any.build_ai_prompt self = "````"
 
-build_ai_prompt subject goal stop = subject.build_ai_prompt goal stop
+build_ai_prompt subject = subject.build_ai_prompt

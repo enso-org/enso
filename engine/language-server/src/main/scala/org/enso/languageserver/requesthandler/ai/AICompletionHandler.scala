@@ -92,7 +92,7 @@ class AICompletionHandler(cfg: AICompletionConfig)
   }
 }
 
-class UnsupportedHandler extends Actor {
+class UnsupportedHandler extends Actor with LazyLogging with UnhandledLogging {
   override def receive: Receive = { case Request(AICompletion, id, _) =>
     sender() ! ResponseError(
       Some(id),
