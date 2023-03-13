@@ -2,12 +2,17 @@
  * the user with a visual representation of this process (welcome screen). It also implements a view
  * allowing to choose a debug rendering test from. */
 
-import globalConfig from '../../../../gui/config.yaml'
-import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
+import * as contentConfig from 'enso-content-config'
 import * as semver from 'semver'
-import { Version, options } from 'enso-content-config'
 
-const logger = app.log.logger
+import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
+import globalConfig from '../../../../gui/config.yaml'
+
+// === Constants ===
+const LOGGER = app.log.logger
+
+/** One second in milliseconds. */
+const SECOND = 1000
 
 // =============
 // === Fetch ===
@@ -15,7 +20,7 @@ const logger = app.log.logger
 
 const timeout = (time: number) => {
     const controller = new AbortController()
-    setTimeout(() => controller.abort(), time * 1000)
+    setTimeout(() => { controller.abort(); }, time * SECOND)
     return controller
 }
 
@@ -37,26 +42,26 @@ async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknow
  * and compares it with the version of the `client` js package. When the function is unable to
  * download the application config, or one of the compared versions does not match the semver
  * scheme, it returns `true`. */
-async function checkMinSupportedVersion(config: typeof options) {
+async function checkMinSupportedVersion(config: typeof contentConfig.OPTIONS) {
     if (config.groups.engine.options.skipMinVersionCheck.value) {
         return true
     }
     try {
         const appConfig = await fetchTimeout(config.groups.engine.options.configUrl.value, 300)
         if (
-            appConfig != null &&
+            appConfig !== null &&
             typeof appConfig === 'object' &&
             'minimumSupportedVersion' in appConfig
         ) {
             const minSupportedVersion = appConfig.minimumSupportedVersion
             if (typeof minSupportedVersion === 'string') {
                 const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
-                return comparator.test(Version.ide)
+                return comparator.test(contentConfig.Version.ide)
             } else {
-                logger.error('The minimum supported version is not a string.')
+                LOGGER.error('The minimum supported version is not a string.')
             }
         } else {
-            logger.error('The application config is not an object.')
+            LOGGER.error('The application config is not an object.')
         }
     } catch (e) {
         console.error('Minimum version check failed.', e)
@@ -76,7 +81,7 @@ function displayDeprecatedVersionDialog() {
     versionCheckDiv.className = 'auth-info'
     versionCheckDiv.style.display = 'block'
     versionCheckDiv.appendChild(versionCheckText)
-    if (root == null) {
+    if (root === null) {
         console.error('Cannot find the root DOM element.')
     } else {
         root.appendChild(versionCheckDiv)
@@ -88,7 +93,7 @@ function displayDeprecatedVersionDialog() {
 // ========================
 
 interface StringConfig {
-    [key: string]: string | StringConfig
+    [key: string]: StringConfig | string
 }
 
 class Main {
@@ -106,7 +111,7 @@ class Main {
 
         const appInstance = new app.App({
             config,
-            configOptions: options,
+            configOptions: contentConfig.OPTIONS,
             packageInfo: {
                 version: BUILD_INFO.default.version,
                 engineVersion: BUILD_INFO.default.engineVersion,
@@ -114,16 +119,16 @@ class Main {
         })
 
         if (appInstance.initialized) {
-            if (options.options.dataCollection.value) {
+            if (contentConfig.OPTIONS.options.dataCollection.value) {
                 // TODO: Add remote-logging here.
             }
-            if (!(await checkMinSupportedVersion(options))) {
+            if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    options.options.authentication.value &&
-                    options.groups.startup.options.entry.value !=
-                        options.groups.startup.options.entry.default
+                    contentConfig.OPTIONS.options.authentication.value &&
+                    contentConfig.OPTIONS.groups.startup.options.entry.value !==
+                        contentConfig.OPTIONS.groups.startup.options.entry.default
                 ) {
                     // TODO: authentication here
                     // appInstance.config.email.value = user.email
@@ -131,9 +136,9 @@ class Main {
                 } else {
                     void appInstance.run()
                 }
-                const email = options.groups.authentication.options.email.value as string | null
-                if (email != null) {
-                    logger.log(`User identified as '${email}'.`)
+                const email = contentConfig.OPTIONS.groups.authentication.options.email.value
+                if (email !== null) {
+                    LOGGER.log(`User identified as '${email}'.`)
                 }
             }
         } else {
@@ -144,6 +149,6 @@ class Main {
 
 const API = new Main()
 
-// @ts-expect-error
+// @ts-expect-error `globalConfig.windowAppScopeName` is not known at typecheck time.
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 window[globalConfig.windowAppScopeName] = API

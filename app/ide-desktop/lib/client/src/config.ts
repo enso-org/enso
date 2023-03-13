@@ -1,17 +1,20 @@
 /** @file Configuration of the application. It extends the web application configuration with
  * Electron-specific options. */
 
-import chalk from 'chalk'
 import * as content from 'enso-content-config'
 import * as naming from 'naming'
 import * as paths from 'paths'
+import chalk from 'chalk'
 
 // =================
 // === Constants ===
 // =================
 
-export const helpExtendedName = 'helpExtended'
-export const helpExtendedOptionName = naming.camelToKebabCase(helpExtendedName)
+export const HELP_EXTENDED_NAME = 'helpExtended'
+export const HELP_EXTENDED_OPTION_NAME = naming.camelToKebabCase(HELP_EXTENDED_NAME)
+const DEFAULT_WIDTH = 1380
+const DEFAULT_HEIGHT = 900
+const DEFAULT_PORT = 8080
 
 // ==================
 // === WindowSize ===
@@ -20,11 +23,12 @@ export const helpExtendedOptionName = naming.camelToKebabCase(helpExtendedName)
 /** Window size (width and height). */
 export class WindowSize {
     static separator = 'x'
+    /** Constructs a new {@link WindowSize}. */
     constructor(public width: number, public height: number) {}
 
     /** Constructor of the default window size. */
     static default(): WindowSize {
-        return new WindowSize(1380, 900)
+        return new WindowSize(DEFAULT_WIDTH, DEFAULT_HEIGHT)
     }
 
     /** Parses the input text in form of `<width>x<height>`. */
@@ -51,7 +55,7 @@ export class WindowSize {
 // === Config ===
 // ==============
 
-export const config = content.options.merge(
+export const CONFIG = content.options.merge(
     new content.Group({
         options: {
             window: new content.Option({
@@ -78,9 +82,9 @@ export const config = content.options.merge(
                 value: false,
                 description:
                     `Display the common configuration options help page. Use ` +
-                    `'${helpExtendedOptionName}' to see all options.`,
+                    `'${HELP_EXTENDED_OPTION_NAME}' to see all options.`,
             }),
-            [helpExtendedName]: new content.Option({
+            [HELP_EXTENDED_NAME]: new content.Option({
                 passToWebApplication: false,
                 value: false,
                 description:
@@ -126,7 +130,7 @@ export const config = content.options.merge(
                 options: {
                     port: new content.Option({
                         passToWebApplication: false,
-                        value: 8080,
+                        value: DEFAULT_PORT,
                         description:
                             `Port to use. If the port is unavailable, the next available port is ` +
                             `used.`,
@@ -268,7 +272,7 @@ export const config = content.options.merge(
                 options: {
                     projectManagerPath: new content.Option({
                         passToWebApplication: false,
-                        value: paths.projectManager,
+                        value: paths.PROJECT_MANAGER_PATH,
                         description:
                             'Set the path of a local project manager executable to use for ' +
                             'running projects.',
@@ -530,6 +534,7 @@ export const config = content.options.merge(
                     }),
                     // Please note that this option uses the snake-case naming convention because
                     // Chrome defines it so.
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     force_high_performance_gpu: new content.Option({
                         passToWebApplication: false,
                         primary: false,
@@ -539,6 +544,7 @@ export const config = content.options.merge(
                     }),
                     // Please note that this option uses the snake-case naming convention because
                     // Chrome defines it so.
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     force_low_power_gpu: new content.Option({
                         passToWebApplication: false,
                         primary: false,
@@ -575,9 +581,9 @@ export const config = content.options.merge(
         },
     })
 )
-config.groups.startup.options.platform.value = process.platform
+CONFIG.groups.startup.options.platform.value = process.platform
 
-config.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
+CONFIG.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
 
-export type Args = typeof config
+export type Args = typeof CONFIG
 export type Option<T> = content.Option<T>

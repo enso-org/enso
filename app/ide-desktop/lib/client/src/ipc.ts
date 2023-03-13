@@ -6,7 +6,7 @@
 // ===============
 
 /** Channel names used by the IPC protocol. */
-export const channel = {
+export const CHANNEL = {
     error: 'error',
     loadProfiles: 'load-profiles',
     profilesLoaded: 'profiles-loaded',
@@ -18,4 +18,4 @@ export const channel = {
     setDeepLinkHandler: 'set-deep-link-handler',
     /** Channel for signaling that a deep link to this application was opened. */
     openDeepLink: 'open-deep-link',
-}
+} as const

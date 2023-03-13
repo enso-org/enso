@@ -6,19 +6,19 @@
  * - The default configuration of the build process. */
 /** @module */
 
-import path from 'node:path'
-import child_process from 'node:child_process'
-import fs from 'node:fs/promises'
-import { CliOptions, Configuration, LinuxTargetSpecificOptions, Platform } from 'electron-builder'
-import builder from 'electron-builder'
-import { notarize } from 'electron-notarize'
-import signArchivesMacOs from './tasks/signArchivesMacOs.js'
+import * as childProcess from 'node:child_process'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
 
-import { project_manager_bundle } from './paths.js'
+import * as electronBuilder from 'electron-builder'
+import * as electronNotarize from 'electron-notarize'
+import * as macOptions from 'app-builder-lib/out/options/macOptions'
+import * as yargs from 'yargs'
+
+import * as paths from './paths.js'
 import * as shared from './shared.js'
 import build from '../../build.json' assert { type: 'json' }
-import yargs from 'yargs'
-import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
+import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 
 /** The parts of the electron-builder configuration that we want to keep configurable.
  *
@@ -30,7 +30,7 @@ export interface Arguments {
     guiDist: string
     ideDist: string
     projectManagerDist: string
-    platform: Platform
+    platform: electronBuilder.Platform
 }
 
 /** CLI argument parser (with support for environment variables) that provides the necessary options. */
@@ -65,8 +65,8 @@ export const args: Arguments = await yargs(process.argv.slice(2))
         platform: {
             type: 'string',
             description: 'Platform that Electron Builder should target',
-            default: Platform.current().toString(),
-            coerce: (p: string) => Platform.fromString(p),
+            default: electronBuilder.Platform.current().toString(),
+            coerce: (p: string) => electronBuilder.Platform.fromString(p),
         },
         target: {
             type: 'string',
@@ -75,7 +75,7 @@ export const args: Arguments = await yargs(process.argv.slice(2))
     }).argv
 
 /** Based on the given arguments, creates a configuration for the Electron Builder. */
-export function createElectronBuilderConfig(args: Arguments): Configuration {
+export function createElectronBuilderConfig(args: Arguments): electronBuilder.Configuration {
     return {
         appId: 'org.enso',
         productName: shared.PRODUCT_NAME,
@@ -84,7 +84,7 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
         },
         copyright: 'Copyright © 2022 ${author}.',
         artifactName: 'enso-${os}-${version}.${ext}',
-        /** Definitions of URL {@link builder.Protocol} schemes used by the IDE.
+        /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *
          * Electron will register all URL protocol schemes defined here with the OS. Once a URL protocol
          * scheme is registered with the OS, any links using that scheme will function as "deep links".
@@ -108,7 +108,7 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
         ],
         mac: {
             // We do not use compression as the build time is huge and file size saving is almost zero.
-            target: (args.target as MacOsTargetName) ?? 'dmg',
+            target: (args.target as macOptions.MacOsTargetName) ?? 'dmg',
             icon: `${args.iconsDist}/icon.icns`,
             category: 'public.app-category.developer-tools',
             darkModeSupport: true,
@@ -143,7 +143,7 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
         extraResources: [
             {
                 from: `${args.projectManagerDist}/`,
-                to: project_manager_bundle,
+                to: paths.PROJECT_MANAGER_BUNDLE,
                 filter: ['!**.tar.gz', '!**.zip'],
             },
         ],
@@ -186,16 +186,16 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
         afterAllArtifactBuild: path.join('tasks', 'computeHashes.cjs'),
 
         afterPack: ctx => {
-            if (args.platform === Platform.MAC) {
+            if (args.platform === electronBuilder.Platform.MAC) {
                 // Make the subtree writable, so we can sign the binaries.
                 // This is needed because GraalVM distribution comes with read-only binaries.
-                child_process.execFileSync('chmod', ['-R', 'u+w', ctx.appOutDir])
+                childProcess.execFileSync('chmod', ['-R', 'u+w', ctx.appOutDir])
             }
         },
 
         afterSign: async context => {
             // Notarization for macOS.
-            if (args.platform === Platform.MAC && process.env['CSC_LINK']) {
+            if (args.platform === electronBuilder.Platform.MAC && process.env.CSC_LINK) {
                 const { packager, appOutDir } = context
                 const appName = packager.appInfo.productFilename
 
@@ -204,18 +204,15 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
                 await signArchivesMacOs({
                     appOutDir: appOutDir,
                     productFilename: appName,
-                    // @ts-ignore
-                    entitlements: context.packager.config.mac.entitlements,
+                    entitlements: context.packager.config.mac!.entitlements!,
                     identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
                 })
 
                 console.log('  • Notarizing.')
-                await notarize({
+                await electronNotarize.notarize({
                     appBundleId: packager.platformSpecificBuildOptions.appId,
                     appPath: `${appOutDir}/${appName}.app`,
-                    // @ts-ignore
                     appleId: process.env.APPLEID,
-                    // @ts-ignore
                     appleIdPassword: process.env.APPLEIDPASS,
                 })
             }
@@ -235,11 +232,11 @@ export async function buildPackage(args: Arguments) {
     // because of that.
     await fs.mkdir('node_modules', { recursive: true })
 
-    const cli_opts: CliOptions = {
+    const cli_opts: electronBuilder.CliOptions = {
         config: createElectronBuilderConfig(args),
         targets: args.platform.createTarget(),
     }
     console.log('Building with configuration:', cli_opts)
-    const result = await builder.build(cli_opts)
+    const result = await electronBuilder.build(cli_opts)
     console.log('Electron Builder is done. Result:', result)
 }

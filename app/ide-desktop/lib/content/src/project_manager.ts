@@ -5,10 +5,8 @@ const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 const MISSING_COMPONENT_ACTION_INSTALL = 'Install'
 
 /** A WebSocket endpoint to the project manager. */
-class ProjectManager {
-    protected readonly connectionUrl: string
-
-    constructor(connectionUrl: string) {
+export class ProjectManager {
+    constructor(protected readonly connectionUrl: string) {
         this.connectionUrl = connectionUrl
     }
 
@@ -17,7 +15,7 @@ class ProjectManager {
     }
 
     /** * Get the projects list. */
-    listProjects(): any {
+    listProjects(): unknown {
         const req = {
             jsonrpc: '2.0',
             id: 0,
@@ -33,14 +31,14 @@ class ProjectManager {
             ws.onmessage = (event: MessageEvent<string>) => {
                 resolve(JSON.parse(event.data))
             }
-            ws.onerror = (error: any) => {
+            ws.onerror = (error: unknown) => {
                 reject(error)
             }
-        }).finally(() => ws.close())
+        }).finally(() => { ws.close(); })
     }
 
     /** * Create a new project. */
-    createProject(name: string, template?: string, action = MISSING_COMPONENT_ACTION_INSTALL): any {
+    createProject(name: string, template?: string, action = MISSING_COMPONENT_ACTION_INSTALL): unknown {
         const params = {
             name: name,
             missingComponentAction: action,
@@ -68,8 +66,6 @@ class ProjectManager {
             ws.onerror = error => {
                 reject(error)
             }
-        }).finally(() => ws.close())
+        }).finally(() => { ws.close(); })
     }
 }
-
-export { ProjectManager }

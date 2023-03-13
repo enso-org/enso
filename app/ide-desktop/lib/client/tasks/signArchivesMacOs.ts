@@ -10,10 +10,11 @@
  * supported by electron-osx-sign as it adds a java toolchain as additional dependency.
  * This script should be removed once the engine is signed. */
 
+import child_process from 'node:child_process'
 import fs from 'node:fs/promises'
 import os from 'node:os'
-import path from 'node:path'
-import child_process from 'node:child_process'
+import pathModule from 'node:path'
+
 import glob from 'fast-glob'
 
 // ===============================================
@@ -67,7 +68,7 @@ async function graalSignables(resourcesDir: string): Promise<Signable[]> {
 
     // We use `*` for Graal versioned directory to not have to update this script on every GraalVM update.
     // Updates might still be needed when the list of binaries to sign changes.
-    const graalDir = path.join(resourcesDir, 'enso', 'runtime', '*')
+    const graalDir = pathModule.join(resourcesDir, 'enso', 'runtime', '*')
     const archives = await ArchiveToSign.lookupMany(graalDir, archivePatterns)
     const binaries = await BinaryToSign.lookupMany(graalDir, binariesPatterns)
     return [...archives, ...binaries]
@@ -117,11 +118,11 @@ interface SigningContext {
 /** An entity that we want to sign. */
 interface Signable {
     /** Sign this entity. */
-    sign(context: SigningContext): Promise<void>
+    sign: (context: SigningContext) => Promise<void>
 }
 
 /** Placeholder name for temporary archives. */
-const tmpArchive = 'temporary_archive.zip'
+const TEMPORARY_ARCHIVE_PATH = 'temporary_archive.zip'
 
 /** Helper to execute a program in a given directory and return the output. */
 const run = (cmd: string, args: string[], cwd?: string) => {
@@ -134,24 +135,29 @@ const run = (cmd: string, args: string[], cwd?: string) => {
  * Can be either a zip or a jar file.
  */
 class ArchiveToSign implements Signable {
-    /** An absolute path to the archive. */
-    path: string
-
-    /** A list of patterns for files to sign inside the archive.
-     * Relative to the root of the archive. */
-    binaries: glob.Pattern[]
+    /** Looks up for archives to sign using the given path patterns. */
+    static lookupMany = lookupManyHelper(ArchiveToSign.lookup.bind(this))
 
     /** Create a new instance. */
-    constructor(path: string, binaries: glob.Pattern[]) {
-        this.path = path
-        this.binaries = binaries
+    constructor(
+        /** An absolute path to the archive. */
+        public path: string,
+        /** A list of patterns for files to sign inside the archive.
+         * Relative to the root of the archive. */
+        public binaries: glob.Pattern[],
+    ) {}
+
+    /** Looks up for archives to sign using the given path pattern. */
+    static async lookup(base: string, [pattern, binaries]: ArchivePattern) {
+        return lookupHelper(path => new ArchiveToSign(path, binaries))(base, pattern)
     }
+
 
     /** Sign content of an archive. This function extracts the archive, signs the required files,
      * re-packages the archive and replaces the original. */
     async sign(context: SigningContext) {
         console.log(`Signing archive ${this.path}`)
-        const archiveName = path.basename(this.path)
+        const archiveName = pathModule.basename(this.path)
         const workingDir = await getTmpDir()
         try {
             const isJar = archiveName.endsWith(`jar`)
@@ -172,16 +178,16 @@ class ArchiveToSign implements Signable {
 
             if (isJar) {
                 if (archiveName.includes(`runner`)) {
-                    run(`jar`, ['-cfm', tmpArchive, 'META-INF/MANIFEST.MF', '.'], workingDir)
+                    run(`jar`, ['-cfm', TEMPORARY_ARCHIVE_PATH, 'META-INF/MANIFEST.MF', '.'], workingDir)
                 } else {
-                    run(`jar`, ['-cf', tmpArchive, '.'], workingDir)
+                    run(`jar`, ['-cf', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
                 }
             } else {
-                run(`zip`, ['-rm', tmpArchive, '.'], workingDir)
+                run(`zip`, ['-rm', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
             }
 
             // We cannot use fs.rename because temp and target might be on different volumes.
-            console.log(run(`/bin/mv`, [path.join(workingDir, tmpArchive), this.path]))
+            console.log(run(`/bin/mv`, [pathModule.join(workingDir, TEMPORARY_ARCHIVE_PATH), this.path]))
             console.log(
                 `Successfully repacked ${this.path} to handle signing inner native dependency.`
             )
@@ -197,25 +203,21 @@ class ArchiveToSign implements Signable {
             await rmRf(workingDir)
         }
     }
-
-    /** Looks up for archives to sign using the given path pattern. */
-    static async lookup(base: string, [pattern, binaries]: ArchivePattern) {
-        return lookupHelper(path => new ArchiveToSign(path, binaries))(base, pattern)
-    }
-
-    /** Looks up for archives to sign using the given path patterns. */
-    static lookupMany = lookupManyHelper(ArchiveToSign.lookup.bind(this))
 }
 
 /** A single code binary file to be signed. */
 class BinaryToSign implements Signable {
-    /** An absolute path to the binary. */
-    path: string
+    /** Looks up for binaries to sign using the given path pattern. */
+    static lookup = lookupHelper(path => new BinaryToSign(path))
+
+    /** Looks up for binaries to sign using the given path patterns. */
+    static lookupMany = lookupManyHelper(BinaryToSign.lookup)
 
     /** Create a new instance. */
-    constructor(path: string) {
-        this.path = path
-    }
+    constructor(
+        /** An absolute path to the binary. */
+        public path: string
+    ) {}
 
     /** Sign this binary. */
     async sign({ entitlements, identity }: SigningContext) {
@@ -231,12 +233,6 @@ class BinaryToSign implements Signable {
             this.path,
         ])
     }
-
-    /** Looks up for binaries to sign using the given path pattern. */
-    static lookup = lookupHelper(path => new BinaryToSign(path))
-
-    /** Looks up for binaries to sign using the given path patterns. */
-    static lookupMany = lookupManyHelper(BinaryToSign.lookup)
 }
 
 // ==============================
@@ -263,7 +259,7 @@ async function globAbsIn(
     pattern: glob.Pattern,
     options?: glob.Options
 ): Promise<string[]> {
-    return globAbs(path.join(base, pattern), options)
+    return globAbs(pathModule.join(base, pattern), options)
 }
 
 /** Generate a lookup function for a given Signable type. */
@@ -297,7 +293,7 @@ async function rmRf(path: string) {
  * Get a new temporary directory. Caller is responsible for cleaning up the directory.
  */
 async function getTmpDir(prefix?: string) {
-    const ret = await fs.mkdtemp(path.join(os.tmpdir(), prefix ?? 'enso-signing-'))
+    const ret = await fs.mkdtemp(pathModule.join(os.tmpdir(), prefix ?? 'enso-signing-'))
     return ret
 }
 
@@ -315,9 +311,9 @@ interface Input extends SigningContext {
 export default async function (context: Input) {
     console.log('Environment: ', process.env)
     const { appOutDir, productFilename } = context
-    const appDir = path.join(appOutDir, `${productFilename}.app`)
-    const contentsDir = path.join(appDir, 'Contents')
-    const resourcesDir = path.join(contentsDir, 'Resources')
+    const appDir = pathModule.join(appOutDir, `${productFilename}.app`)
+    const contentsDir = pathModule.join(appDir, 'Contents')
+    const resourcesDir = pathModule.join(contentsDir, 'Resources')
 
     // Sign archives.
     console.log('Signing GraalVM elemenets...')
@@ -327,6 +323,6 @@ export default async function (context: Input) {
     for (const signable of await ensoPackageSignables(resourcesDir)) await signable.sign(context)
 
     // Finally re-sign the top-level enso.
-    const topLevelExecutable = new BinaryToSign(path.join(contentsDir, 'MacOS', productFilename))
+    const topLevelExecutable = new BinaryToSign(pathModule.join(contentsDir, 'MacOS', productFilename))
     await topLevelExecutable.sign(context)
 }

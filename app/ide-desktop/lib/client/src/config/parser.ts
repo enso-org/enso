@@ -6,14 +6,14 @@ import * as config from 'config'
 import yargs from 'yargs/yargs'
 import * as naming from 'naming'
 import stringLength from 'string-length'
-import { hideBin } from 'yargs/helpers'
-import { logger } from 'enso-content-config'
+import * as helpers from 'yargs/helpers'
+import * as contentConfig from 'enso-content-config'
 
 // ============
 // === Help ===
 // ============
 
-const usage =
+const USAGE =
     chalk.bold(`\nEnso ${buildCfg.version} command line interface.` + `Usage: enso [options]`) +
     `\n\nBoth single-dash and double-dash prefixes are accepted for all options. For ` +
     `instance, the help message can be displayed by entering either '--help' or '-help'. The ` +
@@ -21,9 +21,15 @@ const usage =
     `the application from a web-browser, the creation of a window can be suppressed by ` +
     `entering either '-window=false' or '-no-window'.`
 
-class Section<T = any> {
+class Section<T> {
     description = ''
     constructor(public entries: (readonly [cmdOption: string, option: config.Option<T>])[] = []) {}
+}
+
+interface PrintHelpConfig {
+    args: config.Args
+    groupsOrdering: string[]
+    helpExtended: boolean
 }
 
 /** Command line help printer. The `groupsOrdering` parameter specifies the order in which the
@@ -37,13 +43,13 @@ class Section<T = any> {
  * 5. Help coloring is not supported, and they do not want to support it:
  * https://github.com/yargs/yargs/issues/251
  */
-function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExtended: boolean }) {
-    console.log(usage)
-    const totalWidth = logger.terminalWidth() ?? 80
+function printHelp(cfg: PrintHelpConfig) {
+    console.log(USAGE)
+    const totalWidth = contentConfig.logger.terminalWidth() ?? 80
     const indentSize = 0
     const optionPrefix = '-'
     const spacing = 2
-    const sections: Record<string, Section> = {}
+    const sections: Record<string, Section<unknown>> = {}
     const topLevelSection = new Section()
     topLevelSection.description =
         'General application switches. For fine-grained control, see the available option groups.'
@@ -129,7 +135,7 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
  * split. */
 function wordWrap(str: string, width: number): string[] {
     if (width <= 0) {
-        logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
+        contentConfig.logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
         return []
     }
     let firstLine = true
@@ -243,8 +249,8 @@ function argvAndChromeOptions(processArgs: string[]): {
 
 /** Parses command line arguments. */
 export function parseArgs() {
-    const args = config.config
-    const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(hideBin(process.argv)))
+    const args = config.CONFIG
+    const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(helpers.hideBin(process.argv)))
     const yargsOptions = args.optionsRecursive().reduce((opts: Record<string, any>, option) => {
         const yargsParam = Object.assign(
             {},
@@ -301,7 +307,7 @@ export function parseArgs() {
     const parsedWindowSize = config.WindowSize.parse(providedWindowSize)
 
     if (parsedWindowSize instanceof Error) {
-        logger.error(`Wrong window size provided: '${providedWindowSize}'.`)
+        contentConfig.logger.error(`Wrong window size provided: '${providedWindowSize}'.`)
     } else {
         windowSize = parsedWindowSize
     }
@@ -333,10 +339,10 @@ export function parseArgs() {
     if (helpRequested) {
         printHelpAndExit()
     } else if (parseError != null) {
-        logger.error(parseError.message)
+        contentConfig.logger.error(parseError.message)
         printHelpAndExit(1)
     } else if (unexpectedArgs != null) {
-        logger.error(`Unexpected arguments found: '${unexpectedArgs}'.`)
+        contentConfig.logger.error(`Unexpected arguments found: '${unexpectedArgs}'.`)
         printHelpAndExit(1)
     }
 
