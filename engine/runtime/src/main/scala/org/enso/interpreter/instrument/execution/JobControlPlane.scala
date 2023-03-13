@@ -18,7 +18,7 @@ trait JobControlPlane {
 
   /** Starts background jobs processing.
     *
-    * @return `true` if the background was started and `false` if they were
+    * @return `true` if the background jobs were started and `false` if they are
     * already running.
     */
   def startBackgroundJobs(): Boolean

@@ -27,9 +27,7 @@ final class AnalyzeModuleJob(module: Module, changeset: Changeset[Rope])
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
-    if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
-      AnalyzeModuleJob.analyzeModule(module, changeset)
-    }
+    AnalyzeModuleJob.analyzeModule(module, changeset)
   }
 
   override def toString: String =
@@ -46,6 +44,15 @@ object AnalyzeModuleJob {
   private val exportsBuilder = new ExportsBuilder
 
   def analyzeModule(
+    module: Module,
+    changeset: Changeset[Rope]
+  )(implicit ctx: RuntimeContext): Unit = {
+    if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
+      doAnalyzeModule(module, changeset)
+    }
+  }
+
+  private def doAnalyzeModule(
     module: Module,
     changeset: Changeset[Rope]
   )(implicit ctx: RuntimeContext): Unit = {
