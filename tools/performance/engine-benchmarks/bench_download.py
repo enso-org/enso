@@ -43,7 +43,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from csv import DictWriter
 from datetime import datetime, timedelta
 from os import path
@@ -559,7 +559,8 @@ if __name__ == '__main__':
     default_since = datetime.now() - timedelta(days=14)
     default_until = datetime.now()
 
-    arg_parser = ArgumentParser("enso_bench")
+    arg_parser = ArgumentParser(description=__doc__,
+                                formatter_class=RawDescriptionHelpFormatter)
     arg_parser.add_argument("-s", "--since", action="store",
                             default=default_since,
                             type=lambda s: datetime.strptime(s, DATE_FORMAT),
