@@ -175,12 +175,13 @@ class LocalLibraryManager(
     manifestPath = libraryRootPath / LibraryManifest.filename
     manifest <- loadManifest(manifestPath).recover { error =>
       logger.error(
-        s"Failed to load the manifest for local library [$libraryName].",
+        "Failed to load the manifest for local library [{}].",
+        libraryName,
         error
       )
       logger.warn(
-        s"Falling back to an empty manifest for [$libraryName] " +
-        s"due to loading errors."
+        "Falling back to an empty manifest for [{}] due to loading errors.",
+        libraryName
       )
 
       LibraryManifest.empty
@@ -205,8 +206,9 @@ class LocalLibraryManager(
       config.componentGroups match {
         case Left(error) =>
           logger.error(
-            s"Failed to parse library [$libraryName] component groups " +
-            s"(reason: ${error.message})."
+            "Failed to parse library [{}] component groups.",
+            libraryName,
+            error
           )
         case _ =>
       }
