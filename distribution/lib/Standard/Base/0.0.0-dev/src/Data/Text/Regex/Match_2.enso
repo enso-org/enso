@@ -1,10 +1,15 @@
 from project.Data.Boolean import Boolean, True, False
 import project.Any.Any
 import project.Data.Numbers.Integer
+import project.Data.Map.Map
+import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Common.Index_Out_Of_Bounds
+import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
 
