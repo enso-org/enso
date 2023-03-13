@@ -1212,15 +1212,6 @@ spec =
             accents.find 'h' . group 0 . should_equal 'h'
             accents.find 'e\u{301}' . group 0 . should_equal 'e\u{301}'
 
-        Test.specify "should handle the Unicode normalization" pending="TODO: Rewrite this to use normalization methods explicitly" <|
-            ## This test passed for the builtin Java regex library, using
-               Pattern.CANON_EQ, but since that option is buggy and rarely use,
-               we won't attempt to recreate it with Truffle regex. Instead,
-               expose normalization methods to allow developers to do it
-               themselves.
-            accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.find accent_1 . group 0 . should_equal "e\u{301}"
-
         Test.specify "should correctly handle regex edge cases in locate" pending="Figure out how to make Regex correctly handle empty patterns." <|
             regex = Regex_Matcher.Value
             "".match "foo" matcher=regex . should_equal Nothing
@@ -1281,7 +1272,7 @@ spec =
             "abcddd".find "ab(c(d+))" . at 0 . should_equal "abcddd"
             "abcddd".find "ab(c(d+))" . at 1 . should_equal "cddd"
             "abcddd".find "ab(c(d+))" . at 2 . should_equal "ddd"
-            "abcddd".find "ab(c(d+))" . at 3 . should_fail_with Index_Out_Of_Bounds.Error
+            "abcddd".find "ab(c(d+))" . at 3 . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should allow access to match groups" <|
             "abcddd".find "ab(c(d+))" . group 0 . should_equal "abcddd"
@@ -1292,18 +1283,18 @@ spec =
             "abcddd".find "ab(?<cee>c(d+))" . group "cee" . should_equal "cddd"
 
         Test.specify "should throw No_Such_Group for an out-of-range group number" <|
-            "abcddd".find "ab(c(d+))" . group 3 . should_fail_with No_Such_Group.Error
-            "abcddd".find "ab(c(d+))" . group 12 . should_fail_with No_Such_Group.Error
-            "abcddd".find "ab(c(d+))" . group (-1) . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(c(d+))" . group 3 . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group 12 . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group (-1) . should_fail_with No_Such_Group
 
         Test.specify "should throw No_Such_Group for an invalid group name" <|
-            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . should_fail_with No_Such_Group
 
         Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
-            "abcddd".find "ab(c(d+))" . group "dee" . should_fail_with No_Such_Group.Error
+            "abcddd".find "ab(c(d+))" . group "dee" . should_fail_with No_Such_Group
 
         Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
-            "abcddd".find "ab(c(((((((" . group 0 . should_fail_with Regex_Syntax_Error.Error
+            "abcddd".find "ab(c(((((((" . group 0 . should_fail_with Regex_Syntax_Error
 
         Test.specify ".group should return Nothing if the group did not participate in the match" <|
             match_c = "abc".find "ab((c)|(d))"
@@ -1340,79 +1331,40 @@ spec =
             "abacadae".find_all "a.*" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 8) "abacadae"]
             "abacadae".find_all "a.+?" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
 
-        Test.specify "should allow regexes in match" <|
-            hello = "Hello World!"
-
-            check_span (hello.find ".o" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 5) "Hello World!")
-            check_span_all (hello.find_all ".o") [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
-
-            check_span ("foobar".find "BAR" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 6) "foobar")
-
-            ## Regex matching does not do case folding
-            "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
-
         Test.specify "should allow access to match groups by number" <|
-            "abcddd".find "ab(c(d+))" . group 0 . text . should_equal "abcddd"
-            "abcddd".find "ab(c(d+))" . group 1 . text . should_equal "cddd"
-            "abcddd".find "ab(c(d+))" . group 2 . text . should_equal "ddd"
+            "abcddd".find "ab(c(d+))" . group 0 . should_equal "abcddd"
+            "abcddd".find "ab(c(d+))" . group 1 . should_equal "cddd"
+            "abcddd".find "ab(c(d+))" . group 2 . should_equal "ddd"
 
         Test.specify "should allow access to match groups by name" <|
-            "abcddd".find "ab(?<cee>c(d+))" . group "cee" . text . should_equal "cddd"
+            "abcddd".find "ab(?<cee>c(d+))" . group "cee" . should_equal "cddd"
 
         Test.specify "should throw No_Such_Group for an out-of-range group number" <|
-            "abcddd".find "ab(c(d+))" . group 3 . text . should_fail_with No_Such_Group
-            "abcddd".find "ab(c(d+))" . group 12 . text . should_fail_with No_Such_Group
-            "abcddd".find "ab(c(d+))" . group (-1) . text . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group 3 . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group 12 . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group (-1) . should_fail_with No_Such_Group
 
         Test.specify "should throw No_Such_Group for an invalid group name" <|
-            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . text . should_fail_with No_Such_Group
+            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . should_fail_with No_Such_Group
 
         Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
-            "abcddd".find "ab(c(d+))" . group "dee" . text . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group "dee" . should_fail_with No_Such_Group
 
         Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
-            "abcddd".find "ab(c(((((((" . group 0 . text . should_fail_with Regex_Syntax_Error
+            "abcddd".find "ab(c(((((((" . group 0 . should_fail_with Regex_Syntax_Error
 
         Test.specify ".group should return Nothing if the group did not participate in the match" <|
             match_c = "abc".find "ab((c)|(d))"
-            match_c.group 1 . text . should_equal "c"
-            match_c.group 2 . text . should_equal "c"
+            match_c.group 1 . should_equal "c"
+            match_c.group 2 . should_equal "c"
             match_c.group 3 . should_equal Nothing
             match_d = "abd".find "ab((c)|(d))"
-            match_d.group 1 . text . should_equal "d"
+            match_d.group 1 . should_equal "d"
             match_d.group 2 . should_equal Nothing
-            match_d.group 3 . text . should_equal "d"
-
-        Test.specify "should handle accents and other multi-point graphemes" <|
-            accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
-
-            # Check spans
-            check_span ((accents).find 'h') (Span.Value (3.up_to 4) accents)
-            check_span ((accents).find 'e\u{301}') (Span.Value (1.up_to 2) accents)
-            check_span_all ((accents).find_all 'h') [Span.Value (3.up_to 4) accents, Span.Value (5.up_to 6) accents]
-            check_span_all ((accents).find_all 'e\u{301}') [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
-
-            # Check contents to make sure the spans' ranges are ok
-            accents.find 'h' . group 0 . text . should_equal 'h'
-            accents.find 'e\u{301}' . group 0 . text . should_equal 'e\u{301}'
+            match_d.group 3 . should_equal "d"
 
         Test.specify "should expand a partial-grapheme match to the whole grapheme" <|
-            'e\u{301}'.find '\u{301}' . group 0 . text . should_equal 'e\u{301}'
-
-        Test.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
-            ## This test passed for the builtin Java regex library, using
-               Pattern.CANON_EQ, but since that option is buggy and rarely use,
-               we won't attempt to recreate it with Truffle regex. Instead,
-               expose normalization methods to allow developers to do it
-               themselves.
-            accents = 'a\u{301}e\u{301}o\u{301}'
-            check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
-
-        Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
-            check_span_all ("abacadae".find_all "a[bc]") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
-            check_span_all ("abacadae".find_all "a.") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
-            check_span_all ("abacadae".find_all "a.*") [Span.Value (0.up_to 8) "abacadae"]
-            check_span_all ("abacadae".find_all "a.+?") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
+            'e\u{301}'.find '\u{301}' . group 0 . should_equal 'e\u{301}'
 
     Test.group "Text.match" <|
         Test.specify "should default to regex" <|
