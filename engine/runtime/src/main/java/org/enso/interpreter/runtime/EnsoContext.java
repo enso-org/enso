@@ -34,9 +34,7 @@ import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionKey;
 
-import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
@@ -44,6 +42,7 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.StreamSupport;
 
 import scala.jdk.javaapi.OptionConverters;
 
@@ -79,9 +78,6 @@ public class EnsoContext {
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
-
-  private final Assumption chromeInspectorNotAttached =
-      Truffle.getRuntime().createAssumption("chromeInspectorNotAttached");
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
   private final IOPermissions rootIOPermissions;
@@ -216,11 +212,6 @@ public class EnsoContext {
    */
   public final Compiler getCompiler() {
     return compiler;
-  }
-
-  /** Returns an {@link Assumption} that Chrome inspector is not attached to this context. */
-  public Assumption getChromeInspectorNotAttached() {
-    return chromeInspectorNotAttached;
   }
 
   /**
@@ -367,7 +358,7 @@ public class EnsoContext {
     if (file == null) {
       return Optional.empty();
     }
-    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
+    return StreamSupport.stream(packageRepository.getLoadedPackagesJava().spliterator(), true)
         .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
         .findFirst();
   }
@@ -446,7 +437,7 @@ public class EnsoContext {
   }
 
   /**
-   * @param name human readable name of the pool
+   * @param name human-readable name of the pool
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
@@ -456,7 +447,7 @@ public class EnsoContext {
 
   /**
    * @param parallel amount of parallelism for the pool
-   * @param name human readable name of the pool
+   * @param name human-readable name of the pool
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */

@@ -18,9 +18,7 @@ import org.enso.languageserver.session.SessionRouter.{
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.SuggestionsRepo
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 /** EventListener listens event stream for the notifications from the runtime
@@ -30,7 +28,6 @@ import scala.concurrent.duration._
   * Expression updates are collected and sent to the user in a batch.
   *
   * @param runtimeFailureMapper mapper for runtime failures
-  * @param repo the suggestions repo
   * @param rpcSession reference to the client
   * @param contextId exectuion context identifier
   * @param sessionRouter the session router
@@ -38,7 +35,6 @@ import scala.concurrent.duration._
   */
 final class ContextEventsListener(
   runtimeFailureMapper: RuntimeFailureMapper,
-  repo: SuggestionsRepo[Future],
   rpcSession: JsonSession,
   contextId: ContextId,
   sessionRouter: ActorRef,
@@ -186,52 +182,21 @@ final class ContextEventsListener(
   private def runExpressionUpdates(
     expressionUpdates: Vector[Api.ExpressionUpdate]
   ): Unit = {
-    def toMethodPointer(call: Api.MethodPointer): (String, String, String) =
-      (call.module, call.definedOnType, call.name)
-
-    val methodPointerToExpression =
-      expressionUpdates.flatMap { update =>
-        update.methodCall.map(call =>
-          toMethodPointer(call) -> update.expressionId
-        )
-      }.toMap
-    val methodPointers = methodPointerToExpression.keys.toSeq
-    repo
-      .getAllMethods(methodPointers)
-      .map { suggestionIds =>
-        val methodPointerToSuggestion =
-          methodPointers
-            .zip(suggestionIds)
-            .collect { case (ptr, Some(suggestionId)) =>
-              ptr -> suggestionId
-            }
-            .toMap
-        val computedExpressions = expressionUpdates.map { update =>
-          ContextRegistryProtocol.ExpressionUpdate(
-            update.expressionId,
-            update.expressionType,
-            update.methodCall.flatMap { call =>
-              val pointer = toMethodPointer(call)
-              methodPointerToSuggestion.get(pointer) match {
-                case suggestionId @ Some(_) => suggestionId
-                case None =>
-                  logger.error("Unable to find suggestion for [{}].", pointer)
-                  None
-              }
-            },
-            update.profilingInfo.map(toProtocolProfilingInfo),
-            update.fromCache,
-            toProtocolPayload(update.payload)
-          )
-        }
-        val payload = ContextRegistryProtocol.ExpressionUpdatesNotification(
-          contextId,
-          computedExpressions
-        )
-        DeliverToJsonController(rpcSession.clientId, payload)
-
-      }
-      .pipeTo(sessionRouter)
+    val computedExpressions = expressionUpdates.map { update =>
+      ContextRegistryProtocol.ExpressionUpdate(
+        update.expressionId,
+        update.expressionType,
+        update.methodCall.map(toProtocolMethodPointer),
+        update.profilingInfo.map(toProtocolProfilingInfo),
+        update.fromCache,
+        toProtocolPayload(update.payload)
+      )
+    }
+    val payload = ContextRegistryProtocol.ExpressionUpdatesNotification(
+      contextId,
+      computedExpressions
+    )
+    sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
   }
 
   /** Convert the runtime expression update payload to the context registry
@@ -282,6 +247,21 @@ final class ContextEventsListener(
       case Api.ProfilingInfo.ExecutionTime(t) =>
         ProfilingInfo.ExecutionTime(t)
     }
+
+  /** Convert the runtime method pointer to the context registry protocol
+    * representation
+    *
+    * @param methodPointer the method pointer
+    * @return the registry protocol representation of the method pointer
+    */
+  private def toProtocolMethodPointer(
+    methodPointer: Api.MethodPointer
+  ): MethodPointer =
+    MethodPointer(
+      methodPointer.module,
+      methodPointer.definedOnType,
+      methodPointer.name
+    )
 }
 
 object ContextEventsListener {
@@ -292,7 +272,6 @@ object ContextEventsListener {
   /** Creates a configuration object used to create a [[ContextEventsListener]].
     *
     * @param runtimeFailureMapper mapper for runtime failures
-    * @param repo the suggestions repo
     * @param rpcSession reference to the client
     * @param contextId exectuion context identifier
     * @param sessionRouter the session router
@@ -300,7 +279,6 @@ object ContextEventsListener {
     */
   def props(
     runtimeFailureMapper: RuntimeFailureMapper,
-    repo: SuggestionsRepo[Future],
     rpcSession: JsonSession,
     contextId: ContextId,
     sessionRouter: ActorRef,
@@ -309,7 +287,6 @@ object ContextEventsListener {
     Props(
       new ContextEventsListener(
         runtimeFailureMapper,
-        repo,
         rpcSession,
         contextId,
         sessionRouter: ActorRef,

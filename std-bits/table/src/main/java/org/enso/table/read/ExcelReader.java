@@ -29,15 +29,37 @@ import java.util.stream.IntStream;
 /** A table reader for MS Excel files. */
 public class ExcelReader {
   /**
+   * Loads a workbook (either XLSX or XLS format from the specified input stream.
+   *
+   * @param stream an {@link InputStream} allowing to read the XLS(X) file contents.
+   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
+   * @return a {@link Workbook} containing the specified data.
+   * @throws IOException - when the input stream cannot be read.
+   */
+  public static Workbook readWorkbook(InputStream stream, boolean xls_format) throws IOException {
+    return getWorkbook(stream, xls_format);
+  }
+
+  /**
    * Reads a list of sheet names for the specified XLSX/XLS file into an array.
    *
-   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param stream an {@link InputStream} allowing to read the XLS(X) file contents.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a String[] containing the sheet names.
    * @throws IOException when the input stream cannot be read.
    */
   public static String[] readSheetNames(InputStream stream, boolean xls_format) throws IOException {
     Workbook workbook = getWorkbook(stream, xls_format);
+    return readSheetNames(workbook);
+  }
+
+  /**
+   * Reads a list of sheet names from a workbook into an array.
+   *
+   * @param workbook a {@link Workbook} to read the sheet names from.
+   * @return a String[] containing the sheet names.
+   */
+  public static String[] readSheetNames(Workbook workbook) {
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
     for (int i = 0; i < sheetCount; i++) {
@@ -55,9 +77,19 @@ public class ExcelReader {
    * @throws IOException when the input stream cannot be read.
    */
   public static String[] readRangeNames(InputStream stream, boolean xls_format) throws IOException {
-    return getWorkbook(stream, xls_format).getAllNames().stream()
-        .map(Name::getNameName)
-        .toArray(String[]::new);
+    Workbook workbook = getWorkbook(stream, xls_format);
+    return readRangeNames(workbook);
+  }
+
+  /**
+   * Reads a list of range names for the specified XLSX/XLS file into an array.
+   *
+   * @param workbook a {@link Workbook} to read the sheet names from.
+   * @return a String[] containing the range names.
+   */
+  public static String[] readRangeNames(Workbook workbook) {
+    var names = workbook.getAllNames();
+    return names.stream().map(Name::getNameName).toArray(String[]::new);
   }
 
   /**
@@ -134,10 +166,12 @@ public class ExcelReader {
   }
 
   /**
-   * Reads a range by name or address for the specified XLSX/XLS file into a table.
+   * Reads a range by sheet name, named range or address for the specified XLSX/XLS file into a
+   * table.
    *
    * @param stream an {@link InputStream} allowing to read the XLSX file contents.
-   * @param rangeNameOrAddress name or address of the range to read.
+   * @param rangeNameOrAddress sheet name, range name or address to read.
+   * @param headers specifies whether the first row should be used as headers.
    * @param skip_rows skip rows from the top of the range.
    * @param row_limit maximum number of rows to read.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
@@ -154,6 +188,37 @@ public class ExcelReader {
       boolean xls_format)
       throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
+    return readRangeByName(workbook, rangeNameOrAddress, headers, skip_rows, row_limit);
+  }
+
+  /**
+   * Reads a range by sheet name, named range or address for the workbook into a table.
+   *
+   * @param workbook a {@link Workbook} to read from.
+   * @param rangeNameOrAddress sheet name, range name or address to read.
+   * @param headers specifies whether the first row should be used as headers.
+   * @param skip_rows skip rows from the top of the range.
+   * @param row_limit maximum number of rows to read.
+   * @return a {@link Table} containing the specified data.
+   * @throws InvalidLocationException when the range name or address is not found.
+   */
+  public static WithProblems<Table> readRangeByName(
+      Workbook workbook,
+      String rangeNameOrAddress,
+      ExcelHeaders.HeaderBehavior headers,
+      int skip_rows,
+      Integer row_limit)
+      throws InvalidLocationException {
+    int sheetIndex = workbook.getSheetIndex(rangeNameOrAddress);
+    if (sheetIndex != -1) {
+      return readTable(
+          workbook,
+          sheetIndex,
+          null,
+          headers,
+          skip_rows,
+          row_limit == null ? Integer.MAX_VALUE : row_limit);
+    }
 
     Name name = workbook.getName(rangeNameOrAddress);
 

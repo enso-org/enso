@@ -1,7 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Arithmetic_Error
+import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
+from Standard.Table import Table, Column, Sort_Column, Aggregate_Column
+from Standard.Table.Errors import Floating_Point_Equality, Additional_Warnings
 import Standard.Table.Data.Expression.Expression_Error
+
+from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -25,15 +30,12 @@ spec detailed setup =
     ## TODO Expressions were not being tested on Database backends before and
        many tests are failing. Disabling the tests until this is fixed, tracked
        by issue: https://www.pivotaltracker.com/story/show/183933832
-    pending_bug = if prefix.contains "In-Memory" then Nothing else "Some of these tests are not working in Database. See: https://www.pivotaltracker.com/story/show/183933832"
+    pending_bug = if prefix.contains "In-Memory" then Nothing else "Date and Time support for In-Database backends is not fully implemented. https://github.com/enso-org/enso/issues/5268"
 
     epsilon=0.0000000001
 
     tester expression value =
-        new_table = test_table.set expression new_name="NEW_COL"
-        new_table.column_count . should_equal (test_table.column_count + 1)
-        new_column = new_table.at -1
-        new_column.name . should_equal "NEW_COL"
+        new_column = test_table.compute expression
         expected = case value of
             _ : Vector -> value
             _ -> Vector.new test_table.row_count _->value
@@ -46,15 +48,19 @@ spec detailed setup =
                 _ -> e == v
             if match.not then values.should_equal expected
 
-    specify_test label action expression_test=tester =
-        case detailed of
-            True ->
-                specify_tester expression value =
-                    Test.specify (label + ": " + expression) <|
-                        expression_test expression value
-                action specify_tester
-            False ->
-                Test.specify label (action expression_test)
+        new_column.name . should_equal expression
+
+    specify_test label action expression_test=tester pending=Nothing = case pending of
+        Nothing ->
+            case detailed of
+                True ->
+                    specify_tester expression value =
+                        Test.specify (label + ": " + expression) <|
+                            expression_test expression value
+                    action specify_tester
+                False ->
+                    Test.specify label (action expression_test)
+        _ -> Test.specify label Nothing pending
 
     Test.group prefix+"Expression Integer literals" <|
         specify_test "should be able to add an integer column" expression_test->
@@ -93,22 +99,35 @@ spec detailed setup =
             expression_test "[A]" (column_a.at 1)
             expression_test "[Bad]] Name]" (column_odd.at 1)
 
-    Test.group prefix+"Expression Nothing literals" pending=pending_bug <|
+        Test.specify "should sanitize names" <|
+            t = table_builder [["X", ['\0', 'x', '']]]
+            c = t.compute '[X] == \'\0\'' . catch SQL_Error
+            c.name . should_equal "[X] == '\0'"
+            case c.to_vector . catch SQL_Error of
+                # We ignore the SQL error upon materialization - some backends just do not support `\0` in query parameters. This is not the main point of this test.
+                _ : SQL_Error -> Nothing
+                vec -> vec.should_equal [True, False, False]
+
+    Test.group prefix+"Expression Nothing literals" <|
         specify_test "should be able to add an nothing column" expression_test->
             expression_test "null" Nothing
             expression_test "nUlL" Nothing
             expression_test "Nothing" Nothing
             expression_test "NOTHING" Nothing
 
-    Test.group prefix+"Expression Date and Time literals" pending=pending_bug <|
-        specify_test "should be able to add a date or time column" expression_test->
+    Test.group prefix+"Expression Date and Time literals" <|
+        specify_test "should be able to add a date or time column" pending=pending_bug expression_test->
             expression_test "#2020-12-23#" (Date.new 2020 12 23)
             expression_test "#12:34#" (Time_Of_Day.new 12 34)
             expression_test "#12:34:56#" (Time_Of_Day.new 12 34 56)
-            expression_test "#12:34:56.789#" (Time_Of_Day.new 12 34 56 789)
-            expression_test "#12:34:56.789000123#" (Time_Of_Day.new 12 34 56 789 0 123)
             expression_test "#2020-12-23 12:34#" (Date_Time.new 2020 12 23 12 34)
             expression_test "#2020-12-23 12:34:56#" (Date_Time.new 2020 12 23 12 34 56)
+
+        specify_test "should be able to add a time column with sub-millisecond accuracy" pending=pending_bug expression_test->
+            expression_test "#12:34:56.789#" (Time_Of_Day.new 12 34 56 789)
+            expression_test "#12:34:56.789000123#" (Time_Of_Day.new 12 34 56 789 0 123)
+
+        specify_test "should be able to add a date time column with timezone" pending=pending_bug expression_test->
             expression_test "#2020-12-23 12:34:56Z[UTC]#" (Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc)
             expression_test "#2020-12-23 12:34:56+02:30[UTC]#" (Date_Time.new 2020 12 23 10 04 56 zone=Time_Zone.utc)
             expression_test "#2020-12-23 12:34:56.157+01[UTC]#" (Date_Time.new 2020 12 23 11 34 56 157 zone=Time_Zone.utc)
@@ -139,7 +158,7 @@ spec detailed setup =
             expression_test "1+1 * 2" 3
             expression_test "1 + 1*2" 3
 
-    Test.group prefix+"Column Arithmetic" pending=pending_bug <|
+    Test.group prefix+"Expression Column Arithmetic" <|
         specify_test "should be able to perform arithmetic on columns" expression_test->
             expression_test "[A] + 2" [3, 4, 5, 6, 7]
             expression_test "[B] - 2" [-1, -0.5, 0.5, 2, 4]
@@ -170,7 +189,7 @@ spec detailed setup =
             expression_test "([A] - [B]) ^ [A]" [0, 0.25, 0.125, 0, -1]
             expression_test "[A] ^ ([B] - [A])" [1, 0.707106781186547, 0.577350269189626, 1, 5]
 
-    Test.group prefix+"Comparison Operators" pending=pending_bug <|
+    Test.group prefix+"Expression Comparison Operators" <|
         specify_test "should be able to compare equality" expression_test->
             expression_test "2 = 1 + 1" True
             expression_test "2 == 1 + 1" True
@@ -224,7 +243,7 @@ spec detailed setup =
             expression_test "'' IS NOT EMPTY" False
             expression_test "Nothing IS NOT EMPTY" False
 
-    Test.group prefix+"Text Operators" <|
+    Test.group prefix+"Expression Text Operators" <|
         specify_test "should be able to concatenate text" expression_test->
             expression_test "'Hello ' + 'World'" "Hello World"
             expression_test "[C] + ' World'" ["Hello World", "World World", "Hello World! World", " World", Nothing]
@@ -241,7 +260,7 @@ spec detailed setup =
             expression_test "[C] LIKE 'Hello%'" [True, False, True, False, Nothing]
             expression_test "[C] NOT LIKE 'Hello%'" [False, True, False, True, Nothing]
 
-    Test.group prefix+"Boolean Operators" pending=pending_bug <|
+    Test.group prefix+"Expression Boolean Operators" <|
         specify_test "should be able to AND booleans" expression_test->
             expression_test "True && TRUE" True
             expression_test "True AND False" False
@@ -265,7 +284,7 @@ spec detailed setup =
             expression_test "IF False THEN 'A' ELSE 'B' END" 'B'
             expression_test "IF [Bad]] Name] THEN [A] ELSE [B] ENDIF" [1, 1.5, 3, 4, 5]
 
-    Test.group prefix+"Function invocation" pending=pending_bug <|
+    Test.group prefix+"Function invocation" <|
         specify_test "should be able to call a function with arguments" expression_test->
             expression_test "Not(True)" False
             expression_test "not(False)" True
@@ -276,9 +295,10 @@ spec detailed setup =
             expression_test "min(10, 3, 8)" 3
             expression_test "max([A], [B], 3)" [3, 3, 3, 4, 6]
 
-    Test.group prefix+"Errors should be handled" pending=pending_bug <|
-        error_tester expression fail_type =
-            test_table.set expression new_name="NEW_COL" . should_fail_with fail_type
+    Test.group prefix+"Expression Errors should be handled" <|
+        error_tester expression fail_ctor =
+            test_table.set expression new_name="NEW_COL" . should_fail_with Expression_Error
+            test_table.set expression new_name="NEW_COL" . catch . should_be_a fail_ctor
 
         specify_test "should fail with Syntax_Error if badly formed" expression_test=error_tester expression_test->
             expression_test "IIF [A] THEN 1 ELSE 2" Expression_Error.Syntax_Error
@@ -292,4 +312,88 @@ spec detailed setup =
             expression_test "starts_with([C])" Expression_Error.Argument_Mismatch
 
         specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
-            expression_test "Not([C], 'Hello')" Expression_Error.Argument_Mismatch
+            expression_test "is_empty([C], 'Hello')" Expression_Error.Argument_Mismatch
+
+    Test.group prefix+"Expression Warnings should be reported" <|
+        Test.specify "should report floating point equality" <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+
+            r1 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
+            Problems.assume_no_problems r1
+            r1.to_vector . should_equal [True, True, False]
+
+            r2 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
+            Problems.get_attached_warnings r2 . each warn->
+                warn.should_be_a Floating_Point_Equality
+            r2.to_vector . should_equal [True, True, False]
+
+            err3 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
+            err3.should_fail_with Floating_Point_Equality
+
+            r4 = t1.compute 'if ([X] != 2) && ([X] + 0.5 != 2) then "A" else "B"'
+            r4.to_vector . should_equal ["B", "B", "A"]
+            Problems.expect_warning Floating_Point_Equality r4
+
+        db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
+        Test.specify "should report arithmetic errors" pending=db_pending <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+
+            action1 = t1.compute "3 / [X]" on_problems=_
+            tester1 column =
+                column.to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
+            problems1 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
+            Problems.test_problem_handling action1 problems1 tester1
+
+        Test.specify "already existing warnings should not be escalated to errors in error handling mode (1)" pending=db_pending <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+            c1 = t1.compute "3 / [X]" on_problems=Problem_Behavior.Report_Warning
+            Problems.expect_warning Arithmetic_Error c1
+
+            t2 = t1.set c1 new_name="Y"
+            Problems.expect_warning Arithmetic_Error t2
+            Problems.expect_warning Arithmetic_Error (t2.at "Y")
+
+            c2 = t2.compute "[Y] >= 42.0" on_problems=Problem_Behavior.Report_Error
+            Problems.expect_warning Arithmetic_Error c2
+            c2.to_vector . should_equal [False, False, True]
+
+            c3 = t2.compute "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
+            c3.should_fail_with Floating_Point_Equality
+
+            t3 = t2.set 'if [Y] == 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t3.should_fail_with Floating_Point_Equality
+
+            t4 = t2.set 'if [Y] >= 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t4.at "Z" . to_vector . should_equal ["B", "B", "A"]
+            # Should still keep the inherited warning from "Y".
+            Problems.expect_warning Arithmetic_Error t4
+
+        Test.specify "already existing warnings should not be escalated to errors in error handling mode (2)" <|
+            t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
+            c1 = Warning.attach (Illegal_State.Error "FOO") (t1.compute "[X] + 3.0")
+            Problems.expect_warning Illegal_State c1
+
+            t2 = t1.set c1 new_name="Y"
+            Problems.expect_warning Illegal_State t2
+            Problems.expect_warning Illegal_State (t2.at "Y")
+
+            c2 = t2.compute "[Y] >= 3.5" on_problems=Problem_Behavior.Report_Error
+            Problems.expect_warning Illegal_State c2
+            c2.to_vector . should_equal [True, True, False]
+
+            c3 = t2.compute "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
+            c3.should_fail_with Floating_Point_Equality
+
+            c4 = t2.compute "[Y] == 3.0" on_problems=Problem_Behavior.Report_Warning
+            c4.to_vector . should_equal [False, False, True]
+            Problems.expect_warning Floating_Point_Equality c4
+            # Should still keep the inherited warning from "Y".
+            Problems.expect_warning Illegal_State c4
+
+            t3 = t2.set 'if [Y] == 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t3.should_fail_with Floating_Point_Equality
+
+            t4 = t2.set 'if [Y] >= 3.5 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t4.at "Z" . to_vector . should_equal ["A", "A", "B"]
+            # Should still keep the inherited warning from "Y".
+            Problems.expect_warning Illegal_State t4

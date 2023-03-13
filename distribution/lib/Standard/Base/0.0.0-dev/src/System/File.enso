@@ -1,3 +1,4 @@
+from Standard.Base import all
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
@@ -5,7 +6,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
-import project.Data.Text.Matching_Mode
+import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
@@ -24,6 +25,10 @@ import project.System.File_Format.File_Format
 import project.System.File.File_Permissions.File_Permissions
 
 from project.Data.Boolean import Boolean, True, False
+
+import project.Metadata.Widget
+from project.Metadata.Choice import Option
+import project.Metadata.Display
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
@@ -241,6 +246,7 @@ type File
              import Standard.Examples
 
              example_append = Examples.data_dir / "scratch_file"
+    @subpath get_child_widget
     / : (Text | File) -> File
     / self subpath = self.resolve subpath
 
@@ -262,6 +268,7 @@ type File
              import Standard.Examples
 
              example_append = Examples.data_dir.join ["2022", "10", "31", "scratch_file"]
+    @subpaths get_child_widget
     join : (Text | File | Vector) -> File
     join self subpaths = case subpaths of
         _ : Vector -> (subpaths.fold self c->p-> c / p) . normalize
@@ -374,6 +381,14 @@ type File
     is_regular_file : Boolean
     is_regular_file self = @Builtin_Method "File.is_regular_file"
 
+    ## Checks whether it the file can be written to.
+
+       ? Read-only Files
+         If a file is read-only, it may still be possible to move or delete it,
+         depending on the permissions associated with its parent directory.
+    is_writable : Boolean
+    is_writable self = @Builtin_Method "File.is_writable"
+
     ## Resolves the parent filesystem node of this file.
 
        > Example
@@ -382,7 +397,7 @@ type File
              import Standard.Examples
 
              example_parent = Examples.csv.parent
-    parent : File
+    parent : File | Nothing
     parent self = @Builtin_Method "File.parent"
 
     ## Returns the path of this file.
@@ -529,10 +544,11 @@ type File
        The `with_input_stream` method should be preferred whenever possible.
     new_input_stream : Vector File_Access -> Input_Stream ! File_Error
     new_input_stream self open_options =
-        opts = open_options . map (_.to_java) . to_array
-        stream = File_Error.handle_java_exceptions self (self.input_stream opts)
-        resource = Managed_Resource.register stream close_stream
-        Input_Stream.Value self resource
+        if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
+            opts = open_options . map (_.to_java) . to_array
+            stream = File_Error.handle_java_exceptions self (self.input_stream opts)
+            resource = Managed_Resource.register stream close_stream
+            Input_Stream.Value self resource
 
     ## ADVANCED
 
@@ -549,7 +565,18 @@ type File
         opts = open_options . map (_.to_java) . to_array
         stream = File_Error.handle_java_exceptions self <|
             self.output_stream opts
-        resource = Managed_Resource.register stream close_stream
+        ## We re-wrap the File Not Found error to return the parent directory
+           instead of the file itself - because the file that is being written
+           may not exist and it will not be an error, it is the parent directory
+           that does not exist is what prevents the write operation from
+           succeeding.
+        ## Until #5792 properly fixes catch, we cannot catch
+           `File_Error.Not_Found` specifically, so instead we catch all
+           `File_Error`s and match the needed one.
+        stream_2 = stream.catch File_Error error-> case error of
+            File_Error.Not_Found file_path -> Error.throw (File_Error.Not_Found file_path.parent)
+            _ -> stream
+        resource = Managed_Resource.register stream_2 close_stream
         Output_Stream.Value self resource
 
     ## PRIVATE
@@ -690,7 +717,7 @@ type Output_Stream
         File_Error.handle_java_exceptions self.file <|
             java_stream.write contents.to_array
             java_stream.flush
-        Nothing
+            Nothing
 
     ## ADVANCED
 
@@ -918,3 +945,12 @@ get_cwd = @Builtin_Method "File.get_cwd"
    - path: The path to obtain a file at.
 get_file : Text -> File
 get_file path = @Builtin_Method "File.get_file"
+
+## PRIVATE
+get_child_widget : File -> Widget
+get_child_widget file =
+    if file.exists.not then Nothing else
+        if file.is_directory.not then Nothing else
+            children = file.list
+            options = children.map c-> Option c.name c.name.pretty
+            Widget.Single_Choice values=options display=Display.Always

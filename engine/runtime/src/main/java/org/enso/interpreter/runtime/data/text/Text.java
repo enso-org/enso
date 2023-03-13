@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.data.text;
 
-import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -19,6 +18,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
@@ -178,13 +178,7 @@ public final class Text implements TruffleObject {
 
   @CompilerDirectives.TruffleBoundary
   private int computeLength() {
-    BreakIterator iter = BreakIterator.getCharacterInstance();
-    iter.setText(toString());
-    int len = 0;
-    while (iter.next() != BreakIterator.DONE) {
-      len++;
-    }
-    return len;
+    return Core_Text_Utils.computeGraphemeLength(toString());
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -193,19 +187,7 @@ public final class Text implements TruffleObject {
       boolean allowSideEffects,
       @Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
     String str = toJavaStringNode.execute(this);
-    // TODO This should be more extensible
-    String replaced =
-        str.replace("\\", "\\\\")
-            .replace("'", "\\'")
-            .replace("\n", "\\n")
-            .replace("\t", "\\t")
-            .replace("\u0007", "\\a")
-            .replace("\u0008", "\\b")
-            .replace("\u000c", "\\f")
-            .replace("\r", "\\r")
-            .replace("\u000B", "\\v")
-            .replace("\u001B", "\\e");
-    return "'" + replaced + "'";
+    return Core_Text_Utils.prettyPrint(str);
   }
 
   @ExportMessage

@@ -43,7 +43,7 @@ const ICON_SVG_XMLNS: &str = "http://www.w3.org/2000/svg";
 /// A single icon used in headers. `content` is an SVG code of the icon's content _without_ the
 /// surrounding `<svg>` tags.
 fn svg_icon(content: &'static str) -> impl Render {
-    let class = "w-5 h-5 fill-none flex-shrink-0 mt-0.5";
+    let class = "w-[12px] h-[12px] fill-none flex-shrink-0 mt-0.5";
     owned_html! {
         svg(class=class, viewBox=ICON_VIEWBOX, xmlns=ICON_SVG_XMLNS) {
             :Raw(content)
@@ -484,7 +484,7 @@ fn local_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
 /// class.
 fn docs_content(content: impl Render) -> impl Render {
     owned_html! {
-        div(class="enso-docs text-docsText bg-docsBackground pl-4 pr-2") {
+        div(class="enso-docs text-docsText text-base bg-docsBackground pl-4 pr-2") {
             : &content;
         }
     }
@@ -492,7 +492,7 @@ fn docs_content(content: impl Render) -> impl Render {
 
 fn section_content(content: impl Render) -> impl Render {
     owned_html! {
-        div(class="pl-7") {
+        div(class="pl-5") {
             : &content;
         }
     }
@@ -626,7 +626,7 @@ pub fn caption_html() -> String {
     owned_html! {
         div(class="bg-captionBackground rounded-t-[14px] w-full h-full flex \
                    items-center justify-center") {
-            div(class="text-xs text-white") {
+            div(class="text-base text-white") {
                 : "Hovered item preview. Press the right mouse button to lock it.";
             }
         }

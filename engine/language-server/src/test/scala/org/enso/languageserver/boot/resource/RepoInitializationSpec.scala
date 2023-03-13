@@ -66,7 +66,7 @@ class RepoInitializationSpec
 
         expectMsgAllOf(
           InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
+          InitializedEvent.VersionsRepoInitialized
         )
     }
 
@@ -96,7 +96,7 @@ class RepoInitializationSpec
 
         expectMsgAllOf(
           InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
+          InitializedEvent.VersionsRepoInitialized
         )
     }
 
@@ -123,7 +123,7 @@ class RepoInitializationSpec
         version1 shouldEqual SchemaVersion.CurrentVersion
         expectMsgAllOf(
           InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
+          InitializedEvent.VersionsRepoInitialized
         )
 
         // remove schema and re-initialize
@@ -138,7 +138,7 @@ class RepoInitializationSpec
         version2 shouldEqual SchemaVersion.CurrentVersion
         expectMsgAllOf(
           InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
+          InitializedEvent.VersionsRepoInitialized
         )
     }
 
@@ -199,7 +199,7 @@ class RepoInitializationSpec
           version2 shouldEqual SchemaVersion.CurrentVersion
           expectMsgAllOf(
             InitializedEvent.SuggestionsRepoInitialized,
-            InitializedEvent.FileVersionsRepoInitialized
+            InitializedEvent.VersionsRepoInitialized
           )
         }
     }

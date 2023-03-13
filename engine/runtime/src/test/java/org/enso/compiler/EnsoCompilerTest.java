@@ -82,6 +82,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testListWithATrailingComma() throws Exception {
+    parseTest("""
+    main = ["a", ]
+    """, true, true, true);
+  }
+
+  @Test
   public void testLocationsDeeplyNestedFunctions() throws Exception {
     parseTest("""
         foo = a -> b ->

@@ -1,6 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Regex_2.No_Such_Group
+import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
@@ -57,11 +60,17 @@ type Manual
      - Note that currently the regex-based operations may not handle the edge
        cases described above too well.
 spec =
+    check_span match span =
+        match . should_not_equal Nothing
+        match.group 0 . should_equal span
+    check_span_all match spans = match . map (m-> (m.group 0)) . should_equal spans
+
+    accent_1 = '\u00E9'
+    accent_2 = '\u0065\u{301}'
+
     Test.group "Text" <|
         kshi = '\u0915\u094D\u0937\u093F'
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
-        accent_1 = '\u00E9'
-        accent_2 = '\u0065\u{301}'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
         utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
         sentences = '''
@@ -91,39 +100,39 @@ spec =
             complex_letter_1 . should_equal complex_letter_2
             complex_letter_1 . should_equal complex_letter_3
             complex_letter_3 . should_equal complex_letter_2
-            common_prefix+complex_letter_1+complex_letter_2+complex_letter_3 . compare_to common_prefix+complex_letter_3+complex_letter_1+complex_letter_2 . should_equal Ordering.Equal
+            Ordering.compare (common_prefix+complex_letter_1+complex_letter_2+complex_letter_3) (common_prefix+complex_letter_3+complex_letter_1+complex_letter_2) . should_equal Ordering.Equal
 
             'e\u{301}'=='e\u{302}' . should_be_false
 
             'a\u0321\u0302'=='a\u0302\u0321' . should_be_true
             'a\u0321\u0302'=='A\u0302\u0321' . should_be_false
 
-            accent_1+"a" . compare_to accent_2+"a" . should_equal Ordering.Equal
-            accent_1+"A" . compare_to accent_2+"a" . should_equal Ordering.Less
+            Ordering.compare accent_1+"a" accent_2+"a" . should_equal Ordering.Equal
+            Ordering.compare accent_1+"A" accent_2+"a" . should_equal Ordering.Less
             accent_1+"A" . compare_to_ignore_case accent_2+"a" . should_equal Ordering.Equal
-            accent_1+"a" . compare_to accent_2+"b" . should_equal Ordering.Less
+            Ordering.compare accent_1+"a"  accent_2+"b" . should_equal Ordering.Less
             accent_1+"a" . compare_to_ignore_case accent_2+"B" . should_equal Ordering.Less
-            accent_2+"a" . compare_to accent_1+"b" . should_equal Ordering.Less
-            accent_1+"a" . compare_to accent_2+"B" . should_equal Ordering.Greater
+            Ordering.compare accent_2+"a"  accent_1+"b" . should_equal Ordering.Less
+            Ordering.compare accent_1+"a"  accent_2+"B" . should_equal Ordering.Greater
             accent_1+"a" . compare_to_ignore_case accent_2+"B" . should_equal Ordering.Less
-            accent_1+"b" . compare_to accent_2+"a" . should_equal Ordering.Greater
-            accent_2+"b" . compare_to accent_1+"a" . should_equal Ordering.Greater
+            Ordering.compare accent_1+"b"  accent_2+"a" . should_equal Ordering.Greater
+            Ordering.compare accent_2+"b"  accent_1+"a" . should_equal Ordering.Greater
 
             # Handling of Nothing
             (accent_1 == Nothing) . should_be_false
             (accent_1 != Nothing) . should_be_true
-            accent_1 . compare_to Nothing . should_fail_with Type_Error.Error
-            (accent_1 > Nothing) . should_fail_with Type_Error.Error
-            accent_1 . compare_to_ignore_case Nothing . should_fail_with Type_Error.Error
+            Ordering.compare accent_1 Nothing . should_fail_with Incomparable_Values
+            (accent_1 > Nothing) . should_fail_with Incomparable_Values
+            accent_1 . compare_to_ignore_case Nothing . should_fail_with Type_Error
 
             earlier_suffix = "aooooz"
             later_suffix = "bo"
-            common_prefix+complex_letter_1+earlier_suffix . compare_to common_prefix+complex_letter_2+later_suffix . should_equal Ordering.Less
-            common_prefix+complex_letter_2+earlier_suffix . compare_to common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
-            common_prefix+complex_letter_2+earlier_suffix . compare_to common_prefix+complex_letter_3+later_suffix . should_equal Ordering.Less
-            common_prefix+complex_letter_3+earlier_suffix . compare_to common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
-            common_prefix+complex_letter_3+later_suffix . compare_to common_prefix+complex_letter_1+earlier_suffix . should_equal Ordering.Greater
-            common_prefix+complex_letter_1+later_suffix . compare_to common_prefix+complex_letter_2+earlier_suffix . should_equal Ordering.Greater
+            Ordering.compare common_prefix+complex_letter_1+earlier_suffix  common_prefix+complex_letter_2+later_suffix . should_equal Ordering.Less
+            Ordering.compare common_prefix+complex_letter_2+earlier_suffix  common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
+            Ordering.compare common_prefix+complex_letter_2+earlier_suffix  common_prefix+complex_letter_3+later_suffix . should_equal Ordering.Less
+            Ordering.compare common_prefix+complex_letter_3+earlier_suffix  common_prefix+complex_letter_1+later_suffix . should_equal Ordering.Less
+            Ordering.compare common_prefix+complex_letter_3+later_suffix  common_prefix+complex_letter_1+earlier_suffix . should_equal Ordering.Greater
+            Ordering.compare common_prefix+complex_letter_1+later_suffix  common_prefix+complex_letter_2+earlier_suffix . should_equal Ordering.Greater
 
         Test.specify "should correctly handle case-insensitive equality" <|
             "aBc" . equals_ignore_case "Abc" . should_be_true
@@ -177,16 +186,16 @@ spec =
 
         Test.specify "should return a dataflow error when accessing characters out of bounds" <|
             str = kshi + facepalm + accent_1 + accent_2
-            str.at -5 . should_fail_with Index_Out_Of_Bounds.Error
+            str.at -5 . should_fail_with Index_Out_Of_Bounds
             str.at -5 . catch . should_equal (Index_Out_Of_Bounds.Error -5 4)
-            str.at 4 . should_fail_with Index_Out_Of_Bounds.Error
+            str.at 4 . should_fail_with Index_Out_Of_Bounds
             str.at 4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 4)
             str.get -5 . should_equal Nothing
             str.get 4 . should_equal Nothing
             str.get -5 "?" . should_equal "?"
-            "".first.should_fail_with Index_Out_Of_Bounds.Error
-            "".second.should_fail_with Index_Out_Of_Bounds.Error
-            "".last.should_fail_with Index_Out_Of_Bounds.Error
+            "".first.should_fail_with Index_Out_Of_Bounds
+            "".second.should_fail_with Index_Out_Of_Bounds
+            "".last.should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should be able to split the text into words" <|
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
@@ -232,7 +241,7 @@ spec =
             "".split "." . should_equal [""]
             "abc[a-z]def".split "[a-z]" . should_equal ["abc", "def"]
             'aśbs\u{301}c'.split 'ś' . should_equal ['a', 'b', 'c']
-            'abc'.split '' . should_fail_with Illegal_Argument.Error
+            'abc'.split '' . should_fail_with Illegal_Argument
 
         Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
             matcher = Text_Matcher.Case_Insensitive
@@ -242,7 +251,7 @@ spec =
             "baB".split "b" matcher . should_equal ["", "a", ""]
             "".split "a" matcher . should_equal [""]
             'aŚbS\u{301}c'.split 'ś' matcher . should_equal ['a', 'b', 'c']
-            'abc'.split '' matcher . should_fail_with Illegal_Argument.Error
+            'abc'.split '' matcher . should_fail_with Illegal_Argument
 
         Test.specify "should be able to split the text on Regex patterns" <|
             "cababdabe" . split "ab" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["c", "", "d", "e"]
@@ -254,7 +263,7 @@ spec =
             ".a.".split "\." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["", "a", ""]
             "".split "a" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal [""]
             'aśbs\u{301}c'.split 'ś' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ['a', 'b', 'c']
-            'abc'.split '' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_fail_with Illegal_Argument.Error
+            'abc'.split '' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_fail_with Illegal_Argument
 
         Test.specify "should be able to split the text on UTF-8 whitespace" <|
             utf_8_whitespace.split "\s+" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal utf_8_whitespace_split
@@ -269,8 +278,8 @@ spec =
                 foo
                 bar\r\tbaz
             text_1.pretty.should_equal "'foo\nbar\r\tbaz'"
-            text_2 = '\n\t\a\b\f\r\v\e\'\\'
-            text_2.pretty.should_equal "'\n\t\a\b\f\r\v\e\'\\'"
+            text_2 = '\n\0\t\a\b\f\r\v\e\'\\'
+            text_2.pretty.should_equal "'\n\0\t\a\b\f\r\v\e\'\\'"
 
         Test.specify "should return text as is when converting to text" <|
             text_1 = '''
@@ -425,31 +434,31 @@ spec =
             txt.take (0.up_to 14) . should_equal txt
             txt.take (6.up_to 100) . should_equal "World!"
             txt.take (Range.Between txt.length-1 txt.length) . should_equal "!"
-            txt.take (Range.Between txt.length txt.length) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (Range.Between txt.length txt.length) . should_fail_with Index_Out_Of_Bounds
             txt.take (Range.Between txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds.Error txt.length txt.length)
-            txt.take (Range.Between txt.length 100) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (Range.Between txt.length 100) . should_fail_with Index_Out_Of_Bounds
             txt.take (First 100) . should_equal txt
             txt.take 100 . should_equal txt
             txt.take (Last 100) . should_equal txt
-            txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds.Error
-            txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds.Error
-            txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds.Error
-            txt.take (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds
+            txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds
+            txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds
+            txt.take (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds
             txt.take (By_Index [0, 1, 6.up_to 100]) . should_equal "HeWorld!"
             txt.take (By_Index [0, 1, 6.up_to 100 . with_step 2]) . should_equal "HeWrd"
-            txt.take (13.up_to 12) . should_fail_with Index_Out_Of_Bounds.Error
-            "".take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (13.up_to 12) . should_fail_with Index_Out_Of_Bounds
+            "".take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds
             "".take (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
-            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds.Error
-            "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds.Error
-            txt.take (13.up_to 20) . should_fail_with Index_Out_Of_Bounds.Error
-            txt.take (13.up_to 20 . with_step 2) . should_fail_with Index_Out_Of_Bounds.Error
-            txt.take (By_Index [0.up_to 2, 13.up_to 20]) . should_fail_with Index_Out_Of_Bounds.Error
+            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds
+            "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds
+            txt.take (13.up_to 20) . should_fail_with Index_Out_Of_Bounds
+            txt.take (13.up_to 20 . with_step 2) . should_fail_with Index_Out_Of_Bounds
+            txt.take (By_Index [0.up_to 2, 13.up_to 20]) . should_fail_with Index_Out_Of_Bounds
             txt.take (By_Index [0.up_to 0, 13.up_to 10, 2.up_to 2 . with_step 2]) . should_equal ""
-            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . should_fail_with Index_Out_Of_Bounds
             txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . catch . should_equal (Index_Out_Of_Bounds.Error 13 12)
-            txt.take (By_Index [0.up_to 2 . with_step 2, txt.length.up_to 100 . with_step 2]) . should_fail_with Index_Out_Of_Bounds.Error
-            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (By_Index [0.up_to 2 . with_step 2, txt.length.up_to 100 . with_step 2]) . should_fail_with Index_Out_Of_Bounds
+            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "take should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
@@ -523,7 +532,7 @@ spec =
             "ABC".take (By_Index -1) . should_equal "C"
             "ABC".take (By_Index [-1, -1, -1, -3, 2]) . should_equal "CCCAC"
             "ABC".take (By_Index []) . should_equal ""
-            "ABC".take (By_Index ((-2).up_to -1)) . should_fail_with Illegal_Argument.Error
+            "ABC".take (By_Index ((-2).up_to -1)) . should_fail_with Illegal_Argument
             "".take (Every 2) . should_equal ""
             "".take (Every 2 first=1) . should_equal ""
             "ABC".take (Every 5) . should_equal "A"
@@ -570,16 +579,16 @@ spec =
             txt.drop (First 100) . should_equal ""
             txt.drop 100 . should_equal ""
             txt.drop (Last 100) . should_equal ""
-            txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds
             txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds.Error 100 12)
-            txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds.Error
-            txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds.Error
-            txt.drop (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds
+            txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds
+            txt.drop (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds
             txt.drop (By_Index [0, 1, 6.up_to 100]) . should_equal "llo "
-            txt.drop (13.up_to 12) . should_fail_with Index_Out_Of_Bounds.Error
-            txt.drop (14.up_to 15) . should_fail_with Index_Out_Of_Bounds.Error
-            "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds.Error
-            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.drop (13.up_to 12) . should_fail_with Index_Out_Of_Bounds
+            txt.drop (14.up_to 15) . should_fail_with Index_Out_Of_Bounds
+            "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds
+            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds
             "".drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
             txt.drop (0.up_to 0) . should_equal txt
             txt.drop (5.up_to 100) . should_equal "Hello"
@@ -647,7 +656,7 @@ spec =
 
             "".drop (While _->True) . should_equal ""
 
-            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds.Error
+            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds
             'ABC\u{301}'.drop (0.up_to 0) . should_equal 'ABC\u{301}'
 
             'ABC\u{301}'.drop (After "") . should_equal ''
@@ -715,8 +724,8 @@ spec =
             txt.insert 3 " Cruel" . should_equal (kshi + facepalm + accent_1 + " Cruel")
 
         Test.specify "should report Index_Out_Of_Bounds.Error when inserting text at an invalid non-negative index position" <|
-            "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds.Error
-            (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds.Error
+            "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds
+            (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should insert text at a negative index position" <|
             "Hello World!".insert -1 " Cruel" . should_equal "Hello World! Cruel"
@@ -728,9 +737,9 @@ spec =
             txt.insert -(txt.length) " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
 
         Test.specify "should report Index_Out_Of_Bounds.Error when inserting text at an invalid negative index position" <|
-            "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds.Error
+            "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds
             txt = kshi + facepalm + accent_1
-            txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds.Error
+            txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should be able to check by index if is a digit" <|
             str = kshi + "A12" + accent_2
@@ -739,7 +748,7 @@ spec =
             str.is_digit 2 . should_be_true
             str.is_digit 3 . should_be_true
             str.is_digit 4 . should_be_false
-            str.is_digit 5 . should_fail_with Index_Out_Of_Bounds.Error
+            str.is_digit 5 . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should be able to check by negative index if is a digit" <|
             str = kshi + "A12" + accent_2
@@ -748,7 +757,7 @@ spec =
             str.is_digit -3 . should_be_true
             str.is_digit -4 . should_be_false
             str.is_digit -5 . should_be_false
-            str.is_digit -100 . should_fail_with Index_Out_Of_Bounds.Error
+            str.is_digit -100 . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should be able to check if a text consists only of whitespace" <|
             '  \t\n'.is_whitespace . should_be_true
@@ -761,8 +770,8 @@ spec =
 
         Test.specify "should return a dataflow error when checking is digit for out of bounds" <|
             str = kshi + "A12" + accent_2
-            str.at -6 . should_fail_with Index_Out_Of_Bounds.Error
-            str.at 5 . should_fail_with Index_Out_Of_Bounds.Error
+            str.at -6 . should_fail_with Index_Out_Of_Bounds
+            str.at 5 . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should be able to reverse characters" <|
             "Hello World!".reverse . should_equal "!dlroW olleH"
@@ -932,9 +941,9 @@ spec =
             "HELLO".pad 8 "AB" . should_equal "HELLOABA"
             "HELLO".pad 8 "AB" Location.Start . should_equal "BABHELLO"
             "".pad 4 . should_equal "    "
-            "A".pad 3 "" . should_fail_with Illegal_Argument.Error
-            "ABCDE".pad 3 "" . should_fail_with Illegal_Argument.Error
-            "".pad 0 "" . should_fail_with Illegal_Argument.Error
+            "A".pad 3 "" . should_fail_with Illegal_Argument
+            "ABCDE".pad 3 "" . should_fail_with Illegal_Argument
+            "".pad 0 "" . should_fail_with Illegal_Argument
 
             "".pad 0 . should_equal ""
             "ABC".pad 3 . should_equal "ABC"
@@ -1033,7 +1042,7 @@ spec =
             example_2 =
                 term = "straße"
                 text = "MONUMENTENSTRASSE 42"
-                match = text . locate term matcher=Text_Matcher.Case_Insensitive
+                match = text . locate term case_sensitivity=Case_Sensitivity.Insensitive
                 term.length . should_equal 6
                 match.length . should_equal 7
 
@@ -1041,11 +1050,11 @@ spec =
                 ligatures = "ﬃﬄ"
                 ligatures.length . should_equal 2
                 term_1 = "IFF"
-                match_1 = ligatures . locate term_1 matcher=Text_Matcher.Case_Insensitive
+                match_1 = ligatures . locate term_1 case_sensitivity=Case_Sensitivity.Insensitive
                 term_1.length . should_equal 3
                 match_1.length . should_equal 2
                 term_2 = "ffiffl"
-                match_2 = ligatures . locate term_2 matcher=Text_Matcher.Case_Insensitive
+                match_2 = ligatures . locate term_2 case_sensitivity=Case_Sensitivity.Insensitive
                 term_2.length . should_equal 6
                 match_2.length . should_equal 2
                 match_1 . should_equal match_2
@@ -1057,17 +1066,24 @@ spec =
             example_5 =
                 term = "strasse"
                 text = "MONUMENTENSTRASSE ist eine große Straße."
-                match = text . locate_all term matcher=Text_Matcher.Case_Insensitive
+                match = text . locate_all term case_sensitivity=Case_Sensitivity.Insensitive
                 term.length . should_equal 7
                 match . map .length . should_equal [7, 6]
 
             example_6 =
                 ligatures = "ﬃﬄFFIFF"
                 ligatures.length . should_equal 7
-                match_1 = ligatures . locate_all "IFF" matcher=Text_Matcher.Case_Insensitive
+                match_1 = ligatures . locate_all "IFF" case_sensitivity=Case_Sensitivity.Insensitive
                 match_1 . map .length . should_equal [2, 3]
-                match_2 = ligatures . locate_all "ffiff" matcher=Text_Matcher.Case_Insensitive
+                match_2 = ligatures . locate_all "ffiff" case_sensitivity=Case_Sensitivity.Insensitive
                 match_2 . map .length . should_equal [2, 5]
+
+            ## Case_Sensitivity.Default should act like Case_Sensitivity.Default
+            example_7 =
+                default = Case_Sensitivity.Default
+                "Hello World!".locate "J" case_sensitivity=default . should_equal Nothing
+                "Hello World!".locate "o" case_sensitivity=default . should_equal (Span.Value (4.up_to 5) "Hello World!")
+                "Hello World!".locate "o" mode=Matching_Mode.Last case_sensitivity=default . should_equal (Span.Value (7.up_to 8) "Hello World!")
 
             # Put them in blocks to avoid name clashes.
             example_1
@@ -1076,6 +1092,7 @@ spec =
             example_4
             example_5
             example_6
+            example_7
 
         Test.specify "should allow to locate occurrences within a text" <|
             "Hello World!".locate_all "J" . should_equal []
@@ -1101,12 +1118,12 @@ spec =
             "Hello World!".index_of "o" start=5 . should_equal 7
             "Hello World!".index_of "o" start=-5 . should_equal 7
             "Hello World!".index_of "o" start=12 . should_equal Nothing
-            "Hello World!".index_of "o" start=13 . should_fail_with Index_Out_Of_Bounds.Error
+            "Hello World!".index_of "o" start=13 . should_fail_with Index_Out_Of_Bounds
             "Hello World!".index_of "o" start=13 . catch . should_equal (Index_Out_Of_Bounds.Error 13 13)
 
             "Hello World!".last_index_of "o" . should_equal 7
             "Hello World!".last_index_of "o" start=6 . should_equal 4
-            "Hello World!".last_index_of "o" start=12 . should_fail_with Index_Out_Of_Bounds.Error
+            "Hello World!".last_index_of "o" start=12 . should_fail_with Index_Out_Of_Bounds
             "Hello World!".last_index_of "o" start=12 . catch . should_equal (Index_Out_Of_Bounds.Error 12 12)
 
             abc = 'A\u{301}ßC'
@@ -1116,112 +1133,105 @@ spec =
 
         Test.specify "should allow case-insensitive matching in locate" <|
             hello = "Hello WORLD!"
-            case_insensitive = Text_Matcher.Case_Insensitive
+            case_insensitive = Case_Sensitivity.Insensitive
             hello.locate "world" . should_equal Nothing
-            hello.locate "world" matcher=case_insensitive . should_equal (Span.Value (6.up_to 11) hello)
+            hello.locate "world" case_sensitivity=case_insensitive . should_equal (Span.Value (6.up_to 11) hello)
 
-            hello.locate "o" mode=Matching_Mode.First matcher=case_insensitive . should_equal (Span.Value (4.up_to 5) hello)
-            hello.locate "o" mode=Matching_Mode.Last matcher=case_insensitive . should_equal (Span.Value (7.up_to 8) hello)
+            hello.locate "o" mode=Matching_Mode.First case_sensitivity=case_insensitive . should_equal (Span.Value (4.up_to 5) hello)
+            hello.locate "o" mode=Matching_Mode.Last case_sensitivity=case_insensitive . should_equal (Span.Value (7.up_to 8) hello)
 
             accents = 'A\u{301}E\u{301}O\u{301}'
-            accents.locate accent_1 matcher=case_insensitive . should_equal (Span.Value (1.up_to 2) accents)
+            accents.locate accent_1 case_sensitivity=case_insensitive . should_equal (Span.Value (1.up_to 2) accents)
 
-            "Strasse".locate "ß" matcher=case_insensitive . should_equal (Span.Value (4.up_to 6) "Strasse")
-            "Monumentenstraße 42".locate "STRASSE" matcher=case_insensitive . should_equal (Span.Value (10.up_to 16) "Monumentenstraße 42")
+            "Strasse".locate "ß" case_sensitivity=case_insensitive . should_equal (Span.Value (4.up_to 6) "Strasse")
+            "Monumentenstraße 42".locate "STRASSE" case_sensitivity=case_insensitive . should_equal (Span.Value (10.up_to 16) "Monumentenstraße 42")
 
-            '\u0390'.locate '\u03B9\u0308\u0301' matcher=case_insensitive . should_equal (Span.Value (0.up_to 1) '\u0390')
+            '\u0390'.locate '\u03B9\u0308\u0301' case_sensitivity=case_insensitive . should_equal (Span.Value (0.up_to 1) '\u0390')
             'ԵՒ'.locate 'և' . should_equal Nothing
-            'ԵՒ'.locate 'և' matcher=case_insensitive . should_equal (Span.Value (0.up_to 2) 'ԵՒ')
-            'և'.locate 'ԵՒ' matcher=case_insensitive . should_equal (Span.Value (0.up_to 1) 'և')
+            'ԵՒ'.locate 'և' case_sensitivity=case_insensitive . should_equal (Span.Value (0.up_to 2) 'ԵՒ')
+            'և'.locate 'ԵՒ' case_sensitivity=case_insensitive . should_equal (Span.Value (0.up_to 1) 'և')
 
             ligatures = 'ffaﬀﬁﬂﬃﬄﬅﬆZ'
-            ligatures.locate 'FFI' matcher=case_insensitive . should_equal (Span.Value (3.up_to 5) ligatures)
-            ligatures.locate 'FF' matcher=case_insensitive . should_equal (Span.Value (0.up_to 2) ligatures)
-            ligatures.locate 'ff' matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span.Value (7.up_to 8) ligatures)
+            ligatures.locate 'FFI' case_sensitivity=case_insensitive . should_equal (Span.Value (3.up_to 5) ligatures)
+            ligatures.locate 'FF' case_sensitivity=case_insensitive . should_equal (Span.Value (0.up_to 2) ligatures)
+            ligatures.locate 'ff' case_sensitivity=case_insensitive mode=Matching_Mode.Last . should_equal (Span.Value (7.up_to 8) ligatures)
             ligatures.locate_all 'ff' . should_equal [Span.Value (0.up_to 2) ligatures]
-            ligatures.locate_all 'FF' matcher=case_insensitive . should_equal [Span.Value (0.up_to 2) ligatures, Span.Value (3.up_to 4) ligatures, Span.Value (6.up_to 7) ligatures, Span.Value (7.up_to 8) ligatures]
-            ligatures.locate_all 'ffi' matcher=case_insensitive . should_equal [Span.Value (3.up_to 5) ligatures, Span.Value (6.up_to 7) ligatures]
-            'fffi'.locate_all 'ﬀ' matcher=case_insensitive . should_equal [Span.Value (0.up_to 2) 'fffi']
+            ligatures.locate_all 'FF' case_sensitivity=case_insensitive . should_equal [Span.Value (0.up_to 2) ligatures, Span.Value (3.up_to 4) ligatures, Span.Value (6.up_to 7) ligatures, Span.Value (7.up_to 8) ligatures]
+            ligatures.locate_all 'ffi' case_sensitivity=case_insensitive . should_equal [Span.Value (3.up_to 5) ligatures, Span.Value (6.up_to 7) ligatures]
+            'fffi'.locate_all 'ﬀ' case_sensitivity=case_insensitive . should_equal [Span.Value (0.up_to 2) 'fffi']
             'fffi'.locate_all 'ﬃ' . should_equal []
-            'fffi'.locate_all 'ﬃ' matcher=case_insensitive . should_equal [Span.Value (1.up_to 4) 'fffi']
-            'FFFI'.locate 'ﬃ' matcher=case_insensitive . should_equal (Span.Value (1.up_to 4) 'FFFI')
+            'fffi'.locate_all 'ﬃ' case_sensitivity=case_insensitive . should_equal [Span.Value (1.up_to 4) 'fffi']
+            'FFFI'.locate 'ﬃ' case_sensitivity=case_insensitive . should_equal (Span.Value (1.up_to 4) 'FFFI')
 
-            'ﬃﬄ'.locate 'IF' matcher=case_insensitive . should_equal (Span.Value (0.up_to 2) 'ﬃﬄ')
-            'ﬃﬄ'.locate 'F' Matching_Mode.Last matcher=case_insensitive . should_equal (Span.Value (1.up_to 2) 'ﬃﬄ')
-            'ﬃﬄ'.locate_all 'F' matcher=case_insensitive . should_equal [Span.Value (0.up_to 1) 'ﬃﬄ', Span.Value (0.up_to 1) 'ﬃﬄ', Span.Value (1.up_to 2) 'ﬃﬄ', Span.Value (1.up_to 2) 'ﬃﬄ']
-            'aaﬃbb'.locate_all 'af' matcher=case_insensitive . should_equal [Span.Value (1.up_to 3) 'aaﬃbb']
-            'aaﬃbb'.locate_all 'affi' matcher=case_insensitive . should_equal [Span.Value (1.up_to 3) 'aaﬃbb']
-            'aaﬃbb'.locate_all 'ib' matcher=case_insensitive . should_equal [Span.Value (2.up_to 4) 'aaﬃbb']
-            'aaﬃbb'.locate_all 'ffib' matcher=case_insensitive . should_equal [Span.Value (2.up_to 4) 'aaﬃbb']
+            'ﬃﬄ'.locate 'IF' case_sensitivity=case_insensitive . should_equal (Span.Value (0.up_to 2) 'ﬃﬄ')
+            'ﬃﬄ'.locate 'F' Matching_Mode.Last case_sensitivity=case_insensitive . should_equal (Span.Value (1.up_to 2) 'ﬃﬄ')
+            'ﬃﬄ'.locate_all 'F' case_sensitivity=case_insensitive . should_equal [Span.Value (0.up_to 1) 'ﬃﬄ', Span.Value (0.up_to 1) 'ﬃﬄ', Span.Value (1.up_to 2) 'ﬃﬄ', Span.Value (1.up_to 2) 'ﬃﬄ']
+            'aaﬃbb'.locate_all 'af' case_sensitivity=case_insensitive . should_equal [Span.Value (1.up_to 3) 'aaﬃbb']
+            'aaﬃbb'.locate_all 'affi' case_sensitivity=case_insensitive . should_equal [Span.Value (1.up_to 3) 'aaﬃbb']
+            'aaﬃbb'.locate_all 'ib' case_sensitivity=case_insensitive . should_equal [Span.Value (2.up_to 4) 'aaﬃbb']
+            'aaﬃbb'.locate_all 'ffib' case_sensitivity=case_insensitive . should_equal [Span.Value (2.up_to 4) 'aaﬃbb']
 
-            "".locate "foo" matcher=case_insensitive . should_equal Nothing
-            "".locate "foo" matcher=case_insensitive mode=Matching_Mode.Last . should_equal Nothing
-            "".locate_all "foo" matcher=case_insensitive . should_equal []
-            "".locate "" matcher=case_insensitive . should_equal (Span.Value (0.up_to 0) "")
-            "".locate "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span.Value (0.up_to 0) "")
-            "".locate_all "" matcher=case_insensitive . should_equal [Span.Value (0.up_to 0) ""]
+            "".locate "foo" case_sensitivity=case_insensitive . should_equal Nothing
+            "".locate "foo" case_sensitivity=case_insensitive mode=Matching_Mode.Last . should_equal Nothing
+            "".locate_all "foo" case_sensitivity=case_insensitive . should_equal []
+            "".locate "" case_sensitivity=case_insensitive . should_equal (Span.Value (0.up_to 0) "")
+            "".locate "" case_sensitivity=case_insensitive mode=Matching_Mode.Last . should_equal (Span.Value (0.up_to 0) "")
+            "".locate_all "" case_sensitivity=case_insensitive . should_equal [Span.Value (0.up_to 0) ""]
             abc = 'A\u{301}ßC'
-            abc.locate "" matcher=case_insensitive . should_equal (Span.Value (0.up_to 0) abc)
-            abc.locate "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span.Value (3.up_to 3) abc)
-            abc.locate_all "" matcher=case_insensitive . should_equal [Span.Value (0.up_to 0) abc, Span.Value (1.up_to 1) abc, Span.Value (2.up_to 2) abc, Span.Value (3.up_to 3) abc]
+            abc.locate "" case_sensitivity=case_insensitive . should_equal (Span.Value (0.up_to 0) abc)
+            abc.locate "" case_sensitivity=case_insensitive mode=Matching_Mode.Last . should_equal (Span.Value (3.up_to 3) abc)
+            abc.locate_all "" case_sensitivity=case_insensitive . should_equal [Span.Value (0.up_to 0) abc, Span.Value (1.up_to 1) abc, Span.Value (2.up_to 2) abc, Span.Value (3.up_to 3) abc]
 
-        Test.specify "should allow regexes in locate" <|
+        Test.specify "should allow regexes in match" <|
             hello = "Hello World!"
-            regex = Regex_Matcher.Value
-            regex_insensitive = Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive
-            hello.locate ".o" Matching_Mode.First matcher=regex . should_equal (Span.Value (3.up_to 5) hello)
-            hello.locate ".o" Matching_Mode.Last matcher=regex . should_equal (Span.Value (6.up_to 8) hello)
-            hello.locate_all ".o" matcher=regex . map .start . should_equal [3, 6]
 
-            "foobar".locate "BAR" Matching_Mode.First matcher=regex_insensitive . should_equal (Span.Value (3.up_to 6) "foobar")
+            check_span (hello.find ".o" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 5) "Hello World!")
+            check_span_all (hello.find_all ".o") [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
+
+            check_span ("foobar".find "BAR" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 6) "foobar")
 
             ## Regex matching does not do case folding
-            "Strasse".locate "ß" Matching_Mode.First matcher=regex_insensitive . should_equal Nothing
+            "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
 
-            ## But it should handle the Unicode normalization
+        Test.specify "should handle accents and other multi-point graphemes" <|
+            accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
+
+            # Check spans
+            check_span ((accents).find 'h') (Span.Value (3.up_to 4) accents)
+            check_span ((accents).find 'e\u{301}') (Span.Value (1.up_to 2) accents)
+            check_span_all ((accents).find_all 'h') [Span.Value (3.up_to 4) accents, Span.Value (5.up_to 6) accents]
+            check_span_all ((accents).find_all 'e\u{301}') [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
+
+            # Check contents to make sure the spans' ranges are ok
+            accents.find 'h' . group 0 . text . should_equal 'h'
+            accents.find 'e\u{301}' . group 0 . text . should_equal 'e\u{301}'
+
+        Test.specify "should handle the Unicode normalization" pending="TODO: Rewrite this to use normalization methods explicitly" <|
+            ## This test passed for the builtin Java regex library, using
+               Pattern.CANON_EQ, but since that option is buggy and rarely use,
+               we won't attempt to recreate it with Truffle regex. Instead,
+               expose normalization methods to allow developers to do it
+               themselves.
             accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.locate accent_1 Matching_Mode.First matcher=regex . should_equal (Span.Value (1.up_to 2) accents)
+            check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
+
         Test.specify "should correctly handle regex edge cases in locate" pending="Figure out how to make Regex correctly handle empty patterns." <|
             regex = Regex_Matcher.Value
-            "".locate "foo" matcher=regex . should_equal Nothing
-            "".locate "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
-            "".locate_all "foo" matcher=regex . should_equal []
-            "".locate "" matcher=regex . should_equal (Span.Value (0.up_to 0) "")
-            "".locate_all "" matcher=regex . should_equal [Span.Value (0.up_to 0) ""]
-            "".locate "" matcher=regex mode=Matching_Mode.Last . should_equal (Span.Value (0.up_to 0) "")
+            "".match "foo" matcher=regex . should_equal Nothing
+            "".match "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
+            "".match_all "foo" matcher=regex . should_equal []
+            "".match "" matcher=regex . should_equal ""
+            "".match_all "" matcher=regex . should_equal [""]
+            "".match "" matcher=regex mode=Matching_Mode.Last . should_equal ""
             abc = 'A\u{301}ßC'
-            abc.locate "" matcher=regex . should_equal (Span.Value (0.up_to 0) abc)
-            abc.locate_all "" matcher=regex . should_equal [Span.Value (0.up_to 0) abc, Span.Value (0.up_to 0) abc, Span.Value (1.up_to 1) abc, Span.Value (2.up_to 2) abc, Span.Value (3.up_to 3) abc]
-            abc.locate "" matcher=regex mode=Matching_Mode.Last . should_equal (Span.Value (3.up_to 3) abc)
+            abc.match "" matcher=regex . should_equal abc
+            abc.match_all "" matcher=regex . should_equal ["", "", "", "", ""]
+            abc.match "" matcher=regex mode=Matching_Mode.Last . should_equal ""
 
         Test.specify "should handle overlapping matches as shown in the examples" <|
-            "aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span.Value (1.up_to 3) "aaa")
-            "aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher.Value . should_equal (Span.Value (0.up_to 2) "aaa")
+            "aaa".locate "aa" mode=Matching_Mode.Last case_sensitivity=Case_Sensitivity.Sensitive . should_equal (Span.Value (1.up_to 3) "aaa")
 
-            "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span.Value (5.up_to 7) "aaa aaa")
-            "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher.Value . should_equal (Span.Value (4.up_to 6) "aaa aaa")
-
-        Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
-            "abacadae".match_all "a[bc]" . should_equal ["ab", "ac"]
-            "abacadae".match_all "a." . should_equal ["ab", "ac", "ad", "ae"]
-            "abacadae".match_all "a.*" . should_equal ["abacadae"]
-            "abacadae".match_all "a.+?" . should_equal ["ab", "ac", "ad", "ae"]
-
-            "abacadae".match "a[bc]" mode=Matching_Mode.Last . should_equal "ac"
-            "abacadae".match "a." mode=Matching_Mode.Last . should_equal "ae"
-            "abacadae".match "a.*" mode=Matching_Mode.Last . should_equal "abacadae"
-            "abacadae".match "a.+?" mode=Matching_Mode.Last . should_equal "ae"
-
-            "abacadae".match "a[bc]" matcher=Text_Matcher.Case_Sensitive . should_equal Nothing
-            "abABacAC".match "ab" matcher=Text_Matcher.Case_Sensitive mode=Matching_Mode.Last . should_equal "ab"
-            "abABacAC".match "ab" matcher=Text_Matcher.Case_Insensitive mode=Matching_Mode.Last . should_equal "AB"
-
-            "abABacAC".match_all "ab" matcher=Text_Matcher.Case_Sensitive . should_equal ["ab"]
-            "abABacAC".match_all "ab" matcher=Text_Matcher.Case_Insensitive . should_equal ["ab", "AB"]
-            "abacadae".match_all "a[bc]" matcher=Text_Matcher.Case_Sensitive . should_equal []
-
-            "Strasse and Straße".match_all "STRASSE" matcher=Text_Matcher.Case_Sensitive . should_equal []
-            "Strasse and Straße".match_all "STRASSE" matcher=Text_Matcher.Case_Insensitive . should_equal ["Strasse", "Straße"]
+            "aaa aaa".locate "aa" mode=Matching_Mode.Last case_sensitivity=Case_Sensitivity.Sensitive . should_equal (Span.Value (5.up_to 7) "aaa aaa")
 
         Test.specify "should default to exact matching for locate but regex for match" <|
             txt = "aba[bc]adacae"
@@ -1232,131 +1242,133 @@ spec =
             txt.locate "a[bc]" . should_equal (Span.Value (2.up_to 7) txt)
             txt.locate_all "a[bc]" . should_equal [Span.Value (2.up_to 7) txt]
 
-            "ab".match "a[bc]" . should_equal "ab"
-            "a[bc]".match "a[bc]" . should_equal Nothing
-            "a[bc]".match_all "a[bc]" . should_equal []
+            check_span ("ab".find "a[bc]") (Span.Value (0.up_to 2) "ab")
+            "a[bc]".find "a[bc]" . should_equal Nothing
+            "a[bc]".find_all "a[bc]" . should_equal []
 
-            txt.match "a[bc]" . should_equal "ab"
-            txt.match_all "a[bc]" . should_equal ["ab", "ac"]
+            check_span (txt.find "a[bc]") (Span.Value (0.up_to 2) "aba[bc]adacae")
+            check_span_all (txt.find_all "a[bc]") [Span.Value (0.up_to 2) "aba[bc]adacae", Span.Value (9.up_to 11) "aba[bc]adacae"]
 
-    Test.group "Regex matching" <|
+    Test.group "Regex: find and find_all" <|
         Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".match "^My Text: (.+)$"
-            match.should_equal "My Text: Goes Here"
+            match = "My Text: Goes Here".find "^My Text: (.+)$"
+            check_span match (Span.Value (0.up_to 18) "My Text: Goes Here")
 
         Test.specify "should be possible on unicode text" <|
             txt = "maza건반zaa"
-            txt.match "^a..z$" . should_equal Nothing
-            txt.match "^m..a..z.a$" . should_equal txt
-            txt.match "a..z" . should_equal "a건반z"
-
-        Test.specify "should be possible in ascii mode" <|
-            match = "İ".match "\w" matcher=(Regex_Matcher.Value match_ascii=True)
-            match.should_equal Nothing
+            txt.find "^a..z$" . should_equal Nothing
+            check_span (txt.find "^m..a..z.a$") (Span.Value (0.up_to 9) txt)
+            check_span (txt.find "a..z") (Span.Value (3.up_to 7) txt)
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".match "my" matcher=(Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive)
-            match.should_equal "MY"
+            match = "MY".find "my" Case_Sensitivity.Insensitive
+            check_span match (Span.Value (0.up_to 2) "MY")
 
-        Test.specify "should be possible in dot_matches_newline mode" <|
-            match = 'Foo\n'.match "(....)" matcher=(Regex_Matcher.Value dot_matches_newline=True)
-            match.should_equal 'Foo\n'
+        Test.specify "should allow regexes in match" <|
+            hello = "Hello World!"
 
-        Test.specify "should be possible in multiline mode" <|
-            text = """
-                Foo
-                bar
-            match = text.match_all "^(...)$" matcher=(Regex_Matcher.Value multiline=True)
-            match.should_equal ["Foo", "bar"]
+            check_span (hello.find ".o" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 5) "Hello World!")
+            check_span_all (hello.find_all ".o") [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
 
-        Test.specify "should be possible in comments mode" <|
-            match = "abcde".match "(..) # Match two of any character" matcher=(Regex_Matcher.Value comments=True)
-            match.should_equal "ab"
+            check_span ("foobar".find "BAR" Case_Sensitivity.Insensitive) (Span.Value (3.up_to 6) "foobar")
 
-    Test.group "Text.is_match" <|
+            ## Regex matching does not do case folding
+            "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
+
+        Test.specify "should allow access to match groups by number" <|
+            "abcddd".find "ab(c(d+))" . group 0 . text . should_equal "abcddd"
+            "abcddd".find "ab(c(d+))" . group 1 . text . should_equal "cddd"
+            "abcddd".find "ab(c(d+))" . group 2 . text . should_equal "ddd"
+
+        Test.specify "should allow access to match groups by name" <|
+            "abcddd".find "ab(?<cee>c(d+))" . group "cee" . text . should_equal "cddd"
+
+        Test.specify "should throw No_Such_Group for an out-of-range group number" <|
+            "abcddd".find "ab(c(d+))" . group 3 . text . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group 12 . text . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . group (-1) . text . should_fail_with No_Such_Group
+
+        Test.specify "should throw No_Such_Group for an invalid group name" <|
+            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . text . should_fail_with No_Such_Group
+
+        Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
+            "abcddd".find "ab(c(d+))" . group "dee" . text . should_fail_with No_Such_Group
+
+        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
+            "abcddd".find "ab(c(((((((" . group 0 . text . should_fail_with Regex_Syntax_Error
+
+        Test.specify ".group should return Nothing if the group did not participate in the match" <|
+            match_c = "abc".find "ab((c)|(d))"
+            match_c.group 1 . text . should_equal "c"
+            match_c.group 2 . text . should_equal "c"
+            match_c.group 3 . should_equal Nothing
+            match_d = "abd".find "ab((c)|(d))"
+            match_d.group 1 . text . should_equal "d"
+            match_d.group 2 . should_equal Nothing
+            match_d.group 3 . text . should_equal "d"
+
+        Test.specify "should handle accents and other multi-point graphemes" <|
+            accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
+
+            # Check spans
+            check_span ((accents).find 'h') (Span.Value (3.up_to 4) accents)
+            check_span ((accents).find 'e\u{301}') (Span.Value (1.up_to 2) accents)
+            check_span_all ((accents).find_all 'h') [Span.Value (3.up_to 4) accents, Span.Value (5.up_to 6) accents]
+            check_span_all ((accents).find_all 'e\u{301}') [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
+
+            # Check contents to make sure the spans' ranges are ok
+            accents.find 'h' . group 0 . text . should_equal 'h'
+            accents.find 'e\u{301}' . group 0 . text . should_equal 'e\u{301}'
+
+        Test.specify "should expand a partial-grapheme match to the whole grapheme" <|
+            'e\u{301}'.find '\u{301}' . group 0 . text . should_equal 'e\u{301}'
+
+        Test.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
+            ## This test passed for the builtin Java regex library, using
+               Pattern.CANON_EQ, but since that option is buggy and rarely use,
+               we won't attempt to recreate it with Truffle regex. Instead,
+               expose normalization methods to allow developers to do it
+               themselves.
+            accents = 'a\u{301}e\u{301}o\u{301}'
+            check_span (accents.find accent_1) (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
+
+        Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
+            check_span_all ("abacadae".find_all "a[bc]") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
+            check_span_all ("abacadae".find_all "a.") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
+            check_span_all ("abacadae".find_all "a.*") [Span.Value (0.up_to 8) "abacadae"]
+            check_span_all ("abacadae".find_all "a.+?") [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
+
+    Test.group "Text.match" <|
         Test.specify "should default to regex" <|
-            "My Text: Goes Here".is_match "^My Text: (.+)$" . should_be_true
-            "555-801-1923".is_match "^\d{3}-\d{3}-\d{4}$" . should_be_true
-            "Hello".is_match "^[a-z]+$" . should_be_false
-            "Hello".is_match "^[a-z]+$" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
+            "My Text: Goes Here".match "^My Text: (.+)$" . should_be_true
+            "555-801-1923".match "^\d{3}-\d{3}-\d{4}$" . should_be_true
+            "Hello".match "^[a-z]+$" . should_be_false
+            "Hello".match "^[a-z]+$" Case_Sensitivity.Insensitive . should_be_true
 
         Test.specify "should only match whole input" <|
-            "Hello".is_match "[a-z]" . should_be_false
-            "x".is_match "[a-z]" . should_be_true
-
-        Test.specify "should allow Text_Matcher too" <|
-            "foobar".is_match "foobar" matcher=Text_Matcher.Case_Sensitive . should_be_true
-            "foobar".is_match "FOOBAR" matcher=Text_Matcher.Case_Sensitive . should_be_false
-            "foobar".is_match "foo.*" matcher=Text_Matcher.Case_Sensitive . should_be_false
-            "foobar".is_match "foo" matcher=Text_Matcher.Case_Sensitive . should_be_false
-
-            "foobar".is_match "foobar" matcher=Text_Matcher.Case_Insensitive . should_be_true
-            "foobar".is_match "FOOBAR" matcher=Text_Matcher.Case_Insensitive . should_be_true
-            "foobar".is_match "foo.*" matcher=Text_Matcher.Case_Insensitive . should_be_false
-            "foobar".is_match "foo" matcher=Text_Matcher.Case_Insensitive . should_be_false
+            "Hello".match "[a-z]" . should_be_false
+            "abcd".match "bcd" . should_be_false
+            "abcd".match "abc" . should_be_false
+            "x".match "[a-z]" . should_be_true
 
         Test.specify "should be possible on unicode text" <|
-            "Korean: 건반".is_match "^Korean: (.+)$" . should_be_true
-
-        Test.specify "should be possible in ascii mode" <|
-            "İ".is_match "\w" (Regex_Matcher.Value match_ascii=True) . should_be_false
+            "Korean: 건반".match "^Korean: (.+)$" . should_be_true
 
         Test.specify "should be possible in case-insensitive mode" <|
-            "MY".is_match "my" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
-
-        Test.specify "should be possible in dot_matches_newline mode" <|
-            'Foo\n'.is_match "(....)" (Regex_Matcher.Value  dot_matches_newline=True) . should_be_true
-
-        multiline_matches_message = """
-            This test does not make sense once we require matches to match the
-            whole string. The `multiline` parameter may not make sense for the
-            `matches` function. This should be revisited when Text library is
-            being redesigned.
-        Test.specify "should be possible in multiline mode" pending=multiline_matches_message <|
-            text = """
-                Foo
-                bar
-            text.is_match "^(...)$" (Regex_Matcher.Value  multiline=True) . should_be_true
-
-        Test.specify "should be possible in comments mode" <|
-            "abcde".is_match "(.....) # Match any five characters" (Regex_Matcher.Value  comments=True) . should_be_true
+            "MY".match "my" Case_Sensitivity.Insensitive . should_be_true
 
     Test.group "Regex finding" <|
         Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Matching_Mode.First
-            match . should_be_a Text
-            match . should_equal "My Text: Goes Here"
+            match = "My Text: Goes Here".find "^My Text: (.+)$"
+            check_span match (Span.Value (0.up_to 18) "My Text: Goes Here")
 
         Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반".match "^Korean: (.+)$" mode=Matching_Mode.First
-            match . should_be_a Text
-            match . should_equal "Korean: 건반"
-
-        Test.specify "should be possible in ascii mode" <|
-            match = "İ".match "\w" matcher=(Regex_Matcher.Value match_ascii=True)
-            match . should_equal Nothing
+            match = "Korean: 건반".find "^Korean: (.+)$"
+            check_span match (Span.Value (0.up_to 10) "Korean: 건반")
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".match "my" matcher=(Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive)
-            match . should_be_a Text
-            match . should_equal "MY"
-
-        Test.specify "should be possible in dot_matches_newline mode" <|
-            match = 'Foo\n'.match "(....)" matcher=(Regex_Matcher.Value dot_matches_newline=True)
-            match . should_be_a Text
-            match . should_equal 'Foo\n'
-
-        Test.specify "should be possible in multiline mode" <|
-            text = """
-                Foo
-                bar
-            match = text.match_all "^(...)$" matcher=(Regex_Matcher.Value multiline=True)
-            match . should_equal ["Foo", "bar"]
-
-        Test.specify "should be possible in comments mode" <|
-            match = "abcde".match "(..) # Match two of any character" matcher=(Regex_Matcher.Value comments=True)
-            match . should_be_a Text
-            match . should_equal "ab"
+            match = "MY".find "my" Case_Sensitivity.Insensitive
+            check_span match (Span.Value (0.up_to 2) "MY")
 
     Test.group "Regex splitting" <|
         Test.specify "should be possible on text" <|

@@ -132,7 +132,7 @@ impl Drop for Transaction {
                 urm.push_to(Stack::Undo, self.frame.borrow().clone());
                 urm.clear(Stack::Redo);
             } else {
-                info!(
+                debug!(
                     "Dropping the ignored transaction '{}' without pushing a frame to repository.",
                     self.name()
                 )

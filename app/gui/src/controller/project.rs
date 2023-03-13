@@ -12,7 +12,7 @@ use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -244,6 +244,19 @@ impl Project {
             Ok(())
         }
     }
+
+    /// Restores the state of the project to the last snapshot saved to the VCS.
+    #[profile(Detail)]
+    pub fn restore_project_snapshot(&self) -> impl Future<Output = FallibleResult> {
+        let project_root_id = self.model.project_content_root_id();
+        let path_segments: [&str; 0] = [];
+        let root_path = Path::new(project_root_id, &path_segments);
+        let language_server = self.model.json_rpc();
+        async move {
+            language_server.restore_vcs(&root_path, &None).await?;
+            Ok(())
+        }
+    }
 }
 
 
@@ -276,7 +289,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn adding_missing_main() {
         let _ctx = TestWithLocalPoolExecutor::set_up();
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let mut data = crate::test::mock::Unified::new();
         let module_name = data.module_path.module_name().to_owned();
         let main_ptr = main_method_ptr(data.project_name.clone(), &data.module_path);

@@ -10,13 +10,13 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Range.Extensions
 import project.Data.Text.Text
+import project.Error.Common.Incomparable_Values
 import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Common.No_Such_Method
 import project.Error.Common.Not_Found
 import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.Incomparable_Values.Incomparable_Values
 import project.Function.Function
 import project.Math
 import project.Nothing.Nothing
@@ -845,7 +845,8 @@ type Vector a
          elements, returning an Ordering to compare them.
 
        By default, elements are sorted in ascending order, using the comparator
-       `compare_to`. A custom comparator may be passed to the sort function.
+       acquired from each element. A custom compare function may be passed to
+       the sort method.
 
        This is a stable sort, meaning that items that compare the same will not
        have their order changed by the sorting process.
@@ -877,14 +878,14 @@ type Vector a
 
              [Pair 1 2, Pair -1 8].sort Sort_Direction.Descending (_.first)
     sort : Sort_Direction -> (Any -> Any) -> (Any -> Any -> Ordering) -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (_.compare_to _)) =
+    sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (Ordering.compare _ _)) =
         comp_ascending l r  = by (on l) (on r)
         comp_descending l r = by (on r) (on l)
         compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
-        Incomparable_Values.handle_errors <|
-            new_vec_arr = self.to_array.sort compare
+        new_vec_arr = self.to_array.sort compare
+        if new_vec_arr.is_error then Error.throw new_vec_arr else
             Vector.from_polyglot_array new_vec_arr
 
     ## UNSTABLE
@@ -911,25 +912,14 @@ type Vector a
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"]
     distinct : (Any -> Any) -> Vector Any
     distinct self (on = x->x) =
-        ## TODO [JD] This is based on the Map class until a HashMap is available.
-
-           Current implementation allows for a consistent distinct with the Enso `==` operator.
-           Using the Map, is less efficient than a HashMap based as requires searching the tree (O(Log N)).
-           A HashMap would allow for a O(1) operation to confirm if an item has been seen already.
-           There is no native HashMap within Enso at present, and the polyglot approach does not produce
-           consistent results with the `==` operator.
-
-           More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
-
-        Incomparable_Values.handle_errors <|
-            builder = Vector.new_builder
-            result = self.fold Map.empty existing->
-                item->
-                    key = on item
-                    if (existing.get key False) then existing else
-                        builder.append item
-                        existing.insert key True
-            if result.is_error then result else builder.to_vector
+        builder = Vector.new_builder
+        result = self.fold Map.empty existing->
+            item->
+                key = on item
+                if (existing.get key False) then existing else
+                    builder.append item
+                    existing.insert key True
+        if result.is_error then result else builder.to_vector
 
     ## UNSTABLE
        Returns the Vector as a Vector.
@@ -1033,12 +1023,13 @@ type Builder
              builder = Vector.new_builder
              builder . append_vector_range [20, 30, 40, 50] 1 3 . to_vector == [30, 40]
     append_vector_range : Vector Any ! Error -> Integer -> Integer -> Builder ! Error
-    append_vector_range self vector start end =
+    append_vector_range self vector start=0 end=vector.length =
         subrange = vector.slice start end
         ## This workaround is needed because
            `self.java_builder.addAll subrange.to_array` fails with
            `Unsupported argument types: [Array]`.
-        self.java_builder.appendTo subrange.to_array
+        append_result = self.java_builder.appendTo subrange.to_array
+        append_result.if_not_error self
 
     ## PRIVATE
        Appends a new element into this builder.

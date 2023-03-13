@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { path = "../language/ast/impl" }
+parser = { path = "../language/parser" }
 enso-config = { path = "../config" }
 enso-frp = { path = "../../../lib/rust/frp" }
 enso-prelude = { path = "../../../lib/rust/prelude" }
@@ -16,6 +17,7 @@ enso-shapely = { path = "../../../lib/rust/shapely" }
 engine-protocol = { path = "../controller/engine-protocol" }
 ensogl = { path = "../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../lib/rust/ensogl/component" }
+ensogl-derive-theme = { path = "../../../lib/rust/ensogl/app/theme/derive" }
 ensogl-gui-component = { path = "../../../lib/rust/ensogl/component/gui" }
 ensogl-text = { path = "../../../lib/rust/ensogl/component/text" }
 ensogl-text-msdf = { path = "../../../lib/rust/ensogl/component/text/src/font/msdf" }
@@ -23,7 +25,6 @@ ensogl-hardcoded-theme = { path = "../../../lib/rust/ensogl/app/theme/hardcoded"
 ide-view-component-browser = { path = "component-browser" }
 ide-view-documentation = { path = "documentation" }
 ide-view-graph-editor = { path = "graph-editor" }
-parser-scala = { path = "../language/parser" }
 span-tree = { path = "../language/span-tree" }
 js-sys = { workspace = true }
 multi-map = { workspace = true }

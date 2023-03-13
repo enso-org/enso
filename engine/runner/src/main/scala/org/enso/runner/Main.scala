@@ -11,7 +11,7 @@ import org.enso.languageserver.boot.{LanguageServerConfig, ProfilingConfig}
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
-import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
+import org.enso.polyglot.{HostEnsoUtils, LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 
@@ -710,7 +710,8 @@ object Main {
     val dropInitJava = fullStack.reverse
       .dropWhile(_.getLanguage.getId != LanguageInfo.ID)
       .reverse
-    println(s"Execution finished with an error: ${exception.getMessage}")
+    val msg: String = HostEnsoUtils.findExceptionMessage(exception)
+    println(s"Execution finished with an error: ${msg}")
     dropInitJava.foreach { frame =>
       val langId =
         if (frame.isHostFrame) "java" else frame.getLanguage.getId

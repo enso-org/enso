@@ -16,6 +16,7 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
@@ -156,8 +157,16 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
    * @param context the language context
    */
   @Override
+  @SuppressWarnings("unchecked")
   protected void initializeContext(EnsoContext context) {
     context.initialize();
+    var env = context.getEnvironment();
+    var preinit = env.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
+    if (preinit != null && preinit.length() > 0) {
+      var epb = env.getInternalLanguages().get(EpbLanguage.ID);
+      var run = env.lookup(epb, Consumer.class);
+      run.accept(preinit);
+    }
   }
 
   /**

@@ -28,6 +28,11 @@ public class NameDeduplicator {
       return this.invalidNameReplacement;
     }
 
+    if (input.indexOf('\0') >= 0) {
+      this.invalidNames.add(input);
+      return this.invalidNameReplacement;
+    }
+
     return input;
   }
 

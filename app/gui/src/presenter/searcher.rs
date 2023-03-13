@@ -346,6 +346,9 @@ impl Searcher {
 
             action_list_changed <- source::<()>();
             select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
+
+            eval_ model.view.toggle_component_browser_private_entries_visibility (
+                model.controller.reload_list());
         }
 
         match model.view.searcher() {
@@ -368,7 +371,10 @@ impl Searcher {
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
                     selected_entry_changed <- entry_selected.on_change().constant(());
-                    grid.unhover_element <+ selected_entry_changed;
+                    grid.unhover_element <+ any2(
+                        &selected_entry_changed,
+                        &model.view.toggle_component_browser_private_entries_visibility,
+                    );
                     hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
                         match (h, s) {
                             (Some(h), Some(s)) => h != s,
@@ -542,7 +548,7 @@ impl Searcher {
     /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
     /// editing finishes. The `entry_id` might be none in case where the searcher should accept
     /// the node input without any entry selected. If the commitment results in creating a new
-    /// node, its AST id is returned.
+    /// node, its AST ID is returned.
     #[profile(Task)]
     pub fn commit_editing(self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         self.model.commit_editing(entry_id)
@@ -553,7 +559,7 @@ impl Searcher {
     /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
     /// editing finishes. The `entry_id` might be none in case where the user want to accept
     /// the node input without any entry selected. If the commitment results in creating a new
-    /// node, its AST id is returned.
+    /// node, its AST ID is returned.
     pub fn expression_accepted(
         self,
         entry_id: Option<component_grid::GroupEntryId>,

@@ -98,7 +98,7 @@ impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for Action {
 
     fn get(&self, id: usize) -> Option<list_view::entry::GlyphHighlightedLabelModel> {
         let action = self.actions.get_cloned(id)?;
-        if let MatchInfo::Matches { subsequence } = action.match_info {
+        if let MatchInfo::Matches { subsequence, .. } = action.match_info {
             let label = action.action.to_string();
             let mut char_iter = label.char_indices().enumerate();
             let highlighted = subsequence
@@ -333,7 +333,7 @@ fn component_to_entry_model(component: &component::Component) -> component_grid:
 }
 
 fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Byte>> {
-    if let MatchInfo::Matches { subsequence } = match_info {
+    if let MatchInfo::Matches { subsequence, .. } = match_info {
         let mut char_iter = label.char_indices().enumerate();
         subsequence
             .indices

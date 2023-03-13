@@ -2,11 +2,14 @@ from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Sort_Column
+from Standard.Table import Sort_Column, Data_Formatter
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
-import Standard.Table.Data.Column_Type_Selection.Auto
-import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Internal.Java_Problems
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Internal.Widget_Helpers
+from Standard.Table.Data.Value_Type import Value_Type, Auto
+from Standard.Table.Errors import Floating_Point_Equality
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -19,6 +22,8 @@ import project.Internal.IR.Query.Query
 from project.Data.Table import Table, freshen_columns
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
+
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
 type Column
 
@@ -101,14 +106,12 @@ type Column
        implemented.
     value_type : Value_Type
     value_type self =
+        ## TODO This is a temporary implementation that should be revised once
+           types are implemented properly.
         if self.sql_type.is_definitely_boolean then Value_Type.Boolean else
             if self.sql_type.is_definitely_text then Value_Type.Char else
-                ## TODO we could return integers here too but then we should
-                   check how many bits there are - and this is out of scope for
-                   this prototype especially as the method for checking the type
-                   is likely to change so this code would likely be thrown away.
-                   So we just fall back to unsupported (abusing it slightly).
-                Value_Type.Unsupported_Data_Type self.sql_type.name
+                if self.sql_type.is_definitely_double then Value_Type.Float else
+                    Value_Type.Unsupported_Data_Type self.sql_type.name
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this column.
@@ -122,13 +125,14 @@ type Column
        - op_kind: The kind of the operation
        - operands: A vector of additional operation arguments (the column itself
          is always passed as the first argument).
+       - new_name: The name of the resulting column.
        - new_type: The type of the SQL column that results from applying the
          operator. If not specified, the type of this column is used.
        - operand_types: The SQL types of the additional arguments. They are used
          if additional arguments are constants (and if not provided, the type of
          this column is used). If the other argument is a column, its type is
          used.
-    make_op self op_kind operands new_type=Nothing operand_types=Nothing =
+    make_op self op_kind operands new_name new_type=Nothing operand_types=Nothing =
         prepare_operand operand operand_type = case operand of
             other_column : Column ->
                 if Helpers.check_integrity self other_column then other_column.expression else
@@ -142,7 +146,7 @@ type Column
 
         actual_new_type = new_type.if_nothing self.sql_type
         new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)
-        Column.Value self.name self.connection actual_new_type new_expr self.context
+        Column.Value new_name self.connection actual_new_type new_expr self.context
 
     ## PRIVATE
 
@@ -158,9 +162,11 @@ type Column
        If not specified, the `new_type` is the same as the current one.
        `operand_type` is only relevant if the operand is not a column, it
        defaults to the current type if not provided.
-    make_binary_op : Text -> Text -> (Column | Any) -> (SQL_Type | Nothing) -> (SQL_Type | Nothing) -> Column
-    make_binary_op self op_kind operand new_type=Nothing operand_type=Nothing =
-        self.make_op op_kind [operand] new_type [operand_type]
+    make_binary_op : Text -> Text -> (Column | Any) -> (SQL_Type | Nothing) -> (SQL_Type | Nothing) -> (Text | Nothing) -> Column
+    make_binary_op self op_kind operand new_name=Nothing new_type=Nothing operand_type=Nothing =
+        effective_new_name = new_name.if_nothing <|
+            self.naming_helpers.binary_operation_name op_kind self operand
+        self.make_op op_kind [operand] effective_new_name new_type [operand_type]
 
     ## PRIVATE
 
@@ -171,30 +177,7 @@ type Column
        - new_type: The type of the SQL column that results from applying the
          operator.
     make_unary_op : Text -> Text -> (SQL_Type | Nothing) -> Column
-    make_unary_op self op_kind new_type=Nothing = self.make_op op_kind [] new_type
-
-    ## UNSTABLE
-
-       Efficiently joins two tables based on either the index or a key column.
-
-       Arguments:
-       - other: the table being the right operand of this join operation.
-       - on: the column(s) or expression(s) of `self` that should be used as
-         the join key. If this argument is not provided, the index of `self`
-         will be used.
-       - drop_unmatched: whether the rows of `self` without corresponding
-         matches in `other` should be dropped from the result.
-       - left_suffix: a suffix that should be added to the columns of `self`
-         when there's a name conflict with a column of `other`.
-       - right_suffix: a suffix that should be added to the columns of `other`
-         when there's a name conflict with a column of `self`.
-
-       The resulting table contains rows of `self` extended with rows of
-       `other` with matching indexes. If the index in `other` is not unique,
-       the corresponding rows of `self` will be duplicated in the result.
-    join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
-    join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
-        self.to_table.join other on drop_unmatched left_suffix right_suffix
+    make_unary_op self op_kind new_name new_type=Nothing = self.make_op op_kind [] new_name new_type
 
     ## UNSTABLE
 
@@ -216,18 +199,38 @@ type Column
     count self =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
-    ## UNSTABLE
-
-       Element-wise equality comparison.
+    ## Element-wise equality comparison.
 
        Arguments:
-       - other: The other column to compare pairwise with.
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
-       `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `self` and `other`.
+       `other`.
+
+       ! Warnings
+
+         - If this operation results in comparing floating-point values for
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
+
+       > Example
+         Compare two columns for pairwise equality.
+
+             import Standard.Examples
+
+             example_eq = Examples.integer_column == Examples.decimal_column
+
+       > Example
+         Compare a column with a number.
+
+             import Standard.Examples
+
+             example_eq = Examples.integer_column == 1
     == : Column | Any -> Column
-    == self other = self.make_binary_op "=" other new_type=SQL_Type.boolean
+    == self other =
+        make_equality_check_with_floating_point_handling self other "=="
 
     ## Element-wise case-insensitive text equality comparison.
 
@@ -241,20 +244,41 @@ type Column
     equals_ignore_case : Column | Any -> Locale -> Column
     equals_ignore_case self other locale=Locale.default =
         Helpers.assume_default_locale locale <|
-            self.make_binary_op "equals_ignore_case" other new_type=SQL_Type.boolean
+            new_name = self.naming_helpers.function_name "equals_ignore_case" [self, other]
+            self.make_binary_op "equals_ignore_case" other new_name new_type=SQL_Type.boolean
 
-    ## UNSTABLE
-
-       Element-wise non-equality comparison.
+    ## Element-wise non-equality comparison.
 
        Arguments:
-       - other: The other column to compare pairwise with.
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
-       `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `self` and `other`.
+       `other`.
+
+       ! Warnings
+
+         - If this operation results in comparing floating-point values for
+           equality which is not recommended, a `Floating_Point_Equality`
+           warning is attached to the result.
+
+       > Example
+         Compare two columns for pairwise inequality.
+
+             import Standard.Examples
+
+             example_neq = Examples.integer_column != Examples.decimal_column
+
+       > Example
+         Compare a column with a number.
+
+             import Standard.Examples
+
+             example_neq = Examples.integer_column != 1
     != : Column | Any -> Column
-    != self other = self.make_binary_op "!=" other new_type=SQL_Type.boolean
+    != self other =
+        make_equality_check_with_floating_point_handling self other "!="
 
     ## UNSTABLE
 
@@ -322,7 +346,8 @@ type Column
        column fit between the lower and upper bounds (both ends inclusive).
     between : (Column | Any) -> (Column | Any) -> Column
     between self lower upper =
-        self.make_op "BETWEEN" [lower, upper] new_type=SQL_Type.boolean
+        new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
+        self.make_op "BETWEEN" [lower, upper] new_name new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -340,7 +365,10 @@ type Column
         op = case other of
             _ : Column -> if self.sql_type.is_definitely_numeric || other.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
             _ -> if self.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
-        self.make_binary_op op other
+        new_type = if op == 'ADD_TEXT' then self.sql_type else
+            SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
+        new_name = self.naming_helpers.binary_operation_name "+" self other
+        self.make_binary_op op other new_name new_type=new_type
 
     ## UNSTABLE
 
@@ -353,7 +381,9 @@ type Column
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
-    - self other = self.make_binary_op "-" other
+    - self other =
+        new_type = SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
+        self.make_binary_op "-" other new_type=new_type
 
     ## UNSTABLE
 
@@ -366,20 +396,43 @@ type Column
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
     * : Column | Any -> Column
-    * self other = self.make_binary_op "*" other
+    * self other =
+        new_type = SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
+        self.make_binary_op "*" other new_type=new_type
 
-    ## UNSTABLE
+    ## ALIAS Divide Columns
 
        Element-wise division.
 
        Arguments:
-       - other: The other column to divide `self` column by.
+       - other: The value to divide `self` by. If `other` is a column, the
+         division is performed pairwise between corresponding elements of `self`
+         and `other`.
 
        Returns a column containing the result of dividing each element of `self`
-       by `other`.  If `other` is a column, the operation is performed pairwise
-       between corresponding elements of `self` and `other`.
+       by `other`.
+
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
+
+       > Example
+         Divide the elements of one column by the elements of another.
+
+             import Standard.Examples
+
+             example_div = Examples.decimal_column / Examples.integer_column
+
+       > Example
+         Multiply each value in a column by a single value.
+
+             import Standard.Examples
+
+             example_div = Examples.integer_column / 10
     / : Column | Any -> Column
-    / self other = self.make_binary_op "/" other new_type=SQL_Type.double
+    / self other =
+        self.make_binary_op "/" other new_type=SQL_Type.double
 
     ## Element-wise modulus.
 
@@ -390,6 +443,11 @@ type Column
 
        Returns a column with results of modulus this column's elements against
        `other`.
+
+       ! Warnings
+
+         - If division by zero occurs, an `Arithmetic_Error` warning is attached
+           to the result.
 
        > Example
          Modulus of two columns against each other.
@@ -405,7 +463,11 @@ type Column
 
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
-    % self other = self.make_binary_op "%" other
+    % self other =
+        new_type = SQL_Type.merge_type self.sql_type (SQL_Type.approximate_type other)
+        op = if new_type == SQL_Type.integer then "%" else "mod"
+        new_name = self.naming_helpers.binary_operation_name "%" self other
+        self.make_binary_op op other new_name new_type=new_type
 
     ## ALIAS Power
 
@@ -433,7 +495,8 @@ type Column
 
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ : Column | Any -> Column
-    ^ self other = self.make_binary_op '^' other
+    ^ self other =
+        self.make_binary_op '^' other new_type=SQL_Type.double
 
     ## UNSTABLE
 
@@ -447,7 +510,9 @@ type Column
        operation is performed pairwise between corresponding elements of `self`
        and `other`.
     && : Column | Any -> Column
-    && self other = self.make_binary_op "AND" other
+    && self other =
+        new_name = self.naming_helpers.binary_operation_name "&&" self other
+        self.make_binary_op "AND" other new_name new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -461,13 +526,17 @@ type Column
        operation is performed pairwise between corresponding elements of `self`
        and `other`.
     || : Column | Any -> Column
-    || self other = self.make_binary_op "OR" other
+    || self other =
+        new_name = self.naming_helpers.binary_operation_name "||" self other
+        self.make_binary_op "OR" other new_name new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
        Boolean negation of each element in this column.
     not : Column
-    not self = self.make_unary_op "NOT"
+    not self =
+        new_name = "not " + self.naming_helpers.to_expression_text self
+        self.make_unary_op "NOT" new_name
 
     ## ALIAS IF
 
@@ -490,8 +559,11 @@ type Column
            common type.
         left_type = get_approximate_type when_true self.sql_type
         right_type = get_approximate_type when_false self.sql_type
-        if left_type != right_type then Error.throw (Illegal_Argument.Error "when_true and when_false types do not match") else
-            self.make_op "IIF" [when_true, when_false] new_type=left_type
+        new_type = SQL_Type.merge_type left_type right_type
+        new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
+
+        if new_type.is_error then Error.throw (Illegal_Argument.Error "when_true and when_false types do not match") else
+            self.make_op "IIF" [when_true, when_false] new_name new_type=new_type
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -508,8 +580,10 @@ type Column
     coalesce : (Any | Vector Any) -> Column
     coalesce self values = case values of
         _ : Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
-                self.make_op "COALESCE" values new_type=self.sql_type
+            fold_type = values.fold self.sql_type c->v-> SQL_Type.merge_type c (get_approximate_type v self.sql_type)
+            if fold_type.is_error then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
+                new_name = self.naming_helpers.function_name "coalesce" [self]+values
+                self.make_op "COALESCE" values new_name new_type=fold_type
         _ : Array -> self.coalesce (Vector.from_polyglot_array values)
         _ -> self.coalesce [values]
 
@@ -527,8 +601,10 @@ type Column
     min : (Any | Vector Any) -> Column
     min self values = case values of
         _ : Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
-                self.make_op "ROW_MIN" values new_type=self.sql_type
+            fold_type = values.fold self.sql_type c->v-> SQL_Type.merge_type c (get_approximate_type v self.sql_type)
+            if fold_type.is_error then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
+                new_name = self.naming_helpers.function_name "min" [self]+values
+                self.make_op "ROW_MIN" values new_name new_type=fold_type
         _ : Array -> self.min (Vector.from_polyglot_array values)
         _ -> self.min [values]
 
@@ -546,8 +622,10 @@ type Column
     max : (Any | Vector Any) -> Column
     max self values = case values of
         _ : Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
-                self.make_op "ROW_MAX" values new_type=self.sql_type
+            fold_type = values.fold self.sql_type c->v-> SQL_Type.merge_type c (get_approximate_type v self.sql_type)
+            if fold_type.is_error then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
+                new_name = self.naming_helpers.function_name "max" [self]+values
+                self.make_op "ROW_MAX" values new_name new_type=fold_type
         _ : Array -> self.max (Vector.from_polyglot_array values)
         _ -> self.max [values]
 
@@ -555,20 +633,26 @@ type Column
 
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
-    is_missing : Column
-    is_missing self = self.make_unary_op "IS_NULL" new_type=SQL_Type.boolean
+    is_nothing : Column
+    is_nothing self =
+        new_name = self.naming_helpers.to_expression_text self + " is null"
+        self.make_unary_op "IS_NULL" new_name new_type=SQL_Type.boolean
 
     ## UNSTABLE
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self = self.make_unary_op "IS_NAN" new_type=SQL_Type.boolean
+    is_nan self =
+        new_name = self.naming_helpers.function_name "is_nan" [self]
+        self.make_unary_op "IS_NAN" new_name new_type=SQL_Type.boolean
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty : Column
-    is_empty self = self.make_unary_op "IS_EMPTY" new_type=SQL_Type.boolean
+    is_empty self =
+        new_name = self.naming_helpers.to_expression_text self + " is empty"
+        self.make_unary_op "IS_EMPTY" new_name new_type=SQL_Type.boolean
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
@@ -580,7 +664,9 @@ type Column
 
              example_is_present = Examples.decimal_column.is_present
     is_present : Column
-    is_present self = self.is_missing.not
+    is_present self =
+        new_name = self.naming_helpers.function_name "is_present" [self]
+        self.is_nothing.not . rename new_name
 
     ## PRIVATE
        Returns a column of booleans with `True` at the positions where this
@@ -594,29 +680,54 @@ type Column
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     is_blank : Boolean -> Boolean -> Column
     is_blank self treat_nans_as_blank=False =
+        new_name = self.naming_helpers.function_name "is_blank" [self]
         is_blank = case self.sql_type.is_definitely_text of
             True -> self.is_empty
-            False -> self.is_missing
-        case treat_nans_as_blank && self.sql_type.is_definitely_double of
+            False -> self.is_nothing
+        result = case treat_nans_as_blank && self.sql_type.is_definitely_double of
             True -> is_blank || self.is_nan
             False -> is_blank
+        result.rename new_name
 
     ## UNSTABLE
 
        Returns a new column where missing values have been replaced with the
        provided default.
-    fill_missing : Any -> Column
-    fill_missing self default = self.make_binary_op "FILL_NULL" default
+    fill_nothing : Any -> Column
+    fill_nothing self default =
+        new_name = self.naming_helpers.function_name "fill_nothing" [self, default]
+        self.make_binary_op "FILL_NULL" default new_name
 
-    ## UNSTABLE
+    ## ALIAS Fill Empty
 
-       Returns the same column with changed name.
+       Returns a new column where empty Text values have been replaced with the
+       provided default.
 
        Arguments:
-       - new_name: The name to rename `self` column to.
-    rename : Text -> Column ! Unsupported_Name
-    rename self new_name = Helpers.ensure_name_is_sane new_name <|
-        Column.Value new_name self.connection self.sql_type self.expression self.context
+       - default: The value to replace missing values with. If this argument
+         is a column, the value from `default` at the corresponding position
+         will be used.
+    fill_empty : Column | Any -> Column
+    fill_empty self default =
+        new_name = self.naming_helpers.function_name "fill_empty" [self, default]
+        result = self.is_empty.iif default self
+        result.rename new_name
+
+    ## Returns a new column, containing the same elements as `self`, but with
+       the given name.
+
+       Arguments:
+       - name: The new name for the column.
+
+       > Example
+         Rename a column.
+
+             import Standard.Examples
+
+             example_rename = Examples.integer_column.rename "My Numbers"
+    rename : Text -> Column ! Illegal_Argument
+    rename self name = self.naming_helpers.ensure_name_is_valid name <|
+        Column.Value name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
 
@@ -679,7 +790,8 @@ type Column
        on these missing values is vendor specific.
     starts_with : Column | Text -> Case_Sensitivity -> Column
     starts_with self other case_sensitivity=Case_Sensitivity.Default =
-        make_text_case_op self "starts_with" other case_sensitivity
+        new_name = self.naming_helpers.function_name "starts_with" [self, other]
+        make_text_case_op self "starts_with" other case_sensitivity new_name
 
     ## UNSTABLE
 
@@ -696,7 +808,8 @@ type Column
        on these missing values is vendor specific.
     ends_with : Column | Text -> Case_Sensitivity -> Column
     ends_with self other case_sensitivity=Case_Sensitivity.Default =
-        make_text_case_op self "ends_with" other case_sensitivity
+        new_name = self.naming_helpers.function_name "ends_with" [self, other]
+        make_text_case_op self "ends_with" other case_sensitivity new_name
 
     ## UNSTABLE
 
@@ -713,7 +826,8 @@ type Column
        on these missing values is vendor specific.
     contains : Column | Text -> Case_Sensitivity -> Column
     contains self other case_sensitivity=Case_Sensitivity.Default =
-        make_text_case_op self "contains" other case_sensitivity
+        new_name = self.naming_helpers.function_name "contains" [self, other]
+        make_text_case_op self "contains" other case_sensitivity new_name
 
     ## Checks for each element of the column if it matches an SQL-like pattern.
 
@@ -731,7 +845,9 @@ type Column
 
              example_contains = Examples.text_column_1.like "F%."
     like : Column | Text -> Column
-    like self pattern = self.make_binary_op "LIKE" pattern new_type=SQL_Type.boolean
+    like self pattern =
+        new_name = self.naming_helpers.binary_operation_name "like" self pattern
+        self.make_binary_op "LIKE" pattern new_name new_type=SQL_Type.boolean
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
@@ -748,85 +864,107 @@ type Column
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in : Column | Vector -> Column
-    is_in self vector = case vector of
-        _ : Vector ->
-            ## This is slightly hacky - we don't provide operand types as we want to
-               allow any type to get through and currently we do not have a mapping
-               from Enso types to SQL types (it may be available in the future). So
-               we just rely on Nothing resolving to the current column type. That
-               type may not always match the operands, but the current
-               implementation uses this type only for two purposes: generated SQL
-               visualization (so the color will be consistent with the column type
-               and not the value type - that can be confusing, we probably want to
-               fix it later) and setting up the query - but at the set up this only
-               applies to adding nulls - setting any other object does not check the
-               type at this level anyway.
-            partitioned = vector.partition .is_nothing
-            nulls = partitioned.first
-            non_nulls = partitioned.second
-            ## Since SQL `NULL IN (NULL)` yields `NULL`, we need to handle this case
-               separately. So we handle all non-null values using `IS_IN` and then
-               `OR` that with a null check (if the vector contained any nulls to
-               begin with). The implementation also ensures that even
-               `NULL IN (...)` is coalesced to False, so that negation works as
-               expected.
-            is_in_not_null = self.make_op "IS_IN" operands=non_nulls new_type=SQL_Type.boolean
-            case nulls.not_empty of
-                True -> is_in_not_null || self.is_missing
-                False -> is_in_not_null
-        _ : Array -> self.is_in (Vector.from_polyglot_array vector)
-        column : Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
-            ## We slightly abuse the expression syntax putting a Query as one of
-               the sub-expressions. Once type-checking is added, we may need to
-               amend the signature of `SQL_Expression.Operation` to account for
-               this. Also, unfortunately as `NULL IN (...)` is `NULL` in SQL, we
-               need to do separate handling of nulls - we check if the target
-               column has any nulls and if so, we will do `IS NULL` checks for
-               our columns too. That is because, we want the containment check
-               for `NULL` to work the same way as for any other value.
-            in_subquery = Query.Select [Pair.new column.name column.expression] column.context
-            has_nulls_expression = SQL_Expression.Operation "BOOL_OR" [column.is_missing.expression]
-            has_nulls_subquery = Query.Select [Pair.new "has_nulls" has_nulls_expression] column.context
-            new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
-            Column.Value self.name self.connection SQL_Type.boolean new_expr self.context
+    is_in self vector =
+        new_name = self.naming_helpers.binary_operation_name "in" self vector
+        case vector of
+            _ : Vector ->
+                ## This is slightly hacky - we don't provide operand types as we want to
+                   allow any type to get through and currently we do not have a mapping
+                   from Enso types to SQL types (it may be available in the future). So
+                   we just rely on Nothing resolving to the current column type. That
+                   type may not always match the operands, but the current
+                   implementation uses this type only for two purposes: generated SQL
+                   visualization (so the color will be consistent with the column type
+                   and not the value type - that can be confusing, we probably want to
+                   fix it later) and setting up the query - but at the set up this only
+                   applies to adding nulls - setting any other object does not check the
+                   type at this level anyway.
+                partitioned = vector.partition .is_nothing
+                nulls = partitioned.first
+                non_nulls = partitioned.second
+                ## Since SQL `NULL IN (NULL)` yields `NULL`, we need to handle this case
+                   separately. So we handle all non-null values using `IS_IN` and then
+                   `OR` that with a null check (if the vector contained any nulls to
+                   begin with). The implementation also ensures that even
+                   `NULL IN (...)` is coalesced to False, so that negation works as
+                   expected.
+                is_in_not_null = self.make_op "IS_IN" operands=non_nulls new_name=new_name new_type=SQL_Type.boolean
+                result = case nulls.not_empty of
+                    True -> is_in_not_null || self.is_nothing
+                    False -> is_in_not_null
+                result.rename new_name
+            _ : Array -> self.is_in (Vector.from_polyglot_array vector)
+            column : Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
+                ## We slightly abuse the expression syntax putting a Query as one of
+                   the sub-expressions. Once type-checking is added, we may need to
+                   amend the signature of `SQL_Expression.Operation` to account for
+                   this. Also, unfortunately as `NULL IN (...)` is `NULL` in SQL, we
+                   need to do separate handling of nulls - we check if the target
+                   column has any nulls and if so, we will do `IS NULL` checks for
+                   our columns too. That is because, we want the containment check
+                   for `NULL` to work the same way as for any other value.
+                in_subquery = Query.Select [Pair.new column.name column.expression] column.context
+                has_nulls_expression = SQL_Expression.Operation "BOOL_OR" [column.is_nothing.expression]
+                has_nulls_subquery = Query.Select [Pair.new "has_nulls" has_nulls_expression] column.context
+                new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
+                Column.Value new_name self.connection SQL_Type.boolean new_expr self.context
 
-    ## Parses a text column into values
-
-       Arguments:
-       - type: Target type to parse the value to.
-         If `Auto`, will attempt to deduce the type automatically.
-       - format: For date/time types, the format to parse the value with.
-         For boolean types, two values that represent true and false separated
-         by `|`.
-       - on_problems: What to do if the value cannot be parsed.
-         By default, an `Invalid_Format` warning is attached and the value is
-         set to `Nothing`.
-
-       > Example
-         Parse dates in a column in the format `yyyy-MM-dd` (the default format).
-
-             import Standard.Examples
-
-             example_contains = Examples.text_column_1.parse Date
-
-       > Example
-         Parse dates in a column in the format `dd/MM/yyyy`
-
-             import Standard.Examples
-
-             example_contains = Examples.text_column_1.parse Date 'dd/MM/yyyy'
-
-       > Example
-         Parse a Yes/No column into a boolean column.
-
-             import Standard.Examples
-
-             example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
-    @type (Single_Choice ['Auto','Integer','Decimal','Date','Date_Time','Time_Of_Day','Boolean'] display=Display.Always)
-    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Nothing -> Problem_Behavior -> Column
-    parse self type=Auto format=Nothing on_problems=Report_Warning =
+    ## Parsing values is not supported in database columns.
+    @type Widget_Helpers.parse_type_selector
+    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
         _ = [type, format, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
+
+    ## ALIAS Transform Column
+
+       Applies `function` to each item in this column and returns the column
+       of results.
+
+       Arguments:
+       - function: The function to apply to each element of `self` column.
+       - on_missing: The value to return for missing cells. Ideally it should be
+         replaced with a `skip_nulls` parameter like elsewhere, but currently
+         that is not possible due to a bug:
+         https://github.com/oracle/graal/issues/4741
+
+       > Example
+         Multiply each element of the column by itself.
+
+             import Standard.Examples
+
+             example_map = Examples.integer_column.map (x -> x * x)
+    map : (Any -> Any) -> Column
+    map self function on_missing=Nothing =
+        _ = [function, on_missing]
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.map` is not supported in the Database backends."
+
+    ## ALIAS Transform Columns
+
+       Applies `function` to consecutive pairs of elements of `self` and `that`
+       and returns a column of results.
+
+       Arguments:
+       - that: The column to zip with `self`.
+       - function: A binary function that is applied to corresponding pairs of
+         elements of `self` and `that` to produce a value.
+       - skip_missing: controls whether missing values should be passed to the
+         `function`. The default value of `True` will skip the rows for which
+         the value in either column is missing and automatically append
+         `Nothing` to the result table. If set to `False`, every pair of values
+         is passed to `function`.
+
+       > Example
+         Zip two columns together as pairs.
+
+             import Standard.Examples
+
+             example_zip =
+                Examples.integer_column.zip Examples.text_column_1 [_, _]
+    zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
+    zip self that function skip_missing=True =
+        _ = [that, function, skip_missing]
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.zip` is not supported in the Database backends."
 
     ## PRIVATE
     as_internal : Internal_Column
@@ -835,6 +973,9 @@ type Column
     ## Provides a simplified text representation for display in the REPL and errors.
     to_text : Text
     to_text self = "(Database Column "+self.name.to_text+")"
+
+    ## PRIVATE
+    naming_helpers self = self.connection.dialect.get_naming_helpers
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
@@ -850,12 +991,37 @@ get_approximate_type value default = case value of
 
 ## PRIVATE
    Helper for case case_sensitivity based text operations
-make_text_case_op left op other case_sensitivity =
-    Value_Type.expect_text left.value_type <| case case_sensitivity of
+make_text_case_op left op other case_sensitivity new_name =
+    result = Value_Type.expect_text left.value_type <| case case_sensitivity of
         Case_Sensitivity.Default -> left.make_binary_op op other new_type=SQL_Type.boolean
         Case_Sensitivity.Sensitive ->
-            cs_other = if other.is_a Column then other.make_unary_op "MAKE_CASE_SENSITIVE" else other
-            left.make_unary_op "MAKE_CASE_SENSITIVE" . make_binary_op op cs_other new_type=SQL_Type.boolean
+            make_sensitive column =
+                column.make_unary_op "MAKE_CASE_SENSITIVE" "MAKE_CASE_SENSITIVE"
+            cs_other = if other.is_a Column then make_sensitive other else other
+            (make_sensitive left) . make_binary_op op cs_other new_type=SQL_Type.boolean
         Case_Sensitivity.Insensitive locale -> Helpers.assume_default_locale locale <|
-            ci_other = if other.is_a Column then other.make_unary_op "FOLD_CASE" else other.to_case Case.Lower
-            left.make_unary_op "FOLD_CASE" . make_binary_op op ci_other new_type=SQL_Type.boolean
+            fold_case column =
+                column.make_unary_op "FOLD_CASE" "FOLD_CASE"
+            ci_other = if other.is_a Column then fold_case other else other.to_case Case.Lower
+            (fold_case left) . make_binary_op op ci_other new_type=SQL_Type.boolean
+    result.rename new_name
+
+## PRIVATE
+make_equality_check_with_floating_point_handling column other op =
+    other_name = case other of
+        other_column : Column -> "["+other_column.name+"]"
+        _ -> other.to_text
+    location = "["+column.name+"] "+op+" "+other_name
+    problem_builder = MapOperationProblemBuilder.new location
+    if column.value_type.is_floating_point then
+        problem_builder.reportFloatingPointEquality -1
+    case other of
+        other_column : Column ->
+            if other_column.value_type.is_floating_point then
+                problem_builder.reportFloatingPointEquality -1
+        _ : Decimal ->
+            problem_builder.reportFloatingPointEquality -1
+        _ -> Nothing
+    result = column.make_binary_op op other new_type=SQL_Type.boolean
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems

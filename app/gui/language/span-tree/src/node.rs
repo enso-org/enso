@@ -7,8 +7,8 @@ use enso_text::unit::*;
 use crate::iter::LeafIterator;
 use crate::iter::TreeFragment;
 use crate::ArgumentInfo;
+use crate::SpanTree;
 
-use ast::crumbs::IntoCrumbs;
 use enso_text as text;
 
 
@@ -36,11 +36,12 @@ pub trait Payload = Default + Clone;
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Node<T> {
-    pub kind:     Kind,
-    pub size:     ByteDiff,
-    pub children: Vec<Child<T>>,
-    pub ast_id:   Option<ast::Id>,
-    pub payload:  T,
+    pub kind:          Kind,
+    pub size:          ByteDiff,
+    pub children:      Vec<Child<T>>,
+    pub ast_id:        Option<ast::Id>,
+    pub parenthesized: bool,
+    pub payload:       T,
 }
 
 impl<T> Deref for Node<T> {
@@ -59,42 +60,32 @@ impl<T> DerefMut for Node<T> {
 
 // === API ===
 
-impl<T: Payload> Node<T> {
+impl<T> Node<T> {
     /// Constructor.
-    pub fn new() -> Self {
+    pub fn new() -> Self
+    where T: Default {
         default()
-    }
-
-    /// Define a new child by using the `ChildBuilder` pattern. Consumes self.
-    pub fn new_child(mut self, f: impl FnOnce(ChildBuilder<T>) -> ChildBuilder<T>) -> Self {
-        ChildBuilder::apply_to_node(&mut self, f);
-        self
     }
 
     /// Payload mapping utility.
     pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Node<S> {
         let kind = self.kind;
+        let parenthesized = self.parenthesized;
         let size = self.size;
         let children = self.children.into_iter().map(|t| t.map(f)).collect_vec();
         let ast_id = self.ast_id;
         let payload = f(self.payload);
-        Node { kind, size, children, ast_id, payload }
+        Node { kind, parenthesized, size, children, ast_id, payload }
     }
 }
 
 // === Kind utils ===
 
 #[allow(missing_docs)]
-impl<T: Payload> Node<T> {
-    // FIXME[WD]: This is a hack, which just checks token placement, not a real solution.
-    /// Check whether the node is a parensed expression.
-    pub fn is_parensed(&self) -> bool {
-        let check = |t: Option<&Child<T>>| {
-            t.map(|t| t.kind == Kind::Token && t.size.value == 1) == Some(true)
-        };
-        check(self.children.first()) && check(self.children.last()) && self.children.len() == 3
+impl<T> Node<T> {
+    pub fn parenthesized(&self) -> bool {
+        self.parenthesized
     }
-
     pub fn is_root(&self) -> bool {
         self.kind.is_root()
     }
@@ -110,6 +101,9 @@ impl<T: Payload> Node<T> {
     pub fn is_argument(&self) -> bool {
         self.kind.is_argument()
     }
+    pub fn is_named_argument(&self) -> bool {
+        self.kind.is_named_argument()
+    }
     pub fn is_token(&self) -> bool {
         self.kind.is_token()
     }
@@ -122,6 +116,9 @@ impl<T: Payload> Node<T> {
     pub fn is_expected_argument(&self) -> bool {
         self.kind.is_expected_argument()
     }
+    pub fn is_function_parameter(&self) -> bool {
+        self.kind.is_function_parameter()
+    }
 }
 
 
@@ -129,8 +126,8 @@ impl<T: Payload> Node<T> {
 
 #[allow(missing_docs)]
 impl<T> Node<T> {
-    pub fn with_kind(mut self, k: impl Into<Kind>) -> Self {
-        self.kind = k.into();
+    pub fn with_kind(mut self, kind: impl Into<Kind>) -> Self {
+        self.kind = kind.into();
         self
     }
     pub fn with_size(mut self, size: ByteDiff) -> Self {
@@ -156,7 +153,7 @@ impl<T> Node<T> {
 
 #[allow(missing_docs)]
 impl<T> Node<T> {
-    pub fn name(&self) -> Option<&String> {
+    pub fn name(&self) -> Option<&str> {
         self.kind.name()
     }
     pub fn tp(&self) -> Option<&String> {
@@ -165,8 +162,11 @@ impl<T> Node<T> {
     pub fn argument_info(&self) -> Option<ArgumentInfo> {
         self.kind.argument_info()
     }
-    pub fn set_argument_info(&mut self, i: ArgumentInfo) {
-        self.kind.set_argument_info(i);
+    pub fn set_argument_info(&mut self, info: ArgumentInfo) {
+        self.kind.set_argument_info(info);
+    }
+    pub fn set_definition_index(&mut self, definition_index: usize) {
+        self.kind.set_definition_index(definition_index);
     }
 }
 
@@ -188,7 +188,7 @@ pub struct Child<T = ()> {
     pub ast_crumbs: ast::Crumbs,
 }
 
-impl<T: Payload> Child<T> {
+impl<T> Child<T> {
     /// Payload mapping utility.
     pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Child<S> {
         let node = self.node.map(f);
@@ -208,116 +208,6 @@ impl<T> Deref for Child<T> {
 impl<T> DerefMut for Child<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.node
-    }
-}
-
-
-
-// ====================
-// === ChildBuilder ===
-// ====================
-
-/// A builder pattern for `SpanTree`. A think wrapper for `Child` which adds useful methods for
-/// building properties of the current node.
-///
-/// This builder exposes two main functions - `new_child`, and `add_child`. The former provides a
-/// nice, user-friendly interface for building a `SpanTree`, while the later provides a very
-/// explicit argument setting interface meant for building `SpanTree` for shape testing purposes.
-#[derive(Debug)]
-#[allow(missing_docs)]
-pub struct ChildBuilder<T = ()> {
-    pub child: Child<T>,
-}
-
-impl<T> Deref for ChildBuilder<T> {
-    type Target = Child<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.child
-    }
-}
-
-impl<T> DerefMut for ChildBuilder<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.child
-    }
-}
-
-impl<T: Payload> ChildBuilder<T> {
-    /// Constructor.
-    pub fn new(child: Child<T>) -> Self {
-        Self { child }
-    }
-
-    /// Add new child and use the `ChildBuilder` pattern to define its properties. This is a smart
-    /// child constructor. This function will automatically compute all not provided properties,
-    /// such as span or offset. Moreover, it will default all other not provided fields.
-    pub fn new_child(mut self, f: impl FnOnce(Self) -> Self) -> Self {
-        Self::apply_to_node(&mut self.node, f);
-        self
-    }
-
-    /// Define a new child by using the `ChildBuilder` pattern.
-    fn apply_to_node(node: &mut Node<T>, f: impl FnOnce(ChildBuilder<T>) -> ChildBuilder<T>) {
-        let mut new_child = Child::default();
-        let offset = node.size;
-        new_child.offset = offset;
-        let builder = ChildBuilder::new(new_child);
-        let child = f(builder).child;
-        let offset_diff = child.offset - offset;
-        node.size = node.size + child.size + offset_diff;
-        node.children.push(child);
-    }
-
-    /// Add new child and use the `ChildBuilder` pattern to define its properties. This function
-    /// accepts explicit list of arguments and disables all automatic computation of spans and
-    /// offsets. It is useful for testing purposes.
-    pub fn add_child(
-        mut self,
-        offset: usize,
-        size: usize,
-        kind: Kind,
-        crumbs: impl IntoCrumbs,
-        f: impl FnOnce(Self) -> Self,
-    ) -> Self {
-        let child: ChildBuilder<T> = ChildBuilder::new(default());
-        let child = f(child.offset(offset.into()).size(size.into()).kind(kind).crumbs(crumbs));
-        self.node.children.push(child.child);
-        self
-    }
-
-    /// Offset setter.
-    pub fn offset(mut self, offset: ByteDiff) -> Self {
-        self.offset = offset;
-        self
-    }
-
-    /// Crumbs setter.
-    pub fn crumbs(mut self, crumbs: impl IntoCrumbs) -> Self {
-        self.ast_crumbs = crumbs.into_crumbs();
-        self
-    }
-
-    /// Kind setter.
-    pub fn kind(mut self, kind: impl Into<Kind>) -> Self {
-        self.node.kind = kind.into();
-        self
-    }
-
-    /// Size setter.
-    pub fn size(mut self, size: ByteDiff) -> Self {
-        self.node.size = size;
-        self
-    }
-
-    /// Expression ID setter.
-    pub fn ast_id(mut self, id: ast::Id) -> Self {
-        self.node.ast_id = Some(id);
-        self
-    }
-
-    /// Expression ID generator.
-    pub fn new_ast_id(self) -> Self {
-        self.ast_id(ast::Id::new_v4())
     }
 }
 
@@ -425,8 +315,11 @@ impl InvalidCrumb {
 // ===========
 
 /// A reference to node inside some specific tree.
-#[derive(Clone, Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
 pub struct Ref<'a, T = ()> {
+    /// The span tree that the node is a part of.
+    pub span_tree:   &'a SpanTree<T>,
     /// The node's ref.
     pub node:        &'a Node<T>,
     /// Span begin's offset counted from the root expression.
@@ -446,13 +339,14 @@ pub struct NodeFoundByAstCrumbs<'a, 'b, T = ()> {
     pub ast_crumbs: &'b [ast::Crumb],
 }
 
-impl<'a, T: Payload> Ref<'a, T> {
+impl<'a, T> Ref<'a, T> {
     /// Constructor.
-    pub fn new(node: &'a Node<T>) -> Self {
+    pub fn root(span_tree: &'a SpanTree<T>) -> Self {
         let span_offset = default();
         let crumbs = default();
         let ast_crumbs = default();
-        Self { node, span_offset, crumbs, ast_crumbs }
+        let node = &span_tree.root;
+        Self { span_tree, node, span_offset, crumbs, ast_crumbs }
     }
 
     /// Get span of current node.
@@ -464,27 +358,33 @@ impl<'a, T: Payload> Ref<'a, T> {
 
     /// Get the reference to child with given index. Fails if index if out of bounds.
     pub fn child(self, index: usize) -> FallibleResult<Self> {
-        let node = self.node;
-        let crumbs = self.crumbs;
-        let mut span_offset = self.span_offset;
-        let mut ast_crumbs = self.ast_crumbs;
-        let count = node.children.len();
+        let Ref { span_tree, node, mut span_offset, crumbs, mut ast_crumbs } = self;
 
         match node.children.get(index) {
-            None => Err(InvalidCrumb::new(count, index, &crumbs).into()),
+            None => Err(InvalidCrumb::new(node.children.len(), index, &crumbs).into()),
             Some(child) => {
                 let node = &child.node;
                 span_offset += child.offset;
                 let crumbs = crumbs.into_sub(index);
-                ast_crumbs.extend(child.ast_crumbs.iter().cloned());
-                Ok(Self { node, span_offset, crumbs, ast_crumbs })
+                ast_crumbs.extend_from_slice(&child.ast_crumbs);
+                Ok(Self { span_tree, node, span_offset, crumbs, ast_crumbs })
             }
         }
     }
 
+    /// Get the reference to parent of this node. Returns `None` when this is a root. Note that this
+    /// is a potentially expensive operation, as it traverses the tree towards the parent starting
+    /// from the root node.
+    pub fn parent(&self) -> FallibleResult<Option<Self>> {
+        match self.crumbs.split_last() {
+            Some((_, parent_crumbs)) =>
+                Ok(Some(self.span_tree.root_ref().get_descendant(parent_crumbs)?)),
+            None => Ok(None),
+        }
+    }
+
     /// Iterator over all direct children producing `Ref`s.
-    pub fn children_iter(self) -> impl Iterator<Item = Ref<'a, T>>
-    where T: Clone {
+    pub fn children_iter(self) -> impl DoubleEndedIterator<Item = Ref<'a, T>> {
         let children_count = self.node.children.len();
         (0..children_count).map(move |i| self.clone().child(i).unwrap())
     }
@@ -511,10 +411,16 @@ impl<'a, T: Payload> Ref<'a, T> {
         self,
         crumbs: impl IntoIterator<Item = &'b Crumb>,
     ) -> FallibleResult<Ref<'a, T>> {
-        let mut iter = crumbs.into_iter();
-        match iter.next() {
-            Some(index) => self.child(*index).and_then(|child| child.get_descendant(iter)),
-            None => Ok(self),
+        crumbs.into_iter().try_fold(self, |node, crumb| node.child(*crumb))
+    }
+
+    /// Get the reference to last child of this node. Returns `None` when this node has no children.
+    pub fn last_child(self) -> Option<Self> {
+        if self.node.children.is_empty() {
+            None
+        } else {
+            let index = self.node.children.len() - 1;
+            Some(self.child(index).expect("Index was already checked to be in bounds."))
         }
     }
 
@@ -542,7 +448,7 @@ impl<'a, T: Payload> Ref<'a, T> {
                     !ch.ast_crumbs.is_empty() && ast_crumbs.starts_with(&ch.ast_crumbs)
                 })
                 .or_else(|| {
-                    // We try to find appriopriate node second time, this time expecting case of
+                    // We try to find appropriate node second time, this time expecting case of
                     // "prefix-like" nodes with `InsertionPoint(ExpectedArgument(_))`. See also docs
                     // for `generate::generate_expected_argument`.
                     // TODO[ao]: As implementation of SpanTree will extend there may be some day
@@ -558,7 +464,7 @@ impl<'a, T: Payload> Ref<'a, T> {
         }
     }
 
-    /// Get the node which exactly matches the given Span. If there many such node's, it pick first
+    /// Get the node which exactly matches the given Span. If there are many such nodes, pick first
     /// found by DFS.
     pub fn find_by_span(self, span: &text::Range<Byte>) -> Option<Ref<'a, T>> {
         if self.span() == *span {
@@ -580,7 +486,7 @@ impl<'a, T> Deref for Ref<'a, T> {
 
 // === Specialized Iterators ===
 
-impl<'a, T: Payload> Ref<'a, T> {
+impl<'a, T> Ref<'a, T> {
     /// Perform a depth-first-search algorithm on the `SpanTree`. The order of the layers will be
     /// preserved - after all children of a node will be traversed, the next node sibling will be
     /// traversed and then it's children.
@@ -630,9 +536,22 @@ impl<'a, T: Payload> Ref<'a, T> {
     }
 
     /// Perform a full (traverse all nodes) depth-first-search algorithm on the `SpanTree`. Just
-    /// like `dfs`, but without data attached.
+    /// like `dfs_with_layer_data`, but without data attached.
     pub fn dfs(self, mut on_node: impl FnMut(&mut Self)) {
         self.partial_dfs_with_layer_data((), |t, _| (true, on_node(t)))
+    }
+
+    /// Perform a depth-first-search algorithm on the `SpanTree`. Stop searching after the first
+    /// node for which the predicate returns `true`.
+    pub fn find_node(self, mut predicate: impl FnMut(&Self) -> bool) -> Option<Self> {
+        let mut queue = vec![self];
+        loop {
+            match queue.pop() {
+                None => break None,
+                Some(node) if predicate(&node) => break Some(node),
+                Some(node) => queue.extend(node.children_iter().rev()),
+            }
+        }
     }
 }
 
@@ -658,7 +577,7 @@ pub struct RefMut<'a, T = ()> {
     pub ast_crumbs:  ast::Crumbs,
 }
 
-impl<'a, T: Payload> RefMut<'a, T> {
+impl<'a, T> RefMut<'a, T> {
     /// Constructor.
     pub fn new(node: &'a mut Node<T>) -> Self {
         let offset = default();
@@ -738,6 +657,12 @@ impl<'a, T: Payload> RefMut<'a, T> {
 impl<'a, T> Deref for RefMut<'a, T> {
     type Target = Node<T>;
     fn deref(&self) -> &Self::Target {
+        self.node
+    }
+}
+
+impl<'a, T> DerefMut for RefMut<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
         self.node
     }
 }
@@ -846,6 +771,7 @@ mod test {
     use crate::builder::Builder;
     use crate::builder::TreeBuilder;
     use crate::node;
+    use crate::node::InsertionPoint;
     use crate::node::InsertionPointType;
     use crate::Crumbs;
     use crate::SpanTree;
@@ -917,8 +843,8 @@ mod test {
 
         let tree: SpanTree = TreeBuilder::new(7)
             .add_leaf(0, 1, node::Kind::this(), vec![LeftOperand])
-            .add_empty_child(1, InsertionPointType::AfterTarget)
             .add_leaf(1, 1, node::Kind::Operation, vec![Operator])
+            .add_empty_child(2, InsertionPointType::BeforeArgument(0))
             .add_child(2, 5, node::Kind::argument(), vec![RightOperand])
             .add_leaf(0, 3, node::Kind::Operation, vec![Func])
             .add_leaf(3, 1, node::Kind::this(), vec![Arg])
@@ -937,8 +863,8 @@ mod test {
         for case in cases {
             let (crumbs, expected_crumbs, expected_remaining_ast_crumbs) = case;
             let result = root.clone().get_descendant_by_ast_crumbs(crumbs).unwrap();
-            assert_eq!(result.node.crumbs.as_slice(), *expected_crumbs);
-            assert_eq!(result.ast_crumbs, expected_remaining_ast_crumbs.as_slice());
+            assert_eq!(result.node.crumbs.as_slice(), *expected_crumbs, "{case:?}");
+            assert_eq!(result.ast_crumbs, expected_remaining_ast_crumbs.as_slice(), "{case:?}");
         }
     }
 
@@ -949,15 +875,15 @@ mod test {
         // An example with single call and expected arguments.
         // See also `generate::test::generating_span_tree_for_unfinished_call`
         let tree: SpanTree = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::Chained, ast::crumbs::Crumbs::default())
+            .add_child(0, 8, node::Kind::chained_this(), ast::crumbs::Crumbs::default())
             .add_child(0, 8, node::Kind::Operation, ast::crumbs::Crumbs::default())
             .add_leaf(0, 4, node::Kind::this(), LeftOperand)
             .add_leaf(4, 1, node::Kind::Operation, Operator)
             .add_leaf(5, 3, node::Kind::argument(), RightOperand)
             .done()
-            .add_empty_child(8, InsertionPointType::ExpectedArgument(0))
+            .add_empty_child(8, InsertionPoint::expected_argument(0))
             .done()
-            .add_empty_child(8, InsertionPointType::ExpectedArgument(1))
+            .add_empty_child(8, InsertionPoint::expected_named_argument(1, "foo"))
             .build();
 
         let cases =

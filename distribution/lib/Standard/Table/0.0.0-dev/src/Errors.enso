@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Table.Data.Expression.Expression_Error
+
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
 polyglot java import org.enso.table.error.EmptyFileException
@@ -9,7 +11,6 @@ polyglot java import org.enso.table.error.EmptySheetException
 type Missing_Input_Columns
     ## PRIVATE
        One or more columns not found in the input table.
-       Can occur when using By_Name or By_Column.
     Error (criteria : [Text])
 
     ## PRIVATE
@@ -104,15 +105,16 @@ type Invalid_Aggregation
 
     to_display_text : Text
     to_display_text self =
-        "The "+self.column+" could not be calculated at "+self.row.to_text+" : "+self.message
+        "The "+self.column+" could not be calculated at "+self.rows.short_display_text+": "+self.message
 
-## Indicates that a floating point number was used in a grouping.
-type Floating_Point_Grouping
-    Error (column:Text)
+## Indicates that some operation relies on equality on floating-point values,
+   which is not recommended.
+type Floating_Point_Equality
+    Error (location:Text)
 
     to_display_text : Text
     to_display_text self =
-        "Grouping on floating points is not recommended (within "+self.column+")."
+        "Relying on equality of floating-point numbers is not recommended (within "+self.location+")."
 
 ## Indicates that a text value with a delimiter was included in a concatenation without any quote character
 type Unquoted_Delimiter
@@ -120,7 +122,7 @@ type Unquoted_Delimiter
 
     to_display_text : Text
     to_display_text self =
-        "The "+self.column+" at row "+self.row.to_text+" contains the delimiter and there is no specified quote character."
+        "The "+self.column+" at rows "+self.rows.short_display_text+" contains the delimiter and there is no specified quote character."
 
 ## Warning when additional warnings occurred.
 type Additional_Warnings
@@ -136,11 +138,17 @@ type Additional_Warnings
    Only the first 10 rows are reported, any additional ones are aggregated into
    a single instance of `Additional_Invalid_Rows`.
 type Invalid_Row
-    Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text])
+    Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text]) (expected_columns : Integer)
 
     to_display_text : Text
     to_display_text self =
-        "Invalid row in file (index "+self.index.to_text+")."
+        table_loc = case self.index of
+            Nothing -> ""
+            _ -> ", table row "+self.index.to_text
+        loc = "(line "+self.source_file_line_number.to_text+table_loc+")"
+        got_columns = self.row.length
+        count_msg = if got_columns > self.expected_columns then "too many" else "too few"
+        "The row " + loc + " had " + count_msg + " columns (expected " + self.expected_columns.to_text + ", got " + got_columns.to_text + ")."
 
 
 ## Indicates how many additional `Invalid_Row` warnings have been suppressed.
@@ -154,10 +162,32 @@ type Additional_Invalid_Rows
 ## Indicates that a quote inside of a delimited file cell has been opened but
    never closed.
 type Mismatched_Quote
+    Error (cell_text : Text)
+
+    to_display_text : Text
+    to_display_text self =
+        max_length = 50
+        short_cell_text = if self.cell_text.length > max_length then self.cell_text.take max_length + "..." else self.cell_text
+        "A quote has been opened but never closed inside of a Delimited file, so it cannot be interpreted properly. Inside cell: ["+short_cell_text+"]."
 
 ## Indicates an unexpected parser error.
 type Parser_Error
     Error cause
+
+## Indicates that quoting was disabled for a `Delimited` file, but some cells
+   contained characters that do need quoting which may cause the output file to
+   be corrupted.
+type Unquoted_Characters_In_Output
+    Warning (column : Text) (rows : [Integer])
+
+    to_display_text : Text
+    to_display_text self =
+        altered_rows = self.rows.map ix->
+            if ix == -1 then "the header" else ix
+        "The "+self.column+" at rows "+altered_rows.short_display_text+" contains characters that need quoting, but quoting is disabled. The generated file may be corrupted."
+
+    to_text : Text
+    to_text self = "Unquoted_Characters_In_Output.Warning "+self.column.pretty+" "+self.rows.to_text
 
 ## Indicates that a specified location was not valid.
 type Invalid_Location
@@ -313,14 +343,17 @@ type No_Index_Set_Error
     to_display_text self = "The table does not have an index set."
 
 type Invalid_Value_Type
-    Error expected actual
+    Error expected actual related_column=Nothing
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "Expected " + self.expected.to_text + " type, but got " + self.actual.to_text + "."
+        prefix = case self.related_column of
+            Nothing -> "Expected "
+            column_name -> "Expected " + column_name + " column to have "
+        prefix + self.expected.to_text + " type, but got " + self.actual.to_text + "."
 
 ## UNSTABLE
 
@@ -389,3 +422,12 @@ type Row_Count_Mismatch
     to_display_text : Text
     to_display_text self =
         "The number of rows in the left table ("+self.left_rows.to_text+") does not match the number of rows in the right table ("+self.right_rows.to_text+")."
+
+type Invalid_Aggregate_Column
+    ## Indicates that a provided name is not found within available columns nor
+       represents a valid expression.
+    Error (name : Text) (expression_error : Expression_Error | No_Such_Column | Nothing)
+
+    to_display_text : Text
+    to_display_text self =
+        "The name ["+self.name+"] is not a valid column name nor expression."

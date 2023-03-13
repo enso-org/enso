@@ -51,6 +51,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     "work with mixfix functions" in {
       val code =
         """from Standard.Base.Data.Numbers import all
+          |import Standard.Base.Any.Any
           |
           |Number.if_then_else self = ~t -> ~f -> if self == 0 then t else f
           |

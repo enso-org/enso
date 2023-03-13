@@ -23,7 +23,7 @@ use double_representation::node::MainLine;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
-use parser_scala::Parser;
+use parser::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
 use span_tree::generate::context::CalledMethodInfo;
@@ -36,6 +36,7 @@ use span_tree::SpanTree;
 // ==============
 
 pub mod executed;
+pub mod widget;
 
 pub use double_representation::graph::Id;
 pub use double_representation::graph::LocationHint;
@@ -333,15 +334,10 @@ impl Connections {
 pub fn name_for_ast(ast: &Ast) -> String {
     use ast::*;
     match ast.shape() {
+        Shape::Tree(tree) if let Some(name) = &tree.descriptive_name => name.to_string(),
         Shape::Var(ident) => ident.name.clone(),
         Shape::Cons(ident) => ident.name.to_lowercase(),
         Shape::Number(_) => "number".into(),
-        Shape::DanglingBase(_) => "number".into(),
-        Shape::TextLineRaw(_) => "text".into(),
-        Shape::TextLineFmt(_) => "text".into(),
-        Shape::TextBlockRaw(_) => "text".into(),
-        Shape::TextBlockFmt(_) => "text".into(),
-        Shape::TextUnclosed(_) => "text".into(),
         Shape::Opr(opr) => match opr.name.as_ref() {
             "+" => "sum",
             "*" => "product",
@@ -425,7 +421,7 @@ impl EndpointInfo {
         //  Unpleasant. Likely there should be something in span tree that allows obtaining
         //  sequence of nodes between root and given crumb. Or sth.
         let mut parent_port = self.parent_port_of(&self.endpoint.port);
-        while parent_port.contains_if(|p| p.node.kind == span_tree::node::Kind::Chained) {
+        while parent_port.contains_if(|p| p.node.is_chained()) {
             parent_port = parent_port.and_then(|p| self.parent_port_of(&p.crumbs));
         }
         parent_port
@@ -454,9 +450,12 @@ impl EndpointInfo {
         self.ast.set_traversing(&self.full_ast_crumbs()?, ast_to_set)
     }
 
-    /// Erases given port. Returns new root Ast.
-    pub fn erase(&self) -> FallibleResult<Ast> {
-        self.port()?.erase(&self.ast)
+    /// Erases given port. Returns new root Ast and crumbs pointing to the nearest insertion point.
+    pub fn erase(
+        &self,
+        context: &impl SpanTreeContext,
+    ) -> FallibleResult<(Ast, span_tree::Crumbs)> {
+        self.port()?.erase(&self.ast, context)
     }
 }
 
@@ -734,21 +733,24 @@ impl Handle {
         self.place_node_and_dependencies_lines_after(source_node, destination_node)
     }
 
-    /// Remove the connections from the graph.
+    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
+    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
+    /// returned, no update is necessary.
     pub fn disconnect(
         &self,
         connection: &Connection,
         context: &impl SpanTreeContext,
-    ) -> FallibleResult {
+    ) -> FallibleResult<Option<span_tree::Crumbs>> {
         let _transaction_guard = self.get_or_open_transaction("Disconnect");
         let info = self.destination_info(connection, context)?;
 
+        let mut new_destination_crumbs = None;
         let updated_expression = if connection.destination.var_crumbs.is_empty() {
             let port = info.port()?;
-            let only_insertion_points_after =
-                info.chained_ports_after().all(|p| p.node.is_insertion_point());
-            if port.is_action_available(Action::Erase) && only_insertion_points_after {
-                info.erase()
+            if port.is_action_available(Action::Erase) {
+                let (ast, crumbs) = info.erase(context)?;
+                new_destination_crumbs = Some(crumbs);
+                Ok(ast)
             } else {
                 info.set(Ast::blank())
             }
@@ -756,7 +758,8 @@ impl Handle {
             info.set_ast(Ast::blank())
         }?;
 
-        self.set_expression_ast(connection.destination.node, updated_expression)
+        self.set_expression_ast(connection.destination.node, updated_expression)?;
+        Ok(new_destination_crumbs)
     }
 
     /// Obtain the definition information for this graph from the module's AST.
@@ -877,12 +880,14 @@ impl Handle {
         expression_text: impl Str,
         context: &impl SpanTreeContext,
     ) -> FallibleResult {
+        info!("Setting Expression Span {crumbs:?} node {id}  to \"{}\".", expression_text.as_ref());
         let node_ast = self.node_info(id)?.expression();
         let node_span_tree: SpanTree = SpanTree::new(&node_ast, context)?;
         let port = node_span_tree.get_node(crumbs)?;
         let new_node_ast = if expression_text.as_ref().is_empty() {
             if port.is_action_available(Action::Erase) {
-                port.erase(&node_ast)?
+                let (ast, _) = port.erase(&node_ast, context)?;
+                ast
             } else {
                 port.set(&node_ast, Ast::blank())?
             }
@@ -986,7 +991,8 @@ impl Handle {
         let module_sub = self.module.subscribe().map(|notification| match notification.kind {
             model::module::NotificationKind::Invalidate
             | model::module::NotificationKind::CodeChanged { .. }
-            | model::module::NotificationKind::MetadataChanged => Notification::Invalidate,
+            | model::module::NotificationKind::MetadataChanged
+            | model::module::NotificationKind::Reloaded => Notification::Invalidate,
         });
         let db_sub = self.suggestion_db.subscribe().map(|notification| match notification {
             model::suggestion_database::Notification::Updated => Notification::PortsUpdate,
@@ -1040,8 +1046,8 @@ pub mod tests {
     use double_representation::name::project;
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;
-    use parser_scala::Parser;
-    use wasm_bindgen_test::wasm_bindgen_test;
+    use parser::Parser;
+    use span_tree::generate::MockContext;
 
 
 
@@ -1096,7 +1102,7 @@ pub mod tests {
 
         /// Create a graph controller from the current mock data.
         pub fn graph(&self) -> Handle {
-            let parser = Parser::new().unwrap();
+            let parser = Parser::new();
             let urm = Rc::new(model::undo_redo::Repository::new());
             let module = self.module_data().plain(&parser, urm);
             let id = self.graph_id.clone();
@@ -1108,7 +1114,6 @@ pub mod tests {
             self.module_path.method_pointer(self.project_name.clone(), self.graph_id.to_string())
         }
 
-        #[profile(Debug)]
         pub fn suggestion_db(&self) -> Rc<model::SuggestionDatabase> {
             use model::suggestion_database::SuggestionDatabase;
             let entries = self.suggestions.iter();
@@ -1146,7 +1151,7 @@ pub mod tests {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn node_operations() {
         Fixture::set_up().run(|graph| async move {
             let uid = graph.all_node_infos().unwrap()[0].id();
@@ -1157,7 +1162,7 @@ pub mod tests {
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_notification_relay() {
         Fixture::set_up().run(|graph| async move {
             let mut sub = graph.subscribe();
@@ -1167,7 +1172,7 @@ pub mod tests {
         });
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn suggestion_db_updates_graph_values() {
         Fixture::set_up().run(|graph| async move {
             let mut sub = graph.subscribe();
@@ -1180,7 +1185,7 @@ pub mod tests {
         });
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_inline_definition() {
         let mut test = Fixture::set_up();
         const EXPRESSION: &str = "2+2";
@@ -1195,7 +1200,7 @@ pub mod tests {
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_block_definition() {
         let mut test = Fixture::set_up();
         test.data.code = r"
@@ -1211,7 +1216,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_parse_expression() {
         let mut test = Fixture::set_up();
         test.run(|graph| async move {
@@ -1226,7 +1231,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn span_tree_context_handling_metadata_and_name() {
         let entry = crate::test::mock::data::suggestion_entry_foo();
         let mut test = Fixture::set_up();
@@ -1265,7 +1270,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_used_names_in_inline_def() {
         let mut test = Fixture::set_up();
         test.data.code = "main = foo".into();
@@ -1276,7 +1281,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_nested_definition() {
         let mut test = Fixture::set_up();
         test.data.code = r"main =
@@ -1297,7 +1302,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn collapsing_nodes_avoids_name_conflicts() {
         // Checks that generated name avoid collision with other methods defined in the module
         // and with symbols used that could be shadowed by the extracted method's name.
@@ -1334,7 +1339,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn collapsing_nodes() {
         let mut test = Fixture::set_up();
         let code = r"
@@ -1384,7 +1389,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_doubly_nested_definition() {
         // Tests editing nested definition that requires transforming inline expression into
         // into a new block.
@@ -1403,7 +1408,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_node_operations_node() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"
@@ -1482,7 +1487,8 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
+    #[ignore] // FIXME (https://github.com/enso-org/enso/issues/5574)
     fn graph_controller_connections_listing() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"
@@ -1531,7 +1537,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_create_connection() {
         /// A case for creating connection test. The field's names are short to be able to write
         /// nice-to-read table of cases without very long lines (see `let cases` below).
@@ -1572,22 +1578,18 @@ main =
             }
         }
 
-        let cases = &[
-            Case { src: "x", dst: "foo", expected: "x", ports: (&[], &[]) },
-            Case { src: "x,y", dst: "foo a", expected: "foo y", ports: (&[4], &[2]) },
-            Case {
-                src:      "Vec x y",
-                dst:      "1 + 2 + 3",
-                expected: "x + 2 + 3",
-                ports:    (&[0, 2], &[0, 1]),
-            },
-        ];
+        let cases = &[Case { src: "x", dst: "foo", expected: "x", ports: (&[], &[]) }, Case {
+            src:      "Vec x y",
+            dst:      "1 + 2 + 3",
+            expected: "x + 2 + 3",
+            ports:    (&[0, 2], &[0, 1]),
+        }];
         for case in cases {
             case.run()
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_create_connection_reordering() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"main =
@@ -1620,7 +1622,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_create_connection_reordering_with_dependency() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"main =
@@ -1659,7 +1661,7 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn graph_controller_create_connection_introducing_var() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"main =
@@ -1696,9 +1698,9 @@ main =
         })
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn suggested_names() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let cases = [
             ("a+b", "sum"),
             ("a-b", "difference"),
@@ -1721,13 +1723,15 @@ main =
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn disconnect() {
         #[derive(Clone, Debug)]
         struct Case {
             dest_node_expr:     &'static str,
             dest_node_expected: &'static str,
+            info:               Option<CalledMethodInfo>,
         }
+
 
         impl Case {
             fn run(&self) {
@@ -1737,30 +1741,57 @@ main =
                 let expected = format!("{}{}", MAIN_PREFIX, self.dest_node_expected);
                 let this = self.clone();
                 test.run(|graph| async move {
-                    let connections = connections(&graph).unwrap();
-                    let connection = connections.connections.first().unwrap();
-                    graph.disconnect(connection, &span_tree::generate::context::Empty).unwrap();
-                    let new_main = graph.definition().unwrap().ast.repr();
-                    assert_eq!(new_main, expected, "Case {this:?}");
+                    let error_message = format!("{this:?}");
+                    let ctx = match this.info.clone() {
+                        Some(info) => {
+                            let nodes = graph.nodes().expect(&error_message);
+                            let dest_node_id = nodes.last().expect(&error_message).id();
+                            MockContext::new_single(dest_node_id, info)
+                        }
+                        None => MockContext::default(),
+                    };
+                    let connections = graph.connections(&ctx).expect(&error_message);
+                    let connection = connections.connections.first().expect(&error_message);
+                    graph.disconnect(connection, &ctx).expect(&error_message);
+                    let new_main = graph.definition().expect(&error_message).ast.repr();
+                    assert_eq!(new_main, expected, "{error_message}");
                 })
             }
         }
 
+        let info = || {
+            Some(CalledMethodInfo {
+                parameters: vec![
+                    span_tree::ArgumentInfo::named("arg1"),
+                    span_tree::ArgumentInfo::named("arg2"),
+                    span_tree::ArgumentInfo::named("arg3"),
+                ],
+                ..default()
+            })
+        };
+
+        #[rustfmt::skip]
         let cases = &[
-            Case { dest_node_expr: "foo var", dest_node_expected: "foo _" },
-            Case { dest_node_expr: "foo var a", dest_node_expected: "foo _ a" },
-            Case { dest_node_expr: "foo a var", dest_node_expected: "foo a" },
-            Case { dest_node_expr: "var + a", dest_node_expected: "_ + a" },
-            Case { dest_node_expr: "a + var", dest_node_expected: "a + _" },
-            Case { dest_node_expr: "var + b + c", dest_node_expected: "_ + b + c" },
-            Case { dest_node_expr: "a + var + c", dest_node_expected: "a + _ + c" },
-            Case { dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
-            Case { dest_node_expr: "var , a", dest_node_expected: "_ , a" },
-            Case { dest_node_expr: "a , var", dest_node_expected: "a , _" },
-            Case { dest_node_expr: "var , b , c", dest_node_expected: "_ , b , c" },
-            Case { dest_node_expr: "a , var , c", dest_node_expected: "a , _ , c" },
-            Case { dest_node_expr: "a , b , var", dest_node_expected: "a , b" },
+            Case { info: None, dest_node_expr: "var + a", dest_node_expected: "_ + a" },
+            Case { info: None, dest_node_expr: "a + var", dest_node_expected: "a + _" },
+            Case { info: None, dest_node_expr: "var + b + c", dest_node_expected: "b + c" },
+            Case { info: None, dest_node_expr: "a + var + c", dest_node_expected: "a + c" },
+            Case { info: None, dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
+            Case { info: None, dest_node_expr: "foo var", dest_node_expected: "foo _" },
+            Case { info: None, dest_node_expr: "foo var a", dest_node_expected: "foo a" },
+            Case { info: None, dest_node_expr: "foo a var", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo var", dest_node_expected: "foo" },
+            Case { info: info(), dest_node_expr: "foo var a", dest_node_expected: "foo arg2=a" },
+            Case { info: info(), dest_node_expr: "foo a var", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo arg2=var a", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo arg1=var a", dest_node_expected: "foo arg2=a" },
             Case {
+                info: info(),
+                dest_node_expr: "foo arg2=var a c",
+                dest_node_expected: "foo a arg3=c"
+            },
+            Case {
+                info: None,
                 dest_node_expr:     "f\n        bar a var",
                 dest_node_expected: "f\n        bar a _",
             },

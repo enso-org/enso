@@ -29,6 +29,7 @@ class ConstructorsTest extends InterpreterTest {
     "work with recursion" in {
       val testCode =
         """import Standard.Base.Data.List.List
+          |import Standard.Base.Any.Any
           |
           |main =
           |    genList = i -> if i == 0 then List.Nil else List.Cons i (genList (i - 1))
@@ -86,6 +87,7 @@ class ConstructorsTest extends InterpreterTest {
     "be usable in code, with arbitrary definition order" in {
       val testCode =
         """import Standard.Base.Nothing.Nothing
+          |import Standard.Base.Any.Any
           |
           |type C2
           |    Cons2 a b

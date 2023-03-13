@@ -75,6 +75,11 @@ spec =
             empty_map.is_empty . should_be_true
             non_empty.is_empty . should_be_false
 
+        Test.specify "should get the default comparator for polyglot maps" <|
+            Comparable.from (Map.empty) . should_equal Default_Comparator
+            Comparable.from (js_empty_dict) . should_equal Default_Comparator
+            Comparable.from (JavaMap.of "A" 1 "B" 2) . should_equal Default_Comparator
+
         Test.specify "should compare two hash maps" <|
             (Map.singleton "a" 1).should_equal (Map.singleton "a" 1)
             (Map.singleton "b" 2).should_not_equal (Map.singleton "a" 1)
@@ -148,6 +153,9 @@ spec =
             Map.singleton Nothing 3 . get Nothing . should_equal 3
             Map.singleton Nothing 1 . insert Nothing 2 . get Nothing . should_equal 2
 
+        Test.specify "should handle incomparable values as keys" <|
+            Map.empty.insert Number.nan 1 . insert Number.nan 2 . get Number.nan . should_equal 2
+
         Test.specify "should handle Nothing as values" <|
             Map.singleton 1 Nothing . at 1 . should_equal Nothing
             Map.singleton Nothing Nothing . at Nothing . should_equal Nothing
@@ -211,7 +219,7 @@ spec =
             m.at "foo" . should_equal 134
             m.at "bar" . should_equal 654
             m.at "baz" . should_equal "spam"
-            (m.at "nope").should_fail_with No_Such_Key.Error
+            (m.at "nope").should_fail_with No_Such_Key
 
         Test.specify "should support get" <|
             m = Map.empty . insert 2 3
@@ -463,7 +471,7 @@ spec =
             map.to_vector.should_equal [["A", 1], ["B", 2], ["C", 3]]
 
         Test.specify "should treat Java Map as Enso map" <|
-            sort_by_keys vec = vec.sort by=x-> y-> x.first.compare_to y.first
+            sort_by_keys vec = vec.sort by=x-> y-> Ordering.compare x.first y.first
             jmap = JavaMap.of "A" 1 "B" 2
             (sort_by_keys jmap.to_vector) . should_equal [["A", 1], ["B", 2]]
             (sort_by_keys (jmap.insert "C" 3 . to_vector)) . should_equal [["A", 1], ["B", 2], ["C", 3]]

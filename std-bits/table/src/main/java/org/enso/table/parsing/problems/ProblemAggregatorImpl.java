@@ -9,7 +9,6 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
   public final String relatedColumnName;
   private final List<String> invalidFormatCells = new ArrayList<>();
   private final List<String> leadingZerosCells = new ArrayList<>();
-  private int mismatchedQuotes = 0;
 
   public ProblemAggregatorImpl(String relatedColumnName) {
     this.relatedColumnName = relatedColumnName;
@@ -26,13 +25,13 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
   }
 
   @Override
-  public void reportMismatchedQuote() {
-    mismatchedQuotes++;
+  public void reportMismatchedQuote(String cellText) {
+    throw new MismatchedQuote(cellText);
   }
 
   @Override
   public boolean hasProblems() {
-    return !invalidFormatCells.isEmpty() || !leadingZerosCells.isEmpty() || mismatchedQuotes > 0;
+    return !invalidFormatCells.isEmpty() || !leadingZerosCells.isEmpty();
   }
 
   @Override
@@ -45,10 +44,6 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
 
     if (!leadingZerosCells.isEmpty()) {
       problems.add(new LeadingZeros(relatedColumnName, leadingZerosCells));
-    }
-
-    for (int i = 0; i < mismatchedQuotes; ++i) {
-      problems.add(new MismatchedQuote());
     }
 
     assert problems.isEmpty() == !hasProblems();

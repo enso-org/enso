@@ -142,9 +142,9 @@ It is a JSON file as follows:
 }
 ```
 
-All hashes are encoded in SHA3-224 format, as is used by other components in the
-Engine. The engine version is encoded in the cache path, and hence does not need
-to be explicitly specified in the metadata.
+All hashes are encoded in SHA1 format, for performance reasons. The engine
+version is encoded in the cache path, and hence does not need to be explicitly
+specified in the metadata.
 
 ### Portability Guarantees
 
@@ -207,7 +207,7 @@ other than the fact that they may be seeing the actual files on disk.
 Integrity Checking does not check the situation when the cached module imports a
 module which cache has been invalidated. For example, module `A` uses a method
 `foo` from module `B` and a successful compilation resulted in IR cache for both
-`A` and `B`. Later, someone modifed module `B` by renaming method `foo` to
+`A` and `B`. Later, someone modified module `B` by renaming method `foo` to
 `bar`. If we only compared source hashes, `B`'s IR would be re-generated while
 `A`'s would be loaded from cache, thus failing to notice method name change,
 until a complete cache invalidation was forced.
@@ -227,6 +227,21 @@ There are two main elements that need to be tested as part of this feature.
   should be disabled for existing tests. This will require adding additional
   runtime options for debugging, but also constructing the `DistributionManager`
   on context creation (removing `RuntimeDistributionManager`).
+
+### Import/Export caching of bindings
+
+Import and export resolution is one of the more expensive elements in the
+initial pipeline. It is also the element which does not change for the releases
+library components as we do not expect users to modify them. During the initial
+compilation stage we iteratively parse/load cached ir, do import resolution on
+the module, followed by export resolution, and repeat the process with any
+dependent modules discovered in the process. Calculating such transitive closure
+is an expensive and repeatable process. By caching bindings per library we are
+able to skip that process completely and discover all necessary modules of the
+library in a single pass.
+
+The bindings are serialized along with the library caches in a file with a
+`.bindings` suffix.
 
 ## Future Directions
 

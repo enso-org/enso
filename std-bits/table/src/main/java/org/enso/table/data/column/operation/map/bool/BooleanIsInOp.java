@@ -3,6 +3,7 @@ package org.enso.table.data.column.operation.map.bool;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 
@@ -17,7 +18,7 @@ public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
   }
 
   @Override
-  public BoolStorage runMap(BoolStorage storage, Object arg) {
+  public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -45,7 +46,7 @@ public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
   }
 
   @Override
-  public Storage<?> runZip(BoolStorage storage, Storage<?> arg) {
+  public Storage<?> runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     // We could try BitSets for BoolStorage, but it is unclear if they will improve performance due
     // to need for additional allocations. It does not seem worth optimizing this rare usecase
     // currently.
