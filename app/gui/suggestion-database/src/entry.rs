@@ -581,9 +581,7 @@ impl Entry {
 
 impl Entry {
     /// Create entry from the structure deserialized from the Language Server responses.
-    pub fn from_ls_entry(
-        mut entry: language_server::types::SuggestionEntry,
-    ) -> Self {
+    pub fn from_ls_entry(mut entry: language_server::types::SuggestionEntry) -> Self {
         use language_server::types::SuggestionEntry::*;
 
         fn to_qualified_name(s: String) -> QualifiedName {

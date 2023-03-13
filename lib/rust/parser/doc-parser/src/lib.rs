@@ -28,8 +28,8 @@ use enso_prelude::*;
 
 pub mod doc_sections;
 
-pub use doc_sections::DocSection;
 pub use doc_sections::parse;
+pub use doc_sections::DocSection;
 
 pub(crate) use enso_profiler as profiler;
 pub(crate) use enso_profiler::profile;
