@@ -37,7 +37,7 @@ from_metadata metadata ix =
     precision = case metadata.getPrecision ix of
         0 -> Nothing
         p : Integer -> p
-    nullable_id =
+    nullable_id = metadata.isNullable ix
     nullable = if nullable_id == ResultSetMetaData.columnNoNulls then False else
         if nullable_id == ResultSetMetaData.columnNullable then True else
             Nothing
