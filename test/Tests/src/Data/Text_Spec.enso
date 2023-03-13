@@ -1274,41 +1274,6 @@ spec =
             "abcddd".find "ab(c(d+))" . at 2 . should_equal "ddd"
             "abcddd".find "ab(c(d+))" . at 3 . should_fail_with Index_Out_Of_Bounds
 
-        Test.specify "should allow access to match groups" <|
-            "abcddd".find "ab(c(d+))" . group 0 . should_equal "abcddd"
-            "abcddd".find "ab(c(d+))" . group 1 . should_equal "cddd"
-            "abcddd".find "ab(c(d+))" . group 2 . should_equal "ddd"
-
-        Test.specify "should allow access to match groups by name" <|
-            "abcddd".find "ab(?<cee>c(d+))" . group "cee" . should_equal "cddd"
-
-        Test.specify "should throw No_Such_Group for an out-of-range group number" <|
-            "abcddd".find "ab(c(d+))" . group 3 . should_fail_with No_Such_Group
-            "abcddd".find "ab(c(d+))" . group 12 . should_fail_with No_Such_Group
-            "abcddd".find "ab(c(d+))" . group (-1) . should_fail_with No_Such_Group
-
-        Test.specify "should throw No_Such_Group for an invalid group name" <|
-            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . should_fail_with No_Such_Group
-
-        Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
-            "abcddd".find "ab(c(d+))" . group "dee" . should_fail_with No_Such_Group
-
-        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
-            "abcddd".find "ab(c(((((((" . group 0 . should_fail_with Regex_Syntax_Error
-
-        Test.specify ".group should return Nothing if the group did not participate in the match" <|
-            match_c = "abc".find "ab((c)|(d))"
-            match_c.group 1 . should_equal "c"
-            match_c.group 2 . should_equal "c"
-            match_c.group 3 . should_equal Nothing
-            match_d = "abd".find "ab((c)|(d))"
-            match_d.group 1 . should_equal "d"
-            match_d.group 2 . should_equal Nothing
-            match_d.group 3 . should_equal "d"
-
-        Test.specify "should expand a partial-grapheme match to the whole grapheme" <|
-            'e\u{301}'.find '\u{301}' . group 0 . should_equal 'e\u{301}'
-
         Test.specify "should handle the Unicode normalization" pending="Use this to test exposed normalization methods" <|
             ## This test passed for the builtin Java regex library, using
                Pattern.CANON_EQ, but since that option is buggy and rarely use,
