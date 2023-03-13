@@ -12,7 +12,7 @@ trait UnhandledLogging extends LazyLogging { this: Actor =>
 
   override def unhandled(message: Any): Unit = {
     if (implicitly[Ordering[LogLevel]].lteq(LogLevel.Warning, akkaLogLevel)) {
-      logger.warn("Received unknown message: {}", message.getClass)
+      logger.warn("Received unknown message [{}].", message.getClass)
     }
   }
 }

@@ -5,16 +5,12 @@
  * that the login screen is rendered. */
 import * as amplify from "@aws-amplify/core";
 
-
-
 // =================
 // === Constants ===
 // =================
 
 /** Name of the string identifying the "hub" that AWS Amplify issues authentication events on. */
 const AUTHENTICATION_HUB = "auth";
-
-
 
 // =================
 // === AuthEvent ===
@@ -25,21 +21,19 @@ const AUTHENTICATION_HUB = "auth";
  * These are issues by AWS Amplify when it detects a change in authentication state. For example,
  * when the user signs in or signs out by accessing a page like `enso://auth?code=...&state=...`. */
 enum AuthEvent {
-    /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
-    customOAuthState = "customOAuthState",
-    /** Issued when the user completes the sign-in process (via federated identity provider). */
-    cognitoHostedUi = "cognitoHostedUI",
-    /** Issued when the user completes the sign-in process (via email/password). */
-    signIn = "signIn",
-    /** Issued when the user signs out. */
-    signOut = "signOut",
+  /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
+  customOAuthState = "customOAuthState",
+  /** Issued when the user completes the sign-in process (via federated identity provider). */
+  cognitoHostedUi = "cognitoHostedUI",
+  /** Issued when the user completes the sign-in process (via email/password). */
+  signIn = "signIn",
+  /** Issued when the user signs out. */
+  signOut = "signOut",
 }
 
 /** Function that returns `true` if the given `string` is an {@link AuthEvent}. */
 const isAuthEvent = (value: string): value is AuthEvent =>
-    Object.values(AuthEvent).includes(value as AuthEvent);
-
-
+  Object.values(AuthEvent).includes(value as AuthEvent);
 
 // =================================
 // === RegisterAuthEventListener ===
@@ -65,12 +59,12 @@ type UnsubscribeFunction = () => void;
  * unsubscribe from {@link AuthEvent}s. Ensure that you call this function before re-subscribing to
  * avoid memory leaks or duplicate event handlers. */
 export type ListenFunction = (
-    listener: ListenerCallback
+  listener: ListenerCallback
 ) => UnsubscribeFunction;
 
 export const registerAuthEventListener: ListenFunction = (listener) => {
-    const callback: amplify.HubCallback = (data) =>
-        isAuthEvent(data.payload.event) &&
-        listener(data.payload.event, data.payload.data);
-    return amplify.Hub.listen(AUTHENTICATION_HUB, callback);
+  const callback: amplify.HubCallback = (data) =>
+    isAuthEvent(data.payload.event) &&
+    listener(data.payload.event, data.payload.data);
+  return amplify.Hub.listen(AUTHENTICATION_HUB, callback);
 };

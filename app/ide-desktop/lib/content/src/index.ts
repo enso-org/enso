@@ -8,7 +8,6 @@ import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
 import * as semver from 'semver'
 import { Version, options } from 'enso-content-config'
 import * as authentication from 'enso-studio-authentication'
-import { AppProps } from 'enso-studio-authentication'
 
 const logger = app.log.logger
 
@@ -89,7 +88,7 @@ class Main {
                 loader: {
                     wasmUrl: 'pkg-opt.wasm',
                     jsUrl: 'pkg.js',
-                    shadersUrl: 'shaders',
+                    assetsUrl: 'dynamic-assets',
                 },
             },
             inputConfig
@@ -119,22 +118,19 @@ class Main {
                         options.groups.startup.options.entry.default
                 ) {
                     const hideAuth = () => {
-                       const auth = document.getElementById('dashboard')
-                       const root = document.getElementById('root')
-                       if (auth) auth.style.display = 'none'
-                       if (root) root.style.display = 'block'
+                        const auth = document.getElementById('dashboard')
+                        const root = document.getElementById('root')
+                        if (auth) auth.style.display = 'none'
+                        if (root) root.style.display = 'block'
                     }
-                    const props: AppProps = {
-                        logger,
-                        // This package is an Electron desktop app (i.e., not in the Cloud), so
-                        // we're running on the desktop.
-                        runningOnDesktop: true,
-                        onAuthenticated: () => {
-                            hideAuth()
-                            appInstance.run()
-                        },
+                    /** This package is an Electron desktop app (i.e., not in the Cloud), so
+                     * we're running on the desktop. */
+                    const platform = authentication.Platform.desktop
+                    const onAuthenticated = () => {
+                        hideAuth()
+                        appInstance.run()
                     }
-                    authentication.run(props)
+                    authentication.run(logger, platform, onAuthenticated)
                 } else {
                     appInstance.run()
                 }

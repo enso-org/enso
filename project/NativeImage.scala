@@ -128,7 +128,7 @@ object NativeImage {
         val cpf = new File(cp.get).getAbsoluteFile()
         if (!cpf.exists()) throw new IllegalStateException("Cannot find " + cpf)
         val joinCp = pathToJAR.toString + File.pathSeparator + cpf
-        System.out.println("Class-path: "+ joinCp);
+        System.out.println("Class-path: " + joinCp);
 
         cmd = cmd ++
           Seq("-cp", joinCp) ++
