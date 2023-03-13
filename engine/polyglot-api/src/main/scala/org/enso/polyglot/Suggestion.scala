@@ -176,7 +176,7 @@ object Suggestion {
   case class Module(
     module: String,
     documentation: Option[String],
-    reexport: Option[String]                        = None
+    reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
 
@@ -215,7 +215,7 @@ object Suggestion {
     returnType: String,
     parentType: Option[String],
     documentation: Option[String],
-    reexport: Option[String]                        = None
+    reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
 
@@ -250,7 +250,7 @@ object Suggestion {
     arguments: Seq[Argument],
     returnType: String,
     documentation: Option[String],
-    reexport: Option[String]                        = None
+    reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
 
@@ -288,7 +288,7 @@ object Suggestion {
     returnType: String,
     isStatic: Boolean,
     documentation: Option[String],
-    reexport: Option[String]                        = None
+    reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
 
@@ -323,7 +323,7 @@ object Suggestion {
     sourceType: String,
     returnType: String,
     documentation: Option[String],
-    reexport: Option[String]                        = None
+    reexport: Option[String] = None
   ) extends Suggestion {
 
     /** @inheritdoc */
@@ -359,7 +359,7 @@ object Suggestion {
     arguments: Seq[Argument],
     returnType: String,
     scope: Scope,
-    documentation: Option[String],
+    documentation: Option[String]
   ) extends Suggestion
       with ToLogString {
 
@@ -391,7 +391,7 @@ object Suggestion {
     name: String,
     returnType: String,
     scope: Scope,
-    documentation: Option[String],
+    documentation: Option[String]
   ) extends Suggestion {
 
     /** @inheritdoc */

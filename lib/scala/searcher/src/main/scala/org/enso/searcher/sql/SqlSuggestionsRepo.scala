@@ -1210,56 +1210,56 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     suggestion.kind match {
       case SuggestionKind.MODULE =>
         Suggestion.Module(
-          module                = suggestion.module,
-          documentation         = suggestion.documentation,
-          reexport              = suggestion.reexport
+          module        = suggestion.module,
+          documentation = suggestion.documentation,
+          reexport      = suggestion.reexport
         )
       case SuggestionKind.TYPE =>
         Suggestion.Type(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
-          module                = suggestion.module,
-          name                  = suggestion.name,
-          params                = arguments.sortBy(_.index).map(toArgument),
-          returnType            = suggestion.returnType,
-          parentType            = suggestion.parentType,
-          documentation         = suggestion.documentation,
-          reexport              = suggestion.reexport
+          module        = suggestion.module,
+          name          = suggestion.name,
+          params        = arguments.sortBy(_.index).map(toArgument),
+          returnType    = suggestion.returnType,
+          parentType    = suggestion.parentType,
+          documentation = suggestion.documentation,
+          reexport      = suggestion.reexport
         )
       case SuggestionKind.CONSTRUCTOR =>
         Suggestion.Constructor(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
-          module                = suggestion.module,
-          name                  = suggestion.name,
-          arguments             = arguments.sortBy(_.index).map(toArgument),
-          returnType            = suggestion.returnType,
-          documentation         = suggestion.documentation,
-          reexport              = suggestion.reexport
+          module        = suggestion.module,
+          name          = suggestion.name,
+          arguments     = arguments.sortBy(_.index).map(toArgument),
+          returnType    = suggestion.returnType,
+          documentation = suggestion.documentation,
+          reexport      = suggestion.reexport
         )
       case SuggestionKind.METHOD =>
         Suggestion.Method(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
-          module                = suggestion.module,
-          name                  = suggestion.name,
-          arguments             = arguments.sortBy(_.index).map(toArgument),
-          selfType              = suggestion.selfType,
-          returnType            = suggestion.returnType,
-          isStatic              = suggestion.isStatic,
-          documentation         = suggestion.documentation,
-          reexport              = suggestion.reexport
+          module        = suggestion.module,
+          name          = suggestion.name,
+          arguments     = arguments.sortBy(_.index).map(toArgument),
+          selfType      = suggestion.selfType,
+          returnType    = suggestion.returnType,
+          isStatic      = suggestion.isStatic,
+          documentation = suggestion.documentation,
+          reexport      = suggestion.reexport
         )
       case SuggestionKind.CONVERSION =>
         Suggestion.Conversion(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
-          module                = suggestion.module,
-          arguments             = arguments.sortBy(_.index).tail.map(toArgument),
-          sourceType            = arguments.minBy(_.index).tpe,
-          returnType            = suggestion.returnType,
-          documentation         = suggestion.documentation,
-          reexport              = suggestion.reexport
+          module        = suggestion.module,
+          arguments     = arguments.sortBy(_.index).tail.map(toArgument),
+          sourceType    = arguments.minBy(_.index).tpe,
+          returnType    = suggestion.returnType,
+          documentation = suggestion.documentation,
+          reexport      = suggestion.reexport
         )
       case SuggestionKind.FUNCTION =>
         Suggestion.Function(
@@ -1279,7 +1279,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
               suggestion.scopeEndOffset
             )
           ),
-          documentation         = suggestion.documentation
+          documentation = suggestion.documentation
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
@@ -1298,7 +1298,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
               suggestion.scopeEndOffset
             )
           ),
-          documentation         = suggestion.documentation
+          documentation = suggestion.documentation
         )
       case k =>
         throw new NoSuchElementException(s"Unknown suggestion kind: $k")

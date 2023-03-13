@@ -7,6 +7,6 @@ case class Size(value: Int) extends AnyVal with Ordered[Size] {
 }
 
 object Size {
-  val Empty                           = Size(0)
-  def apply(text: String): Size       = Size(text.length)
+  val Empty                     = Size(0)
+  def apply(text: String): Size = Size(text.length)
 }

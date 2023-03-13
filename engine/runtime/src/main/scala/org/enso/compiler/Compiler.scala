@@ -535,7 +535,7 @@ class Compiler(
       isGeneratingDocs = isGenDocs
     )
 
-    val src = module.getSource
+    val src  = module.getSource
     val tree = ensoCompiler.parse(src)
     val expr = ensoCompiler.generateIR(tree)
 

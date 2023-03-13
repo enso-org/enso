@@ -317,14 +317,14 @@ object SearchProtocol {
       */
     case class Modify(
       id: SuggestionId,
-      externalId: Option[FieldUpdate[Suggestion.ExternalId]]      = None,
-      arguments: Option[Seq[SuggestionArgumentUpdate]]            = None,
-      module: Option[FieldUpdate[String]]                         = None,
-      selfType: Option[FieldUpdate[String]]                       = None,
-      returnType: Option[FieldUpdate[String]]                     = None,
-      documentation: Option[FieldUpdate[String]]                  = None,
-      scope: Option[FieldUpdate[Suggestion.Scope]]                = None,
-      reexport: Option[FieldUpdate[String]]                       = None
+      externalId: Option[FieldUpdate[Suggestion.ExternalId]] = None,
+      arguments: Option[Seq[SuggestionArgumentUpdate]]       = None,
+      module: Option[FieldUpdate[String]]                    = None,
+      selfType: Option[FieldUpdate[String]]                  = None,
+      returnType: Option[FieldUpdate[String]]                = None,
+      documentation: Option[FieldUpdate[String]]             = None,
+      scope: Option[FieldUpdate[Suggestion.Scope]]           = None,
+      reexport: Option[FieldUpdate[String]]                  = None
     ) extends SuggestionsDatabaseUpdate
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =

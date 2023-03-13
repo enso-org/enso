@@ -104,7 +104,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
               .generateIRInline(compiler.parse(source))
               .flatMap(_ match {
                 case ir: IR.Literal => Some(ir.setLocation(oldIr.location))
-                case _ => None
+                case _              => None
               })
           }.get
         }
