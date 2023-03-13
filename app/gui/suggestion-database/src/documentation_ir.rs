@@ -15,8 +15,8 @@ use crate::NoSuchEntry;
 use crate::SuggestionDatabase;
 
 use double_representation::name::QualifiedName;
-use enso_doc_parser::doc_sections::DocSection;
-use enso_doc_parser::doc_sections::Mark;
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Mark;
 use std::cmp::Ordering;
 
 

@@ -111,8 +111,8 @@
 - [Named arguments syntax is now recognized in IDE][5774]. Connections to
   function arguments will now use named argument syntax instead of inserting
   wildcards on all preceding arguments.
-- [New Enso documentation parser][5917]. Smaller and faster; enables
-  planned improvements to internal documentation representation.
+- [New Enso documentation parser][5917]. Smaller and faster; enables planned
+  improvements to internal documentation representation.
 
 #### EnsoGL (rendering engine)
 
@@ -522,6 +522,7 @@
 [5802]: https://github.com/enso-org/enso/pull/5802
 [5850]: https://github.com/enso-org/enso/pull/5850
 [5863]: https://github.com/enso-org/enso/pull/5863
+[5917]: https://github.com/enso-org/enso/pull/5917
 
 #### Enso Compiler
 

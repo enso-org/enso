@@ -1,3 +1,5 @@
+//! Parses documentation text to the [`DocSection`] representation.
+
 use crate::*;
 
 
@@ -6,6 +8,10 @@ use crate::*;
 // === Documentation Parser ===
 // ============================
 
+/// Parses documentation text to the [`DocSection`] representation.
+///
+/// Note that this object is semantically stateless, but reusing it allows better performance by
+/// avoiding the need to reallocate its working buffers.
 #[derive(Default, Debug)]
 pub struct DocParser {
     docs:  DocSectionCollector,
@@ -13,10 +19,12 @@ pub struct DocParser {
 }
 
 impl DocParser {
+    /// Create a new [`DocParser`].
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Parse the documentation.
     #[profile(Detail)]
     pub fn parse(&mut self, input: &str) -> Vec<DocSection> {
         for (line_number, line) in input.trim_start().lines().enumerate() {
@@ -37,15 +45,6 @@ impl DocParser {
 
 /// Text rendered as HTML (may contain HTML tags).
 pub type HtmlString = String;
-
-/// Documentation section mark.
-#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq)]
-#[allow(missing_docs)]
-pub enum Mark {
-    Important,
-    Info,
-    Example,
-}
 
 /// A single section of the documentation.
 #[derive(Hash, Debug, Clone, PartialEq, Eq)]
@@ -79,20 +78,6 @@ pub enum DocSection {
         /// The elements that make up the body of the section.
         body:   HtmlString,
     },
-}
-
-
-// === Mark ===
-
-impl Mark {
-    pub fn new(text: &str) -> Option<Self> {
-        match text {
-            "!" => Some(Mark::Important),
-            "?" => Some(Mark::Info),
-            ">" => Some(Mark::Example),
-            _ => None,
-        }
-    }
 }
 
 
@@ -139,8 +124,8 @@ impl DocSectionCollector {
 }
 
 impl<L> TokenConsumer<L> for DocSectionCollector {
-    fn flag(&mut self, flag: Flag, description: Option<Span<'_, L>>) {
-        let name = flag.to_str();
+    fn tag(&mut self, tag: Tag, description: Option<Span<'_, L>>) {
+        let name = tag.to_str();
         let body = description.map(|description| description.to_string()).unwrap_or_default();
         self.sections.push(DocSection::Tag { name, body });
     }

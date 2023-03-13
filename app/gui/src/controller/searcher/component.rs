@@ -10,7 +10,7 @@ use controller::searcher::action::MatchKind;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
-use enso_doc_parser::doc_sections::DocSection;
+use enso_doc_parser::DocSection;
 
 
 

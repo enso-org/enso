@@ -1,3 +1,5 @@
+//! Prints a debug representation of Enso documentation found in the given Enso sourec file(s).
+
 #![recursion_limit = "256"]
 // === Features ===
 #![allow(incomplete_features)]
@@ -27,9 +29,14 @@
 #![warn(unused_qualifications)]
 
 
+use enso_doc_parser::*;
 use enso_parser::prelude::*;
 
 
+
+// ====================================
+// === Debug Representation Printer ===
+// ====================================
 
 fn main() {
     init_global();
@@ -44,17 +51,18 @@ fn main() {
     }
 }
 
+/// Print the token for the input file.
 fn check_doc_parse(filename: &str, code: &str) {
-    println!("{filename}");
+    println!("File: {filename}");
     let docs = extract_docs(filename, code);
     for doc in &docs {
-        let doc = enso_doc_parser::token_collector::parse(doc);
-        for token in doc.tokens {
+        for token in parse(doc) {
             println!("{token:?}");
         }
     }
 }
 
+/// Extract docs from the input file.
 fn extract_docs(_filename: &str, mut code: &str) -> Vec<String> {
     if let Some((_meta, code_)) = enso_parser::metadata::parse(code) {
         code = code_;
@@ -73,4 +81,109 @@ fn extract_docs(_filename: &str, mut code: &str) -> Vec<String> {
         _ => {}
     });
     docs.take().into_iter().map(|node| node.content()).collect()
+}
+
+/// Lex the given documentation, and return the sequence of tokens.
+fn parse(input: &str) -> Vec<Token> {
+    let mut docs = TokenCollector::<IgnoredLocation>::default();
+    let mut lexer = Lexer::default();
+    for (line_number, line) in input.trim_start().lines().enumerate() {
+        let location = Location::start_of_line(line_number);
+        let line = Span { location, text: line };
+        lexer.line::<IgnoredLocation>(line, &mut docs);
+    }
+    lexer.finish(&mut docs);
+    docs.tokens
+}
+
+
+
+// =======================
+// === Token Collector ===
+// =======================
+
+/// Token consumer that reifies the sequence of tokens for debugging and tests.
+#[derive(Default, Debug)]
+struct TokenCollector<L> {
+    tokens:        Vec<Token>,
+    location_type: PhantomData<L>,
+}
+
+#[derive(Debug)]
+enum Token {
+    Tag { tag: Tag, description: String },
+    EnterMarkedSection { mark: Mark, header: String },
+    EnterKeyedSection { header: String },
+    Start(ScopeType),
+    End(ScopeType),
+    StartQuote,
+    EndQuote,
+    Text(String),
+    RawLine(String),
+}
+
+impl<L> TokenConsumer<L> for TokenCollector<L> {
+    fn tag(&mut self, tag: Tag, description: Option<Span<L>>) {
+        self.tokens.push(Token::Tag {
+            tag,
+            description: description.map(String::from).unwrap_or_default(),
+        })
+    }
+
+    fn enter_marked_section(&mut self, mark: Mark, header: Option<Span<L>>) {
+        self.tokens.push(Token::EnterMarkedSection {
+            mark,
+            header: header.map(String::from).unwrap_or_default(),
+        })
+    }
+
+    fn enter_keyed_section(&mut self, header: Span<L>) {
+        self.tokens.push(Token::EnterKeyedSection { header: header.into() })
+    }
+
+    fn text(&mut self, text: Span<L>) {
+        match self.tokens.last_mut() {
+            Some(Token::Text(current)) => {
+                current.push(' ');
+                current.push_str(text.text.as_ref())
+            }
+            _ => self.tokens.push(Token::Text(text.text.into())),
+        }
+    }
+
+    fn start_list(&mut self) {
+        self.tokens.push(Token::Start(ScopeType::List));
+    }
+
+    fn start_list_item(&mut self) {
+        self.tokens.push(Token::Start(ScopeType::ListItem));
+    }
+
+    fn start_paragraph(&mut self) {
+        self.tokens.push(Token::Start(ScopeType::Paragraph));
+    }
+
+    fn start_raw(&mut self) {
+        self.tokens.push(Token::Start(ScopeType::Raw));
+    }
+
+    fn start_quote(&mut self) {
+        self.tokens.push(Token::StartQuote);
+    }
+
+    fn end_quote(&mut self) {
+        self.tokens.push(Token::EndQuote);
+    }
+
+    fn whitespace(&mut self) {
+        self.tokens.push(Token::Text(" ".to_owned()));
+    }
+
+    fn raw_line(&mut self, text: Span<L>) {
+        self.tokens.push(Token::RawLine(text.text.into()));
+    }
+
+    fn end(&mut self, scope: ScopeType) {
+        self.tokens.push(Token::End(scope));
+    }
 }

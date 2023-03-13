@@ -15,8 +15,8 @@ use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
-use enso_doc_parser::doc_sections::DocSection;
 use enso_doc_parser::DocParser;
+use enso_doc_parser::DocSection;
 use enso_text::Location;
 use language_server::types::FieldAction;
 
@@ -1090,7 +1090,7 @@ mod test {
     /// of a keyed [`DocSection`] which has its key equal to the `Icon` string.
     #[test]
     fn find_icon_name_in_doc_section_with_icon_key() {
-        use enso_doc_parser::doc_sections::DocSection;
+        use enso_doc_parser::DocSection;
         let doc_sections = [
             DocSection::Paragraph { body: "Some paragraph.".into() },
             DocSection::Keyed { key: "NotIcon".into(), body: "example_not_icon_body".into() },

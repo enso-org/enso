@@ -1,3 +1,5 @@
+//! Enso documentation parser.
+
 #![recursion_limit = "256"]
 // === Features ===
 #![feature(assert_matches)]
@@ -24,29 +26,30 @@
 use enso_prelude::*;
 
 pub mod doc_sections;
-pub mod token_collector;
 
 pub use doc_sections::DocParser;
 pub use doc_sections::DocSection;
-pub use doc_sections::Mark;
 
 pub(crate) use enso_profiler as profiler;
 pub(crate) use enso_profiler::profile;
 
 
 
-// =============
-// === Flags ===
-// =============
+// ============
+// === Tags ===
+// ============
 
+/// A [`Tag`], optionally with a following description.
 #[derive(Debug)]
-pub struct FlagWithDescription<'a, L> {
-    name:        Flag,
+pub struct TagWithDescription<'a, L> {
+    name:        Tag,
     description: Option<Span<'a, L>>,
 }
 
+/// Indicator placed at the beginning of a documentation section, e.g. `PRIVATE`.
 #[derive(Debug, Copy, Clone)]
-pub enum Flag {
+#[allow(missing_docs)]
+pub enum Tag {
     Added,
     Advanced,
     Alias,
@@ -62,16 +65,18 @@ pub enum Flag {
 
 // === Lexing ===
 
-impl<'a, L: Location> FlagWithDescription<'a, L> {
+impl<'a, L: Location> TagWithDescription<'a, L> {
+    /// Try to lex the given text as a [`TagWithDescription`].
     pub fn new(text: Span<'a, L>) -> Option<Self> {
-        let (flag, description) = text.first_word_and_rest();
-        Flag::new(flag.text).map(|name| FlagWithDescription { name, description })
+        let (tag, description) = text.first_word_and_rest();
+        Tag::new(tag.text).map(|name| TagWithDescription { name, description })
     }
 }
 
-impl Flag {
+impl Tag {
+    /// Try to lex the given text as a [`Tag`].
     pub fn new(text: &str) -> Option<Self> {
-        use Flag::*;
+        use Tag::*;
         match text {
             "ADDED" => Some(Added),
             "ADVANCED" => Some(Advanced),
@@ -87,18 +92,19 @@ impl Flag {
         }
     }
 
+    /// Return a string that lexes as the given tag.
     pub fn to_str(&self) -> &'static str {
         match self {
-            Flag::Added => "ADDED",
-            Flag::Advanced => "ADVANCED",
-            Flag::Alias => "ALIAS",
-            Flag::Deprecated => "DEPRECATED",
-            Flag::Modified => "MODIFIED",
-            Flag::Private => "PRIVATE",
-            Flag::Removed => "REMOVED",
-            Flag::TextOnly => "TEXT_ONLY",
-            Flag::Unstable => "UNSTABLE",
-            Flag::Upcoming => "UPCOMING",
+            Tag::Added => "ADDED",
+            Tag::Advanced => "ADVANCED",
+            Tag::Alias => "ALIAS",
+            Tag::Deprecated => "DEPRECATED",
+            Tag::Modified => "MODIFIED",
+            Tag::Private => "PRIVATE",
+            Tag::Removed => "REMOVED",
+            Tag::TextOnly => "TEXT_ONLY",
+            Tag::Unstable => "UNSTABLE",
+            Tag::Upcoming => "UPCOMING",
         }
     }
 }
@@ -109,37 +115,39 @@ impl Flag {
 // === Marks ===
 // =============
 
+/// Header for a section introduced by a marker-character and following text.
 #[derive(Debug)]
 pub struct Marked<'a, L> {
     mark:   Mark,
     header: Option<Span<'a, L>>,
 }
 
+/// Documentation section mark.
+#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq)]
+#[allow(missing_docs)]
+pub enum Mark {
+    Important,
+    Info,
+    Example,
+}
+
 
 // === Lexing ===
 
-pub trait Location: Copy + Debug {
-    fn start_of_line(line_number: usize) -> Self;
-    fn offset_text(self, text: &str) -> Self;
-    fn offset(self, chars: usize) -> Self;
-}
-
-#[derive(Copy, Clone, Debug, Default)]
-pub struct IgnoredLocation;
-
-impl Location for IgnoredLocation {
-    fn start_of_line(_line_number: usize) -> Self {
-        Self
-    }
-    fn offset_text(self, _text: &str) -> Self {
-        Self
-    }
-    fn offset(self, _chars: usize) -> Self {
-        Self
+impl Mark {
+    /// Try to lex the given text as a header-introducing marker character.
+    pub fn new(text: &str) -> Option<Self> {
+        match text {
+            "!" => Some(Mark::Important),
+            "?" => Some(Mark::Info),
+            ">" => Some(Mark::Example),
+            _ => None,
+        }
     }
 }
 
 impl<'a, L: Location> Marked<'a, L> {
+    /// Try to lex the given text as a marked-section header.
     pub fn new(text: Span<'a, L>) -> Option<Self> {
         let (first_word, header) = text.first_word_and_rest();
         Mark::new(first_word.text).map(|mark| Marked { mark, header })
@@ -152,6 +160,7 @@ impl<'a, L: Location> Marked<'a, L> {
 // === Lines ===
 // =============
 
+/// A line of code, separated into indent and content.
 #[derive(Debug)]
 pub struct Line<'a, L> {
     indent:  Offset,
@@ -159,32 +168,16 @@ pub struct Line<'a, L> {
 }
 
 
+// === Offset and Visible Offset ===
 
-// ===========
-// === Lex ===
-// ===========
-
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-enum State {
-    /// No non-flag line has been read.
-    #[default]
-    Flags,
-    /// Within an example's description.
-    ExampleDescription,
-    /// Expecting an example's code block to start.
-    ExampleExpectingCode { within_indent: VisibleOffset },
-    /// Within an example's code block.
-    ExampleCode,
-    /// Not in any special context.
-    Normal,
+/// A length of text, representing a number of spaces.
+#[derive(Copy, Clone, Debug, Default)]
+pub struct Offset {
+    bytes:   usize,
+    visible: VisibleOffset,
 }
 
-#[derive(Default, Debug)]
-pub struct Lexer {
-    scopes: Scopes,
-    state:  State,
-}
-
+/// A number of spaces.
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VisibleOffset(usize);
 
@@ -195,40 +188,25 @@ impl Add<Self> for VisibleOffset {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
-pub struct Offset {
-    bytes:   usize,
-    visible: VisibleOffset,
-}
-
 impl From<Offset> for VisibleOffset {
     fn from(value: Offset) -> Self {
         value.visible
     }
 }
 
-pub trait Warning {
-    fn to_string(&self) -> String;
-}
 
-impl<'a> Warning for &'a str {
-    fn to_string(&self) -> String {
-        str::to_string(self)
-    }
-}
 
-impl<T> Warning for T
-where T: Fn() -> String
-{
-    fn to_string(&self) -> String {
-        (self)()
-    }
-}
+// =============
+// === Spans ===
+// =============
 
+/// A slice of text, with its location in the input.
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Span<'a, L> {
-    location: L,
-    text:     &'a str,
+    /// The location of the start of the text.
+    pub location: L,
+    /// The text.
+    pub text:     &'a str,
 }
 
 impl<'a, L: Location> Span<'a, L> {
@@ -255,6 +233,8 @@ impl<'a, L: Location> Span<'a, L> {
         None
     }
 
+    /// Remove leading whitespace characters corresponding to the specified visible offset; return
+    /// the following content.
     pub fn trim_start_exact(self, limit: VisibleOffset) -> Self {
         let mut indent = Offset::default();
         let mut bytes = self.text.bytes();
@@ -293,12 +273,14 @@ impl<'a, L: Location> Span<'a, L> {
         }
     }
 
+    /// Returns a [`Span`] with the given prefix removed, if it was present.
     pub fn strip_prefix(self, prefix: &str) -> Option<Self> {
         self.text
             .strip_prefix(prefix)
             .map(|text| Self { location: self.location.offset_text(prefix), text })
     }
 
+    /// Returns a [`Span`] with the given suffix removed, if it was present.
     pub fn strip_suffix(self, suffix: char) -> Option<Self> {
         self.text.strip_suffix(suffix).map(|text| Self { location: self.location, text })
     }
@@ -308,10 +290,12 @@ impl<'a, L: Location> Span<'a, L> {
         Self { location: self.location.offset_text(self.text), text: "" }
     }
 
+    /// Emit a warning for this location, if warnings are enabled.
     pub fn warn(self, _warning: impl Warning) {
         // TODO: self.location.warn(warning)
     }
 
+    /// Split at the given index. Panics if the index is not a character boundary.
     pub fn split_at(self, i: usize) -> (Self, Self) {
         let (a, b) = self.text.split_at(i);
         let a_ = Self { location: self.location, text: a };
@@ -338,20 +322,84 @@ impl<'a, L> Display for Span<'a, L> {
     }
 }
 
+
+// === Location ===
+
+/// An offset within source code, expressed as line number and character index within the line.
+pub trait Location: Copy + Debug {
+    /// The first character of the specified line.
+    fn start_of_line(line_number: usize) -> Self;
+    /// Return the location, advanced within the line by the given text.
+    fn offset_text(self, text: &str) -> Self;
+    /// Return the location, advanced within the line by the specified number of characters.
+    fn offset(self, chars: usize) -> Self;
+}
+
+
+// === Ignored Location ===
+
+/// [`Location`] type that doesn't track locations, for high-performance parsing when
+/// accurately-located warnings are not needed.
+#[derive(Copy, Clone, Debug, Default)]
+pub struct IgnoredLocation;
+
+impl Location for IgnoredLocation {
+    fn start_of_line(_line_number: usize) -> Self {
+        Self
+    }
+    fn offset_text(self, _text: &str) -> Self {
+        Self
+    }
+    fn offset(self, _chars: usize) -> Self {
+        Self
+    }
+}
+
+
+
+// ===========
+// === Lex ===
+// ===========
+
+/// Breaks input state into tokens to be fed to a [`TokenConsumer`].
+#[derive(Default, Debug)]
+pub struct Lexer {
+    scopes: Scopes,
+    state:  State,
+}
+
+/// Lexer state.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+enum State {
+    /// No non-tag line has been read.
+    #[default]
+    Tags,
+    /// Within an example's description.
+    ExampleDescription,
+    /// Expecting an example's code block to start.
+    ExampleExpectingCode { within_indent: VisibleOffset },
+    /// Within an example's code block.
+    ExampleCode,
+    /// Not in any special context.
+    Normal,
+}
+
+
 impl Lexer {
+    /// Lex a line and feed it to the given [`TokenConsumer`].
     pub fn line<L: Location>(&mut self, raw: Span<'_, L>, docs: &mut impl TokenConsumer<L>) {
         let line = raw.trim_start();
         match (self.state, line) {
-            (State::Flags, Some(line)) if let Some(flag) = FlagWithDescription::new(line.content) => {
+            (State::Tags, Some(line)) if let Some(tag) = TagWithDescription::new(line.content) => {
                 // TODO: WARN IF: indent != min.
-                docs.flag(flag.name, flag.description);
+                docs.tag(tag.name, tag.description);
             }
-            (State::Flags, Some(line)) => {
+            (State::Tags, Some(line)) => {
                 self.state = State::Normal;
                 self.normal_line(line, docs)
             }
-            (State::Flags, None) =>
-                raw.warn("Unneeded empty line before content or between flags."),
+            (State::Tags, None) =>
+                raw.warn("Unneeded empty line before content or between tags."),
             (State::ExampleDescription, None) => {
                 self.scopes.end_all().for_each(|scope| docs.end(scope));
                 // TODO: within_indent
@@ -392,6 +440,8 @@ impl Lexer {
         }
     }
 
+    /// Complete the current input, closing any open scopes for the given [`TokenConsumer`] and
+    /// resetting to the default state.
     pub fn finish<L>(&mut self, docs: &mut impl TokenConsumer<L>) {
         self.scopes.end_all().for_each(|scope| docs.end(scope));
         let scopes = mem::take(&mut self.scopes);
@@ -472,6 +522,30 @@ impl Lexer {
     }
 }
 
+
+// === Scopes ===
+
+/// A [`Lexer`] scope.
+#[derive(Debug)]
+struct Scope {
+    r#type: ScopeType,
+    indent: VisibleOffset,
+}
+
+/// A [`Lexer`] scope type.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ScopeType {
+    /// An unordered list.
+    List,
+    /// An unordered-list item.
+    ListItem,
+    /// A paragraph of text.
+    Paragraph,
+    /// A block of preformatted text. No further scopes will occur inside.
+    Raw,
+}
+
+/// A stack of [`Lexer`] scopes.
 #[derive(Default, Debug)]
 struct Scopes {
     scopes: Vec<Scope>,
@@ -540,18 +614,31 @@ impl Scopes {
     }
 }
 
-#[derive(Debug)]
-struct Scope {
-    r#type: ScopeType,
-    indent: VisibleOffset,
+
+// === Warnings ===
+
+/// A message identifying improperly-formatted documentation.
+///
+/// Note that implementors of this trait should not require any work to be done (e.g. string
+/// formatting or other allocations) until `to_string` is called, to prevent overhead when parsing
+/// the standard library (in which case warnings are normally not used anyway).
+pub trait Warning {
+    /// Produce the message.
+    fn to_string(&self) -> String;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScopeType {
-    List,
-    ListItem,
-    Paragraph,
-    Raw,
+impl<'a> Warning for &'a str {
+    fn to_string(&self) -> String {
+        str::to_string(self)
+    }
+}
+
+impl<T> Warning for T
+where T: Fn() -> String
+{
+    fn to_string(&self) -> String {
+        (self)()
+    }
 }
 
 
@@ -560,18 +647,33 @@ pub enum ScopeType {
 // === Token Consumer ===
 // ======================
 
+/// Receives a stream of tokens.
 pub trait TokenConsumer<L> {
-    fn flag(&mut self, flag: Flag, description: Option<Span<'_, L>>);
+    /// A tag.
+    fn tag(&mut self, tag: Tag, description: Option<Span<'_, L>>);
+    /// Header for a section introduced by a mark character.
     fn enter_marked_section(&mut self, mark: Mark, header: Option<Span<'_, L>>);
+    /// Header for a section introduced by text ending in a colon.
     fn enter_keyed_section(&mut self, header: Span<'_, L>);
+    /// Plain text.
     fn text(&mut self, text: Span<'_, L>);
+    /// Start an unordered-list.
     fn start_list(&mut self);
+    /// Start an unordered-list item.
     fn start_list_item(&mut self);
+    /// Start a paragraph.
     fn start_paragraph(&mut self);
+    /// Start a preformatted-text section.
     fn start_raw(&mut self);
+    /// An opening-quote.
     fn start_quote(&mut self);
+    /// A closing-quote.
     fn end_quote(&mut self);
+    /// Space between two [`text`] tokens.
     fn whitespace(&mut self);
+    /// A line of preformatted text. No newline character is included.
     fn raw_line(&mut self, text: Span<'_, L>);
+    /// Close a scope, of specified type. As scopes form a stack, the scope closed will always be
+    /// the most recently-opened scope that has not been closed.
     fn end(&mut self, scope: ScopeType);
 }

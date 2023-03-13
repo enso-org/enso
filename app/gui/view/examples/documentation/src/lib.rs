@@ -10,8 +10,8 @@
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
-use enso_doc_parser::doc_sections::DocSection;
-use enso_doc_parser::doc_sections::Mark;
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Mark;
 use enso_suggestion_database as suggestion_database;
 use enso_suggestion_database::doc_section;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;

@@ -4,8 +4,8 @@ use enso_prelude::*;
 use horrorshow::prelude::*;
 
 use double_representation::name::QualifiedName;
-use enso_doc_parser::doc_sections::DocSection;
-use enso_doc_parser::doc_sections::Mark;
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Mark;
 use enso_profiler as profiler;
 use enso_profiler::profile;
 use enso_suggestion_database::documentation_ir::BuiltinDocumentation;
