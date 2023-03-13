@@ -269,7 +269,6 @@ export const AuthProvider = (props: AuthProviderProps) => {
     session: userSession,
   };
 
-
   return (
     <AuthContext.Provider value={value}>
       {/** Only render the underlying app after we assert for the presence of a current
@@ -342,7 +341,7 @@ export const GuestLayout = () => {
 // =============================
 
 export const usePartialUserSession = () => {
-    return router.useOutletContext<PartialUserSession>();
+  return router.useOutletContext<PartialUserSession>();
 };
 
 // ==========================

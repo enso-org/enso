@@ -99,9 +99,9 @@ export interface Project {
 
 /** HTTP request body for the "set username" endpoint. */
 export type SetUsernameRequestBody = {
-    userName: string;
-    userEmail: string;
-}
+  userName: string;
+  userEmail: string;
+};
 
 /** HTTP response body for the "list projects" endpoint. */
 interface ListProjectsResponseBody {
