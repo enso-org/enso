@@ -112,8 +112,6 @@ class TableVisualization extends Visualization {
             const tabElem = document.createElement('div')
             tabElem.setAttributeNS(null, 'id', 'vis-tbl-view')
             tabElem.setAttributeNS(null, 'class', 'scrollable ag-theme-alpine')
-            tabElem.setAttributeNS(null, 'width', '100%')
-            tabElem.setAttributeNS(null, 'height', '100%')
             this.dom.appendChild(tabElem)
             this.tabElem = tabElem
             this.updateTableSize()
@@ -157,14 +155,14 @@ class TableVisualization extends Visualization {
                 firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
             )
         } else if (parsedData.json !== undefined && Array.isArray(parsedData.json)) {
-            columnDefs = [{ field: '#', headerName: 'Row Number', pinned: 'left' }, { field: 'value' }]
-            rowData = parsedData.json.map((row, i) => ({ ['#']: i + 1, value: toRender(row) }))
+            columnDefs = [{ field: '#', headerName: 'Row#', pinned: 'left' }, { field: 'value' }]
+            rowData = parsedData.json.map((row, i) => ({ ['#']: i, value: toRender(row) }))
         } else if (parsedData.json !== undefined) {
             columnDefs = [{ field: 'value' }]
             rowData = [{ value: toRender(parsedData.json) }]
         } else {
             const indices_header = (parsedData.indices_header ? parsedData.indices_header : []).map(h => {
-                const headerName =  h === '#' ? 'Row Number' : h;
+                const headerName =  h === '#' ? 'Row#' : h;
                 return { field: h, headerName: headerName, pinned: 'left' }
             });
             columnDefs = [...indices_header, ...parsedData.header.map(h => ({ field: h }))]
@@ -188,7 +186,7 @@ class TableVisualization extends Visualization {
             })
         }
 
-        const dataTruncated = parsedData.all_rows_count !== data.length
+        const dataTruncated = parsedData.all_rows_count !== rowData.length
         this.agGridOptions.defaultColDef.filter = !dataTruncated
         this.agGridOptions.defaultColDef.sortable = !dataTruncated
         this.agGridOptions.api.setColumnDefs(columnDefs)
@@ -200,12 +198,9 @@ class TableVisualization extends Visualization {
         if (this.tabElem !== undefined) {
             const width = this.dom.getAttributeNS(null, 'width')
             const height = this.dom.getAttributeNS(null, 'height')
-            const tblViewStyle = `width: ${width - 5}px;
-                 height: ${height - 5}px;
-                 overflow: scroll;
-                 padding:2.5px;`
+            const tblViewStyle = `width: ${width}px; height: ${height}px; overflow: scroll;`
             this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
-            this.tabElem.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height)
+            // this.tabElem.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height)
         }
 
         this.agGridOptions && this.agGridOptions.api.sizeColumnsToFit()
