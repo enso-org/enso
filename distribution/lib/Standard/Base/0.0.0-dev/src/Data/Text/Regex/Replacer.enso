@@ -2,12 +2,14 @@ from project.Data.Boolean import Boolean, True, False
 import project.Data.Numbers.Integer
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Regex.Match_2.Match_2
+import project.Data.Text.Regex.Pattern_2.Match_Iterator_Value
 import project.Data.Text.Regex.Pattern_2.Pattern_2
 import project.Data.Text.Regex_2.No_Such_Group
 import project.Data.Text.Regex_2
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Illegal_State
 import project.Nothing.Nothing
 import project.Panic.Panic
 
@@ -37,19 +39,19 @@ type Replacer
          that will be used to provide a replacement in a regex match.
     new : Text -> Pattern_2 -> Replacer
     new replacement_string pattern =
-        Replacer.Value (build_replacement_vector pattern replacement_string)
+        Replacer.Value (self.build_replacement_vector pattern replacement_string)
 
     ## Build a replacement string from a match
 
        Arguments:
        - match: the match from the original string that is to be replaced,
     replace : Match_2 -> Text
-    replace match =
+    replace self match =
         string_builder = StringBuilder.new
         self.replacement.each replacement->
             s = case replacement of
-                    Literal text -> text
-                    Substitution group_number -> match.group group_number
+                Replacement.Literal text -> text
+                Replacement.Substitution group_number -> match.group group_number
             string_builder.append s
         string_builder.toString
 
@@ -57,17 +59,17 @@ type Replacer
 
        Build a Replacer.
 
-       Parse the replacement string into an alternating series of literal'
+       Parse the replacement string into an alternating series of literal
        strings and group reference numbers.
     build_replacement_vector : Text -> Pattern_2 -> Replacer
-    build_replacement_vector replacement_string pattern =
-        pattern = Regex_2.compile GROUP_REFERENCE_REGEX
-        it = pattern.iterator replacement_string
+    build_replacement_vector self replacement_string pattern =
+        replacement_pattern = Regex_2.compile self.group_reference_regex
+        it = replacement_pattern.iterator replacement_string
 
         builder = Vector.new_builder
         go it = case it.next of
             Match_Iterator_Value.Next filler match next_it ->
-                replacement = self.parse_group_number pattern match
+                replacement = parse_group_number pattern match
                 builder.append (Replacement.Literal filler)
                 builder.append replacement
                 go next_it
@@ -77,36 +79,35 @@ type Replacer
         Replacer.Value builder.to_vector
 
     ## PRIVATE
-    GROUP_REFERENCE_REGEX = "\\$(([0-9]+)|(\\$)|(&)|(<([^>])+>))"  (n<100) $<Name>
+    group_reference_regex = '\\$(([0-9]+)|(\\$)|(&)|(<([^>])+>))'
 
-    ## PRIVATE
+## PRIVATE
 
-       Parse a capture group reference.
+   Parse a capture group reference.
 
-       Arguments:
-       - pattern: the Pattern_2 used to initiate the replacement. This is used
-         to identify and validate capture groups.
-       - match: the match of the replacement string against GROUP_REFERENCE_REGEX
+   Arguments:
+   - pattern: the Pattern_2 used to initiate the replacement. This is used
+     to identify and validate capture groups.
+   - match: the match of the replacement string against group_reference_regex
 
-       Returns a Replacement: a group number, or, in the case of `$$`, a literal.
+   Returns a Replacement: a group number, or, in the case of `$$`, a literal.
 
-       See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-    parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group
-    parse_group_number pattern match =
-        case match.group 2 of
-            # E.g. `$1`
-            text : Text -> Replacement.Substitution (pattern.lookup_group (Integer.parse text))
-            Nothing -> case match.group 3 of
-                # `$$`
-                text : Text -> Replacement.Literal "$"
-                Nothing -> case match.group 4 of
-                    # `$&` (same as `$0`)
-                    text : Text -> Replacement.Substitution 0
-                    Nothing -> case match.group 6 of
-                        # `$<foo>`
-                        text : Text -> Replacement.Substitution pattern.lookup_group text
-                        Nothing -> Panic.throw (Illegal_State.Error ("Unable to identify capture group: \"" + match.txt + "\""))
-        "\\$([0-9]+|\\$|&|<[^>]+>)"
+   See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group
+parse_group_number pattern match =
+    case match.group 2 of
+        # E.g. `$1`
+        text : Text -> Replacement.Substitution (pattern.lookup_group (Integer.parse text))
+        Nothing -> case match.group 3 of
+            # `$$`
+            _ : Text -> Replacement.Literal "$"
+            Nothing -> case match.group 4 of
+                # `$&` (same as `$0`)
+                _ : Text -> Replacement.Substitution 0
+                Nothing -> case match.group 6 of
+                    # `$<foo>`
+                    text : Text -> Replacement.Substitution pattern.lookup_group text
+                    Nothing -> Panic.throw (Illegal_State.Error ('Unable to identify capture group: \"' + match.txt + '\"'))
 
 type Replacement
     ## A Replacement is either a string literal or a regex group number.
