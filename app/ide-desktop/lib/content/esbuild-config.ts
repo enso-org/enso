@@ -80,7 +80,6 @@ export function always_copied_files(wasm_artifacts: string) {
         path.resolve(thisPath, 'src', 'index.html'),
         path.resolve(thisPath, 'src', 'run.js'),
         path.resolve(thisPath, 'src', 'style.css'),
-        path.resolve(thisPath, 'src', 'tailwind.css'),
         path.resolve(thisPath, 'src', 'docsStyle.css'),
         ...wasm_artifacts.split(path.delimiter),
     ]
