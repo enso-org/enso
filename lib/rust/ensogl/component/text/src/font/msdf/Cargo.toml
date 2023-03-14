@@ -8,7 +8,9 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-bitmap = { path = "../../../../../../bitmap" }
 enso-prelude = { path = "../../../../../../prelude" }
+enso-profiler = { path = "../../../../../../profiler" }
 enso-types = { path = "../../../../../../types" }
 failure = { workspace = true }
 js-sys = { workspace = true }

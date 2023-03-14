@@ -166,9 +166,12 @@ public final class ParseStdLibTest extends TestCase {
             "Data/Range.enso",
             "Data/Sort_Column_Selector.enso",
             "Data/Text/Extensions.enso",
+            "Data/Text/Regex/Match_2.enso",
+            "Data/Text/Regex/Pattern_2.enso",
             "Data/Text/Regex/Regex_Mode.enso",
             "Data/Value_Type.enso",
             "Data/Vector.enso",
+            "Data/Statistics.enso",
             "Network/HTTP/HTTP_Status_Code.enso",
             "Internal/Base_Generator.enso",
             "System/File.enso"));

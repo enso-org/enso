@@ -11,7 +11,7 @@ import Standard.Visualization.File_Upload.File_Being_Uploaded
 
 spec = Test.group "File uploads" <|
     Test.specify "should be able to be signalled as uploading" <|
-        Visualization.file_uploading "file" . should_fail_with File_Being_Uploaded.Value
+        Visualization.file_uploading "file" . should_fail_with File_Being_Uploaded
 
     Test.specify "should work whether a textual or file path is provided" <|
         result_file = Visualization.file_uploading Examples.csv . catch

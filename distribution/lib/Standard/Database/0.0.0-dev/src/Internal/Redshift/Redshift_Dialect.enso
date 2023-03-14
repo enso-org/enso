@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 from Standard.Table import Aggregate_Column
 
 import project.Connection.Connection.Connection
@@ -74,3 +75,9 @@ type Redshift_Dialect
     is_probably_a_query : Text -> Boolean
     is_probably_a_query self text =
         (text.contains "SELECT ") || (text.contains "EXEC ")
+
+    ## PRIVATE
+       Returns an utility that allows ensuring column names are valid for the
+       given backend.
+    get_naming_helpers : Naming_Helpers
+    get_naming_helpers self = Naming_Helpers

@@ -643,6 +643,7 @@ lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(syntax.jvm)
   .dependsOn(cli)
   .dependsOn(`version-output`)
+  .dependsOn(`polyglot-api`)
   .configs(Benchmark)
   .settings(
     frgaalJavaCompilerSetting,
@@ -870,10 +871,12 @@ lazy val `logging-service` = project
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       akkaStream,
       akkaHttp,
-      "io.circe"              %%% "circe-core"   % circeVersion,
-      "io.circe"              %%% "circe-parser" % circeVersion,
-      "org.scalatest"          %% "scalatest"    % scalatestVersion % Test,
-      "org.graalvm.nativeimage" % "svm"          % graalVersion     % "provided"
+      "io.circe"              %%% "circe-core"      % circeVersion,
+      "io.circe"              %%% "circe-parser"    % circeVersion,
+      "junit"                   % "junit"           % junitVersion     % Test,
+      "com.novocode"            % "junit-interface" % "0.11"           % Test exclude ("junit", "junit-dep"),
+      "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
+      "org.graalvm.nativeimage" % "svm"             % graalVersion     % "provided"
     )
   )
   .settings(
@@ -1501,6 +1504,7 @@ lazy val runtime = (project in file("engine/runtime"))
     }.evaluated,
     Benchmark / parallelExecution := false
   )
+  .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`runtime-language-epb`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
@@ -2022,21 +2026,36 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"                   % icuVersion,
       "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
+      val _ensureCoreIsCompiled =
+        (`common-polyglot-core-utils` / Compile / packageBin).value
       val _ = StdBits
         .copyDependencies(
           `base-polyglot-root`,
-          Some("std-base.jar"),
+          Seq("std-base.jar", "common-polyglot-core-utils.jar"),
           ignoreScalaLibrary = true
         )
         .value
       result
     }.value
+  )
+  .dependsOn(`common-polyglot-core-utils`)
+
+lazy val `common-polyglot-core-utils` = project
+  .in(file("lib/scala/common-polyglot-core-utils"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `base-polyglot-root` / "common-polyglot-core-utils.jar",
+    libraryDependencies ++= Seq(
+      "com.ibm.icu"         % "icu4j"       % icuVersion,
+      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+    )
   )
 
 lazy val `enso-test-java-helpers` = project
@@ -2048,7 +2067,18 @@ lazy val `enso-test-java-helpers` = project
       file("test/Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
-    )
+    ),
+    Compile / packageBin := Def.task {
+      val result          = (Compile / packageBin).value
+      val primaryLocation = (Compile / packageBin / artifactPath).value
+      val secondaryLocations = Seq(
+        file("test/Table_Tests/polyglot/java/helpers.jar")
+      )
+      secondaryLocations.foreach { target =>
+        IO.copyFile(primaryLocation, target)
+      }
+      result
+    }.value
   )
 
 lazy val `std-table` = project
@@ -2079,7 +2109,7 @@ lazy val `std-table` = project
       val _ = StdBits
         .copyDependencies(
           `table-polyglot-root`,
-          Some("std-table.jar"),
+          Seq("std-table.jar"),
           ignoreScalaLibrary = true
         )
         .value
@@ -2097,14 +2127,14 @@ lazy val `std-image` = project
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "org.openpnp" % "opencv" % "4.5.1-2"
+      "org.openpnp"      % "opencv"                  % "4.5.1-2"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
         .copyDependencies(
           `image-polyglot-root`,
-          Some("std-image.jar"),
+          Seq("std-image.jar"),
           ignoreScalaLibrary = true
         )
         .value
@@ -2129,7 +2159,7 @@ lazy val `std-google-api` = project
       val _ = StdBits
         .copyDependencies(
           `google-api-polyglot-root`,
-          Some("std-google-api.jar"),
+          Seq("std-google-api.jar"),
           ignoreScalaLibrary = true
         )
         .value
@@ -2158,7 +2188,7 @@ lazy val `std-database` = project
       val _ = StdBits
         .copyDependencies(
           `database-polyglot-root`,
-          Some("std-database.jar"),
+          Seq("std-database.jar"),
           ignoreScalaLibrary = true
         )
         .value
@@ -2232,11 +2262,16 @@ buildEngineDistribution := {
   log.info(s"Engine package created at $root")
 }
 
-lazy val runEngineDistribution = inputKey[Unit]("Run the engine distribution with arguments")
+lazy val runEngineDistribution =
+  inputKey[Unit]("Run the engine distribution with arguments")
 runEngineDistribution := {
   buildEngineDistribution.value
   val args: Seq[String] = spaceDelimited("<arg>").parsed
-  DistributionPackage.runEnginePackage(engineDistributionRoot.value, args, streams.value.log)
+  DistributionPackage.runEnginePackage(
+    engineDistributionRoot.value,
+    args,
+    streams.value.log
+  )
 }
 
 val stdBitsProjects =

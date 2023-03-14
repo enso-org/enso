@@ -3,7 +3,6 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Pair.Pair
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
@@ -294,5 +293,3 @@ type Duration
              example_is_empty = Duration.zero.is_empty
     is_empty : Boolean
     is_empty self = self.to_vector . all (==0)
-
-Comparable.from (_:Duration) = Default_Ordered_Comparator

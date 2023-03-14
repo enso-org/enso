@@ -27,6 +27,7 @@ enso-suggestion-database = { path = "suggestion-database" }
 ensogl = { path = "../../lib/rust/ensogl" }
 ensogl-examples = { path = "../../lib/rust/ensogl/examples" }
 ensogl-component = { path = "../../lib/rust/ensogl/component" }
+ensogl-dynamic-assets = { path = "../../lib/rust/ensogl/component/dynamic-assets" }
 ensogl-text-msdf = { path = "../../lib/rust/ensogl/component/text/src/font/msdf" }
 ensogl-hardcoded-theme = { path = "../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-drop-manager = { path = "../../lib/rust/ensogl/component/drop-manager" }

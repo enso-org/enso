@@ -323,8 +323,10 @@ impl Handle {
         self.graph.borrow().connect(connection, self)
     }
 
-    /// Remove the connections from the graph.
-    pub fn disconnect(&self, connection: &Connection) -> FallibleResult {
+    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
+    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
+    /// returned, no update is necessary.
+    pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
         self.graph.borrow().disconnect(connection, self)
     }
 }

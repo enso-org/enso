@@ -42,7 +42,7 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
   static <T, S extends SpecializedStorage<T>> MapOpStorage<T, S> buildObjectOps() {
     MapOpStorage<T, S> ops = new MapOpStorage<>();
     ops.add(
-        new UnaryMapOperation<>(Maps.IS_MISSING) {
+        new UnaryMapOperation<>(Maps.IS_NOTHING) {
           @Override
           protected BoolStorage run(S storage) {
             BitSet r = new BitSet();
