@@ -15,7 +15,8 @@ spec =
     Test.group "gmt" <|
         Test.specify "asdf" <|
             pattern = Regex_2.compile "a([a-z])"
-            pattern.replace "abac ad aae a af" "A$1$1"
+            s = pattern.replace "abac ad aae a af" "A$1$1"
+            s . should_equal "AbbAcc Add Aaae a Aff"
 
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
