@@ -25,7 +25,7 @@ make_long_builder : Integer -> NumericBuilder
 make_long_builder initial_size = NumericBuilder.createLongBuilder initial_size
 
 ## PRIVATE
-make_inferred_builder : Integer -> NumericBuilder
+make_inferred_builder : Integer -> InferredBuilder
 make_inferred_builder initial_size = InferredBuilder.new initial_size
 
 ## PRIVATE

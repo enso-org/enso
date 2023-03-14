@@ -66,7 +66,7 @@ public abstract class Index {
    * consecutive copies of the i-th element of the original index should be {@code counts[i]}.
    *
    * @param counts the mask specifying elements duplication
-   * @param total the sum of all elements in the mask, also interpreted as the size of the resulting
+   * @param total the sum of all elements in the mask, also interpreted as the length of the resulting
    *     index
    * @return the index masked according to the specified rules
    */

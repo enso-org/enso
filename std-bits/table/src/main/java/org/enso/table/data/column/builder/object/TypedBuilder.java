@@ -2,7 +2,7 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.type.StorageType;
 
-/** A builder for the given storage type and known result size. */
+/** A builder for the given storage type and known result length. */
 public abstract class TypedBuilder extends Builder {
   /**
    * Dump all the items into a given boxed buffer.

@@ -245,7 +245,7 @@ public abstract class Storage<T> {
    * counts[i]}.
    *
    * @param counts the mask specifying elements duplication
-   * @param total the sum of all elements in the mask, also interpreted as the size of the resulting
+   * @param total the sum of all elements in the mask, also interpreted as the length of the resulting
    *     storage
    * @return the storage masked according to the specified rules
    */

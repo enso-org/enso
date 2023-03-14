@@ -892,15 +892,16 @@ type Table
         selection = self.columns_helper.select_columns_helper columns reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
 
+        # TODO [RW] we should inherit the parent type here, but extend fixed length strings to varied length
         map_preserve_name column f = column.map f . rename column.name
         do_replace = _.replace term new_text case_sensitivity=case_sensitivity only_first=only_first use_regex=use_regex
         do_replace_only_text = case _ of
                 item : Text -> do_replace item
                 item -> item
 
-        transform column = case column.storage_type of
-            Storage.Text -> map_preserve_name column do_replace
-            Storage.Any -> map_preserve_name column do_replace_only_text
+        transform column = case column.value_type of
+            Value_Type.Char _ _ -> map_preserve_name column do_replace
+            Value_Type.Mixed -> map_preserve_name column do_replace_only_text
             _ ->
                 problem = Invalid_Value_Type.Error Value_Type.Char column.value_type
                 problem_builder.report_other_warning problem
@@ -1505,7 +1506,7 @@ type Table
                 case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
                     Nothing -> Nothing
                     result_type : Value_Type ->
-                        concat_columns column_set all_tables result_type result_row_count
+                        concat_columns column_set all_tables result_type result_row_count on_problems
             good_columns = merged_columns.filter Filter_Condition.Not_Nothing
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|
@@ -1552,7 +1553,7 @@ type Table
     info : Table
     info self =
         cols = self.columns
-        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
+        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
 
     ## Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
@@ -1908,8 +1909,8 @@ check_table arg_name table =
 
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.
-concat_columns column_set all_tables result_type result_row_count =
-    storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=result_row_count
+concat_columns column_set all_tables result_type result_row_count on_problems =
+    storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count
     column_set.column_indices.zip all_tables i-> parent_table->
         case i of
             Nothing ->

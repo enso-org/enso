@@ -19,9 +19,9 @@ public class InferredBuilder extends Builder {
   private final int initialSize;
 
   /**
-   * Creates a new instance of this builder, with the given known result size.
+   * Creates a new instance of this builder, with the given known result length.
    *
-   * @param initialSize the result size
+   * @param initialSize the result length
    */
   public InferredBuilder(int initialSize) {
     this.initialSize = initialSize;

@@ -11,7 +11,7 @@ public sealed interface StorageType {
     }
   }
 
-  record FixedLengthString(int size) implements StorageType {}
+  record FixedLengthString(int length) implements StorageType {}
   record VariableLengthString() implements StorageType {}
   record Date() implements StorageType {}
   record TimeOfDay() implements StorageType {}

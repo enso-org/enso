@@ -23,6 +23,14 @@ type Bits
         Bits.Bits_32 -> 32
         Bits.Bits_64 -> 64
 
+    ## PRIVATE
+    from_bits : Integer -> Bits
+    from_bits bits = case bits of
+        16 -> Bits.Bits_16
+        32 -> Bits.Bits_32
+        64 -> Bits.Bits_64
+        _  -> Error.throw (Illegal_Argument.Error "Invalid number of bits for a float or integer type.")
+
     to_text : Text
     to_text self = case self of
         Bits.Bits_16 -> "16 bits"
@@ -105,9 +113,9 @@ type Value_Type
        Checks if the provided value type is a textual type (with any settings)
        and runs the following action or reports a type error.
     expect_text : Value_Type -> Any -> Text -> Any ! Invalid_Value_Type
-    expect_text value_type ~action related_column=Nothing = case value_type of
-        Value_Type.Char _ _ -> action
-        _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Char value_type related_column)
+    expect_text value_type ~action related_column=Nothing =
+        if Value_Type.is_text value_type then action else
+            Error.throw (Invalid_Value_Type.Error Value_Type.Char value_type related_column)
 
     ## ADVANCED
        UNSTABLE
@@ -130,6 +138,14 @@ type Value_Type
     is_text : Boolean
     is_text self = case self of
         Value_Type.Char _ _ -> True
+        _ -> False
+
+    ## UNSTABLE
+    is_numeric : Boolean
+    is_numeric self = case self of
+        Value_Type.Integer _ -> True
+        Value_Type.Float _   -> True
+        Value_Type.Decimal _ _ -> True
         _ -> False
 
     # TODO move these functions below to a separate file
