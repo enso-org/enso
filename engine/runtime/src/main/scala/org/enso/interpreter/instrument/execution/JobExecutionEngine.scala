@@ -1,15 +1,14 @@
 package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
-import org.enso.interpreter.instrument.job.{Job, UniqueJob}
+import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
 import org.enso.text.Sha3_224VersionCalculator
 
-import java.util.UUID
+import java.util.{PriorityQueue, UUID}
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.ExecutorService
 import java.util.logging.Level
 
-import scala.collection.mutable
 import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
 
@@ -41,12 +40,12 @@ final class JobExecutionEngine(
   private var isBackgroundJobsStarted = false
 
   private val delayedBackgroundJobsQueue =
-    mutable.Queue.empty[Job[_]]
+    new PriorityQueue[BackgroundJob[_]](4096)
 
   val jobExecutor: ExecutorService =
     context.newFixedThreadPool(jobParallelism, "job-pool", false)
 
-  val backgroundJobExecutor: ExecutorService =
+  private val backgroundJobExecutor: ExecutorService =
     context.newFixedThreadPool(1, "background-job-pool", false)
 
   private val runtimeContext =
@@ -63,12 +62,12 @@ final class JobExecutionEngine(
     )
 
   /** @inheritdoc */
-  override def runBackground[A](job: Job[A]): Unit =
+  override def runBackground[A](job: BackgroundJob[A]): Unit =
     synchronized {
       if (isBackgroundJobsStarted) {
         runInternal(job, backgroundJobExecutor, backgroundJobsRef)
       } else {
-        delayedBackgroundJobsQueue.enqueue(job)
+        delayedBackgroundJobsQueue.add(job)
       }
     }
 
@@ -158,8 +157,7 @@ final class JobExecutionEngine(
     synchronized {
       val result = !isBackgroundJobsStarted
       isBackgroundJobsStarted = true
-      delayedBackgroundJobsQueue.foreach(runBackground)
-      delayedBackgroundJobsQueue.clear()
+      submitBackgroundJobsOrdered()
       result
     }
 
@@ -172,4 +170,12 @@ final class JobExecutionEngine(
     jobExecutor.shutdownNow()
   }
 
+  /** Submit background jobs preserving the order. */
+  private def submitBackgroundJobsOrdered(): Unit = {
+    var job: BackgroundJob[_] = delayedBackgroundJobsQueue.poll()
+    while (job ne null) {
+      runBackground(job)
+      job = delayedBackgroundJobsQueue.poll()
+    }
+  }
 }

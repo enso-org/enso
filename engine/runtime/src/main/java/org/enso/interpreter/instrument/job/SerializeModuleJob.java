@@ -6,17 +6,18 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
-import scala.collection.immutable.List$;
 
 import java.util.logging.Level;
 
 /** The job that serializes module. */
-public final class SerializeModuleJob extends Job<Void> {
+public final class SerializeModuleJob extends BackgroundJob<Void> {
 
   private final QualifiedName moduleName;
 
+  private final static int SERIALIZE_MODULE_JOB_PRIORITY = 1000;
+
   public SerializeModuleJob(QualifiedName moduleName) {
-    super(List$.MODULE$.empty(), false, false);
+    super(SERIALIZE_MODULE_JOB_PRIORITY);
     this.moduleName = moduleName;
   }
 

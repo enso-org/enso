@@ -14,11 +14,7 @@ import scala.jdk.CollectionConverters._
   */
 final class DeserializeLibrarySuggestionsJob(
   libraryName: LibraryName
-) extends Job[Unit](
-      List(),
-      isCancellable         = false,
-      mayInterruptIfRunning = false
-    ) {
+) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority) {
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
@@ -41,4 +37,9 @@ final class DeserializeLibrarySuggestionsJob(
         )
       }
   }
+}
+
+object DeserializeLibrarySuggestionsJob {
+
+  private val Priority = 100
 }
