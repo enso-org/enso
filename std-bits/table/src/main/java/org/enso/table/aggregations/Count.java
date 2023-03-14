@@ -1,6 +1,5 @@
 package org.enso.table.aggregations;
 
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 
 import java.util.List;

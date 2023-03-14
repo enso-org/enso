@@ -9,7 +9,6 @@ import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.util.ConstantList;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 

@@ -5,6 +5,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 public abstract class TypedBuilderImpl<T> extends TypedBuilder {
   protected T[] data;
@@ -23,12 +24,12 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return type == StorageType.ANY_OBJECT;
+    return Objects.equals(type, StorageType.ANY_OBJECT);
   }
 
   @Override
   public TypedBuilder retypeTo(StorageType type) {
-    if (type == StorageType.ANY_OBJECT) {
+    if (Objects.equals(type, StorageType.ANY_OBJECT)) {
       Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
       ObjectBuilder res = new ObjectBuilder(widenedData);
       res.setCurrentSize(currentSize);
@@ -54,7 +55,7 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    if (storage.getType() == getType()) {
+    if (storage.getType().equals(getType())) {
       if (storage instanceof SpecializedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
