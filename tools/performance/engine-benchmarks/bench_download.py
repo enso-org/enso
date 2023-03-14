@@ -23,6 +23,7 @@ The process of the script is roughly as follows:
 
 Dependencies for the script:
 - GH CLI utility
+    - https://cli.github.com/
     - Used for convenience to do the GH API queries.
     - It needs to be installed, and you should also authenticate.
 - Python version >= 3.7
@@ -142,6 +143,8 @@ class TemplateBenchData:
     commit_msgs: List[str]
     commit_authors: List[str]
     commit_urls: List[str]
+    bench_run_urls: List[str]
+    """ URLs to Engine benchmark job """
 
 
 @dataclass
@@ -540,6 +543,7 @@ def create_template_data(bench_data: BenchmarkData) -> TemplateBenchData:
         # Take just the first row of a commit message and replace all ' with ".
         commit_msgs=[entry.commit_msg.splitlines()[0].replace("'", "\"") for entry in bench_data.entries],
         commit_urls=[entry.commit_url for entry in bench_data.entries],
+        bench_run_urls=[entry.bench_run_url for entry in bench_data.entries],
     )
 
 
@@ -580,9 +584,10 @@ if __name__ == '__main__':
     arg_parser.add_argument("-t", "--tmp-dir", action="store",
                             default=None,
                             help="Temporary directory with default created by `tempfile.mkdtemp()`")
-    arg_parser.add_argument("--use-cache", action="store_true",
-                            default=False,
-                            help="Whether the cache directory should be used")
+    arg_parser.add_argument("--use-cache",
+                            default=True,
+                            type=lambda input: True if input in ("true", "True") else False,
+                            help="Whether the cache directory should be used. true or false")
     arg_parser.add_argument("--create-csv", action="store_true",
                             default=False,
                             help="Whether an intermediate `benchs.csv` should be created. "
