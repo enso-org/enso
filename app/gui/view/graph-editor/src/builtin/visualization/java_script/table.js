@@ -54,7 +54,7 @@ class TableVisualization extends Visualization {
                 if (isMatrix(content)) {
                     return `[Vector ${content.length} rows x ${content[0].length} cols]`
                 } else if (isObjectMatrix(content)) {
-                    return `[Vector ${content.length} objects]`
+                    return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
                 } else {
                     return `[Vector ${content.length} items]`
                 }
@@ -64,30 +64,34 @@ class TableVisualization extends Visualization {
                 const type = content.type
                 if (type === 'BigInt') {
                     return BigInt(content.value)
+                } else if (content['_display_text_']) {
+                    return content['_display_text_']
                 } else if (type === 'Date') {
                     return new Date(content.year, content.month - 1, content.day)
+                        .toISOString()
+                        .substring(0, 10)
                 } else if (type === 'Time_Of_Day') {
-                    return new Date(
+                    const js_date = new Date(
                         0,
                         0,
                         1,
                         content.hour,
                         content.minute,
                         content.second,
-                        content.nanosecond / 1000000
-                    )
+                        content.nanosecond / 1000000)
+                    return js_date.toTimeString().substring(0, 8) + (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
                 } else if (type === 'Date_Time') {
-                    return new Date(
+                    const js_date = new Date(
                         content.year,
                         content.month - 1,
                         content.day,
                         content.hour,
                         content.minute,
                         content.second,
-                        content.nanosecond / 1000000
-                    )
+                        content.nanosecond / 1000000)
+                    return js_date.toISOString().substring(0, 10) + ' ' + js_date.toTimeString().substring(0, 8) + (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
                 } else {
-                    return `[Object of type '${type}']`
+                    return `{ ${type} Object }`
                 }
             }
 
@@ -111,6 +115,7 @@ class TableVisualization extends Visualization {
             tabElem.setAttributeNS(null, 'width', '100%')
             tabElem.setAttributeNS(null, 'height', '100%')
             this.dom.appendChild(tabElem)
+            this.tabElem = tabElem
             this.updateTableSize()
 
             this.agGridOptions = {
@@ -121,7 +126,7 @@ class TableVisualization extends Visualization {
                     sortable: true,
                     filter: true,
                     resizable: true,
-                    minWidth: 50,
+                    minWidth: 50
                 },
                 enableRangeSelection: true,
             }
@@ -152,17 +157,17 @@ class TableVisualization extends Visualization {
                 firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
             )
         } else if (parsedData.json !== undefined && Array.isArray(parsedData.json)) {
-            columnDefs = [{ field: 'row' }, { field: 'value' }]
-            rowData = parsedData.json.map((row, i) => ({ row: i + 1, value: toRender(row) }))
+            columnDefs = [{ field: '#', headerName: 'Row Number', pinned: 'left' }, { field: 'value' }]
+            rowData = parsedData.json.map((row, i) => ({ ['#']: i + 1, value: toRender(row) }))
         } else if (parsedData.json !== undefined) {
             columnDefs = [{ field: 'value' }]
             rowData = [{ value: toRender(parsedData.json) }]
         } else {
-            const headers = [
-                ...(parsedData.indices_header ? parsedData.indices_header : []),
-                ...parsedData.header,
-            ]
-            columnDefs = headers.map(h => ({ field: h }))
+            const indices_header = (parsedData.indices_header ? parsedData.indices_header : []).map(h => {
+                const headerName =  h === '#' ? 'Row Number' : h;
+                return { field: h, headerName: headerName, pinned: 'left' }
+            });
+            columnDefs = [...indices_header, ...parsedData.header.map(h => ({ field: h }))]
 
             const rows =
                 parsedData.data && parsedData.data.length > 0
@@ -173,9 +178,9 @@ class TableVisualization extends Visualization {
             rowData = Array.apply(null, Array(rows)).map((_, i) => {
                 const row = {}
                 const shift = parsedData.indices ? parsedData.indices.length : 0
-                headers.map(
+                columnDefs.map(
                     (h, j) =>
-                        (row[h] = toRender(
+                        (row[h.field] = toRender(
                             j < shift ? parsedData.indices[j][i] : parsedData.data[j - shift][i]
                         ))
                 )
@@ -183,9 +188,9 @@ class TableVisualization extends Visualization {
             })
         }
 
-        const allData = parsedData.all_rows_count !== data.length
-        this.agGridOptions.defaultColDef.filter = allData
-        this.agGridOptions.defaultColDef.sortable = allData
+        const dataTruncated = parsedData.all_rows_count !== data.length
+        this.agGridOptions.defaultColDef.filter = !dataTruncated
+        this.agGridOptions.defaultColDef.sortable = !dataTruncated
         this.agGridOptions.api.setColumnDefs(columnDefs)
         this.agGridOptions.api.setRowData(rowData)
         this.agGridOptions.api.sizeColumnsToFit()
@@ -202,6 +207,8 @@ class TableVisualization extends Visualization {
             this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
             this.tabElem.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height)
         }
+
+        this.agGridOptions && this.agGridOptions.api.sizeColumnsToFit()
     }
 
     setSize(size) {
