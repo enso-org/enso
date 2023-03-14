@@ -8,13 +8,13 @@ import project.Data.Range.Range
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Regex.Match_2.Match_2
+import project.Data.Text.Regex.Replacer.Replacer
 import project.Data.Text.Regex_2.No_Such_Group
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
-import project.Panic.Panic
 import project.Polyglot
 
 polyglot java import java.lang.StringBuilder
@@ -118,14 +118,18 @@ type Pattern_2
 
         string_builder = StringBuilder.new
         it = Match_Iterator.new self input
-        go it = case it.next of
+        go next = case next of
             Match_Iterator_Value.Next filler match next_it ->
                 string_builder.append filler
                 string_builder.append (replacer.replace match)
-                go next_it
+
+                # If we're only replacing the first, do an early exit
+                case only_first of
+                    True -> go next_it.early_exit
+                    False -> go next_it.next
             Match_Iterator_Value.Last filler ->
                 string_builder.append filler
-        go it
+        go it.next
         string_builder.toString
 
     ## PRIVATE
@@ -187,7 +191,7 @@ type Pattern_2
        Arguments
        - text: the string to match against.
     iterator : Text -> Match_Iterator
-    iterator text = Match_Iterator.new self input
+    iterator input = Match_Iterator.new self input
 
     ## PRIVATE
 
