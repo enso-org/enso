@@ -3,6 +3,7 @@ package org.enso.table.data.column.builder.object;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 
 import java.util.Arrays;
 
@@ -25,18 +26,18 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
-  public boolean canRetypeTo(long type) {
+  public boolean canRetypeTo(StorageType type) {
     return false;
   }
 
   @Override
-  public TypedBuilder retypeTo(long type) {
+  public TypedBuilder retypeTo(StorageType type) {
     throw new IllegalStateException("Broken invariant: rewriting the most general type.");
   }
 
   @Override
-  public int getType() {
-    return Storage.Type.OBJECT;
+  public StorageType getType() {
+    return StorageType.ANY_OBJECT;
   }
 
   @Override

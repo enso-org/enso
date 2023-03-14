@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -107,22 +108,24 @@ public class InferredBuilder extends Builder {
     currentBuilder.appendNulls(currentSize);
   }
 
-  private record RetypeInfo(Class<?> clazz, int type) {}
+  private record RetypeInfo(Class<?> clazz, StorageType type) {}
 
   private static final List<RetypeInfo> retypePairs =
       List.of(
-          new RetypeInfo(Boolean.class, Storage.Type.BOOL),
-          new RetypeInfo(Long.class, Storage.Type.LONG),
-          new RetypeInfo(Double.class, Storage.Type.DOUBLE),
-          new RetypeInfo(String.class, Storage.Type.STRING),
-          new RetypeInfo(BigDecimal.class, Storage.Type.DOUBLE),
-          new RetypeInfo(LocalDate.class, Storage.Type.DATE),
-          new RetypeInfo(LocalTime.class, Storage.Type.TIME_OF_DAY),
-          new RetypeInfo(ZonedDateTime.class, Storage.Type.DATE_TIME),
-          new RetypeInfo(Float.class, Storage.Type.DOUBLE),
-          new RetypeInfo(Integer.class, Storage.Type.LONG),
-          new RetypeInfo(Short.class, Storage.Type.LONG),
-          new RetypeInfo(Byte.class, Storage.Type.LONG));
+          new RetypeInfo(Boolean.class, StorageType.BOOLEAN),
+          new RetypeInfo(Long.class, StorageType.INTEGER_64),
+          new RetypeInfo(Double.class, StorageType.FLOAT_64),
+          new RetypeInfo(String.class, StorageType.VARIABLE_LENGTH_STRING),
+          // TODO [RW] I think BigDecimals should not be coerced to floats, we should add Decimal support to in-memory tables at some point
+          //new RetypeInfo(BigDecimal.class, StorageType.FLOAT_64),
+          new RetypeInfo(LocalDate.class, StorageType.DATE),
+          new RetypeInfo(LocalTime.class, StorageType.TIME_OF_DAY),
+          new RetypeInfo(ZonedDateTime.class, StorageType.DATE_TIME),
+          new RetypeInfo(Float.class, StorageType.FLOAT_64),
+          // Smaller integer types are upcast to 64-bit integers by default anyway. This logic does not apply only if a specific type is requested (so not in inferred builder).
+          new RetypeInfo(Integer.class, StorageType.INTEGER_64),
+          new RetypeInfo(Short.class, StorageType.INTEGER_64),
+          new RetypeInfo(Byte.class, StorageType.INTEGER_64));
 
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {
@@ -155,5 +158,11 @@ public class InferredBuilder extends Builder {
       initBuilderFor(null);
     }
     return currentBuilder.seal();
+  }
+
+  @Override
+  public StorageType getType() {
+    // The type of InferredBuilder can change over time, so we do not report any stable type here.
+    return null;
   }
 }

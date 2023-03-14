@@ -1,8 +1,8 @@
 package org.enso.table.aggregations;
 
-import com.ibm.icu.text.BreakIterator;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 
@@ -14,7 +14,7 @@ public class ShortestOrLongest extends Aggregator {
   private final int minOrMax;
 
   public ShortestOrLongest(String name, Column column, int minOrMax) {
-    super(name, Storage.Type.STRING);
+    super(name, StorageType.VARIABLE_LENGTH_STRING);
     this.storage = column.getStorage();
     this.minOrMax = minOrMax;
   }

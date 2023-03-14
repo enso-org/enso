@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.DateTimeStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 
 import java.time.ZonedDateTime;
 
@@ -17,8 +18,8 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   }
 
   @Override
-  public int getType() {
-    return Storage.Type.DATE_TIME;
+  public StorageType getType() {
+    return StorageType.DATE_TIME;
   }
 
   @Override

@@ -7,15 +7,23 @@ import org.enso.table.data.column.storage.type.StorageType;
 public abstract class Builder {
   public static Builder getForType(StorageType type, int size) {
     Builder builder = switch (type) {
-      case Storage.Type.OBJECT -> new ObjectBuilder(size);
-      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
-      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
-      case Storage.Type.STRING -> new StringBuilder(size);
-      case Storage.Type.BOOL -> new BoolBuilder();
-      case Storage.Type.DATE -> new DateBuilder(size);
-      case Storage.Type.TIME_OF_DAY -> new TimeOfDayBuilder(size);
-      case Storage.Type.DATE_TIME -> new DateTimeBuilder(size);
-      default -> new InferredBuilder(size);
+      case StorageType.AnyObject() -> new ObjectBuilder(size);
+      case StorageType.Boolean() -> new BoolBuilder(size);
+      case StorageType.Date() -> new DateBuilder(size);
+      case StorageType.DateTime() -> new DateTimeBuilder(size);
+      case StorageType.TimeOfDay() -> new TimeOfDayBuilder(size);
+      case StorageType.FixedLengthString(int length) -> throw new IllegalArgumentException("TODO: fixed length string is not implemented yet.");
+      case StorageType.Float(StorageType.Bits bits) ->
+        switch (bits) {
+          case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
+          default -> throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
+        };
+      case StorageType.Integer(StorageType.Bits bits) ->
+          switch (bits) {
+            case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
+            default -> throw new IllegalArgumentException("TODO: Builders other than 64-bit int are not yet supported.");
+          };
+      case StorageType.VariableLengthString() -> new StringBuilder(size);
     };
     assert builder.getType().equals(type);
     return builder;

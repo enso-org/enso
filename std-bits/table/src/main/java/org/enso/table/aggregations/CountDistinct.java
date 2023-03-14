@@ -2,6 +2,7 @@ package org.enso.table.aggregations;
 
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
@@ -29,7 +30,7 @@ public class CountDistinct extends Aggregator {
    * @param ignoreAllNull if true ignore then all values are null
    */
   public CountDistinct(String name, Column[] columns, boolean ignoreAllNull) {
-    super(name, Storage.Type.LONG);
+    super(name, StorageType.INTEGER_64);
     this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     this.ignoreAllNull = ignoreAllNull;
     textFoldingStrategy =

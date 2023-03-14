@@ -1,5 +1,7 @@
 package org.enso.table.data.column.builder.object;
 
+import org.enso.table.data.column.storage.type.StorageType;
+
 /** A builder for the given storage type and known result size. */
 public abstract class TypedBuilder extends Builder {
   /**
@@ -12,19 +14,19 @@ public abstract class TypedBuilder extends Builder {
   /**
    * Checks if the builder can be efficiently retyped to the given storage type.
    *
-   * @param type the storage type enumeration
+   * @param type the storage type
    * @return whether the column can be retyped
    */
-  public abstract boolean canRetypeTo(long type);
+  public abstract boolean canRetypeTo(StorageType type);
 
   /**
-   * Retype this builder to the given type. Can only be called if {@link #canRetypeTo(long)} returns
+   * Retype this builder to the given type. Can only be called if {@link #canRetypeTo(StorageType)} returns
    * true for the type.
    *
    * @param type the target type
    * @return a retyped builder
    */
-  public abstract TypedBuilder retypeTo(long type);
+  public abstract TypedBuilder retypeTo(StorageType type);
 
   /** Specifies if the following object will be accepted by this builder's append* methods. */
   public abstract boolean accepts(Object o);
