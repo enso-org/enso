@@ -1,14 +1,12 @@
 #!/usr/bin/python
 
 """
-Script for downloading Engine benchmark results into a CSV file.
-Without any options, downloads benchmark data for the last 14 days and stores
-them into `data/benchs.csv`.
-It downloads the data synchronously and uses a cache directory.
-Cache is not used by default, enable it with `--use-cache`, but it may not work properly.
-It is advised to use `-v|--verbose` option all the time.
+Script for downloading Engine benchmark results into a single static web page
+that visualizes all the benchmarks. Without any options, downloads benchmark
+data for the last 14 days.
 
-For description of the options, just use `-h`.
+It downloads the data synchronously and uses a cache directory by default.
+It is advised to use `-v|--verbose` option all the time.
 
 It queries only successful benchmark runs. If there are no successful benchmarks
 in a given period, no results will be written.
@@ -20,6 +18,7 @@ The process of the script is roughly as follows:
   by an appropriate commit timestamp.
     - BenchmarkData class
 
+If you wish to inspect the data yourself, just use --create-csv option.
 
 Dependencies for the script:
 - GH CLI utility
@@ -562,36 +561,48 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
 if __name__ == '__main__':
     default_since = datetime.now() - timedelta(days=14)
     default_until = datetime.now()
+    default_cache_dir = path.expanduser("~/.cache/enso_bench_download")
+    date_format_help = DATE_FORMAT.replace("%", "%%")
 
     arg_parser = ArgumentParser(description=__doc__,
                                 formatter_class=RawDescriptionHelpFormatter)
     arg_parser.add_argument("-s", "--since", action="store",
                             default=default_since,
+                            metavar="SINCE_DATE",
                             type=lambda s: datetime.strptime(s, DATE_FORMAT),
-                            help=f"The date from which the benchmark results will be gathered. Format is " + DATE_FORMAT.replace("%", "%%") + ". "
+                            help=f"The date from which the benchmark results will be gathered. "
+                                 f"Format is {date_format_help}. "
                                  f"The default is 14 days before")
     arg_parser.add_argument("-u", "--until", action="store",
                             default=default_until,
-                            type=lambda s: datetime.strptime(s, "%Y-%m-%d"),
-                            help=f"The date until which the benchmark results will be gathered. Format is " + DATE_FORMAT.replace("%", "%%") + ". "
+                            metavar="UNTIL_DATE",
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
+                            help=f"The date until which the benchmark results will be gathered. "
+                                 f"Format is {date_format_help}. "
                                  f"The default is today")
     arg_parser.add_argument("-o", "--output",
                             default="Engine_Benchs/data/benchs.csv",
+                            metavar="CSV_OUTPUT",
                             help="Output CSV file. Makes sense only when used with --create-csv argument")
     arg_parser.add_argument("-c", "--cache", action="store",
-                            default=path.expanduser("~/.cache/enso_bench_cmp"),
-                            help="Cache directory. Makes sense only iff specified with --use-cache argument")
+                            default=default_cache_dir,
+                            metavar="CACHE_DIR",
+                            help=f"Cache directory. Makes sense only iff specified with --use-cache argument. "
+                                 f"The default is {default_cache_dir}. If there are any troubles with the "
+                                 f"cache, just do `rm -rf {default_cache_dir}`.")
     arg_parser.add_argument("-t", "--tmp-dir", action="store",
                             default=None,
                             help="Temporary directory with default created by `tempfile.mkdtemp()`")
     arg_parser.add_argument("--use-cache",
                             default=True,
+                            metavar="(true|false)",
                             type=lambda input: True if input in ("true", "True") else False,
-                            help="Whether the cache directory should be used. true or false")
+                            help="Whether the cache directory should be used. The default is True.")
     arg_parser.add_argument("--create-csv", action="store_true",
                             default=False,
                             help="Whether an intermediate `benchs.csv` should be created. "
-                                 "Appropriate to see whether the benchmark downloading was successful.")
+                                 "Appropriate to see whether the benchmark downloading was successful. "
+                                 "Or if you wish to inspect the CSV with Enso")
     arg_parser.add_argument("-v", "--verbose", action="store_true")
     args = arg_parser.parse_args()
     if args.verbose:
@@ -617,8 +628,10 @@ if __name__ == '__main__':
     use_cache: bool = args.use_cache
     assert cache_dir and temp_dir
     csv_fname: str = args.output
+    create_csv: bool = args.create_csv
     logging.info(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
-                 f"temp_dir={temp_dir}, use_cache={use_cache}, output={csv_fname}")
+                 f"temp_dir={temp_dir}, use_cache={use_cache}, output={csv_fname}, "
+                 f"create_csv={create_csv}")
 
     if use_cache:
         cache = populate_cache(cache_dir)
@@ -635,9 +648,10 @@ if __name__ == '__main__':
         if job_report:
             job_reports.append(job_report)
     logging.debug(f"Got {len(job_reports)} job reports")
-    if args.create_csv:
+    if create_csv:
         write_bench_reports_to_csv(job_reports, csv_fname)
         logging.info(f"Benchmarks written to {csv_fname}")
+        print(f"The generated CSV is in {csv_fname}")
 
     # Create a separate datatable for each benchmark label
     # with 'label' and 'commit_timestamp' as columns.
