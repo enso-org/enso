@@ -1,0 +1,105 @@
+polyglot java import java.lang.StringBuilder
+
+type Replacer
+    ## PRIVATE
+
+       Implements a replacement for a regular expression.
+
+       Pattern_2.replace uses a Replacer to replace each regex match with
+       a replacement string. This string can contain references to match
+       groups from the original regex.
+
+       The `new` smart constructor parses a Text into a vector of
+       Replacements. Each Replacement is either a literal string or a
+       group number. To provide a replacement for a regex match, the
+       Replacer iterates through the Replacement vector, substitutes
+       the match group contents for each group number, and concatenates
+       all the strings together to form the full replacement string.
+    Value (replacement : Vector Replacement)
+
+    ## Creates a new Replacer.
+
+       Arguments
+       - replacement_string: a string, possibly containing group references,
+         that will be used to provide a replacement in a regex match.
+    new : Text -> Pattern_2 -> Replacer
+    new replacement_string pattern =
+        Replacer.Value (build_replacement_vector pattern replacement_string)
+
+    ## Build a replacement string from a match
+
+       Arguments:
+       - match: the match from the original string that is to be replaced,
+    replace : Match_2 -> Text
+    replace match =
+        string_builder = StringBuilder.new
+        self.replacement.each replacement->
+            s = case replacement of
+                    Literal text -> text
+                    Substitution group_number -> match.group group_number
+            string_builder.append s
+        string_builder.toString
+
+    ## PRIVATE
+
+       Build a Replacer.
+
+       Parse the replacement string into an alternating series of literal'
+       strings and group reference numbers.
+    build_replacement_vector : Text -> Pattern_2 -> Replacer
+    build_replacement_vector replacement_string pattern =
+        pattern = Regex_2.compile GROUP_REFERENCE_REGEX
+        it = pattern.iterator replacement_string
+
+        builder = Vector.new_builder
+        go it = case it.next of
+            Match_Iterator_Value.Next filler match next_it ->
+                replacement = self.parse_group_number pattern match
+                builder.append (Replacement.Literal filler)
+                builder.append replacement
+                go next_it
+            Match_Iterator_Value.Last filler ->
+                builder.append (Replacement.Literal filler)
+        go it
+        Replacer.Value builder.to_vector
+
+    ## PRIVATE
+    GROUP_REFERENCE_REGEX = "\\$(([0-9]+)|(\\$)|(&)|(<([^>])+>))"  (n<100) $<Name>
+
+    ## PRIVATE
+
+       Parse a capture group reference.
+
+       Arguments:
+       - pattern: the Pattern_2 used to initiate the replacement. This is used
+         to identify and validate capture groups.
+       - match: the match of the replacement string against GROUP_REFERENCE_REGEX
+
+       Returns a Replacement: a group number, or, in the case of `$$`, a literal.
+
+       See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+    parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group
+    parse_group_number pattern match =
+        case match.group 2 of
+            # E.g. `$1`
+            text : Text -> Replacement.Substitution (pattern.lookup_group (Integer.parse text))
+            Nothing -> case match.group 3 of
+                # `$$`
+                text : Text -> Replacement.Literal "$"
+                Nothing -> case match.group 4 of
+                    # `$&` (same as `$0`)
+                    text : Text -> Replacement.Substitution 0
+                    Nothing -> case match.group 6 of
+                        # `$<foo>`
+                        text : Text -> Replacement.Substitution pattern.lookup_group text
+                        Nothing -> Panic.throw (Illegal_State.Error ("Unable to identify capture group: \"" + match.txt + "\""))
+        "\\$([0-9]+|\\$|&|<[^>]+>)"
+
+type Replacement
+    ## A Replacement is either a string literal or a regex group number.
+
+       In a Pattern_2.replace call, each match is replaced by a replacement
+       string. This string can contain references to match groups from the
+       original regex.
+    Literal (text : Text)
+    Substitution (group_number : Integer)

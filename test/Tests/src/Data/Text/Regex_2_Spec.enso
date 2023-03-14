@@ -12,6 +12,11 @@ import Standard.Test.Extensions
 # default_mask = Java_Pattern.CANON_EQ.bit_or Java_Pattern.UNICODE_CASE . bit_or Java_Pattern.UNICODE_CHARACTER_CLASS
 
 spec =
+    Test.group "gmt" <|
+        Test.specify "asdf" <|
+            pattern = Regex_2.compile "a([a-z])"
+            pattern.replace "abac ad aae a af" "A$1$1"
+
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex_2.compile "(?<dots>..)" case_insensitive=True

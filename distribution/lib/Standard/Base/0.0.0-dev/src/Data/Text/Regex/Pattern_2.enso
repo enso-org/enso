@@ -17,6 +17,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot
 
+polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Text_Utils
 
 type Pattern_2
@@ -91,6 +92,42 @@ type Pattern_2
     find_all self input =
         self.match_all input . map match_to_group_maybe
 
+    ## ADVANCED
+
+       Replace all occurrences of the pattern described by `self` in the `input`
+       with the specified `replacement`.
+
+       Arguments:
+       - input: The text in which to perform the replacement(s).
+       - replacement: The literal text with which to replace any matches.
+
+       If this method performs no replacements it will return the `input` text
+       unchanged.
+
+       > Example
+         Replace all instances of the pattern `"aa"` in the input with the text
+         `"REPLACED"`.
+
+             example_match =
+                 pattern = Regex_2.compile "aa"
+                 input = "aabbaabbbbbaab"
+                 pattern.replace input "REPLACED"
+    replace : Text -> Text -> Boolean -> Text
+    replace self input replacement only_first=False =
+        replacer = Replacer.new replacement self
+
+        string_builder = StringBuilder.new
+        it = Match_Iterator.new self input
+        go it = case it.next of
+            Match_Iterator_Value.Next filler match next_it ->
+                string_builder.append filler
+                string_builder.append (replacer.replace match)
+                go next_it
+            Match_Iterator_Value.Last filler ->
+                string_builder.append filler
+        go it
+        string_builder.toString
+
     ## PRIVATE
 
        Look up a match group name or number, and check that it is valid.
@@ -107,6 +144,9 @@ type Pattern_2
 
        A group name is an alias for a group number; if a name is passed to
        this method, it returns the corresponding group number.
+
+       If a group number is passed to `lookup_group` and it is valid, it will
+       simply return the group nubmer.
 
        Note that it is possible for a group to "not participate in the match",
        for example with a disjunction. In the example below, the "(d)" group
@@ -142,6 +182,15 @@ type Pattern_2
 
     ## PRIVATE
 
+       Return a lazy iterator over matches against a string.
+
+       Arguments
+       - text: the string to match against.
+    iterator : Text -> Match_Iterator
+    iterator text = Match_Iterator.new self input
+
+    ## PRIVATE
+
        Return the number of groups in the underlying RegexObject
     group_count : Integer
     group_count self = self.internal_regex_object.groupCount
@@ -162,12 +211,20 @@ type Pattern_2
     At each step, it yields a Match_Iterator_Value, whivch has either a filler
     and a match, or just the final filler. A Match_Iterator_Value.Last value is
     return at the end, and only at the end.
+
+    Optionally, you can call `early_exit` to have it return the remainder of
+    the string, unmatched, as a single Last value. (Used for `replace` with
+    `only_first=True`.)
 type Match_Iterator
     new : Pattern_2 -> Text -> Match_Iterator
     new pattern input = Match_Iterator.Value pattern input 0
 
     Value (pattern : Pattern_2) (input : Text) (cursor : Integer)
 
+    ## Return the next match, or the last filler string if there is no
+       additional match.
+
+       Also returns the next iterator, if there was a match.
     next : Match_Iterator_Value
     next self =
         regex_result = self.pattern.internal_regex_object.exec self.input self.cursor
@@ -184,6 +241,13 @@ type Match_Iterator
                 next_cursor = match.end 0
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
+
+    ## Returns the remainder of the string, unmatched.
+    early_exit : Match_Iterator_Value
+    early_exit self =
+        filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
+        filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
+        Match_Iterator_Value.Last filler_span
 
     to_text_debug : Vector Text
     to_text_debug self =
