@@ -39,7 +39,7 @@ type Replacer
          that will be used to provide a replacement in a regex match.
     new : Text -> Pattern_2 -> Replacer
     new replacement_string pattern =
-        Replacer.Value (self.build_replacement_vector pattern replacement_string)
+        Replacer.Value (build_replacement_vector pattern replacement_string)
 
     ## Build a replacement string from a match
 
@@ -55,31 +55,31 @@ type Replacer
             string_builder.append s
         string_builder.toString
 
-    ## PRIVATE
+## PRIVATE
+group_reference_regex = '\\$(([0-9]+)|(\\$)|(&)|(<([^>])+>))'
 
-       Build a Replacer.
+## PRIVATE
 
-       Parse the replacement string into an alternating series of literal
-       strings and group reference numbers.
-    build_replacement_vector : Text -> Pattern_2 -> Replacer
-    build_replacement_vector self replacement_string pattern =
-        replacement_pattern = Regex_2.compile self.group_reference_regex
-        it = replacement_pattern.iterator replacement_string
+   Build a Replacer.
 
-        builder = Vector.new_builder
-        go it = case it.next of
-            Match_Iterator_Value.Next filler match next_it ->
-                replacement = parse_group_number pattern match
-                builder.append (Replacement.Literal filler)
-                builder.append replacement
-                go next_it
-            Match_Iterator_Value.Last filler ->
-                builder.append (Replacement.Literal filler)
-        go it
-        Replacer.Value builder.to_vector
+   Parse the replacement string into an alternating series of literal
+   strings and group reference numbers.
+build_replacement_vector : Text -> Pattern_2 -> Replacer
+build_replacement_vector replacement_string pattern =
+    replacement_pattern = Regex_2.compile group_reference_regex
+    it = replacement_pattern.iterator replacement_string
 
-    ## PRIVATE
-    group_reference_regex = '\\$(([0-9]+)|(\\$)|(&)|(<([^>])+>))'
+    builder = Vector.new_builder
+    go it = case it.next of
+        Match_Iterator_Value.Next filler match next_it ->
+            replacement = parse_group_number pattern match
+            builder.append (Replacement.Literal filler)
+            builder.append replacement
+            go next_it
+        Match_Iterator_Value.Last filler ->
+            builder.append (Replacement.Literal filler)
+    go it
+    Replacer.Value builder.to_vector
 
 ## PRIVATE
 

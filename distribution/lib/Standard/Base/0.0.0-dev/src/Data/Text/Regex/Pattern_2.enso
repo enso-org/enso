@@ -191,7 +191,7 @@ type Pattern_2
        Arguments
        - text: the string to match against.
     iterator : Text -> Match_Iterator
-    iterator input = Match_Iterator.new self input
+    iterator self input = Match_Iterator.new self input
 
     ## PRIVATE
 
