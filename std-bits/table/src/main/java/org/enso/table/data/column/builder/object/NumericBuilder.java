@@ -58,7 +58,7 @@ public class NumericBuilder extends TypedBuilder {
         if (!this.isDouble && Objects.equals(type, Constants.FLOAT_64)) {
             this.isDouble = true;
             for (int i = 0; i < currentSize; i++) {
-                data[i] = Double.doubleToRawLongBits(data[i]);
+                data[i] = Double.doubleToRawLongBits((double) data[i]);
             }
             return this;
         } else {
@@ -206,7 +206,7 @@ public class NumericBuilder extends TypedBuilder {
     }
 
     private long booleanAsLong(boolean value) {
-        return value ? 1 : 0;
+        return value ? 1L : 0L;
     }
 
     private double booleanAsDouble(boolean value) {

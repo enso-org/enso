@@ -22,7 +22,7 @@ public abstract class Builder {
         };
       case Integer(Bits bits) ->
           switch (bits) {
-            case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
+            case BITS_64 -> NumericBuilder.createLongBuilder(size);
             default -> throw new IllegalArgumentException("TODO: Builders other than 64-bit int are not yet supported.");
           };
       case Text(long maxLength, boolean isFixed) -> {

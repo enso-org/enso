@@ -671,9 +671,6 @@ spec =
             objects = ["objects", [My.Data 0 1, My.Data 0 1, My.Data 2 2, My.Data 2 2]]
             table = Table.new [dates, texts, mixed, ints, floats, objects]
 
-            IO.println "aggregate input:"
-            table.info.print
-
             t1 = table.aggregate [Group_By "dates", Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
             t1.info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
             t1.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Char, Value_Type.Char, Value_Type.Mixed, Value_Type.Integer, Value_Type.Mixed]
