@@ -426,7 +426,7 @@ impl Artifact {
         // consider whether they should be shipped or not.
         let RepoRootDistWasm {
             path: _,
-            dynamic_assets,
+            shaders,
             index_js: _,
             index_d_ts: _,
             index_js_map: _,
@@ -434,7 +434,7 @@ impl Artifact {
             pkg_wasm: _,
             pkg_opt_wasm,
         } = &self.0;
-        vec![dynamic_assets.as_path(), pkg_js.as_path(), pkg_opt_wasm.as_path()]
+        vec![shaders.as_path(), pkg_js.as_path(), pkg_opt_wasm.as_path()]
     }
 
     pub fn symlink_ensogl_dist(&self, linked_dist: &RepoRootTargetEnsoglPackLinkedDist) -> Result {

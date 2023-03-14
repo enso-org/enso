@@ -19,7 +19,6 @@ use enso_prelude::*;
 
 use enso_shapely::before_main;
 use ensogl_core::prelude::ImString;
-use ensogl_text::font::DEFAULT_FONT;
 
 
 
@@ -216,7 +215,7 @@ define_themes! { [light:0, dark:1]
                         dimmed = Rgb::from_base_255(160.0, 163.0, 165.0), Rgb::from_base_255(160.0, 163.0, 165.0);
                         padding = 16.0, 16.0;
                         text {
-                            font = DEFAULT_FONT, DEFAULT_FONT;
+                            font = "mplus1p", "mplus1p";
                             y_offset = 8.0, 8.0;
                             y_offset_header = 5.0, 5.0;
                             x_offset_header = 0.0, 0.0;
@@ -317,7 +316,7 @@ define_themes! { [light:0, dark:1]
                         entry {
                             margin = 1.0, 1.0;
                             hover_color = Rgba(0.0, 0.0, 0.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
-                            font = DEFAULT_FONT, DEFAULT_FONT;
+                            font = "mplus1p", "mplus1p";
                             text_y_offset = 6.0, 6.0;
                             text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
@@ -687,7 +686,7 @@ define_themes! { [light:0, dark:1]
             text {
                 offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
-                font   = DEFAULT_FONT, DEFAULT_FONT;
+                font   = "default", "default";
             }
             padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;

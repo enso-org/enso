@@ -126,16 +126,14 @@ pub mod prelude {
     pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
 
-// These imports are required to have all entry points (such as examples) and `before_main`
-// functions (such as the dynamic-asset loader), available in the IDE.
+// Those imports are required to have all examples entry points visible in IDE.
 #[allow(unused_imports)]
-mod imported_for_entry_points {
+mod examples {
     use enso_debug_scene::*;
-    use ensogl_dynamic_assets::*;
     use ensogl_examples::*;
 }
 #[allow(unused_imports)]
-use imported_for_entry_points::*;
+use examples::*;
 mod profile_workflow;
 
 

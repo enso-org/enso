@@ -19,7 +19,6 @@
 #![feature(once_cell)]
 #![feature(is_sorted)]
 #![feature(array_windows)]
-#![feature(local_key_cell_methods)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
