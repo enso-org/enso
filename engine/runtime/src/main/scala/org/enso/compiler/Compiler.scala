@@ -21,7 +21,7 @@ import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
+import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.Parser
 import org.enso.syntax2.Tree
@@ -57,9 +57,6 @@ class Compiler(
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator(builtins)
   private val irCachingEnabled = !context.isIrCachingDisabled
-  private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
-    RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
-  )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
@@ -396,10 +393,7 @@ class Compiler(
           val shouldStoreCache =
             irCachingEnabled && !module.wasLoadedFromCache()
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
-            serializationManager.serializeModule(
-              module,
-              useGlobalCacheLocations
-            )
+            context.getNotificationHandler.serializeModule(module.getName)
           }
         } else {
           logger.log(

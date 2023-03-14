@@ -524,6 +524,11 @@ public class EnsoContext {
     return 10;
   }
 
+  /** @return the notification handler. */
+  public NotificationHandler getNotificationHandler() {
+    return notificationHandler;
+  }
+
   private <T> T getOption(OptionKey<T> key) {
     var options = getEnvironment().getOptions();
     var safely = false;
