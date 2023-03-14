@@ -1,3 +1,5 @@
+/** @file @{link pkg} init export. */
+
 import init from './pkg.js'
 export * from './runtime-libs'
 /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
