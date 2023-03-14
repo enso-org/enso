@@ -181,8 +181,9 @@ export interface UserSession {
 
 const userSession = () =>
     getAmplifyCurrentSession()
-        .then(result => result.map(parseUserSession))
-        .then(result => result.toOption())
+        .then(result => result
+            .map(parseUserSession)
+            .toOption())
 
 type CurrentSessionErrorKind = typeof KNOWN_ERRORS.currentSession.noCurrentUser.kind
 
@@ -223,9 +224,10 @@ const signUp = (username: string, password: string, platform: app.Platform) =>
         return amplify.Auth.signUp(params)
     })
         /** The contents of a successful response are not relevant, so we discard them. */
-        .then(result => result.map(() => null))
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoSignUpErrorOrThrow))
+        .then(result => result
+            .mapErr(intoAmplifyErrorOrThrow)
+            .mapErr(intoSignUpErrorOrThrow)
+            .map(() => null))
 
 const intoSignUpParams = (
     username: string,
@@ -280,7 +282,8 @@ const intoSignUpErrorOrThrow = (error: AmplifyError): SignUpError => {
 const confirmSignUp = async (email: string, code: string) =>
     results.Result.wrapAsync(() => amplify.Auth.confirmSignUp(email, code))
         /** The contents of a successful response are not relevant, so we discard them. */
-        .then(result => result.map(() => null))
+        .then(result => result
+            .map(() => null))
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
         .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
 

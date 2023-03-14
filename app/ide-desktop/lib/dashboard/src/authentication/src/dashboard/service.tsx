@@ -17,78 +17,12 @@ const GET_USER_PATH = "users/me";
 // === Types ===
 // =============
 
-/** Unique identifier for a user's project. */
-export type ProjectId = string;
-
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface Organization {
   id: string;
   userEmail: string;
   name: string;
 }
-
-/** Type of application that a {@link Version} applies to.
- *
- * We keep track of both backend and IDE versions, so that we can update the two independently.
- * However the format of the version numbers is the same for both, so we can use the same type for
- * both. We just need this enum to disambiguate. */
-export enum VersionType {
-  backend = "Backend",
-  ide = "Ide",
-}
-
-/** A version describing a release of the backend or IDE. */
-export interface Version {
-  versionType: VersionType;
-  ami: string | undefined;
-  created: string;
-  /** This field name does not follow the naming convention. This field name is snake case on the
-   * backend. The case must match here for JSON deserialization to work. */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  version_number: string;
-}
-
-/** Possible states that a project can be in. */
-export enum ProjectState {
-  created = "Created",
-  new = "New",
-  openInProgress = "OpenInProgress",
-  opened = "Opened",
-  closed = "Closed",
-}
-
-/** Wrapper around a project state value. */
-export interface ProjectStateType {
-  type: ProjectState;
-}
-
-/** A user/organization's project containing and/or currently executing code. */
-export interface Project {
-  organizationId: string;
-  projectId: ProjectId;
-  name: string;
-  state: ProjectStateType;
-  packageName: string;
-  address: string | null;
-  ami: string | null;
-  ideVersion: Version | null;
-  engineVersion: Version | null;
-}
-
-// =================
-// === Endpoints ===
-// =================
-
-/** HTTP request body for the "create project" endpoint. */
-export type CreateProjectRequestBody = {
-  projectName: string;
-  projectTemplateName: string | undefined;
-};
-
-/** HTTP request body for the "open project" endpoint. */
-export type OpenProjectRequestBody = {
-  forceCreate: boolean;
-};
 
 // ===============
 // === Backend ===
