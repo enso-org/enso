@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Data.Text.Regex_2
 import Standard.Base.Data.Text.Regex.Match_2.Match_2
+import Standard.Base.Data.Text.Regex_2.No_Such_Group
 import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
 
 from Standard.Test import Test, Test_Suite
@@ -444,13 +445,11 @@ spec =
             groups.at "letters" . should_equal "abc a bc bcd"
             groups.at "empty" . should_equal "UNMATCHED"
 
-    ##
         Test.group "Match.start" <|
-            engine = Default_Engine.new
-            pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
-            match = pattern.match input mode=Matching_Mode.First
-            match . should_be_a Default_Engine.Match.Value
+            match = pattern.match input
+            match . should_be_a Match_2
 
             Test.specify "should return the start of a group by index" <|
                 match.start 1 . should_equal 0
@@ -467,11 +466,10 @@ spec =
                 match.start "nonexistent" . should_fail_with No_Such_Group
 
         Test.group "Match.end" <|
-            engine = Default_Engine.new
-            pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
-            match = pattern.match input mode=Matching_Mode.First
-            match . should_be_a Default_Engine.Match.Value
+            match = pattern.match input
+            match . should_be_a Match_2
 
             Test.specify "should return the end of a group by index" <|
                 match.end 1 . should_equal 6
@@ -487,6 +485,7 @@ spec =
                 match.end 5 . should_fail_with No_Such_Group
                 match.end "nonexistent" . should_fail_with No_Such_Group
 
+    ##
         Test.group "Match.span" <|
             engine = Default_Engine.new
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []

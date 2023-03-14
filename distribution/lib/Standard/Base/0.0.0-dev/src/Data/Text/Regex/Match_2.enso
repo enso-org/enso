@@ -49,7 +49,9 @@ type Match_2
          defined in the regex are numbered starting at 1; group 0 refers to the
          entire match range.
     start : Integer -> Integer
-    start self group=0 = self.grapheme_span group . start
+    start self group=0 = case self.grapheme_span group of
+        Nothing -> Nothing
+        span -> span . start
 
     ## Returns the end grapheme index, plus one, of group n.
 
@@ -61,7 +63,9 @@ type Match_2
        Arguments:
        - n: the integer group number
     end : Integer -> Integer
-    end self group=0 = self.grapheme_span group . end
+    end self group=0 = case self.grapheme_span group of
+        Nothing -> Nothing
+        span -> span . end
 
     ## Gets the UTF16 span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
