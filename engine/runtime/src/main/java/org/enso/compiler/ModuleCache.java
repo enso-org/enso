@@ -18,6 +18,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
@@ -139,7 +140,19 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     @Override
     protected byte[] serialize(CachedModule entry) throws IOException {
       var byteStream = new ByteArrayOutputStream();
-      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
+      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream) {
+        {
+          enableReplaceObject(true);
+        }
+
+        @Override
+        protected Object replaceObject(Object obj) throws IOException {
+          if (obj instanceof UUID) {
+            return null;
+          }
+          return obj;
+        }
+      }) {
         stream.writeObject(entry.moduleIR());
       }
       return byteStream.toByteArray();
