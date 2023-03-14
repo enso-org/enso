@@ -37,8 +37,7 @@ type Pattern_2
     ## Tries to match the provided `input` against the pattern `self`.
 
        Returns a Match_2 containing the matched text and its match groups, or
-       nothing if the match failed. If the pattern does not match, an empty
-       vector is returned.
+       `Nothing` if the match failed.
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
@@ -146,10 +145,8 @@ type Pattern_2
     group_count : Integer
     group_count self = self.internal_regex_object.groupCount
 
-    ## PRIVATE
-
-       Return a vector of all named group names.
-    group_names : Vector Text
+    ## Return a vector of all named group names.
+    group_names : Map Text Integer
     group_names self =
         map = polyglot_map_to_map self.internal_regex_object.groups
         map.keys
@@ -205,7 +202,7 @@ type Match_Iterator_Value
 
 ## PRIVATE
    Convert the polyglot map to a Map.
-polyglot_map_to_map : Any -> Map Any Text
+polyglot_map_to_map : Any -> Map Any Any
 polyglot_map_to_map map =
     polyglot_keys = Polyglot.get_members map
     keys = Vector.from_polyglot_array polyglot_keys
