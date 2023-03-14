@@ -6,13 +6,13 @@ import * as contentConfig from 'enso-content-config'
 import * as semver from 'semver'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
-import globalConfig from '../../../../gui/config.yaml'
+import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 // === Constants ===
 const LOGGER = app.log.logger
-
 /** One second in milliseconds. */
 const SECOND = 1000
+const FETCH_TIMEOUT = 300
 
 // =============
 // === Fetch ===
@@ -47,16 +47,18 @@ async function checkMinSupportedVersion(config: typeof contentConfig.OPTIONS) {
         return true
     }
     try {
-        const appConfig = await fetchTimeout(config.groups.engine.options.configUrl.value, 300)
+        const appConfig = await fetchTimeout(config.groups.engine.options.configUrl.value, FETCH_TIMEOUT)
         if (
-            appConfig !== null &&
             typeof appConfig === 'object' &&
+            // `typeof x === 'object'` narrows to `object | null`, not `object | undefined`
+            // eslint-disable-next-line no-restricted-syntax
+            appConfig !== null &&
             'minimumSupportedVersion' in appConfig
         ) {
             const minSupportedVersion = appConfig.minimumSupportedVersion
             if (typeof minSupportedVersion === 'string') {
                 const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
-                return comparator.test(contentConfig.Version.ide)
+                return comparator.test(contentConfig.VERSION.ide)
             } else {
                 LOGGER.error('The minimum supported version is not a string.')
             }
@@ -75,13 +77,13 @@ function displayDeprecatedVersionDialog() {
         'This version is no longer supported. Please download a new one.'
     )
 
-    const root = document.getElementById('root')
+    const root = document.getElementById('root') ?? undefined
     const versionCheckDiv = document.createElement('div')
     versionCheckDiv.id = 'version-check'
     versionCheckDiv.className = 'auth-info'
     versionCheckDiv.style.display = 'block'
     versionCheckDiv.appendChild(versionCheckText)
-    if (root === null) {
+    if (root === undefined) {
         console.error('Cannot find the root DOM element.')
     } else {
         root.appendChild(versionCheckDiv)
@@ -113,8 +115,8 @@ class Main {
             config,
             configOptions: contentConfig.OPTIONS,
             packageInfo: {
-                version: BUILD_INFO.default.version,
-                engineVersion: BUILD_INFO.default.engineVersion,
+                version: BUILD_INFO.version,
+                engineVersion: BUILD_INFO.engineVersion,
             },
         })
 
@@ -137,7 +139,8 @@ class Main {
                     void appInstance.run()
                 }
                 const email = contentConfig.OPTIONS.groups.authentication.options.email.value
-                if (email !== null) {
+                // The default value is `""`, so a truthiness check is most appropriate here.
+                if (email) {
                     LOGGER.log(`User identified as '${email}'.`)
                 }
             }
@@ -151,4 +154,4 @@ const API = new Main()
 
 // @ts-expect-error `globalConfig.windowAppScopeName` is not known at typecheck time.
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-window[globalConfig.windowAppScopeName] = API
+window[GLOBAL_CONFIG.windowAppScopeName] = API

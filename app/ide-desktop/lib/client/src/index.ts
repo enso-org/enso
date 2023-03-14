@@ -6,8 +6,8 @@
  * application and the Electron process. */
 
 import * as fs from 'node:fs/promises'
-import * as fss from 'node:fs'
-import * as path from 'node:path'
+import * as fsSync from 'node:fs'
+import * as pathModule from 'node:path'
 import * as process from 'node:process'
 
 import * as authentication from 'authentication'
@@ -23,7 +23,13 @@ import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 
-const LOGGER = content.logger
+// =================
+// === Constants ===
+// =================
+
+const LOGGER = content.LOGGER
+/** Indent size for outputting JSON. */
+const INDENT_SIZE = 4
 
 // ===========
 // === App ===
@@ -32,14 +38,10 @@ const LOGGER = content.logger
 /** The Electron application. It is responsible for starting all the required services, and
  * displaying and managing the app window. */
 class App {
-    window: electron.BrowserWindow | null = null
-    server: server.Server | null = null
-    args: config.Args
+    window: electron.BrowserWindow | undefined = undefined
+    server: server.Server | undefined = undefined
+    args: config.Args = config.CONFIG
     isQuitting = false
-    /** Creates a new {@link App}. */
-    constructor() {
-        this.args = config.CONFIG
-    }
 
     async run() {
         const { args, windowSize, chromeOptions } = configParser.parseArgs()
@@ -127,7 +129,7 @@ class App {
     }
 
     /** Run the provided function if the provided option was enabled. Log a message otherwise. */
-    async runIfEnabled(option: content.Option<boolean>, fn: () => Promise<void>) {
+    async runIfEnabled(option: content.Option<boolean>, fn: () => Promise<void> | void) {
         if (option.value) {
             await fn()
         } else {
@@ -137,7 +139,7 @@ class App {
 
     /** Start the backend processes. */
     async startBackendIfEnabled() {
-        await this.runIfEnabled(this.args.options.engine, async () => {
+        await this.runIfEnabled(this.args.options.engine, () => {
             const backendOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
             projectManager.spawn(this.args, backendOpts)
         })
@@ -158,7 +160,7 @@ class App {
 
     /** Create the Electron window and display it on the screen. */
     async createWindowIfEnabled(windowSize: config.WindowSize) {
-        await this.runIfEnabled(this.args.options.window, async () => {
+        await this.runIfEnabled(this.args.options.window, () => {
             LOGGER.groupMeasured('Creating the window.', () => {
                 const argGroups = this.args.groups
                 const useFrame = this.args.groups.window.options.frame.value
@@ -166,7 +168,7 @@ class App {
                 const useHiddenInsetTitleBar = !useFrame && macOS
                 const useVibrancy = this.args.groups.window.options.vibrancy.value
                 const webPreferences: electron.WebPreferences = {
-                    preload: path.join(paths.APP_PATH, 'preload.cjs'),
+                    preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
                     sandbox: true,
                     backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
                     devTools: argGroups.debug.options.devTools.value,
@@ -202,7 +204,7 @@ class App {
                     }
                 })
 
-                window.webContents.on('render-process-gone', (event, details) => {
+                window.webContents.on('render-process-gone', (_event, details) => {
                     LOGGER.error('Error, the render process crashed.', details)
                 })
 
@@ -214,43 +216,38 @@ class App {
     /** Initialize Inter-Process Communication between the Electron application and the served
      * website. */
     initIpc() {
-        electron.ipcMain.on(ipc.CHANNEL.error, (event, data) =>
+        electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
             LOGGER.error(`IPC error: ${JSON.stringify(data)}`)
-        )
+        })
         const argProfiles = this.args.groups.profile.options.loadProfile.value
         const profilePromises: Promise<string>[] = argProfiles.map((path: string) =>
             fs.readFile(path, 'utf8')
         )
-        const profiles = Promise.all(profilePromises)
-        electron.ipcMain.on(ipc.CHANNEL.loadProfiles, event => {
-            void profiles.then(profiles => {
+        const profilesPromise = Promise.all(profilePromises)
+        electron.ipcMain.on(ipc.Channel.loadProfiles, event => {
+            void profilesPromise.then(profiles => {
                 event.reply('profiles-loaded', profiles)
             })
         })
         const profileOutPath = this.args.groups.profile.options.saveProfile.value
         if (profileOutPath) {
-            electron.ipcMain.on(ipc.CHANNEL.saveProfile, (event, data) => {
-                fss.writeFileSync(profileOutPath, data as string)
+            electron.ipcMain.on(ipc.Channel.saveProfile, (_event, data: string) => {
+                fsSync.writeFileSync(profileOutPath, data)
             })
         }
-        electron.ipcMain.on(ipc.CHANNEL.quit, () => electron.app.quit())
+        electron.ipcMain.on(ipc.Channel.quit, () => { electron.app.quit(); })
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration
      * is returned. This might be used to connect this application window to another, existing
      * application server. */
     serverPort(): number {
-        if (this.server !== null) {
-            return this.server.config.port
-        } else {
-            return this.args.groups.server.options.port.value
-        }
+        return this.server?.config.port ?? this.args.groups.server.options.port.value
     }
 
     /** Redirect the web view to `localhost:<port>` to see the served website. */
     loadWindowContent() {
-        const window = this.window
-        if (window !== null) {
+        if (this.window !== undefined) {
             const urlCfg: Record<string, string> = {}
             for (const option of this.args.optionsRecursive()) {
                 if (option.value !== option.default && option.passToWebApplication) {
@@ -260,12 +257,12 @@ class App {
             const params = server.urlParamsFromObject(urlCfg)
             const address = `http://localhost:${this.serverPort()}${params}`
             LOGGER.log(`Loading the window address '${address}'.`)
-            void window.loadURL(address)
+            void this.window.loadURL(address)
         }
     }
 
     printVersion(): Promise<void> {
-        const indent = ' '.repeat(4)
+        const indent = ' '.repeat(INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
             maxNameLen = Math.max(maxNameLen, name.length)

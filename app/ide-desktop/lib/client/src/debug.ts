@@ -1,6 +1,6 @@
 /** @file Application debug information. */
 
-import buildCfg from '../../../build.json'
+import BUILD_INFO from '../../../build.json' assert { type: 'json' }
 
 // =================
 // === Constants ===
@@ -14,8 +14,8 @@ const INDENT_SIZE = 4
 
 /** Information about versions of different application components. */
 export const VERSION_INFO = {
-    version: buildCfg.version,
-    build: buildCfg.commit,
+    version: BUILD_INFO.version,
+    build: BUILD_INFO.commit,
     electron: process.versions.electron,
     chrome: process.versions.chrome,
 }

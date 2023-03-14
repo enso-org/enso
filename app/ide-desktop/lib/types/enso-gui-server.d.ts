@@ -8,8 +8,9 @@ declare module 'enso-gui-server' {
         assets?: string
         port?: number
     }
-    export function start(params: StartParams): Promise<{
+    interface ExectionInfo {
         port: number
-        reload(): void
-    }>
+        reload: () => void
+    }
+    export function start(params: StartParams): Promise<ExectionInfo>
 }

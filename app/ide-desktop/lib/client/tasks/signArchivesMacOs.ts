@@ -10,10 +10,10 @@
  * supported by electron-osx-sign as it adds a java toolchain as additional dependency.
  * This script should be removed once the engine is signed. */
 
-import child_process from 'node:child_process'
-import fs from 'node:fs/promises'
-import os from 'node:os'
-import pathModule from 'node:path'
+import * as childProcess from 'node:child_process'
+import * as fs from 'node:fs/promises'
+import * as os from 'node:os'
+import * as pathModule from 'node:path'
 
 import glob from 'fast-glob'
 
@@ -127,7 +127,7 @@ const TEMPORARY_ARCHIVE_PATH = 'temporary_archive.zip'
 /** Helper to execute a program in a given directory and return the output. */
 const run = (cmd: string, args: string[], cwd?: string) => {
     console.log('Running', cmd, args, cwd)
-    return child_process.execFileSync(cmd, args, { cwd }).toString()
+    return childProcess.execFileSync(cmd, args, { cwd }).toString()
 }
 
 /** Archive with some binaries that we want to sign.
@@ -232,6 +232,8 @@ class BinaryToSign implements Signable {
             identity,
             this.path,
         ])
+        // Async functions should contain await.
+        await Promise.resolve()
     }
 }
 
@@ -241,7 +243,8 @@ class BinaryToSign implements Signable {
 
 /** Helper used to concisely define patterns for an archive to sign.
  *
- * Consists of pattern of the archive path and set of patterns for files to sign inside the archive.
+ * Consists of pattern of the archive path
+ * and set of patterns for files to sign inside the archive.
  */
 type ArchivePattern = [glob.Pattern, glob.Pattern[]]
 
@@ -293,8 +296,7 @@ async function rmRf(path: string) {
  * Get a new temporary directory. Caller is responsible for cleaning up the directory.
  */
 async function getTmpDir(prefix?: string) {
-    const ret = await fs.mkdtemp(pathModule.join(os.tmpdir(), prefix ?? 'enso-signing-'))
-    return ret
+    return await fs.mkdtemp(pathModule.join(os.tmpdir(), prefix ?? 'enso-signing-'))
 }
 
 // ====================

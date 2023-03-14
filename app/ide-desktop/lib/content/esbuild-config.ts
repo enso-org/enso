@@ -14,17 +14,17 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import * as copyPlugin from 'enso-copy-plugin'
 import * as esbuild from 'esbuild'
-import * as esbuildPluginAlias from 'esbuild-plugin-alias'
-import * as esbuildPluginTime from 'esbuild-plugin-time'
-import * as esbuildPluginYaml from 'esbuild-plugin-yaml'
-import * as nodeGlobalsPolyfill from '@esbuild-plugins/node-globals-polyfill'
-import * as nodeModulesPolyfill from '@esbuild-plugins/node-modules-polyfill'
+import * as esbuildPluginCopy from 'enso-copy-plugin'
+import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
+import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
+import esbuildPluginAlias from 'esbuild-plugin-alias'
+import esbuildPluginTime from 'esbuild-plugin-time'
+import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as BUILD_INFO from '../../build.json' assert { type: 'json' }
 import * as esbuildWatch from '../../esbuild-watch.js'
 import * as utils from '../../utils.js'
+import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
 export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
@@ -104,11 +104,12 @@ export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: st
 // ================
 
 /**
- * generate the builder options
+ * Generate the builder options.
  */
 export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
     const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath } = args
     return {
+        /* eslint-disable @typescript-eslint/naming-convention */
         absWorkingDir: THIS_PATH,
         bundle: true,
         entryPoints: [path.resolve(THIS_PATH, 'src', 'index.ts')],
@@ -116,19 +117,18 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
         outbase: 'src',
         plugins: [
             esbuildPluginYaml.yamlPlugin({}),
-            nodeModulesPolyfill.NodeModulesPolyfillPlugin(),
-            nodeGlobalsPolyfill.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
-            esbuildPluginAlias.default({ ensogl_app: ensoglAppPath }),
-            esbuildPluginTime.default(),
-            copyPlugin.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
+            esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
+            esbuildPluginNodeGlobals.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
+            // We do not control naming of third-party options.
+            esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
+            esbuildPluginTime(),
+            esbuildPluginCopy.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
         ],
         define: {
             // Disabling naming convention because these are third-party options.
-            /* eslint-disable @typescript-eslint/naming-convention */
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
-            /* eslint-enable @typescript-eslint/naming-convention */
         },
         sourcemap: true,
         minify: true,
@@ -139,7 +139,6 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
         incremental: true,
         color: true,
         logOverride: {
-            /* eslint-disable @typescript-eslint/naming-convention */
             // Happens in ScalaJS-generated parser (scala-parser.js):
             //    6 │   "fileLevelThis": this
             'this-is-undefined-in-esm': 'silent',
@@ -152,8 +151,8 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
             // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
             //    1 │ ...y{table.grow(1)}catch(err){if(!err instanceof RangeError){throw ...
             'suspicious-boolean-not': 'silent',
-            /* eslint-enable @typescript-eslint/naming-convention */
         },
+        /* eslint-enable @typescript-eslint/naming-convention */
     }
 }
 

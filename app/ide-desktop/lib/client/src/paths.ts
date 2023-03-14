@@ -3,7 +3,7 @@
 import * as path from 'node:path'
 
 import * as electron from 'electron'
-import * as electronIsDev from 'electron-is-dev'
+import electronIsDev from 'electron-is-dev'
 
 import * as paths from '../paths'
 

@@ -6,7 +6,6 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "node",
-    "allowJs": true,
     "checkJs": true,
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
@@ -24,7 +23,6 @@
       "@build-cfg": ["./build.json"]
     }
   },
-  "files": ["**/*", ".eslintrc.cjs", "utils.ts", "lib/types/env.d.ts"],
   "ts-node": {
     "esm": true,
     "files": true

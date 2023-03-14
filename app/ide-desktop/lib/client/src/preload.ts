@@ -26,13 +26,13 @@ electron.contextBridge.exposeInMainWorld('enso_lifecycle', {
     /** Allows application-exit to be initiated from WASM code.
      * This is used, for example, in a key binding (Ctrl+Alt+Q) that saves a performance profile and
      * exits. */
-    quit: () => { electron.ipcRenderer.send(ipc.CHANNEL.quit) },
+    quit: () => { electron.ipcRenderer.send(ipc.Channel.quit) },
 })
 
 // Save and load profile data.
 let onProfiles: ((profiles: string[]) => void)[] = []
 let profilesLoaded: string[] | undefined
-electron.ipcRenderer.on(ipc.CHANNEL.profilesLoaded, (_event, profiles: string[]) => {
+electron.ipcRenderer.on(ipc.Channel.profilesLoaded, (_event, profiles: string[]) => {
     for (const callback of onProfiles) {
         callback(profiles)
     }
@@ -41,7 +41,7 @@ electron.ipcRenderer.on(ipc.CHANNEL.profilesLoaded, (_event, profiles: string[])
 })
 electron.contextBridge.exposeInMainWorld('enso_profiling_data', {
     // Delivers profiling log.
-    saveProfile: (data: unknown) => { electron.ipcRenderer.send(ipc.CHANNEL.saveProfile, data); },
+    saveProfile: (data: unknown) => { electron.ipcRenderer.send(ipc.Channel.saveProfile, data); },
     // Requests any loaded profiling logs.
     loadProfiles: (callback: (profiles: string[]) => void) => {
         if (profilesLoaded === undefined) {
@@ -79,7 +79,7 @@ const AUTHENTICATION_API = {
      * OAuth URLs must be opened this way because the dashboard application is sandboxed and thus
      * not privileged to do so unless we explicitly expose this functionality. */
     openUrlInSystemBrowser: (url: string) =>
-        { electron.ipcRenderer.send(ipc.CHANNEL.openUrlInSystemBrowser, url); },
+        { electron.ipcRenderer.send(ipc.Channel.openUrlInSystemBrowser, url); },
     /** Set the callback that will be called when a deep link to the application is opened.
      *
      * The callback is intended to handle links like
@@ -87,6 +87,6 @@ const AUTHENTICATION_API = {
      * system browser or email client. Handling the links involves resuming whatever flow was in
      * progress when the link was opened (e.g., an OAuth registration flow). */
     setDeepLinkHandler: (callback: (url: string) => void) =>
-        electron.ipcRenderer.on(ipc.CHANNEL.openDeepLink, (_event, url: string) => { callback(url); }),
+        electron.ipcRenderer.on(ipc.Channel.openDeepLink, (_event, url: string) => { callback(url); }),
 }
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
