@@ -68,7 +68,11 @@ const BOTH_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
 
 await BOTH_BUNDLES_READY
 console.log('Exposing Project Manager bundle.')
-await fs.symlink(PROJECT_MANAGER_BUNDLE_PATH, path.join(IDE_DIR_PATH, paths.PROJECT_MANAGER_BUNDLE), 'dir')
+await fs.symlink(
+    PROJECT_MANAGER_BUNDLE_PATH,
+    path.join(IDE_DIR_PATH, paths.PROJECT_MANAGER_BUNDLE),
+    'dir'
+)
 
 const ELECTRON_ARGS = [path.join(IDE_DIR_PATH, 'index.cjs'), '--', ...process.argv.slice(2)]
 

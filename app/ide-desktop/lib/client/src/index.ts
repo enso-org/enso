@@ -50,7 +50,9 @@ class App {
             await this.printVersion()
             process.exit()
         } else if (this.args.groups.debug.options.info.value) {
-            await electron.app.whenReady().then(async () => { await debug.printInfo(); })
+            await electron.app.whenReady().then(async () => {
+                await debug.printInfo()
+            })
             process.exit()
         } else {
             this.setChromeOptions(chromeOptions)
@@ -62,7 +64,9 @@ class App {
              * the `authentication.initModule` call that is called in the listener, the application
              * freezes. This freeze should be diagnosed and fixed. Then, the `whenReady()` listener
              * should be used here instead. */
-            electron.app.on('ready', () => { void this.main(windowSize); })
+            electron.app.on('ready', () => {
+                void this.main(windowSize)
+            })
             this.registerShortcuts()
         }
     }
@@ -235,7 +239,9 @@ class App {
                 fsSync.writeFileSync(profileOutPath, data)
             })
         }
-        electron.ipcMain.on(ipc.Channel.quit, () => { electron.app.quit(); })
+        electron.ipcMain.on(ipc.Channel.quit, () => {
+            electron.app.quit()
+        })
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration

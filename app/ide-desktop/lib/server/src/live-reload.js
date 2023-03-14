@@ -5,5 +5,9 @@ if (!window.liveReloadListening) {
     const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://'
     const address = protocol + window.location.host + '/live-reload'
     const socket = new WebSocket(address)
-    socket.onmessage = msg => { if (msg.data === 'reload') { window.location.reload(); } }
+    socket.onmessage = msg => {
+        if (msg.data === 'reload') {
+            window.location.reload()
+        }
+    }
 }

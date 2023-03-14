@@ -9,16 +9,16 @@ declare module '*.yaml' {
 
 declare module '@eslint/js' {
     interface Config {
-            rules: Record<string, string>
+        rules: Record<string, string>
     }
 
     interface EslintConfigs {
-            all: Config
-            recommended: Config
+        all: Config
+        recommended: Config
     }
 
     interface Default {
-            configs: EslintConfigs
+        configs: EslintConfigs
     }
 
     const DEFAULT: Default
@@ -40,15 +40,15 @@ declare module 'create-servers' {
     import * as http from 'node:http'
 
     interface CreateServersOptions {
-            http: number
-            handler: http.RequestListener<http.IncomingMessage, http.ServerResponse>
+        http: number
+        handler: http.RequestListener<http.IncomingMessage, http.ServerResponse>
     }
     interface HttpError {
-            http: string
+        http: string
     }
-    export default function(
-            option: CreateServersOptions,
-            errorHandler: (err: HttpError | undefined) => void
+    export default function (
+        option: CreateServersOptions,
+        errorHandler: (err: HttpError | undefined) => void
     ): unknown
 }
 

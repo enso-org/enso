@@ -3,7 +3,7 @@
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url));
+const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 
 // The .d.ts is wrong; these only have default exports.
 // Other default imports are whitelisted; however these should only be used here.
@@ -24,12 +24,14 @@ const NOT_CONSTANT_CASE = '/^(?!_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/'
 /** @type {{ selector: string; message: string; }[]} */
 const RESTRICTED_SYNTAXES = [
     {
-        selector: ':matches(ImportDeclaration:has(ImportSpecifier), ExportDeclaration, ExportSpecifier)',
+        selector:
+            ':matches(ImportDeclaration:has(ImportSpecifier), ExportDeclaration, ExportSpecifier)',
         message: 'No {} imports and exports',
     },
     {
         // Here we maintain an explicit whitelist of modules that do not support namespace exports.
-        selector: 'ImportDeclaration[source.value=/^(?!(chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|portfinder|ws|create-servers|electron-is-dev|fast-glob|esbuild-plugin-alias|esbuild-plugin-time|esbuild-plugin-yaml)$)[^.]/] > ImportDefaultSpecifier',
+        selector:
+            'ImportDeclaration[source.value=/^(?!(chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|portfinder|ws|create-servers|electron-is-dev|fast-glob|esbuild-plugin-alias|esbuild-plugin-time|esbuild-plugin-yaml)$)[^.]/] > ImportDefaultSpecifier',
         message: 'No default imports from modules',
     },
     {
@@ -38,11 +40,11 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: `ImportDeclaration[source.value=/\\.json$/]:not(:has(ImportAttribute[key.name=type][value.value=json]))`,
-        message: 'JSON imports must be { type: \'json\' }',
+        message: "JSON imports must be { type: 'json' }",
     },
     {
         selector: `ImportDeclaration[source.value=/\\.(?:yaml|yml)$/]:not(:has(ImportAttribute[key.name=type][value.value=yaml]))`,
-        message: 'YAML imports must be { type: \'yaml\' }',
+        message: "YAML imports must be { type: 'yaml' }",
     },
     {
         selector: `ImportDeclaration[source.value=/\\.(?:json|yaml|yml)$/] > ImportNamespaceSpecifier`,
@@ -73,8 +75,10 @@ const RESTRICTED_SYNTAXES = [
         message: 'No aliases to literal types',
     },
     {
-        selector: 'TSTypeAliasDeclaration > :matches(TSBooleanKeyword, TSBigintKeyword, TSNullKeyword, TSNumberKeyword, TSObjectKeyword, TSStringKeyword, TSSymbolKeyword, TSUndefinedKeyword, TSUnknownKeyword, TSVoidKeyword)',
-        message: 'No aliases to primitives - consider using brands instead: `string & { _brand: "BrandName"; }`',
+        selector:
+            'TSTypeAliasDeclaration > :matches(TSBooleanKeyword, TSBigintKeyword, TSNullKeyword, TSNumberKeyword, TSObjectKeyword, TSStringKeyword, TSSymbolKeyword, TSUndefinedKeyword, TSUnknownKeyword, TSVoidKeyword)',
+        message:
+            'No aliases to primitives - consider using brands instead: `string & { _brand: "BrandName"; }`',
     },
     {
         // Matches functions and arrow functions, but not methods.
@@ -97,7 +101,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: ':matches(TSNullKeyword, Literal[raw=null])',
-        message: 'Use `undefined` instead of `null`'
+        message: 'Use `undefined` instead of `null`',
     },
     {
         selector: 'ExportNamedDeclaration > VariableDeclaration[kind=let]',
@@ -108,19 +112,24 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `const` instead of `let` for object literals only containing string literals',
     },
     {
-        selector: 'ImportDeclaration[source.value=/^(?:assert|async_hooks|buffer|child_process|cluster|console|constants|crypto|dgram|diagnostics_channel|dns|domain|events|fs|fs\\u002Fpromises|http|http2|https|inspector|module|net|os|path|perf_hooks|process|punycode|querystring|readline|repl|stream|string_decoder|timers|tls|trace_events|tty|url|util|v8|vm|wasi|worker_threads|zlib)$/]',
+        selector:
+            'ImportDeclaration[source.value=/^(?:assert|async_hooks|buffer|child_process|cluster|console|constants|crypto|dgram|diagnostics_channel|dns|domain|events|fs|fs\\u002Fpromises|http|http2|https|inspector|module|net|os|path|perf_hooks|process|punycode|querystring|readline|repl|stream|string_decoder|timers|tls|trace_events|tty|url|util|v8|vm|wasi|worker_threads|zlib)$/]',
         message: 'Use `node:` prefix to import builtin node modules',
     },
     {
-        selector: 'ImportDeclaration[source.value=/^(?!node:)/] ~ ImportDeclaration[source.value=/^node:/]',
-        message: 'Import node modules before npm modules and relative imports, separated by a blank line',
+        selector:
+            'ImportDeclaration[source.value=/^(?!node:)/] ~ ImportDeclaration[source.value=/^node:/]',
+        message:
+            'Import node modules before npm modules and relative imports, separated by a blank line',
     },
     {
-        selector: 'ImportDeclaration[source.value=/^\\./] ~ ImportDeclaration[source.value=/^[^.]/]',
+        selector:
+            'ImportDeclaration[source.value=/^\\./] ~ ImportDeclaration[source.value=/^[^.]/]',
         message: 'Import npm modules before relative imports, separated by a blank line',
     },
     {
-        selector: 'TSAsExpression:has(TSUnknownKeyword, TSNeverKeyword, TSAnyKeyword) > TSAsExpression',
+        selector:
+            'TSAsExpression:has(TSUnknownKeyword, TSNeverKeyword, TSAnyKeyword) > TSAsExpression',
         message: 'Use type assertions to specific types instead of `unknown`, `any` or `never`',
     },
 ]
@@ -130,7 +139,7 @@ export default [
     eslintJs.configs.recommended,
     {
         plugins: {
-            'jsdoc': jsdoc,
+            jsdoc: jsdoc,
             '@typescript-eslint': tsEslint,
         },
         languageOptions: {
@@ -155,15 +164,9 @@ export default [
             ...tsEslint.configs.recommended?.rules,
             ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
             ...tsEslint.configs.strict?.rules,
-            'eqeqeq': 'error',
-            'sort-imports': [
-                'error',
-                { allowSeparatedGroups: true },
-            ],
-            'no-restricted-syntax': [
-                'error',
-                ...RESTRICTED_SYNTAXES,
-            ],
+            eqeqeq: 'error',
+            'sort-imports': ['error', { allowSeparatedGroups: true }],
+            'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             // prefer interface over type
             '@typescript-eslint/consistent-type-definitions': 'error',
             '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
@@ -309,7 +312,7 @@ export default [
             '@typescript-eslint/no-var-requires': 'off',
             // Parameter types must be specified using JSDoc in JS files.
             'jsdoc/no-types': 'off',
-        }
+        },
     },
     {
         files: ['**/*.ts', '**/*.mts', '**/*.cts', '**/*.tsx', '**/*.mtsx', '**/*.ctsx'],

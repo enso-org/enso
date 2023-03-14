@@ -48,7 +48,9 @@ export function create(filesProvider) {
         } else if (typeof build.initialOptions.entryPoints === 'object') {
             build.initialOptions.entryPoints[magic] = magic
         } else {
-            throw new Error(`Invalid entryPoints: ${JSON.stringify(build.initialOptions.entryPoints)}`)
+            throw new Error(
+                `Invalid entryPoints: ${JSON.stringify(build.initialOptions.entryPoints)}`
+            )
         }
 
         build.onStart(() => {
@@ -82,7 +84,9 @@ export function create(filesProvider) {
         })
         build.onEnd(() => {
             // Replace with empty `AsyncGenerator`.
-            files = (async function *() { yield* await Promise.resolve([]); })()
+            files = (async function* () {
+                yield* await Promise.resolve([])
+            })()
         })
     }
     return { name, setup }

@@ -34,11 +34,17 @@ export class ProjectManager {
             ws.onerror = (error: unknown) => {
                 reject(error)
             }
-        }).finally(() => { ws.close(); })
+        }).finally(() => {
+            ws.close()
+        })
     }
 
     /** * Create a new project. */
-    createProject(name: string, template?: string, action = MISSING_COMPONENT_ACTION_INSTALL): unknown {
+    createProject(
+        name: string,
+        template?: string,
+        action = MISSING_COMPONENT_ACTION_INSTALL
+    ): unknown {
         const params = {
             name: name,
             missingComponentAction: action,
@@ -66,6 +72,8 @@ export class ProjectManager {
             ws.onerror = error => {
                 reject(error)
             }
-        }).finally(() => { ws.close(); })
+        }).finally(() => {
+            ws.close()
+        })
     }
 }

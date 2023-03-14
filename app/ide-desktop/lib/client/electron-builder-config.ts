@@ -200,14 +200,10 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                     packager: {
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                         platformSpecificBuildOptions: buildOptions,
-                        appInfo: {
-                            productFilename: appName,
-                        },
-                        config: {
-                            mac: macConfig
-                        },
+                        appInfo: { productFilename: appName },
+                        config: { mac: macConfig },
                     },
-                    appOutDir
+                    appOutDir,
                 } = context
 
                 // We need to manually re-sign our build artifacts before notarization.

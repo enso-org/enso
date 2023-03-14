@@ -20,9 +20,8 @@ const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 /** Path of a file that needs to be injected into the bundle for live-reload to work. */
 export const LIVE_RELOAD_LISTENER_PATH = path.join(DIR_NAME, 'live-reload.js')
 
-
 /** Start the server.
- * 
+ *
  * @param {{ root: string; assets?: string; port?: number; }} options - Configuration options for this server.
  */
 export async function start({ root, assets, port }) {
@@ -46,7 +45,9 @@ export async function start({ root, assets, port }) {
     return {
         port: freePort,
         reload() {
-            wsServer.clients.forEach(sock => { sock.send('reload'); })
+            wsServer.clients.forEach(sock => {
+                sock.send('reload')
+            })
         },
     }
 }

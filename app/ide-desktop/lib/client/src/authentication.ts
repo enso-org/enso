@@ -155,7 +155,15 @@ interface ExecFileOptions extends childProcess.ExecFileOptions {
  * function has been modified to follow the Enso style guide, and to be TypeScript-compatible. */
 // We don't control the callback signature, so the type must stay as `null`.
 // eslint-disable-next-line no-restricted-syntax
-const opener = (args: string | readonly string[], options?: ExecFileOptions, callback?: (error: childProcess.ExecFileException | null, stdout: Buffer | string, stderr: Buffer | string) => void) => {
+const opener = (
+    args: string | readonly string[],
+    options?: ExecFileOptions,
+    callback?: (
+        error: childProcess.ExecFileException | null,
+        stdout: Buffer | string,
+        stderr: Buffer | string
+    ) => void
+) => {
     let platform = process.platform
 
     /** Attempt to detect Windows Subystem for Linux (WSL). WSL  itself as Linux (which works in

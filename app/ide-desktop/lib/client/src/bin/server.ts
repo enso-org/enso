@@ -93,7 +93,9 @@ export class Server {
                         reject(err)
                     }
                     contentConfig.LOGGER.log(`Server started on port ${this.config.port}.`)
-                    contentConfig.LOGGER.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
+                    contentConfig.LOGGER.log(
+                        `Serving files from '${path.join(process.cwd(), this.config.dir)}'.`
+                    )
                     resolve()
                 }
             )

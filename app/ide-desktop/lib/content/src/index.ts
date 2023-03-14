@@ -20,7 +20,9 @@ const FETCH_TIMEOUT = 300
 
 const timeout = (time: number) => {
     const controller = new AbortController()
-    setTimeout(() => { controller.abort(); }, time * SECOND)
+    setTimeout(() => {
+        controller.abort()
+    }, time * SECOND)
     return controller
 }
 
@@ -47,7 +49,10 @@ async function checkMinSupportedVersion(config: typeof contentConfig.OPTIONS) {
         return true
     }
     try {
-        const appConfig = await fetchTimeout(config.groups.engine.options.configUrl.value, FETCH_TIMEOUT)
+        const appConfig = await fetchTimeout(
+            config.groups.engine.options.configUrl.value,
+            FETCH_TIMEOUT
+        )
         if (
             typeof appConfig === 'object' &&
             // `typeof x === 'object'` narrows to `object | null`, not `object | undefined`

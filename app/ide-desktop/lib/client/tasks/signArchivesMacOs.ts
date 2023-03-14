@@ -144,14 +144,13 @@ class ArchiveToSign implements Signable {
         public path: string,
         /** A list of patterns for files to sign inside the archive.
          * Relative to the root of the archive. */
-        public binaries: glob.Pattern[],
+        public binaries: glob.Pattern[]
     ) {}
 
     /** Looks up for archives to sign using the given path pattern. */
     static async lookup(base: string, [pattern, binaries]: ArchivePattern) {
         return lookupHelper(path => new ArchiveToSign(path, binaries))(base, pattern)
     }
-
 
     /** Sign content of an archive. This function extracts the archive, signs the required files,
      * re-packages the archive and replaces the original. */
@@ -178,7 +177,11 @@ class ArchiveToSign implements Signable {
 
             if (isJar) {
                 if (archiveName.includes(`runner`)) {
-                    run(`jar`, ['-cfm', TEMPORARY_ARCHIVE_PATH, 'META-INF/MANIFEST.MF', '.'], workingDir)
+                    run(
+                        `jar`,
+                        ['-cfm', TEMPORARY_ARCHIVE_PATH, 'META-INF/MANIFEST.MF', '.'],
+                        workingDir
+                    )
                 } else {
                     run(`jar`, ['-cf', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
                 }
@@ -187,7 +190,9 @@ class ArchiveToSign implements Signable {
             }
 
             // We cannot use fs.rename because temp and target might be on different volumes.
-            console.log(run(`/bin/mv`, [pathModule.join(workingDir, TEMPORARY_ARCHIVE_PATH), this.path]))
+            console.log(
+                run(`/bin/mv`, [pathModule.join(workingDir, TEMPORARY_ARCHIVE_PATH), this.path])
+            )
             console.log(
                 `Successfully repacked ${this.path} to handle signing inner native dependency.`
             )
@@ -325,6 +330,8 @@ export default async function (context: Input) {
     for (const signable of await ensoPackageSignables(resourcesDir)) await signable.sign(context)
 
     // Finally re-sign the top-level enso.
-    const topLevelExecutable = new BinaryToSign(pathModule.join(contentsDir, 'MacOS', productFilename))
+    const topLevelExecutable = new BinaryToSign(
+        pathModule.join(contentsDir, 'MacOS', productFilename)
+    )
     await topLevelExecutable.sign(context)
 }

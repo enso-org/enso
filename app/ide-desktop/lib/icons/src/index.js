@@ -67,7 +67,10 @@ class Logo {
             this.borderWidth + this.borderOffset + this.atomRadius + this.atomDiff - this.d
         }" cy="32" r="${this.atomRadius + this.atomDiff + this.d}"/>
         <circle id="rightAtom"   cx="${
-            this.borderWidth + this.borderOffset + ATOM_SPACING_FACTOR * this.atomRadius + this.atomDiff
+            this.borderWidth +
+            this.borderOffset +
+            ATOM_SPACING_FACTOR * this.atomRadius +
+            this.atomDiff
         }" cy="32" r="${this.atomRadius - this.atomDiff}"/>
         <mask id="innerCircleMask">
             <use ${this.ref}="#innerCircle" fill="white"/>
@@ -187,7 +190,9 @@ async function genIcons(outputDir) {
     if (os.platform() === 'darwin') {
         console.log('Generating ICNS.')
         childProcess.execSync(`cp -R ${outputDir}/png ${outputDir}/png.iconset`)
-        childProcess.execSync(`iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`)
+        childProcess.execSync(
+            `iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`
+        )
     }
 
     console.log('Generating ICO.')
