@@ -17,6 +17,12 @@ spec =
             Regex_2.compile "a([a-z])" . replace "abac ad aae a af" "A$1$1" . should_equal "AbbAcc Add Aaae a Aff"
             Regex_2.compile "a(?<foo>[a-z])" . replace "abac ad aae a af" "A$<foo>$<foo>" . should_equal "AbbAcc Add Aaae a Aff"
 
+            Regex_2.compile "a([a-z])([a-z])" . replace "abac" "Q$2$1"
+            Regex_2.compile "a(?<one>[a-z])(?<two>[a-z])" . replace "abac" "Q$<two>$<one>"
+
+            Regex_2.compile "a([a-z])" . replace only_first=True "abac ad aae a af" "A$1$1" . should_equal "Abbac ad aae a af"
+            Regex_2.compile "a(?<foo>[a-z])" . replace only_first=True "abac ad aae a af" "A$<foo>$<foo>" . should_equal "Abbac ad aae a af"
+
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex_2.compile "(?<dots>..)" case_insensitive=True
