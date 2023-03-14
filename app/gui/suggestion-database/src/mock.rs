@@ -49,9 +49,7 @@ pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 ///     .add_and_enter_type("Type", vec![], |e| e.with_icon(IconName::from_snake_case("an_icon")));
 /// builder.add_constructor("Constructor", vec![], |e| e);
 /// builder.leave();
-/// builder.add_method("module_method", vec![], "local.Project.Type", true, |e| {
-///     e.with_documentation("A module method")
-/// });
+/// builder.add_method("module_method", vec![], "local.Project.Type", true, |e| e);
 /// builder.leave();
 /// let db = builder.result;
 ///

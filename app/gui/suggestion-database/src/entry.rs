@@ -665,7 +665,7 @@ impl Entry {
         let update_results = [
             return_type
                 .and_then(|m| Entry::apply_field_update("return_type", &mut self.return_type, m)),
-            Entry::apply_field_update("documentation", &mut self.documentation, docs),
+            Entry::apply_default_field_update("documentation", &mut self.documentation, docs),
             module.and_then(|m| Entry::apply_field_update("module", &mut self.defined_in, m)),
             self_type
                 .and_then(|s| Entry::apply_opt_field_update("self_type", &mut self.self_type, s)),
@@ -771,6 +771,22 @@ impl Entry {
                 FieldAction::Set => *field = Some(update.value.ok_or(err)?),
                 FieldAction::Remove => *field = None,
             }
+        }
+        Ok(())
+    }
+
+    /// Apply an update to a field that can be removed by settings its value to its type's default.
+    fn apply_default_field_update<T: Default>(
+        field_name: &'static str,
+        field: &mut T,
+        update: Option<FieldUpdate<T>>,
+    ) -> FallibleResult {
+        let err = InvalidFieldUpdate(field_name);
+        if let Some(update) = update {
+            *field = match update.tag {
+                FieldAction::Set => update.value.ok_or(err)?,
+                FieldAction::Remove => default(),
+            };
         }
         Ok(())
     }
