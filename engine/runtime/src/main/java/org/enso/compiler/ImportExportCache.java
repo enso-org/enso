@@ -6,6 +6,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.editions.LibraryName;
@@ -13,10 +16,8 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
 import scala.collection.immutable.Map;
-import scala.jdk.CollectionConverters;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -26,8 +27,8 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     private final LibraryName libraryName;
 
     public ImportExportCache(LibraryName libraryName) {
+        super(Level.FINEST, true, false);
         this.libraryName = libraryName;
-        this.logLevel = Level.FINEST;
         this.stringRepr = libraryName.toString();
         this.entryName = libraryName.name();
         this.dataSuffix = bindingsCacheDataExtension;
@@ -41,16 +42,6 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    protected boolean needsSourceDigestVerification() {
-        return true;
-    }
-
-    @Override
-    protected boolean needsDataDigestVerification() {
-        return false;
     }
 
     @Override
@@ -110,8 +101,12 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     }
 
     @Override
-    protected Object extractObjectToSerialize(CachedBindings entry) {
-        return entry.bindings();
+    protected byte[] serialize(CachedBindings entry) throws IOException {
+      var byteStream = new ByteArrayOutputStream();
+      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
+        stream.writeObject(entry.bindings());
+      }
+      return byteStream.toByteArray();
     }
 
     static class MapToBindings implements Serializable {

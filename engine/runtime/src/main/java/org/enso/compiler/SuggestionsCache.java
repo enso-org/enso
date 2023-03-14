@@ -6,15 +6,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.SourceFile;
 import org.enso.polyglot.Suggestion;
-import scala.jdk.CollectionConverters;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -30,8 +31,8 @@ public final class SuggestionsCache
   final LibraryName libraryName;
 
   public SuggestionsCache(LibraryName libraryName) {
+    super(Level.FINEST, true, false);
     this.libraryName = libraryName;
-    this.logLevel = Level.FINEST;
     this.stringRepr = libraryName.toString();
     this.entryName = libraryName.name();
     this.dataSuffix = SUGGESTIONS_CACHE_DATA_EXTENSION;
@@ -45,16 +46,6 @@ public final class SuggestionsCache
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  @Override
-  protected boolean needsSourceDigestVerification() {
-    return true;
-  }
-
-  @Override
-  protected boolean needsDataDigestVerification() {
-    return false;
   }
 
   @Override
@@ -113,8 +104,12 @@ public final class SuggestionsCache
   }
 
   @Override
-  protected Object extractObjectToSerialize(CachedSuggestions entry) {
-    return entry.getSuggestionsObjectToSerialize();
+  protected byte[] serialize(CachedSuggestions entry) throws IOException {
+    var byteStream = new ByteArrayOutputStream();
+    try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
+      stream.writeObject(entry.getSuggestionsObjectToSerialize());
+    }
+    return byteStream.toByteArray();
   }
 
   // Suggestions class is not a record because of a Frgaal bug leading to invalid compilation error.

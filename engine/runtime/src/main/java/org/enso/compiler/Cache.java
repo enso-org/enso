@@ -9,10 +9,8 @@ import org.enso.logger.masking.MaskedPath;
 import org.enso.pkg.SourceFile;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -33,9 +31,39 @@ import java.util.logging.Level;
  * @param <M> type of the metadata associated with the data
  */
 public abstract class Cache<T, M extends Cache.Metadata> {
+  private final Object LOCK = new Object();
 
   /** Returns a default level of logging for this Cache. */
-  protected Level logLevel;
+  protected final Level logLevel;
+
+  /**
+   * Flag indicating if the de-serialization process should compute the hash of the sources from
+   * which the cache was created and compare it with the stored metadata entry.
+   */
+  private final boolean needsSourceDigestVerification;
+
+  /**
+   * Flag indicating if the de-serialization process should compute the hash of the stored cache and
+   * compare it with the stored metadata entry.
+   */
+  private final boolean needsDataDigestVerification;
+
+  /**
+   * Constructor for subclasses.
+   *
+   * @param logLevel
+   * @param needsSourceDigestVerification Flag indicating if the de-serialization process should
+   *     compute the hash of the sources from which the cache was created and compare it with the
+   *     stored metadata entry.
+   * @param needsDataDigestVerification Flag indicating if the de-serialization process should
+   *     compute the hash of the stored cache and compare it with the stored metadata entry.
+   */
+  protected Cache(
+      Level logLevel, boolean needsSourceDigestVerification, boolean needsDataDigestVerification) {
+    this.logLevel = logLevel;
+    this.needsDataDigestVerification = needsDataDigestVerification;
+    this.needsSourceDigestVerification = needsSourceDigestVerification;
+  }
 
   /**
    * Saves data to a cache file.
@@ -46,7 +74,8 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return if non-empty, returns the location of the successfully saved location of the cached
    *     data
    */
-  public Optional<TruffleFile> save(T entry, EnsoContext context, boolean useGlobalCacheLocations) {
+  public final Optional<TruffleFile> save(
+      T entry, EnsoContext context, boolean useGlobalCacheLocations) {
     TruffleLogger logger = context.getLogger(this.getClass());
     return getCacheRoots(context)
         .flatMap(
@@ -90,12 +119,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   private boolean saveCacheTo(TruffleFile cacheRoot, T entry, TruffleLogger logger)
       throws IOException, CacheException {
     if (ensureRoot(cacheRoot)) {
-      var byteStream = new ByteArrayOutputStream();
-      byte[] bytesToWrite;
-      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
-        stream.writeObject(extractObjectToSerialize(entry));
-        bytesToWrite = byteStream.toByteArray();
-      }
+      byte[] bytesToWrite = serialize(entry);
 
       String blobDigest = computeDigestFromBytes(bytesToWrite);
       String sourceDigest = computeDigest(entry, logger).get();
@@ -155,8 +179,8 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param context the language context in which loading is taking place
    * @return the cached data if possible, and [[None]] if it could not load a valid cache
    */
-  public Optional<T> load(EnsoContext context) {
-    synchronized (this) {
+  public final Optional<T> load(EnsoContext context) {
+    synchronized (LOCK) {
       TruffleLogger logger = context.getLogger(this.getClass());
       return getCacheRoots(context)
           .flatMap(
@@ -218,14 +242,13 @@ public abstract class Cache<T, M extends Cache.Metadata> {
     if (optMeta.isPresent()) {
       M meta = optMeta.get();
       boolean sourceDigestValid =
-          !needsSourceDigestVerification()
+          !needsSourceDigestVerification
               || computeDigestFromSource(context, logger)
                   .map(digest -> digest.equals(meta.sourceHash()))
                   .orElseGet(() -> false);
       byte[] blobBytes = dataPath.readAllBytes();
       boolean blobDigestValid =
-          !needsDataDigestVerification()
-              || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
+          !needsDataDigestVerification || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
 
       if (sourceDigestValid && blobDigestValid) {
         Object readObject;
@@ -274,18 +297,6 @@ public abstract class Cache<T, M extends Cache.Metadata> {
       return Optional.empty();
     }
   }
-
-  /**
-   * Flag indicating if the de-serialization process should compute the hash of the sources from
-   * which the cache was created and compare it with the stored metadata entry.
-   */
-  protected abstract boolean needsSourceDigestVerification();
-
-  /**
-   * Flag indicating if the de-serialization process should compute the hash of the stored cache and
-   * compare it with the stored metadata entry.
-   */
-  protected abstract boolean needsDataDigestVerification();
 
   /**
    * Validates the deserialized data by returning the expected cached entry, or [[null]].
@@ -392,7 +403,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   protected abstract Optional<Roots> getCacheRoots(EnsoContext context);
 
   /** Returns the exact data to be serialized */
-  protected abstract Object extractObjectToSerialize(T entry);
+  protected abstract byte[] serialize(T entry) throws IOException;
 
   protected String stringRepr;
 
@@ -471,8 +482,8 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    *
    * @param context the langage context in which loading is taking place
    */
-  public void invalidate(EnsoContext context) {
-    synchronized (this) {
+  public final void invalidate(EnsoContext context) {
+    synchronized (LOCK) {
       TruffleLogger logger = context.getLogger(this.getClass());
       getCacheRoots(context)
           .ifPresent(
@@ -518,7 +529,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
     String blobHash();
   }
 
-  public static class CacheException extends Exception {
+  public static final class CacheException extends Exception {
     public CacheException(String errorMessage) {
       super(errorMessage);
     }

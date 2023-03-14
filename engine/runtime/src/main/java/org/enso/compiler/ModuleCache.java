@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
+import java.io.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -13,6 +14,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
@@ -23,12 +25,12 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     private final Module module;
 
     public ModuleCache(Module module) {
-        this.module = module;
-        this.logLevel = Level.FINEST;
-        this.stringRepr = module.getName().toString();
-        this.entryName = module.getName().item();
-        this.dataSuffix = irCacheDataExtension;
-        this.metadataSuffix = irCacheMetadataExtension;
+      super(Level.FINEST, true, false);
+      this.module = module;
+      this.stringRepr = module.getName().toString();
+      this.entryName = module.getName().item();
+      this.dataSuffix = irCacheDataExtension;
+      this.metadataSuffix = irCacheMetadataExtension;
     }
 
     @Override
@@ -38,16 +40,6 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    protected boolean needsSourceDigestVerification() {
-        return true;
-    }
-
-    @Override
-    protected boolean needsDataDigestVerification() {
-        return false;
     }
 
     @Override
@@ -145,8 +137,12 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     }
 
     @Override
-    protected Object extractObjectToSerialize(CachedModule entry) {
-        return entry.moduleIR();
+    protected byte[] serialize(CachedModule entry) throws IOException {
+      var byteStream = new ByteArrayOutputStream();
+      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
+        stream.writeObject(entry.moduleIR());
+      }
+      return byteStream.toByteArray();
     }
 
     // CachedModule is not a record **on purpose**. There appears to be a Frgaal bug leading to invalid compilation error.
