@@ -13,6 +13,15 @@ use enso_text::Location;
 
 
 
+// ===============
+// === Exports ===
+// ===============
+
+// Re-exported here so it can be referenced by macro-generated code.
+pub use enso_doc_parser;
+
+
+
 // =================
 // === Constants ===
 // =================
@@ -377,13 +386,13 @@ macro_rules! mock_suggestion_database {
 #[macro_export]
 macro_rules! doc_section_mark {
     (!) => {
-        enso_doc_parser::Mark::Important
+        $crate::mock::enso_doc_parser::Mark::Important
     };
     (>) => {
-        enso_doc_parser::Mark::Example
+        $crate::mock::enso_doc_parser::Mark::Example
     };
     (?) => {
-        enso_doc_parser::Mark::Info
+        $crate::mock::enso_doc_parser::Mark::Info
     };
 }
 
@@ -420,27 +429,27 @@ macro_rules! doc_section_mark {
 #[macro_export]
 macro_rules! doc_section {
     (@ $tag:expr, $body:expr) => {
-        enso_doc_parser::DocSection::Tag { name: $tag.into(), body: $body.into() }
+        $crate::mock::enso_doc_parser::DocSection::Tag { name: $tag.into(), body: $body.into() }
     };
     ($mark:tt $body:expr) => {
-        enso_doc_parser::DocSection::Marked {
+        $crate::mock::enso_doc_parser::DocSection::Marked {
             mark:   $crate::doc_section_mark!($mark),
             header: None,
             body:   $body.into(),
         }
     };
     ($mark:tt $header:expr, $body:expr) => {
-        enso_doc_parser::DocSection::Marked {
+        $crate::mock::enso_doc_parser::DocSection::Marked {
             mark:   $crate::doc_section_mark!($mark),
             header: Some($header.into()),
             body:   $body.into(),
         }
     };
     ($paragraph:expr) => {
-        enso_doc_parser::DocSection::Paragraph { body: $paragraph.into() }
+        $crate::mock::enso_doc_parser::DocSection::Paragraph { body: $paragraph.into() }
     };
     ($key:expr => $body:expr) => {
-        enso_doc_parser::DocSection::Keyed { key: $key.into(), body: $body.into() }
+        $crate::mock::enso_doc_parser::DocSection::Keyed { key: $key.into(), body: $body.into() }
     };
 }
 

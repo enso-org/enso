@@ -1079,7 +1079,7 @@ final class TreeToIr {
             var literal = translateType(app.getLhs(), insideTypeAscription);
             var body = translateType(app.getRhs(), insideTypeAscription);
             if (body == null) {
-              yield new IR$Error$Syntax(getIdentifiedLocation(app), IR$Error$Syntax$UnexpectedExpression$.MODULE$, meta(), diag());
+              yield new IR$Error$Syntax(getIdentifiedLocation(app).get(), IR$Error$Syntax$UnexpectedExpression$.MODULE$, meta(), diag());
             }
             var args = switch (body) {
               case IR$Type$Function fn -> {
@@ -1575,12 +1575,12 @@ final class TreeToIr {
   }
 
   IR$Error$Syntax translateSyntaxError(Tree where, IR$Error$Syntax$Reason reason) {
-    var at = getIdentifiedLocation(where);
-    return new IR$Error$Syntax(at, reason, meta(), diag()).setLocation(at);
+    var at = getIdentifiedLocation(where).get();
+    return new IR$Error$Syntax(at, reason, meta(), diag());
   }
 
   IR$Error$Syntax translateSyntaxError(IdentifiedLocation where, IR$Error$Syntax$Reason reason) {
-    return new IR$Error$Syntax(Option.apply(where), reason, meta(), diag());
+    return new IR$Error$Syntax(where, reason, meta(), diag());
   }
 
   SyntaxException translateEntity(Tree where, String msg) throws SyntaxException {

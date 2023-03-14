@@ -595,19 +595,17 @@ impl Entry {
             })
         }
 
-        let (icon_name, doc_sections) = match &entry {
+        let documentation = match &entry {
             Type { documentation, .. }
             | Constructor { documentation, .. }
             | Method { documentation, .. }
             | Module { documentation, .. }
             | Function { documentation, .. }
-            | Local { documentation, .. } => {
-                let docs = documentation.as_ref().map(|s| s.as_ref()).unwrap_or_default();
-                let documentation_sections = enso_doc_parser::parse(docs);
-                let icon_name = find_icon_name_in_doc_sections(&documentation_sections);
-                (icon_name, documentation_sections)
-            }
+            | Local { documentation, .. } =>
+                documentation.as_ref().map(|s| s.as_ref()).unwrap_or_default(),
         };
+        let doc_sections = enso_doc_parser::parse(documentation);
+        let icon_name = find_icon_name_in_doc_sections(&doc_sections);
         let reexported_in: Option<QualifiedName> = match &mut entry {
             Type { reexport: Some(reexport), .. }
             | Constructor { reexport: Some(reexport), .. }

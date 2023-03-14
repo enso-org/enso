@@ -4252,10 +4252,16 @@ dependencies = [
 name = "ide-view-component-browser"
 version = "0.1.0"
 dependencies = [
+ "enso-frp",
  "enso-prelude",
+ "ensogl",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ide-view-component-list-panel",
  "ide-view-component-list-panel-breadcrumbs",
+ "ide-view-documentation",
+ "ide-view-graph-editor",
 ]
 
 [[package]]

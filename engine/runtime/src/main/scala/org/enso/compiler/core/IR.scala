@@ -7641,7 +7641,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Syntax(
-      at: Option[IdentifiedLocation],
+      at: IdentifiedLocation,
       reason: Syntax.Reason,
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7663,7 +7663,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        at: Option[IdentifiedLocation] = at,
+        at: IdentifiedLocation         = at,
         reason: Syntax.Reason          = reason,
         passData: MetadataStorage      = passData,
         diagnostics: DiagnosticStorage = diagnostics,
@@ -7694,8 +7694,7 @@ object IR {
         this
 
       /** @inheritdoc */
-      @annotation.nowarn
-      override val location: Option[IdentifiedLocation] = at
+      override val location: Option[IdentifiedLocation] = Option(at)
 
       /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Syntax = this
@@ -7704,7 +7703,7 @@ object IR {
       override def toString: String =
         s"""
         |IR.Error.Syntax(
-        |ast = $at,
+        |at = $at,
         |reason = $reason,
         |location = $location,
         |passData = ${this.showPassData},
