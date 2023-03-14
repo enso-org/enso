@@ -31,7 +31,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(testContentRoot.file),
-      ProfilingConfig()
+      ProfilingConfig(),
+      None
     )
   }
 
