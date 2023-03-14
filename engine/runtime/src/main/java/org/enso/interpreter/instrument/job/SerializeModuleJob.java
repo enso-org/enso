@@ -14,7 +14,7 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
 
   private final QualifiedName moduleName;
 
-  private final static int SERIALIZE_MODULE_JOB_PRIORITY = 1000;
+  private static final int SERIALIZE_MODULE_JOB_PRIORITY = 1000;
 
   public SerializeModuleJob(QualifiedName moduleName) {
     super(SERIALIZE_MODULE_JOB_PRIORITY);
@@ -30,22 +30,28 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
             .getEnvironment()
             .getOptions()
             .get(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
-    ctx.executionService()
-        .getContext()
-        .findModule(moduleName.toString())
-        .ifPresent(
-            module -> {
-              if (module.getCompilationStage().isBefore(Module.CompilationStage.AFTER_CODEGEN)) {
-                ctx.executionService()
-                    .getLogger()
-                    .log(
-                        Level.WARNING,
-                        "Attempt to serialize the module [{}] at stage [{}].",
-                        new Object[] {module.getName(), module.getCompilationStage()});
-                return;
-              }
-              serializationManager.serializeModule(module, useGlobalCacheLocations);
-            });
+    ctx.locking().acquireWriteCompilationLock();
+    try {
+      ctx.executionService()
+          .getContext()
+          .findModule(moduleName.toString())
+          .ifPresent(
+              module -> {
+                if (module.getCompilationStage().isBefore(Module.CompilationStage.AFTER_CODEGEN)) {
+                  ctx.executionService()
+                      .getLogger()
+                      .log(
+                          Level.WARNING,
+                          "Attempt to serialize the module [{}] at stage [{}].",
+                          new Object[] {module.getName(), module.getCompilationStage()});
+                  return;
+                }
+
+                serializationManager.serializeModule(module, useGlobalCacheLocations);
+              });
+    } finally {
+      ctx.locking().releaseWriteCompilationLock();
+    }
     return null;
   }
 }
