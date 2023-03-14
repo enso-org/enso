@@ -1,7 +1,6 @@
-from project.Data.Boolean import Boolean, True, False
 import project.Any.Any
-import project.Data.Numbers.Integer
 import project.Data.Map.Map
+import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Regex_2.No_Such_Group
@@ -13,6 +12,9 @@ import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
+
+from project.Data.Boolean import Boolean, True, False
+
 
 type Match_2
     ## internal_regex_result : RegexResult (Truffle)
