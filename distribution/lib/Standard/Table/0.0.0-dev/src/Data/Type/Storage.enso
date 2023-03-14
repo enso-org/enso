@@ -7,6 +7,7 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 polyglot java import org.enso.table.data.column.builder.object.Builder
+polyglot java import org.enso.table.data.column.storage.type.Constants
 polyglot java import org.enso.table.data.column.storage.type.StorageType
 polyglot java import org.enso.table.data.column.storage.type.Integer as Storage_Integer
 polyglot java import org.enso.table.data.column.storage.type.Float as Storage_Float
@@ -21,13 +22,11 @@ polyglot java import org.enso.table.data.column.storage.type.AnyObject as Storag
    Gets the value type represented by this Java Storage.
 to_value_type : StorageType -> Value_Type
 to_value_type storage_type = case storage_type of
-    i : Storage_Integer -> case i.bits of
+    i : Storage_Integer -> case i.bits.toInteger of
         8 -> Value_Type.Byte
-        _ ->
-            bits = Bits.from_bits i.bits
-            Value_Type.Integer bits
+        b -> Value_Type.Integer (Bits.from_bits b)
     f : Storage_Float ->
-        bits = Bits.from_bits f.bits
+        bits = Bits.from_bits f.bits.toInteger
         Value_Type.Float bits
     _ : Storage_Boolean -> Value_Type.Boolean
     s : Storage_Text ->
@@ -42,16 +41,16 @@ to_value_type storage_type = case storage_type of
 ## PRIVATE
 closest_storage_type value_type = case value_type of
     # TODO we will want builders and storages with bounds checking, but for now we approximate
-    Value_Type.Byte -> StorageType.INTEGER_64
-    Value_Type.Integer _ -> StorageType.INTEGER_64
-    Value_Type.Float _ -> StorageType.FLOAT_64
-    Value_Type.Boolean -> StorageType.BOOLEAN
-    Value_Type.Char _ _ -> StorageType.STRING
-    Value_Type.Date -> StorageType.DATE
+    Value_Type.Byte -> Constants.INTEGER_64
+    Value_Type.Integer _ -> Constants.INTEGER_64
+    Value_Type.Float _ -> Constants.FLOAT_64
+    Value_Type.Boolean -> Constants.BOOLEAN
+    Value_Type.Char _ _ -> Constants.STRING
+    Value_Type.Date -> Constants.DATE
     # We currently will not support storing dates without timezones in in-memory mode.
-    Value_Type.Date_Time _ -> StorageType.DATE_TIME
-    Value_Type.Time -> StorageType.TIME_OF_DAY
-    Value_Type.Mixed -> StorageType.ANY_OBJECT
+    Value_Type.Date_Time _ -> Constants.DATE_TIME
+    Value_Type.Time -> Constants.TIME_OF_DAY
+    Value_Type.Mixed -> Constants.ANY_OBJECT
 
 ## PRIVATE
 from_value_type : Value_Type -> Problem_Behavior -> StorageType

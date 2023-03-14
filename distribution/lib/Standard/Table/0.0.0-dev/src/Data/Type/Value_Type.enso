@@ -29,7 +29,7 @@ type Bits
         16 -> Bits.Bits_16
         32 -> Bits.Bits_32
         64 -> Bits.Bits_64
-        _  -> Error.throw (Illegal_Argument.Error "Invalid number of bits for a float or integer type.")
+        _ : Integer -> Error.throw (Illegal_Argument.Error "Invalid number of bits for a float or integer type.")
 
     to_text : Text
     to_text self = case self of

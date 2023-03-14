@@ -6,7 +6,7 @@ public enum Bits {
   BITS_32,
   BITS_64;
 
-  public int toBits() {
+  public int toInteger() {
     return switch (this) {
       case BITS_8 -> 8;
       case BITS_16 -> 16;

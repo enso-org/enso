@@ -135,12 +135,12 @@ public class NumericBuilder extends TypedBuilder {
                                 + storage
                                 + ". This is a bug in the Table library.");
             }
-        } else if (Objects.equals(getType(), Constants.INTEGER_64)) {
+        } else if (Objects.equals(storage.getType(), Constants.INTEGER_64)) {
             if (storage instanceof LongStorage longStorage) {
                 int n = longStorage.size();
                 BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
                 for (int i = 0; i < n; i++) {
-                    data[currentSize++] = Double.doubleToRawLongBits(longStorage.getItem(i));
+                    data[currentSize++] = Double.doubleToRawLongBits((double) longStorage.getItem(i));
                 }
             } else {
                 throw new IllegalStateException(

@@ -104,7 +104,7 @@ spec =
             varied_type_table.at "doubles_and_ints" . value_type . should_equal Value_Type.Float
             varied_type_table.at "custom_objects" . value_type . should_equal Value_Type.Mixed
             varied_type_table.at "dates" . value_type . should_equal Value_Type.Date
-            varied_type_table.at "times" . value_type . should_equal Value_Type.Time_Of_Day
+            varied_type_table.at "times" . value_type . should_equal Value_Type.Time
             varied_type_table.at "datetimes" . value_type . should_equal Value_Type.Date_Time
             varied_type_table.at "mixed" . value_type . should_equal Value_Type.Mixed
             varied_type_table.at "mixed_dates" . value_type . should_equal Value_Type.Mixed
@@ -118,7 +118,7 @@ spec =
             py_objects = ["py_objects", [py_make_object "a" "b", py_make_object "foo" "bar"]]
             table = Table.new [enso_dates, py_dates, py_objects]
             table.info.at "Column" . to_vector . should_equal ["enso_dates", "py_dates", "py_objects"]
-            table.info.at "Storage Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date, Value_Type.Mixed]
+            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date, Value_Type.Mixed]
 
             (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
 
@@ -128,7 +128,7 @@ spec =
             js_objects = ["js_objects", [js_make_object "a" "b", js_make_object "foo" "bar"]]
             table = Table.new [enso_dates, js_dates, js_objects]
             table.info.at "Column" . to_vector . should_equal ["enso_dates", "js_dates", "js_objects"]
-            table.info.at "Storage Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date_Time, Value_Type.Mixed]
+            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date_Time, Value_Type.Mixed]
 
             enso_date_times = table.at "enso_dates" . map .to_date_time
             enso_date_times.value_type . should_equal Value_Type.Date_Time
@@ -201,7 +201,7 @@ spec =
             v = Column.from_vector 'v' [0, 30, 45]
             r2 = u.zip v h-> m-> Time_Of_Day.new h m
             r2.to_vector . should_equal [Time_Of_Day.new 12 0, Time_Of_Day.new 13 30, Time_Of_Day.new 0 45]
-            r2.value_type . should_equal Value_Type.Time_Of_Day
+            r2.value_type . should_equal Value_Type.Time
 
         Test.specify "should handle vectorized equality and fall back on non-vectorized if needed" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
@@ -380,7 +380,7 @@ spec =
             i = r.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
-            i.at "Storage Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Mixed]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Mixed]
 
     Test.group "Sorting Tables" <|
         Test.specify 'should respect defined comparison operations for custom types' <|
@@ -671,21 +671,24 @@ spec =
             objects = ["objects", [My.Data 0 1, My.Data 0 1, My.Data 2 2, My.Data 2 2]]
             table = Table.new [dates, texts, mixed, ints, floats, objects]
 
+            IO.println "aggregate input:"
+            table.info.print
+
             t1 = table.aggregate [Group_By "dates", Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
             t1.info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
-            t1.info.at "Storage Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Char, Value_Type.Char, Value_Type.Mixed, Value_Type.Integer, Value_Type.Mixed]
+            t1.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Char, Value_Type.Char, Value_Type.Mixed, Value_Type.Integer, Value_Type.Mixed]
 
             t2 = table.aggregate [Mode "dates", Count_Not_Nothing "objects", Count_Distinct "texts", Minimum "ints", Maximum "floats"]
             t2.info.at "Column" . to_vector . should_equal ["Mode dates", "Count Not Nothing objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
-            t2.info.at "Storage Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Integer, Value_Type.Integer, Value_Type.Integer, Value_Type.Float]
+            t2.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Integer, Value_Type.Integer, Value_Type.Integer, Value_Type.Float]
 
             t3 = table.aggregate [Group_By "texts", Group_By "ints", Aggregate_Column.Last "floats"]
             t3.info.at "Column" . to_vector . should_equal ["texts", "ints", "Last floats"]
-            t3.info.at "Storage Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Float]
+            t3.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Float]
 
             t4 = table.aggregate [Group_By "mixed", Sum "ints", Sum "floats"]
             t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
-            t4.info.at "Storage Type" . to_vector . should_equal [Value_Type.Mixed, Value_Type.Float, Value_Type.Float]
+            t4.info.at "Value Type" . to_vector . should_equal [Value_Type.Mixed, Value_Type.Float, Value_Type.Float]
 
         Test.specify "should take Unicode normalization into account when grouping by Text" <|
             texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]

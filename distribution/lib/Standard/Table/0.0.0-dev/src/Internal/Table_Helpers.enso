@@ -445,4 +445,5 @@ get_blank_columns when_any treat_nans_as_blank internal_columns make_column tabl
             Nothing -> True
             1 -> True
             0 -> False
-            _ -> Panic.throw (Illegal_State.Error "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
+            unexpected ->
+                Panic.throw (Illegal_State.Error "Unexpected result: "+unexpected.to_display_text+". Perhaps an implementation bug of Column_Selector.Blank_Columns.")
