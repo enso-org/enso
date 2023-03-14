@@ -373,10 +373,16 @@ impl TableSpecification {
         let (col, row) = (cell.x as usize, cell.y as usize);
         debug_assert_eq!(self.column_chunks_cumulative.len(), self.columns.len());
         debug_assert_eq!(self.row_height_cumulative.len(), self.rows.len());
-        let chunk_x =
-            if col < 1 { 0 } else { self.column_chunks_cumulative[col - 1] } + chunk.x as usize;
-        let chunk_y =
-            if row < 1 { 0 } else { self.row_height_cumulative[row - 1] } + chunk.y as usize;
+        let chunk_x = if col < 1 {
+            0
+        } else {
+            self.column_chunks_cumulative.get(col - 1).copied().unwrap_or_default()
+        } + chunk.x as usize;
+        let chunk_y = if row < 1 {
+            0
+        } else {
+            self.row_height_cumulative.get(row - 1).copied().unwrap_or_default()
+        } + chunk.y as usize;
         let result = GridPosition::new(chunk_x as i32, chunk_y as i32);
         // And store in cache.
         self.table_to_grid_cache.borrow_mut().insert(table_position, result);
@@ -401,11 +407,21 @@ impl TableSpecification {
         let column_ix = self.column_width_cumulative.partition_point(|x| *x < chunk_x);
         let row_ix = self.row_height_cumulative.partition_point(|x| *x < chunk_y);
 
-        let chunk_x = chunk_x
-            - (self.column_width_cumulative[column_ix]
-                - self.columns[column_ix].unwrap_or_default());
-        let chunk_y =
-            chunk_y - (self.row_height_cumulative[row_ix] - self.rows[row_ix].unwrap_or_default());
+        let all_column_width =
+            self.column_width_cumulative.get(column_ix).copied().unwrap_or_else(|| {
+                self.column_width_cumulative.last().copied().unwrap_or_default()
+            });
+        let column_width = self.columns.get(column_ix).copied().flatten().unwrap_or_default();
+
+        let all_row_height = self
+            .row_height_cumulative
+            .get(row_ix)
+            .copied()
+            .unwrap_or_else(|| self.row_height_cumulative.last().copied().unwrap_or_default());
+        let row_height = self.rows.get(row_ix).copied().flatten().unwrap_or_default();
+
+        let chunk_x = chunk_x - all_column_width - column_width;
+        let chunk_y = chunk_y - all_row_height - row_height;
         let cell = GridPosition::new(column_ix as i32, row_ix as i32);
         let chunk = GridPosition::new(chunk_x as i32, chunk_y as i32);
 
