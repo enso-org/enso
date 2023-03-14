@@ -1,16 +1,17 @@
 package org.enso.table.data.table.join;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.join.scan.Matcher;
 import org.enso.table.data.table.join.scan.MatcherFactory;
 import org.enso.table.problems.AggregatedProblems;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class IndexJoin implements JoinStrategy {
   private record HashEqualityCondition(
@@ -96,6 +97,6 @@ public class IndexJoin implements JoinStrategy {
 
   private static boolean isBuiltinType(Storage<?> storage) {
     // TODO: this should be removed when #5626 and #5259 are implemented
-    return !storage.getType().equals(StorageType.ANY_OBJECT);
+    return !storage.getType().equals(Constants.ANY_OBJECT);
   }
 }

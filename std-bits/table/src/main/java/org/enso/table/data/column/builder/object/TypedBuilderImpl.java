@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 
 import java.util.Arrays;
@@ -24,12 +25,12 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return Objects.equals(type, StorageType.ANY_OBJECT);
+    return Objects.equals(type, Constants.ANY_OBJECT);
   }
 
   @Override
   public TypedBuilder retypeTo(StorageType type) {
-    if (Objects.equals(type, StorageType.ANY_OBJECT)) {
+    if (Objects.equals(type, Constants.ANY_OBJECT)) {
       Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
       ObjectBuilder res = new ObjectBuilder(widenedData);
       res.setCurrentSize(currentSize);

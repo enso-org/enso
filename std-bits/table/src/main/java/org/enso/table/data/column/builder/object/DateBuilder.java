@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.DateStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 
 import java.time.LocalDate;
@@ -19,7 +20,7 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
 
   @Override
   public StorageType getType() {
-    return StorageType.DATE;
+    return Constants.DATE;
   }
 
   @Override

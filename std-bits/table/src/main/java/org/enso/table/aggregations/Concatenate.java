@@ -1,7 +1,7 @@
 package org.enso.table.aggregations;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 import org.enso.table.data.table.problems.UnquotedDelimiter;
@@ -17,7 +17,7 @@ public class Concatenate extends Aggregator {
 
   public Concatenate(
       String name, Column column, String separator, String prefix, String suffix, String quote) {
-    super(name, StorageType.VARIABLE_LENGTH_STRING);
+    super(name, Constants.STRING);
     this.storage = column.getStorage();
 
     this.separator = separator == null ? "" : separator;

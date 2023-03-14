@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.TimeOfDayStorage;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 
 import java.time.LocalTime;
@@ -19,7 +20,7 @@ public class TimeOfDayBuilder extends TypedBuilderImpl<LocalTime> {
 
   @Override
   public StorageType getType() {
-    return StorageType.TIME_OF_DAY;
+    return Constants.TIME_OF_DAY;
   }
 
   @Override

@@ -4,7 +4,6 @@ from Standard.Base.Data.Json import render
 
 from Standard.Table import Table, Column
 import Standard.Table.Data.Row.Row
-import Standard.Table.Data.Type.Storage.Storage
 
 import project.Id.Id
 from project.Text import get_lazy_visualisation_text_window

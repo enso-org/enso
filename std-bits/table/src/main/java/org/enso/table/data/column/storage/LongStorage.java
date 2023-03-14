@@ -8,6 +8,7 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -85,7 +86,7 @@ public final class LongStorage extends NumericStorage<Long> {
   @Override
   public StorageType getType() {
     // TODO add possibility to set integer bit limit
-    return StorageType.INTEGER_64;
+    return Constants.INTEGER_64;
   }
 
   /**

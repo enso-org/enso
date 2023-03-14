@@ -6,6 +6,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.DateBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public final class DateStorage extends SpecializedStorage<LocalDate> {
@@ -37,7 +38,7 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
 
   @Override
   public StorageType getType() {
-    return StorageType.DATE;
+    return Constants.DATE;
   }
 
   @Override

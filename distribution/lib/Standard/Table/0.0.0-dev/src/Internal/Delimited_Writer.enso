@@ -6,7 +6,6 @@ import Standard.Base.System.File.Output_Stream
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
-import project.Data.Type.Storage.Storage
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader

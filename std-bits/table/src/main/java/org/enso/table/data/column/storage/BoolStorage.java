@@ -13,6 +13,7 @@ import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -57,7 +58,7 @@ public final class BoolStorage extends Storage<Boolean> {
 
   @Override
   public StorageType getType() {
-    return StorageType.BOOLEAN;
+    return Constants.BOOLEAN;
   }
 
   @Override

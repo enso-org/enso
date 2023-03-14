@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -27,7 +28,7 @@ public class MixedStorageFacade extends Storage<Object> {
 
   @Override
   public StorageType getType() {
-    return StorageType.ANY_OBJECT;
+    return Constants.ANY_OBJECT;
   }
 
   @Override

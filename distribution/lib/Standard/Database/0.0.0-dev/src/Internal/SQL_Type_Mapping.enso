@@ -1,4 +1,7 @@
 from Standard.Base import all
+import Standard.Base.Error.Unimplemented.Unimplemented
+
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Data.SQL_Type.SQL_Type
 
@@ -18,17 +21,17 @@ type SQL_Type_Mapping
        `sql_type_to_value_type (value_type_to_sql x) = x`.
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql =
-        unimplemented "This is an interface only."
+        Unimplemented.throw "This is an interface only."
 
     ## Converts the given SQL_Type to its corresponding Value_Type.
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type =
-        unimplemented "This is an interface only."
+        Unimplemented.throw "This is an interface only."
 
     # TODO not sure if this is needed, instead we could allow to construct SQL types only in context of a specific dialect, then the correct typename would be baked into the type
     to_dialect_specific_name : SQL_Type -> Text
     to_dialect_specific_name =
-        unimplemented "This is an interface only."
+        Unimplemented.throw "This is an interface only."
 
 ## PRIVATE
 from_metadata metadata ix =

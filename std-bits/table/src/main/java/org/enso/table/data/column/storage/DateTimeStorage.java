@@ -4,6 +4,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.DateTimeBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 
 import java.time.ZonedDateTime;
@@ -39,7 +40,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
 
   @Override
   public StorageType getType() {
-    return StorageType.DATE_TIME;
+    return Constants.DATE_TIME;
   }
 
   @Override

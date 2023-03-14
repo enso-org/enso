@@ -12,6 +12,7 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Value;
 
@@ -39,7 +40,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   @Override
   public StorageType getType() {
     // TODO constant length strings support
-    return StorageType.VARIABLE_LENGTH_STRING;
+    return Constants.STRING;
   }
 
   private static final MapOpStorage<String, SpecializedStorage<String>> ops = buildOps();

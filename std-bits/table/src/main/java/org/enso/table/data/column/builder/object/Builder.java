@@ -1,29 +1,40 @@
 package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.Boolean;
+import org.enso.table.data.column.storage.type.Float;
+import org.enso.table.data.column.storage.type.Integer;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
   public static Builder getForType(StorageType type, int size) {
     Builder builder = switch (type) {
-      case StorageType.AnyObject() -> new ObjectBuilder(size);
-      case StorageType.Boolean() -> new BoolBuilder(size);
-      case StorageType.Date() -> new DateBuilder(size);
-      case StorageType.DateTime() -> new DateTimeBuilder(size);
-      case StorageType.TimeOfDay() -> new TimeOfDayBuilder(size);
-      case StorageType.FixedLengthString(int length) -> throw new IllegalArgumentException("TODO: fixed length string is not implemented yet.");
-      case StorageType.Float(StorageType.Bits bits) ->
+      case AnyObject() -> new ObjectBuilder(size);
+      case Boolean() -> new BoolBuilder(size);
+      case Date() -> new DateBuilder(size);
+      case DateTime() -> new DateTimeBuilder(size);
+      case TimeOfDay() -> new TimeOfDayBuilder(size);
+      case Float(Bits bits) ->
         switch (bits) {
           case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
           default -> throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
         };
-      case StorageType.Integer(StorageType.Bits bits) ->
+      case Integer(Bits bits) ->
           switch (bits) {
             case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
             default -> throw new IllegalArgumentException("TODO: Builders other than 64-bit int are not yet supported.");
           };
-      case StorageType.VariableLengthString() -> new StringBuilder(size);
+      case Text(long maxLength, boolean isFixed) -> {
+        if (isFixed) {
+          throw new IllegalArgumentException("Fixed-length text builders are not yet supported yet.");
+        }
+        if (maxLength >= 0) {
+          throw new IllegalArgumentException("Text builders with a maximum length are not yet supported yet.");
+        }
+
+        yield new StringBuilder(size);
+      }
     };
     assert builder.getType().equals(type);
     return builder;

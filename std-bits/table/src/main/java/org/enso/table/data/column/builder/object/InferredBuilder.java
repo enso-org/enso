@@ -2,9 +2,9 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -112,20 +112,20 @@ public class InferredBuilder extends Builder {
 
   private static final List<RetypeInfo> retypePairs =
       List.of(
-          new RetypeInfo(Boolean.class, StorageType.BOOLEAN),
-          new RetypeInfo(Long.class, StorageType.INTEGER_64),
-          new RetypeInfo(Double.class, StorageType.FLOAT_64),
-          new RetypeInfo(String.class, StorageType.VARIABLE_LENGTH_STRING),
+          new RetypeInfo(Boolean.class, Constants.BOOLEAN),
+          new RetypeInfo(Long.class, Constants.INTEGER_64),
+          new RetypeInfo(Double.class, Constants.FLOAT_64),
+          new RetypeInfo(String.class, Constants.STRING),
           // TODO [RW] I think BigDecimals should not be coerced to floats, we should add Decimal support to in-memory tables at some point
           //new RetypeInfo(BigDecimal.class, StorageType.FLOAT_64),
-          new RetypeInfo(LocalDate.class, StorageType.DATE),
-          new RetypeInfo(LocalTime.class, StorageType.TIME_OF_DAY),
-          new RetypeInfo(ZonedDateTime.class, StorageType.DATE_TIME),
-          new RetypeInfo(Float.class, StorageType.FLOAT_64),
+          new RetypeInfo(LocalDate.class, Constants.DATE),
+          new RetypeInfo(LocalTime.class, Constants.TIME_OF_DAY),
+          new RetypeInfo(ZonedDateTime.class, Constants.DATE_TIME),
+          new RetypeInfo(Float.class, Constants.FLOAT_64),
           // Smaller integer types are upcast to 64-bit integers by default anyway. This logic does not apply only if a specific type is requested (so not in inferred builder).
-          new RetypeInfo(Integer.class, StorageType.INTEGER_64),
-          new RetypeInfo(Short.class, StorageType.INTEGER_64),
-          new RetypeInfo(Byte.class, StorageType.INTEGER_64));
+          new RetypeInfo(Integer.class, Constants.INTEGER_64),
+          new RetypeInfo(Short.class, Constants.INTEGER_64),
+          new RetypeInfo(Byte.class, Constants.INTEGER_64));
 
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {

@@ -2,7 +2,7 @@ package org.enso.table.aggregations;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 
@@ -23,7 +23,7 @@ public class Mean extends Aggregator {
   private final Storage<?> storage;
 
   public Mean(String name, Column column) {
-    super(name, StorageType.FLOAT_64);
+    super(name, Constants.FLOAT_64);
     this.storage = column.getStorage();
   }
 

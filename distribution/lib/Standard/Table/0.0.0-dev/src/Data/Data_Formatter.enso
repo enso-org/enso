@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Type.Value_Type.Auto
-import project.Data.Type.Storage.Storage
+import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
 
 polyglot java import org.enso.table.parsing.IntegerParser
@@ -277,8 +277,8 @@ type Data_Formatter
         Value_Type.Float _ -> self.make_decimal_formatter
         Value_Type.Boolean -> self.make_boolean_formatter
         Value_Type.Date -> self.make_date_formatter
-        Value_Type.Time_Of_Day -> self.make_time_of_day_formatter
-        Value_Type.Date_Time -> self.make_date_time_formatter
+        Value_Type.Time -> self.make_time_of_day_formatter
+        Value_Type.Date_Time _ -> self.make_date_time_formatter
         _ -> self.make_auto_formatter
 
 ## PRIVATE
