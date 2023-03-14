@@ -165,7 +165,7 @@ class TableVisualization extends Visualization {
                 firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
             )
         } else if (parsedData.json !== undefined && Array.isArray(parsedData.json)) {
-            columnDefs = [{ field: '#', headerName: 'Row#', pinned: 'left' }, { field: 'value' }]
+            columnDefs = [{ field: '#', headerName: 'Row#' }, { field: 'value' }]
             rowData = parsedData.json.map((row, i) => ({ ['#']: i, value: toRender(row) }))
         } else if (parsedData.json !== undefined) {
             columnDefs = [{ field: 'value' }]
@@ -174,7 +174,7 @@ class TableVisualization extends Visualization {
             const indices_header = (parsedData.indices_header ? parsedData.indices_header : []).map(
                 h => {
                     const headerName = h === '#' ? 'Row#' : h
-                    return { field: h, headerName: headerName, pinned: 'left' }
+                    return { field: h, headerName: headerName }
                 }
             )
             columnDefs = [...indices_header, ...parsedData.header.map(h => ({ field: h }))]
@@ -199,9 +199,25 @@ class TableVisualization extends Visualization {
         }
 
         const dataTruncated = parsedData.all_rows_count !== rowData.length
+        if (dataTruncated) {
+            columnDefs[0].colSpan = p => {
+                if (p.data['__COL_SPAN__'] !== undefined) {
+                    return p.data['__COL_SPAN__']
+                }
+                return 1
+            }
+        }
         this.agGridOptions.defaultColDef.filter = !dataTruncated
         this.agGridOptions.defaultColDef.sortable = !dataTruncated
         this.agGridOptions.api.setColumnDefs(columnDefs)
+        if (dataTruncated) {
+            const field = columnDefs[0].field
+            const extraRow = {
+                [field]: `Showing ${rowData.length} of ${parsedData.all_rows_count} rows. Sorting and filtering disabled.`,
+                ['__COL_SPAN__']: columnDefs.length,
+            }
+            this.agGridOptions.api.setPinnedTopRowData([extraRow])
+        }
         this.agGridOptions.api.setRowData(rowData)
         this.agGridOptions.api.sizeColumnsToFit()
     }
