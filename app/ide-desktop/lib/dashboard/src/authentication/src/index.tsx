@@ -14,6 +14,13 @@ import App, * as app from "./components/app";
 import * as loggerProvider from "./providers/logger";
 import "./styles/index.css";
 
+// =================
+// === Constants ===
+// =================
+
+/** The `id` attribute of the root element that the app will be rendered into. */
+const ROOT_ELEMENT_ID = "dashboard";
+
 // ===========
 // === run ===
 // ===========
@@ -30,12 +37,10 @@ export const run = (
   onAuthenticated: () => void
 ) => {
   logger.log("Starting authentication/dashboard UI.");
-  /** The `id` attribute of the root element that the app will be rendered into. */
-  const rootElementId = "dashboard";
   /** The root element that the authentication/dashboard app will be rendered into. */
-  const root = document.getElementById(rootElementId);
-  if (root == null) {
-    logger.error(`Could not find root element with ID '${rootElementId}'.`);
+  const root = document.getElementById(ROOT_ELEMENT_ID);
+  if (root === null) {
+    logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`);
     return;
   }
   const props = { logger, platform, onAuthenticated };

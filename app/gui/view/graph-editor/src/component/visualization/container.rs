@@ -291,6 +291,7 @@ impl ContainerModel {
 
     fn init(self) -> Self {
         self.display_object.add_child(&self.drag_root);
+        self.scene.layers.above_nodes.add(&self.action_bar);
 
         self.update_shape_sizes();
         self.init_corner_roundness();

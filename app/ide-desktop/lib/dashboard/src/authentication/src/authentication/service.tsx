@@ -1,6 +1,8 @@
-/** @file Provides an {@link AuthService} which consists of an underyling {@link Cognito} API
- * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
- * work with Electron. */
+/** @file Provides an {@link AuthService} which consists of an underyling {@link cognito.Cognito}
+ * API wrapper, along with some convenience callbacks to make URL redirects for the authentication
+ * flows work with Electron. */
+
+import * as common from "enso-studio-common";
 
 import * as loggerProvider from "../providers/logger";
 import * as cognito from "./cognito";
@@ -15,6 +17,23 @@ import * as app from "../components/app";
 /** Pathname of the {@link URL} for deep links to the registration confirmation page, after a
  * redirect from an account verification email. */
 const CONFIRM_REGISTRATION_PATHNAME = "//auth/confirmation";
+/** URL used as the OAuth redirect when running in the desktop app. */
+const DESKTOP_REDIRECT =
+  `${common.DEEP_LINK_SCHEME}://auth` as authConfig.OAuthRedirect;
+/** Map from platform to the OAuth redirect URL that should be used for that platform. */
+const PLATFORM_TO_CONFIG: Record<
+  app.Platform,
+  Pick<authConfig.AmplifyConfig, "redirectSignIn" | "redirectSignOut">
+> = {
+  [app.Platform.desktop]: {
+    redirectSignIn: DESKTOP_REDIRECT,
+    redirectSignOut: DESKTOP_REDIRECT,
+  },
+  [app.Platform.cloud]: {
+    redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
+    redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
+  },
+};
 
 const BASE_AMPLIFY_CONFIG: Partial<authConfig.AmplifyConfig> = {
   region: authConfig.AWS_REGION,
@@ -84,7 +103,7 @@ export interface AuthConfig {
 
 /** API for the authentication service. */
 export interface AuthService {
-  /** @see {@link Cognito} */
+  /** @see {@link cognito.Cognito} */
   cognito: cognito.Cognito;
 }
 
@@ -97,7 +116,7 @@ export interface AuthService {
 export const initAuthService = (authConfig: AuthConfig): AuthService => {
   const { logger, platform, navigate } = authConfig;
   const amplifyConfig = loadAmplifyConfig(logger, platform, navigate);
-  const cognitoClient = new cognito.CognitoImpl(platform, amplifyConfig);
+  const cognitoClient = new cognito.Cognito(platform, amplifyConfig);
   return { cognito: cognitoClient };
 };
 
@@ -125,17 +144,9 @@ const loadAmplifyConfig = (
     setDeepLinkHandler(logger, navigate);
   }
 
-  /** Set the redirect URLs for the OAuth flows, depending on our environment. */
-  baseConfig.redirectSignIn =
-    platform === app.Platform.desktop
-      ? (authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect)
-      : config.ACTIVE_CONFIG.cloudRedirect;
-  baseConfig.redirectSignOut =
-    platform === app.Platform.desktop
-      ? (authConfig.DESKTOP_REDIRECT as authConfig.OAuthRedirect)
-      : config.ACTIVE_CONFIG.cloudRedirect;
-
-  return baseConfig as authConfig.AmplifyConfig;
+  /** Load the platform-specific Amplify configuration. */
+  const platformConfig = PLATFORM_TO_CONFIG[platform];
+  return { ...baseConfig, ...platformConfig } as authConfig.AmplifyConfig;
 };
 
 const openUrlWithExternalBrowser = (url: string) => {

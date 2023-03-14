@@ -119,12 +119,15 @@ class Main {
                 ) {
                     const hideAuth = () => {
                         const auth = document.getElementById('dashboard')
-                        const root = document.getElementById('root')
                         if (auth) auth.style.display = 'none'
-                        if (root) root.style.display = 'block'
                     }
                     /** This package is an Electron desktop app (i.e., not in the Cloud), so
                      * we're running on the desktop. */
+                    /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+                     * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
+                     * should only have one entry point. Right now, we have two. One for the cloud
+                     * and one for the desktop. Once these are merged, we can't hardcode the
+                     * platform here, and need to detect it from the environment. */
                     const platform = authentication.Platform.desktop
                     const onAuthenticated = () => {
                         hideAuth()

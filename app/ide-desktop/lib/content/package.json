@@ -17,8 +17,8 @@
   "scripts": {
     "typecheck": "npx tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "build": "(cd ../dashboard/src/authentication && npx tailwindcss -i src/styles/index.css -o ../../../content/src/dashboard.css -c tailwind.config.ts --minify) && ts-node bundle.ts",
-    "watch": "ts-node watch.ts",
+    "build": "cd ../dashboard/src/authentication && npx tailwindcss -i src/styles/index.css -o ../../../../../../dist/gui/assets/tailwind.css -c tailwind.config.ts --minify && cd ../../../content && ts-node bundle.ts",
+    "watch": "cd ../dashboard/src/authentication && npx tailwindcss -i src/styles/index.css -o ../../../../../../dist/gui/assets/tailwind.css -c tailwind.config.ts --minify && cd ../../../content && ts-node watch.ts",
     "start": "ts-node start.ts"
   },
   "dependencies": {

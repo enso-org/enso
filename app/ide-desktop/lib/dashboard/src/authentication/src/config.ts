@@ -11,6 +11,10 @@ export const ENVIRONMENT: Environment = 'production'
 
 /** All possible URLs used as the OAuth redirects when running the cloud app. */
 const CLOUD_REDIRECTS = {
+    /** In development, a fixed port is used so that the redirect URL can be known ahead of time.
+     * The redirect URL must be known ahead of time because it is registered with the OAuth provider
+     * when it is created. In the native app, the port is unpredictable, but this is not a problem
+     * because the native app does not use port-based redirects, but deep links. */
     development: 'http://localhost:8081' as auth.OAuthRedirect,
     production: 'https://cloud.enso.org' as auth.OAuthRedirect,
 }
@@ -60,4 +64,4 @@ export type Environment = 'production' | 'pbuchu'
 // ===========
 
 /** Base URL for requests to our Cloud API backend. */
-type ApiUrl = string
+type ApiUrl = string & { _brand: 'ApiUrl' }

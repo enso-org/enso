@@ -17,7 +17,7 @@ const node = !browser
 /** The global object. In case of a browser, this is the window. In case of node, it's the built-in
  * `global` object. */
 // const global = {}
-global ??= window
+global = window
 
 interface UrlParams {
     [key: string]: string | UrlParams

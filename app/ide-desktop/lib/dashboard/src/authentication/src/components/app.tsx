@@ -39,10 +39,10 @@ import * as toast from "react-hot-toast";
 import * as router from "react-router-dom";
 
 import * as authProvider from "../authentication/providers/auth";
-import DashboardContainer from "../dashboard/components/dashboard";
 import LoginContainer from "../authentication/components/login";
 import RegistrationContainer from "../authentication/components/registration";
 import ConfirmRegistrationContainer from "../authentication/components/confirmRegistration";
+import Dashboard from "../dashboard/components/dashboard";
 import * as authService from "../authentication/service";
 import withRouter from "../navigation";
 import * as loggerProvider from "../providers/logger";
@@ -65,7 +65,15 @@ export const CONFIRM_REGISTRATION_PATH = "/confirmation";
 // === Platform ===
 // ================
 
-/** Defines the platform the application is running on. */
+/** Defines the platform the application is running on.
+ *
+ * Depending on the platform, the application will use different routing mechanisms. For example, in
+ * the cloud, the application will use the browser's URL bar to navigate between pages. In Electron,
+ * the application will use the `MemoryRouter` to navigate between pages. Similarly, the
+ * application will use different redirect URLs for authentication. For example, in the cloud, the
+ * application will redirect using `http://` URLs. In Electron, the application will redirect using
+ * `enso://` URLs. The former flow works entirely in-browser. The latter flow must go to the browser
+ * and back to the application. */
 export enum Platform {
   /** Application is running on a desktop (i.e., in Electron). */
   desktop = "desktop",
@@ -145,10 +153,7 @@ const AppRouter = (props: AppProps) => {
               </router.Route>
               {/* Protected pages are visible to authenticated users. */}
               <router.Route element={<authProvider.ProtectedLayout />}>
-                <router.Route
-                  path={DASHBOARD_PATH}
-                  element={<DashboardContainer />}
-                />
+                <router.Route path={DASHBOARD_PATH} element={<Dashboard />} />
               </router.Route>
               {/* Other pages are visible to unauthenticated and authenticated users. */}
               <router.Route

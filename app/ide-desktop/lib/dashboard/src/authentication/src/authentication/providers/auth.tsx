@@ -34,9 +34,9 @@ export type UserSession = FullUserSession | PartialUserSession;
 
 /** Object containing the currently signed-in user's session data. */
 export interface FullUserSession {
-  /** A type-hint for TypeScript to be able to disambiguate between this interface and other
+  /** A discriminator for TypeScript to be able to disambiguate between this interface and other
    * `UserSession` variants. */
-  state: "full";
+  variant: "full";
   /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
   accessToken: string;
   /** User's email address. */
@@ -52,9 +52,9 @@ export interface FullUserSession {
  * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
  * used by the `SetUsername` component. */
 export interface PartialUserSession {
-  /** A type-hint for TypeScript to be able to disambiguate between this interface and other
+  /** A discriminator for TypeScript to be able to disambiguate between this interface and other
    * `UserSession` variants. */
-  state: "partial";
+  variant: "partial";
   /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
   accessToken: string;
   /** User's email address. */
@@ -151,13 +151,13 @@ export const AuthProvider = (props: AuthProviderProps) => {
       let userSession: UserSession;
       if (!organization) {
         userSession = {
-          state: "partial",
+          variant: "partial",
           email,
           accessToken,
         };
       } else {
         userSession = {
-          state: "full",
+          variant: "full",
           email,
           accessToken,
           organization,
@@ -278,7 +278,7 @@ export const ProtectedLayout = () => {
 export const GuestLayout = () => {
   const { session } = useAuth();
 
-  if (session?.state === "full") {
+  if (session?.variant === "full") {
     return <router.Navigate to={app.DASHBOARD_PATH} />;
   }
 

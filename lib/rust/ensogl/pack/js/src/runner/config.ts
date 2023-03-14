@@ -334,9 +334,12 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
             }
         }
         entries.sort()
-        return entries
-            .map(([name, _, value]) => ' '.repeat(2 * indent) + name + ': ' + value)
-            .join('\n')
+        return (
+            entries
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                .map(([name, _, value]) => ' '.repeat(2 * indent) + name + ': ' + value)
+                .join('\n')
+        )
     }
 
     optionsRecursive(): AnyOption[] {

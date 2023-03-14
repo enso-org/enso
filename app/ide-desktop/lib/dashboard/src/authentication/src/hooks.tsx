@@ -42,29 +42,32 @@ export const useInput = (initialValue: string) => {
  * @returns value - The current value of the state controlled by this hook. */
 export function useAsyncEffect<T>(
   initialValue: T,
-  fetch: () => Promise<T>,
+  fetch: (signal: AbortSignal) => Promise<T>,
   deps?: react.DependencyList
 ): T {
   const logger = loggerProvider.useLogger();
   const [value, setValue] = react.useState<T>(initialValue);
 
   react.useEffect(() => {
-    let active = true;
+    const controller = new AbortController();
+    const { signal } = controller;
 
     /** Declare the async data fetching function. */
     const load = async () => {
-      const result = await fetch();
+      const result = await fetch(signal);
 
-      /** Set state with the result if `active` is true. This prevents race conditions by
-       * making it so that only the latest async fetch will update the state on completion. */
-      if (!active) return;
-      setValue(result);
+      /** Set state with the result only if this effect has not been aborted. This prevents race
+       * conditions by making it so that only the latest async fetch will update the state on
+       * completion. */
+      if (!signal.aborted) {
+        setValue(result);
+      }
     };
 
     load().catch((error) => logger.error("Error while fetching data", error));
     /** Cancel any future `setValue` calls. */
     return () => {
-      active = false;
+      controller.abort();
     };
   }, deps);
 
