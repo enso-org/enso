@@ -485,6 +485,46 @@ spec =
                 match.end 5 . should_fail_with No_Such_Group
                 match.end "nonexistent" . should_fail_with No_Such_Group
 
+        Test.group "Match.utf16_start" <|
+            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+            input = "aa ab abc a bc bcd"
+            match = pattern.match input
+            match . should_be_a Match_2
+
+            Test.specify "should return the start of a group by index" <|
+                match.utf16_start 1 . should_equal 0
+
+            Test.specify "should return the start of a group by name" <|
+                match.utf16_start "letters" . should_equal 6
+
+            Test.specify "should return Nothing if the group didn't match" <|
+                match.utf16_start 3 . should_equal Nothing
+                match.utf16_start "empty" . should_equal Nothing
+
+            Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+                match.utf16_start 5 . should_fail_with No_Such_Group
+                match.utf16_start "nonexistent" . should_fail_with No_Such_Group
+
+        Test.group "Match.utf16_end" <|
+            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+            input = "aa ab abc a bc bcd"
+            match = pattern.match input
+            match . should_be_a Match_2
+
+            Test.specify "should return the end of a group by index" <|
+                match.utf16_end 1 . should_equal 6
+
+            Test.specify "should return the end of a group by name" <|
+                match.utf16_end "letters" . should_equal 18
+
+            Test.specify "should return Nothing if the group didn't match" <|
+                match.utf16_end 3 . should_equal Nothing
+                match.utf16_end "empty" . should_equal Nothing
+
+            Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+                match.utf16_end 5 . should_fail_with No_Such_Group
+                match.utf16_end "nonexistent" . should_fail_with No_Such_Group
+
     ##
         Test.group "Match.span" <|
             engine = Default_Engine.new
