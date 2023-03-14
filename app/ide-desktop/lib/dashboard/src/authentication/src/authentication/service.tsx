@@ -10,6 +10,15 @@ import * as authConfig from "./config";
 import * as config from "../config";
 import * as app from "../components/app";
 
+/** Augment the built-in window object with the `authenticationApi` context bridge. This makes it so
+ * that accessing authentication-related functionality from the renderer process is as simple as
+ * calling `window.authenticationApi`. */
+declare global {
+  interface Window {
+    authenticationApi: AuthenticationApi;
+  }
+}
+
 // =================
 // === Constants ===
 // =================
@@ -150,11 +159,7 @@ const loadAmplifyConfig = (
 };
 
 const openUrlWithExternalBrowser = (url: string) => {
-  /** See {@link AuthenticationApi} for safety details. */
-  // @ts-expect-error
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const authenticationApi: AuthenticationApi = window.authenticationApi;
-  authenticationApi.openUrlInSystemBrowser(url);
+  window.authenticationApi.openUrlInSystemBrowser(url);
 };
 
 /** Set the callback that will be invoked when a deep link to the application is opened.
@@ -190,11 +195,7 @@ const setDeepLinkHandler = (
     }
   };
 
-  /** See {@link AuthenticationApi} for safety details. */
-  // @ts-expect-error
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const authenticationApi: AuthenticationApi = window.authenticationApi;
-  authenticationApi.setDeepLinkHandler(onDeepLink);
+  window.authenticationApi.setDeepLinkHandler(onDeepLink);
 };
 
 /** If the user is being redirected after clicking the registration confirmation link in their
