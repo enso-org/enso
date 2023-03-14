@@ -4,7 +4,8 @@ import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
 import org.enso.text.Sha3_224VersionCalculator
 
-import java.util.{PriorityQueue, UUID}
+import java.util
+import java.util.{Collections, UUID}
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.ExecutorService
 import java.util.logging.Level
@@ -40,7 +41,7 @@ final class JobExecutionEngine(
   private var isBackgroundJobsStarted = false
 
   private val delayedBackgroundJobsQueue =
-    new PriorityQueue[BackgroundJob[_]](4096)
+    new util.ArrayList[BackgroundJob[_]](4096)
 
   val jobExecutor: ExecutorService =
     context.newFixedThreadPool(jobParallelism, "job-pool", false)
@@ -170,12 +171,10 @@ final class JobExecutionEngine(
     jobExecutor.shutdownNow()
   }
 
-  /** Submit background jobs preserving the order. */
+  /** Submit background jobs preserving the stable order. */
   private def submitBackgroundJobsOrdered(): Unit = {
-    var job: BackgroundJob[_] = delayedBackgroundJobsQueue.poll()
-    while (job ne null) {
-      runBackground(job)
-      job = delayedBackgroundJobsQueue.poll()
-    }
+    Collections.sort(delayedBackgroundJobsQueue)
+    delayedBackgroundJobsQueue.forEach(job => runBackground(job))
+    delayedBackgroundJobsQueue.clear()
   }
 }

@@ -37,6 +37,9 @@ final class DeserializeLibrarySuggestionsJob(
         )
       }
   }
+
+  override def toString: String =
+    s"DeserializeLibrarySuggestionsJob($libraryName)"
 }
 
 object DeserializeLibrarySuggestionsJob {
