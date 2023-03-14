@@ -12,7 +12,7 @@ const Dashboard = () => {
   const { accessToken } = auth.useFullUserSession();
   return (
     <>
-      <h1>Hello dummy cloud dashboard</h1>
+      <h1>This is a placeholder page for the cloud dashboard.</h1>
       <p>Access token: {accessToken}</p>
     </>
   );

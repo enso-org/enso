@@ -2,7 +2,7 @@
  *
  * All of the functions used for authentication are provided by the AWS Amplify library, but we
  * provide a thin wrapper around them to make them easier to use. Mainly, we perform some error
- * handling and conditional logic to vary behaviour between desktop & cloud. */
+ * handling and conditional logic to vary behavior between desktop & cloud. */
 import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
@@ -38,10 +38,8 @@ export class Cognito {
 /** Type signature for a function that asserts that a parameter is a string. */
 type AssertString = (param: any, message: string) => asserts param is string
 
-/** Asserts that a parameter is a string; throws an error `message` if the assertion fails.
- *
- * Used both to assert that a parameter is a string at runtime, and to inform TypeScript that a
- * parameter is a string. */
+/** Asserts that a parameter is a string (both at runtime & typecheck time); throws an error
+ * `message` if the assertion fails. */
 const assertString: AssertString = (param, message) => {
     if (typeof param !== 'string') {
         throw new Error(message)

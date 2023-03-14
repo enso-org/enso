@@ -25,6 +25,11 @@ export const OAUTH_RESPONSE_TYPE: OAuthResponseType = 'code' as OAuthResponseTyp
 // === Types ===
 // =============
 
+/** The types in this section use "branded types". These are types that intersect with an interface
+ * with a private `_brand` property. Branding a type makes the resulting type unique from its base
+ * type. This makes it impossible to erroneously provide regular `string`s to functions that expect
+ * an `AwsRegion`, etc. */
+
 /** The AWS region in which our Cognito pool is located. This is always set to `eu-west-1` because
  * that is the only region in which our Cognito pools are currently available in. */
 type AwsRegion = 'eu-west-1' & { _brand: 'AwsRegion' }
@@ -54,7 +59,7 @@ type OAuthResponseType = 'code' & { _brand: 'OAuthResponseType' }
  * an OAuth flow (e.g., sign-in or sign-out) has completed. These must match the values set in the
  * Cognito pool and during the creation of the OAuth client. See the `enso-org/cloud-v2` repo for
  * details. */
-export type OAuthRedirect = string & { _brand: 'OAuthRedirect' };
+export type OAuthRedirect = string & { _brand: 'OAuthRedirect' }
 /** Callback used to open URLs for the OAuth flow. This is only used in the desktop app (i.e., not in
  * the cloud). This is because in the cloud we just keep the user in their browser, but in the app
  * we want to open OAuth URLs in the system browser. This is because the user can't be expected to

@@ -47,7 +47,9 @@ export function useAsyncEffect<T>(
 
     load().catch((error) => logger.error("Error while fetching data", error));
     /** Cancel any future `setValue` calls. */
-    return () => { controller.abort(); };
+    return () => {
+      controller.abort();
+    };
   }, deps);
 
   return value;

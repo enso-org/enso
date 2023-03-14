@@ -109,6 +109,7 @@ bench-report*.xml
 project/metals.sbt
 /app/ide-desktop/build.json
 /app/ide-desktop/lib/client/electron-builder-config.json
+/app/ide-desktop/lib/content/src/tailwind.css
 
 
 #################

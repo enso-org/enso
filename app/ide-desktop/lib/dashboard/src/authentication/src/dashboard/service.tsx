@@ -64,14 +64,15 @@ export class Backend {
    *
    * @returns `null` if status code 401 or 404 was received. */
   getUser = (): Promise<Organization | null> =>
-    this.get(GET_USER_PATH)
-      .then((response) => {
-        if (response.status === http.HttpStatus.unauthorized
-          || response.status === http.HttpStatus.notFound) {
-          return null;
-        }
-        return response.json() as Promise<Organization>;
-      });
+    this.get(GET_USER_PATH).then((response) => {
+      if (
+        response.status === http.HttpStatus.unauthorized ||
+        response.status === http.HttpStatus.notFound
+      ) {
+        return null;
+      }
+      return response.json() as Promise<Organization>;
+    });
 }
 
 // =====================

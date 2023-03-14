@@ -13,6 +13,7 @@ import { CliOptions, Configuration, LinuxTargetSpecificOptions, Platform } from 
 import builder from 'electron-builder'
 import { notarize } from 'electron-notarize'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
+import * as common from 'enso-studio-common'
 
 import { project_manager_bundle } from './paths.js'
 import * as shared from './shared.js'
@@ -102,7 +103,7 @@ export function createElectronBuilderConfig(args: Arguments): Configuration {
             /** Electron URL protocol scheme definition for deep links to authentication flow pages. */
             {
                 name: `${shared.PRODUCT_NAME} url`,
-                schemes: [shared.DEEP_LINK_SCHEME],
+                schemes: [common.DEEP_LINK_SCHEME],
                 role: 'Editor',
             },
         ],

@@ -73,9 +73,9 @@
  * `pathname`. */
 
 import * as content from 'enso-content-config'
+import * as common from 'enso-studio-common'
 import * as electron from 'electron'
 import * as ipc from 'ipc'
-import * as shared from '../shared'
 import opener from 'opener'
 
 // =================
@@ -121,14 +121,14 @@ const initIpc = () => {
  * This listener is used to open a page in *this* application window, when the user is
  * redirected to a URL with a protocol supported by this application.
  *
- * All URLs that aren't deep links (i.e., URLs that don't use the {@link shared.DEEP_LINK_SCHEME}
+ * All URLs that aren't deep links (i.e., URLs that don't use the {@link common.DEEP_LINK_SCHEME}
  * protocol) will be ignored by this handler. Non-deep link URLs will be handled by Electron. */
 const initOpenUrlListener = (window: () => electron.BrowserWindow) => {
     electron.app.on(OPEN_URL_EVENT, (event, url) => {
         const parsedUrl = new URL(url)
         /** Prevent Electron from handling the URL at all, because redirects can be dangerous. */
         event.preventDefault()
-        if (parsedUrl.protocol !== `${shared.DEEP_LINK_SCHEME}:`) {
+        if (parsedUrl.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
             content.logger.error(`${url} is not a deep link, ignoring.`)
             return
         }

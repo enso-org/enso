@@ -2,7 +2,7 @@
  * API wrapper, along with some convenience callbacks to make URL redirects for the authentication
  * flows work with Electron. */
 
-import * as shared from '../../../../../client/shared'
+import * as common from "enso-studio-common";
 
 import * as cognito from "./cognito";
 import * as authConfig from "./config";
@@ -14,18 +14,22 @@ import * as app from "../components/app";
 // =================
 
 /** URL used as the OAuth redirect when running in the desktop app. */
-const DESKTOP_REDIRECT = `${shared.DEEP_LINK_SCHEME}://auth` as authConfig.OAuthRedirect
+const DESKTOP_REDIRECT =
+  `${common.DEEP_LINK_SCHEME}://auth` as authConfig.OAuthRedirect;
 /** Map from platform to the OAuth redirect URL that should be used for that platform. */
-const PLATFORM_TO_CONFIG: Record<app.Platform, Pick<authConfig.AmplifyConfig, "redirectSignIn" | "redirectSignOut">> = {
-    [app.Platform.desktop]: {
-        redirectSignIn: DESKTOP_REDIRECT,
-        redirectSignOut: DESKTOP_REDIRECT,
-    },
-    [app.Platform.cloud]: {
-        redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
-        redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
-    },
-  };
+const PLATFORM_TO_CONFIG: Record<
+  app.Platform,
+  Pick<authConfig.AmplifyConfig, "redirectSignIn" | "redirectSignOut">
+> = {
+  [app.Platform.desktop]: {
+    redirectSignIn: DESKTOP_REDIRECT,
+    redirectSignOut: DESKTOP_REDIRECT,
+  },
+  [app.Platform.cloud]: {
+    redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
+    redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
+  },
+};
 
 const BASE_AMPLIFY_CONFIG: Partial<authConfig.AmplifyConfig> = {
   region: authConfig.AWS_REGION,
