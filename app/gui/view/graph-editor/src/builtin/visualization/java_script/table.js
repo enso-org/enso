@@ -99,7 +99,8 @@ class TableVisualization extends Visualization {
                 this.dom.removeChild(this.dom.lastChild)
             }
 
-            const style = ".ag-theme-alpine { --ag-grid-size: 3px; --ag-list-item-height: 20px; display: inline; }";
+            const style =
+                '.ag-theme-alpine { --ag-grid-size: 3px; --ag-list-item-height: 20px; display: inline; }'
             const styleElem = document.createElement('style')
             styleElem.innerHTML = style
             this.dom.appendChild(styleElem)
@@ -120,52 +121,73 @@ class TableVisualization extends Visualization {
                     sortable: true,
                     filter: true,
                     resizable: true,
-                    minWidth: 50
+                    minWidth: 50,
                 },
-                enableRangeSelection: true
+                enableRangeSelection: true,
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
 
-        let parsedData = (typeof data === 'string') ? JSON.parse(data) : data
+        let parsedData = typeof data === 'string' ? JSON.parse(data) : data
+
+        let columnDefs = []
+        let rowData = undefined
 
         if (parsedData.error !== undefined) {
-            this.agGridOptions.api.setColumnDefs([{
-                field: "error",
-                width: 1000,
-                cellStyle: {'white-space': 'normal'}
-            }])
-            this.agGridOptions.api.setRowData([{error: parsedData.error}])
+            this.agGridOptions.api.setColumnDefs([
+                {
+                    field: 'error',
+                    width: 1000,
+                    cellStyle: { 'white-space': 'normal' },
+                },
+            ])
+            this.agGridOptions.api.setRowData([{ error: parsedData.error }])
         } else if (parsedData.json !== undefined && isMatrix(parsedData.json)) {
-            this.agGridOptions.api.setColumnDefs(parsedData.json.map((_, i) => ({field: i.toString()})))
-            const data = parsedData.json[0].map((_, i) => parsedData.json.map(r => toRender(r[i])))
-            this.agGridOptions.api.setRowData(data)
+            columnDefs = parsedData.json.map((_, i) => ({ field: i.toString() }))
+            rowData = parsedData.json[0].map((_, i) => parsedData.json.map(r => toRender(r[i])))
         } else if (parsedData.json !== undefined && isObjectMatrix(parsedData.json)) {
             let firstKeys = Object.keys(data[0])
-            this.agGridOptions.api.setColumnDefs(firstKeys.map((key) => ({field: key})))
-            const data = parsedData.json.map(obj => firstKeys.reduce((acc, key) => ({...acc, [key]: toRender(obj[key])}), {}))
-            this.agGridOptions.api.setRowData(data)
+            columnDefs = firstKeys.map(key => ({ field: key }))
+            rowData = parsedData.json.map(obj =>
+                firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
+            )
         } else if (parsedData.json !== undefined && Array.isArray(parsedData.json)) {
-            const data = parsedData.json.map((row, i) => ({row: i+1, value: toRender(row)}))
-            this.agGridOptions.api.setColumnDefs([{field: "row"}, {field: "value"}])
-            this.agGridOptions.api.setRowData(data)
+            columnDefs = [{ field: 'row' }, { field: 'value' }]
+            rowData = parsedData.json.map((row, i) => ({ row: i + 1, value: toRender(row) }))
         } else if (parsedData.json !== undefined) {
-            const data = [{ value: toRender(parsedData.json) }]
-            this.agGridOptions.api.setColumnDefs([{field: "value"}])
-            this.agGridOptions.api.setRowData(data)
+            columnDefs = [{ field: 'value' }]
+            rowData = [{ value: toRender(parsedData.json) }]
         } else {
-            const headers = [...(parsedData.indices_header ? parsedData.indices_header : []), ...parsedData.header]
-            const rows = parsedData.data && parsedData.data.length > 0 ? parsedData.data[0].length : (parsedData.indices && parsedData.indices.length > 0 ? parsedData.indices[0].length : 0)
-            const data = Array.apply(null, Array(rows)).map((_, i) => {
+            const headers = [
+                ...(parsedData.indices_header ? parsedData.indices_header : []),
+                ...parsedData.header,
+            ]
+            columnDefs = headers.map(h => ({ field: h }))
+
+            const rows =
+                parsedData.data && parsedData.data.length > 0
+                    ? parsedData.data[0].length
+                    : parsedData.indices && parsedData.indices.length > 0
+                    ? parsedData.indices[0].length
+                    : 0
+            rowData = Array.apply(null, Array(rows)).map((_, i) => {
                 const row = {}
                 const shift = parsedData.indices ? parsedData.indices.length : 0
-                headers.map((h, j) => row[h] = toRender(j < shift ? parsedData.indices[j][i]  : parsedData.data[j - shift][i]))
+                headers.map(
+                    (h, j) =>
+                        (row[h] = toRender(
+                            j < shift ? parsedData.indices[j][i] : parsedData.data[j - shift][i]
+                        ))
+                )
                 return row
             })
-            this.agGridOptions.api.setColumnDefs(headers.map((h) => ({field: h})))
-            this.agGridOptions.api.setRowData(data)
         }
 
+        const allData = parsedData.all_rows_count !== data.length
+        this.agGridOptions.defaultColDef.filter = allData
+        this.agGridOptions.defaultColDef.sortable = allData
+        this.agGridOptions.api.setColumnDefs(columnDefs)
+        this.agGridOptions.api.setRowData(rowData)
         this.agGridOptions.api.sizeColumnsToFit()
     }
 
