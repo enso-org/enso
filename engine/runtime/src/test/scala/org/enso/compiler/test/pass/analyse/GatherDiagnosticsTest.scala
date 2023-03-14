@@ -11,7 +11,7 @@ import org.enso.compiler.test.CompilerTest
 class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
-    val error1 = IR.Error.Syntax(None, IR.Error.Syntax.UnrecognizedToken)
+    val error1 = IR.Error.Syntax(null, IR.Error.Syntax.UnrecognizedToken)
     val plusOp = IR.Name.Literal("+", isMethod = true, None)
     val plusApp = IR.Application.Prefix(
       plusOp,
@@ -46,8 +46,8 @@ class GatherDiagnosticsTest extends CompilerTest {
     }
 
     "work with module flow" in {
-      val error2 = IR.Error.Syntax(None, IR.Error.Syntax.UnexpectedExpression)
-      val error3 = IR.Error.Syntax(None, IR.Error.Syntax.AmbiguousExpression)
+      val error2 = IR.Error.Syntax(null, IR.Error.Syntax.UnexpectedExpression)
+      val error3 = IR.Error.Syntax(null, IR.Error.Syntax.AmbiguousExpression)
 
       val typeName =
         IR.Name.Literal("Foo", isMethod = false, None)

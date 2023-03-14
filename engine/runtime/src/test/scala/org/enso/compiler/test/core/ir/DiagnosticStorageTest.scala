@@ -79,7 +79,7 @@ class DiagnosticStorageTest extends CompilerTest {
     }
 
     "collecting across the diagnostics to produce a new sequence" in {
-      val err = IR.Error.Syntax(None, IR.Error.Syntax.UnsupportedSyntax("aa"))
+      val err = IR.Error.Syntax(null, IR.Error.Syntax.UnsupportedSyntax("aa"))
 
       val diagnostics = new DiagnosticStorage(
         List(
