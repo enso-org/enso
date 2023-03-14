@@ -204,6 +204,9 @@ class TableVisualization extends Visualization {
             dataTruncated = parsedData.all_rows_count !== rowData.length
         }
 
+        // If the table contains more rows than an upper limit, the engine will send only some of all rows.
+        // If data is truncated, we cannot rely on sorting/filtering so will disable.
+        // A pinned row is added to tell the user the row count and that filter/sort is disabled.
         if (dataTruncated) {
             columnDefs[0].colSpan = p => {
                 if (p.data['__COL_SPAN__'] !== undefined) {
