@@ -78,8 +78,12 @@ class TableVisualization extends Visualization {
                         content.hour,
                         content.minute,
                         content.second,
-                        content.nanosecond / 1000000)
-                    return js_date.toTimeString().substring(0, 8) + (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
+                        content.nanosecond / 1000000
+                    )
+                    return (
+                        js_date.toTimeString().substring(0, 8) +
+                        (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
+                    )
                 } else if (type === 'Date_Time') {
                     const js_date = new Date(
                         content.year,
@@ -88,8 +92,14 @@ class TableVisualization extends Visualization {
                         content.hour,
                         content.minute,
                         content.second,
-                        content.nanosecond / 1000000)
-                    return js_date.toISOString().substring(0, 10) + ' ' + js_date.toTimeString().substring(0, 8) + (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
+                        content.nanosecond / 1000000
+                    )
+                    return (
+                        js_date.toISOString().substring(0, 10) +
+                        ' ' +
+                        js_date.toTimeString().substring(0, 8) +
+                        (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
+                    )
                 } else {
                     return `{ ${type} Object }`
                 }
@@ -124,7 +134,7 @@ class TableVisualization extends Visualization {
                     sortable: true,
                     filter: true,
                     resizable: true,
-                    minWidth: 50
+                    minWidth: 50,
                 },
                 enableRangeSelection: true,
             }
@@ -134,7 +144,7 @@ class TableVisualization extends Visualization {
         let parsedData = typeof data === 'string' ? JSON.parse(data) : data
 
         let columnDefs = []
-        let rowData = undefined
+        let rowData = []
 
         if (parsedData.error !== undefined) {
             this.agGridOptions.api.setColumnDefs([
@@ -161,10 +171,12 @@ class TableVisualization extends Visualization {
             columnDefs = [{ field: 'value' }]
             rowData = [{ value: toRender(parsedData.json) }]
         } else {
-            const indices_header = (parsedData.indices_header ? parsedData.indices_header : []).map(h => {
-                const headerName =  h === '#' ? 'Row#' : h;
-                return { field: h, headerName: headerName, pinned: 'left' }
-            });
+            const indices_header = (parsedData.indices_header ? parsedData.indices_header : []).map(
+                h => {
+                    const headerName = h === '#' ? 'Row#' : h
+                    return { field: h, headerName: headerName, pinned: 'left' }
+                }
+            )
             columnDefs = [...indices_header, ...parsedData.header.map(h => ({ field: h }))]
 
             const rows =
