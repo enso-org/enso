@@ -295,5 +295,4 @@ type Match_2
        - if_missing: The value to return if the index is out of bounds.
     at : Integer -> Any ! Index_Out_Of_Bounds
     at self index =
-        self.group index . catch No_Such_Group _->
-            Error.throw (Index_Out_Of_Bounds.Error index self.pattern.group_count)
+        self.get index if_missing=(Error.throw (Index_Out_Of_Bounds.Error index self.pattern.group_count))
