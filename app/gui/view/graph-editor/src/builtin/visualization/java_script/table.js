@@ -145,6 +145,7 @@ class TableVisualization extends Visualization {
 
         let columnDefs = []
         let rowData = []
+        let dataTruncated = false
 
         if (parsedData.error !== undefined) {
             this.agGridOptions.api.setColumnDefs([
@@ -156,17 +157,20 @@ class TableVisualization extends Visualization {
             ])
             this.agGridOptions.api.setRowData([{ error: parsedData.error }])
         } else if (parsedData.json !== undefined && isMatrix(parsedData.json)) {
-            columnDefs = parsedData.json.map((_, i) => ({ field: i.toString() }))
-            rowData = parsedData.json[0].map((_, i) => parsedData.json.map(r => toRender(r[i])))
+            columnDefs = parsedData.json[0].map((_, i) => ({ field: i.toString() }))
+            rowData = parsedData.json
+            dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json !== undefined && isObjectMatrix(parsedData.json)) {
             let firstKeys = Object.keys(data[0])
             columnDefs = firstKeys.map(key => ({ field: key }))
             rowData = parsedData.json.map(obj =>
                 firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
             )
+            dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json !== undefined && Array.isArray(parsedData.json)) {
             columnDefs = [{ field: '#', headerName: 'Row#' }, { field: 'value' }]
             rowData = parsedData.json.map((row, i) => ({ ['#']: i, value: toRender(row) }))
+            dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json !== undefined) {
             columnDefs = [{ field: 'value' }]
             rowData = [{ value: toRender(parsedData.json) }]
@@ -196,9 +200,10 @@ class TableVisualization extends Visualization {
                 )
                 return row
             })
+
+            dataTruncated = parsedData.all_rows_count !== rowData.length
         }
 
-        const dataTruncated = parsedData.all_rows_count !== rowData.length
         if (dataTruncated) {
             columnDefs[0].colSpan = p => {
                 if (p.data['__COL_SPAN__'] !== undefined) {
