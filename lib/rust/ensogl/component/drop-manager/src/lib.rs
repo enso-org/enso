@@ -114,7 +114,15 @@ impl File {
 
 type DropClosure = Closure<dyn Fn(web_sys::DragEvent)>;
 type DragOverClosure = Closure<dyn Fn(web_sys::DragEvent) -> bool>;
-type DropEventData = (Vector2, Vec<File>);
+
+#[derive(Clone, Debug, Default)]
+/// The data emitted by the `files_received` frp endpoint.
+pub struct DropEventData {
+    /// The position of the drop event in the scene coordinates.
+    pub position: Vector2,
+    /// The dropped files.
+    pub files:    Vec<File>,
+}
 
 /// The Manager of dropped files.
 ///
@@ -130,7 +138,6 @@ pub struct Manager {
     drop_handle:      web::EventListenerHandle,
     #[allow(dead_code)]
     drag_over_handle: web::EventListenerHandle,
-    scene:            Scene,
 }
 
 impl Manager {
@@ -156,8 +163,7 @@ impl Manager {
         });
         let drop_handle = web::add_event_listener(target, "drop", drop);
         let drag_over_handle = web::add_event_listener(target, "dragover", drag_over);
-        let scene = scene.clone_ref();
-        Self { network, files_received, drop_handle, drag_over_handle, scene }
+        Self { network, files_received, drop_handle, drag_over_handle }
     }
 
     /// The frp endpoint emitting signal when a file is dropped.
@@ -190,7 +196,7 @@ impl Manager {
                     None
                 }
             });
-            let data: DropEventData = (position, files_iter.collect_vec());
+            let data = DropEventData { position, files: files_iter.collect_vec() };
             files_received.emit(data);
         }
     }

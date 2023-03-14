@@ -3754,7 +3754,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
                 let single_offset = default_gap + node::HEIGHT;
                 files.iter().enumerate().map(|(index,file)| {
                     let offset = Vector2(0.0, single_offset * index as f32);
-                    (file.clone_ref(),drop_posititon+offset)
+                    (file.clone_ref(), drop_posititon + offset)
                 }).collect_vec()
             }
         );
