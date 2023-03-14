@@ -295,7 +295,6 @@ export class App {
                     console.log(spectorModule)
                     // @ts-expect-error
                     const spector = new spectorModule.Spector()
-                    // @ts-expect-error
                     spector.displayUI()
                 }
             }
