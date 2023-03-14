@@ -15,9 +15,13 @@ const browser = typeof window !== 'undefined'
 const node = !browser
 
 /** The global object. In case of a browser, this is the window. In case of node, it's the built-in
- * `global` object. */
+ * `global` object.
+ *
+ * The `no-unnecessary-condition` lint fires a false positive when `global` is not `undefined`. This
+ * it the case when running the script in node. */
 // const global = {}
-global = window
+// @typescript-eslint/no-unnecessary-condition
+global ??= window
 
 interface UrlParams {
     [key: string]: string | UrlParams
