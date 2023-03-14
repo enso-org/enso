@@ -1,18 +1,17 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.DeserializeLibrarySuggestionsJob
+import org.enso.interpreter.instrument.job.StartBackgroundProcessingJob
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that initiates the deserialization of suggestions.
+/** A command requesting to start the background jobs processing.
   *
   * @param maybeRequestId an option with request id
   */
-class DeserializeLibrarySuggestionsCmd(
-  maybeRequestId: Option[Api.RequestId],
-  request: Api.DeserializeLibrarySuggestions
+final class StartBackgroundProcessingCmd(
+  maybeRequestId: Option[Api.RequestId]
 ) extends Command(maybeRequestId) {
 
   /** @inheritdoc */
@@ -20,9 +19,8 @@ class DeserializeLibrarySuggestionsCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    ctx.jobProcessor.runBackground(
-      new DeserializeLibrarySuggestionsJob(request.libraryName)
-    )
+    StartBackgroundProcessingJob.startBackgroundJobs()
     Future.successful(())
   }
+
 }

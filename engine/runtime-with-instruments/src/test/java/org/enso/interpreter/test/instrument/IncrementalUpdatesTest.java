@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.NodeCountingTestInstrument;
 import org.enso.interpreter.test.instrument.RuntimeServerTest.TestContext;
+import org.enso.polyglot.runtime.Runtime$Api$BackgroundJobsStartedNotification;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$EditFileNotification;
@@ -216,11 +217,12 @@ public class IncrementalUpdatesTest {
       )
     );
 
-    assertSameElements(context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
+    assertSameElements(context.receiveNIgnorePendingExpressionUpdates(5, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
       TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
-      context.executionComplete(contextId)
+      context.executionComplete(contextId),
+      Response(new Runtime$Api$BackgroundJobsStartedNotification())
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
