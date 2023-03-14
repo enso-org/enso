@@ -14,9 +14,8 @@ import Standard.Test.Extensions
 spec =
     Test.group "gmt" <|
         Test.specify "asdf" <|
-            pattern = Regex_2.compile "a([a-z])"
-            s = pattern.replace "abac ad aae a af" "A$1$1"
-            s . should_equal "AbbAcc Add Aaae a Aff"
+            Regex_2.compile "a([a-z])" . replace "abac ad aae a af" "A$1$1" . should_equal "AbbAcc Add Aaae a Aff"
+            Regex_2.compile "a(?<foo>[a-z])" . replace "abac ad aae a af" "A$<foo>$<foo>" . should_equal "AbbAcc Add Aaae a Aff"
 
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|

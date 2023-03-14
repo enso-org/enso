@@ -56,7 +56,7 @@ type Replacer
         string_builder.toString
 
 ## PRIVATE
-group_reference_regex = '\\$(([0-9]+)|(\\$)|(&)|(<([^>])+>))'
+group_reference_regex = '\\$(([0-9]+)|(\\$)|(&)|(<([^>]+)>))'
 
 ## PRIVATE
 
@@ -106,7 +106,7 @@ parse_group_number pattern match =
                 _ : Text -> Replacement.Substitution 0
                 Nothing -> case match.group 6 of
                     # `$<foo>`
-                    text : Text -> Replacement.Substitution pattern.lookup_group text
+                    text : Text -> Replacement.Substitution (pattern.lookup_group text)
                     Nothing -> Panic.throw (Illegal_State.Error ('Unable to identify capture group: \"' + match.txt + '\"'))
 
 type Replacement
