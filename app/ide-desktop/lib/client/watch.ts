@@ -9,16 +9,16 @@
  * To stop, use Ctrl+C.
  */
 
-import child_process from 'node:child_process'
-import path from 'node:path'
-import process from 'node:process'
-import fs from 'node:fs/promises'
+import * as childProcess from 'node:child_process'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
+import * as process from 'node:process'
 
-import esbuild from 'esbuild'
+import * as esbuild from 'esbuild'
 
 import * as clientBundler from './esbuild-config.js'
 import * as contentBundler from '../content/esbuild-config.js'
-import { getIdeDirectory, getProjectManagerBundle, project_manager_bundle } from './paths.js'
+import * as paths from './paths.js'
 
 /** Set of esbuild watches for the client and content. */
 interface Watches {
@@ -26,19 +26,19 @@ interface Watches {
     content: esbuild.BuildResult
 }
 
-const ideDist = getIdeDirectory()
-const projectManagerBundle = getProjectManagerBundle()
+const IDE_DIR_PATH = paths.getIdeDirectory()
+const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
 
 console.log('Cleaning IDE dist directory.')
-await fs.rm(ideDist, { recursive: true, force: true })
-await fs.mkdir(ideDist, { recursive: true })
+await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
+await fs.mkdir(IDE_DIR_PATH, { recursive: true })
 
-const bothBundlesReady = new Promise<Watches>((resolve, reject) => {
+const BOTH_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     void (async () => {
         console.log('Bundling client.')
         const clientBundlerOpts: esbuild.BuildOptions = {
             ...clientBundler.bundlerOptionsFromEnv(),
-            outdir: path.resolve(ideDist),
+            outdir: path.resolve(IDE_DIR_PATH),
             watch: {
                 onRebuild(error) {
                     if (error) {
@@ -56,22 +56,25 @@ const bothBundlesReady = new Promise<Watches>((resolve, reject) => {
         console.log('Result of client bundling: ', client)
 
         console.log('Bundling content.')
-        const contentOpts = contentBundler.watchOptions(() =>
+        const contentOpts = contentBundler.watchOptions(() => {
             console.log('Content bundle updated.')
-        )
-        contentOpts.outdir = path.resolve(ideDist, 'assets')
+        })
+        contentOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
         const content = await esbuild.build(contentOpts)
         console.log('Result of content bundling: ', content)
         resolve({ client, content })
     })()
 })
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const watches = await bothBundlesReady
+await BOTH_BUNDLES_READY
 console.log('Exposing Project Manager bundle.')
-await fs.symlink(projectManagerBundle, path.join(ideDist, project_manager_bundle), 'dir')
+await fs.symlink(
+    PROJECT_MANAGER_BUNDLE_PATH,
+    path.join(IDE_DIR_PATH, paths.PROJECT_MANAGER_BUNDLE),
+    'dir'
+)
 
-const electronArgs = [path.join(ideDist, 'index.cjs'), '--', ...process.argv.slice(2)]
+const ELECTRON_ARGS = [path.join(IDE_DIR_PATH, 'index.cjs'), '--', ...process.argv.slice(2)]
 
 process.on('SIGINT', () => {
     console.log('SIGINT received. Exiting.')
@@ -80,10 +83,9 @@ process.on('SIGINT', () => {
     process.exit(0)
 })
 
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-while (true) {
+for (;;) {
     console.log('Spawning Electron process.')
-    const electronProcess = child_process.spawn('electron', electronArgs, {
+    const electronProcess = childProcess.spawn('electron', ELECTRON_ARGS, {
         stdio: 'inherit',
         shell: true,
     })

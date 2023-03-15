@@ -1,6 +1,6 @@
-/** @file declaration copy-plugin */
-
+/** @file Type definitions for the `copy-plugin` module. */
 declare module 'enso-copy-plugin' {
-    function create(files_provider: () => AsyncGenerator<string>): import('esbuild').Plugin
-    export { create }
+    import * as esbuild from 'esbuild'
+
+    export function create(filesProvider: () => AsyncGenerator<string>): esbuild.Plugin
 }

@@ -1,15 +1,21 @@
 /** @file Application debug information. */
 
-import buildCfg from '../../../build.json'
+import BUILD_INFO from '../../../build.json' assert { type: 'json' }
+
+// =================
+// === Constants ===
+// =================
+
+const INDENT_SIZE = 4
 
 // ==================
 // === Debug Info ===
 // ==================
 
 /** Information about versions of different application components. */
-export const versionInfo = {
-    version: buildCfg.version,
-    build: buildCfg.commit,
+export const VERSION_INFO = {
+    version: BUILD_INFO.version,
+    build: BUILD_INFO.commit,
     electron: process.versions.electron,
     chrome: process.versions.chrome,
 }
@@ -18,7 +24,7 @@ export const versionInfo = {
 async function getInfo() {
     const procMemInfo = await process.getProcessMemoryInfo()
     return {
-        version: versionInfo,
+        version: VERSION_INFO,
         time: {
             current: Date.now(),
             creation: process.getCreationTime(),
@@ -41,8 +47,8 @@ async function getInfo() {
     }
 }
 
-/** Print the current system information */
+/** Print the current system information. */
 export async function printInfo() {
     const info = await getInfo()
-    console.log(JSON.stringify(info, undefined, 4))
+    console.log(JSON.stringify(info, undefined, INDENT_SIZE))
 }

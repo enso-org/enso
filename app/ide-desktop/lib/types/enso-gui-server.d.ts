@@ -1,4 +1,4 @@
-/** @file declaration enso-gui-server */
+/** @file Type definitions for the `enso-gui-server` module. */
 declare module 'enso-gui-server' {
     export const DEFAULT_PORT: string
     export const LIVE_RELOAD_LISTENER_PATH: string
@@ -8,8 +8,9 @@ declare module 'enso-gui-server' {
         assets?: string
         port?: number
     }
-    export function start(params: StartParams): Promise<{
+    interface ExectionInfo {
         port: number
-        reload(): void
-    }>
+        reload: () => void
+    }
+    export function start(params: StartParams): Promise<ExectionInfo>
 }
