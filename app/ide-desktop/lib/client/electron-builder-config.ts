@@ -15,6 +15,8 @@ import * as electronNotarize from 'electron-notarize'
 import * as macOptions from 'app-builder-lib/out/options/macOptions'
 import yargs from 'yargs'
 
+import * as common from 'enso-common'
+
 import * as paths from './paths.js'
 import * as shared from './shared.js'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
@@ -103,7 +105,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             /** Electron URL protocol scheme definition for deep links to authentication flow pages. */
             {
                 name: `${shared.PRODUCT_NAME} url`,
-                schemes: [shared.DEEP_LINK_SCHEME],
+                schemes: [common.DEEP_LINK_SCHEME],
                 role: 'Editor',
             },
         ],

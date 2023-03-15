@@ -24,6 +24,7 @@
     "electron-is-dev": "^2.0.0",
     "enso-gui-server": "^1.0.0",
     "mime-types": "^2.1.35",
+    "opener": "^1.5.2",
     "string-length": "^5.0.1",
     "yargs": "17.6.2"
   },
@@ -36,9 +37,16 @@
     "electron-builder": "^22.14.13",
     "electron-notarize": "1.2.2",
     "enso-copy-plugin": "^1.0.0",
+    "enso-common": "^1.0.0",
     "esbuild": "^0.15.14",
     "fast-glob": "^3.2.12",
     "ts-node": "^10.9.1"
+  },
+  "optionalDependencies": {
+    "dmg-license": "^1.0.11",
+    "esbuild-linux-64": "^0.15.18",
+    "esbuild-windows-64": "^0.15.18",
+    "esbuild-darwin-64": "^0.15.18"
   },
   "scripts": {
     "typecheck": "npx tsc --noEmit",

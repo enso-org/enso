@@ -18,10 +18,7 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "target": "ES2019",
-    "paths": {
-      "@ensogl-app": ["../../target/ensogl-pack/linked-dist/index"],
-      "@build-cfg": ["./build.json"]
-    }
+    "jsx": "react-jsx"
   },
   "ts-node": {
     "esm": true,

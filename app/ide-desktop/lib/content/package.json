@@ -1,5 +1,5 @@
 {
-  "name": "enso-studio-content",
+  "name": "enso-content",
   "version": "1.0.0",
   "type": "module",
   "author": {
@@ -17,8 +17,8 @@
   "scripts": {
     "typecheck": "npx tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "build": "ts-node bundle.ts",
-    "watch": "ts-node watch.ts",
+    "build": "cd ../dashboard/src/authentication && npx tailwindcss -i src/styles/index.css -o ../../../../../../dist/gui/assets/tailwind.css -c tailwind.config.ts --minify && cd ../../../content && ts-node bundle.ts",
+    "watch": "cd ../dashboard/src/authentication && npx tailwindcss -i src/styles/index.css -o ../../../../../../dist/gui/assets/tailwind.css -c tailwind.config.ts --minify && cd ../../../content && ts-node watch.ts",
     "start": "ts-node start.ts"
   },
   "dependencies": {
@@ -43,6 +43,7 @@
     "@typescript-eslint/parser": "^5.55.0",
     "enso-copy-plugin": "^1.0.0",
     "enso-gui-server": "^1.0.0",
+    "enso-authentication": "^1.0.0",
     "esbuild": "^0.15.14",
     "esbuild-copy-static-files": "^0.1.0",
     "esbuild-dev-server": "^0.3.0",
@@ -58,5 +59,10 @@
     "ts-node": "^10.9.1",
     "typescript": "^4.9.3",
     "yaml-loader": "^0.8.0"
+  },
+  "optionalDependencies": {
+    "esbuild-linux-64": "^0.15.18",
+    "esbuild-windows-64": "^0.15.18",
+    "esbuild-darwin-64": "^0.15.18"
   }
 }
