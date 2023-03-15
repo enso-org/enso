@@ -33,6 +33,8 @@ public abstract class Cache<T, M extends Cache.Metadata> {
 
   /** Returns a default level of logging for this Cache. */
   protected final Level logLevel;
+  /** Log name to use in log messages */
+  private final String logName;
 
   /**
    * Flag indicating if the de-serialization process should compute the hash of the sources from
@@ -49,7 +51,8 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   /**
    * Constructor for subclasses.
    *
-   * @param logLevel
+   * @param logLevel logging level
+   * @param logName name to use in logs
    * @param needsSourceDigestVerification Flag indicating if the de-serialization process should
    *     compute the hash of the sources from which the cache was created and compare it with the
    *     stored metadata entry.
@@ -57,8 +60,12 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
   protected Cache(
-      Level logLevel, boolean needsSourceDigestVerification, boolean needsDataDigestVerification) {
+      Level logLevel,
+      String logName,
+      boolean needsSourceDigestVerification,
+      boolean needsDataDigestVerification) {
     this.logLevel = logLevel;
+    this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
   }
@@ -85,21 +92,21 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                   }
                 } else {
                   logger.log(
-                      logLevel, "Skipping use of global cache locations for " + stringRepr + ".");
+                      logLevel, "Skipping use of global cache locations for " + logName + ".");
                 }
 
                 if (saveCacheTo(context, roots.localCacheRoot, entry, logger)) {
                   return Optional.of(roots.localCacheRoot);
                 }
 
-                logger.log(logLevel, "Unable to write cache data for " + stringRepr + ".");
+                logger.log(logLevel, "Unable to write cache data for " + logName + ".");
                 return Optional.empty();
               } catch (CacheException e) {
                 logger.log(
-                    Level.SEVERE, "Failed to save cache for " + stringRepr + ": " + e.getMessage());
+                    Level.SEVERE, "Failed to save cache for " + logName + ": " + e.getMessage());
                 return Optional.empty();
               } catch (IOException ioe) {
-                logger.log(Level.SEVERE, "Failed to save cache for " + stringRepr + ".", ioe);
+                logger.log(Level.SEVERE, "Failed to save cache for " + logName + ".", ioe);
                 return Optional.empty();
               }
             });
@@ -135,7 +142,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
         logger.log(
             logLevel,
             "Written cache data ["
-                + stringRepr
+                + logName
                 + "] to ["
                 + toMaskedPath(parentPath).applyMasking()
                 + "].");
@@ -191,7 +198,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                     logger.log(
                         logLevel,
                         "Using cache for ["
-                            + stringRepr
+                            + logName
                             + " at location ["
                             + toMaskedPath(roots.globalCacheRoot()).applyMasking()
                             + "].");
@@ -203,18 +210,18 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                     logger.log(
                         logLevel,
                         "Using cache for ["
-                            + stringRepr
+                            + logName
                             + " at location ["
                             + toMaskedPath(roots.localCacheRoot()).applyMasking()
                             + "].");
                     return loadedCache;
                   }
 
-                  logger.log(logLevel, "Unable to load a cache [" + stringRepr + "]");
+                  logger.log(logLevel, "Unable to load a cache [" + logName + "]");
                 } catch (IOException e) {
                   logger.log(
                       Level.WARNING,
-                      "Unable to load a cache [" + stringRepr + "]: " + e.getMessage(),
+                      "Unable to load a cache [" + logName + "]: " + e.getMessage(),
                       e);
                 }
                 return Optional.empty();
@@ -255,26 +262,25 @@ public abstract class Cache<T, M extends Cache.Metadata> {
           if (cachedObject != null) {
             return Optional.of(cachedObject);
           } else {
-            logger.log(logLevel, "`" + stringRepr + "` was corrupt on disk.");
+            logger.log(logLevel, "`" + logName + "` was corrupt on disk.");
             invalidateCache(cacheRoot, logger);
             return Optional.empty();
           }
         } catch (CacheException e) {
-          logger.log(logLevel, "`" + stringRepr + "` was corrupt on disk: " + e.getMessage());
+          logger.log(logLevel, "`" + logName + "` was corrupt on disk: " + e.getMessage());
           return Optional.empty();
         } catch (IOException ioe) {
           logger.log(
-              logLevel,
-              "`" + stringRepr + "` failed to load (caused by: " + ioe.getMessage() + ").");
+              logLevel, "`" + logName + "` failed to load (caused by: " + ioe.getMessage() + ").");
           invalidateCache(cacheRoot, logger);
           return Optional.empty();
         } catch (ClassNotFoundException e) {
-          logger.log(Level.WARNING, stringRepr + " appears to be corrupted", e);
+          logger.log(Level.WARNING, logName + " appears to be corrupted", e);
           return Optional.empty();
         }
       } else {
         logger.log(
-            logLevel, "One or more digests did not match for the cache for [" + stringRepr + "].");
+            logLevel, "One or more digests did not match for the cache for [" + logName + "].");
         invalidateCache(cacheRoot, logger);
         return Optional.empty();
       }
@@ -407,8 +413,6 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @throws java.io.IOException if something goes wrong
    */
   protected abstract byte[] serialize(EnsoContext context, T entry) throws IOException;
-
-  protected String stringRepr;
 
   protected String entryName;
 

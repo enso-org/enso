@@ -29,9 +29,8 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     private final LibraryName libraryName;
 
     public ImportExportCache(LibraryName libraryName) {
-        super(Level.FINEST, true, false);
+        super(Level.FINEST, libraryName.toString(), true, false);
         this.libraryName = libraryName;
-        this.stringRepr = libraryName.toString();
         this.entryName = libraryName.name();
         this.dataSuffix = bindingsCacheDataExtension;
         this.metadataSuffix = bindingsCacheMetadataExtension;

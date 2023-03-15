@@ -33,9 +33,8 @@ public final class SuggestionsCache
   final LibraryName libraryName;
 
   public SuggestionsCache(LibraryName libraryName) {
-    super(Level.FINEST, true, false);
+    super(Level.FINEST, libraryName.toString(), true, false);
     this.libraryName = libraryName;
-    this.stringRepr = libraryName.toString();
     this.entryName = libraryName.name();
     this.dataSuffix = SUGGESTIONS_CACHE_DATA_EXTENSION;
     this.metadataSuffix = SUGGESTIONS_CACHE_METADATA_EXTENSION;

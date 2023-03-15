@@ -28,9 +28,8 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     private final Module module;
 
     public ModuleCache(Module module) {
-      super(Level.FINEST, true, false);
+      super(Level.FINEST, module.getName().toString(), true, false);
       this.module = module;
-      this.stringRepr = module.getName().toString();
       this.entryName = module.getName().item();
       this.dataSuffix = irCacheDataExtension;
       this.metadataSuffix = irCacheMetadataExtension;
