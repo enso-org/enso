@@ -94,12 +94,15 @@ final class SerializationManager(
     *
     * @param module the module to serialize
     * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
+    * @param useThreadPool if true, will perform serialization asynchronously using the thread pool
     * @return Future referencing the serialization task. On completion Future will return
     *         `true` if `module` has been successfully serialized, `false` otherwise
     */
   def serializeModule(
     module: Module,
-    useGlobalCacheLocations: Boolean
+    useGlobalCacheLocations: Boolean,
+    useThreadPool: Boolean =
+      compiler.context.getEnvironment.isCreateThreadAllowed
   ): Future[Boolean] = {
     logger.log(
       debugLogLevel,
@@ -120,7 +123,7 @@ final class SerializationManager(
       module.getSource,
       useGlobalCacheLocations
     )
-    if (compiler.context.getEnvironment.isCreateThreadAllowed) {
+    if (useThreadPool) {
       isWaitingForSerialization.synchronized {
         val future = pool.submit(task)
         isWaitingForSerialization.put(module.getName, future)

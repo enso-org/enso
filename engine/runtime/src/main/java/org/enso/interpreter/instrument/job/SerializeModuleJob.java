@@ -47,7 +47,7 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                   return;
                 }
 
-                serializationManager.serializeModule(module, useGlobalCacheLocations);
+                serializationManager.serializeModule(module, useGlobalCacheLocations, false);
               });
     } finally {
       ctx.locking().releaseWriteCompilationLock();
