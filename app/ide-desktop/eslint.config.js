@@ -1,12 +1,11 @@
 /** @file ESLint configuration file. */
-/** NOTE: The "Experimental: Use Flat Config" option must be enabled. */
+/** NOTE: The "Experimental: Use Flat Config" option must be enabled.
+ * Flat config is still not quite mature, so is disabled by default. */
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
-
-// The .d.ts is wrong; these only have default exports.
-// Other default imports are whitelisted; however these should only be used here.
+// We prefer `import * as name`, however these modules do not support it.
+// This is specialcased in other files, but these modules shouldn't be used in other files anyway.
 /* eslint-disable no-restricted-syntax */
 import eslintJs from '@eslint/js'
 import globals from 'globals'
@@ -15,6 +14,7 @@ import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
 /* eslint-enable no-restricted-syntax */
 
+const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const NAME = 'enso'
 /** An explicit whitelist of CommonJS modules, which do not support namespace imports.
  * Many of these have incorrect types, so no type error may not mean they support ESM,
@@ -30,8 +30,12 @@ const STRING_LITERAL = 'Literal[raw=/^["\']/]'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)/'
-const NOT_CONSTANT_CASE = '/^(?!_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/'
+const WHITELISTED_CONSTANTS = 'logger'
+const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
 
+// Extracted to a variable because it needs to be used twice:
+// - once as-is for `.d.ts`
+// - once explicitly disallowing `declare`s in regular `.ts`.
 /** @type {{ selector: string; message: string; }[]} */
 const RESTRICTED_SYNTAXES = [
     {
@@ -41,7 +45,8 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: `ImportDeclaration[source.value=/^(?!(${COMMONJS_MODULES})$)[^.]/] > ImportDefaultSpecifier`,
-        message: 'No default imports from modules',
+        message:
+            'No default imports from modules. Add to `COMMONJS_MODULES` in `eslint.config.js` if the module only has a default export.',
     },
     {
         selector: `ImportDeclaration[source.value=/^(?:${COMMONJS_MODULES})$/] > ImportNamespaceSpecifier`,

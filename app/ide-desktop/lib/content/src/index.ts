@@ -9,8 +9,9 @@ import * as contentConfig from 'enso-content-config'
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
+const logger = app.log.logger
+
 // === Constants ===
-const LOGGER = app.log.logger
 /** One second in milliseconds. */
 const SECOND = 1000
 const FETCH_TIMEOUT = 300
@@ -66,10 +67,10 @@ async function checkMinSupportedVersion(config: typeof contentConfig.OPTIONS) {
                 const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
                 return comparator.test(contentConfig.VERSION.ide)
             } else {
-                LOGGER.error('The minimum supported version is not a string.')
+                logger.error('The minimum supported version is not a string.')
             }
         } else {
-            LOGGER.error('The application config is not an object.')
+            logger.error('The application config is not an object.')
         }
     } catch (e) {
         console.error('Minimum version check failed.', e)
@@ -147,7 +148,7 @@ class Main {
                 const email = contentConfig.OPTIONS.groups.authentication.options.email.value
                 // The default value is `""`, so a truthiness check is most appropriate here.
                 if (email) {
-                    LOGGER.log(`User identified as '${email}'.`)
+                    logger.log(`User identified as '${email}'.`)
                 }
             }
         } else {

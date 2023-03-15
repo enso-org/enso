@@ -1,7 +1,7 @@
-/** @file utility file */
-import path from 'node:path'
-import fs from 'node:fs'
-import process from 'node:process'
+/** @file Shared utility functions. */
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import * as process from 'node:process'
 
 /**
  * Get the environment variable value.
@@ -42,23 +42,3 @@ export function requireEnvPathExist(name: string) {
     if (fs.existsSync(value)) return value
     else throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
 }
-
-/**
- * Function fulfills after the given path denotes an existing, readable file.
- */
-async function waitUntilReadable(path: string) {
-    // This implementation (polling every 100ms) is crude but should be reliable.
-    // If such need arises, more refined implementation can be built using `fs.watch` api.
-    console.log(`Waiting for file ${path} to become readable.`)
-    for (;;) {
-        try {
-            await fs.promises.access(path, fs.constants.R_OK)
-            return
-        } catch (err) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-        }
-    }
-}
-
-// FIXME[sb]: why are some functions not exported?
-export default { requireEnv, requireEnvPathExist }

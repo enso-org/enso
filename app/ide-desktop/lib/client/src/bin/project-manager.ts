@@ -8,6 +8,7 @@ import * as contentConfig from 'enso-content-config'
 
 import * as config from 'config'
 
+const logger = contentConfig.logger
 // This is a wrapped function, so it should be `camelCase`.
 // eslint-disable-next-line no-restricted-syntax
 const execFile = util.promisify(childProcess.execFile)
@@ -41,16 +42,16 @@ async function exec(args: config.Args, processArgs: string[]) {
  * handles. Input is piped to this process, so it will not be closed, until this process
  * finished. */
 export function spawn(args: config.Args, processArgs: string[]): childProcess.ChildProcess {
-    return contentConfig.LOGGER.groupMeasured(
+    return logger.groupMeasured(
         `Starting the backend process with the following options: ${processArgs.join(', ')}.`,
         () => {
             const binPath = pathOrPanic(args)
             const process = childProcess.spawn(binPath, processArgs, {
                 stdio: [/* stdin */ 'pipe', /* stdout */ 'inherit', /* stderr */ 'inherit'],
             })
-            contentConfig.LOGGER.log(`Backend has been spawned (pid = ${String(process.pid)}).`)
+            logger.log(`Backend has been spawned (pid = ${String(process.pid)}).`)
             process.on('exit', code => {
-                contentConfig.LOGGER.log(`Backend exited with code ${String(code)}.`)
+                logger.log(`Backend exited with code ${String(code)}.`)
             })
             return process
         }

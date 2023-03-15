@@ -4,8 +4,8 @@ import chalk from 'chalk'
 import stringLength from 'string-length'
 
 import * as yargsHelpers from 'yargs/helpers'
-import * as yargsModule from 'yargs'
 import yargs from 'yargs/yargs'
+import yargsModule from 'yargs'
 
 import * as contentConfig from 'enso-content-config'
 
@@ -13,6 +13,8 @@ import * as config from 'config'
 import * as naming from 'naming'
 
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
+
+const logger = contentConfig.logger
 
 // =================
 // === Constants ===
@@ -61,7 +63,7 @@ interface PrintHelpConfig {
  */
 function printHelp(cfg: PrintHelpConfig) {
     console.log(USAGE)
-    const totalWidth = contentConfig.LOGGER.terminalWidth() ?? DEFAULT_TERMINAL_WIDTH
+    const totalWidth = logger.terminalWidth() ?? DEFAULT_TERMINAL_WIDTH
     const sections: Record<string, Section<unknown>> = {}
     const topLevelSection = new Section()
     topLevelSection.description =
@@ -148,9 +150,7 @@ function printHelp(cfg: PrintHelpConfig) {
  * split. */
 function wordWrap(str: string, width: number): string[] {
     if (width <= 0) {
-        contentConfig.LOGGER.error(
-            `Cannot perform word wrap. The output width is set to '${width}'.`
-        )
+        logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
         return []
     }
     let firstLine = true
@@ -355,7 +355,7 @@ export function parseArgs() {
     const parsedWindowSize = config.WindowSize.parse(providedWindowSize)
 
     if (parsedWindowSize instanceof Error) {
-        contentConfig.LOGGER.error(`Wrong window size provided: '${providedWindowSize}'.`)
+        logger.error(`Wrong window size provided: '${providedWindowSize}'.`)
     } else {
         windowSize = parsedWindowSize
     }
@@ -387,11 +387,11 @@ export function parseArgs() {
     if (helpRequested) {
         printHelpAndExit()
     } else if (parseError !== undefined) {
-        contentConfig.LOGGER.error(parseError.message)
+        logger.error(parseError.message)
         printHelpAndExit(1)
     } else if (unexpectedArgs !== undefined) {
         const unexpectedArgsString = unexpectedArgs.map(arg => JSON.stringify(arg)).join(' ')
-        contentConfig.LOGGER.error(`Unexpected arguments found: '${unexpectedArgsString}'.`)
+        logger.error(`Unexpected arguments found: '${unexpectedArgsString}'.`)
         printHelpAndExit(1)
     }
 

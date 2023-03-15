@@ -80,10 +80,12 @@ import * as os from 'node:os'
 
 import * as electron from 'electron'
 
-import * as content from 'enso-content-config'
+import * as contentConfig from 'enso-content-config'
 
 import * as ipc from 'ipc'
 import * as shared from '../shared'
+
+const logger = contentConfig.logger
 
 // =================
 // === Constants ===
@@ -136,7 +138,7 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
         /** Prevent Electron from handling the URL at all, because redirects can be dangerous. */
         event.preventDefault()
         if (parsedUrl.protocol !== `${shared.DEEP_LINK_SCHEME}:`) {
-            content.LOGGER.error(`${url} is not a deep link, ignoring.`)
+            logger.error(`${url} is not a deep link, ignoring.`)
             return
         }
         window().webContents.send(ipc.Channel.openDeepLink, url)

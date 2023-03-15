@@ -10,7 +10,7 @@ import BUILD_INFO from '../../../build.json' assert { type: 'json' }
 export const Option = linkedDist.config.Option
 // eslint-disable-next-line no-restricted-syntax
 export const Group = linkedDist.config.Group
-export const LOGGER = linkedDist.log.logger
+export const logger = linkedDist.log.logger
 // Declaring type with the same name as a variable.
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type Option<T> = linkedDist.config.Option<T>

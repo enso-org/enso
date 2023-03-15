@@ -10,6 +10,8 @@ import createServer from 'create-servers'
 
 import * as contentConfig from 'enso-content-config'
 
+const logger = contentConfig.logger
+
 // =================
 // === Constants ===
 // =================
@@ -90,13 +92,11 @@ export class Server {
                 },
                 err => {
                     if (err) {
-                        contentConfig.LOGGER.error(`Error creating server:`, err.http)
+                        logger.error(`Error creating server:`, err.http)
                         reject(err)
                     }
-                    contentConfig.LOGGER.log(`Server started on port ${this.config.port}.`)
-                    contentConfig.LOGGER.log(
-                        `Serving files from '${path.join(process.cwd(), this.config.dir)}'.`
-                    )
+                    logger.log(`Server started on port ${this.config.port}.`)
+                    logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
                     resolve()
                 }
             )
@@ -106,7 +106,7 @@ export class Server {
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
         if (requestUrl === undefined) {
-            contentConfig.LOGGER.error('Request URL is null.')
+            logger.error('Request URL is null.')
             return
         }
         const url = requestUrl.split('?')[0]
@@ -114,7 +114,7 @@ export class Server {
         const resourceFile = `${this.config.dir}${resource}`
         fs.readFile(resourceFile, (err, data) => {
             if (err) {
-                contentConfig.LOGGER.error(`Resource '${resource}' not found.`)
+                logger.error(`Resource '${resource}' not found.`)
             } else {
                 const contentType = mime.contentType(path.extname(resourceFile))
                 const contentLength = data.length

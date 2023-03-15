@@ -12,7 +12,7 @@ import * as process from 'node:process'
 
 import * as electron from 'electron'
 
-import * as content from 'enso-content-config'
+import * as contentConfig from 'enso-content-config'
 
 import * as authentication from 'authentication'
 import * as config from 'config'
@@ -25,11 +25,12 @@ import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 
+const logger = contentConfig.logger
+
 // =================
 // === Constants ===
 // =================
 
-const LOGGER = content.LOGGER
 /** Indent size for outputting JSON. */
 const INDENT_SIZE = 4
 
@@ -76,18 +77,22 @@ class App {
     /** Set Chrome options based on the app configuration. For comprehensive list of available
      * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
     setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
-        const addIf = (opt: content.Option<boolean>, chromeOptName: string, value?: string) => {
+        const addIf = (
+            opt: contentConfig.Option<boolean>,
+            chromeOptName: string,
+            value?: string
+        ) => {
             if (opt.value) {
                 const chromeOption = new configParser.ChromeOption(chromeOptName, value)
                 const chromeOptionStr = chromeOption.display()
                 const optionName = opt.qualifiedName()
-                LOGGER.log(`Setting '${chromeOptionStr}' because '${optionName}' was enabled.`)
+                logger.log(`Setting '${chromeOptionStr}' because '${optionName}' was enabled.`)
                 chromeOptions.push(chromeOption)
             }
         }
         const add = (option: string, value?: string) =>
             chromeOptions.push(new configParser.ChromeOption(option, value))
-        LOGGER.groupMeasured('Setting Chrome options', () => {
+        logger.groupMeasured('Setting Chrome options', () => {
             const perfOpts = this.args.groups.performance.options
             addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
             addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
@@ -103,7 +108,7 @@ class App {
                     electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
                 }
                 const cfgName = config.HELP_EXTENDED_OPTION_NAME
-                LOGGER.log(`See '-${cfgName}' to learn why these options were enabled.`)
+                logger.log(`See '-${cfgName}' to learn why these options were enabled.`)
             }
         })
     }
@@ -113,7 +118,7 @@ class App {
         // We catch all errors here. Otherwise, it might be possible that the app will run partially
         // and enter a "zombie mode", where user is not aware of the app still running.
         try {
-            await LOGGER.asyncGroupMeasured('Starting the application', async () => {
+            await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
                 await this.startBackendIfEnabled()
@@ -135,11 +140,11 @@ class App {
     }
 
     /** Run the provided function if the provided option was enabled. Log a message otherwise. */
-    async runIfEnabled(option: content.Option<boolean>, fn: () => Promise<void> | void) {
+    async runIfEnabled(option: contentConfig.Option<boolean>, fn: () => Promise<void> | void) {
         if (option.value) {
             await fn()
         } else {
-            LOGGER.log(`The app is configured not to use ${option.name}.`)
+            logger.log(`The app is configured not to use ${option.name}.`)
         }
     }
 
@@ -154,7 +159,7 @@ class App {
     /** Start the content server, which will serve the application content (HTML) to the window. */
     async startContentServerIfEnabled() {
         await this.runIfEnabled(this.args.options.server, async () => {
-            await LOGGER.asyncGroupMeasured('Starting the content server.', async () => {
+            await logger.asyncGroupMeasured('Starting the content server.', async () => {
                 const serverCfg = new server.Config({
                     dir: paths.ASSETS_PATH,
                     port: this.args.groups.server.options.port.value,
@@ -167,7 +172,7 @@ class App {
     /** Create the Electron window and display it on the screen. */
     async createWindowIfEnabled(windowSize: config.WindowSize) {
         await this.runIfEnabled(this.args.options.window, () => {
-            LOGGER.groupMeasured('Creating the window.', () => {
+            logger.groupMeasured('Creating the window.', () => {
                 const argGroups = this.args.groups
                 const useFrame = this.args.groups.window.options.frame.value
                 const macOS = process.platform === 'darwin'
@@ -211,7 +216,7 @@ class App {
                 })
 
                 window.webContents.on('render-process-gone', (_event, details) => {
-                    LOGGER.error('Error, the render process crashed.', details)
+                    logger.error('Error, the render process crashed.', details)
                 })
 
                 this.window = window
@@ -223,7 +228,7 @@ class App {
      * website. */
     initIpc() {
         electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
-            LOGGER.error(`IPC error: ${JSON.stringify(data)}`)
+            logger.error(`IPC error: ${JSON.stringify(data)}`)
         })
         const argProfiles = this.args.groups.profile.options.loadProfile.value
         const profilePromises: Promise<string>[] = argProfiles.map((path: string) =>
@@ -264,7 +269,7 @@ class App {
             }
             const params = server.urlParamsFromObject(urlCfg)
             const address = `http://localhost:${this.serverPort()}${params}`
-            LOGGER.log(`Loading the window address '${address}'.`)
+            logger.log(`Loading the window address '${address}'.`)
             void this.window.loadURL(address)
         }
     }

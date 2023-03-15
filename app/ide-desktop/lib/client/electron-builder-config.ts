@@ -212,12 +212,16 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 await signArchivesMacOs({
                     appOutDir: appOutDir,
                     productFilename: appName,
+                    // This will always be defined since we have an `entitlements.mac.plist`.
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     entitlements: macConfig!.entitlements!,
                     identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
                 })
 
                 console.log('  • Notarizing.')
                 await electronNotarize.notarize({
+                    // This will always be defined since we set it at the top of this object.
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     appBundleId: (buildOptions as macOptions.MacConfiguration).appId!,
                     appPath: `${appOutDir}/${appName}.app`,
                     appleId: process.env.APPLEID,
