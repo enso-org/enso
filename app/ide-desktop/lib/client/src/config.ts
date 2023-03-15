@@ -2,9 +2,7 @@
  * Electron-specific options. */
 
 import chalk from 'chalk'
-
-import * as contentConfig from 'enso-content-config'
-
+import * as content from 'enso-content-config'
 import * as naming from 'naming'
 import * as paths from 'paths'
 
@@ -12,11 +10,8 @@ import * as paths from 'paths'
 // === Constants ===
 // =================
 
-export const HELP_EXTENDED_NAME = 'helpExtended'
-export const HELP_EXTENDED_OPTION_NAME = naming.camelToKebabCase(HELP_EXTENDED_NAME)
-const DEFAULT_WIDTH = 1380
-const DEFAULT_HEIGHT = 900
-const DEFAULT_PORT = 8080
+export const helpExtendedName = 'helpExtended'
+export const helpExtendedOptionName = naming.camelToKebabCase(helpExtendedName)
 
 // ==================
 // === WindowSize ===
@@ -25,12 +20,11 @@ const DEFAULT_PORT = 8080
 /** Window size (width and height). */
 export class WindowSize {
     static separator = 'x'
-    /** Constructs a new {@link WindowSize}. */
     constructor(public width: number, public height: number) {}
 
     /** Constructor of the default window size. */
     static default(): WindowSize {
-        return new WindowSize(DEFAULT_WIDTH, DEFAULT_HEIGHT)
+        return new WindowSize(1380, 900)
     }
 
     /** Parses the input text in form of `<width>x<height>`. */
@@ -57,63 +51,63 @@ export class WindowSize {
 // === Config ===
 // ==============
 
-export const CONFIG = contentConfig.OPTIONS.merge(
-    new contentConfig.Group({
+export const config = content.options.merge(
+    new content.Group({
         options: {
-            window: new contentConfig.Option({
+            window: new content.Option({
                 passToWebApplication: false,
                 value: true,
                 description:
                     `Display the window. When set to false, only the server runs. An ` +
                     `alternative client or browser can connect to it.`,
             }),
-            server: new contentConfig.Option({
+            server: new content.Option({
                 passToWebApplication: false,
                 value: true,
                 description:
                     `Run the server. When set to false, connect to an existing server on the ` +
                     `provided port.`,
             }),
-            version: new contentConfig.Option({
+            version: new content.Option({
                 passToWebApplication: false,
                 value: false,
                 description: `Print the version.`,
             }),
-            help: new contentConfig.Option({
+            help: new content.Option({
                 passToWebApplication: false,
                 value: false,
                 description:
                     `Display the common configuration options help page. Use ` +
-                    `'${HELP_EXTENDED_OPTION_NAME}' to see all options.`,
+                    `'${helpExtendedOptionName}' to see all options.`,
             }),
-            [HELP_EXTENDED_NAME]: new contentConfig.Option({
+            [helpExtendedName]: new content.Option({
                 passToWebApplication: false,
                 value: false,
                 description:
                     'Show all the configuration options help page, including the less-common ' +
                     'options.',
             }),
-            engine: new contentConfig.Option({
+            engine: new content.Option({
                 passToWebApplication: false,
                 value: true,
                 description: 'Start the engine process.',
             }),
         },
         groups: {
-            window: new contentConfig.Group({
+            window: new content.Group({
                 options: {
-                    size: new contentConfig.Option({
+                    size: new content.Option({
                         passToWebApplication: false,
                         value: WindowSize.default().pretty(),
                         description: `Set the initial window size.`,
                     }),
-                    vibrancy: new contentConfig.Option({
+                    vibrancy: new content.Option({
                         passToWebApplication: false,
                         value: false,
                         description: `Enable the vibrancy effect.`,
                         primary: false,
                     }),
-                    closeToQuit: new contentConfig.Option({
+                    closeToQuit: new content.Option({
                         passToWebApplication: false,
                         value: process.platform !== 'darwin',
                         defaultDescription: 'false on MacOS, true otherwise',
@@ -125,14 +119,14 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                     }),
                 },
             }),
-            server: new contentConfig.Group({
+            server: new content.Group({
                 description:
                     `The configuration settings for the server utilized in delivering web ` +
                     `application to either Electron or a browser window.`,
                 options: {
-                    port: new contentConfig.Option({
+                    port: new content.Option({
                         passToWebApplication: false,
-                        value: DEFAULT_PORT,
+                        value: 8080,
                         description:
                             `Port to use. If the port is unavailable, the next available port is ` +
                             `used.`,
@@ -140,23 +134,23 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                 },
             }),
 
-            performance: new contentConfig.Group({
+            performance: new content.Group({
                 description: `Performance-related configuration options.`,
                 options: {
-                    backgroundThrottling: new contentConfig.Option({
+                    backgroundThrottling: new content.Option({
                         passToWebApplication: true,
                         value: true,
                         description: 'Throttle animations when run in background.',
                     }),
 
-                    forceHighPerformanceGpu: new contentConfig.Option({
+                    forceHighPerformanceGpu: new content.Option({
                         passToWebApplication: false,
                         value: true,
                         description:
                             'Force using discrete GPU when there are multiple GPUs available.',
                     }),
 
-                    angleBackend: new contentConfig.Option({
+                    angleBackend: new content.Option({
                         passToWebApplication: false,
                         value: 'default',
                         description:
@@ -167,7 +161,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `being worked on. However, the 'metal' backend is less performant ` +
                             `than the 'default' one on M1 and M2 Macs, so it is disabled for now.`,
                     }),
-                    ignoreGpuBlocklist: new contentConfig.Option({
+                    ignoreGpuBlocklist: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: true,
@@ -182,7 +176,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `observed in the following example: ` +
                             `https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.`,
                     }),
-                    disableSandbox: new contentConfig.Option({
+                    disableSandbox: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: true,
@@ -198,7 +192,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `as demonstrated in this example: ` +
                             `https://github.com/enso-org/enso/issues/3801.`,
                     }),
-                    disableGpuSandbox: new contentConfig.Option({
+                    disableGpuSandbox: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: true,
@@ -213,7 +207,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `instances where such crashes may occur, please refer to this ` +
                             `document: https://wiki.archlinux.org/title/chromium.`,
                     }),
-                    disableGpuVsync: new contentConfig.Option({
+                    disableGpuVsync: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: true,
@@ -229,7 +223,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `comprehensive understanding of this aspect, please refer to this ` +
                             `thread: https://bugs.chromium.org/p/chromium/issues/detail?id=460919.`,
                     }),
-                    disableSmoothScrolling: new contentConfig.Option({
+                    disableSmoothScrolling: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: true,
@@ -239,7 +233,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `further elaboration, please refer to this thread: ` +
                             `https://news.ycombinator.com/item?id=28782493.`,
                     }),
-                    enableNativeGpuMemoryBuffers: new contentConfig.Option({
+                    enableNativeGpuMemoryBuffers: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: true,
@@ -248,17 +242,17 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                 },
             }),
 
-            profile: new contentConfig.Group({
+            profile: new content.Group({
                 options: {
-                    loadProfile: new contentConfig.Option<string[]>({
+                    loadProfile: new content.Option({
                         passToWebApplication: false,
-                        value: [],
+                        value: [] as string[],
                         description:
                             `Load a performance profile. For use with developer tools such as ` +
                             `the 'profiling-run-graph' entry point.`,
                         primary: false,
                     }),
-                    saveProfile: new contentConfig.Option({
+                    saveProfile: new content.Option({
                         passToWebApplication: false,
                         value: '',
                         description:
@@ -270,11 +264,11 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                 },
             }),
 
-            engine: new contentConfig.Group({
+            engine: new content.Group({
                 options: {
-                    projectManagerPath: new contentConfig.Option({
+                    projectManagerPath: new content.Option({
                         passToWebApplication: false,
-                        value: paths.PROJECT_MANAGER_PATH,
+                        value: paths.projectManager,
                         description:
                             'Set the path of a local project manager executable to use for ' +
                             'running projects.',
@@ -283,9 +277,9 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                 },
             }),
 
-            debug: new contentConfig.Group({
+            debug: new content.Group({
                 options: {
-                    info: new contentConfig.Option({
+                    info: new content.Option({
                         passToWebApplication: false,
                         value: false,
                         description:
@@ -293,19 +287,19 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `output of this command when submitting a report regarding any bugs ` +
                             `encountered.`,
                     }),
-                    verbose: new contentConfig.Option({
+                    verbose: new content.Option({
                         passToWebApplication: false,
                         value: false,
                         description: `Increase logs verbosity. Affects both IDE and the backend.`,
                     }),
-                    devTools: new contentConfig.Option({
+                    devTools: new content.Option({
                         passToWebApplication: false,
                         value: false,
                         description: 'Run the application in development mode.',
                     }),
                 },
             }),
-            chrome: new contentConfig.Group({
+            chrome: new content.Group({
                 description:
                     `Chrome and Electron command line options. Please be advised that the ` +
                     `provided list contains both Electron-specific options as well as a ` +
@@ -329,7 +323,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                     // === Electron Options ===
                     // https://www.electronjs.org/docs/latest/api/command-line-switches
 
-                    authServerWhitelist: new contentConfig.Option({
+                    authServerWhitelist: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -337,7 +331,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `A comma-separated list of servers for which integrated ` +
                             `authentication is enabled.`,
                     }),
-                    authNegotiateDelegateWhitelist: new contentConfig.Option({
+                    authNegotiateDelegateWhitelist: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -346,25 +340,25 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `credentials is required. Without '*' prefix the URL has to match ` +
                             `exactly.`,
                     }),
-                    disableNtlmV2: new contentConfig.Option({
+                    disableNtlmV2: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: false,
                         description: 'Disables NTLM v2 for posix platforms, no effect elsewhere.',
                     }),
-                    disableHttpCache: new contentConfig.Option({
+                    disableHttpCache: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: false,
                         description: 'Disables the disk cache for HTTP requests.',
                     }),
-                    disableHttp2: new contentConfig.Option({
+                    disableHttp2: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: false,
                         description: 'Disable HTTP/2 and SPDY/3.1 protocols.',
                     }),
-                    disableRendererBackgrounding: new contentConfig.Option({
+                    disableRendererBackgrounding: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: false,
@@ -372,7 +366,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `Prevents Chrome from lowering the priority of invisible pages' ` +
                             `renderer processes.`,
                     }),
-                    diskCacheSize: new contentConfig.Option({
+                    diskCacheSize: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: 0,
@@ -380,7 +374,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `Forces the maximum disk space to be used by the disk cache, ` +
                             `in bytes.`,
                     }),
-                    enableLogging: new contentConfig.Option({
+                    enableLogging: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -388,7 +382,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `Prints Chrome's logging to stderr (or a log file, if provided as` +
                             ` argument).`,
                     }),
-                    forceFieldtrials: new contentConfig.Option({
+                    forceFieldtrials: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -396,7 +390,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             'Field trials to be forcefully enabled or disabled. For example, ' +
                             "'WebRTC-Audio-Red-For-Opus/Enabled/'.",
                     }),
-                    hostRules: new contentConfig.Option({
+                    hostRules: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -404,7 +398,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `A comma-separated list of rules that control how hostnames are ` +
                             `mapped. For example, 'MAP * 127.0.0.1'.`,
                     }),
-                    hostResolverRules: new contentConfig.Option({
+                    hostResolverRules: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -412,19 +406,19 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `Like '-chrome.host-rules' but these rules only apply to the host ` +
                             `resolver.`,
                     }),
-                    ignoreCertificateErrors: new contentConfig.Option({
+                    ignoreCertificateErrors: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: false,
                         description: `Ignores certificate related errors.`,
                     }),
-                    ignoreConnectionsLimit: new contentConfig.Option({
+                    ignoreConnectionsLimit: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
                         description: `Ignore the connections limit for domains list separated by ','.`,
                     }),
-                    jsFlags: new contentConfig.Option({
+                    jsFlags: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -432,13 +426,13 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `Specifies the flags passed to the Node.js engine. For example, ` +
                             `'-chrome.js-flags="--harmony_proxies --harmony_collections"'.`,
                     }),
-                    lang: new contentConfig.Option({
+                    lang: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
                         description: 'Set a custom locale.',
                     }),
-                    logFile: new contentConfig.Option({
+                    logFile: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -446,14 +440,14 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `If '-chrome.enable-logging' is specified, logs will be written to ` +
                             `the given path. The parent directory must exist.`,
                     }),
-                    logNetLog: new contentConfig.Option({
+                    logNetLog: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
                         description:
                             'Enable net log events to be saved and writes them to the provided path.',
                     }),
-                    logLevel: new contentConfig.Option({
+                    logLevel: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -462,7 +456,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `'-chrome.enable-logging'. The argument should be one of Chrome's` +
                             ` LogSeverities.`,
                     }),
-                    noProxyServer: new contentConfig.Option({
+                    noProxyServer: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: false,
@@ -470,7 +464,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `Don't use a proxy server and always make direct connections. ` +
                             `Overrides any other proxy server flags that are passed.`,
                     }),
-                    noSandbox: new contentConfig.Option({
+                    noSandbox: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: false,
@@ -478,7 +472,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `Disable the Chrome sandbox. Forces renderer process and Chrome ` +
                             `helper processes to run un-sandboxed. Should only be used for testing.`,
                     }),
-                    proxyBypassList: new contentConfig.Option({
+                    proxyBypassList: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -488,13 +482,13 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `used in tandem with '-chrome.proxy-server'. For example, ` +
                             `'-chrome.proxy-bypass-list "<local>;*.google.com;*foo.com;1.2.3.4:5678"'.`,
                     }),
-                    proxyPacUrl: new contentConfig.Option({
+                    proxyPacUrl: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
                         description: `Use the PAC script at the specified url.`,
                     }),
-                    proxyServer: new contentConfig.Option({
+                    proxyServer: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -507,13 +501,13 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `authentication per ` +
                             `[Chrome issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).`,
                     }),
-                    remoteDebuggingPort: new contentConfig.Option({
+                    remoteDebuggingPort: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
                         description: 'Enables remote debugging over HTTP on the specified port.',
                     }),
-                    v: new contentConfig.Option({
+                    v: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: 0,
@@ -522,7 +516,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `Normally positive values are used for V-logging levels. This switch ` +
                             `only works when '-chrome.enable-logging' is also passed.`,
                     }),
-                    vmodule: new contentConfig.Option({
+                    vmodule: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -536,8 +530,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                     }),
                     // Please note that this option uses the snake-case naming convention because
                     // Chrome defines it so.
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    force_high_performance_gpu: new contentConfig.Option({
+                    force_high_performance_gpu: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: false,
@@ -546,8 +539,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                     }),
                     // Please note that this option uses the snake-case naming convention because
                     // Chrome defines it so.
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    force_low_power_gpu: new contentConfig.Option({
+                    force_low_power_gpu: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: false,
@@ -555,7 +547,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             'Force using integrated GPU when there are multiple GPUs available.',
                     }),
 
-                    enableBlinkFeatures: new contentConfig.Option({
+                    enableBlinkFeatures: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -567,7 +559,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `file.`,
                     }),
 
-                    disableBlinkFeatures: new contentConfig.Option({
+                    disableBlinkFeatures: new content.Option({
                         passToWebApplication: false,
                         primary: false,
                         value: '',
@@ -583,9 +575,8 @@ export const CONFIG = contentConfig.OPTIONS.merge(
         },
     })
 )
-CONFIG.groups.startup.options.platform.value = process.platform
+config.groups.startup.options.platform.value = process.platform
+// @ts-expect-error
+config.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
 
-CONFIG.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
-
-export type Args = typeof CONFIG
-export type Option<T> = contentConfig.Option<T>
+export type Args = typeof config

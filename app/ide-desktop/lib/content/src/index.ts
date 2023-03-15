@@ -2,34 +2,26 @@
  * the user with a visual representation of this process (welcome screen). It also implements a view
  * allowing to choose a debug rendering test from. */
 
-import * as semver from 'semver'
-
-import * as contentConfig from 'enso-content-config'
-
+// @ts-ignore
+import globalConfig from '../../../../gui/config.yaml'
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
-import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
+import * as semver from 'semver'
+import { Version, options } from 'enso-content-config'
 
 const logger = app.log.logger
-
-// === Constants ===
-/** One second in milliseconds. */
-const SECOND = 1000
-const FETCH_TIMEOUT = 300
 
 // =============
 // === Fetch ===
 // =============
 
-function timeout(time: number) {
+const timeout = (time: number) => {
     const controller = new AbortController()
-    setTimeout(() => {
-        controller.abort()
-    }, time * SECOND)
+    setTimeout(() => controller.abort(), time * 1000)
     return controller
 }
 
 /** A version of `fetch` which timeouts after the provided time. */
-async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknown> {
+async function fetchTimeout(url: string, timeoutSeconds: number): Promise<any> {
     return fetch(url, { signal: timeout(timeoutSeconds).signal }).then(response => {
         const statusCodeOK = 200
         if (response.status === statusCodeOK) {
@@ -46,32 +38,15 @@ async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknow
  * and compares it with the version of the `client` js package. When the function is unable to
  * download the application config, or one of the compared versions does not match the semver
  * scheme, it returns `true`. */
-async function checkMinSupportedVersion(config: typeof contentConfig.OPTIONS) {
-    if (config.groups.engine.options.skipMinVersionCheck.value) {
+async function checkMinSupportedVersion(config: typeof options) {
+    if (config.groups.engine.options.skipMinVersionCheck.value === true) {
         return true
     }
     try {
-        const appConfig = await fetchTimeout(
-            config.groups.engine.options.configUrl.value,
-            FETCH_TIMEOUT
-        )
-        if (
-            typeof appConfig === 'object' &&
-            // `typeof x === 'object'` narrows to `object | null`, not `object | undefined`
-            // eslint-disable-next-line no-restricted-syntax
-            appConfig !== null &&
-            'minimumSupportedVersion' in appConfig
-        ) {
-            const minSupportedVersion = appConfig.minimumSupportedVersion
-            if (typeof minSupportedVersion === 'string') {
-                const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
-                return comparator.test(contentConfig.VERSION.ide)
-            } else {
-                logger.error('The minimum supported version is not a string.')
-            }
-        } else {
-            logger.error('The application config is not an object.')
-        }
+        const appConfig: any = await fetchTimeout(config.groups.engine.options.configUrl.value, 300)
+        const minSupportedVersion = appConfig.minimumSupportedVersion
+        const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
+        return comparator.test(Version.ide)
     } catch (e) {
         console.error('Minimum version check failed.', e)
         return true
@@ -84,13 +59,13 @@ function displayDeprecatedVersionDialog() {
         'This version is no longer supported. Please download a new one.'
     )
 
-    const root = document.getElementById('root') ?? undefined
+    const root = document.getElementById('root')
     const versionCheckDiv = document.createElement('div')
     versionCheckDiv.id = 'version-check'
     versionCheckDiv.className = 'auth-info'
     versionCheckDiv.style.display = 'block'
     versionCheckDiv.appendChild(versionCheckText)
-    if (root === undefined) {
+    if (root == null) {
         console.error('Cannot find the root DOM element.')
     } else {
         root.appendChild(versionCheckDiv)
@@ -102,7 +77,7 @@ function displayDeprecatedVersionDialog() {
 // ========================
 
 interface StringConfig {
-    [key: string]: StringConfig | string
+    [key: string]: string | StringConfig
 }
 
 class Main {
@@ -120,34 +95,35 @@ class Main {
 
         const appInstance = new app.App({
             config,
-            configOptions: contentConfig.OPTIONS,
+            configOptions: options,
             packageInfo: {
-                version: BUILD_INFO.version,
-                engineVersion: BUILD_INFO.engineVersion,
+                // @ts-ignore
+                version: BUILD_INFO.default.version,
+                // @ts-ignore
+                engineVersion: BUILD_INFO.default.engineVersion,
             },
         })
 
         if (appInstance.initialized) {
-            if (contentConfig.OPTIONS.options.dataCollection.value) {
+            if (options.options.dataCollection.value) {
                 // TODO: Add remote-logging here.
             }
-            if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
+            if (!(await checkMinSupportedVersion(options))) {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    contentConfig.OPTIONS.options.authentication.value &&
-                    contentConfig.OPTIONS.groups.startup.options.entry.value !==
-                        contentConfig.OPTIONS.groups.startup.options.entry.default
+                    options.options.authentication.value &&
+                    options.groups.startup.options.entry.value !=
+                        options.groups.startup.options.entry.default
                 ) {
                     // TODO: authentication here
                     // appInstance.config.email.value = user.email
-                    void appInstance.run()
+                    appInstance.run()
                 } else {
-                    void appInstance.run()
+                    appInstance.run()
                 }
-                const email = contentConfig.OPTIONS.groups.authentication.options.email.value
-                // The default value is `""`, so a truthiness check is most appropriate here.
-                if (email) {
+                const email = options.groups.authentication.options.email.value
+                if (email != null) {
                     logger.log(`User identified as '${email}'.`)
                 }
             }
@@ -159,6 +135,5 @@ class Main {
 
 const API = new Main()
 
-// @ts-expect-error `globalConfig.windowAppScopeName` is not known at typecheck time.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-window[GLOBAL_CONFIG.windowAppScopeName] = API
+// @ts-ignore
+window[globalConfig.windowAppScopeName] = API

@@ -1,12 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["DOM"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "node",
-    "checkJs": true,
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitAny": true,
@@ -17,14 +15,9 @@
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "ES2019",
-    "paths": {
-      "@ensogl-app": ["../../target/ensogl-pack/linked-dist/index"],
-      "@build-cfg": ["./build.json"]
-    }
+    "target": "ES2019"
   },
   "ts-node": {
-    "esm": true,
-    "files": true
+    "esm": true
   }
 }

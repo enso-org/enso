@@ -5,8 +5,10 @@ const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 const MISSING_COMPONENT_ACTION_INSTALL = 'Install'
 
 /** A WebSocket endpoint to the project manager. */
-export class ProjectManager {
-    constructor(protected readonly connectionUrl: string) {
+class ProjectManager {
+    protected readonly connectionUrl: string
+
+    constructor(connectionUrl: string) {
         this.connectionUrl = connectionUrl
     }
 
@@ -15,7 +17,7 @@ export class ProjectManager {
     }
 
     /** * Get the projects list. */
-    listProjects(): unknown {
+    listProjects(): any {
         const req = {
             jsonrpc: '2.0',
             id: 0,
@@ -28,37 +30,30 @@ export class ProjectManager {
             ws.onopen = () => {
                 ws.send(JSON.stringify(req))
             }
-            ws.onmessage = (event: MessageEvent<string>) => {
+            ws.onmessage = (event: any) => {
                 resolve(JSON.parse(event.data))
             }
-            ws.onerror = (error: unknown) => {
+            ws.onerror = (error: any) => {
                 reject(error)
             }
-        }).finally(() => {
-            ws.close()
-        })
+        }).finally(() => ws.close())
     }
 
-    /** * Create a new project. */
-    createProject(
-        name: string,
-        template?: string,
-        action = MISSING_COMPONENT_ACTION_INSTALL
-    ): unknown {
+    /** * Create an new project. */
+    createProject(name: string, template?: string, action = MISSING_COMPONENT_ACTION_INSTALL): any {
         const params = {
             name: name,
             missingComponentAction: action,
         }
         if (template !== undefined) {
-            Object.assign(params, {
-                projectTemplate: template,
-            })
+            // @ts-ignore
+            params['projectTemplate'] = template
         }
         const req = {
             jsonrpc: '2.0',
             id: 0,
             method: 'project/create',
-            params,
+            params: params,
         }
 
         const ws = new WebSocket(this.connectionUrl)
@@ -66,14 +61,14 @@ export class ProjectManager {
             ws.onopen = () => {
                 ws.send(JSON.stringify(req))
             }
-            ws.onmessage = (event: MessageEvent<string>) => {
+            ws.onmessage = event => {
                 resolve(JSON.parse(event.data))
             }
             ws.onerror = error => {
                 reject(error)
             }
-        }).finally(() => {
-            ws.close()
-        })
+        }).finally(() => ws.close())
     }
 }
+
+export { ProjectManager }
