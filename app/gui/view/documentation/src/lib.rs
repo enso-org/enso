@@ -380,7 +380,7 @@ impl View {
         }
         init.emit(());
         style.init.emit(());
-        visualization.pass_events_to_dom_if_active(scene, network);
+        // visualization.pass_events_to_dom_if_active(scene, network);
         self
     }
 }

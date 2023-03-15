@@ -298,7 +298,7 @@ impl Instance {
             eval frp.set_layer ((layer) model.set_layer(*layer));
             eval frp.is_active ((is_active) model.set_active(*is_active));
         }
-        frp.pass_events_to_dom_if_active(scene, network);
+        // frp.pass_events_to_dom_if_active(scene, network);
         self
     }
 

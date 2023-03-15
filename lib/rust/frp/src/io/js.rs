@@ -91,51 +91,42 @@ fn event_listener_options() -> enso_web::AddEventListenerOptions {
 /// `pass_to_dom` event will be emitted.
 ///
 /// To make this class manage js event, you should wrap the closure passed as event listener using
-/// `make_event_handler` function.
+/// `handler` function.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
-pub struct CurrentJsEvent {
-    /// Currently handled js event.
+pub struct JsEvent {
     pub event:    frp::Stream<Option<enso_web::Event>>,
     event_source: frp::Source<Option<enso_web::Event>>,
     network:      frp::Network,
 }
 
-impl Default for CurrentJsEvent {
+impl Default for JsEvent {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl CurrentJsEvent {
+impl JsEvent {
     /// Constructor
     pub fn new() -> Self {
         frp::new_network! { network
             event_source <- source();
-            event <- any(...);
-            event <+ event_source;
         }
-        let event = event.into();
+        let event = event_source.clone().into();
         Self { event, event_source, network }
     }
 
-    /// A helper function for creating mouse event handlers.
-    ///
-    /// This wraps the `processing_fn` so before processing the current js event is
-    /// set to the received js event, and after processing it is set back to `None`.
-    pub fn make_event_handler<Event>(
-        &self,
-        mut processing_fn: impl FnMut(&Event),
-    ) -> impl FnMut(&Event)
-    where
-        Event: AsRef<enso_web::Event>,
-    {
-        let event_source = self.event_source.clone_ref();
-        move |event| {
+    /// Creates an event handler which wraps the event in an FRP network. The event will be emitted
+    /// on the `event` output stream. After the event is emitted, `None` will be emitted.
+    pub fn handler<Event>(&self, mut processing_fn: impl FnMut(&Event)) -> impl FnMut(&Event)
+    where Event: AsRef<enso_web::Event> {
+        let event_source = &self.event_source;
+        f!([event_source] (event) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "event_handler");
             let js_event = event.as_ref().clone();
             event_source.emit(Some(js_event));
             processing_fn(event);
             event_source.emit(None);
-        }
+        })
     }
 }
