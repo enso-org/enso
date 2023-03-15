@@ -43,7 +43,10 @@
     "ts-node": "^10.9.1"
   },
   "optionalDependencies": {
-    "dmg-license": "^1.0.11"
+    "dmg-license": "^1.0.11",
+    "esbuild-linux-64": "^0.15.18",
+    "esbuild-windows-64": "^0.15.18",
+    "esbuild-darwin-64": "^0.15.18"
   },
   "scripts": {
     "typecheck": "npx tsc --noEmit",
