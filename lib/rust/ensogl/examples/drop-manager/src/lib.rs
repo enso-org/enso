@@ -62,7 +62,8 @@ pub fn main() {
     let network = enso_frp::Network::new("Debug Scene");
     enso_frp::extend! { network
         let file_received = drop_manager.files_received().clone_ref();
-        eval file_received ([]((_, files)) for file in files { download_file(file.clone_ref())});
+        eval file_received ([](ensogl_drop_manager::DropEventData{ files, ..})
+            for file in files { download_file(file.clone_ref())});
     }
 
     let mut loader_hidden = false;

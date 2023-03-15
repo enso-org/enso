@@ -3750,7 +3750,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let files_received = model.drop_manager.files_received().clone_ref();
     frp::extend! { network
         files_with_positions <- files_received.map2(&default_gap,
-            move |(drop_posititon,files),default_gap| {
+            move |drop_event_data,default_gap| {
+                let files = &drop_event_data.files;
+                let drop_posititon = drop_event_data.position;
                 let single_offset = default_gap + node::HEIGHT;
                 files.iter().enumerate().map(|(index,file)| {
                     let offset = Vector2(0.0, single_offset * index as f32);
