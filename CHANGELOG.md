@@ -119,7 +119,10 @@
   sign up and sign in for users), via either email/password or GitHub/Google.
 - [New Enso documentation parser][5917]. Smaller and faster; enables planned
   improvements to internal documentation representation.
-- [Added more user-friendly labels to dropdown widgets.][5705]
+- [Dropdown widgets now support custom labels][5705] and automatically generate
+  shortened labels for entries with long module paths. When an option is
+  selected from the dropdown, the necessary module imports are inserted,
+  eliminating the need for fully qualified names.
 
 #### EnsoGL (rendering engine)
 
