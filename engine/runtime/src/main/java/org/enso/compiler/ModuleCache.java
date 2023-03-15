@@ -45,16 +45,16 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     }
 
     @Override
-    protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws CacheException, IOException, ClassNotFoundException {
+    protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
         try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
           if (stream.readObject() instanceof IR.Module ir) {
               try {
                   return new CachedModule(ir, Module.CompilationStage.valueOf(meta.compilationStage()), module.getSource());
               } catch (IOException ioe) {
-                  throw new CacheException(ioe.getMessage());
+                  throw new ClassNotFoundException(ioe.getMessage());
               }
           } else {
-              throw new CacheException("Expected IR.Module, got " + data.getClass());
+              throw new ClassNotFoundException("Expected IR.Module, got " + data.getClass());
           }
         }
     }

@@ -46,12 +46,12 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     }
 
     @Override
-    protected CachedBindings deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws CacheException, IOException, ClassNotFoundException {
+    protected CachedBindings deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
       try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
         if (stream.readObject() instanceof MapToBindings bindings) {
           return new CachedBindings(libraryName, bindings, Optional.empty());
         } else {
-          throw new CacheException("Expected ImportExportCache.FileToBindings, got " + data.getClass());
+          throw new ClassNotFoundException("Expected ImportExportCache.FileToBindings, got " + data.getClass());
         }
       }
     }

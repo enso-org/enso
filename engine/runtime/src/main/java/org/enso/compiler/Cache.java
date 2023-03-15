@@ -101,7 +101,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
 
                 logger.log(logLevel, "Unable to write cache data for " + logName + ".");
                 return Optional.empty();
-              } catch (CacheException e) {
+              } catch (ClassNotFoundException e) {
                 logger.log(
                     Level.SEVERE, "Failed to save cache for " + logName + ": " + e.getMessage());
                 return Optional.empty();
@@ -123,14 +123,14 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    */
   private boolean saveCacheTo(
       EnsoContext context, TruffleFile cacheRoot, T entry, TruffleLogger logger)
-      throws IOException, CacheException {
+      throws IOException, ClassNotFoundException {
     if (ensureRoot(cacheRoot)) {
       byte[] bytesToWrite = serialize(context, entry);
 
       String blobDigest = computeDigestFromBytes(bytesToWrite);
       String sourceDigest = computeDigest(entry, logger).get();
       if (sourceDigest == null) {
-        throw new CacheException("unable to compute digest");
+        throw new ClassNotFoundException("unable to compute digest");
       }
       byte[] metadataBytes = metadata(sourceDigest, blobDigest, entry);
 
@@ -266,9 +266,6 @@ public abstract class Cache<T, M extends Cache.Metadata> {
             invalidateCache(cacheRoot, logger);
             return Optional.empty();
           }
-        } catch (CacheException e) {
-          logger.log(logLevel, "`" + logName + "` was corrupt on disk: " + e.getMessage());
-          return Optional.empty();
         } catch (IOException ioe) {
           logger.log(
               logLevel, "`" + logName + "` failed to load (caused by: " + ioe.getMessage() + ").");
@@ -304,12 +301,12 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param meta metadata corresponding to the `obj`
    * @param logger Truffle's logger
    * @return {@code data} transformed to a cached entry or {@code null}
-   * @throws CacheException exception thrown on unexpected deserialized data
+   * @throws ClassNotFoundException exception thrown on unexpected deserialized data
    * @throws IOException when I/O goes wrong
    * @throws ClassNotFoundException on problems with deserializaiton of Java classes
    */
   protected abstract T deserialize(EnsoContext context, byte[] data, M meta, TruffleLogger logger)
-      throws IOException, ClassNotFoundException, CacheException;
+      throws IOException, ClassNotFoundException, ClassNotFoundException;
 
   /**
    * Read metadata representation from the provided location
@@ -534,11 +531,5 @@ public abstract class Cache<T, M extends Cache.Metadata> {
     String sourceHash();
 
     String blobHash();
-  }
-
-  public static final class CacheException extends Exception {
-    public CacheException(String errorMessage) {
-      super(errorMessage);
-    }
   }
 }
