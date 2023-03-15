@@ -190,7 +190,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitIsNull(ExpressionParser.IsNullContext ctx) {
-    var op = ctx.IS_NULL() != null || ctx.IS_NOT_NULL() != null ? "is_missing" : "is_empty";
+    var op = ctx.IS_NULL() != null || ctx.IS_NOT_NULL() != null ? "is_nothing" : "is_empty";
     var condition = executeMethod(op, visit(ctx.expr()));
     return ctx.IS_NOT_NULL() != null || ctx.IS_NOT_EMPTY() != null
         ? executeMethod("not", condition)

@@ -1,3 +1,5 @@
+// This lint doesn't like headings and "etc.""
+/* eslint-disable jsdoc/require-description-complete-sentence */
 /** @file Definition of the Electron-specific parts of the authentication flows of the IDE.
  *
  * # Overview of Authentication/Authorization
@@ -40,8 +42,8 @@
  *
  * To redirect the user from the IDE to an external source:
  * 1. Call the {@link initIpc} function to register a listener for
- * {@link ipc.channel.openUrlInSystemBrowser} IPC events.
- * 2. Emit an {@link ipc.channel.openUrlInSystemBrowser} event. The listener registered in the
+ * {@link ipc.Channel.openUrlInSystemBrowser} IPC events.
+ * 2. Emit an {@link ipc.Channel.openUrlInSystemBrowser} event. The listener registered in the
  * {@link initIpc} function will use the {@link opener} library to open the event's {@link URL}
  * argument in the system web browser, in a cross-platform way.
  *
@@ -58,7 +60,7 @@
  * To prepare the application to handle deep links:
  * - Register a custom URL protocol scheme with the OS (c.f., `electron-builder-config.ts`).
  * - Define a listener for Electron {@link OPEN_URL_EVENT}s (c.f., {@link initOpenUrlListener}).
- * - Define a listener for {@link ipc.channel.openDeepLink} events (c.f., `preload.ts`).
+ * - Define a listener for {@link ipc.Channel.openDeepLink} events (c.f., `preload.ts`).
  *
  * Then when the user clicks on a deep link from an external source to the IDE:
  * - The OS redirects the user to the application.
@@ -66,18 +68,24 @@
  * - The {@link OPEN_URL_EVENT} listener checks if the {@link URL} is a deep link.
  * - If the {@link URL} is a deep link, the {@link OPEN_URL_EVENT} listener prevents Electron from
  * handling the event.
- * - The {@link OPEN_URL_EVENT} listener then emits an {@link ipc.channel.openDeepLink} event.
- * - The {@link ipc.channel.openDeepLink} listener registered by the dashboard receives the event.
+ * - The {@link OPEN_URL_EVENT} listener then emits an {@link ipc.Channel.openDeepLink} event.
+ * - The {@link ipc.Channel.openDeepLink} listener registered by the dashboard receives the event.
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
+/* eslint-enable jsdoc/require-description-complete-sentence */
 
-import * as content from 'enso-content-config'
+import * as childProcess from 'node:child_process'
+import * as os from 'node:os'
+
 import * as electron from 'electron'
+
+import * as contentConfig from 'enso-content-config'
+
 import * as ipc from 'ipc'
 import * as shared from '../shared'
-import * as childProcess from 'child_process'
-import * as os from 'os'
+
+const logger = contentConfig.logger
 
 // =================
 // === Constants ===
@@ -98,7 +106,7 @@ const OPEN_URL_EVENT = 'open-url'
  * not a variable because the main window is not available when this function is called. This module
  * does not use the `window` until after it is initialized, so while the lambda may return `null` in
  * theory, it never will in practice. */
-export const initModule = (window: () => electron.BrowserWindow) => {
+export function initModule(window: () => electron.BrowserWindow) {
     initIpc()
     initOpenUrlListener(window)
 }
@@ -106,15 +114,15 @@ export const initModule = (window: () => electron.BrowserWindow) => {
 /** Registers an Inter-Process Communication (IPC) channel between the Electron application and the
  * served website.
  *
- * This channel listens for {@link ipc.channel.openUrlInSystemBrowser} events. When this kind of
+ * This channel listens for {@link ipc.Channel.openUrlInSystemBrowser} events. When this kind of
  * event is fired, this listener will assume that the first and only argument of the event is a URL.
  * This listener will then attempt to open the URL in a cross-platform way. The intent is to open
  * the URL in the system browser.
  *
  * This functionality is necessary because we don't want to run the OAuth flow in the app. Users
  * don't trust Electron apps to handle their credentials. */
-const initIpc = () => {
-    electron.ipcMain.on(ipc.channel.openUrlInSystemBrowser, (_event, url) => opener(url))
+function initIpc() {
+    electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => opener(url))
 }
 
 /** Registers a listener that fires a callback for `open-url` events, when the URL is a deep link.
@@ -124,16 +132,16 @@ const initIpc = () => {
  *
  * All URLs that aren't deep links (i.e., URLs that don't use the {@link shared.DEEP_LINK_SCHEME}
  * protocol) will be ignored by this handler. Non-deep link URLs will be handled by Electron. */
-const initOpenUrlListener = (window: () => electron.BrowserWindow) => {
+function initOpenUrlListener(window: () => electron.BrowserWindow) {
     electron.app.on(OPEN_URL_EVENT, (event, url) => {
         const parsedUrl = new URL(url)
         /** Prevent Electron from handling the URL at all, because redirects can be dangerous. */
         event.preventDefault()
         if (parsedUrl.protocol !== `${shared.DEEP_LINK_SCHEME}:`) {
-            content.logger.error(`${url} is not a deep link, ignoring.`)
+            logger.error(`${url} is not a deep link, ignoring.`)
             return
         }
-        window().webContents.send(ipc.channel.openDeepLink, url)
+        window().webContents.send(ipc.Channel.openDeepLink, url)
     })
 }
 
@@ -141,24 +149,38 @@ const initOpenUrlListener = (window: () => electron.BrowserWindow) => {
 // === Opener ===
 // ==============
 
+interface ExecFileOptions extends childProcess.ExecFileOptions {
+    command?: string
+}
+
 /** Function for opening URLs in the system browser in a cross-platform way.
  *
  * This function contains the contents of the `opener` NPM package, as of commit
  * https://github.com/domenic/opener/commit/24edf48a38d1e23bbc5ffbeb079c206d5565f062.  To avoid an
  * extra external dependency, the contents of the function have been copied into this file. The
  * function has been modified to follow the Enso style guide, and to be TypeScript-compatible. */
-const opener = (args: any, options?: any, callback?: any) => {
+// We don't control the callback signature, so the type must stay as `null`.
+function opener(
+    args: string | readonly string[],
+    options?: ExecFileOptions,
+    callback?: (
+        // eslint-disable-next-line no-restricted-syntax
+        error: childProcess.ExecFileException | null,
+        stdout: Buffer | string,
+        stderr: Buffer | string
+    ) => void
+) {
     let platform = process.platform
 
     /** Attempt to detect Windows Subystem for Linux (WSL). WSL  itself as Linux (which works in
      * most cases), but in this specific case we need to treat it as actually being Windows. The
      * "Windows-way" of opening things through cmd.exe works just fine here, whereas using xdg-open
      * does not, since there is no X Windows in WSL. */
-    if (platform === 'linux' && os.release().indexOf('Microsoft') !== -1) {
+    if (platform === 'linux' && os.release().includes('Microsoft')) {
         platform = 'win32'
     }
 
-    /** http://stackoverflow.com/q/1480971/3191, but see below for Windows. */
+    /** See http://stackoverflow.com/q/1480971/3191, but see below for Windows. */
     let command
     switch (platform) {
         case 'win32': {
@@ -201,12 +223,10 @@ const opener = (args: any, options?: any, callback?: any) => {
          *
          * Furthermore, if "cmd /c" double-quoted the first parameter, then "start" will interpret
          * it as a window title, so we need to add a dummy empty-string window title:
-         * http://stackoverflow.com/a/154090/3191
+         * http://stackoverflow.com/a/154090/3191.
          *
-         * Additionally, on Windows ampersand and caret need to be escaped when passed to "start" */
-        args = args.map((value: any) => {
-            return value.replace(/[&^]/g, '^$&')
-        })
+         * Additionally, on Windows `&`` and `^` need to be escaped when passed to "start". */
+        args = args.map(value => value.replace(/[&^]/g, '^$&'))
         args = ['/c', 'start', '""'].concat(args)
     }
 

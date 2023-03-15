@@ -23,42 +23,29 @@ from project.Data.Boolean import all
 
     Should there be a need to redefine the default implementation, here is a way:
     Define conversion function `Comparable.from` for your `type` and return pointer to
-    another `type` that satisfies either of the following two definitions:
+    another `type` that satisfies the following definition:
 
     ```
-    type Ordered_Comparator T
-        is_ordered = True
+    type Comparator T
         compare : T -> T -> (Ordering|Nothing)
         hash : T -> Integer
-
-    type Unordered_Comparator T
-        is_ordered = False
-        equals : T -> T -> (Boolean|Nothing)
-        hash : T -> Integer
     ```
 
-    Or `Incomparable` in case that the type `T` should not be compared at all.
+    Every type must provide exactly one comparator, i.e., the method of form
+    `Comparable.from (_:My_Type)` must return the same comparator type for every
+    value. Note that there is an implicit `Default_Comparator` assigned for every
+    type by default.
 
-    Every type must provide exactly one comparator, i.e., any method of form
-    `Comparable.from (_:My_Type)` must always return the same comparator type.
-    Note that if there is an implicit `Default_Unordered_Comparator` assigned
-    for every type by default.
+    A comparator has to implement `compare` and `hash` methods. `compare x y` method
+    returns `Ordering.Less` if x is ordered before y, `Ordering.Equal` if x is equal
+    to y, `Ordering.Greater` if x is ordered after y, and `Nothing` if x and y are
+    not equal, and their relative ordering cannot be determined.
 
-    Note that there has to be `is_ordered` method defined which returns a Boolean
-    indicating that the comparator is ordered. This is currently needed as there is
-    no way to define interfaces in Enso.
+    The signature of the `compare` method is designed so that it enables comparators
+    to provide a _partial ordering_ for a specific type.
 
-    An _unordered comparator_ has to implement both `equals` and `hash` to define
-    a _partial_ custom equality. By _partial_, we mean that every instance of the type
-    has to be either equal, not equal, or undefined, which is represented by the type signature
-    of `equals` - when a `Boolean` is returned, the two instances are either equal
-    or not equal, when `Nothing` is returned, the instances are incomparable.
-
-    An _ordered comparator_ has `compare` method instead of `equals` method, that is
-    expected to return `Ordering` signaling that an instance of the type is either
-    less than, equal to, or greater than the other instance, or `Nothing` signaling
-    that the two instances are incomparable. This relation may also be _partial_, meaning
-    that some of the instances may be incomparable.
+    A hash code must be provided for all the objects, therefore, the type signature
+    of `hash` method does not allow `Nothing` as a return value.
 
     The runtime expects the following semantics for all the comparators:
     - Hash consistency:
@@ -85,12 +72,10 @@ from project.Data.Boolean import all
             Value x y
 
         type UPair_Comparator
-            is_ordered = False
-
-            equals pair1 pair2 =
-                if pair1.x == pair2.x && pair1.y == pair2.y then True else
-                    if pair1.x == pair2.y && pair1.y == pair2.x then True else
-                        False
+            compare pair1 pair2 =
+                if pair1.x == pair2.x && pair1.y == pair2.y then Ordering.Equal else
+                    if pair1.x == pair2.y && pair1.y == pair2.x then Ordering.Equal else
+                        Nothing
 
             hash upair =
                 x_comp = Comparable.from upair.x
@@ -111,7 +96,6 @@ from project.Data.Boolean import all
         Comparable.from (_:Rational) = Rational_Ordering
 
         type Rational_Ordering
-            is_ordered = True
             compare self r1 r2 =
                 v1 = r1.numerator * r2.denominator
                 v2 = r2.numerator * r1.denominator
@@ -124,19 +108,12 @@ from project.Data.Boolean import all
         By defining the `Rational_Ordering` and making it available via
         `Comparable.from (_:Rational)` method, all parts of the Enso system will use
         the custom comparator whenever equality or hash code is needed.
-
-        The equality check of two objects:
-        - verifies both objects share the same type of `comparator`
-        - consults their `compare`, or `equals` method, based on whether the comparator is
-          ordered or unordered.
-        - if the result is `Ordering.Equal` the system also checks that both instances have the same `hash`
-        - the `hash` code check may be done only from time to time to speed things up
 @Builtin_Type
 type Comparable
     ## PRIVATE
        Called as a callback from internal engine code for an atom with a custom
        comparator. It is assumed that the given atom has a custom comparator, that is
-       a comparator different than `Default_Unordered_Comparator`.
+       a comparator different than `Default_Comparator`.
     hash_callback : Atom -> Integer
     hash_callback atom = (Comparable.from atom).hash atom
 
@@ -146,52 +123,30 @@ type Comparable
     has_custom_comparator : Atom -> Boolean
     has_custom_comparator atom =
         comp = Comparable.from atom
-        (comp.is_a Default_Unordered_Comparator).not && (comp.is_a Default_Ordered_Comparator).not
+        (comp.is_a Default_Comparator).not
 
-## Singleton denoting that values of certain type are not comparable.
-type Incomparable
-    Singleton
-
-## Default implementation of unordered comparator.
+## Default implementation of a _comparator_.
 @Builtin_Type
-type Default_Unordered_Comparator
-    is_ordered = False
-
-    equals : Any -> Any -> (Boolean|Nothing)
-    equals x y = Comparable.equals_builtin x y
-
-    hash : Any -> Integer
-    hash object = Comparable.hash_builtin object
-
-
-## Default implementation of an ordered _comparator_. Handles only primitive types,
-   does not handle atoms, or vectors. Any type that requires an ordering, must
-   define its own ordered comparator.
-@Builtin_Type
-type Default_Ordered_Comparator
-    is_ordered = True
-
-    ## Handles only primitive types, not atoms or vectors.
+type Default_Comparator
     compare : Any -> Any -> (Ordering|Nothing)
     compare x y =
-        case Comparable.less_than_builtin x y of
-            Nothing -> Nothing
-            True -> Ordering.Less
+        case Comparable.equals_builtin x y of
+            True -> Ordering.Equal
             False ->
-                case Comparable.equals_builtin x y of
+                case Comparable.less_than_builtin x y of
                     Nothing -> Nothing
-                    True -> Ordering.Equal
+                    True -> Ordering.Less
                     False ->
                         case Comparable.less_than_builtin y x of
                             Nothing -> Nothing
                             True -> Ordering.Greater
-                            False -> Panic.throw (Illegal_State.Error "Unreachable")
+                            False -> Nothing
 
     hash : Number -> Integer
     hash x = Comparable.hash_builtin x
 
 
-Comparable.from (_:Any) = Default_Unordered_Comparator
+Comparable.from (_:Any) = Default_Comparator
 
 
 ## Types representing the ordering of values.
@@ -250,7 +205,6 @@ type Ordering
         if sign > 0 then Ordering.Greater else Ordering.Less
 
 type Ordering_Comparator
-    is_ordered = True
     compare x y = (Comparable.from x.to_sign).compare x.to_sign y.to_sign
     hash x = x.to_sign
 

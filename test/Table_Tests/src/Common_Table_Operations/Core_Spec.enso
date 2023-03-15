@@ -106,6 +106,10 @@ spec setup =
             t3 = t2.set bar2 "bar3"
             t3.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar2", "bar3"]
 
+        Test.specify "should not allow illegal column names" <|
+            table.set (table.get "bar") new_name="" . should_fail_with Illegal_Argument
+            table.set (table.get "bar") new_name='a\0b' . should_fail_with Illegal_Argument
+
         Test.specify "should allow replacing a column" <|
             foo = table.get "bar" . rename "foo"
             t2 = table.set foo
@@ -163,6 +167,15 @@ spec setup =
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
             table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+
+        Test.specify "should allow weird column names in all backends" <|
+            columns = weird_names.map_with_index ix-> name->
+                [name, [100+ix, 2, 3]]
+            table = table_builder columns
+            table.column_names . should_equal weird_names
+
+            weird_names.map_with_index ix-> name->
+                table.at name . to_vector . should_equal [100+ix, 2, 3]
 
     Test.group prefix+"Table.column_count" <|
         Test.specify "should allow getting the column count" <|
@@ -235,3 +248,6 @@ spec setup =
             table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds
             table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds
             table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column
+
+# A set of potentially problematic column names.
+weird_names = ['whitespace and \t others', 'foo "the bar" baz', "a 'X' c", "emoji? 😎 yep", "😊💡🎉🌻", "Polskie znaki - np. ąęćśó", 'acce\u0301nt a\u0301cuté', 'SELECT \'A\',"B" FROM t;--', '"', "'", '”', 'one " quote', 'double "" quote', 'even \nnewlines could go here', 'and\r\nthat\rtoo', 'foo ” bar', 'foo ”the” bar', 'x”; --']

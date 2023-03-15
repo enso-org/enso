@@ -185,15 +185,13 @@ type JS_Object
 
 ## PRIVATE
 type JS_Object_Comparator
-    is_ordered : Boolean
-    is_ordered = False
-
-    equals : JS_Object -> JS_Object -> Boolean
-    equals obj1 obj2 =
+    compare : JS_Object -> JS_Object -> (Ordering|Nothing)
+    compare obj1 obj2 =
         obj1_keys = obj1.field_names
         obj2_keys = obj2.field_names
-        obj1_keys.length == obj2_keys.length && obj1_keys.all key->
+        same_values = obj1_keys.length == obj2_keys.length && obj1_keys.all key->
             (obj1.get key == obj2.at key).catch No_Such_Key _->False
+        if same_values then Ordering.Equal else Nothing
 
     hash : JS_Object -> Integer
     hash obj =

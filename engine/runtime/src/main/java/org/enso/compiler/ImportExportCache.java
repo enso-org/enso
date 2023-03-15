@@ -63,7 +63,7 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
         try {
             return Optional.of(objectMapper.readValue(maybeJsonString, ImportExportCache.Metadata.class));
         } catch (JsonProcessingException e) {
-            logger.log(logLevel, "Failed to deserialize library's metadata: " + e.getMessage(), e);
+            logger.log(logLevel, "Failed to deserialize library's metadata.", e);
             return Optional.empty();
         }
     }

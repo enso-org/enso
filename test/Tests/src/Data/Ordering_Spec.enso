@@ -11,7 +11,6 @@ type Ord
     Value number
 
 type Ord_Comparator
-    is_ordered = True
     compare x y = (Comparable.from x.number) . compare x.number y.number
     hash x = (Comparable.from x.number) . hash x.number
 
@@ -22,12 +21,10 @@ type UPair
     Value x y
 
 type UPair_Comparator
-    is_ordered = False
-
-    equals pair1 pair2 =
-        if pair1.x == pair2.x && pair1.y == pair2.y then True else
-            if pair1.x == pair2.y && pair1.y == pair2.x then True else
-                False
+    compare pair1 pair2 =
+        if pair1.x == pair2.x && pair1.y == pair2.y then Ordering.Equal else
+            if pair1.x == pair2.y && pair1.y == pair2.x then Ordering.Equal else
+                Nothing
 
     hash upair =
         x_comp = Comparable.from upair.x
@@ -42,23 +39,16 @@ type Parent
 # === The Tests ===
 
 spec =
-    Test.group "Default ordered comparator" <|
-        Test.specify "should support custom ordered comparator" <|
+    Test.group "Default comparator" <|
+        Test.specify "should support custom comparator" <|
             Ordering.compare (Ord.Value 1) (Ord.Value 2) . should_equal Ordering.Less
             Ordering.compare (Ord.Value 1) (Ord.Value 1) . should_equal Ordering.Equal
             Ordering.compare (Ord.Value 20) (Ord.Value 1) . should_equal Ordering.Greater
+            Ordering.compare (UPair.Value 1 2) (UPair.Value 2 1) . should_equal Ordering.Equal
 
-        Test.specify "should support equality for custom ordered comparators in atom field" <|
+        Test.specify "should support equality for custom comparators in atom field" <|
             ((Parent.Value (Ord.Value 1)) == (Parent.Value (Ord.Value 1))) . should_be_true
             ((Parent.Value (Ord.Value 1)) == (Parent.Value (Ord.Value 22))) . should_be_false
-
-        Test.specify "should throw Incomparable_Values when comparing types with unordered comparator" <|
-            val1 = (UPair.Value 1 2)
-            val2 = (UPair.Value 2 1)
-            err = Ordering.compare val1 val2
-            err.should_fail_with Incomparable_Values
-            Meta.is_same_object err.catch.left val1 . should_be_true
-            Meta.is_same_object err.catch.right val2 . should_be_true
 
         Test.specify "should throw Type_Error when comparing different types" <|
             Ordering.compare (UPair.Value 1 2) (Ord.Value 2) . should_fail_with Type_Error

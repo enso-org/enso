@@ -207,15 +207,16 @@ public class DelimitedReader {
     return QuoteHelper.stripQuotes(quoteCharacter, this::reportMismatchedQuote, cell);
   }
 
-  private void reportMismatchedQuote() {
-    throw new MismatchedQuote();
+  private void reportMismatchedQuote(String cellText) {
+    throw new MismatchedQuote(cellText);
   }
 
   private void reportInvalidRow(long source_row, Long table_index, String[] row, long expected_length) {
     // Mismatched quote error takes precedence over invalid row.
     for (int i = 0; i < row.length; i++) {
-      if (row[i] != null && QuoteHelper.hasMismatchedQuotes(quoteCharacter, row[i])) {
-        reportMismatchedQuote();
+      String cell = row[i];
+      if (cell != null && QuoteHelper.hasMismatchedQuotes(quoteCharacter, cell)) {
+        reportMismatchedQuote(cell);
       }
     }
 
