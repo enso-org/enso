@@ -58,7 +58,7 @@ spec =
             input = "aa ab abc a bc bcd"
             match = pattern.match input
             match . should_be_a Match_2
-            match.group 0 . should_equal input
+            match.text 0 . should_equal input
 
         Test.specify "should return `Nothing` if there are no matches in first mode" <|
             pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
@@ -71,11 +71,11 @@ spec =
             input = "abcdefghij"
             matches = pattern.match_all input
             matches.length . should_equal 5
-            matches.at 0 . group 0 . should_equal "ab"
-            matches.at 1 . group 0 . should_equal "cd"
-            matches.at 2 . group 0 . should_equal "ef"
-            matches.at 3 . group 0 . should_equal "gh"
-            matches.at 4 . group 0 . should_equal "ij"
+            matches.at 0 . text 0 . should_equal "ab"
+            matches.at 1 . text 0 . should_equal "cd"
+            matches.at 2 . text 0 . should_equal "ef"
+            matches.at 3 . text 0 . should_equal "gh"
+            matches.at 4 . text 0 . should_equal "ij"
 
         Test.specify "should return `[]` when an all match match fails" <|
             pattern = Regex_2.compile "(aa)" []
@@ -289,30 +289,30 @@ spec =
                 pattern_2.replace '<a href="url">content</a>' "$2 <- $1" mode=Regex_Mode.Full . should_equal "content <- url"
                 pattern_2.replace '<a href="url">content</a>' "${name} <- ${addr}" mode=Regex_Mode.Full . should_equal "content <- url"
 
-    Test.group "Match.group" <|
+    Test.group "Match.text" <|
         pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
         match = pattern.match input
         match . should_be_a Match_2
 
         Test.specify "should return the full match with index 0" <|
-            match.group 0 . should_equal "aa ab abc a bc bcd"
+            match.text 0 . should_equal "aa ab abc a bc bcd"
 
         Test.specify "should return the group contents if it matches by index" <|
-            match.group 1 . should_equal "aa ab "
+            match.text 1 . should_equal "aa ab "
 
         Test.specify "should return the group contents if it matches by name" <|
-            match.group "letters" . should_equal "abc a bc bcd"
+            match.text "letters" . should_equal "abc a bc bcd"
 
         Test.specify "should return Nothing if the group did not match" <|
-            match.group 3 . should_equal Nothing
+            match.text 3 . should_equal Nothing
 
         Test.specify "should fail with No_Such_Group_Error if the group did not exist" <|
-            match.group "fail" . should_fail_with No_Such_Group
-            match.group 5 . should_fail_with No_Such_Group
+            match.text "fail" . should_fail_with No_Such_Group
+            match.text 5 . should_fail_with No_Such_Group
 
         Test.specify "should make named groups accessible by index" <|
-            match.group 2 . should_equal (match.group "letters")
+            match.text 2 . should_equal (match.text "letters")
 
     Test.group "Match.groups" <|
         pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
