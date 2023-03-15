@@ -1208,6 +1208,7 @@ fn numbers() {
     test!("0o122137", (Number "0o" "122137" ()));
     test!("0xAE2F14", (Number "0x" "AE2F14" ()));
     test!("pi = 3.14", (Assignment (Ident pi) "=" (Number () "3" ("." "14"))));
+    test!("0.0.x", (OprApp (Number () "0" ("." "0")) (Ok ".") (Ident x)));
 }
 
 #[test]
@@ -1222,6 +1223,7 @@ fn new_delimited_numbers() {
 #[test]
 fn old_nondecimal_numbers() {
     test!("2_01101101", (Number "2_" "01101101" ()));
+    test!("-2_01101101", (UnaryOprApp "-" (Number "2_" "01101101" ())));
     test!("16_17ffffffffffffffa", (Number "16_" "17ffffffffffffffa" ()));
 }
 

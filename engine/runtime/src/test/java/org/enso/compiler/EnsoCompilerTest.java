@@ -1210,7 +1210,7 @@ public class EnsoCompilerTest {
 
   @Test
   public void testDotPrecedence() throws Exception {
-    equivalenceTest("-1.up_to 100", "(-1).up_to 100");
+    equivalenceTest("x = -1.up_to 100", "x = (-1).up_to 100");
   }
 
   @Test
