@@ -140,9 +140,11 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     @Override
     protected byte[] serialize(CachedModule entry) throws IOException {
       var byteStream = new ByteArrayOutputStream();
+      new IOException("Storing " + entry.source().getPath()).printStackTrace();
+      boolean noUUIDs = entry.source().getPath() != null;
       try (ObjectOutputStream stream = new ObjectOutputStream(byteStream) {
         {
-          enableReplaceObject(true);
+          enableReplaceObject(noUUIDs);
         }
 
         @Override
