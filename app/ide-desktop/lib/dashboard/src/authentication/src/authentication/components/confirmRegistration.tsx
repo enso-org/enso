@@ -16,13 +16,13 @@ import * as loggerProvider from "../../providers/logger";
 const REGISTRATION_QUERY_PARAMS = {
   verificationCode: "verification_code",
   email: "email",
-};
+} as const;
 
-// ====================================
-// === confirmRegistrationContainer ===
-// ====================================
+// ============================
+// === Confirm Registration ===
+// ============================
 
-const confirmRegistrationContainer = () => {
+const ConfirmRegistration = () => {
   const logger = loggerProvider.useLogger();
   const { confirmSignUp } = auth.useAuth();
   const { search } = router.useLocation();
@@ -47,7 +47,7 @@ const confirmRegistrationContainer = () => {
       });
   }, []);
 
-  return <div></div>;
+  return <></>;
 };
 
 const parseUrlSearchParams = (search: string) => {
@@ -59,4 +59,4 @@ const parseUrlSearchParams = (search: string) => {
   return { verificationCode, email };
 };
 
-export default withRouter(confirmRegistrationContainer);
+export default withRouter(ConfirmRegistration);

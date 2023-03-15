@@ -220,8 +220,9 @@ const intoSignUpParams = (
         email: username,
         /** Add a custom attribute indicating whether the user is signing up from the desktop. This
          * is used to determine the schema used in the callback links sent in the verification
-         * emails. For example, `http://` for the Cloud, and `enso://` for the desktop. */
-        /** # Safety
+         * emails. For example, `http://` for the Cloud, and `enso://` for the desktop.
+         *
+         * # Naming Convention
          *
          * It is necessary to disable the naming convention rule here, because the key is expected
          * to appear exactly as-is in Cognito, so we must match it. */

@@ -39,9 +39,9 @@ import * as toast from "react-hot-toast";
 import * as router from "react-router-dom";
 
 import * as authProvider from "../authentication/providers/auth";
-import LoginContainer from "../authentication/components/login";
-import RegistrationContainer from "../authentication/components/registration";
-import ConfirmRegistrationContainer from "../authentication/components/confirmRegistration";
+import Login from "../authentication/components/login";
+import Registration from "../authentication/components/registration";
+import ConfirmRegistration from "../authentication/components/confirmRegistration";
 import Dashboard from "../dashboard/components/dashboard";
 import * as authService from "../authentication/service";
 import withRouter from "../navigation";
@@ -147,9 +147,9 @@ const AppRouter = (props: AppProps) => {
               <router.Route element={<authProvider.GuestLayout />}>
                 <router.Route
                   path={REGISTRATION_PATH}
-                  element={<RegistrationContainer />}
+                  element={<Registration />}
                 />
-                <router.Route path={LOGIN_PATH} element={<LoginContainer />} />
+                <router.Route path={LOGIN_PATH} element={<Login />} />
               </router.Route>
               {/* Protected pages are visible to authenticated users. */}
               <router.Route element={<authProvider.ProtectedLayout />}>
@@ -158,7 +158,7 @@ const AppRouter = (props: AppProps) => {
               {/* Other pages are visible to unauthenticated and authenticated users. */}
               <router.Route
                 path={CONFIRM_REGISTRATION_PATH}
-                element={<ConfirmRegistrationContainer />}
+                element={<ConfirmRegistration />}
               />
             </react.Fragment>
           </router.Routes>

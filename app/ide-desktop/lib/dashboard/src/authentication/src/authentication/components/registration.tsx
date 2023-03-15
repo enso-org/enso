@@ -9,16 +9,15 @@ import * as utils from "../../utils";
 import * as app from "../../components/app";
 import * as icons from "../../components/svg";
 
-// =============================
-// === registrationContainer ===
-// =============================
+// ====================
+// === Registration ===
+// ====================
 
-const registrationContainer = () => {
+const Registration = () => {
   const { signUp } = auth.useAuth();
-  const { value: email, bind: bindEmail } = hooks.useInput("");
-  const { value: password, bind: bindPassword } = hooks.useInput("");
-  const { value: confirmPassword, bind: bindConfirmPassword } =
-    hooks.useInput("");
+  const [email, bindEmail] = hooks.useInput("");
+  const [password, bindPassword] = hooks.useInput("");
+  const [confirmPassword, bindConfirmPassword] = hooks.useInput("");
 
   const handleSubmit = () => {
     /** The password & confirm password fields must match. */
@@ -137,4 +136,4 @@ const registrationContainer = () => {
   );
 };
 
-export default withRouter(registrationContainer);
+export default withRouter(Registration);
