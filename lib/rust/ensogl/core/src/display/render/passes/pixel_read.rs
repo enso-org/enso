@@ -106,9 +106,10 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
             let usage = Context::DYNAMIC_READ;
             context.bind_buffer(*target, Some(&buffer));
             context.buffer_data_with_opt_array_buffer(*target, Some(&js_array.buffer()), *usage);
+            context.bind_buffer(*target, None);
 
             let texture = match variables.get("pass_id").unwrap() {
-                uniform::AnyUniform::Texture(t) => t,
+                AnyUniform::Texture(t) => t,
                 _ => panic!("Pass internal error. Unmatched types."),
             };
             let format = texture.get_format();
@@ -151,6 +152,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         context
             .read_pixels_with_i32(position.x, position.y, width, height, format, typ, offset)
             .unwrap();
+        context.bind_buffer(*Context::PIXEL_PACK_BUFFER, None);
         let condition = Context::SYNC_GPU_COMMANDS_COMPLETE;
         let flags = 0;
         let sync = context.fence_sync(*condition, flags).unwrap();
@@ -173,6 +175,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
                 offset,
                 buffer_view,
             );
+            context.bind_buffer(*Context::PIXEL_PACK_BUFFER, None);
             if let Some(f) = &self.callback {
                 f(data.js_array.to_vec());
             }
@@ -181,6 +184,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
 }
 
 impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
+    #[profile(Task)]
     fn run(&mut self, instance: &pass::Instance, update_status: UpdateStatus) {
         if self.to_next_read > 0 {
             self.to_next_read -= 1;
