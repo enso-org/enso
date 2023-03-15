@@ -14,7 +14,7 @@ public final class EnsoCompiler implements AutoCloseable {
       p = Parser.create();
     } catch (LinkageError err) {
       err.printStackTrace();
-      p = null;
+      throw err;
     }
     this.parser = p;
   }
@@ -31,17 +31,17 @@ public final class EnsoCompiler implements AutoCloseable {
     return generateIR(tree);
   }
 
-  boolean isReady() {
-    return parser != null;
-  }
-
   IR.Module compile(Source src) {
     var tree = parse(src);
     return generateIR(tree);
   }
 
-  Tree parse(Source src) {
+  public Tree parse(Source src) {
     return parser.parse(src.getCharacters());
+  }
+
+  public Tree parse(CharSequence src) {
+    return parser.parse(src);
   }
 
   public IR.Module generateIR(Tree t) {

@@ -13,9 +13,9 @@ use double_representation::name;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
-use engine_protocol::language_server::DocSection;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
+use enso_doc_parser::DocSection;
 use enso_text::Location;
 use language_server::types::FieldAction;
 
@@ -226,30 +226,28 @@ pub enum Scope {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Entry {
     /// A type of suggestion.
-    pub kind:               Kind,
+    pub kind:          Kind,
     /// A module where the suggested object is defined.
-    pub defined_in:         QualifiedName,
+    pub defined_in:    QualifiedName,
     /// A name of suggested object.
-    pub name:               String,
+    pub name:          String,
     /// Argument lists of suggested object (atom or function). If the object does not take any
     /// arguments, the list is empty.
-    pub arguments:          Vec<Argument>,
+    pub arguments:     Vec<Argument>,
     /// A type returned by the suggested object.
-    pub return_type:        QualifiedName,
+    pub return_type:   QualifiedName,
     /// A module reexporting this entity.
-    pub reexported_in:      Option<QualifiedName>,
-    /// A HTML documentation associated with object.
-    pub documentation_html: Option<String>,
+    pub reexported_in: Option<QualifiedName>,
     /// A list of documentation sections associated with object.
-    pub documentation:      Vec<DocSection>,
+    pub documentation: Vec<DocSection>,
     /// A type of the "self" argument. This field is `None` for non-method suggestions.
-    pub self_type:          Option<QualifiedName>,
+    pub self_type:     Option<QualifiedName>,
     /// A flag set to true if the method is a static or module method.
-    pub is_static:          bool,
+    pub is_static:     bool,
     /// A scope where this suggestion is visible.
-    pub scope:              Scope,
+    pub scope:         Scope,
     /// A name of a custom icon to use when displaying the entry.
-    pub icon_name:          Option<IconName>,
+    pub icon_name:     Option<IconName>,
 }
 
 
@@ -258,7 +256,7 @@ pub struct Entry {
 impl Entry {
     /// Create new entry with required parameters only.
     ///
-    /// The entry will be flagget as non-static, with [`Scope::Everywhere`] and all optional fields
+    /// The entry will be flagged as non-static, with [`Scope::Everywhere`] and all optional fields
     /// will be [`None`].
     pub fn new(
         kind: Kind,
@@ -274,7 +272,6 @@ impl Entry {
             return_type: return_type.into(),
             is_static: false,
             reexported_in: None,
-            documentation_html: None,
             documentation: default(),
             self_type: None,
             scope: Scope::Everywhere,
@@ -389,12 +386,6 @@ impl Entry {
     /// Takes self and returns it with new [`reexported_in`] value.
     pub fn reexported_in(mut self, module: QualifiedName) -> Self {
         self.reexported_in = Some(module);
-        self
-    }
-
-    /// Takes self and returns it with new [`documentation_html`] value.
-    pub fn with_documentation(mut self, html: impl Into<String>) -> Self {
-        self.documentation_html = Some(html.into());
         self
     }
 
@@ -604,19 +595,17 @@ impl Entry {
             })
         }
 
-        let (documentation, icon_name, doc_sections) = match &mut entry {
-            Type { documentation, documentation_html, documentation_sections, .. }
-            | Constructor { documentation, documentation_html, documentation_sections, .. }
-            | Method { documentation, documentation_html, documentation_sections, .. }
-            | Module { documentation, documentation_html, documentation_sections, .. }
-            | Function { documentation, documentation_html, documentation_sections, .. }
-            | Local { documentation, documentation_html, documentation_sections, .. } => {
-                let documentation =
-                    Self::make_html_docs(mem::take(documentation), mem::take(documentation_html));
-                let icon_name = find_icon_name_in_doc_sections(&*documentation_sections);
-                (documentation, icon_name, mem::take(documentation_sections))
-            }
+        let documentation = match &entry {
+            Type { documentation, .. }
+            | Constructor { documentation, .. }
+            | Method { documentation, .. }
+            | Module { documentation, .. }
+            | Function { documentation, .. }
+            | Local { documentation, .. } =>
+                documentation.as_ref().map(|s| s.as_ref()).unwrap_or_default(),
         };
+        let doc_sections = enso_doc_parser::parse(documentation);
+        let icon_name = find_icon_name_in_doc_sections(&doc_sections);
         let reexported_in: Option<QualifiedName> = match &mut entry {
             Type { reexport: Some(reexport), .. }
             | Constructor { reexport: Some(reexport), .. }
@@ -654,34 +643,10 @@ impl Entry {
             ),
             Module { module, .. } => Self::new_module(to_qualified_name(module)),
         };
-        this.documentation_html = documentation;
         this.documentation = doc_sections;
         this.icon_name = icon_name;
         this.reexported_in = reexported_in;
         this
-    }
-
-    /// Returns the documentation in html depending on the information received from the Engine.
-    ///
-    /// Depending on the engine version, we may receive the documentation in HTML format already,
-    /// or the raw text which needs to be parsed. This function takes two fields of
-    /// [`language_server::types::SuggestionEntry`] and depending on availability, returns the
-    /// HTML docs fields, or parsed raw docs field.
-    fn make_html_docs(docs: Option<String>, docs_html: Option<String>) -> Option<String> {
-        if docs_html.is_some() {
-            docs_html
-        } else {
-            docs.map(|docs| {
-                let parser = parser_scala::DocParser::new();
-                match parser {
-                    Ok(p) => {
-                        let output = p.generate_html_doc_pure((*docs).to_string());
-                        output.unwrap_or(docs)
-                    }
-                    Err(_) => docs,
-                }
-            })
-        }
     }
 
     /// Apply modification to the entry.
@@ -694,19 +659,11 @@ impl Entry {
         let return_type = m.return_type.map(|f| f.try_map(QualifiedName::from_text)).transpose();
         let self_type = m.self_type.map(|f| f.try_map(QualifiedName::from_text)).transpose();
         let reexport = m.reexport.map(|f| f.try_map(QualifiedName::from_text)).transpose();
+        let docs = m.documentation.map(|docs| docs.map(|docs| enso_doc_parser::parse(&docs)));
         let update_results = [
             return_type
                 .and_then(|m| Entry::apply_field_update("return_type", &mut self.return_type, m)),
-            Entry::apply_opt_field_update(
-                "documentation",
-                &mut self.documentation_html,
-                m.documentation,
-            ),
-            Entry::apply_field_update(
-                "documentation_sections",
-                &mut self.documentation,
-                m.documentation_sections,
-            ),
+            Entry::apply_default_field_update("documentation", &mut self.documentation, docs),
             module.and_then(|m| Entry::apply_field_update("module", &mut self.defined_in, m)),
             self_type
                 .and_then(|s| Entry::apply_opt_field_update("self_type", &mut self.self_type, s)),
@@ -815,11 +772,21 @@ impl Entry {
         }
         Ok(())
     }
-}
 
-impl From<language_server::types::SuggestionEntry> for Entry {
-    fn from(entry: language_server::types::SuggestionEntry) -> Self {
-        Self::from_ls_entry(entry)
+    /// Apply an update to a field that can be removed by settings its value to its type's default.
+    fn apply_default_field_update<T: Default>(
+        field_name: &'static str,
+        field: &mut T,
+        update: Option<FieldUpdate<T>>,
+    ) -> FallibleResult {
+        let err = InvalidFieldUpdate(field_name);
+        if let Some(update) = update {
+            *field = match update.tag {
+                FieldAction::Set => update.value.ok_or(err)?,
+                FieldAction::Remove => default(),
+            };
+        }
+        Ok(())
     }
 }
 
@@ -1132,7 +1099,7 @@ mod test {
     /// of a keyed [`DocSection`] which has its key equal to the `Icon` string.
     #[test]
     fn find_icon_name_in_doc_section_with_icon_key() {
-        use language_server::types::DocSection;
+        use enso_doc_parser::DocSection;
         let doc_sections = [
             DocSection::Paragraph { body: "Some paragraph.".into() },
             DocSection::Keyed { key: "NotIcon".into(), body: "example_not_icon_body".into() },
@@ -1174,8 +1141,7 @@ mod test {
                 tag_values:    Vec::new(),
             };
             let entry = Entry::new_method(defined_in, on_type, "entry", return_type, true)
-                .with_arguments(vec![argument])
-                .with_documentation("Some docs");
+                .with_arguments(vec![argument]);
             Self { modified_entry: entry.clone(), expected_entry: entry }
         }
 
@@ -1199,25 +1165,23 @@ mod test {
     #[test]
     fn applying_simple_fields_modification() {
         let mut test = ApplyModificationTest::new();
+        let new_documentation = "NewDocumentation";
         let modification = SuggestionsDatabaseModification {
-            arguments:              vec![],
-            module:                 Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
-            self_type:              Some(FieldUpdate::set(
-                "local.Project.NewModule.NewType".to_owned(),
-            )),
-            return_type:            Some(FieldUpdate::set(
+            arguments:     vec![],
+            module:        Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
+            self_type:     Some(FieldUpdate::set("local.Project.NewModule.NewType".to_owned())),
+            return_type:   Some(FieldUpdate::set(
                 "local.Project.NewModule.NewReturnType".to_owned(),
             )),
-            documentation:          Some(FieldUpdate::set("NewDocumentation".to_owned())),
-            documentation_sections: None,
-            scope:                  None,
-            reexport:               Some(FieldUpdate::set("local.Project.NewReexport".to_owned())),
+            documentation: Some(FieldUpdate::set(new_documentation.to_owned())),
+            scope:         None,
+            reexport:      Some(FieldUpdate::set("local.Project.NewReexport".to_owned())),
         };
         test.expected_entry.defined_in = "local.Project.NewModule".try_into().unwrap();
         test.expected_entry.self_type = Some("local.Project.NewModule.NewType".try_into().unwrap());
         test.expected_entry.return_type =
             "local.Project.NewModule.NewReturnType".try_into().unwrap();
-        test.expected_entry.documentation_html = Some("NewDocumentation".to_owned());
+        test.expected_entry.documentation = enso_doc_parser::parse(new_documentation);
         test.expected_entry.reexported_in = Some("local.Project.NewReexport".try_into().unwrap());
         let result = test.check_modification(modification);
         assert!(result.is_empty());
@@ -1230,7 +1194,6 @@ mod test {
             documentation: Some(FieldUpdate::remove()),
             ..default()
         };
-        test.expected_entry.documentation_html = None;
         let result = test.check_modification(modification);
         assert!(result.is_empty());
     }
@@ -1249,7 +1212,6 @@ mod test {
             ..default()
         };
         test.expected_entry.defined_in = "local.Project.NewModule".try_into().unwrap();
-        test.expected_entry.documentation_html = None;
         let result = test.check_modification(modification);
         assert_eq!(result.len(), 1);
     }

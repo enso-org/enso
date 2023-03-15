@@ -6,11 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
-import org.enso.compiler.codegen.AstToIr;
 import org.enso.compiler.core.IR;
-import org.enso.syntax.text.AST.ASTOf;
-import org.enso.syntax.text.Parser;
-import org.enso.syntax.text.Shape;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1314,20 +1310,7 @@ public class EnsoCompilerTest {
   @SuppressWarnings("unchecked")
   private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs) throws IOException {
     var ir = compile(code);
-
-    var oldAst = new Parser().runWithIds(code);
-    var oldIr = AstToIr.translate((ASTOf<Shape>)(Object)oldAst);
-
-    Function<IR, String> filter = (f) -> simplifyIR(f, noIds, noLocations, lessDocs);
-    var old = filter.apply(oldIr);
-    var now = filter.apply(ir);
-    if (!old.equals(now)) {
-      var name = findTestMethodName();
-      var home = new File(System.getProperty("user.home")).toPath();
-      Files.writeString(home.resolve(name + ".old") , old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      Files.writeString(home.resolve(name + ".now") , now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      assertEquals("IR for " + code + " shall be equal", old, now);
-    }
+    assertNotNull(ir);
   }
 
   private static void equivalenceTest(String code1, String code2) throws IOException {

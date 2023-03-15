@@ -1,7 +1,6 @@
 package org.enso.compiler.test
 
 import org.enso.compiler.EnsoCompiler
-import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
@@ -9,7 +8,6 @@ import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
-import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.enso.interpreter.runtime.Module
@@ -18,39 +16,7 @@ import org.enso.pkg.QualifiedName
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
-
-  def useRustParser: Boolean = false
-
   // === IR Utilities =========================================================
-
-  /** Adds an extension method for converting a string to its AST
-    * representation.
-    *
-    * @param source the source code to convert
-    */
-  implicit class ToAST(source: String) {
-
-    /** Produces the [[AST]] representation of [[source]].
-      *
-      * @return [[source]] as an AST
-      */
-    def toAst: AST = {
-      val parser: Parser = Parser()
-      val unresolvedAST  = parser.runWithIds(source)
-
-      parser.dropMacroMeta(unresolvedAST)
-    }
-
-    /** Produces the [[AST]] representation of [[source]] without dropping the
-      * macro metadata.
-      *
-      * @return [[source]] as an AST
-      */
-    def toAstWithMeta: AST = {
-      val parser: Parser = Parser()
-      parser.runWithIds(source)
-    }
-  }
 
   /** An extension method to allow converting string source code to IR as a
     * module.
@@ -64,13 +30,9 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]]
       */
     def toIrModule: IR.Module = {
-      if (useRustParser) {
-        val compiler = new EnsoCompiler()
-        try compiler.compile(source)
-        finally compiler.close()
-      } else {
-        AstToIr.translate(source.toAst)
-      }
+      val compiler = new EnsoCompiler()
+      try compiler.compile(source)
+      finally compiler.close()
     }
   }
 
@@ -86,7 +48,9 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]], if it is a valid expression
       */
     def toIrExpression: Option[IR.Expression] = {
-      AstToIr.translateInline(source.toAst)
+      val compiler = new EnsoCompiler()
+      try compiler.generateIRInline(compiler.parse(source))
+      finally compiler.close()
     }
   }
 
