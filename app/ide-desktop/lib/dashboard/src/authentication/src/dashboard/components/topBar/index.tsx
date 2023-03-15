@@ -1,14 +1,15 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-/** @file the top-bar of dashboard */
+/** @file The top-bar of dashboard. */
 import { FC, useState } from 'react'
-import * as auth from '../../authentication/providers/auth'
-import * as hooks from '../../hooks'
+
+import * as hooks from '../../../hooks'
+import UserMenu from './userMenu'
 
 // ==============
 // === TopBar ===
 // ==============
 
-/** ICONS constant using by TopBar */
+/** ICONS constant using by TopBar. */
 const ICONS = {
     BAR: (
         <svg
@@ -55,18 +56,13 @@ const ICONS = {
         </svg>
     ),
 }
-/** The BAR icon shadow */
+/** The BAR icon shadow. */
 const BAR_BOX_SHADOW =
     '0px 18px 80px rgba(0, 0, 0, 0.11), 0px 7.51997px 33.4221px rgba(0, 0, 0, 0.079074), 0px 4.02054px 17.869px rgba(0, 0, 0, 0.0655718), 0px 2.25388px 10.0172px rgba(0, 0, 0, 0.055), 0px 1.19702px 5.32008px rgba(0, 0, 0, 0.0444282), 0px 0.498106px 2.21381px rgba(0, 0, 0, 0.030926)'
 
-/** hardcoded avatar */
+/** The hardcoded avatar. */
 const testAvatarUrl =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAH8AAAB/CAMAAADxY+0hAAAAWlBMVEX///9UWV1MUVaSlZc/RUrZ2tpRVlpJT1NGTFBDSU75+fnk5eXP0NFfZGducnWtr7CJjI40O0GAg4abnZ/x8fK7vb6ho6Xq6+vExcZkaWx2en2nqaq1t7g5QEWb+0SXAAADTklEQVRoge2a2ZKrIBBABREa97jEmOj//+bVyZjcmXKhmca7FOchVXk60ECDDUHg8XjwNEk6XMMwvA5p0pwt74oq0wIU51yB0FlVdCfa23xUUrI3Uqoxb8+RxwXA7+5XGwCK2L3+lqkV+ROV3Rzbm1Ks9f0VA1E6nYoR2+78ZwhY5E7f7nZ+CYGzeTjoQ/uMHtzoWzP91AAnEUjBUM8YpPT6jh+P/YLk9NmwN9dPDeip9Y+jhfcV9aDVdwKlZ0zQjkDJkX5eUuoTbPenACSEfnT3aQPQoe0zdDPAOPP9DmEWzDFrf0HmVPrORj81gGoAUlzuWVBUu0Bh6S+I/BV+9c3wisifWY5/RuTHJ78ngsh/sfRfvP+/8Ntk/xlN5Ecd/d6QHQItdv8ZshPAn86/qWX/qfafxkrPGNmn+N3q/HGn0gc3q/MXXS2ksdgBZUZYCanxK0DVdPqgM//2XgDSDzB0ADhl94MgxgYAiEuBLa4BQF6CuWOSIKdb+wsNQ9Rf6FLfm8S4ACQ55bf3C+MCmIvy10cDtEkEpHakD4JotfD+TQ8OC8BNfrQT6dxpATx+7IZAwsP1FUSUq60WSJU7jP2LW6/XchHXvevbj4U0BPElG0guoHQ27VeI0/rOhNAAoIVg9zo94erpWxOaJL0Nw3BLk+Z0ucfzFxDHTXz23E/StgirXo6Xmc9f2Vdh0aZOzh0vmqit+ynXgeJSft0Epv9cwZQT+7qNXOyAcTJUvdKHZzDJteqrIaEdleSaC5DG5z8JIr+SjUVcZCPi8nGJw5iRPEeIQtjc8A+aoCD86Xkgqbhd8eUJ59VPhqEJV08aqBbo0Ho5DOqn9o8WKLv3AF2G/+hfBzKLWsANPeW3kRx9MqypOv8EkOWIilY/NQB1GZTbVVz3UIjryIpePzXAOAIldfCfgGE9/OFGPzXA6FFGNDrSMzYabAcx4br/juTHO6JFqdWc46Js4mrwn8DRdmh512zK0Z105DL6M2p/CobO/eGePnY39xfk3hKwfGmBYfdVRu129s3sXgxYvnTAsPsqwvamG8POrXjjLvW/GbfPwxbP3PDsPIyLTvFvZyDv937v937v937v9/7T/Rfunsu2PylD95RuL0k8nn+IX7ffNgoiPWOuAAAAAElFTkSuQmCC'
-
-/** User profile cell normal classname */
-const CELL_CLASSNAME = 'whitespace-nowrap px-4 py-2'
-/** User profile cell hover classname */
-const CELL_HOVER_CLASSNAME = 'hover:bg-blue-500 hover:text-white cursor-pointer'
 
 interface TopBarProps {
     bindSearchVal: ReturnType<typeof hooks.useInput>['bind']
@@ -74,13 +70,12 @@ interface TopBarProps {
 
 /**
  * The {@link TopBarProps["bindSearchVal"]} params is used to communicate with the parent component.
- * Because searchVal maybe change parent component's project list
+ * Because searchVal maybe change parent component's project list.
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const TopBar: FC<TopBarProps> = props => {
     const { bindSearchVal } = props
-    const { signOut } = auth.useAuth()
-    const { organization } = auth.useFullUserSession()
+
     const [isOpenMenu, setIsOpenMenu] = useState(false)
 
     return (
@@ -113,29 +108,14 @@ const TopBar: FC<TopBarProps> = props => {
                     <span>help chat</span>
                     <div className="ml-2">{ICONS.CHAT}</div>
                 </a>
-                {/* User profile */}
+                {/* User profile and menu. */}
                 <div className="transform">
                     <div
                         style={{ backgroundImage: `url(${testAvatarUrl})` }}
                         className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                         onClick={() => setIsOpenMenu(v => !v)}
                     />
-                    {isOpenMenu ? (
-                        <div className="absolute right-0 top-9 flex flex-col rounded-md bg-white py-1 border">
-                            <div className={`${CELL_CLASSNAME}`}>
-                                Signed in as <span className="font-bold">{organization.name}</span>
-                            </div>
-                            <div className={`${CELL_CLASSNAME} ${CELL_HOVER_CLASSNAME}`}>
-                                Your profile
-                            </div>
-                            <div
-                                className={`${CELL_CLASSNAME} ${CELL_HOVER_CLASSNAME}`}
-                                onClick={signOut}
-                            >
-                                Sign out
-                            </div>
-                        </div>
-                    ) : null}
+                    {isOpenMenu ? <UserMenu /> : null}
                 </div>
             </div>
         </div>

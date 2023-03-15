@@ -10,8 +10,6 @@ import * as results from 'ts-results'
 import * as loggerProvider from '../providers/logger'
 import * as config from './config'
 
-
-
 // =================
 // === Constants ===
 // =================
@@ -50,8 +48,6 @@ const KNOWN_ERRORS = {
     },
 }
 
-
-
 // ====================
 // === AmplifyError ===
 // ====================
@@ -78,8 +74,6 @@ const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
     }
 }
 
-
-
 // =================
 // === AuthError ===
 // =================
@@ -97,8 +91,6 @@ const isAuthError = (error: unknown): error is AuthError => {
     }
     return false
 }
-
-
 
 // ===============
 // === Cognito ===
@@ -183,9 +175,19 @@ export interface Cognito {
      *
      * @returns A promise that resolves if successful. */
     signOut: () => Promise<void>
+
+    /** Change a password for current authenticated user.
+     *
+     * @param oldPassword - The user's old password.
+     * @param newPassword - The password of the user wants to change to.
+     * @returns A promise that resolves to either success or known error.
+     * @throws An error if failed due to an unknown error.
+     */
+    changePassword: (
+        oldPassword: string,
+        newPassword: string
+    ) => Promise<results.Result<null, AmplifyError>>
 }
-
-
 
 // ===================
 // === CognitoImpl ===
@@ -236,9 +238,8 @@ export class CognitoImpl implements Cognito {
     forgotPassword = forgotPassword
     forgotPasswordSubmit = forgotPasswordSubmit
     signOut = () => signOut(this.logger)
+    changePassword = changePassword
 }
-
-
 
 // ====================
 // === AssertString ===
@@ -260,8 +261,6 @@ const assertString: AssertString = (param, message) => {
         throw new Error(message)
     }
 }
-
-
 
 // ===================
 // === UserSession ===
@@ -317,8 +316,6 @@ const parseUserSession = (session: cognito.CognitoUserSession): UserSession => {
 
     return { email, accessToken }
 }
-
-
 
 // ==============
 // === SignUp ===
@@ -380,8 +377,6 @@ const intoSignUpErrorOrThrow = (error: AmplifyError): SignUpError => {
     throw error
 }
 
-
-
 // =====================
 // === ConfirmSignUp ===
 // =====================
@@ -415,8 +410,6 @@ const intoConfirmSignUpErrorOrThrow = (error: AmplifyError): ConfirmSignUpError 
     throw error
 }
 
-
-
 // ========================
 // === SignInWithGoogle ===
 // ========================
@@ -429,8 +422,6 @@ const signInWithGoogle = async (customState?: string) =>
         // We don't care about the details in the success case, just that it happened.
         .then(() => null)
 
-
-
 // ========================
 // === SignInWithGoogle ===
 // ========================
@@ -441,8 +432,6 @@ const signInWithGitHub = async () =>
     })
         // We don't care about the details in the success case, just that it happened.
         .then(() => null)
-
-
 
 // ==========================
 // === SignInWithPassword ===
@@ -484,8 +473,6 @@ const intoSignInWithPasswordErrorOrThrow = (error: AmplifyError): SignInWithPass
     throw error
 }
 
-
-
 // ======================
 // === ForgotPassword ===
 // ======================
@@ -522,8 +509,6 @@ const intoForgotPasswordErrorOrThrow = (error: AmplifyError): ForgotPasswordErro
     throw error
 }
 
-
-
 // ============================
 // === ForgotPasswordSubmit ===
 // ============================
@@ -557,8 +542,6 @@ const intoForgotPasswordSubmitErrorOrThrow = (error: unknown): ForgotPasswordSub
     throw error
 }
 
-
-
 // ===============
 // === SignOut ===
 // ===============
@@ -580,4 +563,29 @@ const signOut = async (logger: loggerProvider.Logger) => {
     } finally {
         await amplify.Auth.signOut()
     }
+}
+
+// ======================
+// === ChangePassword ===
+// ======================
+const currentAuthenticatedUser = () =>
+    results.Result.wrapAsync(
+        () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
+    ).then(result => result.mapErr(intoAmplifyErrorOrThrow))
+
+const changePassword = async (oldPassword: string, newPassword: string) => {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+        const cognitoUser = cognitoUserResult.unwrap()
+        return (
+            results.Result.wrapAsync(() =>
+                amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
+            )
+                // We don't care about the details in the success case, just that it happened.
+                .then(result => result.map(() => null))
+                .then(result => result.mapErr(intoAmplifyErrorOrThrow))
+        )
+    }
+
+    return results.Err(cognitoUserResult.val)
 }
