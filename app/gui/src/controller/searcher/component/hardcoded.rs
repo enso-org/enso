@@ -36,8 +36,8 @@ thread_local! {
     pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = vec![
         Snippet::new("text input", "\"\"", IconId::TextInput)
             .with_return_types(["Standard.Base.Data.Text.Text"])
-            .with_documentation_html(
-                "A text input node.<br/><br/>
+            .with_documentation_str(
+                "A text input node.\n\n\
                 An empty text. The value can be edited and used as an input for other nodes.",
             )
             .into(),
@@ -47,8 +47,8 @@ thread_local! {
                 "Standard.Base.Data.Numbers.Decimal",
                 "Standard.Base.Data.Numbers.Integer",
             ])
-            .with_documentation_html(
-                "A number input node.<br/><br/>
+            .with_documentation_str(
+                "A number input node.\n\n\
                  A zero number. The value can be edited and used as an input for other nodes.",
             )
             .into(),
@@ -65,20 +65,18 @@ thread_local! {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Snippet {
     /// The name displayed in the [Component Browser](crate::controller::searcher).
-    pub name:               ImString,
+    pub name:          ImString,
     /// The code inserted when picking the snippet.
-    pub code:               ImString,
+    pub code:          ImString,
     /// A list of types that the return value of this snippet's code typechecks as. Used by the
     /// [Component Browser](crate::controller::searcher) to decide whether to display the
     /// snippet when filtering components by return type.
-    pub return_types:       Vec<QualifiedName>,
-    /// The documentation bound to the snippet. Takes priority over the `documentation_html` field.
-    pub documentation:      Option<EntryDocumentation>,
-    /// The HTML documentation string bound to the snippet.
-    pub documentation_html: Option<ImString>,
+    pub return_types:  Vec<QualifiedName>,
+    /// The documentation bound to the snippet.
+    pub documentation: Option<EntryDocumentation>,
     /// The ID of the icon bound to this snippet's entry in the [Component
     /// Browser](crate::controller::searcher).
-    pub icon:               IconId,
+    pub icon:          IconId,
 }
 
 impl Snippet {
@@ -119,14 +117,15 @@ impl Snippet {
         self
     }
 
-    /// Returns a modified suggestion with [`Snippet::documentation_html`] field set. No validation
-    /// or modification of the `documentation` string is performed.
-    fn with_documentation_html(mut self, documentation: &str) -> Self {
-        self.documentation_html = Some(documentation.to_im_string());
+    /// Returns a modified suggestion with the [`Snippet::documentation`] field set. This method
+    /// is only intended to be used when defining hardcoded suggestions.
+    fn with_documentation_str(mut self, documentation: &str) -> Self {
+        let docs = EntryDocumentation::builtin(&enso_doc_parser::parse(documentation));
+        self.documentation = Some(docs);
         self
     }
 
-    /// Returns a modified suggestion with [`Snippet::documentation`] field set.
+    /// Returns a modified suggestion with the [`Snippet::documentation`] field set.
     fn with_documentation(mut self, documentation: EntryDocumentation) -> Self {
         self.documentation = Some(documentation);
         self

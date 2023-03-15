@@ -24,7 +24,6 @@ type Bits
         Bits.Bits_64 -> 64
 
 type Bits_Comparator
-    is_ordered = True
     compare x y = Comparable.from x.to_bits . compare x.to_bits y.to_bits
     hash x = Comparable.from x.to_bits . hash x.to_bits
 

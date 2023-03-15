@@ -8,7 +8,7 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.interpreter.epb.EpbParser
-import org.enso.syntax.text.{AST, Debug, Location}
+import org.enso.syntax.text.{Debug, Location}
 
 import java.util.UUID
 
@@ -157,14 +157,14 @@ object IR {
   type Identifier = UUID
 
   /** The type of external identifiers */
-  type ExternalId = AST.ID
+  type ExternalId = UUID
 
   /** Couples a location with a possible source identifier.
     *
     * @param location the code location.
     * @param id the identifier for the location.
     */
-  case class IdentifiedLocation(location: Location, id: Option[AST.ID]) {
+  case class IdentifiedLocation(location: Location, id: Option[UUID]) {
 
     /** @return the character index of the start of this source location.
       */
@@ -7635,13 +7635,13 @@ object IR {
 
     /** A representation of an Enso syntax error.
       *
-      * @param at the erroneous AST
+      * @param at the error location
       * @param reason the cause of this error
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Syntax(
-      at: AnyRef,
+      at: IdentifiedLocation,
       reason: Syntax.Reason,
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7653,11 +7653,9 @@ object IR {
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
-      def ast: AST = at.asInstanceOf[AST]
-
       /** Creates a copy of `this`.
         *
-        * @param ast the erroneous AST
+        * @param ast the error location
         * @param reason the cause of this error
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -7665,13 +7663,13 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        ast: AnyRef                    = at,
+        at: IdentifiedLocation         = at,
         reason: Syntax.Reason          = reason,
         passData: MetadataStorage      = passData,
         diagnostics: DiagnosticStorage = diagnostics,
         id: Identifier                 = id
       ): Syntax = {
-        val res = Syntax(ast, reason, passData, diagnostics)
+        val res = Syntax(at, reason, passData, diagnostics)
         res.id = id
         res
       }
@@ -7696,13 +7694,7 @@ object IR {
         this
 
       /** @inheritdoc */
-      @annotation.nowarn
-      override val location: Option[IdentifiedLocation] =
-        at match {
-          case ast: AST                => ast.location.map(IdentifiedLocation(_, ast.id))
-          case loc: IdentifiedLocation => Some(loc)
-          case _                       => None
-        }
+      override val location: Option[IdentifiedLocation] = Option(at)
 
       /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Syntax = this
@@ -7711,7 +7703,7 @@ object IR {
       override def toString: String =
         s"""
         |IR.Error.Syntax(
-        |ast = $at,
+        |at = $at,
         |reason = $reason,
         |location = $location,
         |passData = ${this.showPassData},

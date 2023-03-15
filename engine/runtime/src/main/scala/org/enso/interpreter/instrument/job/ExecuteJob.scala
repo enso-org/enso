@@ -44,6 +44,7 @@ class ExecuteJob(
       ctx.endpoint.sendToClient(
         Api.Response(Api.ExecutionComplete(contextId))
       )
+      StartBackgroundProcessingJob.startBackgroundJobs()
     } finally {
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseContextLock(contextId)

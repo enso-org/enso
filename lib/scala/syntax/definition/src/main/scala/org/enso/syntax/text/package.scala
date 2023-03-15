@@ -1,7 +1,8 @@
 package org.enso.syntax
 
-import org.enso.syntax.text.{AST => ASTDef}
+import org.enso.data.Span
+import java.util.UUID
 
-package object text {
-  type AST = ASTDef._AST
+object Parser {
+  type IDMap = Seq[(Span, UUID)]
 }

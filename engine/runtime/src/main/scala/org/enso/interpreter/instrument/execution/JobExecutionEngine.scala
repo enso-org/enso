@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.ExecutorService
 import java.util.logging.Level
 
+import scala.collection.mutable
 import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
 
@@ -37,6 +38,11 @@ final class JobExecutionEngine(
 
   private val jobParallelism = context.getJobParallelism
 
+  private var isBackgroundJobsStarted = false
+
+  private val delayedBackgroundJobsQueue =
+    mutable.Queue.empty[Job[_]]
+
   val jobExecutor: ExecutorService =
     context.newFixedThreadPool(jobParallelism, "job-pool", false)
 
@@ -57,8 +63,14 @@ final class JobExecutionEngine(
     )
 
   /** @inheritdoc */
-  override def runBackground[A](job: Job[A]): Future[A] =
-    runInternal(job, backgroundJobExecutor, backgroundJobsRef)
+  override def runBackground[A](job: Job[A]): Unit =
+    synchronized {
+      if (isBackgroundJobsStarted) {
+        runInternal(job, backgroundJobExecutor, backgroundJobsRef)
+      } else {
+        delayedBackgroundJobsQueue.enqueue(job)
+      }
+    }
 
   /** @inheritdoc */
   override def run[A](job: Job[A]): Future[A] = {
@@ -140,6 +152,16 @@ final class JobExecutionEngine(
     runtimeContext.executionService.getContext.getThreadManager
       .interruptThreads()
   }
+
+  /** @inheritdoc */
+  override def startBackgroundJobs(): Boolean =
+    synchronized {
+      val result = !isBackgroundJobsStarted
+      isBackgroundJobsStarted = true
+      delayedBackgroundJobsQueue.foreach(runBackground)
+      delayedBackgroundJobsQueue.clear()
+      result
+    }
 
   /** @inheritdoc */
   override def stop(): Unit = {

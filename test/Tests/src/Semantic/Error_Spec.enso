@@ -56,10 +56,10 @@ spec =
 
         Test.specify "should allow recovery of only a specific error-type" <|
             recover_illegal_argument ~action =
-                action . catch Illegal_Argument.Error err->
+                action . catch Illegal_Argument err->
                     "recovered error: "+err.message
             (recover_illegal_argument (Error.throw (Illegal_Argument.Error "foo"))) . should_equal "recovered error: foo"
-            (recover_illegal_argument (Error.throw (Illegal_State.Error "bar"))) . should_fail_with Illegal_State.Error
+            (recover_illegal_argument (Error.throw (Illegal_State.Error "bar"))) . should_fail_with Illegal_State
 
         Test.specify "should implement to_display_text" <|
             Error.throw Nothing . to_display_text . should_equal "Error: Nothing"
@@ -170,7 +170,7 @@ spec =
             parse "42" . should_equal 42
             dataflow_error = parse "foo"
             dataflow_error.catch . should_equal (Illegal_Argument.Error 'The provided string is not a valid number: For input string: "foo"')
-            Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types.Error
+            Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types
 
         Test.specify "should allow to throw raw Java exceptions" <|
             exception = Panic.catch NumberFormatException (throw_raw_java "foo") (p -> p)
@@ -201,11 +201,11 @@ spec =
             caught_2.stack_trace.second.name . should_equal "Error_Spec.throw_raw_java"
 
         Test.specify "should allow to catch a specific panic type easily" <|
-            message_1 = Panic.catch Illegal_Argument.Error (Panic.throw (Illegal_Argument.Error "msg" Nothing)) caught_panic->
+            message_1 = Panic.catch Illegal_Argument (Panic.throw (Illegal_Argument.Error "msg" Nothing)) caught_panic->
                 caught_panic.payload.message
             message_1 . should_equal "msg"
 
-            error = Panic.recover Any <| Panic.catch Illegal_Argument.Error (Panic.throw (Illegal_State.Error "foo" Nothing)) caught_panic->
+            error = Panic.recover Any <| Panic.catch Illegal_Argument (Panic.throw (Illegal_State.Error "foo" Nothing)) caught_panic->
                 caught_panic.payload.message
             error.catch . should_be_an Illegal_State.Error
 
@@ -219,21 +219,21 @@ spec =
             message_4 = Panic.catch Any (Long.parseLong "foo") _->
                 "polyglot2"
             message_4 . should_equal "polyglot2"
-            message_5 = Panic.catch Unsupported_Argument_Types.Error (Long.parseLong 0) _->
+            message_5 = Panic.catch Unsupported_Argument_Types (Long.parseLong 0) _->
                 "uat"
             message_5 . should_equal "uat"
 
-            Test.expect_panic_with (Panic.catch Illegal_Argument.Error (Long.parseLong "foo") (_->"polyglot3")) JException
-            Test.expect_panic_with (Panic.catch Nothing (Long.parseLong 0) (_->"polyglot4")) Unsupported_Argument_Types.Error
+            Test.expect_panic_with (Panic.catch Illegal_Argument (Long.parseLong "foo") (_->"polyglot3")) JException
+            Test.expect_panic_with (Panic.catch Nothing (Long.parseLong 0) (_->"polyglot4")) Unsupported_Argument_Types
 
         Test.specify "should be able to be recovered selectively" <|
-            Panic.recover Illegal_Argument.Error (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
+            Panic.recover Illegal_Argument (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
             Panic.recover Any (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
-            Panic.recover [Illegal_Argument.Error] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
-            Panic.recover [Illegal_State.Error, Illegal_Argument.Error] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
+            Panic.recover [Illegal_Argument] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
+            Panic.recover [Illegal_State, Illegal_Argument] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
 
-            Test.expect_panic_with <| Panic.recover Illegal_State.Error (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
-            Test.expect_panic_with <| Panic.recover [Illegal_State.Error] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
+            Test.expect_panic_with <| Panic.recover Illegal_State (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
+            Test.expect_panic_with <| Panic.recover [Illegal_State] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
             Test.expect_panic_with <| Panic.recover [] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
 
             Panic.recover [JException] (do_a_parse "foo") . catch . should_be_a JException
@@ -246,7 +246,7 @@ spec =
                 (err.payload.message) . should_equal "Cannot convert '42'(language: Java, type: java.lang.Long) to Java type 'java.lang.String': Invalid or lossy primitive coercion."
                 (err.payload.message) . should_equal (err.payload.to_display_text)
 
-            Panic.catch Unsupported_Argument_Types.Error (Long.decode 42) handler=check
+            Panic.catch Unsupported_Argument_Types (Long.decode 42) handler=check
 
         Test.specify "should be able to throw and catch polyglot arrays" <|
             handle_panic caught prefix="" =

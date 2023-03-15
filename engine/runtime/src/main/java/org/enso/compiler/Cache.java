@@ -2,7 +2,7 @@ package org.enso.compiler;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
-import org.bouncycastle.jcajce.provider.digest.SHA3;
+import org.bouncycastle.jcajce.provider.digest.SHA1;
 import org.bouncycastle.util.encoders.Hex;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
@@ -188,10 +188,12 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                     return loadedCache;
                   }
 
-                  logger.log(logLevel, "Unable to load a cache for module [" + stringRepr + "]");
+                  logger.log(logLevel, "Unable to load a cache [" + stringRepr + "]");
                 } catch (IOException e) {
                   logger.log(
-                      Level.WARNING, "Unable to load a cache for module [" + stringRepr + "]", e);
+                      Level.WARNING,
+                      "Unable to load a cache [" + stringRepr + "]: " + e.getMessage(),
+                      e);
                 }
                 return Optional.empty();
               });
@@ -212,15 +214,18 @@ public abstract class Cache<T, M extends Cache.Metadata> {
     TruffleFile metadataPath = getCacheMetadataPath(cacheRoot);
     TruffleFile dataPath = getCacheDataPath(cacheRoot);
 
-    Optional<M> optMeta = loadCacheMetadata(metadataPath);
+    Optional<M> optMeta = loadCacheMetadata(metadataPath, logger);
     if (optMeta.isPresent()) {
       M meta = optMeta.get();
       boolean sourceDigestValid =
-          computeDigestFromSource(context, logger)
-              .map(digest -> digest.equals(meta.sourceHash()))
-              .orElseGet(() -> false);
+          !needsSourceDigestVerification()
+              || computeDigestFromSource(context, logger)
+                  .map(digest -> digest.equals(meta.sourceHash()))
+                  .orElseGet(() -> false);
       byte[] blobBytes = dataPath.readAllBytes();
-      boolean blobDigestValid = computeDigestFromBytes(blobBytes).equals(meta.blobHash());
+      boolean blobDigestValid =
+          !needsDataDigestVerification()
+              || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
 
       if (sourceDigestValid && blobDigestValid) {
         Object readObject;
@@ -271,6 +276,18 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   }
 
   /**
+   * Flag indicating if the de-serialization process should compute the hash of the sources from
+   * which the cache was created and compare it with the stored metadata entry.
+   */
+  protected abstract boolean needsSourceDigestVerification();
+
+  /**
+   * Flag indicating if the de-serialization process should compute the hash of the stored cache and
+   * compare it with the stored metadata entry.
+   */
+  protected abstract boolean needsDataDigestVerification();
+
+  /**
    * Validates the deserialized data by returning the expected cached entry, or [[null]].
    *
    * @param obj deserialized object
@@ -288,9 +305,9 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param path location of the serialized metadata
    * @return deserialized metadata, or [[None]] if invalid
    */
-  private Optional<M> loadCacheMetadata(TruffleFile path) throws IOException {
+  private Optional<M> loadCacheMetadata(TruffleFile path, TruffleLogger logger) throws IOException {
     if (path.isReadable()) {
-      return metadataFromBytes(path.readAllBytes());
+      return metadataFromBytes(path.readAllBytes(), logger);
     } else {
       return Optional.empty();
     }
@@ -302,7 +319,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param bytes raw bytes representing metadata
    * @return non-empty metadata, if de-serialization was successful
    */
-  protected abstract Optional<M> metadataFromBytes(byte[] bytes);
+  protected abstract Optional<M> metadataFromBytes(byte[] bytes, TruffleLogger logger);
 
   /**
    * Compute digest of cache's data
@@ -363,7 +380,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return digest used for computing hashes
    */
   protected MessageDigest messageDigest() {
-    return new SHA3.Digest224();
+    return new SHA1.Digest();
   }
 
   /**

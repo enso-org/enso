@@ -26,7 +26,6 @@ use ide_view::component_browser::component_list_panel::BreadcrumbId;
 use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
-use ide_view::project::SearcherVariant;
 
 
 // ==============
@@ -103,30 +102,6 @@ impl Model {
         }
     }
 
-    fn entry_used_as_suggestion(
-        &self,
-        entry_id: view::searcher::entry::Id,
-    ) -> Option<(ViewNodeId, text::Range<text::Byte>, ImString)> {
-        match self.controller.use_as_suggestion(entry_id) {
-            Ok(text::Change { range, text }) => {
-                self.update_breadcrumbs();
-                Some((self.input_view, range, text.into()))
-            }
-            Err(err) => {
-                error!("Error while applying suggestion: {err}.");
-                None
-            }
-        }
-    }
-
-    /// Should be called if an entry is selected but not used yet. Only used for the old searcher
-    /// API.
-    fn entry_selected_as_suggestion(&self, entry_id: view::searcher::entry::Id) {
-        if let Err(error) = self.controller.preview_entry_as_suggestion(entry_id) {
-            warn!("Failed to preview entry {entry_id:?} because of error: {error:?}.");
-        }
-    }
-
     fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         let result = match entry_id {
             Some(id) => self.controller.execute_action_by_index(id),
@@ -136,10 +111,6 @@ impl Model {
             error!("Error while executing action: {err}.");
             None
         })
-    }
-
-    fn create_providers(&self) -> provider::Any {
-        provider::create_providers_from_controller(&self.controller)
     }
 
     fn suggestion_for_entry_id(
@@ -202,26 +173,23 @@ impl Model {
 
     fn update_breadcrumbs(&self) {
         let names = self.controller.breadcrumbs().into_iter();
-        if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
-            // We only update the breadcrumbs starting from the second element because the first
-            // one is reserved as a section name.
-            let from = 1;
-            let breadcrumbs_from = (names.map(Into::into).collect(), from);
-            browser.model().list.model().breadcrumbs.set_entries_from(breadcrumbs_from);
-        }
+        let browser = self.view.searcher();
+        // We only update the breadcrumbs starting from the second element because the first
+        // one is reserved as a section name.
+        let from = 1;
+        let breadcrumbs_from = (names.map(Into::into).collect(), from);
+        browser.model().list.model().breadcrumbs.set_entries_from(breadcrumbs_from);
     }
 
     fn show_breadcrumbs_ellipsis(&self, show: bool) {
-        if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
-            browser.model().list.model().breadcrumbs.show_ellipsis(show);
-        }
+        let browser = self.view.searcher();
+        browser.model().list.model().breadcrumbs.show_ellipsis(show);
     }
 
     fn set_section_name_crumb(&self, text: ImString) {
-        if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
-            let breadcrumbs = &browser.model().list.model().breadcrumbs;
-            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
-        }
+        let browser = self.view.searcher();
+        let breadcrumbs = &browser.model().list.model().breadcrumbs;
+        breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
     }
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
@@ -278,15 +246,8 @@ impl Model {
             match component.data {
                 component::Data::FromDatabase { id, .. } =>
                     self.controller.documentation_for_entry(*id),
-                component::Data::Virtual { snippet } => {
-                    if let Some(documentation) = &snippet.documentation {
-                        documentation.clone()
-                    } else if let Some(documentation) = &snippet.documentation_html {
-                        EntryDocumentation::Builtin(documentation.into())
-                    } else {
-                        default()
-                    }
-                }
+                component::Data::Virtual { snippet } =>
+                    snippet.documentation.clone().unwrap_or_default(),
             }
         } else {
             default()
@@ -330,6 +291,7 @@ impl Searcher {
         let network = frp::Network::new("presenter::Searcher");
 
         let graph = &model.view.graph().frp;
+        let browser = model.view.searcher();
 
         frp::extend! { network
             eval model.view.searcher_input_changed ([model]((expr, selections)) {
@@ -343,74 +305,55 @@ impl Searcher {
                 model.controller.reload_list());
         }
 
-        match model.view.searcher() {
-            SearcherVariant::ComponentBrowser(browser) => {
-                let grid = &browser.model().list.model().grid;
-                let navigator = &browser.model().list.model().section_navigator;
-                let breadcrumbs = &browser.model().list.model().breadcrumbs;
-                let documentation = &browser.model().documentation;
-                frp::extend! { network
-                    eval_ action_list_changed ([model, grid, navigator] {
-                        model.provider.take();
-                        let controller_provider = model.controller.provider();
-                        let namespace_section_count = controller_provider.namespace_section_count();
-                        navigator.set_namespace_section_count.emit(namespace_section_count);
-                        let provider = provider::Component::provide_new_list(controller_provider, &grid);
-                        *model.provider.borrow_mut() = Some(provider);
-                    });
-                    input_edit <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
-                    graph.edit_node_expression <+ input_edit;
+        let grid = &browser.model().list.model().grid;
+        let navigator = &browser.model().list.model().section_navigator;
+        let breadcrumbs = &browser.model().list.model().breadcrumbs;
+        let documentation = &browser.model().documentation;
+        frp::extend! { network
+            eval_ action_list_changed ([model, grid, navigator] {
+                model.provider.take();
+                let controller_provider = model.controller.provider();
+                let namespace_section_count = controller_provider.namespace_section_count();
+                navigator.set_namespace_section_count.emit(namespace_section_count);
+                let provider = provider::Component::provide_new_list(controller_provider, &grid);
+                *model.provider.borrow_mut() = Some(provider);
+            });
+            input_edit <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
+            graph.edit_node_expression <+ input_edit;
 
-                    entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
-                    selected_entry_changed <- entry_selected.on_change().constant(());
-                    grid.unhover_element <+ any2(
-                        &selected_entry_changed,
-                        &model.view.toggle_component_browser_private_entries_visibility,
-                    );
-                    hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
-                        match (h, s) {
-                            (Some(h), Some(s)) => h != s,
-                            _ => false,
-                        }
-                    });
-                    documentation.frp.show_hovered_item_preview_caption <+ hovered_not_selected;
-                    docs_params <- all3(&action_list_changed, &grid.active, &grid.hovered);
-                    docs <- docs_params.filter_map(f!([model]((_, selected, hovered)) {
-                        let entry = hovered.as_ref().or(selected.as_ref());
-                        entry.map(|entry| {
-                            if let Some(group_id) = entry.as_header() {
-                                model.documentation_of_group(group_id)
-                            } else {
-                                let entry_id = entry.as_entry_id().expect("GroupEntryId");
-                                model.documentation_of_component(entry_id)
-                            }
-                        })
-                    }));
-                    documentation.frp.display_documentation <+ docs;
-
-                    eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
-                    eval entry_selected((entry) model.suggestion_selected(*entry));
-                    eval grid.module_entered((id) model.module_entered(*id));
-                    eval breadcrumbs.selected((id) model.breadcrumb_selected(*id));
-                    active_section <- grid.active_section.filter_map(|s| *s);
-                    eval active_section((section) model.on_active_section_change(*section));
+            entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
+            selected_entry_changed <- entry_selected.on_change().constant(());
+            grid.unhover_element <+ any2(
+                &selected_entry_changed,
+                &model.view.toggle_component_browser_private_entries_visibility,
+            );
+            hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
+                match (h, s) {
+                    (Some(h), Some(s)) => h != s,
+                    _ => false,
                 }
-            }
-            SearcherVariant::OldNodeSearcher(searcher) => {
-                let searcher = &searcher.frp;
+            });
+            documentation.frp.show_hovered_item_preview_caption <+ hovered_not_selected;
+            docs_params <- all3(&action_list_changed, &grid.active, &grid.hovered);
+            docs <- docs_params.filter_map(f!([model]((_, selected, hovered)) {
+                let entry = hovered.as_ref().or(selected.as_ref());
+                entry.map(|entry| {
+                    if let Some(group_id) = entry.as_header() {
+                        model.documentation_of_group(group_id)
+                    } else {
+                        let entry_id = entry.as_entry_id().expect("GroupEntryId");
+                        model.documentation_of_component(entry_id)
+                    }
+                })
+            }));
+            documentation.frp.display_documentation <+ docs;
 
-                frp::extend! { network
-                    new_providers <- action_list_changed.map(f_!(model.create_providers()));
-                    searcher.set_actions <+ new_providers;
-                    used_as_suggestion <- searcher.used_as_suggestion.filter_map(|entry| *entry);
-                    edit_input <- used_as_suggestion.filter_map(f!((e) model.entry_used_as_suggestion(*e)));
-                    graph.edit_node_expression <+ edit_input;
-                    eval searcher.selected_entry([model](entry)
-                        if let Some(id) = entry { model.entry_selected_as_suggestion(*id)});
-
-                    eval_ searcher.used_as_suggestion([]analytics::remote_log_event("searcher::used_as_suggestion"));
-                }
-            }
+            eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
+            eval entry_selected((entry) model.suggestion_selected(*entry));
+            eval grid.module_entered((id) model.module_entered(*id));
+            eval breadcrumbs.selected((id) model.breadcrumb_selected(*id));
+            active_section <- grid.active_section.filter_map(|s| *s);
+            eval active_section((section) model.on_active_section_change(*section));
         }
 
         let weak_model = Rc::downgrade(&model);

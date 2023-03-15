@@ -185,7 +185,9 @@ detect_metadata file format =
                     False -> trailing_line_separator
                 has_any_content = reader.getVisitedCharactersCount > 0
                 Detected_File_Metadata.Value headers effective_line_separator has_trailing_line_separator has_any_content
-    result.catch File_Error.Not_Found (_->(Detected_File_Metadata.Value Nothing Nothing False False))
+    result.catch File_Error error-> case error of
+        File_Error.Not_Found _ -> Detected_File_Metadata.Value Nothing Nothing False False
+        _ -> Error.throw error
 
 ## PRIVATE
    Checks if the file has a newline at the end.
@@ -206,7 +208,8 @@ newline_at_eof file encoding =
 handle_parsing_failure ~action =
     translate_parsing_failure caught_panic =
         Error.throw (Java_Problems.translate_problem caught_panic.payload.problem)
-    translate_mismatched_quote _ = Error.throw Mismatched_Quote
+    translate_mismatched_quote caught_panic =
+        Error.throw (Mismatched_Quote.Error caught_panic.payload.getCellText)
     Panic.catch ParsingFailedException handler=translate_parsing_failure <|
         Panic.catch MismatchedQuote handler=translate_mismatched_quote <|
             action
