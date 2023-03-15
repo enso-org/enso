@@ -132,8 +132,6 @@ pub struct BuildConfigurationFlags {
     pub execute_benchmarks:            BTreeSet<Benchmarks>,
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
     pub execute_benchmarks_once:       bool,
-    /// Whether the Scala-based parser should be compiled into JS.
-    pub build_js_parser:               bool,
     pub build_engine_package:          bool,
     pub build_launcher_package:        bool,
     pub build_project_manager_package: bool,
@@ -214,7 +212,6 @@ impl Default for BuildConfigurationFlags {
             check_enso_benchmarks:         false,
             execute_benchmarks:            default(),
             execute_benchmarks_once:       false,
-            build_js_parser:               false,
             build_engine_package:          false,
             build_launcher_package:        false,
             build_project_manager_package: false,

@@ -431,16 +431,6 @@ impl RunContext {
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // === Build Distribution ===
-        if self.config.build_js_parser {
-            // Build the Parser JS Bundle
-            sbt.call_arg("syntaxJS/fullOptJS").await?;
-            ide_ci::fs::copy_to(
-                &self.paths.repo_root.target.scala_parser_js,
-                &self.paths.repo_root.target.parser_upload,
-            )?;
-        }
-
-
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
         }
