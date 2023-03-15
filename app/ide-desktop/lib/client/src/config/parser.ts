@@ -1,57 +1,74 @@
 /** @file Command line options parser. */
 
 import chalk from 'chalk'
-import buildCfg from '../../../../build.json'
-import * as config from 'config'
-import yargs from 'yargs/yargs'
-import * as naming from 'naming'
 import stringLength from 'string-length'
-import { hideBin } from 'yargs/helpers'
-import { logger } from 'enso-content-config'
-import Electron from 'electron'
+
+import * as yargsHelpers from 'yargs/helpers'
+import yargs from 'yargs/yargs'
+import yargsModule from 'yargs'
+
+import * as contentConfig from 'enso-content-config'
+
+import * as config from 'config'
+import * as naming from 'naming'
+
+import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
+
+const logger = contentConfig.logger
+
+// =================
+// === Constants ===
+// =================
+
+const DEFAULT_TERMINAL_WIDTH = 80
+/** Returned by {@link String.indexOf} when the substring was not found. */
+const NOT_FOUND = -1
+const INDENT_SIZE = 0
+const OPTION_PREFIX = '-'
+const SPACING = 2
 
 // ============
 // === Help ===
 // ============
 
-let usage =
-    chalk.bold(`\nEnso ${buildCfg.version} command line interface.` + `Usage: enso [options]`) +
+const USAGE =
+    chalk.bold(`\nEnso ${BUILD_INFO.version} command line interface.` + `Usage: enso [options]`) +
     `\n\nBoth single-dash and double-dash prefixes are accepted for all options. For ` +
     `instance, the help message can be displayed by entering either '--help' or '-help'. The ` +
     `'-no-' prefix may be utilized to disable a specific option. For example, to connect to ` +
     `the application from a web-browser, the creation of a window can be suppressed by ` +
     `entering either '-window=false' or '-no-window'.`
 
-class Section {
-    entries: any[] = []
+class Section<T> {
     description = ''
-    constructor(entries: any[] = []) {
-        this.entries = entries
-    }
+    entries: (readonly [cmdOption: string, option: config.Option<T>])[] = []
+}
+
+interface PrintHelpConfig {
+    args: config.Args
+    groupsOrdering: string[]
+    helpExtended: boolean
 }
 
 /** Command line help printer. The `groupsOrdering` parameter specifies the order in which the
  * option groups should be printed. Groups not specified will be printed in the definition order.
  *
- * We use custom help printer because Yargs has several issues:
+ * We use a custom help printer because Yargs has several issues:
  * 1. The option ordering is random and there is no way to enforce it.
  * 2. The option groups ordering is random and there is no way to enforce it.
  * 3. Every option has a `[type`] annotation and there is no API to disable it.
  * 4. There is no option to print commands with single dash instead of double-dash.
  * 5. Help coloring is not supported, and they do not want to support it:
- *    https://github.com/yargs/yargs/issues/251
+ * https://github.com/yargs/yargs/issues/251.
  */
-function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExtended: boolean }) {
-    console.log(usage)
-    const totalWidth = logger.terminalWidth() ?? 80
-    const indentSize = 0
-    const optionPrefix = '-'
-    const spacing = 2
-    const sections: { [key: string]: Section } = {}
+function printHelp(cfg: PrintHelpConfig) {
+    console.log(USAGE)
+    const totalWidth = logger.terminalWidth() ?? DEFAULT_TERMINAL_WIDTH
+    const sections: Record<string, Section<unknown>> = {}
     const topLevelSection = new Section()
     topLevelSection.description =
         'General application switches. For fine-grained control, see the available option groups.'
-    sections['topLevel'] = topLevelSection
+    sections.topLevel = topLevelSection
     for (const groupName of cfg.groupsOrdering) {
         sections[groupName] = new Section()
     }
@@ -59,7 +76,7 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
 
     for (const [groupName, group] of Object.entries(cfg.args.groups)) {
         let section = sections[groupName]
-        if (section == null) {
+        if (section === undefined) {
             section = new Section()
             sections[groupName] = section
         }
@@ -68,8 +85,7 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
             if (option.primary || cfg.helpExtended) {
                 const cmdOption = naming.camelToKebabCase(option.qualifiedName())
                 maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
-                const entry = [cmdOption, option]
-                section.entries.push(entry)
+                section.entries.push([cmdOption, option])
             }
         }
     }
@@ -78,17 +94,16 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
         if (option.primary || cfg.helpExtended) {
             const cmdOption = naming.camelToKebabCase(optionName)
             maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
-            const entry = [cmdOption, option]
             const section = sections[option.name]
-            if (section != null) {
-                section.entries.unshift(entry)
+            if (section !== undefined) {
+                section.entries.unshift([cmdOption, option])
             } else {
-                topLevelSection.entries.push(entry)
+                topLevelSection.entries.push([cmdOption, option])
             }
         }
     }
 
-    const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
+    const leftWidth = maxOptionLength + INDENT_SIZE + stringLength(OPTION_PREFIX) + SPACING
     const rightWidth = totalWidth - leftWidth
 
     for (const [groupName, section] of Object.entries(sections)) {
@@ -96,30 +111,31 @@ function printHelp(cfg: { args: config.Args; groupsOrdering: string[]; helpExten
             console.log('\n\n')
             const groupTitle = chalk.bold(`${naming.camelCaseToTitle(groupName)} Options `)
             console.log(groupTitle)
-            const description = wordWrap(section.description, totalWidth).join('\n')
-            console.log(description)
+            const sectionDescription = wordWrap(section.description, totalWidth).join('\n')
+            console.log(sectionDescription)
             console.log()
-            section.entries.sort()
+            section.entries.sort((a, b) => a[0].localeCompare(b[0]))
             for (const [cmdOption, option] of section.entries) {
-                const indent = ' '.repeat(indentSize)
-                let left = indent + chalk.bold(chalk.green(optionPrefix + cmdOption))
+                const indent = ' '.repeat(INDENT_SIZE)
+                let left = indent + chalk.bold(chalk.green(OPTION_PREFIX + cmdOption))
                 const spaces = ' '.repeat(leftWidth - stringLength(left))
                 left = left + spaces
 
-                let firstSentenceSplit = option.description.indexOf('. ')
-                let firstSentence =
-                    firstSentenceSplit == -1
+                const firstSentenceSplit = option.description.indexOf('. ')
+                const firstSentence =
+                    firstSentenceSplit === NOT_FOUND
                         ? option.description
                         : option.description.slice(0, firstSentenceSplit + 1)
-                let otherSentences = option.description.slice(firstSentence.length)
-
-                const def = option.defaultDescription ?? option.default
+                const otherSentences = option.description.slice(firstSentence.length)
+                const def =
+                    option.defaultDescription ??
+                    ((option.default ?? undefined) as string | undefined)
                 const defIsEmptyArray = Array.isArray(def) && def.length === 0
                 let defaults = ''
-                if (def != null && def !== '' && !defIsEmptyArray) {
+                if (def !== undefined && def !== '' && !defIsEmptyArray) {
                     defaults = ` Defaults to ${chalk.green(def)}.`
                 }
-                let description = firstSentence + defaults + chalk.gray(otherSentences)
+                const description = firstSentence + defaults + chalk.gray(otherSentences)
                 const lines = wordWrap(description, rightWidth).map(
                     line => line + ' '.repeat(rightWidth - stringLength(line))
                 )
@@ -147,7 +163,8 @@ function wordWrap(str: string, width: number): string[] {
             line = ''
         }
         firstLine = false
-        for (let word of inputLine.split(' ')) {
+        for (const originalWord of inputLine.split(' ')) {
+            let word = originalWord
             if (stringLength(word) > width) {
                 if (line.length > 0) {
                     lines.push(line)
@@ -167,7 +184,7 @@ function wordWrap(str: string, width: number): string[] {
                     lines.push(line)
                     line = ''
                 }
-                if (line.length != 0) {
+                if (line.length !== 0) {
                     line += ' '
                 }
                 line += word
@@ -188,13 +205,13 @@ export class ChromeOption {
     constructor(public name: string, public value?: string) {}
 
     display(): string {
-        const value = this.value == null ? '' : `=${this.value}`
+        const value = this.value === undefined ? '' : `=${this.value}`
         return `--${this.name}${value}`
     }
 }
 
 /** Replaces `-no-...` with `--no-...`. This is a hotfix for Yargs bug:
- * https://github.com/yargs/yargs-parser/issues/468 */
+ * https://github.com/yargs/yargs-parser/issues/468. */
 function fixArgvNoPrefix(argv: string[]): string[] {
     const singleDashPrefix = '-no-'
     const doubleDashPrefix = '--no-'
@@ -207,27 +224,29 @@ function fixArgvNoPrefix(argv: string[]): string[] {
     })
 }
 
-/** Parse the given list of arguments into two distinct sets: regular arguments and those specific
- * to Chrome. */
-function argvAndChromeOptions(processArgs: string[]): {
+interface ArgvAndChromeOptions {
     argv: string[]
     chromeOptions: ChromeOption[]
-} {
-    const chromeOptionRegex = /--?chrome.([^=]*)(=(.*))?/
+}
+
+/** Parse the given list of arguments into two distinct sets: regular arguments and those specific
+ * to Chrome. */
+function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
+    const chromeOptionRegex = /--?chrome.([^=]*)(?:=(.*))?/
     const argv = []
     const chromeOptions: ChromeOption[] = []
     for (let i = 0; i < processArgs.length; i++) {
         const processArg = processArgs[i]
-        if (processArg != null) {
-            const match = processArg.match(chromeOptionRegex)
-            if (match != null) {
-                const optionName = match[1] as string
-                const optionValue = match[3]
-                if (optionValue != null) {
+        if (processArg !== undefined) {
+            const match = processArg.match(chromeOptionRegex) ?? undefined
+            if (match?.[1] !== undefined) {
+                const optionName = match[1]
+                const optionValue = match[2]
+                if (optionValue !== undefined) {
                     chromeOptions.push(new ChromeOption(optionName, optionValue))
                 } else {
                     const nextArgValue = processArgs[i + 1]
-                    if (nextArgValue != null && !nextArgValue.startsWith('-')) {
+                    if (nextArgValue !== undefined && !nextArgValue.startsWith('-')) {
                         chromeOptions.push(new ChromeOption(optionName, nextArgValue))
                         i++
                     } else {
@@ -246,33 +265,47 @@ function argvAndChromeOptions(processArgs: string[]): {
 // === Option Parser ===
 // =====================
 
+/** Parses command line arguments. */
 export function parseArgs() {
-    const args = config.config
-    const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(hideBin(process.argv)))
+    const args = config.CONFIG
+    const { argv, chromeOptions } = argvAndChromeOptions(
+        fixArgvNoPrefix(yargsHelpers.hideBin(process.argv))
+    )
+    const yargsOptions = args
+        .optionsRecursive()
+        .reduce((opts: Record<string, yargsModule.Options>, option) => {
+            const yargsParam = Object.assign(
+                {},
+                {
+                    ...option,
+                    requiresArg: ['string', 'array'].includes(option.type),
+                    default: undefined,
+                }
+            )
+            opts[naming.camelToKebabCase(option.qualifiedName())] = {
+                // Required because ensogl-pack has `defaultDescription`
+                // defined as `string | null` instead of `string | undefined` like in yargs
+                ...yargsParam,
+                defaultDescription: yargsParam.defaultDescription ?? undefined,
+            }
+            return opts
+        }, {})
 
-    const yargsOptions = args.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
-        const yargsParam = Object.assign({}, option)
-        // @ts-ignore
-        yargsParam.requiresArg = ['string', 'array'].includes(yargsParam.type)
-        // @ts-ignore
-        yargsParam.default = undefined
-        // @ts-ignore
-        opts[naming.camelToKebabCase(option.qualifiedName())] = yargsParam
-        return opts
-    }, {})
-
-    let optParser = yargs()
+    const optParser = yargs()
         .version(false)
         .parserConfiguration({
+            // We don't control the naming of this third-party API.
+            /* eslint-disable @typescript-eslint/naming-convention */
             // Allow single-dash arguments, like `-help`.
             'short-option-groups': false,
             // Treat dot-arguments as string keys, like `foo.bar`.
             'dot-notation': false,
-            // Makes all flags passed after '--' be one string.
+            // Adds all flags passed after '--' to an array.
             'populate--': true,
             // Do not expand `--foo-bar` to `--fooBar`. This prevents an error when both the former
             // and later argument are reported as invalid at the same time.
             'camel-case-expansion': false,
+            /* eslint-enable @typescript-eslint/naming-convention */
         })
         .help(false)
         .strict()
@@ -280,20 +313,38 @@ export function parseArgs() {
 
     // === Parsing ===
 
-    let parseError = null as null | Error
-    let parsedArgs = optParser.parse(argv, {}, (err: Error | undefined) => {
-        if (err != null) {
-            parseError = err
+    interface YargsArgs {
+        // We don't control the naming of this third-party API.
+        /* eslint-disable @typescript-eslint/naming-convention */
+        [key: string]: string[] | string | undefined
+        _: string[]
+        // Exists only when the `populate--` option is enabled.
+        '--'?: string[]
+        $0: string
+        /* eslint-enable @typescript-eslint/naming-convention */
+    }
+
+    let parseError: Error | undefined
+    const { '--': unexpectedArgs, ...parsedArgs } = optParser.parse(
+        argv,
+        {},
+        // @ts-expect-error Yargs' typings are wrong.
+        // eslint-disable-next-line no-restricted-syntax
+        (err: Error | null) => {
+            if (err) {
+                parseError = err
+            }
         }
-    }) as { [key: string]: any }
-    const unexpectedArgs = parsedArgs['--']
+    ) as YargsArgs
+    // The type assertion above is required since `parse` is defined to potentially return a `Promise`.
+    // This only happens when an async middleware has been registered though.
 
     for (const option of args.optionsRecursive()) {
         const arg = parsedArgs[naming.camelToKebabCase(option.qualifiedName())]
         const isArray = Array.isArray(arg)
         // Yargs parses missing array options as `[undefined]`.
-        const isInvalidArray = isArray && arg.length == 1 && arg[0] == null
-        if (arg != null && !isInvalidArray) {
+        const isInvalidArray = isArray && arg.length === 1 && arg[0] === undefined
+        if (arg !== undefined && !isInvalidArray) {
             option.value = arg
             option.setByUser = true
         }
@@ -304,7 +355,7 @@ export function parseArgs() {
     const parsedWindowSize = config.WindowSize.parse(providedWindowSize)
 
     if (parsedWindowSize instanceof Error) {
-        throw new Error(`Wrong window size provided: '${providedWindowSize}'.`)
+        logger.error(`Wrong window size provided: '${providedWindowSize}'.`)
     } else {
         windowSize = parsedWindowSize
     }
@@ -335,11 +386,12 @@ export function parseArgs() {
     const helpRequested = args.options.help.value || args.options.helpExtended.value
     if (helpRequested) {
         printHelpAndExit()
-    } else if (parseError != null) {
+    } else if (parseError !== undefined) {
         logger.error(parseError.message)
         printHelpAndExit(1)
-    } else if (unexpectedArgs != null) {
-        logger.error(`Unexpected arguments found: '${unexpectedArgs}'.`)
+    } else if (unexpectedArgs !== undefined) {
+        const unexpectedArgsString = unexpectedArgs.map(arg => JSON.stringify(arg)).join(' ')
+        logger.error(`Unexpected arguments found: '${unexpectedArgsString}'.`)
         printHelpAndExit(1)
     }
 
