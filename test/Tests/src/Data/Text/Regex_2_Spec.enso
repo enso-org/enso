@@ -291,51 +291,45 @@ spec =
             groups.at "letters" . should_equal "abc a bc bcd"
             groups.at "empty" . should_equal "UNMATCHED"
 
-    Test.group "Match.start and end" <|
-        pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+    Test.group "Match.start" <|
+        pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
         input = "aa ab abc a bc bcd"
         match = pattern.match input
         match . should_be_a Match_2
 
-        Test.specify "should return the start and end of a group by index" <|
+        Test.specify "should return the start of a group by index" <|
             match.start 1 . should_equal 0
-            match.end 1 . should_equal 6
 
-        Test.specify "should return the start and end of a group by name" <|
+        Test.specify "should return the start of a group by name" <|
             match.start "letters" . should_equal 6
-            match.end "letters" . should_equal 18
 
         Test.specify "should return Nothing if the group didn't match" <|
             match.start 3 . should_equal Nothing
             match.start "empty" . should_equal Nothing
-            match.end 3 . should_equal Nothing
-            match.end "empty" . should_equal Nothing
 
         Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
             match.start 5 . should_fail_with No_Such_Group
             match.start "nonexistent" . should_fail_with No_Such_Group
-            match.end 5 . should_fail_with No_Such_Group
-            match.end "nonexistent" . should_fail_with No_Such_Group
 
-    Test.group "Match.span" <|
-        pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+    Test.group "Match.end" <|
+        pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
         input = "aa ab abc a bc bcd"
         match = pattern.match input
         match . should_be_a Match_2
 
-        Test.specify "should get the span of a group by index" <|
-            match.span 1 . should_equal (Utf_16_Span.Value (0.up_to 6) input)
+        Test.specify "should return the end of a group by index" <|
+            match.end 1 . should_equal 6
 
-        Test.specify "should get the span of a group by name" <|
-            match.span "letters" . should_equal (Utf_16_Span.Value (6.up_to 18) input)
+        Test.specify "should return the end of a group by name" <|
+            match.end "letters" . should_equal 18
 
         Test.specify "should return Nothing if the group didn't match" <|
-            match.span 3 . should_equal Nothing
-            match.span "empty" . should_equal Nothing
+            match.end 3 . should_equal Nothing
+            match.end "empty" . should_equal Nothing
 
-        Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
-            match.span 5 . should_fail_with No_Such_Group
-            match.span "nonexistent" . should_fail_with No_Such_Group
+        Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+            match.end 5 . should_fail_with No_Such_Group
+            match.end "nonexistent" . should_fail_with No_Such_Group
 
     Test.group "Match.utf16_start" <|
         pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
@@ -418,24 +412,5 @@ spec =
 
             Test.specify "should return the region end over which self match was performed" <|
                 match.end_position . should_equal 18
-
-        Test.group "Regex options handling" <|
-            Test.specify "should work properly with flag options" <|
-                flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dot_matches_newline=True multiline=False comments=True extra_opts=[]
-                flags . should_equal [Regex_Option.Ascii_Matching, Regex_Option.Dot_Matches_Newline, Regex_Option.Comments]
-
-            Test.specify "should properly override vector options" <|
-                flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dot_matches_newline=True multiline=False comments=True extra_opts=[Regex_Option.Multiline, Regex_Option.Case_Insensitive]
-                flags . should_equal [Regex_Option.Ascii_Matching, Regex_Option.Case_Insensitive, Regex_Option.Dot_Matches_Newline, Regex_Option.Comments]
-
-        Test.group "Regexes" <|
-            Test.specify "should be able to be compiled" <|
-                pattern = Regex.compile "(?<dots>..)" case_insensitive=True
-                pattern . should_be_a Default_Engine.Pattern.Value
-                pattern.options . should_equal [Regex_Option.Case_Insensitive]
-
-            Test.specify "should be able to be escaped" <|
-                pattern = "http://example.com"
-                Regex.escape pattern . should_equal "\Qhttp://example.com\E"
 
 main = Test_Suite.run_main spec
