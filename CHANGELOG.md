@@ -117,6 +117,8 @@
   open them in the IDE (which is not part of the React app, but can be switched
   to from the dashboard). The PR also adds authentication+authorization (i.e.,
   sign up and sign in for users), via either email/password or GitHub/Google.
+- [New Enso documentation parser][5917]. Smaller and faster; enables planned
+  improvements to internal documentation representation.
 
 #### EnsoGL (rendering engine)
 
@@ -527,6 +529,7 @@
 [5802]: https://github.com/enso-org/enso/pull/5802
 [5850]: https://github.com/enso-org/enso/pull/5850
 [5863]: https://github.com/enso-org/enso/pull/5863
+[5917]: https://github.com/enso-org/enso/pull/5917
 
 #### Enso Compiler
 

@@ -6,7 +6,7 @@ import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{DocSection, Suggestion}
+import org.enso.polyglot.Suggestion
 import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
 
@@ -31,10 +31,6 @@ object SearchProtocol {
     val ParentType = "parentType"
 
     val Documentation = "documentation"
-
-    val DocumentationHtml = "documentationHtml"
-
-    val DocumentationSections = "documentationSections"
 
     val Reexport = "reexport"
   }
@@ -62,87 +58,6 @@ object SearchProtocol {
 
     val Local = "local"
   }
-
-  object DocSectionType {
-
-    val Tag = "tag"
-
-    val Paragraph = "paragraph"
-
-    val Keyed = "keyed"
-
-    val Marked = "marked"
-  }
-
-  object DocSectionMarkType {
-
-    val Important = "Important"
-
-    val Info = "Info"
-
-    val Example = "Example"
-  }
-
-  implicit val docSectionEncoder: Encoder[DocSection] =
-    Encoder.instance[DocSection] {
-      case tag: DocSection.Tag =>
-        Encoder[DocSection.Tag]
-          .apply(tag)
-          .deepMerge(Json.obj(CodecField.Type -> DocSectionType.Tag.asJson))
-
-      case paragraph: DocSection.Paragraph =>
-        Encoder[DocSection.Paragraph]
-          .apply(paragraph)
-          .deepMerge(
-            Json.obj(CodecField.Type -> DocSectionType.Paragraph.asJson)
-          )
-
-      case keyed: DocSection.Keyed =>
-        Encoder[DocSection.Keyed]
-          .apply(keyed)
-          .deepMerge(Json.obj(CodecField.Type -> DocSectionType.Keyed.asJson))
-
-      case marked: DocSection.Marked =>
-        Encoder[DocSection.Marked]
-          .apply(marked)
-          .deepMerge(Json.obj(CodecField.Type -> DocSectionType.Marked.asJson))
-    }
-
-  implicit val docSectionDecoder: Decoder[DocSection] =
-    Decoder.instance { cursor =>
-      cursor.downField(CodecField.Type).as[String].flatMap {
-        case DocSectionType.Tag =>
-          Decoder[DocSection.Tag].tryDecode(cursor)
-
-        case DocSectionType.Paragraph =>
-          Decoder[DocSection.Paragraph].tryDecode(cursor)
-
-        case DocSectionType.Keyed =>
-          Decoder[DocSection.Keyed].tryDecode(cursor)
-
-        case DocSectionType.Marked =>
-          Decoder[DocSection.Marked].tryDecode(cursor)
-      }
-    }
-
-  implicit val docSectionMarkEncoder: Encoder[DocSection.Mark] =
-    Encoder.instance {
-      case _: DocSection.Mark.Important =>
-        DocSectionMarkType.Important.asJson
-      case _: DocSection.Mark.Info =>
-        DocSectionMarkType.Info.asJson
-      case _: DocSection.Mark.Example =>
-        DocSectionMarkType.Example.asJson
-    }
-
-  implicit val docSectionMarkDecoder: Decoder[DocSection.Mark] =
-    Decoder.instance { cursor =>
-      cursor.as[String].map {
-        case DocSectionMarkType.Important => DocSection.Mark.Important()
-        case DocSectionMarkType.Info      => DocSection.Mark.Info()
-        case DocSectionMarkType.Example   => DocSection.Mark.Example()
-      }
-    }
 
   implicit val suggestionEncoder: Encoder[Suggestion] =
     Encoder.instance[Suggestion] {
@@ -220,8 +135,6 @@ object SearchProtocol {
       conversion.returnType,
       isStatic = false,
       conversion.documentation,
-      conversion.documentationHtml,
-      None,
       conversion.reexport
     )
   }
@@ -241,12 +154,6 @@ object SearchProtocol {
         documentation <- cursor
           .downField(CodecField.Documentation)
           .as[Option[String]]
-        documentationHtml <- cursor
-          .downField(CodecField.DocumentationHtml)
-          .as[Option[String]]
-        documentationSections <- cursor
-          .downField(CodecField.DocumentationSections)
-          .as[Option[List[DocSection]]]
         reexport <- cursor.downField(CodecField.Reexport).as[Option[String]]
       } yield {
         val returnType =
@@ -259,8 +166,6 @@ object SearchProtocol {
           returnType,
           parentType,
           documentation,
-          documentationHtml,
-          documentationSections,
           reexport
         )
       }
@@ -407,23 +312,19 @@ object SearchProtocol {
       * @param selfType the self type to update
       * @param returnType the return type to update
       * @param documentation the documentation string to update
-      * @param documentationHtml the HTML documentation to update
-      * @param documentationSections the documentation sections to update
       * @param scope the scope to update
       * @param reexport the module reexporting the suggestion
       */
     case class Modify(
       id: SuggestionId,
-      externalId: Option[FieldUpdate[Suggestion.ExternalId]]      = None,
-      arguments: Option[Seq[SuggestionArgumentUpdate]]            = None,
-      module: Option[FieldUpdate[String]]                         = None,
-      selfType: Option[FieldUpdate[String]]                       = None,
-      returnType: Option[FieldUpdate[String]]                     = None,
-      documentation: Option[FieldUpdate[String]]                  = None,
-      documentationHtml: Option[FieldUpdate[String]]              = None,
-      documentationSections: Option[FieldUpdate[Seq[DocSection]]] = None,
-      scope: Option[FieldUpdate[Suggestion.Scope]]                = None,
-      reexport: Option[FieldUpdate[String]]                       = None
+      externalId: Option[FieldUpdate[Suggestion.ExternalId]] = None,
+      arguments: Option[Seq[SuggestionArgumentUpdate]]       = None,
+      module: Option[FieldUpdate[String]]                    = None,
+      selfType: Option[FieldUpdate[String]]                  = None,
+      returnType: Option[FieldUpdate[String]]                = None,
+      documentation: Option[FieldUpdate[String]]             = None,
+      scope: Option[FieldUpdate[Suggestion.Scope]]           = None,
+      reexport: Option[FieldUpdate[String]]                  = None
     ) extends SuggestionsDatabaseUpdate
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =

@@ -22,7 +22,7 @@ import project.System.File_Format.File_Format
 from project.Data.Boolean import Boolean, True, False
 
 ## ALIAS Load, Open
-   Read's a file into Enso.
+   Reads a file into Enso.
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
 
