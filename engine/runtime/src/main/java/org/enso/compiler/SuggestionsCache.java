@@ -104,7 +104,7 @@ public final class SuggestionsCache
   }
 
   @Override
-  protected byte[] serialize(CachedSuggestions entry) throws IOException {
+  protected byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
     var byteStream = new ByteArrayOutputStream();
     try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
       stream.writeObject(entry.getSuggestionsObjectToSerialize());

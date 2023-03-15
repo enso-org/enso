@@ -138,13 +138,22 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     }
 
     @Override
-    protected byte[] serialize(CachedModule entry) throws IOException {
+    protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
       var byteStream = new ByteArrayOutputStream();
-      new IOException("Storing " + entry.source().getPath()).printStackTrace();
-      boolean noUUIDs = entry.source().getPath() != null;
-      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream) {
-        {
-          enableReplaceObject(noUUIDs);
+      boolean noUUIDs = false;
+      for (var p : context.getPackageRepository().getLoadedPackagesJava()) {
+        if ("Standard".equals(p.namespace())) {
+          for (var s : p.listSourcesJava()) {
+            if (s.file().getPath().equals(entry.source().getPath())) {
+              noUUIDs = true;
+              break;
+            }
+          }
+        }
+      }
+      try (var stream = new ObjectOutputStream(byteStream) {
+        void filterUUIDs() {
+          enableReplaceObject(true);
         }
 
         @Override
@@ -155,6 +164,9 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
           return obj;
         }
       }) {
+        if (noUUIDs) {
+          stream.filterUUIDs();
+        }
         stream.writeObject(entry.moduleIR());
       }
       return byteStream.toByteArray();

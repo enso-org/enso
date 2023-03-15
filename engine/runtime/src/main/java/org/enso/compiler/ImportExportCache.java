@@ -101,7 +101,7 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     }
 
     @Override
-    protected byte[] serialize(CachedBindings entry) throws IOException {
+    protected byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
       var byteStream = new ByteArrayOutputStream();
       try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
         stream.writeObject(entry.bindings());

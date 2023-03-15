@@ -82,7 +82,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
             roots -> {
               try {
                 if (useGlobalCacheLocations) {
-                  if (saveCacheTo(roots.globalCacheRoot, entry, logger)) {
+                  if (saveCacheTo(context, roots.globalCacheRoot, entry, logger)) {
                     return Optional.of(roots.globalCacheRoot);
                   }
                 } else {
@@ -90,7 +90,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                       logLevel, "Skipping use of global cache locations for " + stringRepr + ".");
                 }
 
-                if (saveCacheTo(roots.localCacheRoot, entry, logger)) {
+                if (saveCacheTo(context, roots.localCacheRoot, entry, logger)) {
                   return Optional.of(roots.localCacheRoot);
                 }
 
@@ -116,10 +116,11 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return true, if successful, false otherwise
    * @throws IOException IOException encountered while writing data to files
    */
-  private boolean saveCacheTo(TruffleFile cacheRoot, T entry, TruffleLogger logger)
+  private boolean saveCacheTo(
+      EnsoContext context, TruffleFile cacheRoot, T entry, TruffleLogger logger)
       throws IOException, CacheException {
     if (ensureRoot(cacheRoot)) {
-      byte[] bytesToWrite = serialize(entry);
+      byte[] bytesToWrite = serialize(context, entry);
 
       String blobDigest = computeDigestFromBytes(bytesToWrite);
       String sourceDigest = computeDigest(entry, logger).get();
@@ -402,8 +403,16 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    */
   protected abstract Optional<Roots> getCacheRoots(EnsoContext context);
 
-  /** Returns the exact data to be serialized */
-  protected abstract byte[] serialize(T entry) throws IOException;
+  /**
+   * Returns the exact data to be serialized. Override in subclasses to turn an {@code entry} into
+   * an array of bytes to persist
+   *
+   * @param context context we operate in
+   * @param entry entry to persist
+   * @return array of bytes
+   * @throws java.io.IOException if something goes wrong
+   */
+  protected abstract byte[] serialize(EnsoContext context, T entry) throws IOException;
 
   protected String stringRepr;
 
