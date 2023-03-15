@@ -20,7 +20,10 @@ type Dispatch<A> = (value: A) => void;
  *
  * <input {...bind} />
  * ``` */
-type Bind = { value: string, onChange: Dispatch<react.ChangeEvent<HTMLInputElement>> };
+type Bind = {
+  value: string;
+  onChange: Dispatch<react.ChangeEvent<HTMLInputElement>>;
+};
 
 /** A custom hook to handle input fields.
  *

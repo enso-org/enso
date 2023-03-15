@@ -89,7 +89,7 @@ const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
  * they return. The caller can then handle them via pattern matching on the {@link results.Result}
  * type. */
 export class Cognito {
-    private readonly platform: app.Platform;
+    private readonly platform: app.Platform
 
     constructor(platform: app.Platform, amplifyConfig: config.AmplifyConfig) {
         this.platform = platform
@@ -154,10 +154,7 @@ export interface UserSession {
 }
 
 const userSession = () =>
-    getAmplifyCurrentSession()
-        .then(result => result
-            .map(parseUserSession)
-            .toOption())
+    getAmplifyCurrentSession().then(result => result.map(parseUserSession).toOption())
 
 /** Returns the current `CognitoUserSession` if the user is logged in, or `CurrentSessionErrorKind`
  * otherwise.
@@ -183,8 +180,7 @@ const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
     kind: 'NoCurrentUser',
 } as const
 
-type CurrentSessionErrorKind =
-    | typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR["kind"]
+type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['kind']
 
 const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind => {
     if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
@@ -204,10 +200,12 @@ const signUp = (username: string, password: string, platform: app.Platform) =>
         return amplify.Auth.signUp(params)
     })
         /** The contents of a successful response are not relevant, so we discard them. */
-        .then(result => result
-            .mapErr(intoAmplifyErrorOrThrow)
-            .mapErr(intoSignUpErrorOrThrow)
-            .map(() => null))
+        .then(result =>
+            result
+                .mapErr(intoAmplifyErrorOrThrow)
+                .mapErr(intoSignUpErrorOrThrow)
+                .map(() => null)
+        )
 
 const intoSignUpParams = (
     username: string,
@@ -242,11 +240,11 @@ const SIGN_UP_INVALID_PARAMETER_ERROR = {
 } as const
 
 type SignUpErrorKind =
-    | typeof SIGN_UP_USERNAME_EXISTS_ERROR["kind"]
-    | typeof SIGN_UP_INVALID_PARAMETER_ERROR["kind"]
+    | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
+    | (typeof SIGN_UP_INVALID_PARAMETER_ERROR)['kind']
 
 export interface SignUpError {
-    kind: SignUpErrorKind,
+    kind: SignUpErrorKind
     message: string
 }
 
@@ -273,8 +271,7 @@ const intoSignUpErrorOrThrow = (error: AmplifyError): SignUpError => {
 const confirmSignUp = async (email: string, code: string) =>
     results.Result.wrapAsync(() => amplify.Auth.confirmSignUp(email, code))
         /** The contents of a successful response are not relevant, so we discard them. */
-        .then(result => result
-            .map(() => null))
+        .then(result => result.map(() => null))
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
         .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
 
@@ -284,8 +281,7 @@ const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
     kind: 'UserAlreadyConfirmed',
 } as const
 
-type ConfirmSignUpErrorKind =
-    typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR['kind']
+type ConfirmSignUpErrorKind = (typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR)['kind']
 
 export interface ConfirmSignUpError {
     kind: ConfirmSignUpErrorKind
