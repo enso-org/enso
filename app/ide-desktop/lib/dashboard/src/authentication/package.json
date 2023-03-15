@@ -1,5 +1,5 @@
 {
-  "name": "enso-studio-authentication",
+  "name": "enso-authentication",
   "version": "1.0.0",
   "type": "module",
   "main": "./src/index.tsx",

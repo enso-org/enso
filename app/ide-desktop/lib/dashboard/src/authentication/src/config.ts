@@ -1,6 +1,7 @@
 /** @file Configuration definition for the Dashboard. */
 
 import * as auth from './authentication/config'
+import * as utils from './utils'
 
 // =================
 // === Constants ===
@@ -57,11 +58,11 @@ export interface Config {
 
 /** Possible values for the environment/user we're running for and whose infrastructure we're
  * testing against. */
-export type Environment = 'production' | 'pbuchu'
+export type Environment = 'pbuchu' | 'production'
 
 // ===========
 // === API ===
 // ===========
 
 /** Base URL for requests to our Cloud API backend. */
-type ApiUrl = string & { _brand: 'ApiUrl' }
+type ApiUrl = utils.Brand<'ApiUrl'> & string

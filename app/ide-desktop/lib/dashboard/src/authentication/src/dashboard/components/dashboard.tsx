@@ -8,7 +8,7 @@ import withRouter from "../../navigation";
 // === Dashboard ===
 // =================
 
-const Dashboard = () => {
+function Dashboard() {
   const { accessToken } = auth.useFullUserSession();
   return (
     <>
@@ -16,6 +16,6 @@ const Dashboard = () => {
       <p>Access token: {accessToken}</p>
     </>
   );
-};
+}
 
 export default withRouter(Dashboard);

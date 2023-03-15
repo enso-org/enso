@@ -28,21 +28,9 @@ export class Cognito {
     /** Returns the current user's session, or `None` if the user is not logged in.
      *
      * Will refresh the session if it has expired. */
-    userSession: () => Promise<results.Option<UserSession>> = userSession
-}
-
-// ====================
-// === AssertString ===
-// ====================
-
-/** Type signature for a function that asserts that a parameter is a string. */
-type AssertString = (param: any, message: string) => asserts param is string
-
-/** Asserts that a parameter is a string (both at runtime & typecheck time); throws an error
- * `message` if the assertion fails. */
-const assertString: AssertString = (param, message) => {
-    if (typeof param !== 'string') {
-        throw new Error(message)
+    async userSession(this: void) {
+        const amplifySession = await getAmplifyCurrentSession()
+        return amplifySession.map(parseUserSession).toOption()
     }
 }
 
@@ -56,23 +44,18 @@ export interface UserSession {
      *
      * Provided by the identity provider the user used to log in. One of:
      *
-     * - GitHub
-     * - Google
-     * - Email */
+     * - GitHub,
+     * - Google, or
+     * - Email. */
     email: string
     /** User's access token, used to authenticate the user (e.g., when making API calls). */
     accessToken: string
 }
 
-const userSession = () =>
-    getAmplifyCurrentSession()
-        .then(result => result.map(parseUserSession))
-        .then(result => result.toOption())
-
 const NO_CURRENT_USER_ERROR_KIND = 'NoCurrentUser' as const
 type CurrentSessionErrorKind = typeof NO_CURRENT_USER_ERROR_KIND
 
-const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind => {
+function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
     if (error === 'No current user') {
         return NO_CURRENT_USER_ERROR_KIND
     } else {
@@ -84,17 +67,20 @@ const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind =>
  * otherwise.
  *
  * Will refresh the session if it has expired. */
-const getAmplifyCurrentSession = () =>
-    results.Result.wrapAsync(() => amplify.Auth.currentSession()).then(result =>
-        result.mapErr(intoCurrentSessionErrorKind)
-    )
+async function getAmplifyCurrentSession() {
+    const currentSession = await results.Result.wrapAsync(() => amplify.Auth.currentSession())
+    return currentSession.mapErr(intoCurrentSessionErrorKind)
+}
 
-/** Parses a `CognitoUserSession` into a `UserSession`. */
-const parseUserSession = (session: cognito.CognitoUserSession): UserSession => {
-    const payload = session.getIdToken().payload
-    /** The `email` field is mandatory, so we assert that it exists and is a string. */
-    assertString(payload.email, 'Payload does not have an email field.')
+/** Parses a `CognitoUserSession` into a `UserSession`.
+ * @throws If the `email` field of the payload is not a string. */
+function parseUserSession(session: cognito.CognitoUserSession): UserSession {
+    const payload: Record<string, unknown> = session.getIdToken().payload
     const email = payload.email
+    /** The `email` field is mandatory, so we assert that it exists and is a string. */
+    if (typeof email !== 'string') {
+        throw new Error('Payload does not have an email field.')
+    }
     const accessToken = session.getAccessToken().getJwtToken()
     return { email, accessToken }
 }

@@ -21,12 +21,7 @@ export interface Logger {
 // === LoggerContext ===
 // =====================
 
-type LoggerContextType = Logger;
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const LoggerContext = react.createContext<LoggerContextType>(
-  {} as LoggerContextType
-);
+const LoggerContext = react.createContext<Logger>({} as Logger);
 
 // ======================
 // === LoggerProvider ===
@@ -37,16 +32,17 @@ interface LoggerProviderProps {
   logger: Logger;
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const LoggerProvider = (props: LoggerProviderProps) => {
+export function LoggerProvider(props: LoggerProviderProps) {
   const { children, logger } = props;
   return (
     <LoggerContext.Provider value={logger}>{children}</LoggerContext.Provider>
   );
-};
+}
 
 // =================
 // === useLogger ===
 // =================
 
-export const useLogger = () => react.useContext(LoggerContext);
+export function useLogger() {
+  return react.useContext(LoggerContext);
+}

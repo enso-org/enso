@@ -4,10 +4,10 @@
 
 import * as common from "enso-studio-common";
 
+import * as authConfigModule from "./config";
 import * as cognito from "./cognito";
-import * as authConfig from "./config";
 import * as config from "../config";
-import * as app from "../components/app";
+import * as platform from "../platform";
 
 // =================
 // === Constants ===
@@ -15,26 +15,26 @@ import * as app from "../components/app";
 
 /** URL used as the OAuth redirect when running in the desktop app. */
 const DESKTOP_REDIRECT =
-  `${common.DEEP_LINK_SCHEME}://auth` as authConfig.OAuthRedirect;
+  `${common.DEEP_LINK_SCHEME}://auth` as authConfigModule.OAuthRedirect;
 /** Map from platform to the OAuth redirect URL that should be used for that platform. */
 const PLATFORM_TO_CONFIG: Record<
-  app.Platform,
-  Pick<authConfig.AmplifyConfig, "redirectSignIn" | "redirectSignOut">
+  platform.Platform,
+  Pick<authConfigModule.AmplifyConfig, "redirectSignIn" | "redirectSignOut">
 > = {
-  [app.Platform.desktop]: {
+  [platform.Platform.desktop]: {
     redirectSignIn: DESKTOP_REDIRECT,
     redirectSignOut: DESKTOP_REDIRECT,
   },
-  [app.Platform.cloud]: {
+  [platform.Platform.cloud]: {
     redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
     redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
   },
 };
 
-const BASE_AMPLIFY_CONFIG: Partial<authConfig.AmplifyConfig> = {
-  region: authConfig.AWS_REGION,
-  scope: authConfig.OAUTH_SCOPES,
-  responseType: authConfig.OAUTH_RESPONSE_TYPE,
+const BASE_AMPLIFY_CONFIG: Partial<authConfigModule.AmplifyConfig> = {
+  region: authConfigModule.AWS_REGION,
+  scope: authConfigModule.OAUTH_SCOPES,
+  responseType: authConfigModule.OAUTH_RESPONSE_TYPE,
 };
 
 /** Collection of configuration details for Amplify user pools, sorted by deployment environment. */
@@ -61,7 +61,7 @@ const AMPLIFY_CONFIGS = {
 
 /** Configuration for the authentication service. */
 export interface AuthConfig {
-  platform: app.Platform;
+  platform: platform.Platform;
 }
 
 // ===================
@@ -70,29 +70,31 @@ export interface AuthConfig {
 
 /** API for the authentication service. */
 export interface AuthService {
-  /** @see {@link cognito.Cognito} */
+  /** @see {@link cognito.Cognito}. */
   cognito: cognito.Cognito;
 }
 
+/* eslint-disable jsdoc/require-description-complete-sentence */
 /** Creates an instance of the authentication service.
  *
  * # Warning
  *
  * This function should only be called once, and the returned service should be used throughout the
  * application. This is because it performs global configuration of the Amplify library. */
-export const initAuthService = (authConfig: AuthConfig): AuthService => {
+/* eslint-enable jsdoc/require-description-complete-sentence */
+export function initAuthService(authConfig: AuthConfig): AuthService {
   const { platform } = authConfig;
   const amplifyConfig = loadAmplifyConfig(platform);
   const cognitoClient = new cognito.Cognito(amplifyConfig);
   return { cognito: cognitoClient };
-};
+}
 
-const loadAmplifyConfig = (
-  platform: app.Platform
-): authConfig.AmplifyConfig => {
+function loadAmplifyConfig(
+  platform: platform.Platform
+): authConfigModule.AmplifyConfig {
   /** Load the environment-specific Amplify configuration. */
   const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
   /** Load the platform-specific Amplify configuration. */
   const platformConfig = PLATFORM_TO_CONFIG[platform];
-  return { ...baseConfig, ...platformConfig } as authConfig.AmplifyConfig;
-};
+  return { ...baseConfig, ...platformConfig } as authConfigModule.AmplifyConfig;
+}
