@@ -109,6 +109,7 @@ export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: st
 export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
     const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath } = args
     return {
+        // Disabling naming convention because these are third-party options.
         /* eslint-disable @typescript-eslint/naming-convention */
         absWorkingDir: THIS_PATH,
         bundle: true,
@@ -119,13 +120,11 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginNodeGlobals.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
-            // We do not control naming of third-party options.
             esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
             esbuildPluginTime(),
             esbuildPluginCopy.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
         ],
         define: {
-            // Disabling naming convention because these are third-party options.
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
