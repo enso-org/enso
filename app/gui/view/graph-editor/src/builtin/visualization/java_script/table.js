@@ -162,7 +162,7 @@ class TableVisualization extends Visualization {
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null && isObjectMatrix(parsedData.json)) {
             let firstKeys = Object.keys(data[0])
-            columnDefs = firstKeys.map(field => ({field}))
+            columnDefs = firstKeys.map(field => ({ field }))
             rowData = parsedData.json.map(obj =>
                 firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
             )
@@ -209,7 +209,7 @@ class TableVisualization extends Visualization {
         // A pinned row is added to tell the user the row count and that filter/sort is disabled.
         const col_span = '__COL_SPAN__'
         if (dataTruncated) {
-            columnDefs[0].colSpan = p => (p.data[col_span] || 1)
+            columnDefs[0].colSpan = p => p.data[col_span] || 1
         }
         this.agGridOptions.defaultColDef.filter = !dataTruncated
         this.agGridOptions.defaultColDef.sortable = !dataTruncated
