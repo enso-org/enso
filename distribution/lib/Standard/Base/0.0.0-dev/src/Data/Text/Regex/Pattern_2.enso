@@ -220,4 +220,4 @@ read_group_map polyglot_map name =
 match_to_group_maybe : Match_2 | Nothing -> Text | Nothing
 match_to_group_maybe match = case match of
     Nothing -> Nothing
-    _ -> match.group 0
+    _ -> match.text 0

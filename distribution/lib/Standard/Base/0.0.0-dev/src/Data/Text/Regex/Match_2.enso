@@ -127,11 +127,9 @@ type Match_2
         start = self.internal_start group_id
         end = self.internal_end group_id
         does_not_participate = start == -1 || end == -1
-        case does_not_participate of
-            True -> default
-            False ->
-                range = Range.new start end
-                Utf_16_Span.Value range self.input
+        if does_not_participate then default else
+            range = Range.new start end
+            Utf_16_Span.Value range self.input
 
     ## Gets the grapheme span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
@@ -192,7 +190,7 @@ type Match_2
     text : Integer | Text -> Any -> Text ! No_Such_Group
     text self group=0 ~default=Nothing =
         result = self.grapheme_span group Nothing
-        if result.is_nothing then default else span.text
+        if result.is_nothing then default else result.text
 
     ## Gets a vector containing the Text of _all_ of the capturing groups in
        the pattern, replacing the value of groups that did not participate in
@@ -220,13 +218,9 @@ type Match_2
                  match = Examples.match
                  match.groups default="UNMATCHED"
     groups : Any -> Vector (Text | Any)
-    groups self default=Nothing =
+    groups self ~default=Nothing =
         group_numbers = 0.up_to self.pattern.group_count
-        group_numbers.map n->
-            group = self.group n
-            case group of
-                Nothing -> default
-                _ -> group
+        group_numbers.map n-> (self.text n . if_nothing default)
 
     ## Gets a map containing the named capturing groups for the pattern,
        replacing the value for groups that did not participate in the match with
@@ -257,7 +251,7 @@ type Match_2
     named_groups : Any -> Map Text (Text | Any)
     named_groups self default=Nothing =
         named_group_names = self.pattern.group_names
-        spans = named_group_names.map name-> self.group name default=default
+        spans = named_group_names.map name-> self.text name default=default
         Map.from_vector (named_group_names.zip spans)
 
     ## Gets the grapheme span matched by the group with the provided index, or
@@ -269,7 +263,7 @@ type Match_2
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
     get self index ~if_missing=Nothing =
-        self.group index . catch No_Such_Group (_-> if_missing)
+        self.text index . catch No_Such_Group (_-> if_missing)
 
     ## Gets the grapheme span matched by the group with the provided index, or
        a default value if the group did not participate in the match.

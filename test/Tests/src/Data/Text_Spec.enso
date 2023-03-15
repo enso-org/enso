@@ -1181,10 +1181,10 @@ spec =
         Test.specify "find should match regexes" <|
             hello = "Hello World!"
 
-            hello.find ".o" Case_Sensitivity.Insensitive . group 0 . should_equal "lo"
-            hello.find_all ".o" . map (match-> match.group 0) . should_equal ["lo", "Wo"]
+            hello.find ".o" Case_Sensitivity.Insensitive . text 0 . should_equal "lo"
+            hello.find_all ".o" . map (match-> match.text 0) . should_equal ["lo", "Wo"]
 
-            "foobar".find "BAR" Case_Sensitivity.Insensitive . group 0 . should_equal "bar"
+            "foobar".find "BAR" Case_Sensitivity.Insensitive . text 0 . should_equal "bar"
 
             ## Regex matching does not do case folding
             "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
@@ -1197,8 +1197,8 @@ spec =
         Test.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
 
-            accents.find 'h' . group 0 . should_equal 'h'
-            accents.find 'e\u{301}' . group 0 . should_equal 'e\u{301}'
+            accents.find 'h' . text 0 . should_equal 'h'
+            accents.find 'e\u{301}' . text 0 . should_equal 'e\u{301}'
 
             # Check both UTF16 spans
             accents.find_all 'h' . map (match-> match.span 0) . should_equal [Utf_16_Span.Value (6.up_to 7) accents, Utf_16_Span.Value (9.up_to 10) accents]
@@ -1209,8 +1209,8 @@ spec =
             accents.find_all 'e\u{301}' . map (match-> match.grapheme_span 0) . should_equal [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
 
             # Check contents to make sure the spans' ranges are ok
-            accents.find 'h' . group 0 . should_equal 'h'
-            accents.find 'e\u{301}' . group 0 . should_equal 'e\u{301}'
+            accents.find 'h' . text 0 . should_equal 'h'
+            accents.find 'e\u{301}' . text 0 . should_equal 'e\u{301}'
 
         Test.specify "should correctly handle regex edge cases in locate" pending="Figure out how to make Regex correctly handle empty patterns." <|
             regex = Regex_Matcher.Value
@@ -1239,25 +1239,25 @@ spec =
             txt.locate "a[bc]" . should_equal (Span.Value (2.up_to 7) txt)
             txt.locate_all "a[bc]" . should_equal [Span.Value (2.up_to 7) txt]
 
-            "ab".find "a[bc]" . group 0 . should_equal "ab"
+            "ab".find "a[bc]" . text 0 . should_equal "ab"
             "a[bc]".find "a[bc]" . should_equal Nothing
             "a[bc]".find_all "a[bc]" . should_equal []
 
-            txt.find "a[bc]" . group 0 . should_equal "ab"
-            txt.find_all "a[bc]" . map (match-> match.group 0) . should_equal ["ab", "ac"]
+            txt.find "a[bc]" . text 0 . should_equal "ab"
+            txt.find_all "a[bc]" . map (match-> match.text 0) . should_equal ["ab", "ac"]
 
     Test.group "Regex: find and find_all" <|
         Test.specify "should be possible on text" <|
-            "My Text: Goes Here".find "^My Text: (.+)$" . group 0 . should_equal "My Text: Goes Here"
+            "My Text: Goes Here".find "^My Text: (.+)$" . text 0 . should_equal "My Text: Goes Here"
 
         Test.specify "should be possible on unicode text" <|
             txt = "maza건반zaa"
             txt.find "^a..z$" . should_equal Nothing
-            txt.find "^m..a..z.a$" . group 0 . should_equal "maza건반zaa"
-            txt.find "a..z" . group 0 . should_equal "a건반z"
+            txt.find "^m..a..z.a$" . text 0 . should_equal "maza건반zaa"
+            txt.find "a..z" . text 0 . should_equal "a건반z"
 
         Test.specify "should be possible in case-insensitive mode" <|
-            "MY".find "my" Case_Sensitivity.Insensitive . group 0 . should_equal "MY"
+            "MY".find "my" Case_Sensitivity.Insensitive . text 0 . should_equal "MY"
 
         Test.specify "should allow access to the entire match text" <|
             "abcddd".find "ab(c(d+))" . text . should_equal "abcddd"
@@ -1297,39 +1297,39 @@ spec =
             "abacadae".find_all "a.+?" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
 
         Test.specify "should allow access to match groups by number" <|
-            "abcddd".find "ab(c(d+))" . group 0 . should_equal "abcddd"
-            "abcddd".find "ab(c(d+))" . group 1 . should_equal "cddd"
-            "abcddd".find "ab(c(d+))" . group 2 . should_equal "ddd"
+            "abcddd".find "ab(c(d+))" . text 0 . should_equal "abcddd"
+            "abcddd".find "ab(c(d+))" . text 1 . should_equal "cddd"
+            "abcddd".find "ab(c(d+))" . text 2 . should_equal "ddd"
 
         Test.specify "should allow access to match groups by name" <|
-            "abcddd".find "ab(?<cee>c(d+))" . group "cee" . should_equal "cddd"
+            "abcddd".find "ab(?<cee>c(d+))" . text "cee" . should_equal "cddd"
 
         Test.specify "should throw No_Such_Group for an out-of-range group number" <|
-            "abcddd".find "ab(c(d+))" . group 3 . should_fail_with No_Such_Group
-            "abcddd".find "ab(c(d+))" . group 12 . should_fail_with No_Such_Group
-            "abcddd".find "ab(c(d+))" . group (-1) . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . text 3 . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . text 12 . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . text (-1) . should_fail_with No_Such_Group
 
         Test.specify "should throw No_Such_Group for an invalid group name" <|
-            "abcddd".find "ab(?<cee>c(d+))" . group "dee" . should_fail_with No_Such_Group
+            "abcddd".find "ab(?<cee>c(d+))" . text "dee" . should_fail_with No_Such_Group
 
         Test.specify "should throw No_Such_Group for an invalid group name (when there are no named groups at all)" <|
-            "abcddd".find "ab(c(d+))" . group "dee" . should_fail_with No_Such_Group
+            "abcddd".find "ab(c(d+))" . text "dee" . should_fail_with No_Such_Group
 
         Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
-            "abcddd".find "ab(c(((((((" . group 0 . should_fail_with Regex_Syntax_Error
+            "abcddd".find "ab(c(((((((" . text 0 . should_fail_with Regex_Syntax_Error
 
-        Test.specify ".group should return Nothing if the group did not participate in the match" <|
+        Test.specify ".text should return Nothing if the group did not participate in the match" <|
             match_c = "abc".find "ab((c)|(d))"
-            match_c.group 1 . should_equal "c"
-            match_c.group 2 . should_equal "c"
-            match_c.group 3 . should_equal Nothing
+            match_c.text 1 . should_equal "c"
+            match_c.text 2 . should_equal "c"
+            match_c.text 3 . should_equal Nothing
             match_d = "abd".find "ab((c)|(d))"
-            match_d.group 1 . should_equal "d"
-            match_d.group 2 . should_equal Nothing
-            match_d.group 3 . should_equal "d"
+            match_d.text 1 . should_equal "d"
+            match_d.text 2 . should_equal Nothing
+            match_d.text 3 . should_equal "d"
 
         Test.specify "should expand a partial-grapheme match to the whole grapheme" <|
-            'e\u{301}'.find '\u{301}' . group 0 . should_equal 'e\u{301}'
+            'e\u{301}'.find '\u{301}' . text 0 . should_equal 'e\u{301}'
 
     Test.group "Text.match" <|
         Test.specify "should default to regex" <|
