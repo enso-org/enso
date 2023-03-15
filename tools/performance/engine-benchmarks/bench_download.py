@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 Script for downloading Engine benchmark results into a single static web page
-that visualizes all the benchmarks. Without any options, downloads benchmark
-data for the last 14 days.
+that visualizes all the benchmarks. Without any options, downloads and
+visualizes benchmark data for the last 14 days.
 
 It downloads the data synchronously and uses a cache directory by default.
 It is advised to use `-v|--verbose` option all the time.
@@ -48,11 +48,18 @@ from csv import DictWriter
 from datetime import datetime, timedelta
 from os import path
 from typing import List, Dict, Optional, Any, Union
-import pandas as pd
-import numpy as np
-import jinja2
-
 from dataclasses import dataclass
+if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
+    print("ERROR: python version lower than 3.7")
+    exit(1)
+try:
+    import pandas as pd
+    import numpy as np
+    import jinja2
+except ModuleNotFoundError as err:
+    print("ERROR: One of pandas, numpy, or jinja2 packages not installed")
+    exit(1)
+
 
 BENCH_RUN_NAME = "Benchmark Engine"
 DATE_FORMAT = "%Y-%m-%d"
