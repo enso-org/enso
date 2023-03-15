@@ -214,6 +214,20 @@ spec =
             cons.at 1 . should_be_a Meta.Constructor
             cons . map (x -> x.name) . sort . should_equal [ "False", "True" ]
 
+        Test.specify "fields of MyType" <|
+            typ = My_Type
+
+            Meta.is_atom typ . should_be_false
+            meta_typ = Meta.meta typ
+            meta_typ . should_be_a Meta.Type
+            cons = case meta_typ of
+                Meta.Type.Value _ -> meta_typ.constructors
+                _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
+
+            cons.length . should_equal 1
+            cons.at 0 . should_be_a Meta.Constructor
+            cons . map (x -> x.name) . sort . should_equal [ "Value" ]
+
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Random.new
             java_meta . should_be_a Meta.Polyglot
