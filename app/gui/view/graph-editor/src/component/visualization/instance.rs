@@ -208,8 +208,8 @@ impl Frp {
             caught_mouse       <- any_(mouse_up,mouse_down,mouse_wheel,mouse_position);
             caught_keyboard    <- any_(keyboard_up,keyboard_down);
             caught_event       <- any(caught_mouse,caught_keyboard);
-            should_process     <- caught_event.gate(&self.is_active);
-            eval_ should_process (scene.current_js_event.pass_to_dom.emit(()));
+            // should_process     <- caught_event.gate(&self.is_active);
+            // eval_ should_process (scene.current_js_event.pass_to_dom.emit(()));
         }
     }
 }

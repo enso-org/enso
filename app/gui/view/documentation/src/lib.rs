@@ -376,7 +376,7 @@ impl View {
             let mouse_position = scene.mouse.frp.position.clone_ref();
             caught_mouse <- any_(mouse_up,mouse_down,mouse_wheel,mouse_position);
             pass_to_dom <- caught_mouse.gate(&frp.source.is_hovered);
-            eval_ pass_to_dom(scene.current_js_event.pass_to_dom.emit(()));
+            // eval_ pass_to_dom(scene.current_js_event.pass_to_dom.emit(()));
         }
         init.emit(());
         style.init.emit(());
