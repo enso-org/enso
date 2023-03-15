@@ -141,12 +141,13 @@ impl Mouse {
     ) -> Self {
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
-        let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
-        let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
+        let last_position = Rc::new(Cell::new(Vector2::default()));
+        let position = variables.add_or_panic("mouse_position", Vector2::default());
         let click_count = variables.add_or_panic("mouse_click_count", 0);
-        let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
+        let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4::default());
         let target = Rc::new(Cell::new(target));
-        let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
+        let shaped_dom = root.clone_ref().into();
+        let mouse_manager = MouseManager::new_separated(&shaped_dom, &root, &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(js_event.handler(
             f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {
@@ -154,7 +155,6 @@ impl Mouse {
                 let pixel_ratio = shape.pixel_ratio;
                 let screen_x = event.client_x();
                 let screen_y = event.client_y();
-
                 let new_pos = Vector2::new(screen_x,screen_y);
                 let pos_changed = new_pos != last_position.get();
                 if pos_changed {

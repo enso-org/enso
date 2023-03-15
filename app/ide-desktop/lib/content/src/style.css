@@ -80,6 +80,7 @@ body {
 
 body {
   margin: 0;
+  overscroll-behavior: none;
 }
 
 #root {

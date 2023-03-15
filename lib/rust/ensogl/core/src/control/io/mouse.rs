@@ -41,7 +41,13 @@ pub struct MouseManager {
 pub type MouseEventJsClosure = Closure<dyn FnMut(JsValue)>;
 
 macro_rules! define_bindings {
-    ( $( $js_event:ident :: $js_name:ident => $name:ident ($target:ident) ),* $(,)? ) => {
+    (
+        $target:ident,
+        $global_target:ident,
+        $( $js_event:ident :: $js_name:ident =>
+             $name:ident ($event_target:ident, $event:ident)
+        ),* $(,)?
+    ) => {
 
         /// Keeps references to JavaScript closures in order to keep them alive.
         #[derive(Debug)]
@@ -53,13 +59,13 @@ macro_rules! define_bindings {
         #[derive(Clone,CloneRef,Debug,Default)]
         #[allow(missing_docs)]
         pub struct MouseManagerDispatchers {
-            $(pub $name : callback::registry::Ref1<$target>),*
+            $(pub $name : callback::registry::Ref1<$event>),*
         }
 
         impl MouseManager {
             /// Constructor.
             pub fn new(dom:&web::dom::WithKnownShape<web::EventTarget>) -> Self {
-                Self::new_separated(dom,dom.deref())
+                Self::new_separated(dom, dom.deref(), dom.deref())
             }
 
             /// Constructor which takes the exact element to set listener as a separate argument.
@@ -67,8 +73,11 @@ macro_rules! define_bindings {
             /// Sometimes we want to listen for mouse event for element without ResizeObserver.
             /// Thus, some html element may be passed as a size provider, and another one where we
             /// attach listeners (for example `body` and `window` respectively).
-            pub fn new_separated
-            (dom:&web::dom::WithKnownShape<web::EventTarget>,target:&web::EventTarget) -> Self {
+            pub fn new_separated(
+                dom: &web::dom::WithKnownShape<web::EventTarget>,
+                $target: &web::EventTarget,
+                $global_target: &web::EventTarget,
+            ) -> Self {
                 let dispatchers = MouseManagerDispatchers::default();
                 let dom = dom.clone();
                 $(
@@ -81,11 +90,12 @@ macro_rules! define_bindings {
                         );
                         let shape = shape.value();
                         let event = event.unchecked_into::<web::$js_event>();
-                        dispatcher.run_all(&event::$target::new(event,shape))
+                        dispatcher.run_all(&event::$event::new(event,shape))
                     });
                     let js_name = stringify!($js_name);
                     let opt = event_listener_options();
-                    let $name = web::add_event_listener_with_options(&target,js_name,closure,&opt);
+                    let $name = web::add_event_listener_with_options
+                        (&$event_target, js_name, closure, &opt);
                 )*
                 let handles = Rc::new(MouseManagerEventListenerHandles {$($name),*});
                 Self {dispatchers,handles,dom}
@@ -106,10 +116,10 @@ fn event_listener_options() -> web::AddEventListenerOptions {
     options
 }
 
-define_bindings! {
-    MouseEvent::mousedown  => on_down  (OnDown),
-    MouseEvent::mouseup    => on_up    (OnUp),
-    MouseEvent::mousemove  => on_move  (OnMove),
-    MouseEvent::mouseleave => on_leave (OnLeave),
-    WheelEvent::wheel      => on_wheel (OnWheel),
+define_bindings! { target, gloabl_target,
+    MouseEvent::mousedown  => on_down  (target, OnDown),
+    MouseEvent::mouseup    => on_up    (gloabl_target, OnUp),
+    MouseEvent::mousemove  => on_move  (gloabl_target, OnMove),
+    MouseEvent::mouseleave => on_leave (target, OnLeave),
+    WheelEvent::wheel      => on_wheel (target, OnWheel),
 }
