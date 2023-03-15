@@ -1,13 +1,14 @@
 /** Table visualization. */
 loadScript('https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js')
+// Use the following line instead of the above one to use the enterprise version of ag-grid.
 // loadScript('https://cdn.jsdelivr.net/npm/ag-grid-enterprise@29.1.0/dist/ag-grid-enterprise.min.js')
-loadStyle('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css')
-loadStyle('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css')
 
 // ============================
 // === Style Initialisation ===
 // ============================
 
+loadStyle('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css')
+loadStyle('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css')
 loadStyleFromString(scrollbarStyle)
 
 // ===========================
@@ -151,27 +152,26 @@ class TableVisualization extends Visualization {
             this.agGridOptions.api.setColumnDefs([
                 {
                     field: 'error',
-                    width: 1000,
                     cellStyle: { 'white-space': 'normal' },
                 },
             ])
             this.agGridOptions.api.setRowData([{ error: parsedData.error }])
-        } else if (parsedData.json !== undefined && isMatrix(parsedData.json)) {
+        } else if (parsedData.json != null && isMatrix(parsedData.json)) {
             columnDefs = parsedData.json[0].map((_, i) => ({ field: i.toString() }))
             rowData = parsedData.json
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json !== undefined && isObjectMatrix(parsedData.json)) {
+        } else if (parsedData.json != null && isObjectMatrix(parsedData.json)) {
             let firstKeys = Object.keys(data[0])
-            columnDefs = firstKeys.map(key => ({ field: key }))
+            columnDefs = firstKeys.map(field => ({field}))
             rowData = parsedData.json.map(obj =>
                 firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
             )
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json !== undefined && Array.isArray(parsedData.json)) {
+        } else if (parsedData.json != null && Array.isArray(parsedData.json)) {
             columnDefs = [{ field: '#', headerName: 'Row#' }, { field: 'value' }]
             rowData = parsedData.json.map((row, i) => ({ ['#']: i, value: toRender(row) }))
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json !== undefined) {
+        } else if (parsedData.json != null) {
             columnDefs = [{ field: 'value' }]
             rowData = [{ value: toRender(parsedData.json) }]
         } else {
@@ -207,13 +207,9 @@ class TableVisualization extends Visualization {
         // If the table contains more rows than an upper limit, the engine will send only some of all rows.
         // If data is truncated, we cannot rely on sorting/filtering so will disable.
         // A pinned row is added to tell the user the row count and that filter/sort is disabled.
+        const col_span = '__COL_SPAN__'
         if (dataTruncated) {
-            columnDefs[0].colSpan = p => {
-                if (p.data['__COL_SPAN__'] !== undefined) {
-                    return p.data['__COL_SPAN__']
-                }
-                return 1
-            }
+            columnDefs[0].colSpan = p => (p.data[col_span] || 1)
         }
         this.agGridOptions.defaultColDef.filter = !dataTruncated
         this.agGridOptions.defaultColDef.sortable = !dataTruncated
@@ -222,7 +218,7 @@ class TableVisualization extends Visualization {
             const field = columnDefs[0].field
             const extraRow = {
                 [field]: `Showing ${rowData.length} of ${parsedData.all_rows_count} rows. Sorting and filtering disabled.`,
-                ['__COL_SPAN__']: columnDefs.length,
+                [col_span]: columnDefs.length,
             }
             this.agGridOptions.api.setPinnedTopRowData([extraRow])
         }
@@ -236,7 +232,6 @@ class TableVisualization extends Visualization {
             const height = this.dom.getAttributeNS(null, 'height')
             const tblViewStyle = `width: ${width}px; height: ${height}px; overflow: scroll;`
             this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
-            // this.tabElem.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height)
         }
 
         this.agGridOptions && this.agGridOptions.api.sizeColumnsToFit()
