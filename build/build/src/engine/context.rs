@@ -431,15 +431,6 @@ impl RunContext {
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // === Build Distribution ===
-        if self.config.generate_documentation {
-            // FIXME [mwu]
-            //  docs-generator fails on Windows because it can't understand non-Unix-style paths.
-            if TARGET_OS != OS::Windows {
-                // Build the docs from standard library sources.
-                sbt.call_arg("docs-generator/run").await?;
-            }
-        }
-
         if self.config.build_js_parser {
             // Build the Parser JS Bundle
             sbt.call_arg("syntaxJS/fullOptJS").await?;

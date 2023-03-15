@@ -141,7 +141,6 @@ pub struct BuildConfigurationFlags {
     pub build_project_manager_bundle:  bool,
     pub generate_java_from_rust:       bool,
     pub test_java_generated_from_rust: bool,
-    pub generate_documentation:        bool,
     /// Verify License Packages in Distributions.
     pub verify_packages:               bool,
 }
@@ -223,7 +222,6 @@ impl Default for BuildConfigurationFlags {
             build_project_manager_bundle:  false,
             generate_java_from_rust:       true,
             test_java_generated_from_rust: false,
-            generate_documentation:        false,
             verify_packages:               false,
         }
     }
