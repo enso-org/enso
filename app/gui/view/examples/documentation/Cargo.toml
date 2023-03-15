@@ -8,6 +8,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-doc-parser = { path = "../../../../../lib/rust/parser/doc-parser" }
 ensogl = { path = "../../../../../lib/rust/ensogl" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 enso-suggestion-database = { path = "../../../suggestion-database" }

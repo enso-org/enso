@@ -109,10 +109,6 @@
     "featurePreview": {
       "description": "Options that enable experimental features that are not yet stable.",
       "options": {
-        "newComponentBrowser": {
-          "value": true,
-          "description": "Indicates whether the new component browser should be enabled."
-        },
         "skipAndFreeze": {
           "value": false,
           "description": "Enable possibility to skip and freeze nodes.",
