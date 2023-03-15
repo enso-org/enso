@@ -188,7 +188,7 @@ object NativeImage {
       Tracked.diffInputs(store, FileInfo.hash)(filesSet) {
         sourcesDiff: ChangeReport[File] =>
           if (sourcesDiff.modified.nonEmpty)
-            rebuild("Native Image is not up to date")
+            rebuild(s"Native Image is not up to date")
           else if (!artifactFile(artifactName).exists())
             rebuild("Native Image does not exist")
           else

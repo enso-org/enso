@@ -1603,6 +1603,7 @@ dependencies = [
 name = "debug-scene-documentation"
 version = "0.1.0"
 dependencies = [
+ "enso-doc-parser",
  "enso-suggestion-database",
  "ensogl",
  "ensogl-hardcoded-theme",
@@ -2101,6 +2102,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-doc-parser"
+version = "0.1.0"
+dependencies = [
+ "enso-metamodel",
+ "enso-metamodel-lexpr",
+ "enso-parser",
+ "enso-prelude",
+ "enso-profiler",
+ "enso-reflect",
+ "lexpr",
+]
+
+[[package]]
 name = "enso-executor"
 version = "0.1.0"
 dependencies = [
@@ -2162,6 +2176,7 @@ dependencies = [
  "enso-data-structures",
  "enso-debug-api",
  "enso-debug-scene",
+ "enso-doc-parser",
  "enso-executor",
  "enso-frp",
  "enso-notification",
@@ -2189,7 +2204,6 @@ dependencies = [
  "mockall",
  "nalgebra",
  "parser",
- "parser-scala",
  "regex",
  "semver 1.0.16",
  "serde",
@@ -2520,6 +2534,7 @@ dependencies = [
  "double-representation",
  "engine-protocol",
  "enso-data-structures",
+ "enso-doc-parser",
  "enso-executor",
  "enso-notification",
  "enso-prelude",
@@ -2529,7 +2544,6 @@ dependencies = [
  "flo_stream",
  "futures 0.3.26",
  "parser",
- "parser-scala",
  "span-tree",
  "wasm-bindgen-test",
 ]
@@ -4238,10 +4252,16 @@ dependencies = [
 name = "ide-view-component-browser"
 version = "0.1.0"
 dependencies = [
+ "enso-frp",
  "enso-prelude",
+ "ensogl",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ide-view-component-list-panel",
  "ide-view-component-list-panel-breadcrumbs",
+ "ide-view-documentation",
+ "ide-view-graph-editor",
 ]
 
 [[package]]
@@ -4308,8 +4328,10 @@ name = "ide-view-documentation"
 version = "0.1.0"
 dependencies = [
  "double-representation",
+ "enso-doc-parser",
  "enso-frp",
  "enso-prelude",
+ "enso-profiler",
  "enso-suggestion-database",
  "ensogl",
  "ensogl-component",
@@ -5360,29 +5382,6 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid 0.8.2",
-]
-
-[[package]]
-name = "parser-scala"
-version = "0.1.0"
-dependencies = [
- "ast",
- "bytes 1.1.0",
- "console_error_panic_hook",
- "enso-prelude",
- "enso-profiler",
- "failure",
- "futures 0.3.26",
- "ide-ci",
- "js-sys",
- "matches",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "wasm-bindgen",
- "wasm-bindgen-test",
- "websocket",
 ]
 
 [[package]]
