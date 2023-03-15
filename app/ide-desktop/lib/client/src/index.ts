@@ -202,6 +202,16 @@ class App {
                     window.webContents.openDevTools()
                 }
 
+                const allowedPermissions = ['clipboard-read', 'clipboard-sanitized-write']
+                window.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
+                    if (allowedPermissions.includes(permission)) {
+                        callback(true)
+                    } else {
+                        console.error(`Denied permission check '${permission}'.`)
+                        callback(false)
+                    }
+                })
+
                 window.on('close', evt => {
                     if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
                         evt.preventDefault()
