@@ -2,29 +2,25 @@
  *
  * All of the functions used for authentication are provided by the AWS Amplify library, but we
  * provide a thin wrapper around them to make them easier to use. Mainly, we perform some error
- * handling and conditional logic to vary behavior between desktop & cloud. */
-import * as amplify from '@aws-amplify/auth'
-import * as cognito from 'amazon-cognito-identity-js'
-import * as results from 'ts-results'
-import * as app from '../components/app'
-
-import * as config from './config'
-
-// =================
-// === Constants ===
-// =================
-
-/** A list of errors thrown by the Amplify library that we catch and handle ourselves.
+ * handling and conditional logic to vary behavior between desktop & cloud.
  *
- * Not all errors are caught and handled. Any errors not listed here are allowed to propagate up.
+ * # Error Handling
+ *
+ * The AWS Amplify library throws errors when authentication fails. We catch these errors and
+ * convert them to typed responses. This allows us to exhaustively handle errors by providing
+ * information on the types of errors returned, in function return types.
+ *
+ * Not all errors are caught and handled. Any errors not relevant to business logic or control flow
+ * are allowed to propagate up.
  *
  * Errors are grouped by the AWS Amplify function that throws the error (e.g., `signUp`). This is
  * because the Amplify library reuses some error codes for multiple kinds of errors. For example,
  * the `UsernameExistsException` error code is used for both the `signUp` and `confirmSignUp`
  * functions. This would be fine if the same error code didn't meet different conditions for each
  *
- * Each error must include an `internalCode` field, which is the code that the Amplify library uses
- * to identify the error.
+ * Each error must provide a way to disambiguate from other errors. Typically, our error definitions
+ * include an `internalCode` field, which is the code that the Amplify library uses to identify the
+ * error.
  *
  * Some errors also include an `internalMessage` field, which is the message that the Amplify
  * library associates with the error. This field is used to distinguish between errors that have the
@@ -33,34 +29,12 @@ import * as config from './config'
  * Amplify reuses some codes for multiple kinds of errors. In the case of ambiguous errors, the
  * `kind` field provides a unique string that can be used to brand the error in place of the
  * `internalCode`, when rethrowing the error. */
-const KNOWN_ERRORS = {
-    /** Errors specific to the `currentSession` function. */
-    currentSession: {
-        noCurrentUser: {
-            message: 'No current user',
-            kind: 'NoCurrentUser',
-        },
-    },
-    /** Errors specific to the `signUp` function. */
-    signUp: {
-        usernameExists: {
-            internalCode: 'UsernameExistsException',
-            kind: 'UsernameExists',
-        },
-        invalidParameter: {
-            internalCode: 'InvalidParameterEx[ception',
-            kind: 'InvalidParameter',
-        },
-    },
-    /** Errors specific to the `confirmSignUp` function. */
-    confirmSignUp: {
-        userAlreadyConfirmed: {
-            internalCode: 'NotAuthorizedException',
-            internalMessage: 'User cannot be confirmed. Current status is CONFIRMED',
-            kind: 'UserAlreadyConfirmed' ,
-        },
-    },
-} as const
+import * as amplify from '@aws-amplify/auth'
+import * as cognito from 'amazon-cognito-identity-js'
+import * as results from 'ts-results'
+import * as app from '../components/app'
+
+import * as config from './config'
 
 // ====================
 // === AmplifyError ===
@@ -185,16 +159,6 @@ const userSession = () =>
             .map(parseUserSession)
             .toOption())
 
-type CurrentSessionErrorKind = typeof KNOWN_ERRORS.currentSession.noCurrentUser.kind
-
-const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind => {
-    if (error === KNOWN_ERRORS.currentSession.noCurrentUser.message) {
-        return KNOWN_ERRORS.currentSession.noCurrentUser.kind
-    } else {
-        throw error
-    }
-}
-
 /** Returns the current `CognitoUserSession` if the user is logged in, or `CurrentSessionErrorKind`
  * otherwise.
  *
@@ -212,6 +176,22 @@ const parseUserSession = (session: cognito.CognitoUserSession): UserSession => {
     const email = payload.email
     const accessToken = session.getAccessToken().getJwtToken()
     return { email, accessToken }
+}
+
+const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
+    internalMessage: 'No current user',
+    kind: 'NoCurrentUser',
+} as const
+
+type CurrentSessionErrorKind =
+    | typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR["kind"]
+
+const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind => {
+    if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
+        return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind
+    } else {
+        throw error
+    }
 }
 
 // ==============
@@ -250,24 +230,34 @@ const intoSignUpParams = (
     },
 })
 
+const SIGN_UP_USERNAME_EXISTS_ERROR = {
+    internalCode: 'UsernameExistsException',
+    kind: 'UsernameExists',
+} as const
+
+const SIGN_UP_INVALID_PARAMETER_ERROR = {
+    internalCode: 'InvalidParameterEx[ception',
+    kind: 'InvalidParameter',
+} as const
+
 type SignUpErrorKind =
-    | typeof KNOWN_ERRORS.signUp.usernameExists.kind
-    | typeof KNOWN_ERRORS.signUp.invalidParameter.kind
+    | typeof SIGN_UP_USERNAME_EXISTS_ERROR["kind"]
+    | typeof SIGN_UP_INVALID_PARAMETER_ERROR["kind"]
 
 export interface SignUpError {
-    kind: SignUpErrorKind
+    kind: SignUpErrorKind,
     message: string
 }
 
 const intoSignUpErrorOrThrow = (error: AmplifyError): SignUpError => {
-    if (error.code === KNOWN_ERRORS.signUp.usernameExists.internalCode) {
+    if (error.code === SIGN_UP_USERNAME_EXISTS_ERROR.internalCode) {
         return {
-            kind: KNOWN_ERRORS.signUp.usernameExists.kind,
+            kind: SIGN_UP_USERNAME_EXISTS_ERROR.kind,
             message: error.message,
         }
-    } else if (error.code === KNOWN_ERRORS.signUp.invalidParameter.internalCode) {
+    } else if (error.code === SIGN_UP_INVALID_PARAMETER_ERROR.internalCode) {
         return {
-            kind: KNOWN_ERRORS.signUp.invalidParameter.kind,
+            kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
             message: error.message,
         }
     }
@@ -287,7 +277,14 @@ const confirmSignUp = async (email: string, code: string) =>
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
         .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
 
-type ConfirmSignUpErrorKind = typeof KNOWN_ERRORS.confirmSignUp.userAlreadyConfirmed.kind
+const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
+    internalCode: 'NotAuthorizedException',
+    internalMessage: 'User cannot be confirmed. Current status is CONFIRMED',
+    kind: 'UserAlreadyConfirmed',
+} as const
+
+type ConfirmSignUpErrorKind =
+    typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR['kind']
 
 export interface ConfirmSignUpError {
     kind: ConfirmSignUpErrorKind
@@ -295,13 +292,13 @@ export interface ConfirmSignUpError {
 }
 
 const intoConfirmSignUpErrorOrThrow = (error: AmplifyError): ConfirmSignUpError => {
-    if (error.code === KNOWN_ERRORS.confirmSignUp.userAlreadyConfirmed.internalCode) {
-        if (error.message === KNOWN_ERRORS.confirmSignUp.userAlreadyConfirmed.internalMessage) {
+    if (error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode) {
+        if (error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage) {
             return {
                 /** Don't re-use the original `error.code` here because Amplify overloads the same
                  * code for multiple kinds of errors. We replace it with a custom code that has no
                  * ambiguity. */
-                kind: KNOWN_ERRORS.confirmSignUp.userAlreadyConfirmed.kind,
+                kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
                 message: error.message,
             }
         }
