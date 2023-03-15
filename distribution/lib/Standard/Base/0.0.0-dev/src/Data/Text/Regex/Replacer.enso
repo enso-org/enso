@@ -51,7 +51,7 @@ type Replacer
         self.replacement.each replacement->
             s = case replacement of
                 Replacement.Literal text -> text
-                Replacement.Substitution group_number -> match.group group_number
+                Replacement.Substitution group_number -> match.text group_number
             string_builder.append s
         string_builder.toString
 
@@ -95,16 +95,16 @@ build_replacement_vector replacement_string pattern =
    See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
 parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group
 parse_group_number pattern match =
-    case match.group 2 of
+    case match.text 2 of
         # E.g. `$1`
         text : Text -> Replacement.Substitution (pattern.lookup_group (Integer.parse text))
-        Nothing -> case match.group 3 of
+        Nothing -> case match.text 3 of
             # `$$`
             _ : Text -> Replacement.Literal "$"
-            Nothing -> case match.group 4 of
+            Nothing -> case match.text 4 of
                 # `$&` (same as `$0`)
                 _ : Text -> Replacement.Substitution 0
-                Nothing -> case match.group 6 of
+                Nothing -> case match.text 6 of
                     # `$<foo>`
                     text : Text -> Replacement.Substitution (pattern.lookup_group text)
                     Nothing -> Panic.throw (Illegal_State.Error ('Unable to identify capture group: \"' + match.txt + '\"'))
