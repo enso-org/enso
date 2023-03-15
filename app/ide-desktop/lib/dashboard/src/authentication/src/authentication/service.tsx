@@ -2,7 +2,7 @@
  * API wrapper, along with some convenience callbacks to make URL redirects for the authentication
  * flows work with Electron. */
 
-import * as common from "enso-studio-common";
+import * as common from "enso-common";
 
 import * as authConfigModule from "./config";
 import * as cognito from "./cognito";

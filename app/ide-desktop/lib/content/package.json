@@ -43,7 +43,7 @@
     "@typescript-eslint/parser": "^5.55.0",
     "enso-copy-plugin": "^1.0.0",
     "enso-gui-server": "^1.0.0",
-    "enso-studio-authentication": "^1.0.0",
+    "enso-authentication": "^1.0.0",
     "esbuild": "^0.15.14",
     "esbuild-copy-static-files": "^0.1.0",
     "esbuild-dev-server": "^0.3.0",

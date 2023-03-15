@@ -14,7 +14,7 @@ import * as reactDOM from "react-dom/client";
 
 import "./styles/index.css";
 import * as loggerProvider from "./providers/logger";
-import * as platform from "./platform";
+import * as platformModule from "./platform";
 import App, * as app from "./components/app";
 
 // =================
@@ -36,7 +36,7 @@ const ROOT_ELEMENT_ID = "dashboard";
 export function run(
   /** Logger to use for logging. */
   logger: loggerProvider.Logger,
-  platform: platform.Platform,
+  platform: platformModule.Platform,
   onAuthenticated: () => void
 ) {
   logger.log("Starting authentication/dashboard UI.");
@@ -53,4 +53,4 @@ export function run(
 export type AppProps = app.AppProps;
 // This export should be `PascalCase` because it is a re-export.
 // eslint-disable-next-line no-restricted-syntax
-export const Platform = platform.Platform;
+export const Platform = platformModule.Platform;

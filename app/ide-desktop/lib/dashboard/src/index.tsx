@@ -1,6 +1,6 @@
 /** @file Index file declaring main DOM structure for the app. */
 
-import * as authentication from "enso-studio-authentication";
+import * as authentication from "enso-authentication";
 
 import * as platform from "./authentication/src/platform";
 
