@@ -100,6 +100,7 @@ type Connection
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         self.jdbc_connection.with_metadata metadata->
             table = result_set_to_table <|
+                # TODO [RW] I think we should close this result set
                 metadata.getTables database schema name_like types_array
 
             renamed = table.rename_columns name_map

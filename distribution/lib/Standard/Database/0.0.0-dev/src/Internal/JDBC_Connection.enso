@@ -94,7 +94,7 @@ type JDBC_Connection
             metadata = stmt.executeQuery.getMetaData
 
             resolve_column ix =
-                # Todo test edge case with AS
+                # TODO [RW] test edge case with AS alias
                 name = metadata.getColumnLabel ix+1
                 sql_type = SQL_Type_Mapping.from_metadata metadata ix+1
                 [name, sql_type]

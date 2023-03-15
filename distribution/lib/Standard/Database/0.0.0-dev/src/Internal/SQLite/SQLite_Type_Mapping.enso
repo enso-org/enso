@@ -1,0 +1,59 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Type.Value_Type.Value_Type
+
+polyglot java import java.sql.Types
+
+
+## PRIVATE
+   The types are mapped according to the rules set in the JDBC SQLite driver
+   which adds support for a few more types than raw SQLite - for example even
+   though a BOOLEAN column will be stored as numbers, the JDBC driver is able to
+   detect the BOOLEAN column type name and treat its contents as boolean values.
+   This is useful, as it allows us to use a bit more precise types than what
+   pure SQLite would allow. If the DB author declared a column as BOOLEAN, we
+   probably indeed want to view it as booleans values in Enso, and this
+   mechanism gives us this ability.
+
+   The exact rules can be found in the `JDBC3ResultSet::getColumnType` method in
+   the `org.xerial.sqlite-jdbc` module.
+type SQLite_Type_Mapping
+    ## PRIVATE
+    value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
+    value_type_to_sql value_type on_problems =
+        ???
+
+    ## PRIVATE
+    sql_type_to_value_type : SQL_Type -> Value_Type
+    sql_type_to_value_type sql_type =
+        simple_type = simple_types_map.get sql_type.typeid Nothing
+        simple_type.if_nothing <|
+            ## If we didn't match any of the types from the simple mapping, we
+               continue with the more complex mappings that take stuff like
+               precision into account.
+
+simple_types_map = Map.from_vector <|
+    ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
+    other = [[Types.BOOLEAN, Value_Type.Boolean], [Types.TIMESTAMP, Value_Type.Date_Time with_timezone=False], [Types.DATE, Value_Type.Date]]
+    ints + other
+
+
+
+## The types that SQLite JDBC driver will report are:
+   - BOOLEAN
+   - TINYINT
+   - SMALLINT
+   - BIGINT
+   - INTEGER
+   - DECIMAL
+   - DOUBLE
+   - REAL
+   - FLOAT
+   - NUMERIC
+   - DATE
+   - TIMESTAMP
+   - CHAR
+   - VARCHAR
+   - BINARY
+   - BLOB
+   - CLOB

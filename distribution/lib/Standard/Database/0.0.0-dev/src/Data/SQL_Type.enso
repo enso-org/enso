@@ -20,68 +20,92 @@ type SQL_Type
          TODO: the precise meaning of this will be revised with #5872.
     Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (nullable : Boolean | Nothing = Nothing)
 
-    ## The SQL representation of `Boolean` type.
+    ## TODO [RW] once we can map Value_Type to SQL_Type, these aliases are
+       obsolete - we should use DB-specific mapping instead!
+       The aliases are not portable.
+    ## If we need the user to be able to create a specific SQL type from its
+       name, we can figure out the type id based on
+       `Connection.getDatabaseMetadata.getTypeInfo` and finding a corresponding
+       name there. This is _and should be_ connection-specific and if a type is
+       unsupported there is no sense in trying to find it.
+
+    ## DEPRECATED
+       The SQL representation of `Boolean` type.
     boolean : SQL_Type
     boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
 
-    ## The SQL representation of `Integer` type.
+    ## DEPRECATED
+       The SQL representation of `Integer` type.
     integer : SQL_Type
     integer = SQL_Type.Value Types.INTEGER "INTEGER"
 
-    ## The SQL representation of the `BIGINT` type.
+    ## DEPRECATED
+       The SQL representation of the `BIGINT` type.
     bigint : SQL_Type
     bigint = SQL_Type.Value Types.BIGINT "BIGINT"
 
-    ## The SQL representation of the `TINYINT` type.
+    ## DEPRECATED
+       The SQL representation of the `TINYINT` type.
     tinyint : SQL_Type
     tinyint = SQL_Type.Value Types.TINYINT "TINYINT"
 
-    ## The SQL representation of the `SMALLINT` type.
+    ## DEPRECATED
+       The SQL representation of the `SMALLINT` type.
     smallint : SQL_Type
     smallint = SQL_Type.Value Types.SMALLINT "SMALLINT"
 
-    ## The SQL type representing decimal numbers.
+    ## DEPRECATED
+       The SQL type representing decimal numbers.
     decimal : SQL_Type
     decimal = SQL_Type.Value Types.DECIMAL "DECIMAL"
 
-    ## The SQL type representing decimal numbers.
+    ## DEPRECATED
+       The SQL type representing decimal numbers.
     real : SQL_Type
     real = SQL_Type.Value Types.REAL "REAL"
 
-    ## The SQL type representing double-precision floating-point numbers.
+    ## DEPRECATED
+       The SQL type representing double-precision floating-point numbers.
     double : SQL_Type
     double = SQL_Type.Value Types.DOUBLE "DOUBLE PRECISION"
 
-    ## The SQL type representing a general numeric type.
+    ## DEPRECATED
+       The SQL type representing a general numeric type.
     numeric : SQL_Type
     numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
 
-    ## The SQL type representing one of the supported textual types.
+    ## DEPRECATED
+       The SQL type representing one of the supported textual types.
        It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
     text : SQL_Type
     text = SQL_Type.Value Types.VARCHAR "VARCHAR"
 
-    ## The SQL type representing a binary object.
+    ## DEPRECATED
+       The SQL type representing a binary object.
     blob : SQL_Type
     blob = SQL_Type.Value Types.BLOB "BLOB"
 
-    ## The SQL type representing a date type.
+    ## DEPRECATED
+       The SQL type representing a date type.
     date : SQL_Type
     date = SQL_Type.Value Types.DATE "DATE"
 
-    ## The SQL type representing a time type.
+    ## DEPRECATED
+       The SQL type representing a time type.
     time : SQL_Type
     time = SQL_Type.Value Types.TIME "TIME"
 
-    ## The SQL type representing a time type.
+    ## DEPRECATED
+       The SQL type representing a time type.
     date_time : SQL_Type
     date_time = SQL_Type.Value Types.TIMESTAMP_WITH_TIMEZONE "TIMESTAMP"
 
-    ## The SQL type representing a null column.
+    ## DEPRECATED
+       The SQL type representing a null column.
     null : SQL_Type
     null = SQL_Type.Value Types.NULL "NULL"
 
-    ## ADVANCED
+    ## DEPRECATED: use `Enso_Types.most_specific_value_type` instead.
        Given an Enso value gets the approximate SQL type.
     approximate_type : Any -> SQL_Type ! Illegal_Argument
     approximate_type value = case value of
