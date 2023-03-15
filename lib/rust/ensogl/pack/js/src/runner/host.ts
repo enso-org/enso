@@ -20,7 +20,7 @@ const node = !browser
  * The `no-unnecessary-condition` lint fires a false positive when `global` is not `undefined`. This
  * it the case when running the script in node. */
 // const global = {}
-// @typescript-eslint/no-unnecessary-condition
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 global ??= window
 
 interface UrlParams {
