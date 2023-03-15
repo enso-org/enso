@@ -138,18 +138,12 @@ const RESTRICTED_SYNTAXES = [
         // - a variable declaration that is not at the top levelshouldn't be `as const`
         // - a top-level variable declaration that shouldn't be `as const`
         // - a top-level variable declaration that should be `as const`, but is `as SomeActualType` instead
-        selector: `:matches(
-            :not(VariableDeclarator) > TSAsExpression,
-            :not(:matches(Program, ExportNamedDeclaration)) > VariableDeclaration > * > TSAsExpression,
-            :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TSAsExpression > .expression:not(ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))),
-            :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TsAsExpression:not(:has(TSTypeReference > Identifier[name=const])) > ObjectExpression.expression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))
-        )`,
+        selector: `:matches(:not(VariableDeclarator) > TSAsExpression, :not(:matches(Program, ExportNamedDeclaration)) > VariableDeclaration > * > TSAsExpression, :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TSAsExpression > .expression:not(ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))), :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TsAsExpression:not(:has(TSTypeReference > Identifier[name=const])) > ObjectExpression.expression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL}))))`,
         message: 'Avoid `as T`. Consider using a type annotation instead.',
     },
     {
-        selector:
-            ':matches(TSUndefinedKeyword, Identifier[name=undefined], UnaryExpression[operator=void]:not(:has(CallExpression.argument)))',
-        message: 'Use `null` instead of `undefined` or `void 0`',
+        selector: ':matches(TSUndefinedKeyword, Identifier[name=undefined], UnaryExpression[operator=void]:not(:has(CallExpression.argument)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined]))',
+        message: 'Use `null` instead of `undefined`, `void 0`, or `typeof x === "undefined"`',
     },
     {
         selector: 'ExportNamedDeclaration > VariableDeclaration[kind=let]',

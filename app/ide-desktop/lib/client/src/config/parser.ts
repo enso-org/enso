@@ -322,9 +322,8 @@ export function parseArgs() {
     // Required otherwise TypeScript thinks it's always `null`.
     // eslint-disable-next-line no-restricted-syntax
     let parseError = null as Error | null
-    // Required since `parse` is defined to potentially return a `Promise`.
-    // This only happens when an async middleware has been registered,
-    // which we are not doing.
+    // The type assertion is required since `parse` may return a `Promise`
+    // when an async middleware has been registered, but we are not doing that.
     // eslint-disable-next-line no-restricted-syntax
     const { '--': unexpectedArgs, ...parsedArgs } = optParser.parse(
         argv,
