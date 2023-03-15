@@ -246,7 +246,7 @@ final class SerializationManager(
               .map(_.listSourcesJava())
           )
         new SuggestionsCache(libraryName)
-          .save(cachedSuggestions, compiler.context, false)
+          .save(cachedSuggestions, compiler.context, useGlobalCacheLocations)
           .isPresent
       } catch {
         case e: NotSerializableException =>

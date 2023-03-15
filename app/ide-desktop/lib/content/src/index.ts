@@ -4,6 +4,7 @@
 
 import * as semver from 'semver'
 
+import * as authentication from 'enso-authentication'
 import * as contentConfig from 'enso-content-config'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
@@ -139,9 +140,23 @@ class Main {
                     contentConfig.OPTIONS.groups.startup.options.entry.value !==
                         contentConfig.OPTIONS.groups.startup.options.entry.default
                 ) {
-                    // TODO: authentication here
-                    // appInstance.config.email.value = user.email
-                    void appInstance.run()
+                    const hideAuth = () => {
+                        const auth = document.getElementById('dashboard')
+                        if (auth) auth.style.display = 'none'
+                    }
+                    /** This package is an Electron desktop app (i.e., not in the Cloud), so
+                     * we're running on the desktop. */
+                    /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+                     * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
+                     * should only have one entry point. Right now, we have two. One for the cloud
+                     * and one for the desktop. Once these are merged, we can't hardcode the
+                     * platform here, and need to detect it from the environment. */
+                    const platform = authentication.Platform.desktop
+                    const onAuthenticated = () => {
+                        hideAuth()
+                        void appInstance.run()
+                    }
+                    authentication.run(logger, platform, onAuthenticated)
                 } else {
                     void appInstance.run()
                 }
