@@ -35,6 +35,7 @@
     "crypto-js": "4.1.1",
     "electron": "23.0.0",
     "electron-builder": "^22.14.13",
+    "dmg-license": "^1.0.11",
     "electron-notarize": "1.2.2",
     "enso-copy-plugin": "^1.0.0",
     "enso-studio-common": "^1.0.0",
