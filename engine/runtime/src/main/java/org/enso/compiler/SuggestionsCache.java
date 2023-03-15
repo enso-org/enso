@@ -6,8 +6,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.editions.LibraryName;
@@ -49,12 +51,14 @@ public final class SuggestionsCache
   }
 
   @Override
-  protected CachedSuggestions validateReadObject(Object obj, Metadata meta, TruffleLogger logger)
-      throws CacheException {
-    if (obj instanceof Suggestions suggestions) {
-      return new CachedSuggestions(libraryName, suggestions, Optional.empty());
-    } else {
-      throw new CacheException("Expected SuggestionsCache.Suggestions, got " + obj.getClass());
+  protected CachedSuggestions deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
+  throws CacheException, ClassNotFoundException, IOException {
+    try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
+      if (stream.readObject() instanceof Suggestions suggestions) {
+        return new CachedSuggestions(libraryName, suggestions, Optional.empty());
+      } else {
+        throw new CacheException("Expected SuggestionsCache.Suggestions, got " + data.getClass());
+      }
     }
   }
 

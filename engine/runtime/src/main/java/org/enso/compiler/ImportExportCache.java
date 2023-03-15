@@ -6,8 +6,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.data.BindingsMap;
@@ -45,12 +47,14 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     }
 
     @Override
-    protected CachedBindings validateReadObject(Object obj, Metadata meta, TruffleLogger logger) throws CacheException {
-        if (obj instanceof MapToBindings bindings) {
-            return new CachedBindings(libraryName, bindings, Optional.empty());
+    protected CachedBindings deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws CacheException, IOException, ClassNotFoundException {
+      try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
+        if (stream.readObject() instanceof MapToBindings bindings) {
+          return new CachedBindings(libraryName, bindings, Optional.empty());
         } else {
-            throw new CacheException("Expected ImportExportCache.FileToBindings, got " + obj.getClass());
+          throw new CacheException("Expected ImportExportCache.FileToBindings, got " + data.getClass());
         }
+      }
     }
 
     @Override

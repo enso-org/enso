@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.core.IR;
@@ -14,6 +15,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,15 +46,17 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     }
 
     @Override
-    protected CachedModule validateReadObject(Object obj, Metadata meta, TruffleLogger logger) throws CacheException {
-        if (obj instanceof IR.Module ir) {
-            try {
-                return new CachedModule(ir, Module.CompilationStage.valueOf(meta.compilationStage()), module.getSource());
-            } catch (IOException ioe) {
-                throw new CacheException(ioe.getMessage());
-            }
-        } else {
-            throw new CacheException("Expected IR.Module, got " + obj.getClass());
+    protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws CacheException, IOException, ClassNotFoundException {
+        try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
+          if (stream.readObject() instanceof IR.Module ir) {
+              try {
+                  return new CachedModule(ir, Module.CompilationStage.valueOf(meta.compilationStage()), module.getSource());
+              } catch (IOException ioe) {
+                  throw new CacheException(ioe.getMessage());
+              }
+          } else {
+              throw new CacheException("Expected IR.Module, got " + data.getClass());
+          }
         }
     }
 

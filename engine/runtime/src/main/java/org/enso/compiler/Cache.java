@@ -8,9 +8,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
 import org.enso.pkg.SourceFile;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -127,7 +125,6 @@ public abstract class Cache<T, M extends Cache.Metadata> {
       if (sourceDigest == null) {
         throw new CacheException("unable to compute digest");
       }
-      ;
       byte[] metadataBytes = metadata(sourceDigest, blobDigest, entry);
 
       TruffleFile cacheDataFile = getCacheDataPath(cacheRoot);
@@ -252,24 +249,9 @@ public abstract class Cache<T, M extends Cache.Metadata> {
           !needsDataDigestVerification || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
 
       if (sourceDigestValid && blobDigestValid) {
-        Object readObject;
-        try (ObjectInputStream stream =
-            new ObjectInputStream(new ByteArrayInputStream(blobBytes))) {
-          readObject = stream.readObject();
-        } catch (IOException ioe) {
-          logger.log(
-              logLevel,
-              "`" + stringRepr + "` failed to load (caused by: " + ioe.getMessage() + ").");
-          invalidateCache(cacheRoot, logger);
-          return Optional.empty();
-        } catch (ClassNotFoundException e) {
-          logger.log(Level.WARNING, stringRepr + " appears to be corrupted", e);
-          return Optional.empty();
-        }
-
         T cachedObject = null;
         try {
-          cachedObject = validateReadObject(readObject, meta, logger);
+          cachedObject = deserialize(context, blobBytes, meta, logger);
           if (cachedObject != null) {
             return Optional.of(cachedObject);
           } else {
@@ -279,6 +261,15 @@ public abstract class Cache<T, M extends Cache.Metadata> {
           }
         } catch (CacheException e) {
           logger.log(logLevel, "`" + stringRepr + "` was corrupt on disk: " + e.getMessage());
+          return Optional.empty();
+        } catch (IOException ioe) {
+          logger.log(
+              logLevel,
+              "`" + stringRepr + "` failed to load (caused by: " + ioe.getMessage() + ").");
+          invalidateCache(cacheRoot, logger);
+          return Optional.empty();
+        } catch (ClassNotFoundException e) {
+          logger.log(Level.WARNING, stringRepr + " appears to be corrupted", e);
           return Optional.empty();
         }
       } else {
@@ -300,16 +291,19 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   }
 
   /**
-   * Validates the deserialized data by returning the expected cached entry, or [[null]].
+   * Deserializes and validates data by returning the expected cached entry, or {@code null}.
    *
-   * @param obj deserialized object
+   * @param context the context
+   * @param data data to deserialize object from
    * @param meta metadata corresponding to the `obj`
    * @param logger Truffle's logger
-   * @return an `obj` transformed to a cached entry
+   * @return {@code data} transformed to a cached entry or {@code null}
    * @throws CacheException exception thrown on unexpected deserialized data
+   * @throws IOException when I/O goes wrong
+   * @throws ClassNotFoundException on problems with deserializaiton of Java classes
    */
-  protected abstract T validateReadObject(Object obj, M meta, TruffleLogger logger)
-      throws CacheException;
+  protected abstract T deserialize(EnsoContext context, byte[] data, M meta, TruffleLogger logger)
+      throws IOException, ClassNotFoundException, CacheException;
 
   /**
    * Read metadata representation from the provided location
