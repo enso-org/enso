@@ -15,10 +15,13 @@ type SQL_Type
        - name: a database-specific type name, used for pretty printing.
        - precision: For character types, specifies their length.
          See `ResultSetMetaData.getPrecision`.
+       - scale: The scale for fixed precision numeric types. Not applicable for
+         other types, so it's value is undefined and will usually just be 0.
+         See `ResultSetMetaData.getScale`.
        - nullable: Specifies if the given column is nullable. May be `Nothing`
          if that is unknown / irrelevant for the type.
          TODO: the precise meaning of this will be revised with #5872.
-    Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (nullable : Boolean | Nothing = Nothing)
+    Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (scale : Integer = 0) (nullable : Boolean | Nothing = Nothing)
 
     ## TODO [RW] once we can map Value_Type to SQL_Type, these aliases are
        obsolete - we should use DB-specific mapping instead!

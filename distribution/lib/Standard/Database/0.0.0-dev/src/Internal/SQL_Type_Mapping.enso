@@ -40,8 +40,9 @@ from_metadata metadata ix =
     precision = case metadata.getPrecision ix of
         0 -> Nothing
         p : Integer -> p
+    scale = metadata.getScale ix
     nullable_id = metadata.isNullable ix
     nullable = if nullable_id == ResultSetMetaData.columnNoNulls then False else
         if nullable_id == ResultSetMetaData.columnNullable then True else
             Nothing
-    SQL_Type.Value typeid typename precision nullable
+    SQL_Type.Value typeid typename precision scale nullable

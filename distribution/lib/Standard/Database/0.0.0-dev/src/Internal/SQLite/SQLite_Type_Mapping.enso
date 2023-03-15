@@ -1,9 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Value_Type
 
 polyglot java import java.sql.Types
 
+# TODO [RW] likely we could make this into a Base_SQL_Type_Mapping that can be reused across SQLite and Postgres, with adaptations if needed.
 
 ## PRIVATE
    The types are mapped according to the rules set in the JDBC SQLite driver
@@ -20,24 +22,22 @@ polyglot java import java.sql.Types
 type SQLite_Type_Mapping
     ## PRIVATE
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
-    value_type_to_sql value_type on_problems =
-        ???
+    value_type_to_sql value_type on_problems = case value_type of
+        _ -> Error.throw "TODO"
 
     ## PRIVATE
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
+        handle_not_found =
+            Error.throw <| Illegal_Argument.Error <|
+                "The SQL type ["+sql_type.to_text+"] is not recognized as an SQLite compatible type."
         simple_type = simple_types_map.get sql_type.typeid Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we
                continue with the more complex mappings that take stuff like
                precision into account.
-
-simple_types_map = Map.from_vector <|
-    ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
-    other = [[Types.BOOLEAN, Value_Type.Boolean], [Types.TIMESTAMP, Value_Type.Date_Time with_timezone=False], [Types.DATE, Value_Type.Date]]
-    ints + other
-
-
+            builder = complex_types_map.get sql_type.typeid handle_not_found
+            builder sql_type
 
 ## The types that SQLite JDBC driver will report are:
    - BOOLEAN
@@ -57,3 +57,28 @@ simple_types_map = Map.from_vector <|
    - BINARY
    - BLOB
    - CLOB
+
+   This maps the types that are mapped to a constant value type.
+   For some types, a more involved logic is needed.
+simple_types_map = Map.from_vector <|
+    ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
+    # In SQLite all reals are 64-bit floats. For other engines we may need to distinguish between these.
+    floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_64], [Types.FLOAT, Value_Type.Float Bits.Bits_64]]
+    other = [[Types.BOOLEAN, Value_Type.Boolean], [Types.TIMESTAMP, Value_Type.Date_Time with_timezone=False], [Types.DATE, Value_Type.Date]]
+    ints + other
+
+complex_types_map = Map.from_vector <|
+    make_decimal sql_type =
+        Value_Type.Decimal sql_type.precision sql_type.scale
+    make_varchar sql_type =
+        Value_Type.Char size=sql_type.precision variable=True
+    make_char sql_type =
+        Value_Type.Char size=sql_type.precision variable=False
+    make_binary sql_type variable =
+        Value_Type.Binary size=sql_type.precision variable=variable
+    numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
+    # TODO [RW] should CLOB be text or not? should we have a separate type for it? otherwise we cannot round-trip (CLOB -> Char -> VARCHAR != CLOB)
+    strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
+    # TODO [RW] should BINARY be variable length or not? verify
+    binaries = [[Types.BINARY, make_binary True], [Types.BLOB, make_binary True]]
+    numerics + strings + binaries
