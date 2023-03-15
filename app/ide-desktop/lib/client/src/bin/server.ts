@@ -105,7 +105,7 @@ export class Server {
 
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
-        if (requestUrl === undefined) {
+        if (requestUrl == null) {
             logger.error('Request URL is null.')
             return
         }

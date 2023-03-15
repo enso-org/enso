@@ -28,7 +28,9 @@ import BUILD_INFO from '../../build.json' assert { type: 'json' }
  * @see `args` definition below for fields description.
  */
 export interface Arguments {
-    target?: string
+    // This is returned by a third-party library we do not control.
+    // eslint-disable-next-line no-restricted-syntax
+    target?: string | undefined
     iconsDist: string
     guiDist: string
     ideDist: string
@@ -111,6 +113,9 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         ],
         mac: {
             // We do not use compression as the build time is huge and file size saving is almost zero.
+            // This type assertion is UNSAFE, and any users MUST verify that
+            // they are passing a valid value to `target`.
+            // eslint-disable-next-line no-restricted-syntax
             target: (passedArgs.target ?? 'dmg') as macOptions.MacOsTargetName,
             icon: `${passedArgs.iconsDist}/icon.icns`,
             category: 'public.app-category.developer-tools',
@@ -223,7 +228,9 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 console.log('  • Notarizing.')
                 await electronNotarize.notarize({
                     // This will always be defined since we set it at the top of this object.
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    // The type-cast is safe because this is only executes
+                    // when `platform === electronBuilder.Platform.MAC`.
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, no-restricted-syntax
                     appBundleId: (buildOptions as macOptions.MacConfiguration).appId!,
                     appPath: `${appOutDir}/${appName}.app`,
                     appleId: process.env.APPLEID,

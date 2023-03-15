@@ -76,7 +76,7 @@ function printHelp(cfg: PrintHelpConfig) {
 
     for (const [groupName, group] of Object.entries(cfg.args.groups)) {
         let section = sections[groupName]
-        if (section === undefined) {
+        if (section == null) {
             section = new Section()
             sections[groupName] = section
         }
@@ -95,7 +95,7 @@ function printHelp(cfg: PrintHelpConfig) {
             const cmdOption = naming.camelToKebabCase(optionName)
             maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
             const section = sections[option.name]
-            if (section !== undefined) {
+            if (section != null) {
                 section.entries.unshift([cmdOption, option])
             } else {
                 topLevelSection.entries.push([cmdOption, option])
@@ -127,12 +127,12 @@ function printHelp(cfg: PrintHelpConfig) {
                         ? option.description
                         : option.description.slice(0, firstSentenceSplit + 1)
                 const otherSentences = option.description.slice(firstSentence.length)
-                const def =
-                    option.defaultDescription ??
-                    ((option.default ?? undefined) as string | undefined)
+                // We explicitly set the default for string options to be `null` in `parseArgs`.
+                // eslint-disable-next-line no-restricted-syntax
+                const def = option.defaultDescription ?? (option.default as string | null)
                 const defIsEmptyArray = Array.isArray(def) && def.length === 0
                 let defaults = ''
-                if (def !== undefined && def !== '' && !defIsEmptyArray) {
+                if (def != null && def !== '' && !defIsEmptyArray) {
                     defaults = ` Defaults to ${chalk.green(def)}.`
                 }
                 const description = firstSentence + defaults + chalk.gray(otherSentences)
@@ -205,7 +205,7 @@ export class ChromeOption {
     constructor(public name: string, public value?: string) {}
 
     display(): string {
-        const value = this.value === undefined ? '' : `=${this.value}`
+        const value = this.value == null ? '' : `=${this.value}`
         return `--${this.name}${value}`
     }
 }
@@ -237,20 +237,20 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
     const chromeOptions: ChromeOption[] = []
     for (let i = 0; i < processArgs.length; i++) {
         const processArg = processArgs[i]
-        if (processArg !== undefined) {
-            const match = processArg.match(chromeOptionRegex) ?? undefined
-            if (match?.[1] !== undefined) {
+        if (processArg != null) {
+            const match = processArg.match(chromeOptionRegex)
+            if (match?.[1] != null) {
                 const optionName = match[1]
                 const optionValue = match[2]
-                if (optionValue !== undefined) {
+                if (optionValue != null) {
                     chromeOptions.push(new ChromeOption(optionName, optionValue))
                 } else {
                     const nextArgValue = processArgs[i + 1]
-                    if (nextArgValue !== undefined && !nextArgValue.startsWith('-')) {
+                    if (nextArgValue != null && !nextArgValue.startsWith('-')) {
                         chromeOptions.push(new ChromeOption(optionName, nextArgValue))
                         i++
                     } else {
-                        chromeOptions.push(new ChromeOption(optionName, undefined))
+                        chromeOptions.push(new ChromeOption(optionName))
                     }
                 }
             } else {
@@ -274,19 +274,14 @@ export function parseArgs() {
     const yargsOptions = args
         .optionsRecursive()
         .reduce((opts: Record<string, yargsModule.Options>, option) => {
-            const yargsParam = Object.assign(
-                {},
-                {
-                    ...option,
-                    requiresArg: ['string', 'array'].includes(option.type),
-                    default: undefined,
-                }
-            )
             opts[naming.camelToKebabCase(option.qualifiedName())] = {
-                // Required because ensogl-pack has `defaultDescription`
-                // defined as `string | null` instead of `string | undefined` like in yargs
-                ...yargsParam,
-                defaultDescription: yargsParam.defaultDescription ?? undefined,
+                ...option,
+                requiresArg: ['string', 'array'].includes(option.type),
+                default: null,
+                // Required because yargs defines `defaultDescription`
+                // as `string | undefined`, not `string | null`.
+                // eslint-disable-next-line no-restricted-syntax
+                defaultDescription: option.defaultDescription ?? undefined,
             }
             return opts
         }, {})
@@ -316,7 +311,7 @@ export function parseArgs() {
     interface YargsArgs {
         // We don't control the naming of this third-party API.
         /* eslint-disable @typescript-eslint/naming-convention */
-        [key: string]: string[] | string | undefined
+        [key: string]: string[] | string
         _: string[]
         // Exists only when the `populate--` option is enabled.
         '--'?: string[]
@@ -324,27 +319,30 @@ export function parseArgs() {
         /* eslint-enable @typescript-eslint/naming-convention */
     }
 
-    let parseError: Error | undefined
+    // Required otherwise TypeScript thinks it's always `null`.
+    // eslint-disable-next-line no-restricted-syntax
+    let parseError = null as Error | null
+    // Required since `parse` is defined to potentially return a `Promise`.
+    // This only happens when an async middleware has been registered,
+    // which we are not doing.
+    // eslint-disable-next-line no-restricted-syntax
     const { '--': unexpectedArgs, ...parsedArgs } = optParser.parse(
         argv,
         {},
         // @ts-expect-error Yargs' typings are wrong.
-        // eslint-disable-next-line no-restricted-syntax
         (err: Error | null) => {
-            if (err) {
+            if (err != null) {
                 parseError = err
             }
         }
     ) as YargsArgs
-    // The type assertion above is required since `parse` is defined to potentially return a `Promise`.
-    // This only happens when an async middleware has been registered though.
 
     for (const option of args.optionsRecursive()) {
         const arg = parsedArgs[naming.camelToKebabCase(option.qualifiedName())]
         const isArray = Array.isArray(arg)
         // Yargs parses missing array options as `[undefined]`.
-        const isInvalidArray = isArray && arg.length === 1 && arg[0] === undefined
-        if (arg !== undefined && !isInvalidArray) {
+        const isInvalidArray = isArray && arg.length === 1 && arg[0] == null
+        if (arg != null && !isInvalidArray) {
             option.value = arg
             option.setByUser = true
         }
@@ -386,10 +384,10 @@ export function parseArgs() {
     const helpRequested = args.options.help.value || args.options.helpExtended.value
     if (helpRequested) {
         printHelpAndExit()
-    } else if (parseError !== undefined) {
+    } else if (parseError != null) {
         logger.error(parseError.message)
         printHelpAndExit(1)
-    } else if (unexpectedArgs !== undefined) {
+    } else if (unexpectedArgs != null) {
         const unexpectedArgsString = unexpectedArgs.map(arg => JSON.stringify(arg)).join(' ')
         logger.error(`Unexpected arguments found: '${unexpectedArgsString}'.`)
         printHelpAndExit(1)

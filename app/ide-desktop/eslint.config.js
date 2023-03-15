@@ -133,8 +133,23 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `as const` for top-level object literals only containing string literals',
     },
     {
-        selector: ':matches(TSNullKeyword, Literal[raw=null])',
-        message: 'Use `undefined` instead of `null`',
+        // Matches `as T` in either:
+        // - anything other than a variable declaration
+        // - a variable declaration that is not at the top levelshouldn't be `as const`
+        // - a top-level variable declaration that shouldn't be `as const`
+        // - a top-level variable declaration that should be `as const`, but is `as SomeActualType` instead
+        selector: `:matches(
+            :not(VariableDeclarator) > TSAsExpression,
+            :not(:matches(Program, ExportNamedDeclaration)) > VariableDeclaration > * > TSAsExpression,
+            :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TSAsExpression > .expression:not(ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))),
+            :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TsAsExpression:not(:has(TSTypeReference > Identifier[name=const])) > ObjectExpression.expression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))
+        )`,
+        message: 'Avoid `as T`. Consider using a type annotation instead.',
+    },
+    {
+        selector:
+            ':matches(TSUndefinedKeyword, Identifier[name=undefined], UnaryExpression[operator=void]:not(:has(CallExpression.argument)))',
+        message: 'Use `null` instead of `undefined` or `void 0`',
     },
     {
         selector: 'ExportNamedDeclaration > VariableDeclaration[kind=let]',
@@ -210,7 +225,7 @@ export default [
             ...tsEslint.configs.recommended?.rules,
             ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
             ...tsEslint.configs.strict?.rules,
-            eqeqeq: 'error',
+            eqeqeq: ['error', 'always', { null: 'never' }],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             // Prefer `interface` over `type`.

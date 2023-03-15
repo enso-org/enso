@@ -1,4 +1,4 @@
-/** Helper module for running esbuild in watch mode. */
+/** @file A helper module for running esbuild in watch mode. */
 
 import * as esbuild from 'esbuild'
 
@@ -6,8 +6,7 @@ import * as esbuild from 'esbuild'
  * @param config - Configuration for the esbuild command.
  * @param onRebuild - Callback to be called after each rebuild.
  * @param inject - See [esbuild docs](https://esbuild.github.io/api/#inject).
- *
- **/
+ */
 export function toWatchOptions(
     config: esbuild.BuildOptions,
     onRebuild?: () => void,
@@ -17,7 +16,7 @@ export function toWatchOptions(
         ...config,
         inject: [...(config.inject ?? []), ...(inject ?? [])],
         watch: {
-            onRebuild(error, result) {
+            onRebuild(error) {
                 if (error) console.error('watch build failed:', error)
                 else onRebuild?.()
             },

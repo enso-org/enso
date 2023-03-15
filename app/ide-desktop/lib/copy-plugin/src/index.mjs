@@ -79,7 +79,7 @@ export function create(filesProvider) {
             }
         })
         build.onLoad({ filter: /.*/, namespace: PLUGIN_NAME }, async () => {
-            if (build.initialOptions.outdir === undefined) {
+            if (build.initialOptions.outdir == null) {
                 console.error('`copy-plugin` requires `outdir` to be specified.')
                 return
             }
