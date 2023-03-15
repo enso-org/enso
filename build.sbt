@@ -8,7 +8,6 @@ import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
@@ -222,10 +221,6 @@ ThisBuild / Test / testOptions ++=
       Tests.Argument(TestFrameworks.ScalaTest, "-u", junitDir)
     }
 
-val jsSettings = Seq(
-  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
-)
-
 Compile / console / scalacOptions ~= (_ filterNot (_ == "-Xfatal-warnings"))
 
 // ============================================================================
@@ -255,16 +250,13 @@ lazy val enso = (project in file("."))
     `json-rpc-server-test`,
     `json-rpc-server`,
     `language-server`,
-    `parser-service`,
-    `docs-generator`,
     `polyglot-api`,
     `project-manager`,
-    `syntax-definition`.jvm,
+    `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
-    flexer.jvm,
     graph,
-    logger.jvm,
+    logger,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -295,7 +287,7 @@ lazy val enso = (project in file("."))
     `library-manager`,
     `library-manager-test`,
     `connected-lock-manager`,
-    syntax.jvm,
+    syntax,
     testkit,
     `std-base`,
     `std-database`,
@@ -479,7 +471,6 @@ val scalacheckVersion       = "1.16.0"
 val scalacticVersion        = "3.3.0-SNAP3"
 val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
-val scalatagsVersion        = "0.11.1"
 val scalatestVersion        = "3.3.0-SNAP3"
 val shapelessVersion        = "2.4.0-M1"
 val slf4jVersion            = "1.7.36"
@@ -494,175 +485,43 @@ val netbeansApiVersion      = "RELEASE140"
 // === Internal Libraries =====================================================
 // ============================================================================
 
-lazy val logger = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("lib/scala/logger"))
+lazy val logger = (project in file("lib/scala/logger"))
   .settings(
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= scalaCompiler
   )
-  .jsSettings(jsSettings)
 
-lazy val flexer = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("lib/scala/flexer"))
-  .dependsOn(logger)
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    resolvers ++= Resolver.sonatypeOssRepos("releases"),
-    libraryDependencies ++= scalaCompiler ++ Seq(
-      "com.google.guava" % "guava"     % guavaVersion exclude ("com.google.code.findbugs", "jsr305"),
-      "org.typelevel"  %%% "cats-core" % catsVersion,
-      "org.typelevel"  %%% "kittens"   % kittensVersion
+lazy val `syntax-definition` =
+  (project in file("lib/scala/syntax/definition"))
+    .dependsOn(logger)
+    .settings(
+      scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
+      libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
+        "org.typelevel" %% "cats-core" % catsVersion,
+        "org.typelevel" %% "kittens"   % kittensVersion
+      )
     )
-  )
-  .jsSettings(jsSettings)
 
-lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("lib/scala/syntax/definition"))
-  .dependsOn(logger, flexer)
-  .settings(
-    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
-      "org.typelevel" %%% "cats-core"     % catsVersion,
-      "org.typelevel" %%% "kittens"       % kittensVersion,
-      "com.lihaoyi"   %%% "scalatags"     % scalatagsVersion,
-      "io.circe"      %%% "circe-core"    % circeVersion,
-      "io.circe"      %%% "circe-generic" % circeVersion,
-      "io.circe"      %%% "circe-parser"  % circeVersion
-    )
-  )
-  .jsSettings(jsSettings)
-
-lazy val syntax = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Full)
-  .in(file("lib/scala/syntax/specialization"))
-  .dependsOn(logger, flexer, `syntax-definition`)
-  .configs(Test)
-  .configs(Benchmark)
+lazy val syntax = (project in file("lib/scala/syntax/specialization"))
+  .dependsOn(`syntax-definition`)
   .settings(
     commands += WithDebugCommand.withDebug,
-    Test / fork := true,
     testFrameworks := Nil,
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     Compile / run / mainClass := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest"     % scalatestVersion % Test,
-      "com.lihaoyi"   %%% "pprint"        % pprintVersion,
-      "io.circe"      %%% "circe-core"    % circeVersion,
-      "io.circe"      %%% "circe-generic" % circeVersion,
-      "io.circe"      %%% "circe-parser"  % circeVersion
+      "org.scalatest" %% "scalatest"     % scalatestVersion % Test,
+      "com.lihaoyi"   %% "pprint"        % pprintVersion,
+      "io.circe"      %% "circe-core"    % circeVersion,
+      "io.circe"      %% "circe-generic" % circeVersion,
+      "io.circe"      %% "circe-parser"  % circeVersion
     ),
     (Compile / compile) := (Compile / compile)
       .dependsOn(RecompileParser.run(`syntax-definition`))
-      .value,
-    (Test / compile) := (Test / compile)
-      .dependsOn(RecompileParser.run(`syntax-definition`))
-      .value,
-    (Benchmark / compile) := (Benchmark / compile)
-      .dependsOn(RecompileParser.run(`syntax-definition`))
       .value
-  )
-  .jvmSettings(
-    inConfig(Benchmark)(Defaults.testSettings),
-    Benchmark / unmanagedSourceDirectories +=
-      baseDirectory.value.getParentFile / "shared/src/bench/scala",
-    libraryDependencies +=
-      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
-    testFrameworks := List(
-      new TestFramework("org.scalatest.tools.Framework"),
-      new TestFramework("org.scalameter.ScalaMeterFramework")
-    ),
-    bench := (Benchmark / test).tag(Exclusive).value
-  )
-  .jsSettings(
-    scalaJSUseMainModuleInitializer := false,
-    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
-    testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
-    Compile / fullOptJS / artifactPath := file("target/scala-parser.js"),
-    libraryDependencies +=
-      "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0"
-  )
-
-lazy val `lexer-bench` =
-  (project in file("lib/scala/syntax/specialization/lexer-bench"))
-    .settings(
-      commands += WithDebugCommand.withDebug,
-      inConfig(Compile)(truffleRunOptionsSettings),
-      inConfig(Benchmark)(Defaults.testSettings),
-      Test / parallelExecution := false,
-      Test / logBuffered := false,
-      Test / fork := true,
-      libraryDependencies ++= jmh
-    )
-    .configs(Test)
-    .configs(Benchmark)
-    .dependsOn(syntax.jvm)
-    .dependsOn(flexer.jvm)
-    .settings(
-      javaOptions ++= Seq(
-        "-Xms4096m",
-        "-Xmx4096m",
-        "-XX:+FlightRecorder"
-      ),
-      Benchmark / mainClass := Some("org.openjdk.jmh.Main"),
-      bench := Def.task {
-        (Benchmark / run).toTask("").value
-      },
-      benchOnly := Def.inputTaskDyn {
-        import complete.Parsers.spaceDelimited
-        val name = spaceDelimited("<name>").parsed match {
-          case List(name) => name
-          case _ =>
-            throw new IllegalArgumentException("Expected one argument.")
-        }
-        Def.task {
-          (Benchmark / testOnly).toTask(" -- -z " + name).value
-        }
-      }.evaluated,
-      Benchmark / parallelExecution := false
-    )
-
-lazy val `parser-service` = (project in file("lib/scala/parser-service"))
-  .dependsOn(syntax.jvm)
-  .settings(
-    libraryDependencies ++= akka ++ akkaTest,
-    mainClass := Some("org.enso.ParserServiceMain")
-  )
-
-lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
-  .dependsOn(syntax.jvm)
-  .dependsOn(cli)
-  .dependsOn(`version-output`)
-  .dependsOn(`polyglot-api`)
-  .configs(Benchmark)
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
-      "commons-cli" % "commons-cli" % commonsCliVersion
-    ),
-    mainClass := Some("org.enso.docs.generator.Main"),
-    inConfig(Benchmark)(Defaults.testSettings),
-    Benchmark / unmanagedSourceDirectories +=
-      baseDirectory.value.getParentFile / "bench" / "scala",
-    libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
-      "org.scalatest"     %% "scalatest"  % scalatestVersion  % Test
-    ),
-    testFrameworks := List(
-      new TestFramework("org.scalatest.tools.Framework"),
-      new TestFramework("org.scalameter.ScalaMeterFramework")
-    ),
-    bench := (Benchmark / test).tag(Exclusive).value
   )
 
 lazy val `text-buffer` = project
@@ -777,7 +636,7 @@ lazy val `syntax-rust-definition` = project
   )
 
 lazy val graph = (project in file("lib/scala/graph/"))
-  .dependsOn(logger.jvm)
+  .dependsOn(logger)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -871,8 +730,8 @@ lazy val `logging-service` = project
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       akkaStream,
       akkaHttp,
-      "io.circe"              %%% "circe-core"      % circeVersion,
-      "io.circe"              %%% "circe-parser"    % circeVersion,
+      "io.circe"               %% "circe-core"      % circeVersion,
+      "io.circe"               %% "circe-parser"    % circeVersion,
       "junit"                   % "junit"           % junitVersion     % Test,
       "com.novocode"            % "junit-interface" % "0.11"           % Test exclude ("junit", "junit-dep"),
       "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
@@ -1253,7 +1112,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
-  .dependsOn(`docs-generator`)
   .dependsOn(`profiling-utils`)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
@@ -1517,9 +1375,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(pkg)
   .dependsOn(`edition-updater`)
   .dependsOn(`connected-lock-manager`)
-  .dependsOn(syntax.jvm)
+  .dependsOn(syntax)
   .dependsOn(`syntax-rust-definition`)
-  .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
 
 lazy val `runtime-instrument-id-execution` =

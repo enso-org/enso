@@ -20,6 +20,7 @@ use enso_prelude::*;
 use enso_shapely::before_main;
 use ensogl_core::prelude::ImString;
 use ensogl_text::font::DEFAULT_FONT;
+use ensogl_text::font::DEFAULT_FONT_MONO;
 
 
 
@@ -660,7 +661,7 @@ define_themes! { [light:0, dark:1]
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-                font      = "default-mono", "default-mono";
+                font      = DEFAULT_FONT_MONO, DEFAULT_FONT_MONO;
                 size      = 12.0, 12.0;
                 highlight_bold = 0.02, 0.02;
             }
