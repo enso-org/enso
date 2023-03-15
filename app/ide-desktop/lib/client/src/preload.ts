@@ -78,7 +78,7 @@ electron.contextBridge.exposeInMainWorld('enso_console', {
  * used to expose these functions. The functions are exposed via this "API object", which is added
  * to the main window.
  *
- * For more details, see: https://www.electronjs.org/docs/latest/api/context-bridge#api-functions */
+ * For more details, see: https://www.electronjs.org/docs/latest/api/context-bridge#api-functions. */
 const AUTHENTICATION_API = {
     /** Opens a URL in the system browser (rather than in the app).
      *

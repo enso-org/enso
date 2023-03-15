@@ -125,7 +125,7 @@ interface Signable {
 const TEMPORARY_ARCHIVE_PATH = 'temporary_archive.zip'
 
 /** Helper to execute a program in a given directory and return the output. */
-const run = (cmd: string, args: string[], cwd?: string) => {
+function run(cmd: string, args: string[], cwd?: string) {
     console.log('Running', cmd, args, cwd)
     return childProcess.execFileSync(cmd, args, { cwd }).toString()
 }

@@ -1,5 +1,5 @@
 /** @file Security configuration of Electron. Most of the options are based on the official security
- * guide: https://www.electronjs.org/docs/latest/tutorial/security */
+ * guide: https://www.electronjs.org/docs/latest/tutorial/security. */
 
 import * as electron from 'electron'
 
@@ -36,7 +36,7 @@ export function secureWebPreferences(webPreferences: electron.WebPreferences) {
 // ================
 
 /** Enabling sandbox globally. Follow the link to learn more:
- * https://www.electronjs.org/docs/latest/tutorial/sandbox */
+ * https://www.electronjs.org/docs/latest/tutorial/sandbox. */
 function enableGlobalSandbox() {
     electron.app.enableSandbox()
 }
@@ -44,7 +44,7 @@ function enableGlobalSandbox() {
 /** By default, Electron will automatically approve all permission requests unless the developer has
  * manually configured a custom handler. While a solid default, security-conscious developers might
  * want to assume the very opposite. Follow the link to learn more:
- * https://www.electronjs.org/docs/latest/tutorial/security#5-handle-session-permission-requests-from-remote-content */
+ * https://www.electronjs.org/docs/latest/tutorial/security#5-handle-session-permission-requests-from-remote-content. */
 function rejectPermissionRequests() {
     void electron.app.whenReady().then(() => {
         electron.session.defaultSession.setPermissionRequestHandler((_webContents, permission) => {
@@ -58,7 +58,7 @@ function rejectPermissionRequests() {
  * renderer process with its own webPreferences. It is a good idea to control the creation of new
  * <webview> tags from the main process and to verify that their webPreferences do not disable
  * security features. Follow the link to learn more:
- * https://www.electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation */
+ * https://www.electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation. */
 function limitWebViewCreation() {
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-attach-webview', (event, webPreferences, params) => {
@@ -74,7 +74,7 @@ function limitWebViewCreation() {
 /** Navigation is a common attack vector. If an attacker can convince your app to navigate away from
  * its current page, they can possibly force your app to open web sites on the Internet. Follow the
  * link to learn more:
- * https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation */
+ * https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation. */
 function preventNavigation() {
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
@@ -91,7 +91,7 @@ function preventNavigation() {
  * attempt to convince your app to create new windows, frames, or other renderer processes with
  * more privileges than they had before or with pages opened that they couldn't open before.
  * Follow the link to learn more:
- * https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows */
+ * https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows. */
 function disableNewWindowsCreation() {
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.setWindowOpenHandler(({ url }) => {

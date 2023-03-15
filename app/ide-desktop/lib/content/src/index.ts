@@ -18,7 +18,7 @@ const FETCH_TIMEOUT = 300
 // === Fetch ===
 // =============
 
-const timeout = (time: number) => {
+function timeout(time: number) {
     const controller = new AbortController()
     setTimeout(() => {
         controller.abort()

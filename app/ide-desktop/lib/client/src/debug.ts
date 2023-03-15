@@ -47,7 +47,7 @@ async function getInfo() {
     }
 }
 
-/** Print the current system information */
+/** Print the current system information. */
 export async function printInfo() {
     const info = await getInfo()
     console.log(JSON.stringify(info, undefined, INDENT_SIZE))

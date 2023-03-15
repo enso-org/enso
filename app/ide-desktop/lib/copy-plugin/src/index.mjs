@@ -9,11 +9,20 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
+// =================
+// === Constants ===
+// =================
+
+const PLUGIN_NAME = 'enso-copy-plugin'
 const COPY_OPTIONS = {
     recursive: true,
     force: true,
     dereference: true,
 }
+
+// ===============
+// === Helpers ===
+// ===============
 
 /**
  * File copy with logging.
@@ -26,13 +35,17 @@ async function copy(from, to) {
     await fs.promises.cp(from, to, COPY_OPTIONS)
 }
 
+// ==============
+// === Plugin ===
+// ==============
+
 /**
  * Create a plugin instance.
  *
- * @param {() => AsyncGenerator<string>} filesProvider - Invocable that yields an async-iterable object listing files to copy.
+ * @param {() => AsyncGenerator<string>} filesProvider - Invocable that yields
+ * an async-iterable object listing files to copy.
  */
 export function create(filesProvider) {
-    let name = 'enso-copy-plugin'
     /** Sets up the esbuild plugin.
      * @param {import('esbuild').PluginBuild} build - Esbuild build options.
      * @throws {Error} When `build.entryPoints` is neither an array nor an object.
@@ -62,10 +75,10 @@ export function create(filesProvider) {
             console.log('Resolving ', resolve)
             return {
                 path: magic,
-                namespace: name,
+                namespace: PLUGIN_NAME,
             }
         })
-        build.onLoad({ filter: /.*/, namespace: name }, async () => {
+        build.onLoad({ filter: /.*/, namespace: PLUGIN_NAME }, async () => {
             if (build.initialOptions.outdir === undefined) {
                 console.error('`copy-plugin` requires `outdir` to be specified.')
                 return
@@ -89,7 +102,7 @@ export function create(filesProvider) {
             })()
         })
     }
-    return { name, setup }
+    return { name: PLUGIN_NAME, setup }
 }
 
 export default { create }

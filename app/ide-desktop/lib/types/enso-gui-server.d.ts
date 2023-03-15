@@ -1,4 +1,4 @@
-/** @file declaration enso-gui-server */
+/** @file Type definitions for the `enso-gui-server` module. */
 declare module 'enso-gui-server' {
     export const DEFAULT_PORT: string
     export const LIVE_RELOAD_LISTENER_PATH: string

@@ -1,3 +1,5 @@
+// This lint doesn't like headings and "etc.""
+/* eslint-disable jsdoc/require-description-complete-sentence */
 /** @file Definition of the Electron-specific parts of the authentication flows of the IDE.
  *
  * # Overview of Authentication/Authorization
@@ -71,6 +73,7 @@
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
+/* eslint-enable jsdoc/require-description-complete-sentence */
 
 import * as childProcess from 'node:child_process'
 import * as os from 'node:os'
@@ -100,7 +103,7 @@ const OPEN_URL_EVENT = 'open-url'
  * not a variable because the main window is not available when this function is called. This module
  * does not use the `window` until after it is initialized, so while the lambda may return `null` in
  * theory, it never will in practice. */
-export const initModule = (window: () => electron.BrowserWindow) => {
+export function initModule(window: () => electron.BrowserWindow) {
     initIpc()
     initOpenUrlListener(window)
 }
@@ -115,7 +118,7 @@ export const initModule = (window: () => electron.BrowserWindow) => {
  *
  * This functionality is necessary because we don't want to run the OAuth flow in the app. Users
  * don't trust Electron apps to handle their credentials. */
-const initIpc = () => {
+function initIpc() {
     electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => opener(url))
 }
 
@@ -126,7 +129,7 @@ const initIpc = () => {
  *
  * All URLs that aren't deep links (i.e., URLs that don't use the {@link shared.DEEP_LINK_SCHEME}
  * protocol) will be ignored by this handler. Non-deep link URLs will be handled by Electron. */
-const initOpenUrlListener = (window: () => electron.BrowserWindow) => {
+function initOpenUrlListener(window: () => electron.BrowserWindow) {
     electron.app.on(OPEN_URL_EVENT, (event, url) => {
         const parsedUrl = new URL(url)
         /** Prevent Electron from handling the URL at all, because redirects can be dangerous. */
@@ -154,16 +157,16 @@ interface ExecFileOptions extends childProcess.ExecFileOptions {
  * extra external dependency, the contents of the function have been copied into this file. The
  * function has been modified to follow the Enso style guide, and to be TypeScript-compatible. */
 // We don't control the callback signature, so the type must stay as `null`.
-// eslint-disable-next-line no-restricted-syntax
-const opener = (
+function opener(
     args: string | readonly string[],
     options?: ExecFileOptions,
     callback?: (
+        // eslint-disable-next-line no-restricted-syntax
         error: childProcess.ExecFileException | null,
         stdout: Buffer | string,
         stderr: Buffer | string
     ) => void
-) => {
+) {
     let platform = process.platform
 
     /** Attempt to detect Windows Subystem for Linux (WSL). WSL  itself as Linux (which works in
@@ -174,7 +177,7 @@ const opener = (
         platform = 'win32'
     }
 
-    /** http://stackoverflow.com/q/1480971/3191, but see below for Windows. */
+    /** See http://stackoverflow.com/q/1480971/3191, but see below for Windows. */
     let command
     switch (platform) {
         case 'win32': {
@@ -217,9 +220,9 @@ const opener = (
          *
          * Furthermore, if "cmd /c" double-quoted the first parameter, then "start" will interpret
          * it as a window title, so we need to add a dummy empty-string window title:
-         * http://stackoverflow.com/a/154090/3191
+         * http://stackoverflow.com/a/154090/3191.
          *
-         * Additionally, on Windows ampersand and caret need to be escaped when passed to "start" */
+         * Additionally, on Windows `&`` and `^` need to be escaped when passed to "start". */
         args = args.map(value => value.replace(/[&^]/g, '^$&'))
         args = ['/c', 'start', '""'].concat(args)
     }

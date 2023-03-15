@@ -39,8 +39,8 @@ function getChecksum(path, type) {
     )
 }
 
-/** Based on https://stackoverflow.com/a/57371333
- * @param {string} file - Path to the file.
+/** Based on https://stackoverflow.com/a/57371333.
+ * @param {string} file - The path to the file.
  * @param {string} extension - The new extension of the file.
  * @returns A path with the new exension. */
 function changeExtension(file, extension) {
@@ -49,7 +49,7 @@ function changeExtension(file, extension) {
 }
 
 /** Write the file checksum to the provided path.
- * @param {string} path - Path to the file.
+ * @param {string} path - The path to the file.
  * @param {ChecksumType} type - The checksum algorithm to use. */
 async function writeFileChecksum(path, type) {
     let checksum = await getChecksum(path, type)

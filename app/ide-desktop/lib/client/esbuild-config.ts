@@ -1,4 +1,4 @@
-/** @file esbuild config file */
+/** @file Esbuild config file. */
 import * as path from 'node:path'
 
 import * as esbuild from 'esbuild'
@@ -34,7 +34,7 @@ export const BUNDLED_ENGINE_VERSION = utils.requireEnv('ENSO_BUILD_IDE_BUNDLED_E
  * - `ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION` - version of the Engine (backend) that is bundled along with this client build.
  *
  * @see bundlerOptions
- **/
+ */
 export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
     return bundlerOptions(
         path.join(paths.getIdeDirectory(), 'client'),
@@ -43,7 +43,7 @@ export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
     )
 }
 
-/** Get options without relying on the environment */
+/** Get options without relying on the environment. */
 export function bundlerOptions(
     outdir: string,
     projectManagerInBundlePath: string,

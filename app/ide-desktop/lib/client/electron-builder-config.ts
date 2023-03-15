@@ -23,7 +23,7 @@ import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 /** The parts of the electron-builder configuration that we want to keep configurable.
  *
  * @see `args` definition below for fields description.
- * */
+ */
 export interface Arguments {
     target?: string
     iconsDist: string
@@ -97,7 +97,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
          * - navigate to the location specified by the URL of the deep link.
          *
          * For details on how this works, see:
-         * https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app */
+         * https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app. */
         protocols: [
             /** Electron URL protocol scheme definition for deep links to authentication flow pages. */
             {

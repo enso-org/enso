@@ -33,7 +33,7 @@ export function urlParamsFromObject(obj: Record<string, string>) {
 // === Config ===
 // ==============
 
-/** Constructor parameter for the server configuration */
+/** Constructor parameter for the server configuration. */
 interface ConfigConfig {
     dir: string
     port: number

@@ -6,7 +6,7 @@
  * (like TypeScript compilation).
  *
  * See the bundlers documentation for more information:
- * https://esbuild.github.io/getting-started/#bundling-for-node
+ * https://esbuild.github.io/getting-started/#bundling-for-node.
  */
 
 import * as childProcess from 'node:child_process'
@@ -44,7 +44,7 @@ export interface Arguments {
 }
 
 /**
- * get arguments from env
+ * Get arguments from the environment.
  */
 export function argumentsFromEnv(): Arguments {
     const wasmArtifacts = utils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
@@ -88,7 +88,7 @@ export function alwaysCopiedFiles(wasmArtifacts: string) {
 
 /**
  * Generator that yields all files that should be copied to the output directory.
- * @yields {string} file path
+ * @yields {string} The file path of the next file to be copied.
  */
 export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: string) {
     console.log('Preparing a new generator for files to copy.')
@@ -156,10 +156,13 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
     }
 }
 
+// This lint doesn't like "e.g." and "vs."".
+/* eslint-disable jsdoc/require-description-complete-sentence */
 /** The basic, common settings for the bundler, based on the environment variables.
  *
  * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build).
- **/
+ */
+/* eslint-enable jsdoc/require-description-complete-sentence */
 export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
     return bundlerOptions(argumentsFromEnv())
 }

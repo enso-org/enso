@@ -16,7 +16,7 @@ import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 // =================
 
 const DEFAULT_TERMINAL_WIDTH = 80
-/** Returned by {@link String.indexOf} when the substring was not found */
+/** Returned by {@link String.indexOf} when the substring was not found. */
 const NOT_FOUND = -1
 const INDENT_SIZE = 0
 const OPTION_PREFIX = '-'
@@ -48,13 +48,13 @@ interface PrintHelpConfig {
 /** Command line help printer. The `groupsOrdering` parameter specifies the order in which the
  * option groups should be printed. Groups not specified will be printed in the definition order.
  *
- * We use custom help printer because Yargs has several issues:
+ * We use a custom help printer because Yargs has several issues:
  * 1. The option ordering is random and there is no way to enforce it.
  * 2. The option groups ordering is random and there is no way to enforce it.
  * 3. Every option has a `[type`] annotation and there is no API to disable it.
  * 4. There is no option to print commands with single dash instead of double-dash.
  * 5. Help coloring is not supported, and they do not want to support it:
- * https://github.com/yargs/yargs/issues/251
+ * https://github.com/yargs/yargs/issues/251.
  */
 function printHelp(cfg: PrintHelpConfig) {
     console.log(USAGE)
@@ -208,7 +208,7 @@ export class ChromeOption {
 }
 
 /** Replaces `-no-...` with `--no-...`. This is a hotfix for Yargs bug:
- * https://github.com/yargs/yargs-parser/issues/468 */
+ * https://github.com/yargs/yargs-parser/issues/468. */
 function fixArgvNoPrefix(argv: string[]): string[] {
     const singleDashPrefix = '-no-'
     const doubleDashPrefix = '--no-'

@@ -96,8 +96,12 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
     },
     {
+        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration > VariableDeclarator > ArrowFunctionExpression`,
+        message: 'Use `function foo() {}` instead of `const foo = () => {}`',
+    },
+    {
         selector: `:matches(Program, ExportNamedDeclaration) > VariableDeclaration[kind=const] > * > ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))`,
-        message: 'Use `as const` for object literals only containing string literals',
+        message: 'Use `as const` for top-level object literals only containing string literals',
     },
     {
         selector: ':matches(TSNullKeyword, Literal[raw=null])',
@@ -109,7 +113,8 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: `Program > VariableDeclaration[kind=let] > * > ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))`,
-        message: 'Use `const` instead of `let` for object literals only containing string literals',
+        message:
+            'Use `const` instead of `let` for top-level object literals only containing string literals',
     },
     {
         selector:
@@ -167,7 +172,7 @@ export default [
             eqeqeq: 'error',
             'sort-imports': ['error', { allowSeparatedGroups: true }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
-            // prefer interface over type
+            // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
             '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
             '@typescript-eslint/member-ordering': 'error',
@@ -266,31 +271,14 @@ export default [
             'jsdoc/implements-on-classes': 'warn',
             'jsdoc/no-bad-blocks': 'warn',
             'jsdoc/no-defaults': 'warn',
-            // 'jsdoc/no-multi-asterisks': 'warn',
+            'jsdoc/no-multi-asterisks': 'warn',
             'jsdoc/no-types': 'warn',
             'jsdoc/no-undefined-types': 'warn',
             'jsdoc/require-asterisk-prefix': 'warn',
             'jsdoc/require-description': 'warn',
-            // 'jsdoc/require-description-complete-sentence': 'warn',
+            'jsdoc/require-description-complete-sentence': 'warn',
             'jsdoc/require-file-overview': 'warn',
             'jsdoc/require-hyphen-before-param-description': 'warn',
-            // Using defaults for require-jsdoc for now.
-            /*
-            'jsdoc/require-jsdoc': [
-                'error',
-                {
-                    'require': {
-                        // We should enforce this for let and const too,
-                        // but there doesn't seem to be options for that.
-                        'FunctionDeclaration': true,
-                        'MethodDefinition': true,
-                        'ClassDeclaration': true,
-                        'ArrowFunctionExpression': true,
-                        'FunctionExpression': true,
-                    },
-                },
-            ],
-            */
             'jsdoc/require-param-description': 'warn',
             'jsdoc/require-param-name': 'warn',
             'jsdoc/require-property': 'warn',
@@ -331,7 +319,7 @@ export default [
         },
     },
     {
-        // Extra file types that should be checked but use the default config.
         files: ['**/*.d.ts'],
+        'no-undef': 'off',
     },
 ]

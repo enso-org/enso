@@ -15,8 +15,8 @@ const execFile = util.promisify(childProcess.execFile)
 // === Project Manager ===
 // =======================
 
-/** Return the Project Manager path if it is valid. Otherwise, throw an error.
- * @throws */
+/** Return the Project Manager path.
+ * @throws If the Project Manager path is invalid. */
 export function pathOrPanic(args: config.Args): string {
     const binPath = args.groups.engine.options.projectManagerPath.value
     const binExists = fsSync.existsSync(binPath)
