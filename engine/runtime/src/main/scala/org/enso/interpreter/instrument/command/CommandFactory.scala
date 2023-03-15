@@ -62,6 +62,9 @@ object CommandFactory {
       case payload: Api.DeserializeLibrarySuggestions =>
         new DeserializeLibrarySuggestionsCmd(request.requestId, payload)
 
+      case _: Api.StartBackgroundProcessing =>
+        new StartBackgroundProcessingCmd(request.requestId)
+
       case Api.ShutDownRuntimeServer() =>
         throw new IllegalArgumentException(
           "ShutDownRuntimeServer request is not convertible to command object"

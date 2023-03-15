@@ -154,8 +154,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -243,8 +244,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -325,8 +327,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -394,8 +397,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -479,8 +483,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -555,8 +560,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -709,8 +715,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -804,8 +811,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -895,8 +903,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1000,8 +1009,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -1121,8 +1131,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1249,8 +1260,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1363,8 +1375,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1431,8 +1444,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1532,8 +1546,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
