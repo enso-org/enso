@@ -673,7 +673,7 @@ type Table
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
         new_column = Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename expression
+        result = new_column.rename (self.connection.dialect.get_naming_helpers.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
@@ -1206,7 +1206,7 @@ type Table
                 new_name = p.first
                 Aggregate_Helper.make_aggregate_column self agg new_name . catch
 
-            partitioned = results.partition (_.is_a Internal_Column.Value)
+            partitioned = results.partition (_.is_a Internal_Column)
 
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use
@@ -1291,7 +1291,7 @@ type Table
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
-    cross_tab : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Aggregate_Column | Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector | Aggregate_Column) -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.

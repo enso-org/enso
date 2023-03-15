@@ -27,7 +27,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     type = "Comparable",
     name = "less_than_builtin",
     description = """
-        Returns true if self is less than `other`. Or throw an error if the values are
+        Returns true if self is less than `other`. Or return Nothing if the values are
         not comparable.
         """
 )
@@ -326,11 +326,6 @@ public abstract class LessThanNode extends Node {
   @Fallback
   Object fallback(Object left, Object right) {
     return nothing();
-  }
-
-  private DataflowError dataflowError(Object left, Object right) {
-    var typeError = EnsoContext.get(this).getBuiltins().error().makeTypeError(left, right, "right");
-    return DataflowError.withoutTrace(typeError, this);
   }
 
   private Object nothing() {

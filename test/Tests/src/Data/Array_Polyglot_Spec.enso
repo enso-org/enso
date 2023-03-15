@@ -7,7 +7,7 @@ import Standard.Test.Extensions
 spec =
     Test.group "JavaScript Objects, Arrays & Functions" <|
         Test.specify "Missing method" <|
-            Test.expect_panic_with data.missing No_Such_Method.Error
+            Test.expect_panic_with data.missing No_Such_Method
 
         Test.specify "Found method" <|
             data.classes

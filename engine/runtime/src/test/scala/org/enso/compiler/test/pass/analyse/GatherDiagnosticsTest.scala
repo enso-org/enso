@@ -7,15 +7,11 @@ import org.enso.compiler.core.IR.CallArgument
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
-import org.enso.syntax.text.AST
 
 class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
-    val error1 = IR.Error.Syntax(
-      AST.Invalid.Unrecognized("@@"),
-      IR.Error.Syntax.UnrecognizedToken
-    )
+    val error1 = IR.Error.Syntax(null, IR.Error.Syntax.UnrecognizedToken)
     val plusOp = IR.Name.Literal("+", isMethod = true, None)
     val plusApp = IR.Application.Prefix(
       plusOp,
@@ -50,15 +46,8 @@ class GatherDiagnosticsTest extends CompilerTest {
     }
 
     "work with module flow" in {
-      val error2 = IR.Error.Syntax(
-        AST.Invalid.Unexpected("whoa, that was not expected", List()),
-        IR.Error.Syntax.UnexpectedExpression
-      )
-
-      val error3 = IR.Error.Syntax(
-        AST.Invalid.Unexpected("whoa, that was also not expected", List()),
-        IR.Error.Syntax.AmbiguousExpression
-      )
+      val error2 = IR.Error.Syntax(null, IR.Error.Syntax.UnexpectedExpression)
+      val error3 = IR.Error.Syntax(null, IR.Error.Syntax.AmbiguousExpression)
 
       val typeName =
         IR.Name.Literal("Foo", isMethod = false, None)

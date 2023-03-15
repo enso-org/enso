@@ -84,7 +84,8 @@ impl<E, P: Default> ListData<E, P> {
         let entry_params = default();
         let display_object = display::object::Instance::new();
         let provider = default();
-        let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.label.downgrade()));
+        let label_layer =
+            Rc::new(RefCell::new(app.display.default_scene.layers.above_nodes_text.downgrade()));
         Self { app, display_object, entries, entries_range, entry_params, provider, label_layer }
     }
 }

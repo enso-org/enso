@@ -56,11 +56,14 @@ object CommandFactory {
       case payload: Api.InvalidateModulesIndexRequest =>
         new InvalidateModulesIndexCmd(request.requestId, payload)
 
-      case payload: Api.VerifyModulesIndexRequest =>
-        new VerifyModulesIndexCmd(request.requestId, payload)
-
       case _: Api.GetTypeGraphRequest =>
         new GetTypeGraphCommand(request.requestId)
+
+      case payload: Api.DeserializeLibrarySuggestions =>
+        new DeserializeLibrarySuggestionsCmd(request.requestId, payload)
+
+      case _: Api.StartBackgroundProcessing =>
+        new StartBackgroundProcessingCmd(request.requestId)
 
       case Api.ShutDownRuntimeServer() =>
         throw new IllegalArgumentException(

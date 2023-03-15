@@ -1424,18 +1424,17 @@ impl Searcher {
         let self_type = module.clone();
         for method in &["data", "root"] {
             let entry = model::suggestion_database::Entry {
-                name:               (*method).to_owned(),
-                kind:               model::suggestion_database::entry::Kind::Method,
-                defined_in:         module.clone(),
-                arguments:          vec![],
-                return_type:        "Standard.Base.System.File.File".try_into().unwrap(),
-                documentation:      vec![],
-                documentation_html: None,
-                self_type:          Some(self_type.clone()),
-                is_static:          true,
-                scope:              model::suggestion_database::entry::Scope::Everywhere,
-                icon_name:          None,
-                reexported_in:      None,
+                name:          (*method).to_owned(),
+                kind:          model::suggestion_database::entry::Kind::Method,
+                defined_in:    module.clone(),
+                arguments:     vec![],
+                return_type:   "Standard.Base.System.File.File".try_into().unwrap(),
+                documentation: vec![],
+                self_type:     Some(self_type.clone()),
+                is_static:     true,
+                scope:         model::suggestion_database::entry::Scope::Everywhere,
+                icon_name:     None,
+                reexported_in: None,
             };
             let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
             libraries_cat_builder.add_action(action);

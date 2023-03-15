@@ -38,8 +38,7 @@ object DistributionPackage {
     }
   }
 
-  /**
-    * Conditional copying, based on the contents of cache and timestamps of files.
+  /** Conditional copying, based on the contents of cache and timestamps of files.
     *
     * @param source source directory
     * @param destination target directory
@@ -123,7 +122,6 @@ object DistributionPackage {
     targetStdlibVersion: String,
     targetDir: File
   ): Unit = {
-
     copyDirectoryIncremental(
       file("distribution/engine/THIRD-PARTY"),
       distributionRoot / "THIRD-PARTY",
@@ -135,15 +133,7 @@ object DistributionPackage {
       distributionRoot / "component",
       cacheFactory.make("engine-jars")
     )
-    val os = System.getProperty("os.name")
-    val isMac = os.startsWith("Mac")
-    val parser = targetDir / (if (isMac) {
-      "libenso_parser.dylib"
-    } else if (os.startsWith("Windows")) {
-      "enso_parser.dll"
-    } else {
-      "libenso_parser.so"
-    })
+    val parser = targetDir / Platform.dynamicLibraryFileName("enso_parser")
     copyFilesIncremental(
       Seq(parser),
       distributionRoot / "component",
@@ -182,41 +172,47 @@ object DistributionPackage {
     )
 
     indexStdLib(
-      stdLibVersion = targetStdlibVersion,
-      ensoVersion = ensoVersion,
-      stdLibRoot = distributionRoot / "lib",
-      ensoExecutable =
-        distributionRoot / "bin" / "enso",
-      cacheFactory = cacheFactory.sub("stdlib"),
-      log = log
+      stdLibVersion  = targetStdlibVersion,
+      ensoVersion    = ensoVersion,
+      stdLibRoot     = distributionRoot / "lib",
+      ensoExecutable = distributionRoot / "bin" / "enso",
+      cacheFactory   = cacheFactory.sub("stdlib"),
+      log            = log
     )
   }
 
   def indexStdLib(
-                   stdLibVersion: String,
-                   ensoVersion: String,
-                   stdLibRoot: File,
-                   ensoExecutable: File,
-                   cacheFactory: CacheStoreFactory,
-                   log: Logger
-                 ): Unit = {
+    stdLibVersion: String,
+    ensoVersion: String,
+    stdLibRoot: File,
+    ensoExecutable: File,
+    cacheFactory: CacheStoreFactory,
+    log: Logger
+  ): Unit = {
     for {
       libMajor <- stdLibRoot.listFiles()
-      libName <- (stdLibRoot / libMajor.getName).listFiles()
+      libName  <- (stdLibRoot / libMajor.getName).listFiles()
     } yield {
       val cache = cacheFactory.make(s"$libName.$ensoVersion")
-      val path = (libName / ensoVersion)
-      Tracked.diffInputs(cache, FileInfo.lastModified)(path.globRecursive("*.enso").get().toSet) { diff =>
+      val path  = libName / ensoVersion
+      Tracked.diffInputs(cache, FileInfo.lastModified)(
+        path.globRecursive("*.enso").get().toSet
+      ) { diff =>
         if (diff.modified.nonEmpty) {
           println(s"Generating index for ${libName} ")
           val command = Seq(
             Platform.executableFileName(ensoExecutable.toString),
             "--no-compile-dependencies",
+            "--no-global-cache",
             "--compile",
             path.toString
           )
-          log.info(command.mkString(" "))
-          val exitCode = command.!
+          log.debug(command.mkString(" "))
+          val exitCode = Process(
+            command,
+            None,
+            "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
+          ).!
           if (exitCode != 0) {
             throw new RuntimeException(s"Cannot compile $libMajor.$libName.")
           }
@@ -236,13 +232,13 @@ object DistributionPackage {
 
     val enso = distributionRoot / "bin" / "enso"
     log.info(s"Executing $enso ${args.mkString(" ")}")
-    val pb = new java.lang.ProcessBuilder()
+    val pb  = new java.lang.ProcessBuilder()
     val all = new java.util.ArrayList[String]()
     all.add(enso.getAbsolutePath())
     all.addAll(args.asJava)
     pb.command(all)
     pb.inheritIO()
-    val p = pb.start()
+    val p        = pb.start()
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)
@@ -583,7 +579,7 @@ object DistributionPackage {
       arguments: String*
     ): String = {
       val shallowFile = graalDir / "bin" / "gu"
-      val deepFile = graalDir / "Contents" / "Home" / "bin" / "gu"
+      val deepFile    = graalDir / "Contents" / "Home" / "bin" / "gu"
       val executableFile = os match {
         case OS.Linux =>
           shallowFile
@@ -597,11 +593,13 @@ object DistributionPackage {
           graalDir / "bin" / "gu.cmd"
       }
       val javaHomeFile = executableFile.getParentFile.getParentFile
-      val javaHome = javaHomeFile.toPath.toAbsolutePath
+      val javaHome     = javaHomeFile.toPath.toAbsolutePath
       val command =
         executableFile.toPath.toAbsolutePath.toString +: arguments
 
-      log.debug(s"Running $command in $graalDir with JAVA_HOME=${javaHome.toString}")
+      log.debug(
+        s"Running $command in $graalDir with JAVA_HOME=${javaHome.toString}"
+      )
 
       try {
         Process(

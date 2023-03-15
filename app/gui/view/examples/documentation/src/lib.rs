@@ -10,11 +10,11 @@
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Mark;
 use enso_suggestion_database as suggestion_database;
 use enso_suggestion_database::doc_section;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
-use enso_suggestion_database::engine_protocol::language_server::DocSection;
-use enso_suggestion_database::engine_protocol::language_server::Mark;
 use enso_suggestion_database::entry::Argument;
 use enso_suggestion_database::mock;
 use enso_suggestion_database::mock_suggestion_database;
@@ -135,7 +135,7 @@ fn database() -> SuggestionDatabase {
     builder.add_function("bar", args, "Standard.Base.Boolean", scope.clone(), |e| {
         e.with_doc_sections(vec![
             DocSection::Paragraph { body: "Documentation for the bar function.".into() },
-            DocSection::Tag { name: "DEPRECATED".into(), body: default() },
+            DocSection::Tag { name: "DEPRECATED", body: default() },
             DocSection::Marked {
                 mark:   Mark::Example,
                 header: None,
@@ -147,7 +147,7 @@ fn database() -> SuggestionDatabase {
     builder.add_local("local1", "Standard.Base.Boolean", scope, |e| {
         e.with_doc_sections(vec![
             DocSection::Paragraph { body: "Documentation for the local1 variable.".into() },
-            DocSection::Tag { name: "SOMETAG".into(), body: default() },
+            DocSection::Tag { name: "SOMETAG", body: default() },
         ])
     });
 

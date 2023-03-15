@@ -60,11 +60,10 @@ impl Suggestion {
 
     /// Return the documentation assigned to the suggestion.
     pub fn documentation_html(&self) -> Option<&str> {
-        let doc_html = match self {
-            Suggestion::FromDatabase(s) => &s.documentation_html,
-            Suggestion::Hardcoded(s) => &s.documentation_html,
-        };
-        doc_html.as_ref().map(AsRef::<str>::as_ref)
+        // This module is mostly obsolete and used as a test API (#5661). This functionality has not
+        // been ported to the new documentation parser, but is not needed for anything the old
+        // searcher is still used for.
+        None
     }
 
     /// The Id of the method called by a suggestion, or [`None`] if the suggestion is not a method

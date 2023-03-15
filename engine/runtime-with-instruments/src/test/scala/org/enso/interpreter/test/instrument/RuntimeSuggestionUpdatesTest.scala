@@ -138,8 +138,9 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -153,8 +154,6 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -171,8 +170,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -183,6 +180,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -203,7 +201,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -230,8 +228,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -260,6 +256,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -284,7 +281,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -312,8 +309,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -366,6 +361,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("51")
@@ -386,7 +382,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -415,8 +411,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -477,6 +471,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("51")
@@ -497,7 +492,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -528,8 +523,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -606,8 +599,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -618,6 +609,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("51")
@@ -638,7 +630,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -680,8 +672,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify(
@@ -708,6 +698,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("51")
@@ -765,8 +756,9 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -780,8 +772,6 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -798,8 +788,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -844,8 +832,6 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.TEXT,
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -872,8 +858,6 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.NUMBER,
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -884,6 +868,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
   }
@@ -894,7 +879,7 @@ class RuntimeSuggestionUpdatesTest
     val moduleName = "Enso_Test.Test.Main"
 
     val mainCode =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |import Enso_Test.Test.A
         |from Enso_Test.Test.A export all
@@ -904,7 +889,7 @@ class RuntimeSuggestionUpdatesTest
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
     val aCode =
-      """from Standard.Base.Data.Numbers import Integer
+      """from Standard.Base import all
         |
         |type MyType
         |    MkA a
@@ -950,8 +935,9 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -964,7 +950,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Module("Enso_Test.Test.A", None, None, None),
+                  Suggestion.Module("Enso_Test.Test.A", None),
                   Api.SuggestionAction.Add()
                 ),
                 Vector()
@@ -978,8 +964,6 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     "Enso_Test.Test.A.MyType",
                     Some(ConstantsGen.ANY),
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -997,8 +981,6 @@ class RuntimeSuggestionUpdatesTest
                         .Argument("a", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.A.MyType",
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1024,8 +1006,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A.MyType",
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1050,8 +1030,6 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.INTEGER,
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1076,8 +1054,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1111,8 +1087,6 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1129,8 +1103,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1141,6 +1113,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -1161,13 +1134,13 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """import Standard.Base.IO
+            """from Standard.Base import all
               |
               |import Enso_Test.Test.A
               |from Enso_Test.Test.A export all hiding hello
@@ -1190,6 +1163,7 @@ class RuntimeSuggestionUpdatesTest
           updates = Tree.Root(Vector())
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -1210,13 +1184,13 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """import Standard.Base.IO
+            """from Standard.Base import all
               |
               |main = IO.println "Hello World!"
               |""".stripMargin.linesIterator.mkString("\n")
@@ -1234,6 +1208,7 @@ class RuntimeSuggestionUpdatesTest
           updates = Tree.Root(Vector())
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")

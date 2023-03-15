@@ -21,7 +21,7 @@ spec =
             arr.at 0 . should_equal 10
             arr.at 1 . should_equal 11
             arr.at 2 . should_equal 12
-            arr.at 3 . should_fail_with Index_Out_Of_Bounds.Error
+            arr.at 3 . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should be able to be used to construct a Vector" <|
             v1 = Vector.from_polyglot_array (Array_Proxy.new 3 (ix -> ix + 10))
@@ -42,8 +42,8 @@ spec =
             v2.should_equal [0, 10, 20, 30, 40]
 
         Test.specify "should check validity at construction" <|
-            Test.expect_panic_with (Array_Proxy.new 0 0) Type_Error.Error
-            Test.expect_panic_with (Array_Proxy.new -1 (x->x)) Illegal_Argument.Error
+            Test.expect_panic_with (Array_Proxy.new 0 0) Type_Error
+            Test.expect_panic_with (Array_Proxy.new -1 (x->x)) Illegal_Argument
 
         Test.specify "should pretend to just be an Array" <|
             proxy = Array_Proxy.new 3 (ix -> ix + 10)
