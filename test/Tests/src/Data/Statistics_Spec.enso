@@ -21,8 +21,13 @@ type No_Ord
     Value number
 
 type No_Ord_Comparator
-    compare x y = Nothing
-    hash x = 0
+    compare x y =
+        _ = [x, y]
+        Nothing
+
+    hash x =
+        _ = x
+        0
 
 Comparable.from (_:No_Ord) = No_Ord_Comparator
 

@@ -89,7 +89,7 @@ import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
-import project.Data.Text.Location
+import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
@@ -141,7 +141,7 @@ export project.Data.Text.Case_Sensitivity.Case_Sensitivity
 export project.Data.Text.Encoding.Encoding
 export project.Data.Text.Extensions
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
-export project.Data.Text.Location
+export project.Data.Text.Location.Location
 export project.Data.Text.Matching_Mode.Matching_Mode
 export project.Data.Text.Regex
 export project.Data.Text.Regex.Regex_Mode.Regex_Mode
