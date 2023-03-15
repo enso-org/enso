@@ -202,14 +202,17 @@ spec =
         Test.specify "fields of a Type" <|
             typ = Boolean
 
-            Meta.is_atom typ . should_be_true
+            Meta.is_atom typ . should_be_false
             meta_typ = Meta.meta typ
-            meta_typ . should_be_a Meta.Atom
-            fields = case meta_typ of
-                Meta.Atom.Value _ -> meta_typ.constructor.fields
-                _ -> Test.fail "Should be a Meta.Atom.Value: " + meta_typ.to_text
+            meta_typ . should_be_a Meta.Type
+            cons = case meta_typ of
+                Meta.Type.Value _ -> meta_typ.constructors
+                _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
 
-            fields . should_equal []
+            cons.length . should_equal 2
+            cons.at 0 . should_be_a Meta.Constructor
+            cons.at 1 . should_be_a Meta.Constructor
+            cons . map (x -> x.name) . sort . should_equal [ "False", "True" ]
 
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Random.new
