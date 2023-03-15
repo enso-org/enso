@@ -1,9 +1,9 @@
 package org.enso.compiler.context
 
+import com.oracle.truffle.api.source.Source
 import java.util.UUID
-import org.enso.syntax.text.Parser
+import org.enso.compiler.EnsoCompiler
 import org.enso.compiler.core.IR
-import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.instrument.execution.model.PendingEdit
@@ -12,6 +12,7 @@ import org.enso.text.editing.model.TextEdit
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import scala.collection.mutable
+import scala.util.Using
 
 /** Simple editing change description.
   *
@@ -96,12 +97,16 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
             case pending: PendingEdit.SetExpressionValue => pending.value
             case other: PendingEdit.ApplyEdit            => other.edit.text
           }
-          AstToIr
-            .translateInline(Parser().run(value))
-            .flatMap(_ match {
-              case ir: IR.Literal => Some(ir.setLocation(oldIr.location))
-              case _              => None
-            })
+
+          val source = Source.newBuilder("enso", value, null).build
+          Using(new EnsoCompiler) { compiler =>
+            compiler
+              .generateIRInline(compiler.parse(source))
+              .flatMap(_ match {
+                case ir: IR.Literal => Some(ir.setLocation(oldIr.location))
+                case _              => None
+              })
+          }.get
         }
 
         oldIr match {

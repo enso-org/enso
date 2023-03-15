@@ -1,7 +1,5 @@
 import sbt._
 import sbt.Keys._
-import sbtcrossproject.CrossProject
-import sbtcrossproject.CrossPlugin.autoImport._
 
 object RecompileParser {
 
@@ -9,10 +7,10 @@ object RecompileParser {
     * `syntaxDefinition` is changed. Should be attached to the `compile` task as
     * a dependency.
     */
-  def run(syntaxDefinition: CrossProject) =
+  def run(syntaxDefinition: Project) =
     Def.taskDyn {
       val parserCompile =
-        (syntaxDefinition.jvm / Compile / compileIncremental).value
+        (syntaxDefinition / Compile / compileIncremental).value
       if (parserCompile.hasModified) {
         Def.task {
           streams.value.log.info("Parser changed, forcing recompilation.")
