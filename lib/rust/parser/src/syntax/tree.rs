@@ -762,12 +762,6 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 /// application has special semantics.
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match (&mut *func.variant, &mut *arg.variant) {
-        (Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
-                Variant::Number(Number { base: None, integer, fractional_digits })) => {
-            func_.integer = mem::take(integer);
-            func_.fractional_digits = mem::take(fractional_digits);
-            func
-        }
         (Variant::Annotated(func_ @ Annotated { argument: None, .. }), _) => {
             func_.argument = maybe_apply(mem::take(&mut func_.argument), arg).into();
             func
@@ -868,6 +862,23 @@ pub fn apply_operator<'s>(
         1 => Ok(opr.into_iter().next().unwrap()),
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
+    if let Ok(opr_) = &opr
+            && opr_.properties.is_token_joiner()
+            && let Some(lhs_) = lhs.as_mut()
+            && let Some(rhs_) = rhs.as_mut() {
+        return match (&mut *lhs_.variant, &mut *rhs_.variant) {
+            (Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
+                Variant::Number(Number { base: None, integer, fractional_digits })) => {
+                func_.integer = mem::take(integer);
+                func_.fractional_digits = mem::take(fractional_digits);
+                lhs.take().unwrap()
+            }
+            _ => {
+                debug_assert!(false, "Unexpected use of token-joiner operator!");
+                apply(lhs.take().unwrap(), rhs.take().unwrap())
+            },
+        }
+    }
     if let Ok(opr_) = &opr && opr_.properties.is_special() {
         let tree = Tree::opr_app(lhs, opr, rhs);
         return tree.with_error("Invalid use of special operator.");

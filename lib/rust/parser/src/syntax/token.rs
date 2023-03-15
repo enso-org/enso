@@ -343,6 +343,7 @@ pub struct OperatorProperties {
     is_annotation:             bool,
     is_dot:                    bool,
     is_special:                bool,
+    is_token_joiner:           bool,
 }
 
 impl OperatorProperties {
@@ -377,6 +378,11 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as special.
     pub fn as_special(self) -> Self {
         Self { is_special: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as the token-joiner operator.
+    pub fn as_token_joiner(self) -> Self {
+        Self { is_token_joiner: true, ..self }
     }
 
     /// Return a copy of this operator, modified to have the specified LHS operator-section/
@@ -484,6 +490,11 @@ impl OperatorProperties {
     /// Return whether this operator is the dot operator.
     pub fn is_dot(&self) -> bool {
         self.is_dot
+    }
+
+    /// Return whether this operator is the token-joiner operator.
+    pub fn is_token_joiner(&self) -> bool {
+        self.is_token_joiner
     }
 
     /// Return this operator's associativity.

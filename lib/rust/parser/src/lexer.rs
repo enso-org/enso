@@ -836,9 +836,13 @@ impl<'s> Lexer<'s> {
                     token::Base::Hexadecimal =>
                         self.token(|this| this.take_while(is_hexadecimal_digit)),
                 };
-                if let Some(token) = token {
-                    self.submit_token(token.with_variant(token::Variant::digits(Some(base))));
-                }
+                let joiner = token::OperatorProperties::new()
+                    .with_binary_infix_precedence(usize::MAX)
+                    .as_token_joiner();
+                self.submit_token(Token("", "", token::Variant::operator(joiner)));
+                // Every number has a digits-token, even if it's zero-length.
+                let token = token.unwrap_or_default();
+                self.submit_token(token.with_variant(token::Variant::digits(Some(base))));
             } else {
                 self.submit_token(token.with_variant(token::Variant::digits(None)));
             }
