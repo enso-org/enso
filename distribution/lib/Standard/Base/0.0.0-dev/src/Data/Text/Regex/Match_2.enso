@@ -27,9 +27,6 @@ type Match_2
        This method goes directly to the internal match object. It does not
        take group names, and does not have a default.
 
-       Returns Nothing if the group did not participate int the match. If no such group
-       exists for the provided identifier, a `No_Such_Group` is returned.
-
        Arguments:
        - group: the integer group number.
     internal_start : Integer -> Integer
@@ -40,9 +37,6 @@ type Match_2
 
        This method goes directly to the internal match object. It does not
        take group names, and does not have a default.
-
-       Returns Nothing if the group did not participate int the match. If no such group
-       exists for the provided identifier, a `No_Such_Group` is returned.
 
        Arguments:
        - group: the integer group number.
