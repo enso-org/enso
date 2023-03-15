@@ -14,7 +14,6 @@ import { FileHandle } from 'fs/promises'
 import { Abortable } from 'node:events'
 import { promises as fs } from 'fs'
 import * as log from 'runner/log'
-import { logger } from 'runner/log/logger'
 import { Stream } from 'node:stream'
 
 // ================
