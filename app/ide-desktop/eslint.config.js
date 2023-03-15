@@ -20,18 +20,21 @@ const NAME = 'enso'
  * Many of these have incorrect types, so no type error may not mean they support ESM,
  * and conversely type errors may not mean they don't support ESM -
  * but we add those to the whitelist anyway otherwise we get type errors.
- * In particular, `yargs` and `string-length` support ESM but their type definitions don't. */
-const COMMONJS_MODULES =
-    'chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-alias|esbuild-plugin-time|esbuild-plugin-yaml'
-const OUR_MODULES = 'enso-content-config'
+ * In particular, `string-length` supports ESM but its type definitions don't.
+ * `yargs` and `react-hot-toast` are modules we explicitly want the default imports of. */
+const DEFAULT_IMPORT_ONLY_MODULES =
+    'chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-alias|esbuild-plugin-time|esbuild-plugin-yaml|opener'
+const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|react-hot-toast`
+const OUR_MODULES = 'enso-content-config|enso-common'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|index|ipc|naming|paths|preload|security'
 const STRING_LITERAL = 'Literal[raw=/^["\']/]'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)/'
-const WHITELISTED_CONSTANTS = 'logger'
+const WHITELISTED_CONSTANTS = 'logger|.+Context'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
+const WITH_ROUTER = 'CallExpression[callee.name=withRouter]'
 
 // Extracted to a variable because it needs to be used twice:
 // - once as-is for `.d.ts`
@@ -44,13 +47,13 @@ const RESTRICTED_SYNTAXES = [
         message: 'No {} imports and exports',
     },
     {
-        selector: `ImportDeclaration[source.value=/^(?!(${COMMONJS_MODULES})$)[^.]/] > ImportDefaultSpecifier`,
+        selector: `ImportDeclaration[source.value=/^(?!(${ALLOWED_DEFAULT_IMPORT_MODULES})$)[^.]/] > ImportDefaultSpecifier`,
         message:
-            'No default imports from modules. Add to `COMMONJS_MODULES` in `eslint.config.js` if the module only has a default export.',
+            'No default imports from modules. Add to `DEFAULT_IMPORT_ONLY_MODULES` in `eslint.config.js` if the module only has a default export.',
     },
     {
-        selector: `ImportDeclaration[source.value=/^(?:${COMMONJS_MODULES})$/] > ImportNamespaceSpecifier`,
-        message: 'No namespace imports from CommonJS modules',
+        selector: `ImportDeclaration[source.value=/^(?:${DEFAULT_IMPORT_ONLY_MODULES})$/] > ImportNamespaceSpecifier`,
+        message: 'No namespace imports from modules that only have a default import',
     },
     {
         selector: `ImportDeclaration[source.value=/\\.(?:json|yaml|yml)$/] > ImportDefaultSpecifier[local.name=${NOT_CONSTANT_CASE}]`,
@@ -104,7 +107,10 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches functions and arrow functions, but not methods.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(ArrowFunctionExpression ${JSX}))`,
+        selector: `:matches(
+            FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}),
+            VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression ${JSX}, ${WITH_ROUTER}))
+        )`,
         message: 'Use `PascalCase` for React components',
     },
     {
@@ -114,7 +120,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches non-functions.
-        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(ArrowFunctionExpression))`,
+        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(:matches(ArrowFunctionExpression, ${WITH_ROUTER})))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
     },
     {
@@ -247,6 +253,7 @@ export default [
             ],
             '@typescript-eslint/no-confusing-void-expression': 'error',
             '@typescript-eslint/no-extraneous-class': 'error',
+            '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],
             // React 17 and later supports async functions as event handlers, so we need to disable this
             // rule to avoid false positives.
             //

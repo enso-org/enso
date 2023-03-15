@@ -138,8 +138,8 @@ pub enum Workspaces {
 impl AsRef<OsStr> for Workspaces {
     fn as_ref(&self) -> &OsStr {
         match self {
-            Workspaces::Icons => OsStr::new("enso-studio-icons"),
-            Workspaces::Content => OsStr::new("enso-studio-content"),
+            Workspaces::Icons => OsStr::new("enso-icons"),
+            Workspaces::Content => OsStr::new("enso-content"),
             Workspaces::Enso => OsStr::new("enso"),
         }
     }
