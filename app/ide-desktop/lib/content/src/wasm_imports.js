@@ -2,6 +2,6 @@
 
 import * as wasmRustGlue from 'wasm_rust_glue'
 
-// Eslint is not set up to check CommonJS.
+// Eslint is not (and should not be) set up to check CommonJS.
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 exports.init = wasmRustGlue.default

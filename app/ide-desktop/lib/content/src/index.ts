@@ -2,8 +2,9 @@
  * the user with a visual representation of this process (welcome screen). It also implements a view
  * allowing to choose a debug rendering test from. */
 
-import * as contentConfig from 'enso-content-config'
 import * as semver from 'semver'
+
+import * as contentConfig from 'enso-content-config'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }

@@ -17,8 +17,9 @@ import yargs from 'yargs'
 
 import * as paths from './paths.js'
 import * as shared from './shared.js'
-import BUILD_INFO from '../../build.json' assert { type: 'json' }
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
+
+import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
 /** The parts of the electron-builder configuration that we want to keep configurable.
  *

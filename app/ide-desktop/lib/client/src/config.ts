@@ -1,12 +1,12 @@
 /** @file Configuration of the application. It extends the web application configuration with
  * Electron-specific options. */
 
+import chalk from 'chalk'
+
 import * as contentConfig from 'enso-content-config'
+
 import * as naming from 'naming'
 import * as paths from 'paths'
-// The import we want is the default imort.
-// eslint-disable-next-line no-restricted-syntax
-import chalk from 'chalk'
 
 // =================
 // === Constants ===

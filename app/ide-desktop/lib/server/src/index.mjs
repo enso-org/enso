@@ -3,11 +3,11 @@
 import * as path from 'node:path'
 import * as url from 'node:url'
 
+import * as portfinder from 'portfinder'
+import * as ws from 'ws'
 import connect from 'connect'
 import logger from 'morgan'
-import portfinder from 'portfinder'
 import serveStatic from 'serve-static'
-import ws from 'ws'
 
 // =================
 // === Constants ===

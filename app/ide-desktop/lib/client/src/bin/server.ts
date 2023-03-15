@@ -4,10 +4,11 @@ import * as fs from 'node:fs'
 import * as http from 'node:http'
 import * as path from 'node:path'
 
-import * as contentConfig from 'enso-content-config'
 import * as mime from 'mime-types'
+import * as portfinder from 'portfinder'
 import createServer from 'create-servers'
-import portfinder from 'portfinder'
+
+import * as contentConfig from 'enso-content-config'
 
 // =================
 // === Constants ===

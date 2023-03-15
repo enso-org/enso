@@ -4,8 +4,9 @@ import * as childProcess from 'node:child_process'
 import * as fsSync from 'node:fs'
 import * as util from 'node:util'
 
-import * as config from 'config'
 import * as contentConfig from 'enso-content-config'
+
+import * as config from 'config'
 
 // This is a wrapped function, so it should be `camelCase`.
 // eslint-disable-next-line no-restricted-syntax

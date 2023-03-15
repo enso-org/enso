@@ -1,13 +1,16 @@
 /** @file Command line options parser. */
 
-import * as config from 'config'
-import * as contentConfig from 'enso-content-config'
-import * as helpers from 'yargs/helpers'
-import * as naming from 'naming'
 import chalk from 'chalk'
 import stringLength from 'string-length'
+
+import * as yargsHelpers from 'yargs/helpers'
+import * as yargsModule from 'yargs'
 import yargs from 'yargs/yargs'
-import yargsModule from 'yargs'
+
+import * as contentConfig from 'enso-content-config'
+
+import * as config from 'config'
+import * as naming from 'naming'
 
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
@@ -266,7 +269,7 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 export function parseArgs() {
     const args = config.CONFIG
     const { argv, chromeOptions } = argvAndChromeOptions(
-        fixArgvNoPrefix(helpers.hideBin(process.argv))
+        fixArgvNoPrefix(yargsHelpers.hideBin(process.argv))
     )
     const yargsOptions = args
         .optionsRecursive()

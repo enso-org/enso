@@ -10,12 +10,14 @@ import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 import * as process from 'node:process'
 
+import * as electron from 'electron'
+
+import * as content from 'enso-content-config'
+
 import * as authentication from 'authentication'
 import * as config from 'config'
 import * as configParser from 'config/parser'
-import * as content from 'enso-content-config'
 import * as debug from 'debug'
-import * as electron from 'electron'
 import * as ipc from 'ipc'
 import * as naming from 'naming'
 import * as paths from 'paths'

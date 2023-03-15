@@ -15,6 +15,17 @@ import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
 /* eslint-enable no-restricted-syntax */
 
+const NAME = 'enso'
+/** An explicit whitelist of CommonJS modules, which do not support namespace imports.
+ * Many of these have incorrect types, so no type error may not mean they support ESM,
+ * and conversely type errors may not mean they don't support ESM -
+ * but we add those to the whitelist anyway otherwise we get type errors.
+ * In particular, `yargs` and `string-length` support ESM but their type definitions don't. */
+const COMMONJS_MODULES =
+    'chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-alias|esbuild-plugin-time|esbuild-plugin-yaml'
+const OUR_MODULES = 'enso-content-config'
+const RELATIVE_MODULES =
+    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|index|ipc|naming|paths|preload|security'
 const STRING_LITERAL = 'Literal[raw=/^["\']/]'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
@@ -29,10 +40,12 @@ const RESTRICTED_SYNTAXES = [
         message: 'No {} imports and exports',
     },
     {
-        // Here we maintain an explicit whitelist of modules that do not support namespace exports.
-        selector:
-            'ImportDeclaration[source.value=/^(?!(chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|portfinder|ws|create-servers|electron-is-dev|fast-glob|esbuild-plugin-alias|esbuild-plugin-time|esbuild-plugin-yaml)$)[^.]/] > ImportDefaultSpecifier',
+        selector: `ImportDeclaration[source.value=/^(?!(${COMMONJS_MODULES})$)[^.]/] > ImportDefaultSpecifier`,
         message: 'No default imports from modules',
+    },
+    {
+        selector: `ImportDeclaration[source.value=/^(?:${COMMONJS_MODULES})$/] > ImportNamespaceSpecifier`,
+        message: 'No namespace imports from CommonJS modules',
     },
     {
         selector: `ImportDeclaration[source.value=/\\.(?:json|yaml|yml)$/] > ImportDefaultSpecifier[local.name=${NOT_CONSTANT_CASE}]`,
@@ -53,6 +66,10 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: `ImportNamespaceSpecifier > Identifier[name=${NOT_CAMEL_CASE}]`,
         message: 'Use `camelCase` for imports',
+    },
+    {
+        selector: `:matches(ImportDefaultSpecifier[local.name=/^${NAME}/i], ImportNamespaceSpecifier > Identifier[name=/^${NAME}/i])`,
+        message: `Don't prefix modules with \`${NAME}\``,
     },
     {
         selector: 'ExportAllDeclaration',
@@ -125,12 +142,24 @@ const RESTRICTED_SYNTAXES = [
         selector:
             'ImportDeclaration[source.value=/^(?!node:)/] ~ ImportDeclaration[source.value=/^node:/]',
         message:
-            'Import node modules before npm modules and relative imports, separated by a blank line',
+            'Import node modules before npm modules, our modules, and relative imports, separated by a blank line',
     },
     {
-        selector:
-            'ImportDeclaration[source.value=/^\\./] ~ ImportDeclaration[source.value=/^[^.]/]',
-        message: 'Import npm modules before relative imports, separated by a blank line',
+        selector: `ImportDeclaration[source.value=/^(?:${OUR_MODULES}|${RELATIVE_MODULES})$/] ~ ImportDeclaration[source.value=/^(?!(|${OUR_MODULES}|${RELATIVE_MODULES})$|\\.)/]`,
+        message:
+            'Import npm modules before our modules and relative imports, separated by a blank line',
+    },
+    {
+        selector: `ImportDeclaration[source.value=/^(?:${RELATIVE_MODULES})$/] ~ ImportDeclaration[source.value=/^(?:${OUR_MODULES})$/]`,
+        message: 'Import our modules before relative imports, separated by a blank line',
+    },
+    {
+        selector: `ImportDeclaration[source.value=/^\\./] ~ ImportDeclaration[source.value=/^[^.]/]`,
+        message: 'Import relative imports last',
+    },
+    {
+        selector: `ImportDeclaration[source.value=/^\\..+\\.(?:json|yml|yaml)$/] ~ ImportDeclaration[source.value=/^\\..+\\.(?!json|yml|yaml)[^.]+$/]`,
+        message: 'Import data files after other relative imports',
     },
     {
         selector:

@@ -78,10 +78,11 @@
 import * as childProcess from 'node:child_process'
 import * as os from 'node:os'
 
-import * as content from 'enso-content-config'
 import * as electron from 'electron'
-import * as ipc from 'ipc'
 
+import * as content from 'enso-content-config'
+
+import * as ipc from 'ipc'
 import * as shared from '../shared'
 
 // =================

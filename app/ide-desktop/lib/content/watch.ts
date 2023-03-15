@@ -1,5 +1,6 @@
 /** @file File watch and compile service. */
 import * as esbuild from 'esbuild'
+
 import * as guiServer from 'enso-gui-server'
 
 import bundler from './esbuild-config.js'
