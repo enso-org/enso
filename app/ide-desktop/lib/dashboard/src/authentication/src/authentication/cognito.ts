@@ -60,20 +60,21 @@ interface AmplifyError extends Error {
 }
 
 /** Hints to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
-const isAmplifyError = (error: unknown): error is AmplifyError => {
+function isAmplifyError(error: unknown): error is AmplifyError {
     if (error && typeof error === 'object') {
-        return 'code' in error && 'message' in error && 'name' in error
+        return 'code' in error && 'message' in error && 'name' in error;
     }
-    return false
+    return false;
 }
 
 /** Converts the `unknown` error into an {@link AmplifyError} and returns it, or re-throws it if
- * conversion is not possible. */
-const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
+ * conversion is not possible.
+ * @throws If the error is not an amplify error. */
+function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
     if (isAmplifyError(error)) {
-        return error
+        return error;
     } else {
-        throw error
+        throw error;
     }
 }
 
@@ -89,7 +90,7 @@ const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
  * they return. The caller can then handle them via pattern matching on the {@link results.Result}
  * type. */
 export class Cognito {
-    constructor(private platform: platformModule.Platform, amplifyConfig: config.AmplifyConfig) {
+    constructor(private readonly platform: platformModule.Platform, amplifyConfig: config.AmplifyConfig) {
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
          * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
          * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
@@ -110,14 +111,18 @@ export class Cognito {
     /** Sign up with with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
-    signUp = (username: string, password: string) => signUp(username, password, this.platform)
+    signUp(username: string, password: string) {
+        return signUp(username, password, this.platform)
+    }
     /** Sends the email address verification code.
      *
      * The user will receive a link in their email. The user must click the link to go to the email
      * verification page. The email verification page will parse the verification code from the URL.
      * If the verification code matches, the email address is marked as verified. Once the email
      * address is verified, the user can sign in. */
-    confirmSignUp = confirmSignUp
+    confirmSignUp(email: string, code: string) {
+        return confirmSignUp(email, code)
+    } 
 }
 
 // ===================
@@ -167,11 +172,11 @@ const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
 
 type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['kind']
 
-const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind => {
+function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
     if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
-        return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind
+        return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind;
     } else {
-        throw error
+        throw error;
     }
 }
 
@@ -179,40 +184,38 @@ const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind =>
 // === SignUp ===
 // ==============
 
-const signUp = (username: string, password: string, platform: platformModule.Platform) =>
-    results.Result.wrapAsync(() => {
-        const params = intoSignUpParams(username, password, platform)
-        return amplify.Auth.signUp(params)
+function signUp(username: string, password: string, platform: platformModule.Platform) {
+    return results.Result.wrapAsync(async () => {
+        const params = intoSignUpParams(username, password, platform);
+        await amplify.Auth.signUp(params);
     })
-        /** The contents of a successful response are not relevant, so we discard them. */
-        .then(result =>
-            result
-                .mapErr(intoAmplifyErrorOrThrow)
-                .mapErr(intoSignUpErrorOrThrow)
-                .map(() => null)
-        )
+        .then(result => result
+            .mapErr(intoAmplifyErrorOrThrow)
+            .mapErr(intoSignUpErrorOrThrow)
+        );
+}
 
-const intoSignUpParams = (
-    username: string,
+function intoSignUpParams(username: string,
     password: string,
-    platform: platformModule.Platform
-): amplify.SignUpParams => ({
-    username,
-    password,
-    attributes: {
-        email: username,
-        /** Add a custom attribute indicating whether the user is signing up from the desktop. This
-         * is used to determine the schema used in the callback links sent in the verification
-         * emails. For example, `http://` for the Cloud, and `enso://` for the desktop.
-         *
-         * # Naming Convention
-         *
-         * It is necessary to disable the naming convention rule here, because the key is expected
-         * to appear exactly as-is in Cognito, so we must match it. */
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        'custom:fromDesktop': platform === platformModule.Platform.desktop ? 'true' : 'false',
-    },
-})
+    platform: platformModule.Platform): amplify.SignUpParams {
+    return ({
+        username,
+        password,
+        attributes: {
+            email: username,
+            /** Add a custom attribute indicating whether the user is signing up from the desktop. This
+             * is used to determine the schema used in the callback links sent in the verification
+             * emails. For example, `http://` for the Cloud, and `enso://` for the desktop.
+             *
+             * # Naming Convention
+             *
+             * It is necessary to disable the naming convention rule here, because the key is expected
+             * to appear exactly as-is in Cognito, so we must match it. */
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'custom:fromDesktop': platform === platformModule.Platform.desktop ? 'true' : 'false',
+        },
+    });
+}
 
 const SIGN_UP_USERNAME_EXISTS_ERROR = {
     internalCode: 'UsernameExistsException',
@@ -225,40 +228,39 @@ const SIGN_UP_INVALID_PARAMETER_ERROR = {
 } as const
 
 type SignUpErrorKind =
-    | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
     | (typeof SIGN_UP_INVALID_PARAMETER_ERROR)['kind']
+    | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
 
 export interface SignUpError {
     kind: SignUpErrorKind
     message: string
 }
 
-const intoSignUpErrorOrThrow = (error: AmplifyError): SignUpError => {
+function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
     if (error.code === SIGN_UP_USERNAME_EXISTS_ERROR.internalCode) {
         return {
             kind: SIGN_UP_USERNAME_EXISTS_ERROR.kind,
             message: error.message,
-        }
+        };
     } else if (error.code === SIGN_UP_INVALID_PARAMETER_ERROR.internalCode) {
         return {
             kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
             message: error.message,
-        }
+        };
     }
 
-    throw error
+    throw error;
 }
 
 // =====================
 // === ConfirmSignUp ===
 // =====================
 
-const confirmSignUp = async (email: string, code: string) =>
-    results.Result.wrapAsync(() => amplify.Auth.confirmSignUp(email, code))
-        /** The contents of a successful response are not relevant, so we discard them. */
-        .then(result => result.map(() => null))
+async function confirmSignUp(email: string, code: string) {
+    return results.Result.wrapAsync(async () => { await amplify.Auth.confirmSignUp(email, code); })
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
+        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow));
+}
 
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
     internalCode: 'NotAuthorizedException',
@@ -273,7 +275,7 @@ export interface ConfirmSignUpError {
     message: string
 }
 
-const intoConfirmSignUpErrorOrThrow = (error: AmplifyError): ConfirmSignUpError => {
+function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError {
     if (error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode) {
         if (error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage) {
             return {
@@ -282,9 +284,9 @@ const intoConfirmSignUpErrorOrThrow = (error: AmplifyError): ConfirmSignUpError 
                  * ambiguity. */
                 kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
                 message: error.message,
-            }
+            };
         }
     }
 
-    throw error
+    throw error;
 }

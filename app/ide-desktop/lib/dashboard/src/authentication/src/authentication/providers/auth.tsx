@@ -7,12 +7,12 @@ import * as react from "react";
 import * as router from "react-router-dom";
 import toast from "react-hot-toast";
 
-import * as authService from "../service";
 import * as app from "../../components/app";
+import * as authServiceModule from "../service";
 import * as backendService from "../../dashboard/service";
+import * as errorModule from "../../error";
 import * as loggerProvider from "../../providers/logger";
 import * as sessionProvider from "./session";
-import * as error from "../../error";
 
 // =================
 // === Constants ===
@@ -22,7 +22,7 @@ const MESSAGES = {
   signUpSuccess: "We have sent you an email with further instructions!",
   confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
   pleaseWait: "Please wait...",
-};
+} as const;
 
 // =============
 // === Types ===
@@ -82,7 +82,6 @@ interface AuthContextType {
 }
 
 // Eslint doesn't like headings.
-/* eslint-disable jsdoc/require-description-complete-sentence */
 /** Create a global instance of the `AuthContextType`, that will be re-used between all React
  * components that use the `useAuth` hook.
  *
@@ -106,7 +105,6 @@ interface AuthContextType {
  *
  * So changing the cast would provide no safety guarantees, and would require us to introduce null
  * checks everywhere we use the context. */
-/* eslint-enable jsdoc/require-description-complete-sentence */
 const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 
 // ====================
@@ -114,7 +112,7 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 // ====================
 
 export interface AuthProviderProps {
-  authService: authService.AuthService;
+  authService: authServiceModule.AuthService;
   /** Callback to execute once the user has authenticated successfully. */
   onAuthenticated: () => void;
   children: react.ReactNode;
@@ -132,13 +130,11 @@ export function AuthProvider(props: AuthProviderProps) {
     undefined
   );
 
-  /* eslint-disable jsdoc/require-description-complete-sentence */
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
    * When invoked, retrieves the access token (if available) from the storage method chosen when
    * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
    * If the token has expired, automatically refreshes the token and returns the new token. */
-  /* eslint-enable jsdoc/require-description-complete-sentence */
   react.useEffect(() => {
     const fetchSession = async () => {
       if (session.none) {
@@ -184,7 +180,7 @@ export function AuthProvider(props: AuthProviderProps) {
   }, [session]);
 
   const withLoadingToast =
-    <T extends any[]>(action: (...args: T) => Promise<void>) =>
+    <T extends unknown[]>(action: (...args: T) => Promise<void>) =>
     async (...args: T) => {
       const loadingToast = toast.loading(MESSAGES.pleaseWait);
       try {
@@ -210,7 +206,7 @@ export function AuthProvider(props: AuthProviderProps) {
           case "UserAlreadyConfirmed":
             break;
           default:
-            throw new error.UnreachableCaseError(result.val.kind);
+            throw new errorModule.UnreachableCaseError(result.val.kind);
         }
       }
 

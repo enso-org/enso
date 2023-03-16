@@ -45,24 +45,28 @@ export class Backend {
   }
 
   /** Returns a {@link RequestBuilder} for an HTTP GET request to the given path. */
-  get = (path: string) =>
-    this.client.get(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+  get(path: string) {
+    return this.client.get(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+  }
 
   /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
-  post = (path: string, payload: object) =>
-    this.client.post(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload);
+  post(path: string, payload: object) {
+    return this.client.post(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload);
+  }
 
   /** Logs the error that occurred and throws a new one with a more user-friendly message. */
-  errorHandler = (message: string) => (error: Error) => {
-    this.logger.error(error.message);
-    throw new Error(message);
-  };
+  errorHandler(message: string) {
+    return (error: Error) => {
+      this.logger.error(error.message);
+      throw new Error(message);
+    };
+  }
 
   /** Returns organization info for the current user, from the Cloud backend API.
    *
    * @returns `null` if status code 401 or 404 was received. */
-  getUser = (): Promise<Organization | null> =>
-    this.get(GET_USER_PATH).then((response) => {
+  getUser(): Promise<Organization | null> {
+    return this.get(GET_USER_PATH).then((response) => {
       if (
         response.status === http.HttpStatus.unauthorized ||
         response.status === http.HttpStatus.notFound
@@ -71,6 +75,7 @@ export class Backend {
       }
       return response.json() as Promise<Organization>;
     });
+  }
 }
 
 // =====================

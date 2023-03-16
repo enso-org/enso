@@ -107,10 +107,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches functions and arrow functions, but not methods.
-        selector: `:matches(
-            FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}),
-            VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression ${JSX}, ${WITH_ROUTER}))
-        )`,
+        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression ${JSX}, ${WITH_ROUTER})))`,
         message: 'Use `PascalCase` for React components',
     },
     {
@@ -126,6 +123,10 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration > VariableDeclarator > ArrowFunctionExpression`,
         message: 'Use `function foo() {}` instead of `const foo = () => {}`',
+    },
+    {
+        selector: `ClassBody > PropertyDefinition > ArrowFunctionExpression`,
+        message: 'Use `foo() {}` instead of `foo = () => {}`',
     },
     {
         selector: `:matches(Program, ExportNamedDeclaration) > VariableDeclaration[kind=const] > * > ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))`,
@@ -212,6 +213,7 @@ export default [
             eqeqeq: 'error',
             'sort-imports': ['error', { allowSeparatedGroups: true }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
+            'prefer-arrow-callback': 'error',
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
             '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
@@ -317,7 +319,8 @@ export default [
             'jsdoc/no-undefined-types': 'warn',
             'jsdoc/require-asterisk-prefix': 'warn',
             'jsdoc/require-description': 'warn',
-            'jsdoc/require-description-complete-sentence': 'warn',
+            // This rule does not handle `# Heading`s and "etc.", "e.g.", "vs." etc.
+            // 'jsdoc/require-description-complete-sentence': 'warn',
             'jsdoc/require-file-overview': 'warn',
             'jsdoc/require-hyphen-before-param-description': 'warn',
             'jsdoc/require-param-description': 'warn',
@@ -361,6 +364,8 @@ export default [
     },
     {
         files: ['**/*.d.ts'],
-        'no-undef': 'off',
+        rules: {
+            'no-undef': 'off',
+        },
     },
 ]

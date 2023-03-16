@@ -7,7 +7,6 @@ import * as loggerProvider from "./providers/logger";
 // === useInput ===
 // ================
 
-type Dispatch<A> = (value: A) => void;
 /** Type of the second parameter returned by the {@link useInput} hook.
  *
  * # Example
@@ -21,10 +20,10 @@ type Dispatch<A> = (value: A) => void;
  *
  * <input {...bind} />
  * ``` */
-type Bind = {
+interface Bind {
   value: string;
-  onChange: Dispatch<react.ChangeEvent<HTMLInputElement>>;
-};
+  onChange: (value: react.ChangeEvent<HTMLInputElement>) => void;
+}
 
 /** A custom hook to handle input fields.
  *
@@ -33,13 +32,12 @@ type Bind = {
  * `setValue`) to update the state. Because of this, to bind a `value` to an input field, we must
  * use the `value` prop and the `onChange` event handler. However, this can be tedious to do for
  * every input field, so we can use a custom hook to handle this for us. */
-export const useInput = (initialValue: string): [string, Bind] => {
+export function useInput(initialValue: string): [string, Bind] {
   const [value, setValue] = react.useState(initialValue);
-  const onChange = (event: react.ChangeEvent<HTMLInputElement>) =>
-    setValue(event.target.value);
+  const onChange = (event: react.ChangeEvent<HTMLInputElement>) => { setValue(event.target.value); }
   const bind = { value, onChange };
   return [value, bind];
-};
+}
 
 // ======================
 // === useAsyncEffect ===

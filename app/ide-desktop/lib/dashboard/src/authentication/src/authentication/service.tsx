@@ -6,19 +6,10 @@ import * as common from "enso-common";
 
 import * as app from "../components/app";
 import * as authConfigModule from "./config";
-import * as loggerProvider from "../providers/logger";
 import * as cognito from "./cognito";
 import * as config from "../config";
+import * as loggerProvider from "../providers/logger";
 import * as platformModule from "../platform";
-
-/** Augment the built-in window object with the `authenticationApi` context bridge. This makes it so
- * that accessing authentication-related functionality from the renderer process is as simple as
- * calling `window.authenticationApi`. */
-declare global {
-  interface Window {
-    authenticationApi: AuthenticationApi;
-  }
-}
 
 // =================
 // === Constants ===
@@ -55,40 +46,19 @@ const BASE_AMPLIFY_CONFIG = {
 const AMPLIFY_CONFIGS = {
   /** Configuration for @pbuchu's Cognito user pool. */
   pbuchu: {
-    userPoolId: "eu-west-1_jSF1RbgPK",
-    userPoolWebClientId: "1bnib0jfon3aqc5g3lkia2infr",
-    domain: "pb-enso-domain.auth.eu-west-1.amazoncognito.com",
+    userPoolId: "eu-west-1_jSF1RbgPK" as authConfigModule.UserPoolId,
+    userPoolWebClientId: "1bnib0jfon3aqc5g3lkia2infr" as authConfigModule.UserPoolWebClientId,
+    domain: "pb-enso-domain.auth.eu-west-1.amazoncognito.com" as authConfigModule.OAuthDomain,
     ...BASE_AMPLIFY_CONFIG,
   },
   /** Configuration for the production Cognito user pool. */
   production: {
-    userPoolId: "eu-west-1_9Kycu2SbD",
-    userPoolWebClientId: "4j9bfs8e7415erf82l129v0qhe",
-    domain: "production-enso-domain.auth.eu-west-1.amazoncognito.com",
+    userPoolId: "eu-west-1_9Kycu2SbD" as authConfigModule.UserPoolId,
+    userPoolWebClientId: "4j9bfs8e7415erf82l129v0qhe" as authConfigModule.UserPoolWebClientId,
+    domain: "production-enso-domain.auth.eu-west-1.amazoncognito.com" as authConfigModule.OAuthDomain,
     ...BASE_AMPLIFY_CONFIG,
   },
 };
-
-// ==========================
-// === Authentication API ===
-// ==========================
-
-/** `window.authenticationApi` is a context bridge to the main process, when we're running in an
- * Electron context.
- *
- * # Safety
- *
- * We're assuming that the main process has exposed the `authenticationApi` context bridge (see
- * `lib/client/src/preload.ts` for details), and that it contains the functions defined in this
- * interface. Our app can't function if these assumptions are not met, so we're disabling the
- * TypeScript checks for this interface when we use it. */
-interface AuthenticationApi {
-  /** Open a URL in the system browser. */
-  openUrlInSystemBrowser: (url: string) => void;
-  /** Set the callback to be called when the system browser redirects back to a URL in the app,
-   * via a deep link. See {@link setDeepLinkHandler} for details. */
-  setDeepLinkHandler: (callback: (url: string) => void) => void;
-}
 
 // ==================
 // === AuthConfig ===
@@ -113,18 +83,16 @@ export interface AuthConfig {
 
 /** API for the authentication service. */
 export interface AuthService {
-  /** @see {@link cognito.Cognito} */
+  /** @see {@link cognito.Cognito}. */
   cognito: cognito.Cognito;
 }
 
-/* eslint-disable jsdoc/require-description-complete-sentence */
 /** Creates an instance of the authentication service.
  *
  * # Warning
  *
  * This function should only be called once, and the returned service should be used throughout the
  * application. This is because it performs global configuration of the Amplify library. */
-/* eslint-enable jsdoc/require-description-complete-sentence */
 export function initAuthService(authConfig: AuthConfig): AuthService {
   const { logger, platform, navigate } = authConfig;
   const amplifyConfig = loadAmplifyConfig(logger, platform, navigate);
@@ -148,7 +116,7 @@ function loadAmplifyConfig(
      *
      * - users trust their system browser with their credentials more than they trust our app;
      * - our app can keep itself on the relevant page until the user is sent back to it (i.e.,
-     *   we avoid unnecessary reloads/refreshes caused by redirects. */
+     * we avoid unnecessary reloads/refreshes caused by redirects. */
     urlOpener = openUrlWithExternalBrowser;
 
     /** To handle redirects back to the application from the system browser, we also need to
@@ -164,16 +132,16 @@ function loadAmplifyConfig(
   };
 }
 
-const openUrlWithExternalBrowser = (url: string) => {
+function openUrlWithExternalBrowser(url: string) {
   window.authenticationApi.openUrlInSystemBrowser(url);
-};
+}
 
 /** Set the callback that will be invoked when a deep link to the application is opened.
  *
  * Typically this callback is invoked when the user is redirected back to the app after:
  *
- * 1. authenticating with a federated identity provider; or
- * 2. clicking a "reset password" link in a password reset email.
+ * 1. Authenticating with a federated identity provider; or
+ * 2. Clicking a "reset password" link in a password reset email.
  *
  * For example, when the user completes an OAuth sign in flow (e.g., through Google), they are
  * redirected to a URL like `enso://authentication/register?code=...`. This listener will intercept
@@ -185,10 +153,8 @@ const openUrlWithExternalBrowser = (url: string) => {
  *
  * All URLs that don't have a pathname that starts with {@link AUTHENTICATION_PATHNAME_BASE} will be
  * ignored by this handler. */
-const setDeepLinkHandler = (
-  logger: loggerProvider.Logger,
-  navigate: (url: string) => void
-) => {
+function setDeepLinkHandler(logger: loggerProvider.Logger,
+  navigate: (url: string) => void) {
   const onDeepLink = (url: string) => {
     const parsedUrl = new URL(url);
 
@@ -202,9 +168,10 @@ const setDeepLinkHandler = (
   };
 
   window.authenticationApi.setDeepLinkHandler(onDeepLink);
-};
+}
 
 /** If the user is being redirected after clicking the registration confirmation link in their
  * email, then the URL will be for the confirmation page path. */
-const isConfirmRegistrationRedirect = (url: URL) =>
-  url.pathname === CONFIRM_REGISTRATION_PATHNAME;
+function isConfirmRegistrationRedirect(url: URL) {
+  return url.pathname === CONFIRM_REGISTRATION_PATHNAME;
+}

@@ -57,45 +57,50 @@ export class Client {
   ) {}
 
   /** Sends an HTTP GET request to the specified URL. */
-  get = (url: string) => this.request(HttpMethod.get, url);
+  get(url: string) { return this.request(HttpMethod.get, url); }
 
   /** Sends a JSON HTTP POST request to the specified URL. */
-  post = (url: string, payload: object) =>
-    this.request(
+  post(url: string, payload: object) {
+    return this.request(
       HttpMethod.post,
       url,
       JSON.stringify(payload),
       "application/json"
     );
+  }
 
   /** Sends a base64-encoded binary HTTP POST request to the specified URL. */
-  postBase64 = async (url: string, payload: Blob) =>
-    await this.request(
+  async postBase64(url: string, payload: Blob) {
+    return await this.request(
       HttpMethod.post,
       url,
       await blobToBase64(payload),
       "application/octet-stream"
     );
+  }
 
   /** Sends a JSON HTTP PUT request to the specified URL. */
-  put = (url: string, payload: object) =>
-    this.request(
+  put(url: string, payload: object) {
+    return this.request(
       HttpMethod.put,
       url,
       JSON.stringify(payload),
       "application/json"
     );
+  }
 
   /** Sends an HTTP DELETE request to the specified URL. */
-  delete = (url: string) => this.request(HttpMethod.delete, url);
+  delete(url: string) {
+    return this.request(HttpMethod.delete, url);
+  }
 
   /** Executes an HTTP request to the specified URL, with the given HTTP method. */
-  private readonly request = (
+  private request(
     method: HttpMethod,
     url: string,
     payload?: string,
     mimetype?: string
-  ) => {
+  ) {
     const defaultHeaders = this.defaultHeaders ?? [];
     const headers = new Headers(defaultHeaders);
     if (payload) {
@@ -107,5 +112,5 @@ export class Client {
       headers,
       ...(payload ? { body: payload } : {}),
     });
-  };
+  }
 }
