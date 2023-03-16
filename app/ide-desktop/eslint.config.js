@@ -101,7 +101,8 @@ const RESTRICTED_SYNTAXES = [
         message: 'No aliases to literal types',
     },
     {
-        selector: ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)))) > * > ReturnStatement',
+        selector:
+            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)))) > * > ReturnStatement',
         message: 'No early returns',
     },
     {

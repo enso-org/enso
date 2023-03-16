@@ -24,7 +24,8 @@ function SetUsername() {
         </div>
         <div className="mt-10">
           <form
-            onSubmit={utils.handleEvent(() => setUsername(accessToken, username, email)
+            onSubmit={utils.handleEvent(() =>
+              setUsername(accessToken, username, email)
             )}
           >
             <div className="flex flex-col mb-6">
@@ -39,7 +40,8 @@ function SetUsername() {
                   type="text"
                   name="username"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="Username" />
+                  placeholder="Username"
+                />
               </div>
             </div>
             <div className="flex w-full">

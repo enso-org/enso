@@ -18,8 +18,12 @@ interface SvgIconProps {
 
 export function SvgIcon(props: SvgIconProps) {
   return (
-    <div className={"inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 " +
-      "text-gray-400"}>
+    <div
+      className={
+        "inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 " +
+        "text-gray-400"
+      }
+    >
       <span>
         <icons.Svg {...props} />
       </span>
@@ -37,8 +41,12 @@ interface FontAwesomeIconProps {
 
 export function FontAwesomeIcon(props: FontAwesomeIconProps) {
   return (
-    <span className={"absolute left-0 top-0 flex items-center justify-center h-full w-10 " +
-      "text-blue-500"}>
+    <span
+      className={
+        "absolute left-0 top-0 flex items-center justify-center h-full w-10 " +
+        "text-blue-500"
+      }
+    >
       <fontawesome.FontAwesomeIcon icon={props.icon} />
     </span>
   );
