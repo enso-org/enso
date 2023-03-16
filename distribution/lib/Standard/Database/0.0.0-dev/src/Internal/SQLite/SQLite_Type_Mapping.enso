@@ -34,10 +34,9 @@ type SQLite_Type_Mapping
         Value_Type.Decimal precision scale -> numeric precision scale
         Value_Type.Char size variable ->
             if variable then varchar size else char size
-        Value_Type.Time ->
-        Value_Type.Date ->
-        Value_Type.Date_Time with_timezone ->
-            ???
+        Value_Type.Time -> blob
+        Value_Type.Date -> SQL_Type.Value Types.DATE "DATE"
+        Value_Type.Date_Time with_timezone -> SQL_Type.Value Types.TIMESTAMP "TIMESTAMP"
         Value_Type.Binary size variable -> binary variable size
         Value_Type.Mixed -> binary variable=True size=Nothing
         Value_Type.Unsupported_Data_Type type_name underlying_type ->
@@ -110,3 +109,4 @@ char size = SQL_Type.Value Types.CHAR "CHAR" precision=size
 binary variable size =
     if variable then SQL_Type.Value Types.BLOB "BLOB" precision=size else
         SQL_Type.Value Types.BINARY "BINARY" precision=size
+blob = binary variable=True size=Nothing
