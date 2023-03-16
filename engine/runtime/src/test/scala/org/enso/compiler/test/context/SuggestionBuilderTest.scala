@@ -615,8 +615,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   Some(
                     Seq(
                       "Number",
-                      "Unnamed.Test.Variant_1",
-                      "Unnamed.Test.Variant_2"
+                      "Unnamed.Test.My_Atom.Variant_1",
+                      "Unnamed.Test.My_Atom.Variant_2"
                     )
                   )
                 )
@@ -2185,8 +2185,6 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               ),
               "Unnamed.Test.A",
               None,
-              None,
-              None,
               None
             ),
             Vector()
@@ -2203,8 +2201,6 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               "Unnamed.Test.A",
               "Standard.Base.Any.Any",
               false,
-              None,
-              None,
               None,
               None
             ),
@@ -2224,7 +2220,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(List("Unnamed.Test.Mk_A", "Unnamed.Test.Mk_A_Plus"))
+                  Some(List("Unnamed.Test.A.Mk_A", "Unnamed.Test.A.Mk_A_Plus"))
                 )
               ),
               selfType      = "Unnamed.Test.A",
@@ -2247,7 +2243,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(List("Unnamed.Test.Mk_A", "Unnamed.Test.Mk_A_Plus"))
+                  Some(List("Unnamed.Test.A.Mk_A", "Unnamed.Test.A.Mk_A_Plus"))
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -2569,7 +2565,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       val fooArg = fooSuggestion.get.arguments(1)
       fooArg.reprType shouldEqual "Unnamed.Test.My_Tp"
       fooArg.tagValues shouldEqual Some(
-        List("Unnamed.Test.Variant_A", "Unnamed.Test.Variant_B")
+        List("Unnamed.Test.My_Tp.Variant_A", "Unnamed.Test.My_Tp.Variant_B")
       )
     }
 
