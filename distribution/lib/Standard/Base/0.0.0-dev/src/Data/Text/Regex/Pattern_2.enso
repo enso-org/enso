@@ -98,6 +98,7 @@ type Pattern_2
        Arguments:
        - input: The text in which to perform the replacement(s).
        - replacement: The literal text with which to replace any matches.
+       - only_first: If True, only replace the first match.
 
        If this method performs no replacements it will return the `input` text
        unchanged.
