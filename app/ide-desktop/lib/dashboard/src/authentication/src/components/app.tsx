@@ -35,19 +35,20 @@
  * {@link authProvider.FullUserSession}). */
 
 import * as react from "react";
-import * as toast from "react-hot-toast";
 import * as router from "react-router-dom";
+import * as toast from "react-hot-toast";
 
 import * as authProvider from "../authentication/providers/auth";
-import DashboardContainer from "../dashboard/components/dashboard";
-import LoginContainer from "../authentication/components/login";
-import RegistrationContainer from "../authentication/components/registration";
-import ConfirmRegistrationContainer from "../authentication/components/confirmRegistration";
-import SetUsernameContainer from "../authentication/components/setUsername";
 import * as authService from "../authentication/service";
-import withRouter from "../navigation";
 import * as loggerProvider from "../providers/logger";
+import * as platformModule from "../platform";
 import * as session from "../authentication/providers/session";
+import ConfirmRegistration from "../authentication/components/confirmRegistration";
+import Dashboard from "../dashboard/components/dashboard";
+import Login from "../authentication/components/login";
+import Registration from "../authentication/components/registration";
+import SetUsername from "../authentication/components/setUsername";
+import withRouter from "../navigation";
 
 // =================
 // === Constants ===
@@ -64,18 +65,6 @@ export const CONFIRM_REGISTRATION_PATH = "/confirmation";
 /** Path to the set username page. */
 export const SET_USERNAME_PATH = "/set-username";
 
-// ================
-// === Platform ===
-// ================
-
-/** Defines the platform the application is running on. */
-export enum Platform {
-  /** Application is running on a desktop (i.e., in Electron). */
-  desktop = "desktop",
-  /** Application is running in the browser (i.e., in the cloud). */
-  cloud = "cloud",
-}
-
 // ===========
 // === App ===
 // ===========
@@ -84,21 +73,23 @@ export enum Platform {
 export interface AppProps {
   /** Logger to use for logging. */
   logger: loggerProvider.Logger;
-  platform: Platform;
+  platform: platformModule.Platform;
   onAuthenticated: () => void;
 }
 
-/** Functional component called by the parent module, returning the root React component for this
+/** Component called by the parent module, returning the root React component for this
  * package.
  *
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const App = (props: AppProps) => {
+function App(props: AppProps) {
   const { platform } = props;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  // This is a React component even though it does not contain JSX.
+  // eslint-disable-next-line no-restricted-syntax
   const Router =
-    platform === Platform.desktop ? router.MemoryRouter : router.BrowserRouter;
+    platform === platformModule.Platform.desktop
+      ? router.MemoryRouter
+      : router.BrowserRouter;
   /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
    * will redirect the user between the login/register pages and the dashboard. */
   return (
@@ -109,7 +100,7 @@ const App = (props: AppProps) => {
       </Router>
     </>
   );
-};
+}
 
 // =================
 // === AppRouter ===
@@ -120,15 +111,14 @@ const App = (props: AppProps) => {
  * The only reason the {@link AppRouter} component is separate from the {@link App} component is
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const AppRouter = (props: AppProps) => {
+function AppRouter(props: AppProps) {
   const { logger, onAuthenticated } = props;
   const navigate = router.useNavigate();
   const memoizedAuthService = react.useMemo(() => {
     const authConfig = { navigate, ...props };
     return authService.initAuthService(authConfig);
   }, [navigate, props]);
-  const userSession = memoizedAuthService.cognito.userSession;
+  const userSession = memoizedAuthService.cognito.userSession.bind(memoizedAuthService.cognito);
   const registerAuthEventListener =
     memoizedAuthService.registerAuthEventListener;
   return (
@@ -147,25 +137,25 @@ const AppRouter = (props: AppProps) => {
               <router.Route element={<authProvider.GuestLayout />}>
                 <router.Route
                   path={REGISTRATION_PATH}
-                  element={<RegistrationContainer />}
+                  element={<Registration />}
                 />
-                <router.Route path={LOGIN_PATH} element={<LoginContainer />} />
+                <router.Route path={LOGIN_PATH} element={<Login />} />
               </router.Route>
               {/* Protected pages are visible to authenticated users. */}
               <router.Route element={<authProvider.ProtectedLayout />}>
                 <router.Route
                   path={DASHBOARD_PATH}
-                  element={<DashboardContainer />}
+                  element={<Dashboard />}
                 />
                 <router.Route
                   path={SET_USERNAME_PATH}
-                  element={<SetUsernameContainer />}
+                  element={<SetUsername />}
                 />
               </router.Route>
               {/* Other pages are visible to unauthenticated and authenticated users. */}
               <router.Route
                 path={CONFIRM_REGISTRATION_PATH}
-                element={<ConfirmRegistrationContainer />}
+                element={<ConfirmRegistration />}
               />
             </react.Fragment>
           </router.Routes>
@@ -173,9 +163,8 @@ const AppRouter = (props: AppProps) => {
       </session.SessionProvider>
     </loggerProvider.LoggerProvider>
   );
-};
+}
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouterWithHistory = withRouter(AppRouter);
 
 export default App;

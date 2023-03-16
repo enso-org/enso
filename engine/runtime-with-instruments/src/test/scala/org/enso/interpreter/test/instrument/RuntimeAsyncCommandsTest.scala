@@ -135,8 +135,9 @@ class RuntimeAsyncCommandsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -216,7 +217,7 @@ class RuntimeAsyncCommandsTest
       Api.Request(requestId, Api.InterruptContextRequest(contextId))
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.InterruptContextResponse(contextId)),
       Api.Response(
@@ -226,6 +227,7 @@ class RuntimeAsyncCommandsTest
             .Failure("Execution of function main interrupted.", None)
         )
       ),
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       context.executionComplete(contextId)
     )
   }

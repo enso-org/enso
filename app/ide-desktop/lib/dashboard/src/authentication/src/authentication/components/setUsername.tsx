@@ -2,20 +2,20 @@
  * registration. */
 
 import * as auth from "../providers/auth";
-import withRouter from "../../navigation";
 import * as hooks from "../../hooks";
-import * as utils from "../../utils";
 import * as icons from "../../components/svg";
+import * as utils from "../../utils";
+import withRouter from "../../navigation";
 
-// ============================
-// === setUsernameContainer ===
-// ============================
+// ===================
+// === SetUsername ===
+// ===================
 
-const setUsernameContainer = () => {
+function SetUsername() {
   const { setUsername } = auth.useAuth();
   const { accessToken, email } = auth.usePartialUserSession();
 
-  const { value: username, bind: bindUsername } = hooks.useInput("");
+  const [username, bindUsername] = hooks.useInput("");
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -25,8 +25,7 @@ const setUsernameContainer = () => {
         </div>
         <div className="mt-10">
           <form
-            onSubmit={utils.handleEvent(() =>
-              setUsername(accessToken, username, email)
+            onSubmit={utils.handleEvent(() => setUsername(accessToken, username, email)
             )}
           >
             <div className="flex flex-col mb-6">
@@ -41,8 +40,7 @@ const setUsernameContainer = () => {
                   type="text"
                   name="username"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="Username"
-                />
+                  placeholder="Username" />
               </div>
             </div>
             <div className="flex w-full">
@@ -61,6 +59,6 @@ const setUsernameContainer = () => {
       </div>
     </div>
   );
-};
+}
 
-export default withRouter(setUsernameContainer);
+export default withRouter(SetUsername);

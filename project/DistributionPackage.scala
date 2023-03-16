@@ -203,6 +203,7 @@ object DistributionPackage {
           val command = Seq(
             Platform.executableFileName(ensoExecutable.toString),
             "--no-compile-dependencies",
+            "--no-global-cache",
             "--compile",
             path.toString
           )

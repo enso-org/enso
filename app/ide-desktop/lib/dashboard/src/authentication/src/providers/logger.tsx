@@ -12,21 +12,16 @@ import * as react from "react";
  * provided by the EnsoGL packager. */
 export interface Logger {
   /** Logs a message to the console. */
-  log: (message?: any, ...optionalParams: any[]) => void;
+  log: (message: unknown, ...optionalParams: unknown[]) => void;
   /** Logs an error message to the console. */
-  error: (message?: any, ...optionalParams: any[]) => void;
+  error: (message: unknown, ...optionalParams: unknown[]) => void;
 }
 
 // =====================
 // === LoggerContext ===
 // =====================
 
-type LoggerContextType = Logger;
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const LoggerContext = react.createContext<LoggerContextType>(
-  {} as LoggerContextType
-);
+const LoggerContext = react.createContext<Logger>({} as Logger);
 
 // ======================
 // === LoggerProvider ===
@@ -37,16 +32,17 @@ interface LoggerProviderProps {
   logger: Logger;
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const LoggerProvider = (props: LoggerProviderProps) => {
+export function LoggerProvider(props: LoggerProviderProps) {
   const { children, logger } = props;
   return (
     <LoggerContext.Provider value={logger}>{children}</LoggerContext.Provider>
   );
-};
+}
 
 // =================
 // === useLogger ===
 // =================
 
-export const useLogger = () => react.useContext(LoggerContext);
+export function useLogger() {
+  return react.useContext(LoggerContext);
+}

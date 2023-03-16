@@ -19,8 +19,10 @@ class DeserializeLibrarySuggestionsCmd(
   override def execute(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
-  ): Future[Unit] =
+  ): Future[Unit] = {
     ctx.jobProcessor.runBackground(
       new DeserializeLibrarySuggestionsJob(request.libraryName)
     )
+    Future.successful(())
+  }
 }

@@ -3,16 +3,16 @@
  * Provides an `AuthProvider` component that wraps the entire application, and a `useAuth` hook that
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc. */
-import react from "react";
+import * as react from "react";
 import * as router from "react-router-dom";
 import toast from "react-hot-toast";
 
-import * as backendService from "../../dashboard/service";
-import * as authService from "../service";
 import * as app from "../../components/app";
+import * as authServiceModule from "../service";
+import * as backendService from "../../dashboard/service";
+import * as errorModule from "../../error";
 import * as loggerProvider from "../../providers/logger";
 import * as sessionProvider from "./session";
-import * as error from "../../error";
 
 // =================
 // === Constants ===
@@ -24,7 +24,7 @@ const MESSAGES = {
   setUsernameSuccess: "Your username has been set!",
   signInWithPasswordSuccess: "Successfully logged in!",
   pleaseWait: "Please wait...",
-};
+} as const;
 
 // =============
 // === Types ===
@@ -36,9 +36,9 @@ export type UserSession = FullUserSession | PartialUserSession;
 
 /** Object containing the currently signed-in user's session data. */
 export interface FullUserSession {
-  /** A type-hint for TypeScript to be able to disambiguate between this interface and other
+  /** A discriminator for TypeScript to be able to disambiguate between this interface and other
    * `UserSession` variants. */
-  state: "full";
+  variant: "full";
   /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
   accessToken: string;
   /** User's email address. */
@@ -54,9 +54,9 @@ export interface FullUserSession {
  * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
  * used by the `SetUsername` component. */
 export interface PartialUserSession {
-  /** A type-hint for TypeScript to be able to disambiguate between this interface and other
+  /** A discriminator for TypeScript to be able to disambiguate between this interface and other
    * `UserSession` variants. */
-  state: "partial";
+  variant: "partial";
   /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
   accessToken: string;
   /** User's email address. */
@@ -77,13 +77,9 @@ export interface PartialUserSession {
 interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
-  setUsername: (
-    accessToken: string,
-    username: string,
-    email: string
-  ) => Promise<void>;
-  signInWithGoogle: () => Promise<null>;
-  signInWithGitHub: () => Promise<null>;
+  setUsername: (accessToken: string, username: string, email: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithGitHub: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   /** Session containing the currently authenticated user's authentication information.
    *
@@ -91,6 +87,7 @@ interface AuthContextType {
   session: UserSession | undefined;
 }
 
+// Eslint doesn't like headings.
 /** Create a global instance of the `AuthContextType`, that will be re-used between all React
  * components that use the `useAuth` hook.
  *
@@ -114,7 +111,7 @@ interface AuthContextType {
  *
  * So changing the cast would provide no safety guarantees, and would require us to introduce null
  * checks everywhere we use the context. */
-// eslint-disable-next-line @typescript-eslint/naming-convention
+// eslint-disable-next-line no-restricted-syntax
 const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 
 // ====================
@@ -122,20 +119,19 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 // ====================
 
 export interface AuthProviderProps {
-  authService: authService.AuthService;
+  authService: authServiceModule.AuthService;
   /** Callback to execute once the user has authenticated successfully. */
   onAuthenticated: () => void;
   children: react.ReactNode;
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const AuthProvider = (props: AuthProviderProps) => {
+export function AuthProvider(props: AuthProviderProps) {
   const { authService, children } = props;
   const { cognito } = authService;
   const { session } = sessionProvider.useSession();
   const logger = loggerProvider.useLogger();
-  const onAuthenticated = react.useCallback(props.onAuthenticated, []);
   const navigate = router.useNavigate();
+  const onAuthenticated = react.useCallback(props.onAuthenticated, []);
   const [initialized, setInitialized] = react.useState(false);
   const [userSession, setUserSession] = react.useState<UserSession | undefined>(
     undefined
@@ -144,42 +140,41 @@ export const AuthProvider = (props: AuthProviderProps) => {
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
    * When invoked, retrieves the access token (if available) from the storage method chosen when
-   * Amplify was configured (e.g. local storage). If the token is not available, returns
-   * `undefined`. If the token has expired, automatically refreshes the token and returns the new
-   * token. */
+   * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
+   * If the token has expired, automatically refreshes the token and returns the new token. */
   react.useEffect(() => {
     const fetchSession = async () => {
       if (session.none) {
         setInitialized(true);
         setUserSession(undefined);
-        return;
-      }
-      const { accessToken, email } = session.val;
-
-      const backend = backendService.createBackend(accessToken, logger);
-      const organization = await backend.getUser();
-      let userSession: UserSession;
-      if (!organization) {
-        userSession = {
-          state: "partial",
-          email,
-          accessToken,
-        };
       } else {
-        userSession = {
-          state: "full",
-          email,
-          accessToken,
-          organization,
-        };
+        const { accessToken, email } = session.val;
 
-        /** Execute the callback that should inform the Electron app that the user has
-         * logged in. This is done to transition the app from the authentication/dashboard
-         * view to the IDE. */
-        onAuthenticated();
+        const backend = backendService.createBackend(accessToken, logger);
+        const organization = await backend.getUser();
+        let newUserSession: UserSession;
+        if (!organization) {
+          newUserSession = {
+            variant: "partial",
+            email,
+            accessToken,
+          };
+        } else {
+          newUserSession = {
+            variant: "full",
+            email,
+            accessToken,
+            organization,
+          };
+
+          /** Execute the callback that should inform the Electron app that the user has logged in.
+           * This is done to transition the app from the authentication/dashboard view to the IDE. */
+          onAuthenticated();
+        }
+
+        setUserSession(newUserSession);
+        setInitialized(true);
       }
-      setUserSession(userSession);
-      setInitialized(true);
     };
 
     fetchSession().catch((error) => {
@@ -192,7 +187,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
   }, [session]);
 
   const withLoadingToast =
-    <T extends any[]>(action: (...args: T) => Promise<void>) =>
+    <T extends unknown[]>(action: (...args: T) => Promise<void>) =>
     async (...args: T) => {
       const loadingToast = toast.loading(MESSAGES.pleaseWait);
       try {
@@ -218,7 +213,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
           case "UserAlreadyConfirmed":
             break;
           default:
-            throw new error.UnreachableCaseError(result.val.kind);
+            throw new errorModule.UnreachableCaseError(result.val.kind);
         }
       }
 
@@ -230,14 +225,13 @@ export const AuthProvider = (props: AuthProviderProps) => {
     cognito.signInWithPassword(email, password).then((result) => {
       if (result.ok) {
         toast.success(MESSAGES.signInWithPasswordSuccess);
-        return;
-      }
+      } else {
+        if (result.val.kind === "UserNotFound") {
+          navigate(app.REGISTRATION_PATH);
+        }
 
-      if (result.val.kind === "UserNotFound") {
-        navigate(app.REGISTRATION_PATH);
+        toast.error(result.val.message);
       }
-
-      toast.error(result.val.message);
     });
 
   const setUsername = async (
@@ -263,20 +257,19 @@ export const AuthProvider = (props: AuthProviderProps) => {
     signUp: withLoadingToast(signUp),
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
-    signInWithGoogle: cognito.signInWithGoogle,
-    signInWithGitHub: cognito.signInWithGitHub,
+    signInWithGoogle: cognito.signInWithGoogle.bind(cognito),
+    signInWithGitHub: cognito.signInWithGitHub.bind(cognito),
     signInWithPassword: withLoadingToast(signInWithPassword),
     session: userSession,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {/** Only render the underlying app after we assert for the presence of a current
-       * user. */}
+      {/* Only render the underlying app after we assert for the presence of a current user. */}
       {initialized && children}
     </AuthContext.Provider>
   );
-};
+}
 
 /** Type of an error containing a `string`-typed `message` field.
  *
@@ -288,9 +281,9 @@ interface UserFacingError {
 }
 
 /** Returns `true` if the value is a {@link UserFacingError}. */
-const isUserFacingError = (value: unknown): value is UserFacingError => {
-  return typeof value === "object" && value !== null && "message" in value;
-};
+function isUserFacingError(value: unknown): value is UserFacingError {
+  return typeof value === "object" && value != null && "message" in value;
+}
 
 // ===============
 // === useAuth ===
@@ -300,54 +293,54 @@ const isUserFacingError = (value: unknown): value is UserFacingError => {
  *
  * Only the hook is exported, and not the context, because we only want to use the hook directly and
  * never the context component. */
-export const useAuth = () => react.useContext(AuthContext);
+export function useAuth() {
+  return react.useContext(AuthContext);
+}
 
 // =======================
 // === ProtectedLayout ===
 // =======================
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const ProtectedLayout = () => {
+export function ProtectedLayout() {
   const { session } = useAuth();
 
   if (!session) {
     return <router.Navigate to={app.LOGIN_PATH} />;
+  } else {
+    return <router.Outlet context={session} />;
   }
-
-  return <router.Outlet context={session} />;
-};
+}
 
 // ===================
 // === GuestLayout ===
 // ===================
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const GuestLayout = () => {
+export function GuestLayout() {
   const { session } = useAuth();
 
-  if (session?.state === "partial") {
+  if (session?.variant === "partial") {
     return <router.Navigate to={app.SET_USERNAME_PATH} />;
-  }
-
-  if (session?.state === "full") {
+  } else if (session?.variant === "full") {
     return <router.Navigate to={app.DASHBOARD_PATH} />;
+  } else {
+    return <router.Outlet />;
   }
-
-  return <router.Outlet />;
-};
+}
 
 // =============================
 // === usePartialUserSession ===
 // =============================
 
-export const usePartialUserSession = () => {
+export function usePartialUserSession() {
   return router.useOutletContext<PartialUserSession>();
-};
+}
 
 // ==========================
 // === useFullUserSession ===
 // ==========================
 
-export const useFullUserSession = () => {
+export function useFullUserSession() {
   return router.useOutletContext<FullUserSession>();
-};
+}

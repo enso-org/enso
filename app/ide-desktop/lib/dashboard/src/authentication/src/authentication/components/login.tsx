@@ -1,14 +1,14 @@
-/** @file Login container responsible for rendering and interactions in sign in flow. */
-import * as router from "react-router-dom";
+/** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as fontawesome from "@fortawesome/react-fontawesome";
 import * as fontawesomeIcons from "@fortawesome/free-brands-svg-icons";
+import * as router from "react-router-dom";
 
+import * as app from "../../components/app";
 import * as auth from "../providers/auth";
 import * as hooks from "../../hooks";
-import withRouter from "../../navigation";
-import * as utils from "../../utils";
-import * as app from "../../components/app";
 import * as icons from "../../components/svg";
+import * as utils from "../../utils";
+import withRouter from "../../navigation";
 
 // =================
 // === Constants ===
@@ -16,21 +16,20 @@ import * as icons from "../../components/svg";
 
 const LOGIN_QUERY_PARAMS = {
   email: "email",
-};
+} as const;
 
-// ======================
-// === loginContainer ===
-// ======================
+// =============
+// === Login ===
+// =============
 
-const loginContainer = () => {
+function Login() {
   const { search } = router.useLocation();
-  const { signInWithGoogle, signInWithGitHub, signInWithPassword } =
-    auth.useAuth();
+  const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth();
 
   const initialEmail = parseUrlSearchParams(search);
 
-  const { value: email, bind: bindEmail } = hooks.useInput(initialEmail ?? "");
-  const { value: password, bind: bindPassword } = hooks.useInput("");
+  const [email, bindEmail] = hooks.useInput(initialEmail ?? "");
+  const [password, bindPassword] = hooks.useInput("");
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -65,8 +64,7 @@ const loginContainer = () => {
         </div>
         <div className="mt-10">
           <form
-            onSubmit={utils.handleEvent(async () =>
-              signInWithPassword(email, password)
+            onSubmit={utils.handleEvent(async () => signInWithPassword(email, password)
             )}
           >
             <div className="flex flex-col mb-6">
@@ -90,8 +88,7 @@ const loginContainer = () => {
                   type="email"
                   name="email"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="E-Mail Address"
-                />
+                  placeholder="E-Mail Address" />
               </div>
             </div>
             <div className="flex flex-col mb-6">
@@ -115,8 +112,7 @@ const loginContainer = () => {
                   type="password"
                   name="password"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="Password"
-                />
+                  placeholder="Password" />
               </div>
             </div>
 
@@ -136,7 +132,8 @@ const loginContainer = () => {
         <div className="flex justify-center items-center mt-6">
           <router.Link
             to={app.REGISTRATION_PATH}
-            className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
+            className={"inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs " +
+              "text-center"}
           >
             <span>
               <icons.Svg data={icons.PATHS.createAccount} />
@@ -147,12 +144,12 @@ const loginContainer = () => {
       </div>
     </div>
   );
-};
+}
 
-const parseUrlSearchParams = (search: string) => {
+function parseUrlSearchParams(search: string) {
   const query = new URLSearchParams(search);
   const email = query.get(LOGIN_QUERY_PARAMS.email);
   return email;
-};
+}
 
-export default withRouter(loginContainer);
+export default withRouter(Login);
