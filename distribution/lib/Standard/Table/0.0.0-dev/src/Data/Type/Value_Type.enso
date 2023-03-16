@@ -101,7 +101,7 @@ type Value_Type
     ## Unsupported SQL type.
 
        Fallback provided to allow describing types that are not supported by Enso at this time.
-    Unsupported_Data_Type type_name:Text=""
+    Unsupported_Data_Type type_name:Text="" (underlying_type:SQL_Type=Nothing)
 
     ## A mix of values can be stored in the Column.
 
