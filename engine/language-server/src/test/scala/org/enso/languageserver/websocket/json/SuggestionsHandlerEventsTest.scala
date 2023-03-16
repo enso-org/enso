@@ -114,29 +114,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                     }
                   ],
                   "returnType" : "MyAtom",
-                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
-                  "documentationSections" : [
-                    {
-                      "type" : "tag",
-                      "name" : "PRIVATE",
-                      "body" : ""
-                    },
-                    {
-                      "type" : "paragraph",
-                      "body" : "A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. "
-                    },
-                    {
-                      "type" : "keyed",
-                      "key" : "Arguments",
-                      "body" : " <ul><li>one: The first.</li><li>two_three: The <b>second</b>.</li></ul> "
-                    },
-                    {
-                      "type" : "marked",
-                      "mark" : "Info",
-                      "header" : "Info",
-                      "body" : " Here is a thing."
-                    }
-                  ]
+                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing."
                }
              }
            ],
@@ -207,13 +185,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   "selfType" : "MyType",
                   "returnType" : "Number",
                   "isStatic" : false,
-                  "documentation" : "Lovely",
-                  "documentationSections" : [
-                    {
-                      "type" : "paragraph",
-                      "body" : "Lovely"
-                    }
-                  ]
+                  "documentation" : "Lovely"
                 }
               }
             ],
@@ -308,13 +280,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "character" : 22
                     }
                   },
-                  "documentation" : "My Function",
-                  "documentationSections" : [
-                    {
-                      "type" : "paragraph",
-                      "body" : "My Function"
-                    }
-                  ]
+                  "documentation" : "My Function"
                 }
               }
             ],
@@ -442,29 +408,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                     }
                   ],
                   "returnType" : "MyAtom",
-                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
-                  "documentationSections" : [
-                    {
-                      "type" : "tag",
-                      "name" : "PRIVATE",
-                      "body" : ""
-                    },
-                    {
-                      "type" : "paragraph",
-                      "body" : "A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. "
-                    },
-                    {
-                      "type" : "keyed",
-                      "key" : "Arguments",
-                      "body" : " <ul><li>one: The first.</li><li>two_three: The <b>second</b>.</li></ul> "
-                    },
-                    {
-                      "type" : "marked",
-                      "mark" : "Info",
-                      "header" : "Info",
-                      "body" : " Here is a thing."
-                    }
-                  ]
+                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing."
                 }
               },
               {
@@ -511,13 +455,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "character" : 22
                     }
                   },
-                  "documentation" : "My Function",
-                  "documentationSections" : [
-                    {
-                      "type" : "paragraph",
-                      "body" : "My Function"
-                    }
-                  ]
+                  "documentation" : "My Function"
                 }
               },
               {
@@ -548,13 +486,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   "selfType" : "MyType",
                   "returnType" : "Number",
                   "isStatic" : false,
-                  "documentation" : "Lovely",
-                  "documentationSections" : [
-                    {
-                      "type" : "paragraph",
-                      "body" : "Lovely"
-                    }
-                  ]
+                  "documentation" : "Lovely"
                 }
               },
               {

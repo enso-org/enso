@@ -5,7 +5,6 @@ import java.util.concurrent.Executors
 import akka.actor.{Actor, ActorRef, Props, Stash, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.docs.sections.DocSectionsBuilder
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired,
@@ -82,7 +81,6 @@ import scala.util.{Failure, Success}
   * @param versionsRepo the versions repo
   * @param sessionRouter the session router
   * @param runtimeConnector the runtime connector
-  * @param docSectionsBuilder the builder of documentation sections
   */
 final class SuggestionsHandler(
   config: Config,
@@ -90,8 +88,7 @@ final class SuggestionsHandler(
   suggestionsRepo: SuggestionsRepo[Future],
   versionsRepo: VersionsRepo[Future],
   sessionRouter: ActorRef,
-  runtimeConnector: ActorRef,
-  docSectionsBuilder: DocSectionsBuilder
+  runtimeConnector: ActorRef
 ) extends Actor
     with Stash
     with LazyLogging
@@ -357,11 +354,7 @@ final class SuggestionsHandler(
         .map { case (version, entries) =>
           GetSuggestionsDatabaseResult(
             version,
-            entries.map { entry =>
-              SuggestionDatabaseEntry(
-                entry.copy(suggestion = generateDocumentation(entry.suggestion))
-              )
-            }
+            entries.map { entry => SuggestionDatabaseEntry(entry) }
           )
         }
         .pipeTo(sender())
@@ -580,7 +573,7 @@ final class SuggestionsHandler(
               ids.map(
                 SuggestionsDatabaseUpdate.Add(
                   _,
-                  generateDocumentation(suggestion)
+                  suggestion
                 )
               )
             case action =>
@@ -628,7 +621,7 @@ final class SuggestionsHandler(
               ids.map(
                 SuggestionsDatabaseUpdate.Add(
                   _,
-                  generateDocumentation(suggestion)
+                  suggestion
                 )
               )
             case Api.SuggestionAction.Remove() =>
@@ -644,10 +637,7 @@ final class SuggestionsHandler(
                   arguments     = m.arguments.map(_.map(toApiArgumentAction)),
                   returnType    = m.returnType.map(fieldUpdate),
                   scope         = m.scope.map(fieldUpdate),
-                  documentation = m.documentation.map(fieldUpdateOption),
-                  documentationSections = m.documentation.map(
-                    fieldUpdateMapOption(docSectionsBuilder.build)
-                  )
+                  documentation = m.documentation.map(fieldUpdateOption)
                 )
               }
           }
@@ -685,20 +675,6 @@ final class SuggestionsHandler(
   private def fieldUpdateOption[A](value: Option[A]): FieldUpdate[A] =
     value match {
       case Some(value) => FieldUpdate(FieldAction.Set, Some(value))
-      case None        => FieldUpdate(FieldAction.Remove, None)
-    }
-
-  /** Construct the field update object from an optional value.
-    *
-    * @param f the mapping function
-    * @param value the optional value
-    * @return the field update object representing the value update
-    */
-  private def fieldUpdateMapOption[A, B](
-    f: A => B
-  )(value: Option[A]): FieldUpdate[B] =
-    value match {
-      case Some(value) => FieldUpdate(FieldAction.Set, Some(f(value)))
       case None        => FieldUpdate(FieldAction.Remove, None)
     }
 
@@ -771,43 +747,6 @@ final class SuggestionsHandler(
     */
   private def toPosition(pos: Position): Suggestion.Position =
     Suggestion.Position(pos.line, pos.character)
-
-  /** Generate the documentation for the given suggestion.
-    *
-    * @param suggestion the initial suggestion
-    * @return the suggestion with documentation fields set
-    */
-  private def generateDocumentation(suggestion: Suggestion): Suggestion =
-    suggestion match {
-      case module: Suggestion.Module =>
-        val docSections = module.documentation.map(docSectionsBuilder.build)
-        module.copy(documentationSections = docSections)
-
-      case constructor: Suggestion.Constructor =>
-        val docSections =
-          constructor.documentation.map(docSectionsBuilder.build)
-        constructor.copy(documentationSections = docSections)
-
-      case tpe: Suggestion.Type =>
-        val docSections = tpe.documentation.map(docSectionsBuilder.build)
-        tpe.copy(documentationSections = docSections)
-
-      case method: Suggestion.Method =>
-        val docSections = method.documentation.map(docSectionsBuilder.build)
-        method.copy(documentationSections = docSections)
-
-      case conversion: Suggestion.Conversion =>
-        val docSections = conversion.documentation.map(docSectionsBuilder.build)
-        conversion.copy(documentationSections = docSections)
-
-      case function: Suggestion.Function =>
-        val docSections = function.documentation.map(docSectionsBuilder.build)
-        function.copy(documentationSections = docSections)
-
-      case local: Suggestion.Local =>
-        val docSections = local.documentation.map(docSectionsBuilder.build)
-        local.copy(documentationSections = docSections)
-    }
 }
 
 object SuggestionsHandler {
@@ -898,7 +837,6 @@ object SuggestionsHandler {
     * @param versionsRepo the versions repo
     * @param sessionRouter the session router
     * @param runtimeConnector the runtime connector
-    * @param docSectionsBuilder the builder of documentation sections
     */
   def props(
     config: Config,
@@ -906,8 +844,7 @@ object SuggestionsHandler {
     suggestionsRepo: SuggestionsRepo[Future],
     versionsRepo: VersionsRepo[Future],
     sessionRouter: ActorRef,
-    runtimeConnector: ActorRef,
-    docSectionsBuilder: DocSectionsBuilder = DocSectionsBuilder()
+    runtimeConnector: ActorRef
   ): Props =
     Props(
       new SuggestionsHandler(
@@ -916,8 +853,7 @@ object SuggestionsHandler {
         suggestionsRepo,
         versionsRepo,
         sessionRouter,
-        runtimeConnector,
-        docSectionsBuilder
+        runtimeConnector
       )
     )
 }

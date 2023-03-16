@@ -8,7 +8,7 @@
 import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
-import * as process from 'node:process'
+import process from 'node:process'
 
 import * as electron from 'electron'
 
@@ -201,6 +201,18 @@ class App {
                 if (this.args.groups.debug.options.devTools.value) {
                     window.webContents.openDevTools()
                 }
+
+                const allowedPermissions = ['clipboard-read', 'clipboard-sanitized-write']
+                window.webContents.session.setPermissionRequestHandler(
+                    (_webContents, permission, callback) => {
+                        if (allowedPermissions.includes(permission)) {
+                            callback(true)
+                        } else {
+                            console.error(`Denied permission check '${permission}'.`)
+                            callback(false)
+                        }
+                    }
+                )
 
                 window.on('close', evt => {
                     if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {

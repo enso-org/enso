@@ -108,6 +108,9 @@
 - [Fixed missing result preview when editing nodes.][5757]
 - [Application retries its initialization after failures][5802], allowing a
   reconnecting after connectivity problems.
+- [Improved Component Browser Filtering][4115]. The best match is always
+  selected first, and the groups are rearranged, so the best matches are on the
+  bottom.
 - [Named arguments syntax is now recognized in IDE][5774]. Connections to
   function arguments will now use named argument syntax instead of inserting
   wildcards on all preceding arguments.
@@ -117,6 +120,8 @@
   open them in the IDE (which is not part of the React app, but can be switched
   to from the dashboard). The PR also adds authentication+authorization (i.e.,
   sign up and sign in for users), via either email/password or GitHub/Google.
+- [New Enso documentation parser][5917]. Smaller and faster; enables planned
+  improvements to internal documentation representation.
 
 #### EnsoGL (rendering engine)
 
@@ -520,6 +525,7 @@
 [5719]: https://github.com/enso-org/enso/pull/5719
 [5721]: https://github.com/enso-org/enso/pull/5721
 [5757]: https://github.com/enso-org/enso/pull/5757
+[4115]: https://github.com/enso-org/enso/pull/4115
 [5774]: https://github.com/enso-org/enso/pull/5774
 [5779]: https://github.com/enso-org/enso/pull/5779
 [5785]: https://github.com/enso-org/enso/pull/5785
@@ -527,6 +533,7 @@
 [5802]: https://github.com/enso-org/enso/pull/5802
 [5850]: https://github.com/enso-org/enso/pull/5850
 [5863]: https://github.com/enso-org/enso/pull/5863
+[5917]: https://github.com/enso-org/enso/pull/5917
 
 #### Enso Compiler
 
@@ -626,6 +633,7 @@
 - [Comparators support partial ordering][5778]
 - [Merge ordered and unordered comparators][5845]
 - [Use SHA-1 for calculating hashes of modules' IR and bindings][5791]
+- [Don't install Python component on Windows][5900]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -726,6 +734,7 @@
 [5778]: https://github.com/enso-org/enso/pull/5778
 [5845]: https://github.com/enso-org/enso/pull/5845
 [5791]: https://github.com/enso-org/enso/pull/5791
+[5900]: https://github.com/enso-org/enso/pull/5900
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
