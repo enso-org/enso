@@ -4,7 +4,6 @@ import path from 'path'
 import * as args from 'asset-extractor/args'
 import * as fs from 'asset-extractor/fs'
 import * as log from 'runner/log'
-import * as name from 'runner/name'
 import * as runner from 'runner/index'
 
 // ===========

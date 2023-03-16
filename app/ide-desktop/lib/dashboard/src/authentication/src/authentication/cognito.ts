@@ -7,9 +7,9 @@ import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
-import * as app from '../components/app'
 import * as config from './config'
 import * as loggerProvider from '../providers/logger'
+import * as platformModule from '../platform'
 
 // =================
 // === Constants ===
@@ -26,51 +26,6 @@ const MESSAGES = {
         userNotFound: 'User not found. Please register first.',
         userNotConfirmed: 'User is not confirmed. Please check your email for a confirmation link.',
         incorrectUsernameOrPassword: 'Incorrect username or password.',
-    },
-}
-
-/** A list of errors thrown by the Amplify library that we catch and handle ourselves.
- *
- * Not all errors are caught and handled. Any errors not listed here are allowed to propagate up.
- *
- * Errors are grouped by the AWS Amplify function that throws the error (e.g., `signUp`).
- *
- * Each error must include an `internalCode` field, which is the code that the Amplify library uses
- * to identify the error.
- *
- * Some errors also include an `internalMessage` field, which is the message that the Amplify
- * library associates with the error. This field is used to distinguish between errors that have the
- * same `internalCode`.
- *
- * Amplify reuses some codes for multiple kinds of errors. In the case of ambiguous errors, the
- * `kind` field provides a unique string that can be used to brand the error in place of the
- * `internalCode`, when rethrowing the error. */
-const KNOWN_ERRORS = {
-    /** Errors specific to the `currentSession` function. */
-    currentSession: {
-        noCurrentUser: {
-            message: 'No current user' as const,
-            kind: 'NoCurrentUser' as const,
-        },
-    },
-    /** Errors specific to the `signUp` function. */
-    signUp: {
-        usernameExists: {
-            internalCode: 'UsernameExistsException' as const,
-            kind: 'UsernameExists' as const,
-        },
-        invalidParameter: {
-            internalCode: 'InvalidParameterException' as const,
-            kind: 'InvalidParameter' as const,
-        },
-    },
-    /** Errors specific to the `confirmSignUp` function. */
-    confirmSignUp: {
-        userAlreadyConfirmed: {
-            internalCode: 'NotAuthorizedException' as const,
-            internalMessage: 'User cannot be confirmed. Current status is CONFIRMED' as const,
-            kind: 'UserAlreadyConfirmed' as const,
-        },
     },
 }
 
@@ -98,20 +53,22 @@ interface AmplifyError extends Error {
 }
 
 /** Hints to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
-const isAmplifyError = (error: unknown): error is AmplifyError => {
+function isAmplifyError(error: unknown): error is AmplifyError {
     if (error && typeof error === 'object') {
-        return 'code' in error && 'message' in error && 'name' in error
+        return 'code' in error && 'message' in error && 'name' in error;
+    } else {
+        return false;
     }
-    return false
 }
 
-/** Converts the `unknown` error into an {@link AmplifyError} and returns it, or re-throws it if
- * conversion is not possible. */
-const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
+/** Converts the `unknown` error into an {@link AmplifyError} and returns it,
+ * or re-throws it if conversion is not possible.
+ * @throws If the error is not an amplify error. */
+function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
     if (isAmplifyError(error)) {
-        return error
+        return error;
     } else {
-        throw error
+        throw error;
     }
 }
 
@@ -119,79 +76,15 @@ const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
 // === Cognito ===
 // ===============
 
-/** Interface defining the methods provided by this module for interacting with Cognito for
- * authentication.
- *
- * The methods defined in this API are thin wrappers around the AWS Amplify library with error
- * handling added. This way, the methods don't throw all errors, but define exactly which errors
- * they return. The caller can then handle them via pattern matching on the {@link results.Result}
- * type. */
-export interface Cognito {
-    /** Returns the current {@link UserSession}, or `None` if the user is not logged in.
-     *
-     * Will refresh the {@link UserSession} if it has expired. */
-    userSession: () => Promise<results.Option<UserSession>>
-    /** Sign up with with username and password.
-     *
-     * Does not rely on federated identity providers (e.g., Google or GitHub). */
-    signUp: (username: string, password: string) => Promise<results.Result<null, SignUpError>>
-    /** Sends the email address verification code.
-     *
-     * The user will receive a link in their email. The user must click the link to go to the email
-     * verification page. The email verification page will parse the verification code from the URL.
-     * If the verification code matches, the email address is marked as verified. Once the email
-     * address is verified, the user can sign in. */
-    confirmSignUp: (
-        email: string,
-        code: string
-    ) => Promise<results.Result<null, ConfirmSignUpError>>
-    /** Signs in via the Google federated identity provider.
-     *
-     * This function will open the Google authentication page in the user's browser. The user will
-     * be asked to log in to their Google account, and then to grant access to the application.
-     * After the user has granted access, the browser will be redirected to the application. */
-    signInWithGoogle: () => Promise<null>
-    /** Signs in via the GitHub federated identity provider.
-     *
-     * This function will open the GitHub authentication page in the user's browser. The user will
-     * be asked to log in to their GitHub account, and then to grant access to the application.
-     * After the user has granted access, the browser will be redirected to the application. */
-    signInWithGitHub: () => Promise<null>
-    /** Signs in with the given username and password.
-     *
-     * Does not rely on external identity providers (e.g., Google or GitHub).
-     *
-     * @param username - Username of the user to sign in.
-     * @param password - Password of the user to sign in.
-     * @returns A promise that resolves to either success or known error.
-     * @throws An error if failed due to an unknown error. */
-    signInWithPassword: (
-        username: string,
-        password: string
-    ) => Promise<results.Result<null, SignInWithPasswordError>>
-    /** Signs out the current user.
-     *
-     * @returns A promise that resolves if successful. */
-    signOut: () => Promise<void>
-}
-
-// ===================
-// === CognitoImpl ===
-// ===================
-
-/** A class implementing the {@link Cognito} API by wrapping AWS Amplify functions. */
-export class CognitoImpl implements Cognito {
-    private readonly logger: loggerProvider.Logger
-    private readonly platform: app.Platform
-
+/** Thin wrapper around Cognito endpoints from the AWS Amplify library with error handling added.
+ * This way, the methods don't throw all errors, but define exactly which errors they return.
+ * The caller can then handle them via pattern matching on the {@link results.Result} type. */
+export class Cognito {
     constructor(
-        logger: loggerProvider.Logger,
-        platform: app.Platform,
+        private readonly logger: loggerProvider.Logger,
+        private readonly platform: platformModule.Platform,
         amplifyConfig: config.AmplifyConfig
     ) {
-        this.logger = logger
-        this.platform = platform
-
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
          * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
          * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
@@ -200,7 +93,59 @@ export class CognitoImpl implements Cognito {
         amplify.Auth.configure(nestedAmplifyConfig)
     }
 
-    // === Interface `impl`s ===
+    /** Returns the current {@link UserSession}, or `None` if the user is not logged in.
+     *
+     * Will refresh the {@link UserSession} if it has expired. */
+    userSession() { return userSession(); }
+
+    /** Sign up with with username and password.
+     *
+     * Does not rely on federated identity providers (e.g., Google or GitHub). */
+    signUp(username: string, password: string) {
+        return signUp(username, password, this.platform)
+    }
+
+    /** Sends the email address verification code.
+     *
+     * The user will receive a link in their email. The user must click the link to go to the email
+     * verification page. The email verification page will parse the verification code from the URL.
+     * If the verification code matches, the email address is marked as verified. Once the email
+     * address is verified, the user can sign in. */
+    confirmSignUp(email: string, code: string) {
+        return confirmSignUp(email, code)
+    }
+
+    /** Signs in via the Google federated identity provider.
+     *
+     * This function will open the Google authentication page in the user's browser. The user will
+     * be asked to log in to their Google account, and then to grant access to the application.
+     * After the user has granted access, the browser will be redirected to the application. */
+    signInWithGoogle() {
+        return signInWithGoogle(this.customState());
+    }
+
+    /** Signs in via the GitHub federated identity provider.
+     *
+     * This function will open the GitHub authentication page in the user's browser. The user will
+     * be asked to log in to their GitHub account, and then to grant access to the application.
+     * After the user has granted access, the browser will be redirected to the application. */
+    signInWithGitHub() {
+        return signInWithGitHub();
+    }
+
+    /** Signs in with the given username and password.
+     *
+     * Does not rely on external identity providers (e.g., Google or GitHub). */
+    signInWithPassword(username: string, password: string) {
+        return signInWithPassword(username, password)
+    }
+
+    /** Signs out the current user.
+     *
+     * @returns A promise that resolves if successful. */
+    signOut() {
+        return signOut(this.logger);
+    }
 
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
      * redirected back to the application after signing in via an external identity provider. This
@@ -209,37 +154,14 @@ export class CognitoImpl implements Cognito {
      *
      * In order to do so, we need to pass custom state along for the entire OAuth flow, which is
      * obtained by calling this function. This function will return the current location path if
-     * the user is signing in from the desktop application, and `undefined` otherwise.
+     * the user is signing in from the desktop application, and `null` otherwise.
      *
-     * We use `undefined` outside of the desktop application because Amplify only messes up the
+     * We use `null` outside of the desktop application because Amplify only messes up the
      * location history in the desktop application.
      *
      * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
-    customState = () =>
-        this.platform === app.Platform.desktop ? window.location.pathname : undefined
-    userSession = userSession
-    signUp = (username: string, password: string) => signUp(username, password, this.platform)
-    confirmSignUp = confirmSignUp
-    signInWithGoogle = () => signInWithGoogle(this.customState())
-    signInWithGitHub = signInWithGitHub
-    signInWithPassword = signInWithPassword
-    signOut = () => signOut(this.logger)
-}
-
-// ====================
-// === AssertString ===
-// ====================
-
-/** Type signature for a function that asserts that a parameter is a string. */
-type AssertString = (param: any, message: string) => asserts param is string
-
-/** Asserts that a parameter is a string; throws an error `message` if the assertion fails.
- *
- * Used both to assert that a parameter is a string at runtime, and to inform TypeScript that a
- * parameter is a string. */
-const assertString: AssertString = (param, message) => {
-    if (typeof param !== 'string') {
-        throw new Error(message)
+    private customState() {
+        return this.platform === platformModule.Platform.desktop ? window.location.pathname : null
     }
 }
 
@@ -253,203 +175,226 @@ export interface UserSession {
      *
      * Provided by the identity provider the user used to log in. One of:
      *
-     * - GitHub
-     * - Google
-     * - Email */
+     * - GitHub,
+     * - Google, or
+     * - Email. */
     email: string
     /** User's access token, used to authenticate the user (e.g., when making API calls). */
     accessToken: string
 }
 
-const userSession = () =>
-    getAmplifyCurrentSession()
-        .then(result => result.map(parseUserSession))
-        .then(result => result.toOption())
-
-type CurrentSessionErrorKind = typeof KNOWN_ERRORS.currentSession.noCurrentUser.kind
-
-const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind => {
-    if (error === KNOWN_ERRORS.currentSession.noCurrentUser.message) {
-        return KNOWN_ERRORS.currentSession.noCurrentUser.kind
-    } else {
-        throw error
-    }
+async function userSession() {
+    const amplifySession = await getAmplifyCurrentSession();
+    return amplifySession.map(parseUserSession).toOption();
 }
 
 /** Returns the current `CognitoUserSession` if the user is logged in, or `CurrentSessionErrorKind`
  * otherwise.
  *
  * Will refresh the session if it has expired. */
-const getAmplifyCurrentSession = () =>
-    results.Result.wrapAsync(() => amplify.Auth.currentSession()).then(result =>
-        result.mapErr(intoCurrentSessionErrorKind)
-    )
+async function getAmplifyCurrentSession() {
+    const currentSession = await results.Result.wrapAsync(() => amplify.Auth.currentSession())
+    return currentSession.mapErr(intoCurrentSessionErrorKind)
+}
 
-/** Parses a `CognitoUserSession` into a `UserSession`. */
-const parseUserSession = (session: cognito.CognitoUserSession): UserSession => {
-    const payload = session.getIdToken().payload
-    /** The `email` field is mandatory, so we assert that it exists and is a string. */
-    assertString(payload.email, 'Payload does not have an email field.')
+/** Parses a `CognitoUserSession` into a `UserSession`.
+ * @throws If the `email` field of the payload is not a string. */
+function parseUserSession(session: cognito.CognitoUserSession): UserSession {
+    const payload: Record<string, unknown> = session.getIdToken().payload
     const email = payload.email
+    /** The `email` field is mandatory, so we assert that it exists and is a string. */
+    if (typeof email !== 'string') {
+        throw new Error('Payload does not have an email field.')
+    }
     const accessToken = session.getAccessToken().getJwtToken()
     return { email, accessToken }
+}
+
+const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
+    internalMessage: 'No current user',
+    kind: 'NoCurrentUser',
+} as const
+
+type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['kind']
+
+function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
+    if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
+        return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind;
+    } else {
+        throw error;
+    }
 }
 
 // ==============
 // === SignUp ===
 // ==============
 
-const signUp = (username: string, password: string, platform: app.Platform) =>
-    results.Result.wrapAsync(() => {
-        const params = intoSignUpParams(username, password, platform)
-        return amplify.Auth.signUp(params)
+function signUp(username: string, password: string, platform: platformModule.Platform) {
+    return results.Result.wrapAsync(async () => {
+        const params = intoSignUpParams(username, password, platform);
+        await amplify.Auth.signUp(params);
     })
-        /** The contents of a successful response are not relevant, so we discard them. */
-        .then(result => result.map(() => null))
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoSignUpErrorOrThrow))
+        .then(result => result
+            .mapErr(intoAmplifyErrorOrThrow)
+            .mapErr(intoSignUpErrorOrThrow)
+        );
+}
 
-const intoSignUpParams = (
-    username: string,
+function intoSignUpParams(username: string,
     password: string,
-    platform: app.Platform
-): amplify.SignUpParams => ({
-    username,
-    password,
-    attributes: {
-        email: username,
-        /** Add a custom attribute indicating whether the user is signing up from the desktop. This
-         * is used to determine the schema used in the callback links sent in the verification
-         * emails. For example, `http://` for the Cloud, and `enso://` for the desktop. */
-        /** # Safety
-         *
-         * It is necessary to disable the naming convention rule here, because the key is expected
-         * to appear exactly as-is in Cognito, so we must match it. */
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        'custom:fromDesktop': platform === app.Platform.desktop ? 'true' : 'false',
-    },
-})
+    platform: platformModule.Platform): amplify.SignUpParams {
+    return ({
+        username,
+        password,
+        attributes: {
+            email: username,
+            /** Add a custom attribute indicating whether the user is signing up from the desktop. This
+             * is used to determine the schema used in the callback links sent in the verification
+             * emails. For example, `http://` for the Cloud, and `enso://` for the desktop.
+             *
+             * # Naming Convention
+             *
+             * It is necessary to disable the naming convention rule here, because the key is expected
+             * to appear exactly as-is in Cognito, so we must match it. */
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'custom:fromDesktop': platform === platformModule.Platform.desktop ? 'true' : 'false',
+        },
+    });
+}
+
+const SIGN_UP_USERNAME_EXISTS_ERROR = {
+    internalCode: 'UsernameExistsException',
+    kind: 'UsernameExists',
+} as const
+
+const SIGN_UP_INVALID_PARAMETER_ERROR = {
+    internalCode: 'InvalidParameterEx[ception',
+    kind: 'InvalidParameter',
+} as const
 
 type SignUpErrorKind =
-    | typeof KNOWN_ERRORS.signUp.usernameExists.kind
-    | typeof KNOWN_ERRORS.signUp.invalidParameter.kind
+    | (typeof SIGN_UP_INVALID_PARAMETER_ERROR)['kind']
+    | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
 
 export interface SignUpError {
     kind: SignUpErrorKind
     message: string
 }
 
-const intoSignUpErrorOrThrow = (error: AmplifyError): SignUpError => {
-    if (error.code === KNOWN_ERRORS.signUp.usernameExists.internalCode) {
+function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
+    if (error.code === SIGN_UP_USERNAME_EXISTS_ERROR.internalCode) {
         return {
-            kind: KNOWN_ERRORS.signUp.usernameExists.kind,
+            kind: SIGN_UP_USERNAME_EXISTS_ERROR.kind,
             message: error.message,
-        }
-    } else if (error.code === KNOWN_ERRORS.signUp.invalidParameter.internalCode) {
+        };
+    } else if (error.code === SIGN_UP_INVALID_PARAMETER_ERROR.internalCode) {
         return {
-            kind: KNOWN_ERRORS.signUp.invalidParameter.kind,
+            kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
             message: error.message,
-        }
+        };
+    } else {
+        throw error;
     }
-
-    throw error
 }
 
 // =====================
 // === ConfirmSignUp ===
 // =====================
 
-const confirmSignUp = async (email: string, code: string) =>
-    results.Result.wrapAsync(() => amplify.Auth.confirmSignUp(email, code))
-        /** The contents of a successful response are not relevant, so we discard them. */
-        .then(result => result.map(() => null))
+async function confirmSignUp(email: string, code: string) {
+    return results.Result.wrapAsync(async () => { await amplify.Auth.confirmSignUp(email, code); })
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
+        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow));
+}
 
-type ConfirmSignUpErrorKind = typeof KNOWN_ERRORS.confirmSignUp.userAlreadyConfirmed.kind
+const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
+    internalCode: 'NotAuthorizedException',
+    internalMessage: 'User cannot be confirmed. Current status is CONFIRMED',
+    kind: 'UserAlreadyConfirmed',
+} as const
+
+type ConfirmSignUpErrorKind = (typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR)['kind']
 
 export interface ConfirmSignUpError {
     kind: ConfirmSignUpErrorKind
     message: string
 }
 
-const intoConfirmSignUpErrorOrThrow = (error: AmplifyError): ConfirmSignUpError => {
-    if (error.code === KNOWN_ERRORS.confirmSignUp.userAlreadyConfirmed.internalCode) {
-        if (error.message === KNOWN_ERRORS.confirmSignUp.userAlreadyConfirmed.internalMessage) {
-            return {
-                /** Don't re-use the original `error.code` here because Amplify overloads the same
-                 * code for multiple kinds of errors. We replace it with a custom code that has no
-                 * ambiguity. */
-                kind: KNOWN_ERRORS.confirmSignUp.userAlreadyConfirmed.kind,
-                message: error.message,
-            }
-        }
+function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError {
+    if (
+        error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode &&
+        error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage
+    ) {
+        return {
+            /** Don't re-use the original `error.code` here because Amplify overloads the same
+             * code for multiple kinds of errors. We replace it with a custom code that has no
+             * ambiguity. */
+            kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
+            message: error.message,
+        };
+    } else {
+        throw error;
     }
-
-    throw error
 }
 
 // ========================
 // === SignInWithGoogle ===
 // ========================
 
-const signInWithGoogle = async (customState?: string) =>
-    amplify.Auth.federatedSignIn({
+async function signInWithGoogle(customState: string | null) {
+    await amplify.Auth.federatedSignIn({
         provider: amplify.CognitoHostedUIIdentityProvider.Google,
-        customState,
+        ...(customState ? { customState }: {}),
     })
-        /** We don't care about the details in the success case, just that it happened. */
-        .then(() => null)
+}
 
 // ========================
 // === SignInWithGoogle ===
 // ========================
 
-const signInWithGitHub = async () =>
-    amplify.Auth.federatedSignIn({
+async function signInWithGitHub() {
+    await amplify.Auth.federatedSignIn({
         customProvider: GITHUB_PROVIDER,
     })
-        /** We don't care about the details in the success case, just that it happened. */
-        .then(() => null)
+}
 
 // ==========================
 // === SignInWithPassword ===
 // ==========================
 
-const signInWithPassword = async (username: string, password: string) =>
-    results.Result.wrapAsync(() => amplify.Auth.signIn(username, password))
-        /** We don't care about the details in the success case, just that it happened. */
-        .then(result => result.map(() => null))
+async function signInWithPassword(username: string, password: string) {
+    return results.Result.wrapAsync(async () => { await amplify.Auth.signIn(username, password); })
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoSignInWithPasswordErrorOrThrow))
+        .then(result => result.mapErr(intoSignInWithPasswordErrorOrThrow));
+}
 
-type SignInWithPasswordErrorKind = 'UserNotFound' | 'UserNotConfirmed' | 'NotAuthorized'
+type SignInWithPasswordErrorKind = 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
 
 export interface SignInWithPasswordError {
     kind: SignInWithPasswordErrorKind
     message: string
 }
 
-const intoSignInWithPasswordErrorOrThrow = (error: AmplifyError): SignInWithPasswordError => {
+function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPasswordError {
     switch (error.code) {
         case 'UserNotFoundException':
             return {
                 kind: 'UserNotFound',
                 message: MESSAGES.signInWithPassword.userNotFound,
-            }
+            };
         case 'UserNotConfirmedException':
             return {
                 kind: 'UserNotConfirmed',
                 message: MESSAGES.signInWithPassword.userNotConfirmed,
-            }
+            };
         case 'NotAuthorizedException':
             return {
                 kind: 'NotAuthorized',
                 message: MESSAGES.signInWithPassword.incorrectUsernameOrPassword,
-            }
+            };
+        default:
+            throw error;
     }
-
-    throw error
 }
 
 // ===============
