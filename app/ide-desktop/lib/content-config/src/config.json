@@ -1,7 +1,7 @@
 {
   "options": {
     "authentication": {
-      "value": true,
+      "value": false,
       "description": "Determines whether user authentication is enabled. This option is disregarded if the application is executed in the cloud."
     },
 
