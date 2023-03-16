@@ -5,7 +5,6 @@ import * as auth from "../providers/auth";
 import * as hooks from "../../hooks";
 import * as icons from "../../components/svg";
 import * as utils from "../../utils";
-import withRouter from "../../navigation";
 
 // ===================
 // === SetUsername ===
@@ -61,4 +60,4 @@ function SetUsername() {
   );
 }
 
-export default withRouter(SetUsername);
+export default SetUsername;
