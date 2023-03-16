@@ -51,7 +51,10 @@ export class Backend {
 
   /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
   post<T = void>(path: string, payload: object) {
-    return this.client.post<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload);
+    return this.client.post<T>(
+      `${config.ACTIVE_CONFIG.apiUrl}/${path}`,
+      payload
+    );
   }
 
   /** Logs the error that occurred and throws a new one with a more user-friendly message. */

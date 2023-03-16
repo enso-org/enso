@@ -53,7 +53,9 @@ export function SessionProvider(props: SessionProviderProps) {
   /** Produces a new object every time.
    * This is not equal to any other empty object because objects are compared by reference.
    * Because it is not equal to the old value, React re-renders the component. */
-  function newRefresh() { return {}; }
+  function newRefresh() {
+    return {};
+  }
 
   /** State that, when set, forces a refresh of the user session. This is useful when a
    * user has just logged in (so their cached credentials are out of date). Should be used via the
@@ -65,7 +67,9 @@ export function SessionProvider(props: SessionProviderProps) {
    * Should be called after any operation that **will** (not **might**) change the user's session.
    * For example, this should be called after signing out. Calling this will result in a re-render
    * of the whole page, which is why it should only be done when necessary. */
-  const refreshSession = () => { setRefresh(newRefresh()); };
+  const refreshSession = () => {
+    setRefresh(newRefresh());
+  };
 
   /** Register an async effect that will fetch the user's session whenever the `refresh` state is
    * incremented. This is useful when a user has just logged in (as their cached credentials are

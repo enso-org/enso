@@ -34,7 +34,9 @@ interface Bind {
  * every input field, so we can use a custom hook to handle this for us. */
 export function useInput(initialValue: string): [string, Bind] {
   const [value, setValue] = react.useState(initialValue);
-  const onChange = (event: react.ChangeEvent<HTMLInputElement>) => { setValue(event.target.value); }
+  const onChange = (event: react.ChangeEvent<HTMLInputElement>) => {
+    setValue(event.target.value);
+  };
   const bind = { value, onChange };
   return [value, bind];
 }

@@ -114,7 +114,9 @@ function AppRouter(props: AppProps) {
     const authConfig = { navigate, ...props };
     return authService.initAuthService(authConfig);
   }, [navigate, props]);
-  const userSession = memoizedAuthService.cognito.userSession.bind(memoizedAuthService.cognito);
+  const userSession = memoizedAuthService.cognito.userSession.bind(
+    memoizedAuthService.cognito
+  );
   const registerAuthEventListener =
     memoizedAuthService.registerAuthEventListener;
   return (
