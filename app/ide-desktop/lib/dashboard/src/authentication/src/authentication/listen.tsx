@@ -31,7 +31,7 @@ export enum AuthEvent {
   signOut = "signOut",
 }
 
-/** Function that returns `true` if the given `string` is an {@link AuthEvent}. */
+/** Returns `true` if the given `string` is an {@link AuthEvent}. */
 function isAuthEvent(value: string): value is AuthEvent {
   return Object.values(AuthEvent).includes(value as AuthEvent);
 }
@@ -40,7 +40,7 @@ function isAuthEvent(value: string): value is AuthEvent {
 // === RegisterAuthEventListener ===
 // =================================
 
-/** Type of the callback called in response to authentication state changes.
+/** Callback called in response to authentication state changes.
  *
  * @see {@link Api["listen"]} */
 export type ListenerCallback = (event: AuthEvent, data?: unknown) => void;
@@ -50,7 +50,7 @@ export type ListenerCallback = (event: AuthEvent, data?: unknown) => void;
  * @see {@link Api["listen"]} */
 type UnsubscribeFunction = () => void;
 
-/** A function that can be used to subscribe to {@link AuthEvent}s.
+/** Used to subscribe to {@link AuthEvent}s.
  *
  * Returns a function that MUST be called before re-subscribing,
  * to avoid memory leaks or duplicate event handlers. */

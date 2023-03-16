@@ -61,7 +61,7 @@ export function SessionProvider(props: SessionProviderProps) {
    * `refreshSession` function. */
   const [refresh, setRefresh] = react.useState(newRefresh());
 
-  /** Function that forces a refresh of the user session.
+  /** Forces a refresh of the user session.
    *
    * Should be called after any operation that **will** (not **might**) change the user's session.
    * For example, this should be called after signing out. Calling this will result in a re-render

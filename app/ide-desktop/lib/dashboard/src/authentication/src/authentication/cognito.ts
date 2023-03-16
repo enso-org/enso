@@ -191,8 +191,13 @@ export class Cognito {
 
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
      * redirected back to the application after signing in via an external identity provider. This
-     * is done so we get a chance to fix the location history that Amplify messes up when it
-     * redirects the user to the identity provider's authentication page.
+     * is done so we get a chance to fix the location history. The location history is the history
+     * of the pages visited within the application. Amplify messes up the history when it redirects
+     * the user to the identity provider's authentication page. This is because Amplify believes
+     * that we are in the browser, so the location needs to be modified to account for leaving the
+     * page and coming back. However, in the Electron app we never leave the page. The rest of the
+     * flow is handled in the system browser instead. So we must undo the changes that Amplify
+     * makes.
      *
      * In order to do so, we need to pass custom state along for the entire OAuth flow, which is
      * obtained by calling this function. This function will return the current location path if
@@ -384,10 +389,12 @@ function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError 
 // ========================
 
 async function signInWithGoogle(customState: string | null) {
-    await amplify.Auth.federatedSignIn({
-        provider: amplify.CognitoHostedUIIdentityProvider.Google,
+    const provider = amplify.CognitoHostedUIIdentityProvider.Google
+    const options = {
+        provider,
         ...(customState ? { customState }: {}),
-    })
+    }
+    await amplify.Auth.federatedSignIn(options)
 }
 
 // ========================
