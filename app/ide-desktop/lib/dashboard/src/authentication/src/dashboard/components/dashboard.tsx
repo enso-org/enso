@@ -2,7 +2,6 @@
  * interactive components. */
 
 import * as auth from "../../authentication/providers/auth";
-import withRouter from "../../navigation";
 
 // =================
 // === Dashboard ===
@@ -20,4 +19,4 @@ function Dashboard() {
   );
 }
 
-export default withRouter(Dashboard);
+export default Dashboard;

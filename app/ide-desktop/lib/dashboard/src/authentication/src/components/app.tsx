@@ -48,7 +48,6 @@ import Dashboard from "../dashboard/components/dashboard";
 import Login from "../authentication/components/login";
 import Registration from "../authentication/components/registration";
 import SetUsername from "../authentication/components/setUsername";
-import withRouter from "../navigation";
 
 // =================
 // === Constants ===
@@ -96,7 +95,7 @@ function App(props: AppProps) {
     <>
       <toast.Toaster position="top-center" reverseOrder={false} />
       <Router>
-        <AppRouterWithHistory {...props} />
+        <AppRouter {...props} />
       </Router>
     </>
   );
@@ -164,7 +163,5 @@ function AppRouter(props: AppProps) {
     </loggerProvider.LoggerProvider>
   );
 }
-
-const AppRouterWithHistory = withRouter(AppRouter);
 
 export default App;
