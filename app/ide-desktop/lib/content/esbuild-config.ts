@@ -19,8 +19,12 @@ import * as esbuildPluginCopy from 'enso-copy-plugin'
 import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginAlias from 'esbuild-plugin-alias'
+import esbuildPluginStyle from 'esbuild-style-plugin'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
+
+import cssNano from 'cssnano'
+import tailwindCss from 'tailwindcss'
 
 import * as esbuildWatch from '../../esbuild-watch.js'
 import * as utils from '../../utils.js'
@@ -123,6 +127,11 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
             esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
             esbuildPluginTime(),
             esbuildPluginCopy.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
+            esbuildPluginStyle({
+                postcss: {
+                    plugins: [tailwindCss, cssNano],
+                }
+            }),
         ],
         define: {
             // Disabling naming convention because these are third-party options.
