@@ -579,13 +579,10 @@ impl std::str::FromStr for ContainerId {
 mod tests {
     use super::*;
 
-
-    #[cfg(target_os = "windows")]
-    use std::os::windows::process::ExitStatusExt;
-
-    #[cfg(target_os = "linux")]
-    use std::os::unix::process::ExitStatusExt;
-
+    /// Get the OS kernel version.
+    ///
+    /// For Windows, the returned value is the build number, e.g. 20348 for Windows Server 2022
+    /// 21H2.
     // This function might be unused, depending on what platform-specific tests are compiled.
     #[allow(dead_code)]
     fn get_kernel_version() -> Result<u32> {
@@ -611,6 +608,15 @@ mod tests {
         })
     }
 
+
+    /// Provide a Windows image tag for the OS that we are running on.
+    ///
+    /// See also: [`get_windows_image_tag`].
+    fn get_windows_image_tag_for_local() -> Result<&'static str> {
+        let kernel_version = get_kernel_version()?;
+        get_windows_image_tag(kernel_version)
+    }
+
     #[tokio::test]
     #[ignore]
     async fn network() -> Result {
@@ -628,45 +634,40 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(target_os = "linux")]
     #[tokio::test]
     async fn build_test_linux() -> Result {
         setup_logging()?;
         let temp = tempfile::tempdir()?;
-        let sample_dockerfile = r#"
-            FROM ubuntu:22.04
-            RUN echo "Hello, world!"
-        "#;
-        let dockerfile = temp.path().join("Dockerfile");
-        crate::fs::tokio::write(&dockerfile, sample_dockerfile).await?;
-        let opts = BuildOptions::new(temp.path());
-        dbg!(Docker.build(opts).await?);
-        Ok(())
-    }
+        if Docker.lookup().is_err() {
+            info!("Docker not found, skipping test.");
+            return Ok(());
+        }
 
-    #[cfg(target_os = "windows")]
-    #[tokio::test]
-    async fn build_test_windows() -> Result {
-        use std::os::windows::process::ExitStatusExt;
-        setup_logging()?;
-        let temp = tempfile::tempdir()?;
-        // Select appropriate base image, depending on OS version.
-        // newer)
-        let mut sysinfo = sysinfo::System::new();
-        sysinfo.refresh_all();
-        let kernel_version = get_kernel_version()?;
-        let tag = get_windows_image_tag(kernel_version)?;
-
-        let sample_dockerfile = format!(
-            r#"
-            FROM mcr.microsoft.com/windows/nanoserver:{tag}
-            RUN cmd /c "echo Hello World"
-        "#
-        );
-        let dockerfile = temp.path().join("Dockerfile");
-        crate::fs::tokio::write(&dockerfile, sample_dockerfile).await?;
+        let dockerfile_text = match TARGET_OS {
+            OS::Linux => r#"
+                FROM ubuntu:22.04
+                RUN echo "Hello, world!"
+                "#
+            .to_string(),
+            OS::Windows => {
+                let tag = get_windows_image_tag_for_local()?;
+                format!(
+                    r#"
+                    FROM mcr.microsoft.com/windows/nanoserver:{tag}
+                    RUN cmd /c "echo Hello World"
+                    "#
+                )
+            }
+            _ => {
+                info!("Unsupported OS, skipping test.");
+                return Ok(());
+            }
+        };
+        let dockerfile_path = temp.path().join("Dockerfile");
+        crate::fs::tokio::write(&dockerfile_path, dockerfile_text).await?;
         let opts = BuildOptions::new(temp.path());
-        dbg!(Docker.build(opts).await?);
+        // Make sure that the build succeeds and ID is returned.
+        let _id = Docker.build(opts).await?;
         Ok(())
     }
 }
