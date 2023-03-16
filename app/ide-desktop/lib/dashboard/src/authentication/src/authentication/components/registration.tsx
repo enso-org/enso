@@ -7,7 +7,6 @@ import * as auth from "../providers/auth";
 import * as hooks from "../../hooks";
 import * as icons from "../../components/svg";
 import * as utils from "../../utils";
-import withRouter from "../../navigation";
 
 // =================
 // === Constants ===
@@ -157,4 +156,4 @@ function Registration() {
   );
 }
 
-export default withRouter(Registration);
+export default Registration;
