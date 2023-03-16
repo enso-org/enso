@@ -45,11 +45,11 @@ const PLATFORM_TO_CONFIG: Record<
   },
 };
 
-const BASE_AMPLIFY_CONFIG: Partial<authConfigModule.AmplifyConfig> = {
+const BASE_AMPLIFY_CONFIG = {
   region: authConfigModule.AWS_REGION,
   scope: authConfigModule.OAUTH_SCOPES,
   responseType: authConfigModule.OAUTH_RESPONSE_TYPE,
-};
+} satisfies Partial<authConfigModule.AmplifyConfig>;
 
 /** Collection of configuration details for Amplify user pools, sorted by deployment environment. */
 const AMPLIFY_CONFIGS = {
@@ -139,6 +139,7 @@ function loadAmplifyConfig(
 ): authConfigModule.AmplifyConfig {
   /** Load the environment-specific Amplify configuration. */
   const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
+  let urlOpener;
   if (platform === platformModule.Platform.desktop) {
     /** If we're running on the desktop, we want to override the default URL opener for OAuth
      * flows.  This is because the default URL opener opens the URL in the desktop app itself,
@@ -148,7 +149,7 @@ function loadAmplifyConfig(
      * - users trust their system browser with their credentials more than they trust our app;
      * - our app can keep itself on the relevant page until the user is sent back to it (i.e.,
      *   we avoid unnecessary reloads/refreshes caused by redirects. */
-    baseConfig.urlOpener = openUrlWithExternalBrowser;
+    urlOpener = openUrlWithExternalBrowser;
 
     /** To handle redirects back to the application from the system browser, we also need to
      * register a custom URL handler. */
@@ -156,7 +157,11 @@ function loadAmplifyConfig(
   }
   /** Load the platform-specific Amplify configuration. */
   const platformConfig = PLATFORM_TO_CONFIG[platform];
-  return { ...baseConfig, ...platformConfig } as authConfigModule.AmplifyConfig;
+  return {
+    ...baseConfig,
+    ...platformConfig,
+    ...(urlOpener ? urlOpener : {}),
+  } as authConfigModule.AmplifyConfig;
 }
 
 const openUrlWithExternalBrowser = (url: string) => {

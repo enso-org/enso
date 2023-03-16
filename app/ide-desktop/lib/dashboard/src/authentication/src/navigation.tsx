@@ -17,6 +17,6 @@ function withRouter<T extends object>(Component: React.FC<T>) {
     return <Component {...props} router={{ location, navigate, params }} />;
   };
   return componentWithRouterProp;
-};
+}
 
 export default withRouter;

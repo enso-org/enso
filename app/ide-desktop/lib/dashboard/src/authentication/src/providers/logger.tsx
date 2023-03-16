@@ -37,7 +37,7 @@ export function LoggerProvider(props: LoggerProviderProps) {
   return (
     <LoggerContext.Provider value={logger}>{children}</LoggerContext.Provider>
   );
-};
+}
 
 // =================
 // === useLogger ===

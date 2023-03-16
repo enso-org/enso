@@ -23,15 +23,17 @@ const INPUT_CLASS_NAME =
 
 const Icon = (props: { data: string }) => {
   return (
-    <div className={
-      "inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400"
-    }>
+    <div
+      className={
+        "inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400"
+      }
+    >
       <span>
         <icons.Svg {...props} />
       </span>
     </div>
-  )
-}
+  );
+};
 
 // ====================
 // === Registration ===
@@ -55,10 +57,12 @@ const Registration = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-300 px-4 py-8">
-      <div className={
-        "rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 shadow-md px-4 " +
-        "py-6 sm:p-8"
-      }>
+      <div
+        className={
+          "rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 shadow-md px-4 " +
+          "py-6 sm:p-8"
+        }
+      >
         <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
           Create new account
         </div>

@@ -230,7 +230,7 @@ export function AuthProvider(props: AuthProviderProps) {
       {initialized && children}
     </AuthContext.Provider>
   );
-};
+}
 
 /** Type of an error containing a `string`-typed `message` field.
  *
@@ -286,7 +286,7 @@ export function GuestLayout() {
   }
 
   return <router.Outlet />;
-};
+}
 
 // ==========================
 // === useFullUserSession ===
