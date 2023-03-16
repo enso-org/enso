@@ -30,11 +30,11 @@ const ModalImp: React.FC<PropsWithChildren<ModalImpProps>> = props => {
     }
 
     return createPortal(
-        <div
-            className="fixed top-0 bottom-0 right-0 left-0 flex justify-center items-center overflow-hidden bg-black bg-opacity-30"
-            onMouseDown={handleClickOver}
-        >
-            {children}
+        <div className="fixed top-0 bottom-0 right-0 left-0 overflow-hidden transform">
+            <div className="w-full h-full bg-black bg-opacity-30" onClick={handleClickOver} />
+            <div className="absolute top-1/2 right-1/2 transform translate-x-1/2 -translate-y-1/2">
+                {children}
+            </div>
         </div>,
         containerRef.current
     )
