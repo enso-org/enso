@@ -10,7 +10,7 @@
  */
 
 import * as childProcess from 'node:child_process'
-import * as fs from 'node:fs'
+import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
@@ -19,12 +19,8 @@ import * as esbuildPluginCopy from 'enso-copy-plugin'
 import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginAlias from 'esbuild-plugin-alias'
-import esbuildPluginStyle from 'esbuild-style-plugin'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
-
-import cssNano from 'cssnano'
-import tailwindCss from 'tailwindcss'
 
 import * as esbuildWatch from '../../esbuild-watch.js'
 import * as utils from '../../utils.js'
@@ -98,7 +94,7 @@ export function alwaysCopiedFiles(wasmArtifacts: string) {
 export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: string) {
     console.log('Preparing a new generator for files to copy.')
     yield* alwaysCopiedFiles(wasmArtifacts)
-    for (const file of await fs.promises.readdir(assetsPath)) {
+    for (const file of await fs.readdir(assetsPath)) {
         yield path.resolve(assetsPath, file)
     }
     console.log('Generator for files to copy finished.')
@@ -127,12 +123,17 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
             // We do not control naming of third-party options.
             esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
             esbuildPluginTime(),
-            esbuildPluginCopy.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
-            esbuildPluginStyle({
-                postcss: {
-                    plugins: [tailwindCss, cssNano],
+            // This must run before the copy plugin so that the generated `tailwind.css` is used.
+            {
+                name: 'enso-generate-tailwind',
+                setup: build => {
+                    build.onStart(() => {
+                        console.log(`Generating tailwind css from ${path.resolve(THIS_PATH, 'src', 'tailwind.css')} to ${path.join(outputPath, 'tailwind.css')}`)
+                        childProcess.execSync(`npx tailwindcss -i ${path.resolve(THIS_PATH, 'src', 'tailwind.css')} -o ${path.join(outputPath, 'tailwind.css')} -c ${path.resolve(THIS_PATH, 'tailwind.config.ts')} --minify`);
+                    })
                 }
-            }),
+            },
+            esbuildPluginCopy.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
         ],
         define: {
             // Disabling naming convention because these are third-party options.
