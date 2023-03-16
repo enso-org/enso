@@ -52,9 +52,9 @@ function Registration() {
     if (password !== confirmPassword) {
       toast.error("Passwords do not match.");
       return Promise.resolve();
+    } else {
+      return signUp(email, password);
     }
-
-    return signUp(email, password);
   };
 
   return (

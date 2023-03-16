@@ -100,6 +100,10 @@ const RESTRICTED_SYNTAXES = [
         message: 'No aliases to literal types',
     },
     {
+        selector: ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)))) > * > ReturnStatement',
+        message: 'No early returns',
+    },
+    {
         selector:
             'TSTypeAliasDeclaration > :matches(TSBooleanKeyword, TSBigintKeyword, TSNullKeyword, TSNumberKeyword, TSObjectKeyword, TSStringKeyword, TSSymbolKeyword, TSUndefinedKeyword, TSUnknownKeyword, TSVoidKeyword)',
         message:

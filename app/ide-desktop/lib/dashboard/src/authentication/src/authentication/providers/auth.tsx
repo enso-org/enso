@@ -145,34 +145,34 @@ export function AuthProvider(props: AuthProviderProps) {
       if (session.none) {
         setInitialized(true);
         setUserSession(undefined);
-        return;
-      }
-      const { accessToken, email } = session.val;
-
-      const backend = backendService.createBackend(accessToken, logger);
-      const organization = await backend.getUser();
-      let newUserSession: UserSession;
-      if (!organization) {
-        newUserSession = {
-          variant: "partial",
-          email,
-          accessToken,
-        };
       } else {
-        newUserSession = {
-          variant: "full",
-          email,
-          accessToken,
-          organization,
-        };
+        const { accessToken, email } = session.val;
 
-        /** Execute the callback that should inform the Electron app that the user has logged in.
-         * This is done to transition the app from the authentication/dashboard view to the IDE. */
-        onAuthenticated();
+        const backend = backendService.createBackend(accessToken, logger);
+        const organization = await backend.getUser();
+        let newUserSession: UserSession;
+        if (!organization) {
+          newUserSession = {
+            variant: "partial",
+            email,
+            accessToken,
+          };
+        } else {
+          newUserSession = {
+            variant: "full",
+            email,
+            accessToken,
+            organization,
+          };
+
+          /** Execute the callback that should inform the Electron app that the user has logged in.
+           * This is done to transition the app from the authentication/dashboard view to the IDE. */
+          onAuthenticated();
+        }
+
+        setUserSession(newUserSession);
+        setInitialized(true);
       }
-
-      setUserSession(newUserSession);
-      setInitialized(true);
     };
 
     fetchSession().catch((error) => {
@@ -223,14 +223,13 @@ export function AuthProvider(props: AuthProviderProps) {
     cognito.signInWithPassword(email, password).then((result) => {
       if (result.ok) {
         toast.success(MESSAGES.signInWithPasswordSuccess);
-        return;
-      }
+      } else {
+        if (result.val.kind === "UserNotFound") {
+          navigate(app.REGISTRATION_PATH);
+        }
 
-      if (result.val.kind === "UserNotFound") {
-        navigate(app.REGISTRATION_PATH);
+        toast.error(result.val.message);
       }
-
-      toast.error(result.val.message);
     });
 
   const value = {
@@ -286,9 +285,9 @@ export function ProtectedLayout() {
 
   if (!session) {
     return <router.Navigate to={app.LOGIN_PATH} />;
+  } else {
+    return <router.Outlet context={session} />;
   }
-
-  return <router.Outlet context={session} />;
 }
 
 // ===================
@@ -301,9 +300,9 @@ export function GuestLayout() {
 
   if (session?.variant === "full") {
     return <router.Navigate to={app.DASHBOARD_PATH} />;
+  } else {
+    return <router.Outlet />;
   }
-
-  return <router.Outlet />;
 }
 
 // ==========================

@@ -7,7 +7,6 @@ import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
-import * as app from '../components/app'
 import * as config from './config'
 import * as loggerProvider from '../providers/logger'
 import * as platformModule from '../platform'
@@ -29,34 +28,6 @@ const MESSAGES = {
         incorrectUsernameOrPassword: 'Incorrect username or password.',
     },
 }
-
-/** A list of errors thrown by the Amplify library that we catch and handle ourselves.
- *
- * # Error Handling
- *
- * The AWS Amplify library throws errors when authentication fails. We catch these errors and
- * convert them to typed responses. This allows us to exhaustively handle errors by providing
- * information on the types of errors returned, in function return types.
- *
- * Not all errors are caught and handled. Any errors not relevant to business logic or control flow
- * are allowed to propagate up.
- *
- * Errors are grouped by the AWS Amplify function that throws the error (e.g., `signUp`). This is
- * because the Amplify library reuses some error codes for multiple kinds of errors. For example,
- * the `UsernameExistsException` error code is used for both the `signUp` and `confirmSignUp`
- * functions. This would be fine if the same error code didn't meet different conditions for each
- *
- * Each error must provide a way to disambiguate from other errors. Typically, our error definitions
- * include an `internalCode` field, which is the code that the Amplify library uses to identify the
- * error.
- *
- * Some errors also include an `internalMessage` field, which is the message that the Amplify
- * library associates with the error. This field is used to distinguish between errors that have the
- * same `internalCode`.
- *
- * Amplify reuses some codes for multiple kinds of errors. In the case of ambiguous errors, the
- * `kind` field provides a unique string that can be used to brand the error in place of the
- * `internalCode`, when rethrowing the error. */
 
 // ====================
 // === AmplifyError ===
@@ -85,12 +56,13 @@ interface AmplifyError extends Error {
 function isAmplifyError(error: unknown): error is AmplifyError {
     if (error && typeof error === 'object') {
         return 'code' in error && 'message' in error && 'name' in error;
+    } else {
+        return false;
     }
-    return false;
 }
 
-/** Converts the `unknown` error into an {@link AmplifyError} and returns it, or re-throws it if
- * conversion is not possible.
+/** Converts the `unknown` error into an {@link AmplifyError} and returns it,
+ * or re-throws it if conversion is not possible.
  * @throws If the error is not an amplify error. */
 function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
     if (isAmplifyError(error)) {
@@ -104,13 +76,9 @@ function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
 // === Cognito ===
 // ===============
 
-/** Interface defining the methods provided by this module for interacting with Cognito for
- * authentication.
- *
- * The methods defined in this API are thin wrappers around the AWS Amplify library with error
- * handling added. This way, the methods don't throw all errors, but define exactly which errors
- * they return. The caller can then handle them via pattern matching on the {@link results.Result}
- * type. */
+/** Thin wrapper around Cognito endpoints from the AWS Amplify library with error handling added.
+ * This way, the methods don't throw all errors, but define exactly which errors they return.
+ * The caller can then handle them via pattern matching on the {@link results.Result} type. */
 export class Cognito {
     constructor(
         private readonly logger: loggerProvider.Logger,
@@ -179,14 +147,14 @@ export class Cognito {
      *
      * In order to do so, we need to pass custom state along for the entire OAuth flow, which is
      * obtained by calling this function. This function will return the current location path if
-     * the user is signing in from the desktop application, and `undefined` otherwise.
+     * the user is signing in from the desktop application, and `null` otherwise.
      *
-     * We use `undefined` outside of the desktop application because Amplify only messes up the
+     * We use `null` outside of the desktop application because Amplify only messes up the
      * location history in the desktop application.
      *
      * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
     private customState() {
-        return this.platform === platformModule.Platform.desktop ? window.location.pathname : undefined
+        return this.platform === platformModule.Platform.desktop ? window.location.pathname : null
     }
 }
 
@@ -317,9 +285,9 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
             kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
             message: error.message,
         };
+    } else {
+        throw error;
     }
-
-    throw error;
 }
 
 // =====================
@@ -346,29 +314,30 @@ export interface ConfirmSignUpError {
 }
 
 function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError {
-    if (error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode) {
-        if (error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage) {
-            return {
-                /** Don't re-use the original `error.code` here because Amplify overloads the same
-                 * code for multiple kinds of errors. We replace it with a custom code that has no
-                 * ambiguity. */
-                kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
-                message: error.message,
-            };
-        }
+    if (
+        error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode &&
+        error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage
+    ) {
+        return {
+            /** Don't re-use the original `error.code` here because Amplify overloads the same
+             * code for multiple kinds of errors. We replace it with a custom code that has no
+             * ambiguity. */
+            kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
+            message: error.message,
+        };
+    } else {
+        throw error;
     }
-
-    throw error;
 }
 
 // ========================
 // === SignInWithGoogle ===
 // ========================
 
-async function signInWithGoogle(customState?: string) {
+async function signInWithGoogle(customState: string | null) {
     await amplify.Auth.federatedSignIn({
         provider: amplify.CognitoHostedUIIdentityProvider.Google,
-        customState,
+        ...(customState ? { customState }: {}),
     })
 }
 
@@ -416,7 +385,7 @@ function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPass
                 kind: 'NotAuthorized',
                 message: MESSAGES.signInWithPassword.incorrectUsernameOrPassword,
             };
+        default:
+            throw error;
     }
-
-    throw error;
 }

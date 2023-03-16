@@ -43,20 +43,15 @@ function isAuthEvent(value: string): value is AuthEvent {
  * @see {@link Api["listen"]} */
 export type ListenerCallback = (event: AuthEvent, data?: unknown) => void;
 
-/** Function that unsubscribes the {@link ListenerCallback} from authentication state changes.
+/** Unsubscribes the {@link ListenerCallback} from authentication state changes.
  *
  * @see {@link Api["listen"]} */
 type UnsubscribeFunction = () => void;
 
 /** A function that can be used to subscribe to {@link AuthEvent}s.
  *
- * This function takes a {@link ListenerCallback} function as an argument. The callback will be
- * called whenever an {@link AuthEvent} fires. The callback will be called with the
- * {@link AuthEvent} as an argument, as well as optional data associated with the {@link AuthEvent}.
- *
- * The returned function, when called, returns an {@link UnsubscribeFunction} that can be used to
- * unsubscribe from {@link AuthEvent}s. Ensure that you call this function before re-subscribing to
- * avoid memory leaks or duplicate event handlers. */
+ * Returns a function that MUST be called before re-subscribing,
+ * to avoid memory leaks or duplicate event handlers. */
 export type ListenFunction = (
   listener: ListenerCallback
 ) => UnsubscribeFunction;
