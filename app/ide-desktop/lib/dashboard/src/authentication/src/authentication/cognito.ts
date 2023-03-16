@@ -60,9 +60,9 @@ interface AmplifyError extends Error {
 /** Hints to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
 function isAmplifyError(error: unknown): error is AmplifyError {
     if (error && typeof error === 'object') {
-        return 'code' in error && 'message' in error && 'name' in error;
+        return 'code' in error && 'message' in error && 'name' in error
     } else {
-        return false;
+        return false
     }
 }
 
@@ -71,9 +71,9 @@ function isAmplifyError(error: unknown): error is AmplifyError {
  * @throws If the error is not an amplify error. */
 function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
     if (isAmplifyError(error)) {
-        return error;
+        return error
     } else {
-        throw error;
+        throw error
     }
 }
 
@@ -120,7 +120,9 @@ export class Cognito {
     /** Returns the current {@link UserSession}, or `None` if the user is not logged in.
      *
      * Will refresh the {@link UserSession} if it has expired. */
-    userSession() { return userSession(); }
+    userSession() {
+        return userSession()
+    }
 
     /** Sign up with with username and password.
      *
@@ -145,7 +147,7 @@ export class Cognito {
      * be asked to log in to their Google account, and then to grant access to the application.
      * After the user has granted access, the browser will be redirected to the application. */
     signInWithGoogle() {
-        return signInWithGoogle(this.customState());
+        return signInWithGoogle(this.customState())
     }
 
     /** Signs in via the GitHub federated identity provider.
@@ -154,7 +156,7 @@ export class Cognito {
      * be asked to log in to their GitHub account, and then to grant access to the application.
      * After the user has granted access, the browser will be redirected to the application. */
     signInWithGitHub() {
-        return signInWithGitHub();
+        return signInWithGitHub()
     }
 
     /** Signs in with the given username and password.
@@ -166,7 +168,7 @@ export class Cognito {
 
     /** Signs out the current user. */
     signOut() {
-        return signOut(this.logger);
+        return signOut(this.logger)
     }
 
     /** Sends a password reset email.
@@ -229,8 +231,8 @@ export interface UserSession {
 }
 
 async function userSession() {
-    const amplifySession = await getAmplifyCurrentSession();
-    return amplifySession.map(parseUserSession).toOption();
+    const amplifySession = await getAmplifyCurrentSession()
+    return amplifySession.map(parseUserSession).toOption()
 }
 
 /** Returns the current `CognitoUserSession` if the user is logged in, or `CurrentSessionErrorKind`
@@ -264,9 +266,9 @@ type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['k
 
 function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
     if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
-        return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind;
+        return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind
     } else {
-        throw error;
+        throw error
     }
 }
 
@@ -276,35 +278,34 @@ function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
 
 function signUp(username: string, password: string, platform: platformModule.Platform) {
     return results.Result.wrapAsync(async () => {
-        const params = intoSignUpParams(username, password, platform);
-        await amplify.Auth.signUp(params);
-    })
-        .then(result => result
-            .mapErr(intoAmplifyErrorOrThrow)
-            .mapErr(intoSignUpErrorOrThrow)
-        );
+        const params = intoSignUpParams(username, password, platform)
+        await amplify.Auth.signUp(params)
+    }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignUpErrorOrThrow))
 }
 
-function intoSignUpParams(username: string,
+function intoSignUpParams(
+    username: string,
     password: string,
-    platform: platformModule.Platform): amplify.SignUpParams {
-    return ({
+    platform: platformModule.Platform
+): amplify.SignUpParams {
+    return {
         username,
         password,
         attributes: {
             email: username,
-            /** Add a custom attribute indicating whether the user is signing up from the desktop. This
-             * is used to determine the schema used in the callback links sent in the verification
-             * emails. For example, `http://` for the Cloud, and `enso://` for the desktop.
+            /** Add a custom attribute indicating whether the user is signing up from the desktop.
+             * This is used to determine the schema used in the callback links sent in the
+             * verification emails. For example, `http://` for the Cloud, and `enso://` for the
+             * desktop.
              *
              * # Naming Convention
              *
-             * It is necessary to disable the naming convention rule here, because the key is expected
-             * to appear exactly as-is in Cognito, so we must match it. */
+             * It is necessary to disable the naming convention rule here, because the key is
+             * expected to appear exactly as-is in Cognito, so we must match it. */
             // eslint-disable-next-line @typescript-eslint/naming-convention
             'custom:fromDesktop': platform === platformModule.Platform.desktop ? 'true' : 'false',
         },
-    });
+    }
 }
 
 const SIGN_UP_USERNAME_EXISTS_ERROR = {
@@ -331,14 +332,14 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
         return {
             kind: SIGN_UP_USERNAME_EXISTS_ERROR.kind,
             message: error.message,
-        };
+        }
     } else if (error.code === SIGN_UP_INVALID_PARAMETER_ERROR.internalCode) {
         return {
             kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
             message: error.message,
-        };
+        }
     } else {
-        throw error;
+        throw error
     }
 }
 
@@ -347,9 +348,11 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 // =====================
 
 async function confirmSignUp(email: string, code: string) {
-    return results.Result.wrapAsync(async () => { await amplify.Auth.confirmSignUp(email, code); })
+    return results.Result.wrapAsync(async () => {
+        await amplify.Auth.confirmSignUp(email, code)
+    })
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow));
+        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
 }
 
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
@@ -371,14 +374,14 @@ function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError 
         error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage
     ) {
         return {
-            /** Don't re-use the original `error.code` here because Amplify overloads the same
-             * code for multiple kinds of errors. We replace it with a custom code that has no
+            /** Don't re-use the original `error.code` here because Amplify overloads the same code
+             * for multiple kinds of errors. We replace it with a custom code that has no
              * ambiguity. */
             kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
             message: error.message,
-        };
+        }
     } else {
-        throw error;
+        throw error
     }
 }
 
@@ -390,7 +393,7 @@ async function signInWithGoogle(customState: string | null) {
     const provider = amplify.CognitoHostedUIIdentityProvider.Google
     const options = {
         provider,
-        ...(customState ? { customState }: {}),
+        ...(customState ? { customState } : {}),
     }
     await amplify.Auth.federatedSignIn(options)
 }
@@ -410,9 +413,11 @@ async function signInWithGitHub() {
 // ==========================
 
 async function signInWithPassword(username: string, password: string) {
-    return results.Result.wrapAsync(async () => { await amplify.Auth.signIn(username, password); })
+    return results.Result.wrapAsync(async () => {
+        await amplify.Auth.signIn(username, password)
+    })
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoSignInWithPasswordErrorOrThrow));
+        .then(result => result.mapErr(intoSignInWithPasswordErrorOrThrow))
 }
 
 type SignInWithPasswordErrorKind = 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
@@ -428,19 +433,19 @@ function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPass
             return {
                 kind: 'UserNotFound',
                 message: MESSAGES.signInWithPassword.userNotFound,
-            };
+            }
         case 'UserNotConfirmedException':
             return {
                 kind: 'UserNotConfirmed',
                 message: MESSAGES.signInWithPassword.userNotConfirmed,
-            };
+            }
         case 'NotAuthorizedException':
             return {
                 kind: 'NotAuthorized',
                 message: MESSAGES.signInWithPassword.incorrectUsernameOrPassword,
-            };
+            }
         default:
-            throw error;
+            throw error
     }
 }
 
@@ -533,10 +538,10 @@ async function signOut(logger: loggerProvider.Logger) {
     // also has the unintended consequence of delaying the sign out process by a few seconds (until
     // the timeout occurs).
     try {
-        await amplify.Auth.signOut();
+        await amplify.Auth.signOut()
     } catch (error) {
-        logger.error('Sign out failed', error);
+        logger.error('Sign out failed', error)
     } finally {
-        await amplify.Auth.signOut();
+        await amplify.Auth.signOut()
     }
 }

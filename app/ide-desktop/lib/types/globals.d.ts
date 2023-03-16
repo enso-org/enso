@@ -34,10 +34,10 @@ interface BuildInfo {
  * TypeScript checks for this interface when we use it. */
 interface AuthenticationApi {
     /** Open a URL in the system browser. */
-    openUrlInSystemBrowser: (url: string) => void;
+    openUrlInSystemBrowser: (url: string) => void
     /** Set the callback to be called when the system browser redirects back to a URL in the app,
      * via a deep link. See {@link setDeepLinkHandler} for details. */
-    setDeepLinkHandler: (callback: (url: string) => void) => void;
+    setDeepLinkHandler: (callback: (url: string) => void) => void
 }
 
 declare global {

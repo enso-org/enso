@@ -80,7 +80,11 @@ export interface PartialUserSession {
 interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
-  setUsername: (accessToken: string, username: string, email: string) => Promise<void>;
+  setUsername: (
+    accessToken: string,
+    username: string,
+    email: string
+  ) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithGitHub: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
@@ -284,9 +288,9 @@ export function AuthProvider(props: AuthProviderProps) {
     });
 
   const signOut = () =>
-    cognito
-      .signOut()
-      .then(() => { toast.success(MESSAGES.signOutSuccess); });
+    cognito.signOut().then(() => {
+      toast.success(MESSAGES.signOutSuccess);
+    });
 
   const value = {
     signUp: withLoadingToast(signUp),

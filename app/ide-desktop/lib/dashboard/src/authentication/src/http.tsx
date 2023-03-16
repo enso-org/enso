@@ -59,7 +59,9 @@ export class Client {
   ) {}
 
   /** Sends an HTTP GET request to the specified URL. */
-  get<T = void>(url: string) { return this.request<T>(HttpMethod.get, url); }
+  get<T = void>(url: string) {
+    return this.request<T>(HttpMethod.get, url);
+  }
 
   /** Sends a JSON HTTP POST request to the specified URL. */
   post<T = void>(url: string, payload: object) {

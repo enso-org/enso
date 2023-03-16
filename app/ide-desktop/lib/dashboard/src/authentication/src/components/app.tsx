@@ -123,7 +123,9 @@ function AppRouter(props: AppProps) {
     const authConfig = { navigate, ...props };
     return authService.initAuthService(authConfig);
   }, [navigate, props]);
-  const userSession = memoizedAuthService.cognito.userSession.bind(memoizedAuthService.cognito);
+  const userSession = memoizedAuthService.cognito.userSession.bind(
+    memoizedAuthService.cognito
+  );
   const registerAuthEventListener =
     memoizedAuthService.registerAuthEventListener;
   return (
@@ -148,10 +150,7 @@ function AppRouter(props: AppProps) {
               </router.Route>
               {/* Protected pages are visible to authenticated users. */}
               <router.Route element={<authProvider.ProtectedLayout />}>
-                <router.Route
-                  path={DASHBOARD_PATH}
-                  element={<Dashboard />}
-                />
+                <router.Route path={DASHBOARD_PATH} element={<Dashboard />} />
                 <router.Route
                   path={SET_USERNAME_PATH}
                   element={<SetUsername />}

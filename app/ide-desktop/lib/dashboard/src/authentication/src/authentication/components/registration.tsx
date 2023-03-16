@@ -40,8 +40,10 @@ function Registration() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-300 px-4 py-8">
       <div
-        className={"rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 " +
-          "shadow-md px-4 py-6 sm:p-8"}
+        className={
+          "rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 " +
+          "shadow-md px-4 py-6 sm:p-8"
+        }
       >
         <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
           Create new account
@@ -64,7 +66,8 @@ function Registration() {
                 type="email"
                 name="email"
                 className={INPUT_CLASS_NAME}
-                placeholder="E-Mail Address" />
+                placeholder="E-Mail Address"
+              />
             </div>
           </div>
           <div className="flex flex-col mb-4">
@@ -83,7 +86,8 @@ function Registration() {
                 type="password"
                 name="password"
                 className={INPUT_CLASS_NAME}
-                placeholder="Password" />
+                placeholder="Password"
+              />
             </div>
           </div>
           <div className="flex flex-col mb-4">
@@ -102,16 +106,19 @@ function Registration() {
                 type="password"
                 name="password_confirmation"
                 className={INPUT_CLASS_NAME}
-                placeholder="Confirm Password" />
+                placeholder="Confirm Password"
+              />
             </div>
           </div>
 
           <div className="flex w-full mt-6">
             <button
               type="submit"
-              className={"flex items-center justify-center focus:outline-none text-white text-sm " +
+              className={
+                "flex items-center justify-center focus:outline-none text-white text-sm " +
                 "sm:text-base bg-indigo-600 hover:bg-indigo-700 rounded py-2 w-full transition " +
-                "duration-150 ease-in"}
+                "duration-150 ease-in"
+              }
             >
               <span className="mr-2 uppercase">Register</span>
               <span>
@@ -124,8 +131,10 @@ function Registration() {
       <div className="flex justify-center items-center mt-6">
         <router.Link
           to={app.LOGIN_PATH}
-          className={"inline-flex items-center font-bold text-indigo-500 hover:text-indigo-700 " +
-            "text-sm text-center"}
+          className={
+            "inline-flex items-center font-bold text-indigo-500 hover:text-indigo-700 " +
+            "text-sm text-center"
+          }
         >
           <span>
             <icons.Svg data={icons.PATHS.goBack} />

@@ -12,7 +12,7 @@ import * as config from "../config";
 import * as listen from "./listen";
 import * as loggerProvider from "../providers/logger";
 import * as platformModule from "../platform";
-import * as utils from "../utils"
+import * as utils from "../utils";
 
 // =================
 // === Constants ===
@@ -32,7 +32,9 @@ const CONFIRM_REGISTRATION_PATHNAME = "//auth/confirmation";
 const LOGIN_PATHNAME = "//auth/login";
 
 /** URL used as the OAuth redirect when running in the desktop app. */
-const DESKTOP_REDIRECT = utils.brand<auth.OAuthRedirect>(`${common.DEEP_LINK_SCHEME}://auth`);
+const DESKTOP_REDIRECT = utils.brand<auth.OAuthRedirect>(
+  `${common.DEEP_LINK_SCHEME}://auth`
+);
 /** Map from platform to the OAuth redirect URL that should be used for that platform. */
 const PLATFORM_TO_CONFIG: Record<
   platformModule.Platform,
@@ -59,15 +61,23 @@ const AMPLIFY_CONFIGS = {
   /** Configuration for @pbuchu's Cognito user pool. */
   pbuchu: {
     userPoolId: utils.brand<auth.UserPoolId>("eu-west-1_jSF1RbgPK"),
-    userPoolWebClientId: utils.brand<auth.UserPoolWebClientId>("1bnib0jfon3aqc5g3lkia2infr"),
-    domain: utils.brand<auth.OAuthDomain>("pb-enso-domain.auth.eu-west-1.amazoncognito.com"),
+    userPoolWebClientId: utils.brand<auth.UserPoolWebClientId>(
+      "1bnib0jfon3aqc5g3lkia2infr"
+    ),
+    domain: utils.brand<auth.OAuthDomain>(
+      "pb-enso-domain.auth.eu-west-1.amazoncognito.com"
+    ),
     ...BASE_AMPLIFY_CONFIG,
   } satisfies Partial<auth.AmplifyConfig>,
   /** Configuration for the production Cognito user pool. */
   production: {
     userPoolId: utils.brand<auth.UserPoolId>("eu-west-1_9Kycu2SbD"),
-    userPoolWebClientId: utils.brand<auth.UserPoolWebClientId>("4j9bfs8e7415erf82l129v0qhe"),
-    domain: utils.brand<auth.OAuthDomain>("production-enso-domain.auth.eu-west-1.amazoncognito.com"),
+    userPoolWebClientId: utils.brand<auth.UserPoolWebClientId>(
+      "4j9bfs8e7415erf82l129v0qhe"
+    ),
+    domain: utils.brand<auth.OAuthDomain>(
+      "production-enso-domain.auth.eu-west-1.amazoncognito.com"
+    ),
     ...BASE_AMPLIFY_CONFIG,
   } satisfies Partial<auth.AmplifyConfig>,
 };
@@ -170,8 +180,10 @@ function openUrlWithExternalBrowser(url: string) {
  *
  * All URLs that don't have a pathname that starts with {@link AUTHENTICATION_PATHNAME_BASE} will be
  * ignored by this handler. */
-function setDeepLinkHandler(logger: loggerProvider.Logger,
-  navigate: (url: string) => void) {
+function setDeepLinkHandler(
+  logger: loggerProvider.Logger,
+  navigate: (url: string) => void
+) {
   const onDeepLink = (url: string) => {
     const parsedUrl = new URL(url);
 

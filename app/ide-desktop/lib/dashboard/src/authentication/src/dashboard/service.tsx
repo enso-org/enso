@@ -59,7 +59,10 @@ export class Backend {
 
   /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
   post<T = void>(path: string, payload: object) {
-    return this.client.post<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload);
+    return this.client.post<T>(
+      `${config.ACTIVE_CONFIG.apiUrl}/${path}`,
+      payload
+    );
   }
 
   /** Logs the error that occurred and throws a new one with a more user-friendly message. */
@@ -72,7 +75,9 @@ export class Backend {
 
   /** Sets the username of the current user, on the Cloud backend API. */
   setUsername(body: SetUsernameRequestBody): Promise<Organization> {
-    return this.post<Organization>(SET_USER_NAME_PATH, body).then(response => response.json());
+    return this.post<Organization>(SET_USER_NAME_PATH, body).then((response) =>
+      response.json()
+    );
   }
 
   /** Returns organization info for the current user, from the Cloud backend API.
