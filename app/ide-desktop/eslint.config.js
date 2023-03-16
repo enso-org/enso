@@ -21,9 +21,10 @@ const NAME = 'enso'
  * and conversely type errors may not mean they don't support ESM -
  * but we add those to the whitelist anyway otherwise we get type errors.
  * In particular, `string-length` supports ESM but its type definitions don't.
- * `yargs` and `react-hot-toast` are modules we explicitly want the default imports of. */
+ * `yargs` and `react-hot-toast` are modules we explicitly want the default imports of.
+ * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    'chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-alias|esbuild-plugin-time|esbuild-plugin-yaml|opener'
+    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-alias|esbuild-plugin-time|esbuild-plugin-yaml|opener'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|react-hot-toast`
 const OUR_MODULES = 'enso-content-config|enso-common'
 const RELATIVE_MODULES =

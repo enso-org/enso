@@ -52,13 +52,11 @@ class ImportsTest extends CompilerTest {
         |import Bar.Foo
         |import Bar.Foo as Bar
         |from Bar.Foo import Bar, Baz
-        |from Bar.Foo as Bar import Bar, Spam
         |from Bar.Foo import all
         |
         |export Bar.Foo
         |export Bar.Foo as Bar
         |from Bar.Foo export Bar, Baz
-        |from Bar.Foo as Bar export Bar, Baz
         |from Bar.Foo export all
         |
         |import Foo.Bar.Baz
@@ -66,21 +64,19 @@ class ImportsTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse
 
     "desugar project name imports correctly" in {
-      ir.imports.take(5).map(_.showCode()) shouldEqual List(
+      ir.imports.take(4).map(_.showCode()) shouldEqual List(
         "import Bar.Foo.Main as Foo",
         "import Bar.Foo.Main as Bar",
         "from Bar.Foo.Main import Bar, Baz",
-        "from Bar.Foo.Main as Bar import Bar, Spam",
         "from Bar.Foo.Main import all"
       )
     }
 
     "desugar project name exports correctly" in {
-      ir.exports.take(5).map(_.showCode()) shouldEqual List(
+      ir.exports.take(4).map(_.showCode()) shouldEqual List(
         "export Bar.Foo.Main as Foo",
         "export Bar.Foo.Main as Bar",
         "from Bar.Foo.Main export Bar, Baz",
-        "from Bar.Foo.Main as Bar export Bar, Baz",
         "from Bar.Foo.Main export all"
       )
     }

@@ -63,7 +63,7 @@ class GraalVMComponentUpdaterSpec extends AnyWordSpec with Matchers {
       val graal = getOrElseFail(graalRuntime)
       val ru    = new GraalVMComponentUpdater(graal)
 
-      ru.list match {
+      ru.list() match {
         case Success(components) =>
           components should not be empty
         case Failure(cause) =>

@@ -1,6 +1,4 @@
 import project.Any.Any
-#import project.Data.Boolean.Boolean
-from project.Data.Boolean import Boolean, True, False
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
@@ -16,6 +14,8 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot
+
+from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Text_Utils
 
@@ -36,6 +36,9 @@ type Pattern_2
 
     ## Tries to match the provided `input` against the pattern `self`.
 
+       Returns a `Match_2` containing the matched text and its match groups, or
+       `Nothing` if the match failed.
+
        Arguments:
        - input: The text to match the pattern described by `self` against.
     match : Text -> Match_2 | Nothing
@@ -47,7 +50,8 @@ type Pattern_2
 
     ## Tries to match the provided `input` against the pattern `self`.
 
-       Returns a Vector of Match_2 objects.
+       Returns a `Vector Match_2` objects, each containing the matched text
+       and its match groups.
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
@@ -62,6 +66,28 @@ type Pattern_2
             Match_Iterator_Value.Last _ -> Nothing
         go it
         builder.to_vector
+
+    ## Tries to match the provided `input` against the pattern `self`.
+
+       Returns a `Text` containing the matched text, or `Nothing` if the match
+       failed.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+    find : Text -> Text | Nothing
+    find self input =
+        match_to_group_maybe <| self.match input
+
+    ## Tries to match the provided `input` against the pattern `self`.
+
+       Returns a `Vector Text`, each containing the matched text.
+       If the pattern does not match, an empty `Vector` is returned.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+    find_all : Text -> Vector Text
+    find_all self input =
+        self.match_all input . map match_to_group_maybe
 
     ## PRIVATE
 
@@ -112,6 +138,17 @@ type Pattern_2
                     _ : Integer -> n
                     Nothing -> Error.throw (No_Such_Group.Error name)
 
+    ## Return the number of groups in the underlying RegexObject.
+       Note, the count includes group 0 (the whole match) as well.
+    group_count : Integer
+    group_count self = self.internal_regex_object.groupCount
+
+    ## Return a vector of all named group names.
+    group_names : Map Text Integer
+    group_names self =
+        map = polyglot_map_to_map self.internal_regex_object.groups
+        map.keys
+
 ## PRIVATE
 
     Performs the regex match, and iterates through the results. Yields both
@@ -139,7 +176,7 @@ type Match_Iterator
                 filler_range = Range.new self.cursor match_start
                 filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
                 match = Match_2.Value self.pattern regex_result self.input
-                next_cursor = match.end 0
+                next_cursor = match.utf16_end 0
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
 
@@ -162,16 +199,22 @@ type Match_Iterator_Value
   Last (filler : Span)
 
 ## PRIVATE
-group_map_contains : Any -> Text -> Boolean
-group_map_contains map elem =
-    members = Polyglot.get_members map
-    as_vec = Vector.from_polyglot_array members
-    as_vec.contains elem
+   Convert the polyglot map to a Map.
+polyglot_map_to_map : Any -> Map Any Any
+polyglot_map_to_map map =
+    polyglot_keys = Polyglot.get_members map
+    keys = Vector.from_polyglot_array polyglot_keys
+    pairs = keys.map key-> [key, Polyglot.get_member map key]
+    Map.from_vector pairs
 
 ## PRIVATE
+   Get the named group from the polyglot map.
 read_group_map : Any -> Text -> Integer | Nothing
-read_group_map map name =
-    case group_map_contains map name of
-        True -> Polyglot.get_member map name
-        False -> Nothing
+read_group_map polyglot_map name =
+    map = polyglot_map_to_map polyglot_map
+    map.get name
 
+## PRIVATE
+match_to_group_maybe : Match_2 | Nothing -> Text | Nothing
+match_to_group_maybe match =
+    if match.is_nothing then Nothing else match.text 0
