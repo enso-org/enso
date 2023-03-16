@@ -62,9 +62,9 @@ interface AmplifyError extends Error {
 /** Hints to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
 function isAmplifyError(error: unknown): error is AmplifyError {
     if (error && typeof error === 'object') {
-        return 'code' in error && 'message' in error && 'name' in error;
+        return 'code' in error && 'message' in error && 'name' in error
     }
-    return false;
+    return false
 }
 
 /** Converts the `unknown` error into an {@link AmplifyError} and returns it, or re-throws it if
@@ -72,9 +72,9 @@ function isAmplifyError(error: unknown): error is AmplifyError {
  * @throws If the error is not an amplify error. */
 function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
     if (isAmplifyError(error)) {
-        return error;
+        return error
     } else {
-        throw error;
+        throw error
     }
 }
 
@@ -90,7 +90,10 @@ function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
  * they return. The caller can then handle them via pattern matching on the {@link results.Result}
  * type. */
 export class Cognito {
-    constructor(private readonly platform: platformModule.Platform, amplifyConfig: config.AmplifyConfig) {
+    constructor(
+        private readonly platform: platformModule.Platform,
+        amplifyConfig: config.AmplifyConfig
+    ) {
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
          * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
          * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
@@ -122,7 +125,7 @@ export class Cognito {
      * address is verified, the user can sign in. */
     confirmSignUp(email: string, code: string) {
         return confirmSignUp(email, code)
-    } 
+    }
 }
 
 // ===================
@@ -174,9 +177,9 @@ type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['k
 
 function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
     if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
-        return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind;
+        return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind
     } else {
-        throw error;
+        throw error
     }
 }
 
@@ -186,19 +189,17 @@ function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
 
 function signUp(username: string, password: string, platform: platformModule.Platform) {
     return results.Result.wrapAsync(async () => {
-        const params = intoSignUpParams(username, password, platform);
-        await amplify.Auth.signUp(params);
-    })
-        .then(result => result
-            .mapErr(intoAmplifyErrorOrThrow)
-            .mapErr(intoSignUpErrorOrThrow)
-        );
+        const params = intoSignUpParams(username, password, platform)
+        await amplify.Auth.signUp(params)
+    }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignUpErrorOrThrow))
 }
 
-function intoSignUpParams(username: string,
+function intoSignUpParams(
+    username: string,
     password: string,
-    platform: platformModule.Platform): amplify.SignUpParams {
-    return ({
+    platform: platformModule.Platform
+): amplify.SignUpParams {
+    return {
         username,
         password,
         attributes: {
@@ -214,7 +215,7 @@ function intoSignUpParams(username: string,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             'custom:fromDesktop': platform === platformModule.Platform.desktop ? 'true' : 'false',
         },
-    });
+    }
 }
 
 const SIGN_UP_USERNAME_EXISTS_ERROR = {
@@ -241,15 +242,15 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
         return {
             kind: SIGN_UP_USERNAME_EXISTS_ERROR.kind,
             message: error.message,
-        };
+        }
     } else if (error.code === SIGN_UP_INVALID_PARAMETER_ERROR.internalCode) {
         return {
             kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
             message: error.message,
-        };
+        }
     }
 
-    throw error;
+    throw error
 }
 
 // =====================
@@ -257,9 +258,11 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 // =====================
 
 async function confirmSignUp(email: string, code: string) {
-    return results.Result.wrapAsync(async () => { await amplify.Auth.confirmSignUp(email, code); })
+    return results.Result.wrapAsync(async () => {
+        await amplify.Auth.confirmSignUp(email, code)
+    })
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow));
+        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
 }
 
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
@@ -284,9 +287,9 @@ function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError 
                  * ambiguity. */
                 kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
                 message: error.message,
-            };
+            }
         }
     }
 
-    throw error;
+    throw error
 }

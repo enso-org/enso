@@ -36,7 +36,9 @@ function ConfirmRegistration() {
     }
 
     confirmSignUp(email, verificationCode)
-      .then(() => { navigate(app.LOGIN_PATH + search.toString()); })
+      .then(() => {
+        navigate(app.LOGIN_PATH + search.toString());
+      })
       .catch((error) => {
         logger.error("Error while confirming sign-up", error);
         toast.error(

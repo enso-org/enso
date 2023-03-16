@@ -24,7 +24,7 @@ interface NoBrand {
     $brand?: never
 }
 
-export function brand<T extends Brand<string>>(s: NoBrand & Omit<T, "$brand">): T {
+export function brand<T extends Brand<string>>(s: NoBrand & Omit<T, '$brand'>): T {
     // <insert comment here explaining why this is safe for our purposes>
     // We are explicitly doing an unsafe cast to add a brand to the string.
     // eslint-disable-next-line no-restricted-syntax
