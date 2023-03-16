@@ -3,7 +3,6 @@ import * as router from "react-router-dom";
 
 import * as app from "../../components/app";
 import * as icons from "../../components/svg";
-import withRouter from "../../navigation";
 
 // =============
 // === Login ===
@@ -33,4 +32,4 @@ function Login() {
   );
 }
 
-export default withRouter(Login);
+export default Login;
