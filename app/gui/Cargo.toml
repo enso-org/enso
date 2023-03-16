@@ -16,6 +16,7 @@ enso-data-structures = { path = "../../lib/rust/data-structures" }
 enso-debug-api = { path = "../../lib/rust/debug-api" }
 enso-debug-scene = { path = "view/examples" }
 enso-frp = { path = "../../lib/rust/frp" }
+enso-doc-parser = { path = "../../lib/rust/parser/doc-parser" }
 enso-prelude = { path = "../../lib/rust/prelude" }
 enso-profiler = { path = "../../lib/rust/profiler" }
 enso-executor = { path = "../../lib/rust/executor" }
@@ -34,7 +35,6 @@ ensogl-drop-manager = { path = "../../lib/rust/ensogl/component/drop-manager" }
 fuzzly = { path = "../../lib/rust/fuzzly" }
 ast = { path = "language/ast/impl" }
 parser = { path = "language/parser" }
-parser-scala = { path = "language/parser-scala" }
 ide-view = { path = "view" }
 engine-protocol = { path = "controller/engine-protocol" }
 json-rpc = { path = "../../lib/rust/json-rpc" }

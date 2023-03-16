@@ -10,7 +10,7 @@ use controller::searcher::action::MatchKind;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
-use engine_protocol::language_server::DocSection;
+use enso_doc_parser::DocSection;
 use ordered_float::OrderedFloat;
 
 
@@ -230,7 +230,7 @@ impl Component {
         match &self.data {
             Data::FromDatabase { entry, .. } => entry.documentation.iter().any(|doc| match doc {
                 DocSection::Tag { name, .. } =>
-                    name == ast::constants::PRIVATE_DOC_SECTION_TAG_NAME,
+                    name == &ast::constants::PRIVATE_DOC_SECTION_TAG_NAME,
                 _ => false,
             }),
             _ => false,
@@ -244,7 +244,7 @@ impl Component {
             Data::FromDatabase { entry, .. } => {
                 let aliases = entry.documentation.iter().filter_map(|doc| match doc {
                     DocSection::Tag { name, body }
-                        if name == ast::constants::ALIAS_DOC_SECTION_TAG_NAME =>
+                        if name == &ast::constants::ALIAS_DOC_SECTION_TAG_NAME =>
                         Some(body.as_str().split(',').map(|s| s.trim())),
                     _ => None,
                 });

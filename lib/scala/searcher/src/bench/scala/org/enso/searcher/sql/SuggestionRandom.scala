@@ -35,8 +35,7 @@ object SuggestionRandom {
   def nextSuggestionModule(): Suggestion.Module =
     Suggestion.Module(
       module            = nextString(),
-      documentation     = optional(nextString()),
-      documentationHtml = optional(nextString())
+      documentation     = optional(nextString())
     )
 
   def nextSuggestionType(): Suggestion.Type =
@@ -47,8 +46,7 @@ object SuggestionRandom {
       params            = Seq(),
       returnType        = nextString(),
       parentType        = optional(nextString()),
-      documentation     = optional(nextString()),
-      documentationHtml = optional(nextString())
+      documentation     = optional(nextString())
     )
 
   def nextSuggestionConstructor(): Suggestion.Constructor =
@@ -58,8 +56,7 @@ object SuggestionRandom {
       name              = nextString(),
       arguments         = Seq(),
       returnType        = nextString(),
-      documentation     = optional(nextString()),
-      documentationHtml = optional(nextString())
+      documentation     = optional(nextString())
     )
 
   def nextSuggestionMethod(): Suggestion.Method =
@@ -71,8 +68,7 @@ object SuggestionRandom {
       selfType          = nextString(),
       returnType        = nextString(),
       isStatic          = Random.nextBoolean(),
-      documentation     = optional(nextString()),
-      documentationHtml = optional(nextString())
+      documentation     = optional(nextString())
     )
 
   def nextSuggestionFunction(): Suggestion.Function =

@@ -2185,8 +2185,6 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               ),
               "Unnamed.Test.A",
               None,
-              None,
-              None,
               None
             ),
             Vector()
@@ -2203,8 +2201,6 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               "Unnamed.Test.A",
               "Standard.Base.Any.Any",
               false,
-              None,
-              None,
               None,
               None
             ),

@@ -17,8 +17,10 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
@@ -93,6 +95,7 @@ public final class Module implements TruffleObject {
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
   private IR.Module ir;
+  private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
@@ -285,6 +288,7 @@ public final class Module implements TruffleObject {
             };
         var copy = this.ir.mapExpressions(fn);
         this.ir = copy;
+        this.uuidsMap = null;
         return;
       }
     }
@@ -407,6 +411,28 @@ public final class Module implements TruffleObject {
     return ir;
   }
 
+  public boolean containsUUID(UUID id) {
+    var map = uuidsMap;
+    if (map == null) {
+      var newMap = new HashMap<UUID, IR>();
+      var localIr = getIr();
+      if (localIr != null) {
+        localIr
+            .preorder()
+            .foreach(
+                (v1) -> {
+                  if (v1.getExternalId().isDefined()) {
+                    newMap.put(v1.getExternalId().get(), v1);
+                  }
+                  return null;
+                });
+      }
+      uuidsMap = newMap;
+      map = newMap;
+    }
+    return map.containsKey(id);
+  }
+
   /** @return the current compilation stage of this module. */
   public CompilationStage getCompilationStage() {
     return compilationStage;
@@ -434,6 +460,7 @@ public final class Module implements TruffleObject {
    */
   public void unsafeSetIr(IR.Module ir) {
     this.ir = ir;
+    this.uuidsMap = null;
   }
 
   /** @return the runtime scope of this module. */
