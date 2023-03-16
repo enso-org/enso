@@ -7,7 +7,12 @@ import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{ContentRoot, ContentRootWithFile}
-import org.enso.searcher.sql.{SchemaVersion, SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{
+  SchemaVersion,
+  SqlDatabase,
+  SqlSuggestionsRepo,
+  SqlVersionsRepo
+}
 import org.enso.testkit.FlakySpec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
