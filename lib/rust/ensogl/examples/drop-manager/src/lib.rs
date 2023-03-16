@@ -58,7 +58,8 @@ fn download_file(file: ensogl_drop_manager::File) {
 pub fn main() {
     let world = World::new().displayed_in("root");
     let scene = world.default_scene.clone_ref();
-    let drop_manager = ensogl_drop_manager::Manager::new(scene.dom.root.as_ref(), &scene);
+    let drop_manager =
+        ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), &scene);
     let network = enso_frp::Network::new("Debug Scene");
     enso_frp::extend! { network
         let file_received = drop_manager.files_received().clone_ref();

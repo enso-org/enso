@@ -32,6 +32,7 @@ use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
 use enso_web::Closure;
 use ensogl_core::display::scene::Scene;
+use ensogl_core::system::web::dom::WithKnownShape;
 
 #[cfg(target_arch = "wasm32")]
 use enso_web::JsCast;
@@ -142,17 +143,18 @@ pub struct Manager {
 
 impl Manager {
     /// Constructor, adding listener to the given target.
-    pub fn new(target: &enso_web::EventTarget, scene: &Scene) -> Self {
+    pub fn new(dom: &WithKnownShape<web::EventTarget>, scene: &Scene) -> Self {
         debug!("Creating.");
         let network = frp::Network::new("DropFileManager");
         frp::extend! { network
             files_received <- source();
         }
 
+        let target: &web::EventTarget = dom.deref();
         let drop: DropClosure = Closure::new(f!([files_received,scene](event:web_sys::DragEvent) {
             debug!("Dropped files.");
             event.prevent_default();
-            Self::handle_drop_event(event,&files_received, &scene);
+            Self::handle_drop_event(event, &files_received, &scene);
         }));
         // To mark element as a valid drop target, the `dragover` event handler should return
         // `false`. See
@@ -173,11 +175,14 @@ impl Manager {
 
     /// Retrieve the position of the drop event in the scene coordinates.
     fn event_position(scene: &Scene, event: &web_sys::DragEvent) -> Vector2 {
-        let position = Vector2::new(event.client_x() as f32, event.client_y() as f32);
-        let pixel_ratio = scene.frp.shape.value().pixel_ratio;
+        let dom: WithKnownShape<web::EventTarget> = scene.dom.root.clone_ref().into();
+        let shape = dom.shape.value();
+        let base = Vector2::new(0.0, shape.height);
+        let position = Vector2::new(event.client_x() as f32, -event.client_y() as f32);
+        let position = base + position;
         let center = scene.frp.shape.value().center();
-        let position = position.map(|v| (v * pixel_ratio)) - center;
-        scene.screen_to_scene_coordinates(Vector3::new(position.x, -position.y, 0.0)).xy()
+        let position = position - center;
+        scene.screen_to_scene_coordinates(Vector3::new(position.x, position.y, 0.0)).xy()
     }
 
     fn handle_drop_event(

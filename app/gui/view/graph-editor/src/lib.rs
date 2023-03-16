@@ -1753,7 +1753,8 @@ impl GraphEditorModel {
         let profiling_statuses = profiling::Statuses::new();
         let profiling_button = component::profiling::Button::new(&app);
         let add_node_button = Rc::new(component::add_node_button::AddNodeButton::new(&app));
-        let drop_manager = ensogl_drop_manager::Manager::new(&scene.dom.root, scene);
+        let drop_manager =
+            ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
         let selection_controller =
             selection::Controller::new(&frp, &app.cursor, &scene.mouse.frp, &touch_state, &nodes);
