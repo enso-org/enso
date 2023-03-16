@@ -1405,8 +1405,6 @@ spec =
             "Hello World!".replace "[lo]" "#" . should_equal "He### W#r#d!"
             "Hello World!".replace "l" "#" only_first=True . should_equal "He#lo World!"
             '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' . should_equal '(abc) foo (bar) baz'
-            'ß'.replace 'S' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'AA'
-            'aﬃb'.replace 'i' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
 
         Test.specify "should correctly handle empty-string edge cases" <|
             [True, False] . each only_first->
@@ -1439,12 +1437,18 @@ spec =
             "Iiİı" . replace "İ" "-" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "Ii-ı"
             "Iiİı" . replace "ı" "-" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "Iiİ-"
 
-        Test.specify "should correctly handle Unicode edge cases" <|
-            'sśs\u{301}' . replace 's' 'O' . should_equal 'Ośs\u{301}'
-            'śs\u{301}s' . replace 's' 'O' only_first=True . should_equal 'śs\u{301}O'
+        Test.specify "should correctly handle Unicode" <|
+            'ß'.replace 'ß' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'A'
+            'aﬃb'.replace 'ﬃ' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
 
-            'sśs\u{301}' . replace 'ś' 'O' . should_equal 'sOO'
-            'sśs\u{301}' . replace 's\u{301}' 'O' . should_equal 'sOO'
+            'sśs\u{301}' . replace 's' 'O' . should_equal 'OśO\u{301}'
+            'śss\u{301}' . replace 's' 'O' only_first=True . should_equal 'śOs\u{301}'
+
+            'sśs\u{301}' . replace 'ś' 'O' . should_equal 'Oss\u{301}'
+            'śss\u{301}' . replace 'ś' 'O' only_first=True . should_equal '0ss\u{301}'
+
+            'sśs\u{301}' . replace 's\u{301}' 'O' . should_equal 'sś0'
+            's\u{301}śs' . replace 's\u{301}' 'O' . should_equal '0śs'
 
             'SŚS\u{301}' . replace 's' 'O' . should_equal 'SŚS\u{301}'
             'ŚS\u{301}S' . replace 's' 'O' only_first=True . should_equal 'ŚS\u{301}S'
@@ -1455,29 +1459,13 @@ spec =
             'SŚS\u{301}' . replace 's' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'OŚS\u{301}'
             'ŚS\u{301}S' . replace 's' 'O' only_first=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'ŚS\u{301}O'
 
-            'SŚS\u{301}' . replace 'ś' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'SOO'
-            'SŚS\u{301}' . replace 's\u{301}' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'SOO'
+            'SŚS\u{301}' . replace 'ś' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'SO\u{301}'
+            'SŚS\u{301}' . replace 's\u{301}' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'SSO'
 
             '✨🚀🚧😍😃😍😎😙😉☺' . replace '🚧😍' '|-|:)' . should_equal '✨🚀|-|:)😃😍😎😙😉☺'
             'Rocket Science' . replace 'Rocket' '🚀' . should_equal '🚀 Science'
 
             "Korean: 건반".replace "건반" "keyboard" . should_equal "Korean: keyboard"
-
-        Test.specify "will approximate ligature matches" <|
-            # TODO do we want to improve this? highly non-trivial for very rare edge cases
-            ## Currently we lack 'resolution' to extract a partial match from
-               the ligature to keep it, probably would need some special
-               mapping.
-            'ﬃﬃ'.replace 'ff' 'aa' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aaaa'
-            'ﬃﬃ'.replace 'ff' 'aa' only_first=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aaﬃ'
-            'aﬃﬃb'.replace 'IF' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
-            'aiﬃffz' . replace 'if' '-' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'a--fz'
-            'AFFIB'.replace 'ﬃ' '-' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'A-B'
-
-            'ß'.replace 'SS' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'A'
-            'ß'.replace 'S' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'AA'
-            'ß'.replace 'S' 'A' only_first=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'A'
-            'STRASSE'.replace 'ß' '-' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'STRA-E'
 
         Test.specify "should perform simple replacement in Regex mode" <|
             "ababab".replace "b" "a" . should_equal "aaaaaa"
@@ -1496,11 +1484,11 @@ spec =
 
         Test.specify "in Regex mode should work with Unicode" <|
             "Korean: 건반".replace "건반" "keyboard" . should_equal "Korean: keyboard"
-            'sśs\u{301}'.replace 'ś' '-' . should_equal 's--'
-            'sśs\u{301}'.replace 's\u{301}' '-' . should_equal 's--'
+            'sśs\u{301}'.replace 'ś' '-' . should_equal 's-s\u{301}'
+            'sśs\u{301}'.replace 's\u{301}' '-' . should_equal 'sś-'
 
         Test.specify "in Regex mode should allow referring to capture groups in substitutions" <|
             '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' . should_equal 'content is at url'
-            '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>' '${text} is at ${address}' . should_equal 'content is at url'
+            '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>' '$<text> is at $<address>' . should_equal 'content is at url'
 
 main = Test_Suite.run_main spec

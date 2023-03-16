@@ -388,9 +388,10 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
          'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
 
 Text.replace : Text -> Text -> Boolean -> Boolean -> Text
-Text.replace self regex replacement case_sensitivity=Nothing only_first=False = if regex.is_empty then self else
-    pattern = Regex_2.compile regex case_sensitivity
-    pattern.replace self replacement only_first
+Text.replace self pattern replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False = if pattern.is_empty then self else
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+    compiled_pattern.replace self replacement only_first
 
 ## ALIAS Get Words
 
