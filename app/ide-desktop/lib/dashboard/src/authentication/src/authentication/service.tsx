@@ -5,11 +5,12 @@
 import * as common from "enso-common";
 
 import * as app from "../components/app";
-import * as authConfigModule from "./config";
+import * as auth from "./config";
 import * as cognito from "./cognito";
 import * as config from "../config";
 import * as loggerProvider from "../providers/logger";
 import * as platformModule from "../platform";
+import * as utils from "../utils"
 
 // =================
 // === Constants ===
@@ -19,12 +20,11 @@ import * as platformModule from "../platform";
  * redirect from an account verification email. */
 const CONFIRM_REGISTRATION_PATHNAME = "//auth/confirmation";
 /** URL used as the OAuth redirect when running in the desktop app. */
-const DESKTOP_REDIRECT =
-  `${common.DEEP_LINK_SCHEME}://auth` as authConfigModule.OAuthRedirect;
+const DESKTOP_REDIRECT = utils.brand<auth.OAuthRedirect>(`${common.DEEP_LINK_SCHEME}://auth`);
 /** Map from platform to the OAuth redirect URL that should be used for that platform. */
 const PLATFORM_TO_CONFIG: Record<
   platformModule.Platform,
-  Pick<authConfigModule.AmplifyConfig, "redirectSignIn" | "redirectSignOut">
+  Pick<auth.AmplifyConfig, "redirectSignIn" | "redirectSignOut">
 > = {
   [platformModule.Platform.desktop]: {
     redirectSignIn: DESKTOP_REDIRECT,
@@ -37,27 +37,27 @@ const PLATFORM_TO_CONFIG: Record<
 };
 
 const BASE_AMPLIFY_CONFIG = {
-  region: authConfigModule.AWS_REGION,
-  scope: authConfigModule.OAUTH_SCOPES,
-  responseType: authConfigModule.OAUTH_RESPONSE_TYPE,
-} satisfies Partial<authConfigModule.AmplifyConfig>;
+  region: auth.AWS_REGION,
+  scope: auth.OAUTH_SCOPES,
+  responseType: auth.OAUTH_RESPONSE_TYPE,
+} satisfies Partial<auth.AmplifyConfig>;
 
 /** Collection of configuration details for Amplify user pools, sorted by deployment environment. */
 const AMPLIFY_CONFIGS = {
   /** Configuration for @pbuchu's Cognito user pool. */
   pbuchu: {
-    userPoolId: "eu-west-1_jSF1RbgPK" as authConfigModule.UserPoolId,
-    userPoolWebClientId: "1bnib0jfon3aqc5g3lkia2infr" as authConfigModule.UserPoolWebClientId,
-    domain: "pb-enso-domain.auth.eu-west-1.amazoncognito.com" as authConfigModule.OAuthDomain,
+    userPoolId: utils.brand<auth.UserPoolId>("eu-west-1_jSF1RbgPK"),
+    userPoolWebClientId: utils.brand<auth.UserPoolWebClientId>("1bnib0jfon3aqc5g3lkia2infr"),
+    domain: utils.brand<auth.OAuthDomain>("pb-enso-domain.auth.eu-west-1.amazoncognito.com"),
     ...BASE_AMPLIFY_CONFIG,
-  },
+  } satisfies Partial<auth.AmplifyConfig>,
   /** Configuration for the production Cognito user pool. */
   production: {
-    userPoolId: "eu-west-1_9Kycu2SbD" as authConfigModule.UserPoolId,
-    userPoolWebClientId: "4j9bfs8e7415erf82l129v0qhe" as authConfigModule.UserPoolWebClientId,
-    domain: "production-enso-domain.auth.eu-west-1.amazoncognito.com" as authConfigModule.OAuthDomain,
+    userPoolId: utils.brand<auth.UserPoolId>("eu-west-1_9Kycu2SbD"),
+    userPoolWebClientId: utils.brand<auth.UserPoolWebClientId>("4j9bfs8e7415erf82l129v0qhe"),
+    domain: utils.brand<auth.OAuthDomain>("production-enso-domain.auth.eu-west-1.amazoncognito.com"),
     ...BASE_AMPLIFY_CONFIG,
-  },
+  } satisfies Partial<auth.AmplifyConfig>,
 };
 
 // ==================
@@ -104,7 +104,7 @@ function loadAmplifyConfig(
   logger: loggerProvider.Logger,
   platform: platformModule.Platform,
   navigate: (url: string) => void
-): authConfigModule.AmplifyConfig {
+): auth.AmplifyConfig {
   /** Load the environment-specific Amplify configuration. */
   const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
   let urlOpener;

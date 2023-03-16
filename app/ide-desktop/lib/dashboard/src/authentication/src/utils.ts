@@ -19,3 +19,14 @@ export function handleEvent<T>(callback: () => Promise<T>) {
 export interface Brand<T extends string> {
     $brand: T
 }
+
+interface NoBrand {
+    $brand?: never
+}
+
+export function brand<T extends Brand<string>>(s: NoBrand & Omit<T, "$brand">): T {
+    // <insert comment here explaining why this is safe for our purposes>
+    // We are explicitly doing an unsafe cast to add a brand to the string.
+    // eslint-disable-next-line no-restricted-syntax
+    return s as unknown as T
+}

@@ -105,6 +105,7 @@ interface AuthContextType {
  *
  * So changing the cast would provide no safety guarantees, and would require us to introduce null
  * checks everywhere we use the context. */
+// eslint-disable-next-line no-restricted-syntax
 const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 
 // ====================

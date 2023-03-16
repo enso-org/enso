@@ -17,11 +17,11 @@ import * as utils from '../utils'
 // =================
 
 /** AWS region in which our Cognito pool is located. */
-export const AWS_REGION: AwsRegion = 'eu-west-1' as AwsRegion
+export const AWS_REGION = utils.brand<AwsRegion>('eu-west-1')
 /** Complete list of OAuth scopes used by the app. */
-export const OAUTH_SCOPES: OAuthScope[] = ['email' as OAuthScope, 'openid' as OAuthScope]
+export const OAUTH_SCOPES = [utils.brand<OAuthScope>('email'), utils.brand<OAuthScope>('openid')]
 /** OAuth response type used in the OAuth flows. */
-export const OAUTH_RESPONSE_TYPE: OAuthResponseType = 'code' as OAuthResponseType
+export const OAUTH_RESPONSE_TYPE = utils.brand<OAuthResponseType>('code')
 
 // =============
 // === Types ===
