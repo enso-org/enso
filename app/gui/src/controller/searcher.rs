@@ -560,6 +560,11 @@ impl ComponentsProvider {
     pub fn namespace_section_count(&self) -> usize {
         self.list.top_module_section_count()
     }
+
+    /// Check if the component list is filtered.
+    pub fn is_filtered(&self) -> bool {
+        self.list.is_filtered()
+    }
 }
 
 /// Searcher Controller.
