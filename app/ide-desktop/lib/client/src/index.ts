@@ -5,23 +5,34 @@
  * Inter-Process Communication channel, which enables seamless communication between the served web
  * application and the Electron process. */
 
+import * as fs from 'node:fs/promises'
+import * as fsSync from 'node:fs'
+import * as pathModule from 'node:path'
+import * as process from 'node:process'
+
+import * as electron from 'electron'
+
+import * as contentConfig from 'enso-content-config'
+
 import * as authentication from 'authentication'
 import * as config from 'config'
 import * as configParser from 'config/parser'
-import * as content from 'enso-content-config'
 import * as debug from 'debug'
-import * as electron from 'electron'
-import * as fs from 'node:fs/promises'
-import * as fss from 'node:fs'
 import * as ipc from 'ipc'
 import * as naming from 'naming'
-import * as path from 'node:path'
 import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
-import * as process from 'process'
-const logger = content.logger
+
+const logger = contentConfig.logger
+
+// =================
+// === Constants ===
+// =================
+
+/** Indent size for outputting JSON. */
+const INDENT_SIZE = 4
 
 // ===========
 // === App ===
@@ -30,13 +41,10 @@ const logger = content.logger
 /** The Electron application. It is responsible for starting all the required services, and
  * displaying and managing the app window. */
 class App {
-    window: null | electron.BrowserWindow = null
-    server: null | server.Server = null
-    args: config.Args
+    window: electron.BrowserWindow | undefined = undefined
+    server: server.Server | undefined = undefined
+    args: config.Args = config.CONFIG
     isQuitting = false
-    constructor() {
-        this.args = config.config
-    }
 
     async run() {
         const { args, windowSize, chromeOptions } = configParser.parseArgs()
@@ -45,7 +53,9 @@ class App {
             await this.printVersion()
             process.exit()
         } else if (this.args.groups.debug.options.info.value) {
-            await electron.app.whenReady().then(async () => await debug.printInfo())
+            await electron.app.whenReady().then(async () => {
+                await debug.printInfo()
+            })
             process.exit()
         } else {
             this.setChromeOptions(chromeOptions)
@@ -57,7 +67,9 @@ class App {
              * the `authentication.initModule` call that is called in the listener, the application
              * freezes. This freeze should be diagnosed and fixed. Then, the `whenReady()` listener
              * should be used here instead. */
-            electron.app.on('ready', () => this.main(windowSize))
+            electron.app.on('ready', () => {
+                void this.main(windowSize)
+            })
             this.registerShortcuts()
         }
     }
@@ -65,7 +77,11 @@ class App {
     /** Set Chrome options based on the app configuration. For comprehensive list of available
      * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
     setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
-        const addIf = (opt: content.Option<boolean>, chromeOptName: string, value?: string) => {
+        const addIf = (
+            opt: contentConfig.Option<boolean>,
+            chromeOptName: string,
+            value?: string
+        ) => {
             if (opt.value) {
                 const chromeOption = new configParser.ChromeOption(chromeOptName, value)
                 const chromeOptionStr = chromeOption.display()
@@ -86,12 +102,12 @@ class App {
             addIf(perfOpts.forceHighPerformanceGpu, 'force_high_performance_gpu')
             addIf(perfOpts.ignoreGpuBlocklist, 'ignore-gpu-blocklist')
             add('use-angle', perfOpts.angleBackend.value)
-            chromeOptions.sort()
+            chromeOptions.sort((a, b) => a.name.localeCompare(b.name))
             if (chromeOptions.length > 0) {
                 for (const chromeOption of chromeOptions) {
                     electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
                 }
-                const cfgName = config.helpExtendedOptionName
+                const cfgName = config.HELP_EXTENDED_OPTION_NAME
                 logger.log(`See '-${cfgName}' to learn why these options were enabled.`)
             }
         })
@@ -124,13 +140,17 @@ class App {
     }
 
     /** Run the provided function if the provided option was enabled. Log a message otherwise. */
-    async runIfEnabled(option: content.Option<boolean>, fn: () => Promise<void>) {
-        option.value ? await fn() : logger.log(`The app is configured not to use ${option.name}.`)
+    async runIfEnabled(option: contentConfig.Option<boolean>, fn: () => Promise<void> | void) {
+        if (option.value) {
+            await fn()
+        } else {
+            logger.log(`The app is configured not to use ${option.name}.`)
+        }
     }
 
     /** Start the backend processes. */
     async startBackendIfEnabled() {
-        await this.runIfEnabled(this.args.options.engine, async () => {
+        await this.runIfEnabled(this.args.options.engine, () => {
             const backendOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
             projectManager.spawn(this.args, backendOpts)
         })
@@ -140,8 +160,8 @@ class App {
     async startContentServerIfEnabled() {
         await this.runIfEnabled(this.args.options.server, async () => {
             await logger.asyncGroupMeasured('Starting the content server.', async () => {
-                let serverCfg = new server.Config({
-                    dir: paths.assets,
+                const serverCfg = new server.Config({
+                    dir: paths.ASSETS_PATH,
                     port: this.args.groups.server.options.port.value,
                 })
                 this.server = await server.Server.create(serverCfg)
@@ -151,7 +171,7 @@ class App {
 
     /** Create the Electron window and display it on the screen. */
     async createWindowIfEnabled(windowSize: config.WindowSize) {
-        await this.runIfEnabled(this.args.options.window, async () => {
+        await this.runIfEnabled(this.args.options.window, () => {
             logger.groupMeasured('Creating the window.', () => {
                 const argGroups = this.args.groups
                 const useFrame = this.args.groups.window.options.frame.value
@@ -159,7 +179,7 @@ class App {
                 const useHiddenInsetTitleBar = !useFrame && macOS
                 const useVibrancy = this.args.groups.window.options.vibrancy.value
                 const webPreferences: electron.WebPreferences = {
-                    preload: path.join(paths.app, 'preload.cjs'),
+                    preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
                     sandbox: true,
                     backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
                     devTools: argGroups.debug.options.devTools.value,
@@ -167,7 +187,7 @@ class App {
                     disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
                     spellcheck: false,
                 }
-                let windowPreferences: electron.BrowserWindowConstructorOptions = {
+                const windowPreferences: electron.BrowserWindowConstructorOptions = {
                     webPreferences,
                     width: windowSize.width,
                     height: windowSize.height,
@@ -195,7 +215,7 @@ class App {
                     }
                 })
 
-                window.webContents.on('render-process-gone', (event, details) => {
+                window.webContents.on('render-process-gone', (_event, details) => {
                     logger.error('Error, the render process crashed.', details)
                 })
 
@@ -207,76 +227,75 @@ class App {
     /** Initialize Inter-Process Communication between the Electron application and the served
      * website. */
     initIpc() {
-        electron.ipcMain.on(ipc.channel.error, (event, data) => logger.error(`IPC error: ${data}`))
-        let profilePromises: Promise<string>[] = []
+        electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
+            logger.error(`IPC error: ${JSON.stringify(data)}`)
+        })
         const argProfiles = this.args.groups.profile.options.loadProfile.value
-        if (argProfiles) {
-            profilePromises = argProfiles.map((path: string) => fs.readFile(path, 'utf8'))
-        }
-        const profiles = Promise.all(profilePromises)
-        electron.ipcMain.on(ipc.channel.loadProfiles, event => {
-            profiles.then(profiles => {
+        const profilePromises: Promise<string>[] = argProfiles.map((path: string) =>
+            fs.readFile(path, 'utf8')
+        )
+        const profilesPromise = Promise.all(profilePromises)
+        electron.ipcMain.on(ipc.Channel.loadProfiles, event => {
+            void profilesPromise.then(profiles => {
                 event.reply('profiles-loaded', profiles)
             })
         })
         const profileOutPath = this.args.groups.profile.options.saveProfile.value
         if (profileOutPath) {
-            electron.ipcMain.on(ipc.channel.saveProfile, (event, data) => {
-                fss.writeFileSync(profileOutPath, data)
+            electron.ipcMain.on(ipc.Channel.saveProfile, (_event, data: string) => {
+                fsSync.writeFileSync(profileOutPath, data)
             })
         }
-        electron.ipcMain.on(ipc.channel.quit, () => electron.app.quit())
+        electron.ipcMain.on(ipc.Channel.quit, () => {
+            electron.app.quit()
+        })
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration
      * is returned. This might be used to connect this application window to another, existing
      * application server. */
     serverPort(): number {
-        if (this.server != null) {
-            return this.server.config.port
-        } else {
-            return this.args.groups.server.options.port.value
-        }
+        return this.server?.config.port ?? this.args.groups.server.options.port.value
     }
 
     /** Redirect the web view to `localhost:<port>` to see the served website. */
     loadWindowContent() {
-        const window = this.window
-        if (window != null) {
-            const urlCfg: { [key: string]: string } = {}
+        if (this.window !== undefined) {
+            const urlCfg: Record<string, string> = {}
             for (const option of this.args.optionsRecursive()) {
-                if (option.value != option.default && option.passToWebApplication) {
+                if (option.value !== option.default && option.passToWebApplication) {
                     urlCfg[option.qualifiedName()] = String(option.value)
                 }
             }
             const params = server.urlParamsFromObject(urlCfg)
             const address = `http://localhost:${this.serverPort()}${params}`
             logger.log(`Loading the window address '${address}'.`)
-            window.loadURL(address)
+            void this.window.loadURL(address)
         }
     }
 
     printVersion(): Promise<void> {
-        let indent = ' '.repeat(4)
+        const indent = ' '.repeat(INDENT_SIZE)
         let maxNameLen = 0
-        for (let name in debug.versionInfo) {
+        for (const name in debug.VERSION_INFO) {
             maxNameLen = Math.max(maxNameLen, name.length)
         }
         console.log('Frontend:')
-        for (let [name, value] of Object.entries(debug.versionInfo)) {
-            let label = naming.capitalizeFirstLetter(name)
-            let spacing = ' '.repeat(maxNameLen - name.length)
+        for (const [name, value] of Object.entries(debug.VERSION_INFO)) {
+            const label = naming.capitalizeFirstLetter(name)
+            const spacing = ' '.repeat(maxNameLen - name.length)
             console.log(`${indent}${label}:${spacing} ${value}`)
         }
 
         console.log('')
+
         console.log('Backend:')
         return projectManager.version(this.args).then(backend => {
             if (!backend) {
                 console.log(`${indent}No backend available.`)
             } else {
-                let lines = backend.split(/\r?\n/).filter(line => line.length > 0)
-                for (let line of lines) {
+                const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
+                for (const line of lines) {
                     console.log(`${indent}${line}`)
                 }
             }
@@ -284,8 +303,8 @@ class App {
     }
 
     registerShortcuts() {
-        electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) => {
-            webContents.on('before-input-event', (beforeInputEvent, input) => {
+        electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
+            webContents.on('before-input-event', (_beforeInputEvent, input) => {
                 const { code, alt, control, shift, meta, type } = input
                 if (type === 'keyDown') {
                     const focusedWindow = electron.BrowserWindow.getFocusedWindow()
@@ -298,14 +317,14 @@ class App {
                         }
                     }
 
-                    let cmd_q = meta && !control && !alt && !shift && code === 'KeyQ'
-                    let ctrl_q = !meta && control && !alt && !shift && code === 'KeyQ'
-                    let alt_f4 = !meta && !control && alt && !shift && code === 'F4'
-                    let ctrl_w = !meta && control && !alt && !shift && code === 'KeyW'
-                    let quit_on_mac = process.platform === 'darwin' && (cmd_q || alt_f4)
-                    let quit_on_win = process.platform === 'win32' && (alt_f4 || ctrl_w)
-                    let quit_on_lin = process.platform === 'linux' && (alt_f4 || ctrl_q || ctrl_w)
-                    let quit = quit_on_mac || quit_on_win || quit_on_lin
+                    const cmdQ = meta && !control && !alt && !shift && code === 'KeyQ'
+                    const ctrlQ = !meta && control && !alt && !shift && code === 'KeyQ'
+                    const altF4 = !meta && !control && alt && !shift && code === 'F4'
+                    const ctrlW = !meta && control && !alt && !shift && code === 'KeyW'
+                    const quitOnMac = process.platform === 'darwin' && (cmdQ || altF4)
+                    const quitOnWin = process.platform === 'win32' && (altF4 || ctrlW)
+                    const quitOnLinux = process.platform === 'linux' && (altF4 || ctrlQ || ctrlW)
+                    const quit = quitOnMac || quitOnWin || quitOnLinux
                     if (quit) {
                         electron.app.quit()
                     }
@@ -319,5 +338,5 @@ class App {
 // === App startup ===
 // ===================
 
-const app = new App()
-app.run()
+const APP = new App()
+void APP.run()

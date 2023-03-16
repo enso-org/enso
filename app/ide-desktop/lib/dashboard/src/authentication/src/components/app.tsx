@@ -1,3 +1,5 @@
+// This lint does not like headings.
+/* eslint-disable jsdoc/require-description-complete-sentence */
 /** @file File containing the {@link App} React component, which is the entrypoint into our React
  * application.
  *
@@ -33,20 +35,22 @@
  * signed up but who have not completed email verification or set a username. The remaining
  * {@link router.Route}s require fully authenticated users (c.f.
  * {@link authProvider.FullUserSession}). */
+/* eslint-enable jsdoc/require-description-complete-sentence */
 
 import * as react from "react";
-import * as toast from "react-hot-toast";
 import * as router from "react-router-dom";
+import * as toast from "react-hot-toast";
 
 import * as authProvider from "../authentication/providers/auth";
-import Login from "../authentication/components/login";
-import Registration from "../authentication/components/registration";
-import ConfirmRegistration from "../authentication/components/confirmRegistration";
-import Dashboard from "../dashboard/components/dashboard";
 import * as authService from "../authentication/service";
-import withRouter from "../navigation";
 import * as loggerProvider from "../providers/logger";
+import * as platformModule from "../platform";
 import * as session from "../authentication/providers/session";
+import Dashboard from "../dashboard/components/dashboard";
+import Login from "../authentication/components/login";
+import ConfirmRegistration from "../authentication/components/confirmRegistration";
+import Registration from "../authentication/components/registration";
+import withRouter from "../navigation";
 
 // =================
 // === Constants ===
@@ -61,26 +65,6 @@ export const REGISTRATION_PATH = "/registration";
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = "/confirmation";
 
-// ================
-// === Platform ===
-// ================
-
-/** Defines the platform the application is running on.
- *
- * Depending on the platform, the application will use different routing mechanisms. For example, in
- * the cloud, the application will use the browser's URL bar to navigate between pages. In Electron,
- * the application will use the `MemoryRouter` to navigate between pages. Similarly, the
- * application will use different redirect URLs for authentication. For example, in the cloud, the
- * application will redirect using `http://` URLs. In Electron, the application will redirect using
- * `enso://` URLs. The former flow works entirely in-browser. The latter flow must go to the browser
- * and back to the application. */
-export enum Platform {
-  /** Application is running on a desktop (i.e., in Electron). */
-  desktop = "desktop",
-  /** Application is running in the browser (i.e., in the cloud). */
-  cloud = "cloud",
-}
-
 // ===========
 // === App ===
 // ===========
@@ -89,7 +73,7 @@ export enum Platform {
 export interface AppProps {
   /** Logger to use for logging. */
   logger: loggerProvider.Logger;
-  platform: Platform;
+  platform: platformModule.Platform;
   onAuthenticated: () => void;
 }
 
@@ -99,11 +83,14 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const App = (props: AppProps) => {
+function App(props: AppProps) {
   const { platform } = props;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  // This is a React component even though it does not contain JSX.
+  // eslint-disable-next-line no-restricted-syntax
   const Router =
-    platform === Platform.desktop ? router.MemoryRouter : router.BrowserRouter;
+    platform === platformModule.Platform.desktop
+      ? router.MemoryRouter
+      : router.BrowserRouter;
   /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
    * will redirect the user between the login/register pages and the dashboard. */
   return (
@@ -114,7 +101,7 @@ const App = (props: AppProps) => {
       </Router>
     </>
   );
-};
+}
 
 // =================
 // === AppRouter ===
@@ -126,7 +113,7 @@ const App = (props: AppProps) => {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const AppRouter = (props: AppProps) => {
+function AppRouter(props: AppProps) {
   const { logger, onAuthenticated } = props;
   const navigate = router.useNavigate();
   const memoizedAuthService = react.useMemo(() => {
@@ -166,8 +153,10 @@ const AppRouter = (props: AppProps) => {
       </session.SessionProvider>
     </loggerProvider.LoggerProvider>
   );
-};
+}
 
+// This is a React component even though it does not contain JSX.
+// eslint-disable-next-line no-restricted-syntax
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const AppRouterWithHistory = withRouter(AppRouter);
 

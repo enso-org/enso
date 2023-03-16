@@ -2,8 +2,8 @@
  *
  * Each exported function in the {@link Backend} in this module corresponds to an API endpoint. The
  * functions are asynchronous and return a `Promise` that resolves to the response from the API. */
-import * as http from "../http";
 import * as config from "../config";
+import * as http from "../http";
 import * as loggerProvider from "../providers/logger";
 
 // =================
@@ -30,15 +30,13 @@ export interface Organization {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class Backend {
-  private client: http.Client;
-  private logger: loggerProvider.Logger;
-
   /** Creates a new instance of the {@link Backend} API client.
    *
    * @throws An error if the `Authorization` header is not set on the given `client`. */
-  constructor(client: http.Client, logger: loggerProvider.Logger) {
-    this.client = client;
-    this.logger = logger;
+  constructor(
+    private readonly client: http.Client,
+    private readonly logger: loggerProvider.Logger
+  ) {
     /** All of our API endpoints are authenticated, so we expect the `Authorization` header to be
      * set. */
     if (!this.client.defaultHeaders?.has("Authorization")) {
@@ -85,12 +83,12 @@ export class Backend {
  * This is a hack to quickly create the backend in the format we want, until we get the provider
  * working. This should be removed entirely in favour of creating the backend once and using it from
  * the context. */
-export const createBackend = (
+export function createBackend(
   accessToken: string,
   logger: loggerProvider.Logger
-): Backend => {
+): Backend {
   const headers = new Headers();
   headers.append("Authorization", `Bearer ${accessToken}`);
   const client = new http.Client(headers);
   return new Backend(client, logger);
-};
+}

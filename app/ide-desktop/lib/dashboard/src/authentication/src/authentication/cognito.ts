@@ -32,9 +32,9 @@
 import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
-import * as app from '../components/app'
 
 import * as config from './config'
+import * as platformModule from '../platform'
 
 // ====================
 // === AmplifyError ===
@@ -89,10 +89,7 @@ const intoAmplifyErrorOrThrow = (error: unknown): AmplifyError => {
  * they return. The caller can then handle them via pattern matching on the {@link results.Result}
  * type. */
 export class Cognito {
-    private readonly platform: app.Platform
-
-    constructor(platform: app.Platform, amplifyConfig: config.AmplifyConfig) {
-        this.platform = platform
+    constructor(private platform: platformModule.Platform, amplifyConfig: config.AmplifyConfig) {
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
          * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
          * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
@@ -106,7 +103,10 @@ export class Cognito {
     /** Returns the current user's session, or `None` if the user is not logged in.
      *
      * Will refresh the session if it has expired. */
-    userSession: () => Promise<results.Option<UserSession>> = userSession
+    async userSession(this: void) {
+        const amplifySession = await getAmplifyCurrentSession()
+        return amplifySession.map(parseUserSession).toOption()
+    }
     /** Sign up with with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
@@ -120,21 +120,6 @@ export class Cognito {
     confirmSignUp = confirmSignUp
 }
 
-// ====================
-// === AssertString ===
-// ====================
-
-/** Type signature for a function that asserts that a parameter is a string. */
-type AssertString = (param: any, message: string) => asserts param is string
-
-/** Asserts that a parameter is a string (both at runtime & typecheck time); throws an error
- * `message` if the assertion fails. */
-const assertString: AssertString = (param, message) => {
-    if (typeof param !== 'string') {
-        throw new Error(message)
-    }
-}
-
 // ===================
 // === UserSession ===
 // ===================
@@ -145,32 +130,32 @@ export interface UserSession {
      *
      * Provided by the identity provider the user used to log in. One of:
      *
-     * - GitHub
-     * - Google
-     * - Email */
+     * - GitHub,
+     * - Google, or
+     * - Email. */
     email: string
     /** User's access token, used to authenticate the user (e.g., when making API calls). */
     accessToken: string
 }
 
-const userSession = () =>
-    getAmplifyCurrentSession().then(result => result.map(parseUserSession).toOption())
-
 /** Returns the current `CognitoUserSession` if the user is logged in, or `CurrentSessionErrorKind`
  * otherwise.
  *
  * Will refresh the session if it has expired. */
-const getAmplifyCurrentSession = () =>
-    results.Result.wrapAsync(() => amplify.Auth.currentSession()).then(result =>
-        result.mapErr(intoCurrentSessionErrorKind)
-    )
+async function getAmplifyCurrentSession() {
+    const currentSession = await results.Result.wrapAsync(() => amplify.Auth.currentSession())
+    return currentSession.mapErr(intoCurrentSessionErrorKind)
+}
 
-/** Parses a `CognitoUserSession` into a `UserSession`. */
-const parseUserSession = (session: cognito.CognitoUserSession): UserSession => {
-    const payload = session.getIdToken().payload
-    /** The `email` field is mandatory, so we assert that it exists and is a string. */
-    assertString(payload.email, 'Payload does not have an email field.')
+/** Parses a `CognitoUserSession` into a `UserSession`.
+ * @throws If the `email` field of the payload is not a string. */
+function parseUserSession(session: cognito.CognitoUserSession): UserSession {
+    const payload: Record<string, unknown> = session.getIdToken().payload
     const email = payload.email
+    /** The `email` field is mandatory, so we assert that it exists and is a string. */
+    if (typeof email !== 'string') {
+        throw new Error('Payload does not have an email field.')
+    }
     const accessToken = session.getAccessToken().getJwtToken()
     return { email, accessToken }
 }
@@ -194,7 +179,7 @@ const intoCurrentSessionErrorKind = (error: unknown): CurrentSessionErrorKind =>
 // === SignUp ===
 // ==============
 
-const signUp = (username: string, password: string, platform: app.Platform) =>
+const signUp = (username: string, password: string, platform: platformModule.Platform) =>
     results.Result.wrapAsync(() => {
         const params = intoSignUpParams(username, password, platform)
         return amplify.Auth.signUp(params)
@@ -210,7 +195,7 @@ const signUp = (username: string, password: string, platform: app.Platform) =>
 const intoSignUpParams = (
     username: string,
     password: string,
-    platform: app.Platform
+    platform: platformModule.Platform
 ): amplify.SignUpParams => ({
     username,
     password,
@@ -225,7 +210,7 @@ const intoSignUpParams = (
          * It is necessary to disable the naming convention rule here, because the key is expected
          * to appear exactly as-is in Cognito, so we must match it. */
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        'custom:fromDesktop': platform === app.Platform.desktop ? 'true' : 'false',
+        'custom:fromDesktop': platform === platformModule.Platform.desktop ? 'true' : 'false',
     },
 })
 

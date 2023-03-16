@@ -2,13 +2,14 @@
  * API wrapper, along with some convenience callbacks to make URL redirects for the authentication
  * flows work with Electron. */
 
-import * as common from "enso-studio-common";
+import * as common from "enso-common";
 
+import * as app from "../components/app";
+import * as authConfigModule from "./config";
 import * as loggerProvider from "../providers/logger";
 import * as cognito from "./cognito";
-import * as authConfig from "./config";
 import * as config from "../config";
-import * as app from "../components/app";
+import * as platformModule from "../platform";
 
 /** Augment the built-in window object with the `authenticationApi` context bridge. This makes it so
  * that accessing authentication-related functionality from the renderer process is as simple as
@@ -28,26 +29,26 @@ declare global {
 const CONFIRM_REGISTRATION_PATHNAME = "//auth/confirmation";
 /** URL used as the OAuth redirect when running in the desktop app. */
 const DESKTOP_REDIRECT =
-  `${common.DEEP_LINK_SCHEME}://auth` as authConfig.OAuthRedirect;
+  `${common.DEEP_LINK_SCHEME}://auth` as authConfigModule.OAuthRedirect;
 /** Map from platform to the OAuth redirect URL that should be used for that platform. */
 const PLATFORM_TO_CONFIG: Record<
-  app.Platform,
-  Pick<authConfig.AmplifyConfig, "redirectSignIn" | "redirectSignOut">
+  platformModule.Platform,
+  Pick<authConfigModule.AmplifyConfig, "redirectSignIn" | "redirectSignOut">
 > = {
-  [app.Platform.desktop]: {
+  [platformModule.Platform.desktop]: {
     redirectSignIn: DESKTOP_REDIRECT,
     redirectSignOut: DESKTOP_REDIRECT,
   },
-  [app.Platform.cloud]: {
+  [platformModule.Platform.cloud]: {
     redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
     redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
   },
 };
 
-const BASE_AMPLIFY_CONFIG: Partial<authConfig.AmplifyConfig> = {
-  region: authConfig.AWS_REGION,
-  scope: authConfig.OAUTH_SCOPES,
-  responseType: authConfig.OAUTH_RESPONSE_TYPE,
+const BASE_AMPLIFY_CONFIG: Partial<authConfigModule.AmplifyConfig> = {
+  region: authConfigModule.AWS_REGION,
+  scope: authConfigModule.OAUTH_SCOPES,
+  responseType: authConfigModule.OAUTH_RESPONSE_TYPE,
 };
 
 /** Collection of configuration details for Amplify user pools, sorted by deployment environment. */
@@ -98,7 +99,7 @@ export interface AuthConfig {
   /** Logger for the authentication service. */
   logger: loggerProvider.Logger;
   /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
-  platform: app.Platform;
+  platform: platformModule.Platform;
   /** Function to navigate to a given (relative) URL.
    *
    * Used to redirect to pages like the password reset page with the query parameters set in the
@@ -116,28 +117,29 @@ export interface AuthService {
   cognito: cognito.Cognito;
 }
 
+/* eslint-disable jsdoc/require-description-complete-sentence */
 /** Creates an instance of the authentication service.
  *
  * # Warning
  *
  * This function should only be called once, and the returned service should be used throughout the
  * application. This is because it performs global configuration of the Amplify library. */
-export const initAuthService = (authConfig: AuthConfig): AuthService => {
+/* eslint-enable jsdoc/require-description-complete-sentence */
+export function initAuthService(authConfig: AuthConfig): AuthService {
   const { logger, platform, navigate } = authConfig;
   const amplifyConfig = loadAmplifyConfig(logger, platform, navigate);
   const cognitoClient = new cognito.Cognito(platform, amplifyConfig);
   return { cognito: cognitoClient };
-};
+}
 
-const loadAmplifyConfig = (
+function loadAmplifyConfig(
   logger: loggerProvider.Logger,
-  platform: app.Platform,
+  platform: platformModule.Platform,
   navigate: (url: string) => void
-): authConfig.AmplifyConfig => {
+): authConfigModule.AmplifyConfig {
   /** Load the environment-specific Amplify configuration. */
   const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
-
-  if (platform === app.Platform.desktop) {
+  if (platform === platformModule.Platform.desktop) {
     /** If we're running on the desktop, we want to override the default URL opener for OAuth
      * flows.  This is because the default URL opener opens the URL in the desktop app itself,
      * but we want the user to be sent to their system browser instead. The user should be sent
@@ -152,11 +154,10 @@ const loadAmplifyConfig = (
      * register a custom URL handler. */
     setDeepLinkHandler(logger, navigate);
   }
-
   /** Load the platform-specific Amplify configuration. */
   const platformConfig = PLATFORM_TO_CONFIG[platform];
-  return { ...baseConfig, ...platformConfig } as authConfig.AmplifyConfig;
-};
+  return { ...baseConfig, ...platformConfig } as authConfigModule.AmplifyConfig;
+}
 
 const openUrlWithExternalBrowser = (url: string) => {
   window.authenticationApi.openUrlInSystemBrowser(url);

@@ -31,8 +31,8 @@ enum HttpMethod {
 // ==============
 
 /** A helper function to convert a `Blob` to a base64-encoded string. */
-const blobToBase64 = (blob: Blob) =>
-  new Promise<string>((resolve) => {
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve) => {
     const reader = new FileReader();
     reader.onload = () => {
       resolve(
@@ -44,18 +44,17 @@ const blobToBase64 = (blob: Blob) =>
     };
     reader.readAsDataURL(blob);
   });
+}
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export class Client {
-  /** A map of default headers that are included in every HTTP request sent by this client.
-   *
-   * This is useful for setting headers that are required for every request, like authentication
-   * tokens. */
-  defaultHeaders?: Headers;
-
-  constructor(defaultHeaders?: Headers) {
-    this.defaultHeaders = defaultHeaders;
-  }
+  constructor(
+    /** A map of default headers that are included in every HTTP request sent by this client.
+     *
+     * This is useful for setting headers that are required for every request, like authentication
+     * tokens. */
+    public defaultHeaders?: Headers
+  ) {}
 
   /** Sends an HTTP GET request to the specified URL. */
   get = (url: string) => this.request(HttpMethod.get, url);

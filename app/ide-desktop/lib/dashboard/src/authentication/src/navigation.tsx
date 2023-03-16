@@ -8,8 +8,7 @@ import * as router from "react-router-dom";
 
 /** Function that upgrades a React component to a React higher-order component with emulated normal
  * routing in the browser. */
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const withRouter = <T extends object>(Component: React.FC<T>) => {
+function withRouter<T extends object>(Component: React.FC<T>) {
   /** Adds window navigation props to given component that emulate normal routing in the browser. */
   const componentWithRouterProp = (props: T) => {
     const location = router.useLocation();

@@ -1,10 +1,11 @@
 /** @file Provider for the {@link SessionContextType}, which contains information about the
  * currently authenticated user's session. */
-import react from "react";
+import * as react from "react";
+
 import * as results from "ts-results";
 
-import * as hooks from "../../hooks";
 import * as cognito from "../cognito";
+import * as hooks from "../../hooks";
 
 // ======================
 // === SessionContext ===
@@ -15,7 +16,6 @@ interface SessionContextType {
 }
 
 /** See {@link AuthContext} for safety details. */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const SessionContext = react.createContext<SessionContextType>(
   {} as SessionContextType
 );
@@ -30,7 +30,7 @@ interface SessionProviderProps {
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const SessionProvider = (props: SessionProviderProps) => {
+export function SessionProvider(props: SessionProviderProps) {
   const { children, userSession } = props;
 
   /** Flag used to avoid rendering child components until we've fetched the user's session at least
@@ -42,10 +42,10 @@ export const SessionProvider = (props: SessionProviderProps) => {
    * out of date, so this will update them). */
   const session = hooks.useAsyncEffect(
     results.None,
-    async (_signal) => {
-      const session = await userSession();
+    async () => {
+      const innerSession = await userSession();
       setInitialized(true);
-      return session;
+      return innerSession;
     },
     [userSession]
   );
@@ -56,10 +56,12 @@ export const SessionProvider = (props: SessionProviderProps) => {
       {initialized && children}
     </SessionContext.Provider>
   );
-};
+}
 
 // ==================
 // === useSession ===
 // ==================
 
-export const useSession = () => react.useContext(SessionContext);
+export function useSession() {
+  return react.useContext(SessionContext);
+}

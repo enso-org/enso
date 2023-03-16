@@ -162,8 +162,13 @@ class Compiler(
     *
     * @param shouldCompileDependencies whether compilation should also compile
     *                                  the dependencies of the requested package
+    * @param useGlobalCacheLocations whether or not the compilation result should
+    *                                  be written to the global cache
     */
-  def compile(shouldCompileDependencies: Boolean): Unit = {
+  def compile(
+    shouldCompileDependencies: Boolean,
+    useGlobalCacheLocations: Boolean
+  ): Unit = {
     val packageRepository = context.getPackageRepository
 
     packageRepository.getMainProjectPackage match {
@@ -204,7 +209,7 @@ class Compiler(
 
             serializationManager.serializeLibrary(
               pkg.libraryName,
-              useGlobalCacheLocations = true
+              useGlobalCacheLocations = useGlobalCacheLocations
             )
         }
     }
