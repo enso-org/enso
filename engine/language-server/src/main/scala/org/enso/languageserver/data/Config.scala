@@ -1,6 +1,6 @@
 package org.enso.languageserver.data
 
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.filemanager.ContentRootWithFile
 import org.enso.logger.masking.{MaskedPath, ToLogString}
 
@@ -143,6 +143,7 @@ object ProjectDirectoriesConfig {
   * @param executionContext the executionContext config
   * @param directories the configuration of internal directories
   * @param profiling the profiling configuration
+  * @param startup the startup configuration
   */
 case class Config(
   projectContentRoot: ContentRootWithFile,
@@ -151,7 +152,8 @@ case class Config(
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
   directories: ProjectDirectoriesConfig,
-  profiling: ProfilingConfig
+  profiling: ProfilingConfig,
+  startup: StartupConfig
 ) extends ToLogString {
 
   /** @inheritdoc */

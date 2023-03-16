@@ -9,7 +9,7 @@ trait RuntimeComponentUpdater {
     *
     * @return the list of installed runtime components
     */
-  def list: Try[Seq[GraalVMComponent]]
+  def list(): Try[Seq[GraalVMComponent]]
 
   /** Install the provided runtime components.
     *

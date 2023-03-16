@@ -2203,6 +2203,7 @@ dependencies = [
  "json-rpc",
  "mockall",
  "nalgebra",
+ "ordered-float",
  "parser",
  "regex",
  "semver 1.0.16",
