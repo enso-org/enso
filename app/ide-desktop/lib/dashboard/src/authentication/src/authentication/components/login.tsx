@@ -8,7 +8,6 @@ import * as auth from "../providers/auth";
 import * as hooks from "../../hooks";
 import * as icons from "../../components/svg";
 import * as utils from "../../utils";
-import withRouter from "../../navigation";
 
 // =================
 // === Constants ===
@@ -163,4 +162,4 @@ function parseUrlSearchParams(search: string) {
   return email;
 }
 
-export default withRouter(Login);
+export default Login;

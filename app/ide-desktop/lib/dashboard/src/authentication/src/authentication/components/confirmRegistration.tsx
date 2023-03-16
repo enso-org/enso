@@ -7,7 +7,6 @@ import toast from "react-hot-toast";
 import * as app from "../../components/app";
 import * as auth from "../providers/auth";
 import * as loggerProvider from "../../providers/logger";
-import withRouter from "../../navigation";
 
 // =================
 // === Constants ===
@@ -58,4 +57,4 @@ function parseUrlSearchParams(search: string) {
   return { verificationCode, email };
 }
 
-export default withRouter(ConfirmRegistration);
+export default ConfirmRegistration;
