@@ -138,8 +138,9 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -153,8 +154,6 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -171,8 +170,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -231,8 +228,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -314,8 +309,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -418,8 +411,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -532,8 +523,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -610,8 +599,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -685,8 +672,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify(
@@ -771,8 +756,9 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -786,8 +772,6 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -804,8 +788,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -850,8 +832,6 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.TEXT,
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -878,8 +858,6 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.NUMBER,
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -957,8 +935,9 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -971,7 +950,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Module("Enso_Test.Test.A", None, None, None),
+                  Suggestion.Module("Enso_Test.Test.A", None),
                   Api.SuggestionAction.Add()
                 ),
                 Vector()
@@ -985,8 +964,6 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     "Enso_Test.Test.A.MyType",
                     Some(ConstantsGen.ANY),
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1004,8 +981,6 @@ class RuntimeSuggestionUpdatesTest
                         .Argument("a", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.A.MyType",
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1031,8 +1006,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A.MyType",
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1057,8 +1030,6 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.INTEGER,
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1083,8 +1054,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1118,8 +1087,6 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1136,8 +1103,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()

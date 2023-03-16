@@ -20,8 +20,6 @@ public class JacksonTest {
     Object shape = new Suggestion.Module(
       "SampleModule",
       Option.apply("doc"),
-      Option.apply("html"),
-      Option.empty(),
       Option.empty()
     );
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
@@ -40,8 +38,6 @@ public class JacksonTest {
     Object shape = new Suggestion[]{new Suggestion.Module(
       "SampleModule",
       Option.apply("doc"),
-      Option.apply("html"),
-      Option.empty(),
       Option.empty()
       )};
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
@@ -65,8 +61,6 @@ public class JacksonTest {
     Object shape = new SuggestionCache(11, List.of(new Suggestion.Module(
       "SampleModule",
       Option.apply("doc"),
-      Option.apply("html"),
-      Option.empty(),
       Option.empty()
     )));
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());

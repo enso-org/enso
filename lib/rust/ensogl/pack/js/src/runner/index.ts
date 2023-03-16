@@ -6,13 +6,10 @@ import * as name from 'runner/name'
 import * as log from 'runner/log'
 import * as wasm from 'runner/wasm'
 import * as config from 'runner/config'
-import * as array from 'runner/data/array'
 import * as debug from 'runner/debug'
 
 import host from 'runner/host'
 import { logger } from 'runner/log'
-import { sortedWasmFunctions } from 'runner/wasm'
-import { HelpScreenSection } from 'runner/debug'
 
 // ===============
 // === Exports ===
@@ -232,8 +229,12 @@ export class App {
     }
 
     /** Log the message on the remote server. */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     remoteLog(message: string, data: any) {
-        // TODO: Implement remote logging. This should be done after cloud integration.
+        // FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/359
+        // Implement remote logging. This should be done after cloud integration.
+        // Function interface is left intentionally for readability.
+        // Remove typescript error suppression after resolving fixme.
     }
 
     /** Initialize the browser. Set the background color, print user-facing warnings, etc. */
@@ -292,9 +293,8 @@ export class App {
                 if (host.browser) {
                     const spectorModule: unknown = snippetsFn.spector()
                     console.log(spectorModule)
-                    // @ts-ignore
+                    // @ts-expect-error
                     const spector = new spectorModule.Spector()
-                    // @ts-ignore
                     spector.displayUI()
                 }
             }
@@ -348,6 +348,9 @@ export class App {
             assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer()))
         )
         const assets = assetsInfo.map(info => {
+            // The non-null assertion on the following line is safe since we are mapping `assetsBlobs` from
+            // success assets response.
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const data = new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))
             return new Asset(info.type, info.key, data)
         })

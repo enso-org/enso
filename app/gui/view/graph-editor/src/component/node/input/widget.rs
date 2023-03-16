@@ -472,6 +472,13 @@ impl LazyDropdown {
                     // represent slightly different version of code than actually written.
                     output_value <+ first_selected_entry.sample(&dropdown.user_select_action);
 
+                    // Close the dropdown after a short delay after selection. Because the dropdown
+                    // value application triggers operations that can introduce a few dropped frames,
+                    // we want to delay the dropdown closing animation after that is handled.
+                    // Otherwise the animation finishes within single frame, which looks bad.
+                    let close_after_selection_timer = frp::io::timer::Timeout::new(&network);
+                    close_after_selection_timer.restart <+ dropdown.user_select_action.constant(1);
+                    eval close_after_selection_timer.on_expired((()) display_object.blur());
                 }
 
 

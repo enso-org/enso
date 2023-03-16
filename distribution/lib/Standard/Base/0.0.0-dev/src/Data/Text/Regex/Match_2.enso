@@ -1,10 +1,20 @@
-from project.Data.Boolean import Boolean, True, False
+import project.Any.Any
+import project.Data.Map.Map
 import project.Data.Numbers.Integer
+import project.Data.Range.Extensions
 import project.Data.Range.Range
+import project.Data.Text.Regex_2.No_Such_Group
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Common.Index_Out_Of_Bounds
+import project.Error.Error
 import project.Nothing.Nothing
+import project.Panic.Panic
+
+from project.Data.Boolean import Boolean, True, False
+
 
 type Match_2
     ## internal_regex_result : RegexResult (Truffle)
@@ -12,31 +22,154 @@ type Match_2
     Value (pattern : Pattern_2) (internal_regex_result : Any) (input : Text)
 
     ## PRIVATE
-       Returns the start character of group n.
+       Returns the start UTF16 character index of a group.
+
+       This method goes directly to the internal match object. It does not
+       take group names, and does not have a default.
 
        Arguments:
-       - n: the integer group number. Note that the groups explicitly
-         defined in the regex are numbered starting at 1; group 0 refers to the
-         entire match range.
-    start : Integer -> Integer
-    start self n = self.internal_regex_result.getStart n
+       - group: the integer group number.
+    internal_start : Integer -> Integer
+    internal_start self group = self.internal_regex_result.getStart group
 
-    ## PRIVATE
-       Returns the start character of group n
+    ## PRIVATE 
+       Returns the end UTF16 character index, plus one, of a group.
+
+       This method goes directly to the internal match object. It does not
+       take group names, and does not have a default.
 
        Arguments:
-       - n: the integer group number
-    end : Integer -> Integer
-    end self n = self.internal_regex_result.getEnd n
+       - group: the integer group number.
+    internal_end : Integer -> Integer
+    internal_end self group = self.internal_regex_result.getEnd group
 
-    ## PRIVATE
+    ## Returns the start UTF16 character index of a group.
 
-       Gets the text matched by the group with the provided identifier, or
-       `Nothing` if the group did not participate in the match. If no such group
+       Arguments:
+       - group: the group name or number. Marked groups defined in the regex are
+         numbered starting at 1; group 0 refers to the entire match.
+    utf16_start : Integer | Text -> Integer
+    utf16_start self group=0 =
+        span = self.span group
+        if span.is_nothing then Nothing else span.start
+
+    ## Returns the end UTF16 character index, plus one, of a group.
+
+       Arguments:
+       - group: the group name or number. Marked groups defined in the regex are
+         numbered starting at 1; group 0 refers to the entire match.
+    utf16_end : Integer | Text -> Integer
+    utf16_end self group=0 =
+        span = self.span group
+        if span.is_nothing then Nothing else span.end
+
+    ## Returns the start grapheme index of a group.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       Arguments:
+       - group: the group name or number. Marked groups defined in the regex are
+         numbered starting at 1; group 0 refers to the entire match.
+    start : Integer | Text -> Integer
+    start self group=0 =
+        span = self.grapheme_span group
+        if span.is_nothing then Nothing else span.start
+
+    ## Returns the end grapheme index, plus one, of a group.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       Arguments:
+       - group: the group name or number. Marked groups defined in the regex are
+         numbered starting at 1; group 0 refers to the entire match.
+    end : Integer | Text -> Integer
+    end self group=0 =
+        span = self.grapheme_span group
+        if span.is_nothing then Nothing else span.end
+
+    ## Gets the UTF16 span matched by the group with the provided identifier, or
+       a default value if the group did not participate in the match. If no such
+       group exists for the provided identifier, a `No_Such_Group` is returned.
+
+       Arguments:
+       - group: The integer index or name of that group.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       Note that it is possible for a group to "not participate in the match",
+       for example with a disjunction. In the example below, the "(d)" group
+       does not participate -- it neither matches nor fails.
+
+            "ab((c)|(d))".find "abc"
+
+       In this case, the group id for "(d)", which is 3, is a valid group id and
+       (Pattern_2.lookup_group 3) will return 3. If the caller tries to get group 3,
+       Match_2.group will return the default value.
+    span : Integer | Text -> Any -> Utf_16_Span ! No_Such_Group
+    span self group=0 ~default=Nothing =
+        group_id = self.pattern.lookup_group group
+        start = self.internal_start group_id
+        end = self.internal_end group_id
+        does_not_participate = start == -1 || end == -1
+        if does_not_participate then default else
+            range = Range.new start end
+            Utf_16_Span.Value range self.input
+
+    ## Gets the grapheme span matched by the group with the provided identifier, or
+       a default value if the group did not participate in the match. If no such group
        exists for the provided identifier, a `No_Such_Group` is returned.
 
        Arguments:
-       - id: The integer index or name of that group.
+       - group: The integer index or name of that group.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       Note that it is possible for a group to "not participate in the match",
+       for example with a disjunction. In the example below, the "(d)" group
+       does not participate -- it neither matches nor fails.
+
+            "ab((c)|(d))".find "abc"
+
+       In this case, the group id for "(d)", which is 3, is a valid group id and
+       (Pattern_2.lookup_group 3) will return 3. If the caller tries to get
+       group 3, Match_2.group will return the default value.
+    grapheme_span : Integer | Text -> Any -> Span ! No_Such_Group
+    grapheme_span self group=0 ~default=Nothing =
+        result = self.span group Nothing
+        if result.is_nothing then default else result.to_grapheme_span
+
+    ## Gets the Text matched by the group with the provided identifier, or
+       a default value if the group did not participate in the match. If no such
+       group exists for the provided identifier, a `No_Such_Group` is returned.
+
+       Arguments:
+       - group: The integer index or name of that group.
 
        ? The Full Match
          The group with index 0 is always the full match of the pattern.
@@ -52,16 +185,93 @@ type Match_2
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
+       (Pattern_2.lookup_group 3) will return 3. If the caller tries to get 
+       group 3, Match_2.group will return the default value.
+    text : Integer | Text -> Any -> Text ! No_Such_Group
+    text self group=0 ~default=Nothing =
+        result = self.grapheme_span group Nothing
+        if result.is_nothing then default else result.text
+
+    ## Gets a vector containing the Text of _all_ of the capturing groups in
+       the pattern, replacing the value of groups that did not participate in
+       the match with `default`. This vector includes group 0, which contains
+       the entire match.
+
+       Arguments:
+       - default: The value to return for a given index when the group at that
+         index did not participate in the match.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       > Example
+         Get a vector of the text matched by all of the groups in this match,
+         replacing the value for groups that didn't match with "UNMATCHED".
+
+             import Standard.Examples
+
+             example_groups =
+                 match = Examples.match
+                 match.groups default="UNMATCHED"
+    groups : Any -> Vector (Text | Any)
+    groups self ~default=Nothing =
+        group_numbers = 0.up_to self.pattern.group_count
+        group_numbers.map n-> (self.text n . if_nothing default)
+
+    ## Gets a map containing the named capturing groups for the pattern,
+       replacing the value for groups that did not participate in the match with
+       `default`.
+
+       Arguments:
+       - default: The value to return for a given name when the group at that
+         index did not participate in the match.
+
+       Note that it is possible for a group to "not participate in the match",
+       for example with a disjunction. In the example below, the "(d)" group
+       does not participate -- it neither matches nor fails.
+
+            "ab((c)|(d))".find "abc"
+
+       In this case, the group id for "(d)", which is 3, is a valid group id and
        (Pattern_2.lookup_group 3) will return 3. If the caller tries to get group 3,
-       Match_2.group will return Nothing.
-    group : Integer | Text -> Span
-    group self id =
-        n = self.pattern.lookup_group id
-        start = self.start n
-        end = self.end n
-        does_not_participate = start == -1 || end == -1
-        case does_not_participate of
-            True -> Nothing
-            False ->
-                range = Range.new (self.start n) (self.end n)
-                (Utf_16_Span.Value range self.input).to_grapheme_span
+       Match_2.group will return the default value.
+
+       > Example
+         Get the map of all of the named groups in this match, replacing the
+         value for groups that didn't participate in the match with "UNMATCHED".
+
+            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+            input = "aa ab abc a bc bcd"
+            match = pattern.match input
+            ## match.named_groups.keys.sort == ["empty", "letters"]
+    named_groups : Any -> Map Text (Text | Any)
+    named_groups self default=Nothing =
+        named_group_names = self.pattern.group_names
+        spans = named_group_names.map name-> self.text name default=default
+        Map.from_vector (named_group_names.zip spans)
+
+    ## Gets the grapheme span matched by the group with the provided index, or
+       a default value if the group did not participate in the match.
+       If the identifier is invalid then `if_missing` is returned.
+
+       Arguments:
+       - id: The integer index or name of that group.
+       - if_missing: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing =
+        self.text index . catch No_Such_Group (_-> if_missing)
+
+    ## Gets the grapheme span matched by the group with the provided index, or
+       a default value if the group did not participate in the match.
+       If the identifier is invalid then Index_Out_Of_Bounds is thrown.
+
+       Arguments:
+       - id: The integer index or name of that group.
+       - if_missing: The value to return if the index is out of bounds.
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        self.get index if_missing=(Error.throw (Index_Out_Of_Bounds.Error index self.pattern.group_count))

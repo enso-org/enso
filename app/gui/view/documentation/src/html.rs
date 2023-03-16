@@ -4,6 +4,11 @@ use enso_prelude::*;
 use horrorshow::prelude::*;
 
 use double_representation::name::QualifiedName;
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Mark;
+use enso_profiler as profiler;
+use enso_profiler::profile;
+use enso_suggestion_database::documentation_ir::BuiltinDocumentation;
 use enso_suggestion_database::documentation_ir::Constructors;
 use enso_suggestion_database::documentation_ir::Documentation;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
@@ -17,8 +22,6 @@ use enso_suggestion_database::documentation_ir::Synopsis;
 use enso_suggestion_database::documentation_ir::Tag;
 use enso_suggestion_database::documentation_ir::TypeDocumentation;
 use enso_suggestion_database::documentation_ir::Types;
-use enso_suggestion_database::engine_protocol::language_server::DocSection;
-use enso_suggestion_database::engine_protocol::language_server::Mark;
 use enso_suggestion_database::entry::Argument;
 use horrorshow::box_html;
 use horrorshow::labels;
@@ -58,6 +61,7 @@ fn svg_icon(content: &'static str) -> impl Render {
 // ==============
 
 /// Render entry documentation to HTML code with Tailwind CSS styles.
+#[profile(Detail)]
 pub fn render(docs: EntryDocumentation) -> String {
     match docs {
         EntryDocumentation::Placeholder(placeholder) => match placeholder {
@@ -66,7 +70,6 @@ pub fn render(docs: EntryDocumentation) -> String {
                 render_virtual_component_group_docs(name),
         },
         EntryDocumentation::Docs(docs) => render_documentation(docs),
-        EntryDocumentation::Builtin(docs) => render_builtin_docs(docs),
     }
 }
 
@@ -82,6 +85,7 @@ fn render_documentation(docs: Documentation) -> String {
             render_type_documentation(&type_docs, Some(&name)),
         Documentation::ModuleMethod { module_docs, name } =>
             render_module_documentation(&module_docs, Some(&name)),
+        Documentation::Builtin(builtin_docs) => render_builtin_documentation(&builtin_docs),
     }
 }
 
@@ -95,13 +99,6 @@ fn render_virtual_component_group_docs(name: ImString) -> String {
     docs_content(content).into_string().unwrap()
 }
 
-/// Render a documentation of a builtin entry that is not present in the suggestion database.
-fn render_builtin_docs(html_docs: ImString) -> String {
-    let content = owned_html! {
-        : Raw(&*html_docs);
-    };
-    docs_content(content).into_string().unwrap()
-}
 
 // === Types ===
 
@@ -472,6 +469,20 @@ fn local_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
             : paragraph(p);
         }
     }
+}
+
+
+// === Builtin entries ===
+
+/// Render documentation for built-in entries.
+///
+/// Consists of only a synopsis.
+fn render_builtin_documentation(docs: &BuiltinDocumentation) -> String {
+    let synopsis = section_content(module_synopsis(&docs.synopsis));
+    let content = owned_html! {
+        : &synopsis;
+    };
+    docs_content(content).into_string().unwrap()
 }
 
 
