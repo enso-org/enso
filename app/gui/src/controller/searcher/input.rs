@@ -398,10 +398,9 @@ impl InsertContext<'_> {
     /// infix chain of `ACCESS` operators with identifiers.
     fn has_qualified_name(&self) -> bool {
         if let Some(ref context) = self.context {
-            let every_operand_is_name = context
-                .enumerate_operands()
-                .flatten()
-                .all(|opr| matches!(opr.item.arg.shape(), ast::Shape::Cons(_)));
+            let every_operand_is_name = context.enumerate_operands().flatten().all(|opr| {
+                matches!(opr.item.arg.shape(), ast::Shape::Cons(_) | ast::Shape::Var(_))
+            });
             let every_operator_is_access = context
                 .enumerate_operators()
                 .all(|opr| opr.item.ast().repr() == ast::opr::predefined::ACCESS);
@@ -435,20 +434,26 @@ impl InsertContext<'_> {
         if let Some(existing_segments) = self.qualified_name_segments() {
             if let action::Suggestion::FromDatabase(entry) = self.suggestion {
                 let name = entry.qualified_name();
-                let all_segments = name.path();
+                let all_segments = name.segments().cloned().collect_vec();
                 let pos = all_segments
                     .windows(existing_segments.len())
                     .position(|w| w == existing_segments)?;
                 let name_segments = all_segments.get(pos..).unwrap_or(&[]).to_vec();
                 let import_segments = all_segments.get(..=pos).unwrap_or(&[]).to_vec();
-                let project = name.project();
-                let all_import_segments = project.segments().chain(import_segments.iter());
-                if let Ok(import) = QualifiedName::from_all_segments(all_import_segments) {
-                    Some((name_segments, RequiredImport::Name(import)))
+                // Valid qualified name requires at least 2 segments (namespace and project name).
+                // Not enough segments to build a qualified name is not a mistake here – it just
+                // means we don't need any import, as the entry is already in scope.
+                let minimal_count_of_segments = 2;
+                let import = if import_segments.len() <= minimal_count_of_segments {
+                    RequiredImport::None
+                } else if let Ok(import) = QualifiedName::from_all_segments(import_segments.clone())
+                {
+                    RequiredImport::Name(import)
                 } else {
                     error!("Invalid import formed in `segments_to_replace`: {import_segments:?}.");
-                    None
-                }
+                    RequiredImport::None
+                };
+                Some((name_segments, import))
             } else {
                 None
             }

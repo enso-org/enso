@@ -2165,6 +2165,12 @@ pub mod test {
                 expected_code:    "operator1 = Bar.bar_method".to_string(),
                 expected_imports: vec!["local.Project.Foo.Bar".to_string()],
             },
+            Case {
+                entry:            "local.Project.Foo.Bar.bar_method".to_string(),
+                input:            "local.Project.Foo.Bar.".to_string(),
+                expected_code:    "operator1 = local.Project.Foo.Bar.bar_method".to_string(),
+                expected_imports: vec![],
+            },
         ];
 
         for case in cases {
