@@ -140,9 +140,7 @@ export class Cognito {
         return signInWithPassword(username, password)
     }
 
-    /** Signs out the current user.
-     *
-     * @returns A promise that resolves if successful. */
+    /** Signs out the current user. */
     signOut() {
         return signOut(this.logger);
     }
