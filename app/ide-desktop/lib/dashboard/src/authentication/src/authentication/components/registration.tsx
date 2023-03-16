@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 
 import * as app from "../../components/app";
 import * as auth from "../providers/auth";
+import * as common from "./common";
 import * as hooks from "../../hooks";
 import * as icons from "../../components/svg";
 import * as utils from "../../utils";
@@ -15,26 +16,6 @@ import * as utils from "../../utils";
 const INPUT_CLASS_NAME =
   "text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full " +
   "py-2 focus:outline-none focus:border-indigo-400";
-
-// ============
-// === Icon ===
-// ============
-
-interface IconProps {
-  data: string;
-}
-
-function Icon(props: IconProps) {
-  return (
-    <div
-      className={"inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400"}
-    >
-      <span>
-        <icons.Svg {...props} />
-      </span>
-    </div>
-  );
-}
 
 // ====================
 // === Registration ===
@@ -75,7 +56,7 @@ function Registration() {
               E-Mail Address:
             </label>
             <div className="relative">
-              <Icon data={icons.PATHS.at} />
+              <common.SvgIcon data={icons.PATHS.at} />
 
               <input
                 {...bindEmail}
@@ -94,7 +75,7 @@ function Registration() {
               Password:
             </label>
             <div className="relative">
-              <Icon data={icons.PATHS.lock} />
+              <common.SvgIcon data={icons.PATHS.lock} />
 
               <input
                 {...bindPassword}
@@ -113,7 +94,7 @@ function Registration() {
               Confirm Password:
             </label>
             <div className="relative">
-              <Icon data={icons.PATHS.lock} />
+              <common.SvgIcon data={icons.PATHS.lock} />
 
               <input
                 {...bindConfirmPassword}
