@@ -194,7 +194,30 @@ fn make_rendering_performance_blocks(
     profile: &Profile<Metadata>,
 ) -> Vec<profiler_flame_graph::Block<Performance>> {
     let mut blocks = Vec::default();
-    // FIXME
+fn make_rendering_performance_blocks<M>(
+    profile: &Profile<M>,
+) -> Vec<profiler_flame_graph::Block<Performance>> {
+    profile
+        .intervals
+        .iter()
+        .filter(|interval| matches!(profile[interval.measurement].classify(), Class::OnFrame))
+        .map(|interval| interval.interval.start.into_ms())
+        .tuple_windows()
+        .map(|(start, end)| {
+            let label = format!("<frame>");
+            let row = -1;
+            let block_type = match end - start {
+                // 60 FPS
+                dt if dt < 17.0 => Performance::Good,
+                // 30 FPS
+                dt if dt < 34.0 => Performance::Medium,
+                // <30 FPS
+                _ => Performance::Bad,
+            };
+            profiler_flame_graph::Block { start, end, row, label, block_type }
+        })
+        .collect()
+}
     // let render_stats = profile.metadata().filter_map(|metadata| match metadata.data {
     //     Metadata::RenderStats(data) => Some(metadata.as_ref().map(|_| data)),
     //     _ => None,
