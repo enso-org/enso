@@ -12,7 +12,7 @@
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import * as process from 'node:process'
+import process from 'node:process'
 
 import * as esbuild from 'esbuild'
 
