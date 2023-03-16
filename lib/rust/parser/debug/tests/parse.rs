@@ -763,6 +763,12 @@ fn minus_unary_in_method_app() {
              (Number () "100" ())));
 }
 
+#[test]
+fn method_app_in_minus_unary() {
+    test!("-Number.positive_infinity",
+        (UnaryOprApp "-" (OprApp (Ident Number) (Ok ".") (Ident positive_infinity))));
+}
+
 
 // === Import/Export ===
 

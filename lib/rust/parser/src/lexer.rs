@@ -644,6 +644,16 @@ impl<'s> Lexer<'s> {
                     let token = token.with_variant(token::Variant::operator(opr));
                     self.submit_token(token);
                 }
+                // The unary-negation operator binds tighter to numeric literals than other
+                // expressions.
+                "-" if self.last_spaces_visible_offset.width_in_spaces == 0
+                    && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    let opr = token::OperatorProperties::new()
+                        .with_unary_prefix_mode(token::Precedence::unary_minus_numeric_literal())
+                        .with_binary_infix_precedence(15);
+                    let token = token.with_variant(token::Variant::operator(opr));
+                    self.submit_token(token);
+                }
                 // Normally-structured operator.
                 _ => {
                     let tp = token::Variant::operator(analyze_operator(&token.code));

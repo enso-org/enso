@@ -542,6 +542,11 @@ impl Precedence {
 
     /// Return the precedence of unary minus.
     pub fn unary_minus() -> Self {
+        Precedence { value: 79 }
+    }
+
+    /// Return the precedence of unary minus when applied to a numeric literal.
+    pub fn unary_minus_numeric_literal() -> Self {
         Precedence { value: 80 }
     }
 }
