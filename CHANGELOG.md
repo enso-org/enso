@@ -112,6 +112,11 @@
   function arguments will now use named argument syntax instead of inserting
   wildcards on all preceding arguments.
 - [Added boilerplate React app for authorization via Cognito+AWS Amplify][5798].
+  This PR adds a React app that renders the dashboard (which has been ported
+  from the cloud. The dashboard displays a list of projects, and allows users to
+  open them in the IDE (which is not part of the React app, but can be switched
+  to from the dashboard). The PR also adds authentication+authorization (i.e.,
+  sign up and sign in for users), via either email/password or GitHub/Google.
 
 #### EnsoGL (rendering engine)
 
