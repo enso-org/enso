@@ -27,7 +27,8 @@ function ResetPassword() {
   const { resetPassword } = auth.useAuth();
   const { search } = router.useLocation();
 
-  const { verificationCode: initialCode, email: initialEmail } = parseUrlSearchParams(search);
+  const { verificationCode: initialCode, email: initialEmail } =
+    parseUrlSearchParams(search);
 
   const [email, bindEmail] = hooks.useInput(initialEmail ?? "");
   const [code, bindCode] = hooks.useInput(initialCode ?? "");
@@ -69,7 +70,8 @@ function ResetPassword() {
                   type="email"
                   name="email"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="E-Mail Address" />
+                  placeholder="E-Mail Address"
+                />
               </div>
             </div>
             <div className="flex flex-col mb-6">
@@ -90,7 +92,8 @@ function ResetPassword() {
                   type="text"
                   name="code"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="Confirmation Code" />
+                  placeholder="Confirmation Code"
+                />
               </div>
             </div>
             <div className="flex flex-col mb-6">
@@ -111,7 +114,8 @@ function ResetPassword() {
                   type="password"
                   name="new_password"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="New Password" />
+                  placeholder="New Password"
+                />
               </div>
             </div>
             <div className="flex flex-col mb-6">
@@ -132,7 +136,8 @@ function ResetPassword() {
                   type="password"
                   name="new_password_confirm"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="Confirm New Password" />
+                  placeholder="Confirm New Password"
+                />
               </div>
             </div>
             <div className="flex w-full">

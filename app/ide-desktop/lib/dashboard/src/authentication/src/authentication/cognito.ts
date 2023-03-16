@@ -90,9 +90,9 @@ interface AuthError {
 /** Hints to TypeScript if we can safely cast an `unknown` error to an `AuthError`. */
 function isAuthError(error: unknown): error is AuthError {
     if (error && typeof error === 'object') {
-        return 'name' in error && 'log' in error;
+        return 'name' in error && 'log' in error
     } else {
-        return false;
+        return false
     }
 }
 
@@ -177,7 +177,7 @@ export class Cognito {
      * them to the "reset password" page of the application. The verification code will be filled in
      * automatically. */
     forgotPassword(email: string) {
-        return forgotPassword(email);
+        return forgotPassword(email)
     }
 
     /** Submits a new password for the given email address.
@@ -186,7 +186,7 @@ export class Cognito {
      * the "reset password" page of the application. This function will submit the new password
      * along with the verification code, changing the user's password. */
     forgotPasswordSubmit(email: string, code: string, password: string) {
-        return forgotPasswordSubmit(email, code, password);
+        return forgotPasswordSubmit(email, code, password)
     }
 
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
@@ -460,9 +460,11 @@ const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
 } as const
 
 async function forgotPassword(email: string) {
-    return results.Result.wrapAsync(async () => { await amplify.Auth.forgotPassword(email); })
+    return results.Result.wrapAsync(async () => {
+        await amplify.Auth.forgotPassword(email)
+    })
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoForgotPasswordErrorOrThrow));
+        .then(result => result.mapErr(intoForgotPasswordErrorOrThrow))
 }
 
 type ForgotPasswordErrorKind = 'UserNotConfirmed' | 'UserNotFound'
@@ -477,7 +479,7 @@ function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordErro
         return {
             kind: 'UserNotFound',
             message: MESSAGES.forgotPassword.userNotFound,
-        };
+        }
     } else if (
         error.code === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.internalCode &&
         error.message === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.message
@@ -485,9 +487,9 @@ function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordErro
         return {
             kind: FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.kind,
             message: MESSAGES.forgotPassword.userNotConfirmed,
-        };
+        }
     } else {
-        throw error;
+        throw error
     }
 }
 
@@ -496,8 +498,9 @@ function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordErro
 // ============================
 
 async function forgotPasswordSubmit(email: string, code: string, password: string) {
-    return results.Result.wrapAsync(async () => { await amplify.Auth.forgotPasswordSubmit(email, code, password); })
-        .then(result => result.mapErr(intoForgotPasswordSubmitErrorOrThrow));
+    return results.Result.wrapAsync(async () => {
+        await amplify.Auth.forgotPasswordSubmit(email, code, password)
+    }).then(result => result.mapErr(intoForgotPasswordSubmitErrorOrThrow))
 }
 
 type ForgotPasswordSubmitErrorKind = 'AmplifyError' | 'AuthError'
@@ -512,14 +515,14 @@ function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSub
         return {
             kind: 'AuthError',
             message: error.log,
-        };
+        }
     } else if (isAmplifyError(error)) {
         return {
             kind: 'AmplifyError',
             message: error.message,
-        };
+        }
     } else {
-        throw error;
+        throw error
     }
 }
 

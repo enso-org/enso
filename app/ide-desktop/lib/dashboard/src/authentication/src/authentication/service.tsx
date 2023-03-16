@@ -193,14 +193,14 @@ function setDeepLinkHandler(
       case CONFIRM_REGISTRATION_PATHNAME:
         const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
         navigate(redirectUrl);
-        break
+        break;
       /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/339
        * Don't use `enso://auth` for both authentication redirect & signout redirect so we don't
        * have to disambiguate between the two on the `DASHBOARD_PATH`. */
       case SIGN_OUT_PATHNAME:
       case SIGN_IN_PATHNAME:
         /** If the user is being redirected after a sign-out, then no query args will be present. */
-        if (parsedUrl.search === '') {
+        if (parsedUrl.search === "") {
           navigate(app.LOGIN_PATH);
         } else {
           handleAuthResponse(url);
