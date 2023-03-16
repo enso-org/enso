@@ -629,6 +629,7 @@
 - [Comparators support partial ordering][5778]
 - [Merge ordered and unordered comparators][5845]
 - [Use SHA-1 for calculating hashes of modules' IR and bindings][5791]
+- [Don't install Python component on Windows][5900]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -729,6 +730,7 @@
 [5778]: https://github.com/enso-org/enso/pull/5778
 [5845]: https://github.com/enso-org/enso/pull/5845
 [5791]: https://github.com/enso-org/enso/pull/5791
+[5900]: https://github.com/enso-org/enso/pull/5900
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

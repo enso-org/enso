@@ -23,7 +23,8 @@ object LanguageServerProtocol {
     clientId: UUID,
     project: Project,
     engineVersion: SemVer,
-    progressTracker: ActorRef
+    progressTracker: ActorRef,
+    engineUpdate: Boolean
   )
 
   /** Base trait for server startup results.
