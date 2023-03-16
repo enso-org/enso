@@ -23,7 +23,7 @@ class GraalVMComponentUpdater(runtime: GraalRuntime)
     *
     * @return the list of installed GraalVM components
     */
-  override def list: Try[Seq[GraalVMComponent]] = {
+  override def list(): Try[Seq[GraalVMComponent]] = {
     val command = Seq("list", "-v")
     val process = Process(
       gu.toAbsolutePath.toString +: command,
