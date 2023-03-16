@@ -4,12 +4,10 @@ use crate::prelude::*;
 use crate::system::web::traits::*;
 
 use crate::debug::stats::StatsData;
-use crate::display::world;
 use crate::system::web;
 use crate::system::web::dom::Shape;
 use crate::system::web::JsValue;
 use num_traits::cast::AsPrimitive;
-use std::collections::VecDeque;
 use std::f64;
 
 
@@ -30,7 +28,7 @@ const FONTS: &str =
 /// Look and feel configuration for the performance monitor.
 #[derive(Clone, Copy, Debug)]
 #[allow(missing_docs)]
-pub struct ConfigTemplate<Str, Num> {
+pub struct ConfigTemplate<Str> {
     pub background_color:        Str,
     pub label_color_ok:          Str,
     pub label_color_warn:        Str,
@@ -40,22 +38,22 @@ pub struct ConfigTemplate<Str, Num> {
     pub plot_color_warn:         Str,
     pub plot_color_err:          Str,
     pub plot_background_color:   Str,
-    pub plot_bar_size:           Option<Num>,
-    pub plot_step_size:          Num,
-    pub plot_selection_border:   Num,
-    pub plot_selection_width:    Num,
+    pub plot_bar_size:           Option<f64>,
+    pub plot_step_size:          f64,
+    pub plot_selection_border:   f64,
+    pub plot_selection_width:    f64,
     pub plot_selection_color:    Str,
-    pub margin:                  Num,
-    pub outer_margin:            Num,
-    pub panel_height:            Num,
-    pub labels_width:            Num,
-    pub results_width:           Num,
+    pub margin:                  f64,
+    pub outer_margin:            f64,
+    pub panel_height:            f64,
+    pub labels_width:            f64,
+    pub results_width:           f64,
     pub sample_count:            usize,
-    pub font_size:               Num,
-    pub font_vertical_offset:    Num,
+    pub font_size:               f64,
+    pub font_vertical_offset:    f64,
 }
 
-impl<Str> ConfigTemplate<Str, f64> {
+impl<Str> ConfigTemplate<Str> {
     fn plot_width(&self) -> f64 {
         self.plot_step_size * self.sample_count as f64
     }
@@ -70,32 +68,10 @@ impl<Str> ConfigTemplate<Str, f64> {
 }
 
 /// Specialization of the `ConfigTemplate` for users of the library.
-pub type Config = ConfigTemplate<String, f64>;
+pub type Config = ConfigTemplate<String>;
 
 /// Specialization of the `ConfigTemplate` for the usage in JS environment.
-pub type SamplerConfig = ConfigTemplate<JsValue, f64>;
-
-// fn dark_theme() -> Config {
-//     Config {
-//         background_color:      "#222222".into(),
-//         label_color_ok:        "#8e939a".into(),
-//         label_color_warn:      "#ffba18".into(),
-//         label_color_err:       "#eb3941".into(),
-//         plot_color_ok:         "#8e939a".into(),
-//         plot_color_warn:       "#ffba18".into(),
-//         plot_color_err:        "#eb3941".into(),
-//         plot_background_color: "#333333".into(),
-//         plot_bar_size:         None,
-//         plot_step_size:        1.0,
-//         margin:                6.0,
-//         outer_margin:          4.0,
-//         panel_height:          15.0,
-//         labels_width:          130.0,
-//         results_width:         30.0,
-//         font_size:             9.0,
-//         font_vertical_offset:  4.0,
-//     }
-// }
+pub type SamplerConfig = ConfigTemplate<JsValue>;
 
 fn light_theme() -> Config {
     Config {
@@ -268,6 +244,8 @@ impl DomData {
         self.plot_area.selection.set_style_or_warn("display", "flex");
     }
 
+    /// Move the selection region by the given offset. The final position will be snapped to the min
+    /// and max values. Returns the index of the selected sample.
     pub fn move_selection(&self, offset: f64) -> usize {
         let start_x = self.config.plot_x();
         let end_x = self.config.plot_right_x();
@@ -275,12 +253,10 @@ impl DomData {
         let offset_normalized = (self.selection_offset.get() + offset).max(0.0).min(width);
         self.selection_offset.set(offset_normalized);
         let offset_rounded = offset_normalized.round();
-        let global_offset = start_x + offset_rounded as f64;
+        let global_offset = start_x + offset_rounded;
         self.plot_area.selection.set_style_or_warn("left", format!("{global_offset}px"));
         offset_rounded as usize
     }
-
-
 
     fn set_screen_shape(&self, shape: Shape) {
         self.root
@@ -307,6 +283,17 @@ impl DomData {
     }
 }
 
+impl Drop for DomData {
+    fn drop(&mut self) {
+        self.root.remove()
+    }
+}
+
+
+// === MainArea ===
+
+/// The main area (left panel) of the performance monitor. It contains samplers names, samplers
+/// values, and value plots. It also contains play/pause button and the visual selection region.
 #[derive(Debug, Deref)]
 pub struct MainArea {
     #[deref]
@@ -332,14 +319,13 @@ impl MainArea {
         let plot_context = plot.get_context("2d").unwrap().unwrap();
         let plot_context: web::CanvasRenderingContext2d = plot_context.dyn_into().unwrap();
 
-        let bg_color = &config.background_color;
         let selection_border = config.plot_selection_border;
         let selection_width = config.plot_selection_width + 2.0 * selection_border;
         let selection_left =
             config.plot_right_x() - 0.5 - config.plot_selection_width / 2.0 - selection_border;
         let selection = web::document.create_div_or_panic();
         selection.set_style_or_warn("position", "absolute");
-        selection.set_style_or_warn("width", format!("{}px", selection_width));
+        selection.set_style_or_warn("width", format!("{selection_width}px"));
         selection.set_style_or_warn("height", "100%");
         selection.set_style_or_warn("left", format!("{selection_left}px"));
         selection.set_style_or_warn("display", "flex");
@@ -350,7 +336,7 @@ impl MainArea {
         selection_inner.set_style_or_warn("border", format!("{selection_border}px solid red"));
         selection_inner.set_style_or_warn("margin-bottom", "10px");
         selection_inner.set_style_or_warn("position", "relative");
-        selection_inner.set_style_or_warn("left", format!("-{}px", selection_border));
+        selection_inner.set_style_or_warn("left", format!("-{selection_border}px"));
         selection.append_child(&selection_inner).unwrap();
         root.append_child(&selection).unwrap();
 
@@ -358,7 +344,6 @@ impl MainArea {
     }
 
     fn set_size(&self, width: u32, height: u32) {
-        let selection_width = 4;
         let ratio = web::window.device_pixel_ratio();
         self.plot.set_width(width);
         self.plot.set_height(height);
@@ -368,12 +353,11 @@ impl MainArea {
     }
 }
 
-impl Drop for DomData {
-    fn drop(&mut self) {
-        self.root.remove()
-    }
-}
 
+// === ControlButton ===
+
+/// The play/pause button allowing pausing and resuming the live data gathering of the performance
+/// monitor.
 #[derive(Debug, Deref)]
 pub struct ControlButton {
     #[deref]
@@ -455,19 +439,19 @@ impl Default for Monitor {
     fn default() -> Self {
         let frp = Frp::new();
         let mut renderer = Renderer::new(&frp.public);
-        renderer.add::<FrameTime>();
-        renderer.add::<Fps>();
-        renderer.add::<WasmMemory>();
-        renderer.add::<GpuMemoryUsage>();
-        renderer.add::<DrawCallCount>();
-        renderer.add::<DataUploadCount>();
-        renderer.add::<DataUploadSize>();
-        renderer.add::<BufferCount>();
-        renderer.add::<SymbolCount>();
-        renderer.add::<ShaderCount>();
-        renderer.add::<ShaderCompileCount>();
-        renderer.add::<SpriteSystemCount>();
-        renderer.add::<SpriteCount>();
+        renderer.add(FRAME_TIME);
+        renderer.add(FPS);
+        renderer.add(WASM_MEMORY_USAGE);
+        renderer.add(GPU_MEMORY_USAGE);
+        renderer.add(DRAW_CALL_COUNT);
+        renderer.add(DATA_UPLOAD_COUNT);
+        renderer.add(DATA_UPLOAD_SIZE);
+        renderer.add(BUFFER_COUNT);
+        renderer.add(SYMBOL_COUNT);
+        renderer.add(SHADER_COUNT);
+        renderer.add(SHADER_COMPILE_COUNT);
+        renderer.add(SPRITE_SYSTEM_COUNT);
+        renderer.add(SPRITE_COUNT);
         let initialized = default();
         Self { renderer: Rc::new(RefCell::new(renderer)), frp, initialized }
     }
@@ -491,7 +475,7 @@ impl Monitor {
             self.initialized.set(true);
             let renderer = &self.renderer;
             let config = renderer.borrow().user_config.clone();
-            let scene = world::scene();
+            let scene = scene();
             let network = &self.frp.network;
             let mouse = &scene.mouse.frp;
             let label_width = config.outer_margin + 2.0 * config.margin + config.labels_width;
@@ -599,8 +583,8 @@ impl Renderer {
     }
 
     /// Add new display element.
-    fn add<S: Sampler + Default + 'static>(&mut self) {
-        let panel = Panel::new(self.config.clone(), S::default());
+    fn add(&mut self, sampler: Sampler) {
+        let panel = Panel::new(self.config.clone(), sampler);
         self.panels.push(panel);
         self.resize();
     }
@@ -683,10 +667,8 @@ impl Renderer {
                 }
                 self.draw(stats);
             }
-        } else {
-            if self.visible() {
-                self.draw_paused(stats);
-            }
+        } else if self.visible() {
+            self.draw_paused(stats);
         }
     }
 
@@ -717,7 +699,6 @@ impl Renderer {
 
     fn resize(&mut self) {
         if let Some(dom) = &self.dom {
-            let ratio = web::window.device_pixel_ratio();
             let width = self.config.labels_width
                 + self.config.results_width
                 + self.config.plot_width()
@@ -731,9 +712,6 @@ impl Renderer {
             height += self.config.outer_margin;
             self.width = width;
             self.height = height;
-            let scaled_width = width / ratio;
-            // dom.root.set_style_or_warn("width", format!("{scaled_width}px"));
-            // let width = 1000.0;
             let u_width = width as u32;
             let u_height = height as u32;
             dom.plot_area.set_size(u_width, u_height);
@@ -826,7 +804,7 @@ pub struct Panel {
 
 impl Panel {
     /// Creates a new, empty Panel with a given sampler.
-    pub fn new<S: Sampler + 'static>(config: SamplerConfig, sampler: S) -> Self {
+    pub fn new(config: SamplerConfig, sampler: Sampler) -> Self {
         let rc = Rc::new(RefCell::new(PanelData::new(config, sampler)));
         Self { rc }
     }
@@ -836,6 +814,8 @@ impl Panel {
         self.rc.borrow_mut().draw(selected, dom, stats)
     }
 
+    /// Display results in the paused state. In this state, the user might dragged the selection
+    /// area, so we need to update the results, but we do not need to update the plots.
     pub fn draw_paused(&self, selected: bool, dom: &Dom, stats: &StatsData) {
         self.rc.borrow_mut().draw_paused(selected, dom, stats)
     }
@@ -900,55 +880,6 @@ impl ValueCheck {
 
 
 
-// ===============
-// === Sampler ===
-// ===============
-
-/// Abstraction for a sampling utility. Samplers gather the data and expose it in a way suitable for
-/// the monitor.
-pub trait Sampler: Debug {
-    /// Label of the sampler in the monitor window.
-    fn label(&self) -> &str;
-
-    /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
-    fn value(&self, stats: &StatsData) -> f64;
-
-    fn details(&self) -> Option<Box<dyn FnMut(&StatsData) -> &[&'static str]>> {
-        None
-    }
-
-    /// Check whether the newest value is correct, or should be displayed as warning or error.
-    fn check(&self, _stats: &StatsData) -> ValueCheck {
-        ValueCheck::Correct
-    }
-
-    /// Returns the maximum expected value in order to set proper scaling of the monitor plots.
-    /// If the real value will be bigger than this parameter, it will be clamped.
-    fn max_value(&self) -> Option<f64> {
-        None
-    }
-
-    /// Returns the minimum expected value in order to set proper scaling of the monitor plots.
-    /// If the real value will be smaller than this parameter, it will be clamped.
-    fn min_value(&self) -> Option<f64> {
-        None
-    }
-
-    /// Returns the maximum expected value in order to set proper scaling of the monitor plots.
-    /// If the real value will be bigger than this parameter, the graphs will be re-scaled
-    /// automatically.
-    fn min_size(&self) -> Option<f64> {
-        None
-    }
-
-    /// The number of digits after the dot which should be displayed in the monitor panel.
-    fn precision(&self) -> usize {
-        2
-    }
-}
-
-
-
 // =================
 // === PanelData ===
 // =================
@@ -964,7 +895,7 @@ pub struct PanelData {
     norm_value:  f64,
     value_check: ValueCheck,
     precision:   usize,
-    sampler:     Box<dyn Sampler>,
+    sampler:     Sampler,
 }
 
 
@@ -972,15 +903,15 @@ pub struct PanelData {
 
 impl PanelData {
     /// Constructor.
-    pub fn new<S: Sampler + 'static>(config: SamplerConfig, sampler: S) -> Self {
-        let label = sampler.label().into();
+    pub fn new(config: SamplerConfig, sampler: Sampler) -> Self {
+        let label = sampler.label.into();
         let min_value = f64::INFINITY;
         let max_value = f64::NEG_INFINITY;
         let value = default();
         let norm_value = default();
         let value_check = default();
-        let sampler = Box::new(sampler);
-        let precision = sampler.precision();
+        let sampler = sampler;
+        let precision = sampler.precision;
         Self {
             label,
             config,
@@ -1010,12 +941,12 @@ impl PanelData {
 
     /// Clamp the measured values to the `max_value` and `min_value`.
     fn clamp_value(&mut self) {
-        if let Some(max_value) = self.sampler.max_value() {
+        if let Some(max_value) = self.sampler.max_value {
             if self.value > max_value {
                 self.value = max_value;
             }
         }
-        if let Some(min_value) = self.sampler.min_value() {
+        if let Some(min_value) = self.sampler.min_value {
             if self.value > min_value {
                 self.value = min_value;
             }
@@ -1052,6 +983,8 @@ impl PanelData {
         self.draw_details(dom, selected, stats);
     }
 
+    /// Display results in the paused state. In this state, the user might dragged the selection
+    /// area, so we need to update the results, but we do not need to update the plots.
     pub fn draw_paused(&mut self, selected: bool, dom: &Dom, stats: &StatsData) {
         self.draw_label(dom, selected);
         self.draw_value(dom);
@@ -1171,21 +1104,19 @@ impl PanelData {
 
     fn draw_details(&mut self, dom: &Dom, selected: bool, stats: &StatsData) {
         if selected {
-            if let Some(mut details) = self.sampler.details() {
+            if let Some(ref mut details) = &mut self.sampler.details {
                 dom.show_details();
                 let ul = web::document.create_html_element_or_panic("ul");
                 ul.set_style_or_warn("padding-inline-start", "10px");
-                for i in 0..20 {
-                    for entry in details(stats) {
-                        let li = web::document.create_element_or_panic("li");
-                        let a = web::document.create_html_element_or_panic("a");
-                        a.set_attribute("href", &format!("enso://enso-source:{}", entry)).ok();
-                        a.set_inner_html(&entry);
-                        a.set_style_or_warn("color", "inherit");
-                        a.set_style_or_warn("text-decoration", "none");
-                        li.append_child(&a).unwrap();
-                        ul.append_child(&li).unwrap();
-                    }
+                for entry in details(stats) {
+                    let li = web::document.create_element_or_panic("li");
+                    let a = web::document.create_html_element_or_panic("a");
+                    a.set_attribute("href", &format!("enso://enso-source:{entry}")).ok();
+                    a.set_inner_html(entry);
+                    a.set_style_or_warn("color", "inherit");
+                    a.set_style_or_warn("text-decoration", "none");
+                    li.append_child(&a).unwrap();
+                    ul.append_child(&li).unwrap();
                 }
                 dom.details.set_text_content(None);
                 dom.details.append_child(&ul).unwrap();
@@ -1198,354 +1129,194 @@ impl PanelData {
 
 
 
+// ===============
+// === Sampler ===
+// ===============
+
+/// Sampler is an utility to gather performance-related data and expose it in a way understandable
+/// by the performance monitor.
+#[derive(Copy, Clone)]
+pub struct Sampler {
+    /// Label of the sampler to be displayed in the performance monitor window.
+    label:          &'static str,
+    /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
+    expr:           fn(&StatsData) -> f64,
+    /// Get the details to be displayed in the details view.
+    details:        Option<fn(&StatsData) -> &[&'static str]>,
+    /// If the value crosses this threshold, the graph will be drawn in the warning color.
+    warn_threshold: f64,
+    /// If the value crosses this threshold, the graph will be drawn in the error color.
+    err_threshold:  f64,
+    /// The value will be divided by this number before being displayed.
+    value_divisor:  f64,
+    /// The minimum expected value in order to set proper scaling of the monitor plots. If the real
+    /// value will be smaller than this parameter, it will be clamped.
+    min_value:      Option<f64>,
+    /// The maximum expected value in order to set proper scaling of the monitor plots. If the real
+    /// value will be bigger than this parameter, it will be clamped.
+    max_value:      Option<f64>,
+    /// The number of digits after the dot which should be displayed in the monitor panel.
+    precision:      usize,
+}
+
+impl Debug for Sampler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Sampler")
+    }
+}
+
+impl const Default for Sampler {
+    fn default() -> Self {
+        Self {
+            label:          "Unlabeled",
+            expr:           |_| 0.0,
+            details:        None,
+            warn_threshold: 0.0,
+            err_threshold:  0.0,
+            value_divisor:  1.0,
+            min_value:      None,
+            max_value:      None,
+            precision:      0,
+        }
+    }
+}
+
+impl Sampler {
+    fn value(&self, stats: &StatsData) -> f64 {
+        let raw_value: f64 = (self.expr)(stats).as_();
+        raw_value / self.value_divisor
+    }
+
+    fn check(&self, stats: &StatsData) -> ValueCheck {
+        let value = self.value(stats);
+        ValueCheck::from_threshold(self.warn_threshold, self.err_threshold, value)
+    }
+
+    fn min_size(&self) -> Option<f64> {
+        Some(self.warn_threshold)
+    }
+}
+
+
+
 // =================================================================================================
 // === Samplers ====================================================================================
 // =================================================================================================
 
-// ======================
-// === Stats Samplers ===
-// ======================
-
-/// Utility to generate Samplers for stats parameters. See the usages below this declaration to
-/// discover more.
-macro_rules! stats_sampler {
-    ( $label:tt, $name:ident, $stats_expr:expr, $details: expr, $warn_threshold:expr, $err_threshold:expr
-    , $precision:expr, $value_divisor:expr) => {
-        stats_sampler!(
-            $label,
-            $name,
-            $stats_expr,
-            $details,
-            $warn_threshold,
-            $err_threshold,
-            $precision,
-            $value_divisor,
-            None
-        );
-    };
-
-    ( $label:tt, $name:ident, $stats_expr:expr, $details: expr, $warn_threshold:expr, $err_threshold:expr
-    , $precision:expr, $value_divisor:expr, $max_value:expr) => {
-        /// Sampler implementation.
-        #[derive(Copy, Clone, Debug, Default)]
-        pub struct $name {}
-
-        impl Sampler for $name {
-            fn label(&self) -> &str {
-                $label
-            }
-            fn value(&self, stats: &StatsData) -> f64 {
-                let raw_value: f64 = $stats_expr(stats).as_();
-                raw_value / $value_divisor
-            }
-            fn details(&self) -> Option<Box<dyn FnMut(&StatsData) -> &[&'static str]>> {
-                $details
-            }
-            fn min_size(&self) -> Option<f64> {
-                Some($warn_threshold)
-            }
-            fn precision(&self) -> usize {
-                $precision
-            }
-            fn check(&self, stats: &StatsData) -> ValueCheck {
-                let value = self.value(&stats);
-                ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
-            }
-            fn max_value(&self) -> Option<f64> {
-                $max_value
-            }
-        }
-    };
-}
-
 const MB: f64 = (1024 * 1024) as f64;
 
-stats_sampler!(
-    "Frames per second",
-    Fps,
-    (|s: &StatsData| s.fps),
-    None,
-    55.0,
-    25.0,
-    2,
-    1.0,
-    Some(60.0)
-);
-stats_sampler!(
-    "Frame time (ms)",
-    FrameTime,
-    (|s: &StatsData| s.frame_time),
-    None,
-    1000.0 / 55.0,
-    1000.0 / 25.0,
-    2,
-    1.0
-);
-stats_sampler!(
-    "WASM memory usage (Mb)",
-    WasmMemory,
-    (|s: &StatsData| s.wasm_memory_usage),
-    None,
-    50.0,
-    100.0,
-    2,
-    MB
-);
-stats_sampler!(
-    "GPU memory usage (Mb)",
-    GpuMemoryUsage,
-    (|s: &StatsData| s.gpu_memory_usage),
-    None,
-    100.0,
-    500.0,
-    2,
-    MB
-);
-stats_sampler!(
-    "Draw call count",
-    DrawCallCount,
-    (|s: &StatsData| s.draw_calls.len()),
-    Some(Box::new(|s: &StatsData| &s.draw_calls)),
-    100.0,
-    500.0,
-    0,
-    1.0
-);
-stats_sampler!(
-    "Buffer count",
-    BufferCount,
-    (|s: &StatsData| s.buffer_count),
-    None,
-    100.0,
-    500.0,
-    0,
-    1.0
-);
-stats_sampler!(
-    "Data upload count",
-    DataUploadCount,
-    (|s: &StatsData| s.data_upload_count),
-    None,
-    100.0,
-    500.0,
-    0,
-    1.0
-);
-stats_sampler!(
-    "Data upload size (Mb)",
-    DataUploadSize,
-    (|s: &StatsData| s.data_upload_size),
-    None,
-    1.0,
-    10.0,
-    2,
-    MB
-);
-stats_sampler!(
-    "Sprite system count",
-    SpriteSystemCount,
-    (|s: &StatsData| s.sprite_system_count),
-    None,
-    100.0,
-    500.0,
-    0,
-    1.0
-);
-stats_sampler!(
-    "Symbol count",
-    SymbolCount,
-    (|s: &StatsData| s.symbol_count),
-    None,
-    100.0,
-    500.0,
-    0,
-    1.0
-);
-stats_sampler!(
-    "Sprite count",
-    SpriteCount,
-    (|s: &StatsData| s.sprite_count),
-    None,
-    100_000.0,
-    500_000.0,
-    0,
-    1.0
-);
-stats_sampler!(
-    "Shader count",
-    ShaderCount,
-    (|s: &StatsData| s.shader_count),
-    None,
-    100.0,
-    500.0,
-    0,
-    1.0
-);
-stats_sampler!(
-    "Shader compile count",
-    ShaderCompileCount,
-    (|s: &StatsData| s.shader_compile_count),
-    None,
-    10.0,
-    100.0,
-    0,
-    1.0
-);
+const DEFAULT_SAMPLER: Sampler = Default::default();
 
-// FIXME[WD]: To be fixed in #183406745
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use enso_prelude::*;
-//
-//     use crate::debug::stats::StatsWithTimeProvider;
-//     use enso_web::TimeProvider;
-//     use std::ops::AddAssign;
-//
-//
-//     // === MockTimeProvider ===
-//
-//     #[derive(Default, Clone)]
-//     struct MockTimeProvider {
-//         t: Rc<RefCell<f64>>,
-//     }
-//
-//     impl TimeProvider for MockTimeProvider {
-//         fn now(&self) -> f64 {
-//             *self.t.borrow()
-//         }
-//     }
-//
-//     impl AddAssign<f64> for MockTimeProvider {
-//         fn add_assign(&mut self, dt: f64) {
-//             *self.t.borrow_mut() += dt;
-//         }
-//     }
-//
-//
-//     // === TestSampler ===
-//
-//     struct TestSampler<S> {
-//         stats:   StatsWithTimeProvider<MockTimeProvider>,
-//         sampler: S,
-//         t:       MockTimeProvider,
-//     }
-//
-//     impl<S: Sampler + Default> Default for TestSampler<S> {
-//         fn default() -> Self {
-//             let t: MockTimeProvider = default();
-//             let stats = StatsWithTimeProvider::new(t.clone());
-//             let sampler = default();
-//             Self { stats, sampler, t }
-//         }
-//     }
-//
-//     const STAT_VALUE_COMPARISON_PRECISION: f64 = 0.001;
-//
-//     macro_rules! test_and_advance_frame {
-//         ($test:expr, $expected_value:expr, $expected_check:path
-//         ; next: $frame_time:expr, $post_frame_delay:expr) => {
-//             let prev_frame_stats = $test.stats.begin_frame(Duration(*$test.t.t.borrow() as f32));
-//             if let Some(prev_frame_stats) = prev_frame_stats {
-//                 let tested_value = $test.sampler.value(&prev_frame_stats);
-//                 let tested_check = $test.sampler.check(&prev_frame_stats);
-//                 assert_approx_eq!(tested_value, $expected_value,
-// STAT_VALUE_COMPARISON_PRECISION);                 let mismatch_msg = format!(
-//                     "Stat check was expected to return: " $expected_check;?
-//                     ", but got: " tested_check;? " instead.");
-//                 assert!(matches!(tested_check, $expected_check), "{}", mismatch_msg);
-//             } else {
-//                 assert!(false,
-//                     "Expected previous frame's stats to be returned by begin_frame(), \
-//                     but got none.");
-//             }
-//             $test.t += $frame_time;
-//             $test.stats.end_frame();
-//             $test.t += $post_frame_delay;
-//         };
-//
-//         ($test:expr, None; next: $frame_time:expr, $post_frame_delay:expr) => {
-//             let prev_frame_stats = $test.stats.begin_frame(Duration(*$test.t.t.borrow() as f32));
-//             let mismatch_msg = format!(
-//                 "Expected no stats to be returned by begin_frame(), but got: "
-//                 prev_frame_stats;? " instead.");
-//             assert!(matches!(prev_frame_stats, None), "{}", mismatch_msg);
-//             $test.t += $frame_time;
-//             $test.stats.end_frame();
-//             $test.t += $post_frame_delay;
-//         };
-//     }
-//
-//
-//     // === Tests ===
-//
-//     #[test]
-//     fn frame_time() {
-//         // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written
-// under         // assumption we're trying to be around this FPS.
-//
-//         let mut test: TestSampler<FrameTime> = default();
-//
-//         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
-//         // starting next frame.
-//         //
-//         // Note: we expect no stats data to be returned before the 1st frame was started.
-//         test_and_advance_frame!(test, None; next: 10.0, 6.0);
-//
-//         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
-//         // starting next frame.
-//         test_and_advance_frame!(test, 10.0, ValueCheck::Correct; next: 5.0, 11.0);
-//
-//         // Frame 3: simulate we went over the budget of 16.6(6) ms, at 30ms. No extra delay
-//         // afterwards before starting next frame.
-//         test_and_advance_frame!(test, 5.0, ValueCheck::Correct; next: 30.0, 0.0);
-//
-//         // Frame 4: simulate a really slow frame (1000ms), crossing the configured error
-// threshold.         test_and_advance_frame!(test, 30.0, ValueCheck::Warning; next: 1000.0, 0.0);
-//
-//         // For the final test, we're not interested in the next frame, so we're using some dummy
-//         // values for it.
-//         let dummy = 0.0;
-//         test_and_advance_frame!(test, 1000.0, ValueCheck::Error; next: dummy, dummy);
-//     }
-//
-//     #[test]
-//     fn fps() {
-//         // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written
-// under         // assumption we're trying to be around this FPS.
-//
-//         let mut test: TestSampler<Fps> = default();
-//
-//         // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
-//         // starting next frame.
-//         //
-//         // Note: we expect no stats data to be returned before the 1st frame was started.
-//         test_and_advance_frame!(test, None; next: 10.0, 6.0);
-//
-//         // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms
-// before         // starting next frame.
-//         //
-//         // Note: FPS takes into account delays between frames - for example, if a frame took only
-//         // 1ms, but the next frame will not be started immediately (will be started only e.g.
-// 15ms         // later), we cannot show FPS only based the 1ms duration of the frame - it would
-// not be         // true, as the subsequent delay means less frames per second will be rendered in
-// reality.         //
-//         // Previous frame+delay was 16.0 ms; we'd fit 62.5 such frames in 1s.
-//         test_and_advance_frame!(test, 62.5, ValueCheck::Correct; next: 5.0, 11.67);
-//
-//         // Frame 3: simulate we went over the budget of 16.6(6) ms, at 20ms. No extra delay
-//         // afterwards before starting next frame.
-//         // Previous frame+delay was 16.67 ms; we'd fit ~59.988 such frames in 1s.
-//         test_and_advance_frame!(test, 59.988, ValueCheck::Correct; next: 20.0, 0.0);
-//
-//         // Frame 4: simulate a really slow frame (1000ms), crossing the FPS error threshold.
-//         // Previous frame+delay was 20.0 ms; we'd fit 50.0 such frames in 1s.
-//         test_and_advance_frame!(test, 50.0, ValueCheck::Warning; next: 1000.0, 0.0);
-//
-//         // For the final test, we're not interested in the next frame, so we're using some dummy
-//         // values for it.
-//         // Previous frame+delay was 1000.0 ms; we'd fit 1 such frame in 1s.
-//         let dummy = 0.0;
-//         test_and_advance_frame!(test, 1.0, ValueCheck::Error; next: dummy, dummy);
-//     }
-// }
+const FPS: Sampler = Sampler {
+    label: "Frames per second",
+    expr: |s| s.fps,
+    warn_threshold: 55.0,
+    err_threshold: 25.0,
+    precision: 2,
+    max_value: Some(60.0),
+    ..DEFAULT_SAMPLER
+};
+
+const FRAME_TIME: Sampler = Sampler {
+    label: "Frame time (ms)",
+    expr: |s| s.frame_time,
+    warn_threshold: 1000.0 / 55.0,
+    err_threshold: 1000.0 / 25.0,
+    precision: 2,
+    ..DEFAULT_SAMPLER
+};
+
+const WASM_MEMORY_USAGE: Sampler = Sampler {
+    label: "WASM memory usage (Mb)",
+    expr: |s| s.wasm_memory_usage as f64,
+    warn_threshold: 50.0,
+    err_threshold: 100.0,
+    precision: 2,
+    value_divisor: MB,
+    ..DEFAULT_SAMPLER
+};
+
+const GPU_MEMORY_USAGE: Sampler = Sampler {
+    label: "GPU memory usage (Mb)",
+    expr: |s| s.gpu_memory_usage as f64,
+    warn_threshold: 100.0,
+    err_threshold: 500.0,
+    precision: 2,
+    value_divisor: MB,
+    ..DEFAULT_SAMPLER
+};
+
+const DRAW_CALL_COUNT: Sampler = Sampler {
+    label: "Draw call count",
+    expr: |s| s.draw_calls.len() as f64,
+    details: Some(|s| &s.draw_calls),
+    warn_threshold: 100.0,
+    err_threshold: 500.0,
+    ..DEFAULT_SAMPLER
+};
+
+const BUFFER_COUNT: Sampler = Sampler {
+    label: "Buffer count",
+    expr: |s| s.buffer_count as f64,
+    warn_threshold: 100.0,
+    err_threshold: 500.0,
+    ..DEFAULT_SAMPLER
+};
+
+const DATA_UPLOAD_COUNT: Sampler = Sampler {
+    label: "Data upload count",
+    expr: |s| s.data_upload_count as f64,
+    warn_threshold: 100.0,
+    err_threshold: 500.0,
+    ..DEFAULT_SAMPLER
+};
+
+const DATA_UPLOAD_SIZE: Sampler = Sampler {
+    label: "Data upload size (Mb)",
+    expr: |s| s.data_upload_size as f64,
+    warn_threshold: 1.0,
+    err_threshold: 10.0,
+    precision: 2,
+    value_divisor: MB,
+    ..DEFAULT_SAMPLER
+};
+
+const SPRITE_SYSTEM_COUNT: Sampler = Sampler {
+    label: "Sprite system count",
+    expr: |s| s.sprite_system_count as f64,
+    warn_threshold: 100.0,
+    err_threshold: 500.0,
+    ..DEFAULT_SAMPLER
+};
+
+const SYMBOL_COUNT: Sampler = Sampler {
+    label: "Symbol count",
+    expr: |s| s.symbol_count as f64,
+    warn_threshold: 100.0,
+    err_threshold: 500.0,
+    ..DEFAULT_SAMPLER
+};
+
+const SPRITE_COUNT: Sampler = Sampler {
+    label: "Sprite count",
+    expr: |s| s.sprite_count as f64,
+    warn_threshold: 100_000.0,
+    err_threshold: 500_000.0,
+    ..DEFAULT_SAMPLER
+};
+
+const SHADER_COUNT: Sampler = Sampler {
+    label: "Shader count",
+    expr: |s| s.shader_count as f64,
+    warn_threshold: 100.0,
+    err_threshold: 500.0,
+    ..DEFAULT_SAMPLER
+};
+
+const SHADER_COMPILE_COUNT: Sampler = Sampler {
+    label: "Shader compile count",
+    expr: |s| s.shader_compile_count as f64,
+    warn_threshold: 10.0,
+    err_threshold: 100.0,
+    ..DEFAULT_SAMPLER
+};

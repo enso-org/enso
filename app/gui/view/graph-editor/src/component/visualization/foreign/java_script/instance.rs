@@ -281,10 +281,10 @@ impl Instance {
         let model = InstanceModel::from_class(class, scene)?;
         model.set_dom_layer(&scene.dom.layers.back);
         model.set_active(false);
-        Ok(Instance { model, frp, network }.init_frp(scene).init_preprocessor_change_callback())
+        Ok(Instance { model, frp, network }.init_frp().init_preprocessor_change_callback())
     }
 
-    fn init_frp(self, scene: &Scene) -> Self {
+    fn init_frp(self) -> Self {
         let network = &self.network;
         let model = self.model.clone_ref();
         let frp = self.frp.clone_ref();
@@ -298,7 +298,6 @@ impl Instance {
             eval frp.set_layer ((layer) model.set_layer(*layer));
             eval frp.is_active ((is_active) model.set_active(*is_active));
         }
-        // frp.pass_events_to_dom_if_active(scene, network);
         self
     }
 
