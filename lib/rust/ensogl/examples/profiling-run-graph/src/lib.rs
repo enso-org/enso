@@ -22,6 +22,7 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_profiler_data::parse_multiprocess_profile;
+use enso_profiler_data::Class;
 use enso_profiler_data::Profile;
 use enso_profiler_enso_data::Metadata;
 use enso_profiler_flame_graph as profiler_flame_graph;
@@ -190,10 +191,6 @@ fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_gr
         .collect()
 }
 
-fn make_rendering_performance_blocks(
-    profile: &Profile<Metadata>,
-) -> Vec<profiler_flame_graph::Block<Performance>> {
-    let mut blocks = Vec::default();
 fn make_rendering_performance_blocks<M>(
     profile: &Profile<M>,
 ) -> Vec<profiler_flame_graph::Block<Performance>> {
@@ -204,7 +201,7 @@ fn make_rendering_performance_blocks<M>(
         .map(|interval| interval.interval.start.into_ms())
         .tuple_windows()
         .map(|(start, end)| {
-            let label = format!("<frame>");
+            let label = "<frame>".to_string();
             let row = -1;
             let block_type = match end - start {
                 // 60 FPS
@@ -217,25 +214,6 @@ fn make_rendering_performance_blocks<M>(
             profiler_flame_graph::Block { start, end, row, label, block_type }
         })
         .collect()
-}
-    // let render_stats = profile.metadata().filter_map(|metadata| match metadata.data {
-    //     Metadata::RenderStats(data) => Some(metadata.as_ref().map(|_| data)),
-    //     _ => None,
-    // });
-    // for (prev, current) in render_stats.tuple_windows() {
-    //     let start = prev.time.into_ms();
-    //     let end = current.time.into_ms();
-    //     let row = -1;
-    //     let label = format!("{:#?}", current.data);
-    //     let block_type = match current.data.fps {
-    //         fps if fps > 55.0 => Performance::Good,
-    //         fps if fps > 25.0 => Performance::Medium,
-    //         _ => Performance::Bad,
-    //     };
-    //     let block = profiler_flame_graph::Block { start, end, row, label, block_type };
-    //     blocks.push(block);
-    // }
-    blocks
 }
 
 
