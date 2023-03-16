@@ -91,7 +91,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     PathWatcherConfig(),
     ExecutionContextConfig(),
     directoriesConfig,
-    serverConfig.profilingConfig
+    serverConfig.profilingConfig,
+    serverConfig.startupConfig
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
