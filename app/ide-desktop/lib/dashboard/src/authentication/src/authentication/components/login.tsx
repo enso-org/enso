@@ -13,9 +13,11 @@ import * as utils from "../../utils";
 // === Constants ===
 // =================
 
-const BUTTON_CLASS_NAME = "relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
+const BUTTON_CLASS_NAME = "relative mt-6 border rounded-md py-2 text-sm text-gray-800 " +
+  "bg-gray-100 hover:bg-gray-200"
 
-const INPUT_CLASS_NAME = "text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
+const INPUT_CLASS_NAME = "text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border " +
+  "border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
 
 const LOGIN_QUERY_PARAMS = {
   email: "email",

@@ -340,10 +340,12 @@ function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError 
 // ========================
 
 async function signInWithGoogle(customState: string | null) {
-    await amplify.Auth.federatedSignIn({
-        provider: amplify.CognitoHostedUIIdentityProvider.Google,
+    const provider = amplify.CognitoHostedUIIdentityProvider.Google
+    const options = {
+        provider,
         ...(customState ? { customState }: {}),
-    })
+    }
+    await amplify.Auth.federatedSignIn(options)
 }
 
 // ========================
