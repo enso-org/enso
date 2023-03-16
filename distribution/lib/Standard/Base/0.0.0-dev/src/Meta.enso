@@ -34,7 +34,7 @@ type Type
        Returns a vector of field names defined by a constructor.
     constructors : Vector
     constructors  self =
-        Vector.from_polyglot_array (get_type_constructors self.value) . map Meta.meta
+        Vector.from_polyglot_array (get_type_constructors self.value Meta.Constructor.Value)
 
 type Atom
     ## UNSTABLE
@@ -234,7 +234,7 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
    Arguments:
    - type: The type to obtain the constructors for.
 get_type_constructors : Atom -> Array
-get_type_constructors type = @Builtin_Method "Meta.get_type_constructors"
+get_type_constructors type factory = @Builtin_Method "Meta.get_type_constructors"
 
 ## PRIVATE
 

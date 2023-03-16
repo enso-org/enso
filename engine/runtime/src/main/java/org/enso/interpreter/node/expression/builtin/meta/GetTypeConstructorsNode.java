@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 
@@ -17,15 +18,22 @@ public abstract class GetTypeConstructorsNode extends Node {
     return GetTypeConstructorsNodeGen.create();
   }
 
-  abstract Array execute(Object type);
+  abstract Array execute(Object type, Object factory);
 
   @Specialization
-  Array doStruct(Type type) {
-    return new Array(type.getConstructors().values().toArray());
+  Array allConstructors(Type type, AtomConstructor factory) {
+    var rawConstructors = type.getConstructors().values();
+    var rawResult = new Object[rawConstructors.size()];
+    int at = 0;
+    for (var cons : rawConstructors) {
+      var metaCons = factory.newInstance(cons);
+      rawResult[at++] = metaCons;
+    }
+    return new Array(rawResult);
   }
 
   @Fallback
-  Array empty(Object type) {
+  Array empty(Object type, Object any) {
     return Array.empty();
   }
 }
