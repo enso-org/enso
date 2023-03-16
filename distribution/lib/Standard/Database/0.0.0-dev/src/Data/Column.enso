@@ -63,7 +63,7 @@ type Column
 
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
-    print : Nothing
+    print : Integer -> Nothing
     print self show_rows=10 =
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
@@ -162,7 +162,7 @@ type Column
        If not specified, the `new_type` is the same as the current one.
        `operand_type` is only relevant if the operand is not a column, it
        defaults to the current type if not provided.
-    make_binary_op : Text -> Text -> (Column | Any) -> (SQL_Type | Nothing) -> (SQL_Type | Nothing) -> (Text | Nothing) -> Column
+    make_binary_op : Text -> Text -> (Text | Nothing) -> (SQL_Type | Nothing) -> (SQL_Type | Nothing) -> Column
     make_binary_op self op_kind operand new_name=Nothing new_type=Nothing operand_type=Nothing =
         effective_new_name = new_name.if_nothing <|
             self.naming_helpers.binary_operation_name op_kind self operand
@@ -678,7 +678,7 @@ type Column
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    is_blank : Boolean -> Boolean -> Column
+    is_blank : Boolean -> Column
     is_blank self treat_nans_as_blank=False =
         new_name = self.naming_helpers.function_name "is_blank" [self]
         is_blank = case self.sql_type.is_definitely_text of
@@ -923,10 +923,8 @@ type Column
 
        Arguments:
        - function: The function to apply to each element of `self` column.
-       - on_missing: The value to return for missing cells. Ideally it should be
-         replaced with a `skip_nulls` parameter like elsewhere, but currently
-         that is not possible due to a bug:
-         https://github.com/oracle/graal/issues/4741
+       - skip_nothing: If `True`, `Nothing` values will be skipped. Otherwise,
+         `Nothing` values will be passed to the `function`.
 
        > Example
          Multiply each element of the column by itself.
@@ -934,9 +932,9 @@ type Column
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
-    map : (Any -> Any) -> Column
-    map self function on_missing=Nothing =
-        _ = [function, on_missing]
+    map : (Any -> Any) -> Boolean -> Column
+    map self function skip_nothing=True =
+        _ = [function, skip_nothing]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.map` is not supported in the Database backends."
 
     ## ALIAS Transform Columns

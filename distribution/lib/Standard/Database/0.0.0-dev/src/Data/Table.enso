@@ -1443,7 +1443,7 @@ type Table
          avoid nesting subqueries without necessity. However, for now, for
          simplicity, we are always wrapping brittle operations. This may be
          revised in the future, to generate better and more concise SQL code.
-    updated_context_and_columns : Context -> Vector Internal_Column -> Table
+    updated_context_and_columns : Context -> Vector Internal_Column -> Boolean -> Table
     updated_context_and_columns self ctx internal_columns subquery=False = case subquery of
         True ->
             setup = ctx.as_subquery self.name [internal_columns]
