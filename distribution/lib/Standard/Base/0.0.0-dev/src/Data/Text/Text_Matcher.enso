@@ -1,10 +1,11 @@
 import project.Any.Any
-import project.Data.Boolean.Boolean
 import project.Data.Locale.Locale
 import project.Data.Text.Matching
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Problem_Behavior.Problem_Behavior
+
+from project.Data.Boolean import Boolean, True, False
 
 ## Represents exact text matching mode.
 type Text_Matcher
