@@ -202,11 +202,6 @@ function handleAuthResponse(url: string) {
      * Electron's `webSecurity`). This is a hack, but it's the only way to get Amplify to work
      * with a custom URL protocol in Electron.
      *
-     * Note that this entire hack must happen within an async IIFE block, because we need to be
-     * sure to restore the original `window.location.replaceState` function before any
-     * non-Amplify code runs, which we can't guarantee if `_handleAuthResponse` is allowed to
-     * complete asynchronously.
-     *
      * # Safety
      *
      * It is safe to disable the `unbound-method` lint here because we intentionally want to use
