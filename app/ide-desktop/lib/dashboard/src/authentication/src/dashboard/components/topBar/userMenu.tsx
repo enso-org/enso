@@ -1,7 +1,7 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
 import React, { PropsWithChildren, useState } from 'react'
 import * as auth from '../../../authentication/providers/auth'
-
+import AddCardModal from './addCardModal'
 import ChangePasswordModal from './changePasswordModal'
 
 // ================
@@ -37,18 +37,25 @@ const UserMenuItem: React.FC<PropsWithChildren<UserMenuItemProps>> = ({
     )
 }
 
+/** Handling the UserMenuItem click event logic and displaying its content. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const UserMenu: React.FC = () => {
     const { signOut } = auth.useAuth()
     const { organization } = auth.useFullUserSession()
 
     const [visibleChangePassword, setVisibleChangePassword] = useState(false)
-
+    const [visibleAddCard, setVisibleAddCard] = useState(false)
     const handleResetPassword = () => {
         setVisibleChangePassword(true)
     }
     const handleCancelChangePassword = () => {
         setVisibleChangePassword(false)
+    }
+    const handleAddCard = () => {
+        setVisibleAddCard(true)
+    }
+    const handleCancelAddCard = () => {
+        setVisibleAddCard(false)
     }
 
     return (
@@ -61,7 +68,9 @@ const UserMenu: React.FC = () => {
                 <UserMenuItem needHoverClass onClick={handleResetPassword}>
                     Change your password
                 </UserMenuItem>
-                <UserMenuItem needHoverClass>Add Stripe default card</UserMenuItem>
+                <UserMenuItem needHoverClass onClick={handleAddCard}>
+                    Add Stripe default card
+                </UserMenuItem>
                 <UserMenuItem needHoverClass onClick={signOut}>
                     Sign out
                 </UserMenuItem>
@@ -70,6 +79,7 @@ const UserMenu: React.FC = () => {
                 visible={visibleChangePassword}
                 handleCancel={handleCancelChangePassword}
             />
+            <AddCardModal visible={visibleAddCard} handleCancel={handleCancelAddCard} />
         </>
     )
 }

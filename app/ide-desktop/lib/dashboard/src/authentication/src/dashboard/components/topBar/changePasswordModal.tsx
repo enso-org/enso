@@ -1,4 +1,4 @@
-/** @file */
+/** @file Managing the logic and displaying the UI for the password change function. */
 import React from 'react'
 import * as auth from '../../../authentication/providers/auth'
 import * as hooks from '../../../hooks'

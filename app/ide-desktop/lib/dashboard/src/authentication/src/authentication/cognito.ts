@@ -568,6 +568,7 @@ const signOut = async (logger: loggerProvider.Logger) => {
 // ======================
 // === ChangePassword ===
 // ======================
+
 const currentAuthenticatedUser = () =>
     results.Result.wrapAsync(
         () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
