@@ -161,7 +161,7 @@ function loadAmplifyConfig(
     ...baseConfig,
     ...platformConfig,
     ...(urlOpener ? urlOpener : {}),
-  } as authConfigModule.AmplifyConfig;
+  };
 }
 
 const openUrlWithExternalBrowser = (url: string) => {
