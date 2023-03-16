@@ -307,6 +307,6 @@ Row.to_default_visualization_data self =
 ## UNSTABLE
    ADVANCED
    Returns the data requested to render a lazy view of the default visualisation.
-Table.to_lazy_visualization_data : Vector Integer ->  Vector Integer -> Vector Integer -> Text
+Table.to_lazy_visualization_data : Vector Integer ->  Vector Integer -> Vector Integer -> Integer -> Text
 Table.to_lazy_visualization_data self table_cell_position text_window_position text_window_size chunk_size =
     Table_Visualisation.get_lazy_visualisation_data self table_cell_position text_window_position text_window_size chunk_size

@@ -54,7 +54,8 @@ class LanguageServerGatewayImpl[
           clientId,
           project,
           version,
-          progressTracker
+          progressTracker,
+          engineUpdate = false
         )).mapTo[ServerStartupResult]
       }
       .mapError(_ => ServerBootTimedOut)

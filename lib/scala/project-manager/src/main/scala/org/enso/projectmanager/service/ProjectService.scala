@@ -294,10 +294,8 @@ class ProjectService[
         val runtimeVersionManager =
           RuntimeVersionManagerFactory(distributionConfiguration)
             .makeRuntimeVersionManager(progressTracker, missingComponentAction)
-        runtimeVersionManager.logAvailableComponentsForDebugging()
         val engine = runtimeVersionManager.findOrInstallEngine(version)
         runtimeVersionManager.findOrInstallGraalRuntime(engine)
-        runtimeVersionManager.logAvailableComponentsForDebugging()
         ()
       }
       .mapRuntimeManagerErrors(th =>

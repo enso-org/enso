@@ -6,11 +6,13 @@ use crate::prelude::*;
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
 use crate::controller::searcher::component::MatchInfo;
+use crate::controller::searcher::component::NOT_MATCHING_SCORE;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::name::project;
 use ensogl::data::color;
+use ordered_float::OrderedFloat;
 use std::cmp;
 
 
@@ -35,6 +37,7 @@ pub struct Data {
     pub initial_entries_order: Vec<Component>,
     pub entries:               RefCell<Vec<Component>>,
     pub matched_items:         Cell<usize>,
+    pub best_match_score:      Cell<f32>,
 }
 
 impl Data {
@@ -50,14 +53,58 @@ impl Data {
             component_id,
             initial_entries_order: default(),
             entries: default(),
-            matched_items: Cell::new(0),
+            matched_items: default(),
+            best_match_score: Cell::new(NOT_MATCHING_SCORE),
         }
     }
 
-    fn update_matched_items(&self) {
+    fn restore_initial_order(&self) {
+        let mut entries = self.entries.borrow_mut();
+        if entries.len() != self.initial_entries_order.len() {
+            error!(
+                "Tried to restore initial order in group where \
+                        `initial_entries_order` is not initialized or up-to-date. Will keep the \
+                        old order."
+            )
+        } else {
+            *entries = self.initial_entries_order.clone()
+        }
+    }
+
+    fn sort_by_name_non_modules_then_modules(&self) {
+        let mut entries = self.entries.borrow_mut();
+        entries.sort_by(|a, b| {
+            let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+            cmp_can_be_entered.then_with(|| a.label().cmp(&b.label()))
+        })
+    }
+
+    fn sort_by_match(&self) {
+        let mut entries = self.entries.borrow_mut();
+        entries.sort_by(|lhs, rhs| {
+            Self::entry_match_ordering(&lhs.match_info.borrow(), &rhs.match_info.borrow())
+        });
+    }
+
+    /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
+    fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
+        match (lhs, rhs) {
+            (MatchInfo::DoesNotMatch, MatchInfo::DoesNotMatch) => cmp::Ordering::Equal,
+            (MatchInfo::DoesNotMatch, MatchInfo::Matches { .. }) => cmp::Ordering::Greater,
+            (MatchInfo::Matches { .. }, MatchInfo::DoesNotMatch) => cmp::Ordering::Less,
+            (
+                MatchInfo::Matches { subsequence: lhs, .. },
+                MatchInfo::Matches { subsequence: rhs, .. },
+            ) => OrderedFloat(lhs.score).cmp(&OrderedFloat(rhs.score)),
+        }
+    }
+
+    fn update_match_info(&self) {
         let entries = self.entries.borrow();
         let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
+        let best_match = entries.iter().map(|c| OrderedFloat(c.score())).max();
         self.matched_items.set(matched_items);
+        self.best_match_score.set(*best_match.unwrap_or_default());
     }
 }
 
@@ -118,6 +165,7 @@ impl Group {
             color:                 None,
             component_id:          None,
             matched_items:         Cell::new(entries.len()),
+            best_match_score:      Cell::new(NOT_MATCHING_SCORE),
             initial_entries_order: entries.clone(),
             entries:               RefCell::new(entries),
         };
@@ -148,6 +196,7 @@ impl Group {
                 color:                 group.color,
                 component_id:          None,
                 matched_items:         Cell::new(looked_up_components.len()),
+                best_match_score:      Cell::new(NOT_MATCHING_SCORE),
                 initial_entries_order: looked_up_components.clone(),
                 entries:               RefCell::new(looked_up_components),
             };
@@ -160,7 +209,7 @@ impl Group {
         let group_data = Rc::make_mut(&mut self.data);
         group_data.entries.borrow_mut().splice(0..0, entries.iter().cloned());
         group_data.initial_entries_order.splice(0..0, entries.iter().cloned());
-        group_data.update_matched_items();
+        group_data.update_match_info();
     }
 
     /// Modify the group keeping only the [`Component`]s for which `f` returns [`true`].
@@ -169,60 +218,19 @@ impl Group {
         let group_data = Rc::make_mut(&mut self.data);
         group_data.entries.borrow_mut().retain(&mut f);
         group_data.initial_entries_order.retain(f);
-        group_data.update_matched_items();
+        group_data.update_match_info();
     }
 
     /// Update the group sorting according to the `order` and update information about matched items
     /// count.
-    pub fn update_sorting(&self, order: component::Order) {
+    pub fn update_match_info_and_sorting(&self, order: component::Order) {
         match order {
             component::Order::Initial => self.restore_initial_order(),
             component::Order::ByNameNonModulesThenModules =>
                 self.sort_by_name_non_modules_then_modules(),
             component::Order::ByMatch => self.sort_by_match(),
         }
-        self.update_matched_items();
-    }
-
-    fn restore_initial_order(&self) {
-        let mut entries = self.entries.borrow_mut();
-        if entries.len() != self.initial_entries_order.len() {
-            error!(
-                "Tried to restore initial order in group where \
-                        `initial_entries_order` is not initialized or up-to-date. Will keep the \
-                        old order."
-            )
-        } else {
-            *entries = self.initial_entries_order.clone()
-        }
-    }
-
-    fn sort_by_name_non_modules_then_modules(&self) {
-        let mut entries = self.entries.borrow_mut();
-        entries.sort_by(|a, b| {
-            let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
-            cmp_can_be_entered.then_with(|| a.label().cmp(&b.label()))
-        })
-    }
-
-    fn sort_by_match(&self) {
-        let mut entries = self.entries.borrow_mut();
-        entries.sort_by(|a, b| {
-            Self::entry_match_ordering(&a.match_info.borrow(), &b.match_info.borrow())
-        });
-    }
-
-    /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
-    fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
-        match (lhs, rhs) {
-            (MatchInfo::DoesNotMatch, MatchInfo::DoesNotMatch) => cmp::Ordering::Equal,
-            (MatchInfo::DoesNotMatch, MatchInfo::Matches { .. }) => cmp::Ordering::Greater,
-            (MatchInfo::Matches { .. }, MatchInfo::DoesNotMatch) => cmp::Ordering::Less,
-            (
-                MatchInfo::Matches { subsequence: lhs, .. },
-                MatchInfo::Matches { subsequence: rhs, .. },
-            ) => lhs.compare_scores(rhs),
-        }
+        self.update_match_info();
     }
 
     /// Get the number of entries.

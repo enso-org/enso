@@ -8,8 +8,10 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-doc-parser = { path = "../../../../lib/rust/parser/doc-parser" }
 enso-frp = { path = "../../../../lib/rust/frp" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
+enso-profiler = { path = "../../../../lib/rust/profiler" }
 ensogl = { path = "../../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
 ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }

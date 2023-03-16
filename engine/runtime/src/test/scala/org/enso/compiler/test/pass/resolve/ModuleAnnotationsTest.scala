@@ -12,8 +12,6 @@ class ModuleAnnotationsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  override val useRustParser = true
-
   val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup = passes.getPrecursors(ModuleAnnotations).get

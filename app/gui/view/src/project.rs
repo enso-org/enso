@@ -9,8 +9,6 @@ use crate::component_browser;
 use crate::component_browser::component_list_panel;
 use crate::debug_mode_popup;
 use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
-use crate::documentation;
-use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
@@ -131,119 +129,6 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-/// Common FRP endpoints for both Searcher variants. See [`SearcherVariant`].
-#[derive(Clone, CloneRef, Debug)]
-struct SearcherFrp {
-    editing_committed: frp::Stream,
-    is_visible:        frp::Stream<bool>,
-    is_empty:          frp::Stream<bool>,
-    is_hovered:        frp::Stream<bool>,
-}
-
-/// A structure containing the Searcher View: the old Node Searcher of a new Component Browser.
-///
-/// As Component Browser is unstable, it is available only under the feature flag. Thus the Project
-/// View must be able to handle any of those views.
-#[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
-pub enum SearcherVariant {
-    ComponentBrowser(component_browser::View),
-    /// We keep the old searcher in a Rc, as its memory size is much greater than the new one.
-    OldNodeSearcher(Rc<searcher::View>),
-}
-
-impl SearcherVariant {
-    fn new(app: &Application) -> Self {
-        if ARGS.groups.feature_preview.options.new_component_browser.value {
-            Self::ComponentBrowser(app.new_view::<component_browser::View>())
-        } else {
-            Self::OldNodeSearcher(Rc::new(app.new_view::<searcher::View>()))
-        }
-    }
-
-    fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
-        match self {
-            SearcherVariant::ComponentBrowser(view) => {
-                let grid = &view.model().list.model().grid;
-                frp::extend! {project_view_network
-                    is_empty <- source::<bool>();
-                    editing_committed <- grid.expression_accepted.constant(());
-                }
-                is_empty.emit(false);
-                SearcherFrp {
-                    editing_committed,
-                    is_visible: view.output.is_visible.clone_ref().into(),
-                    is_empty: is_empty.into(),
-                    is_hovered: view.output.is_hovered.clone_ref().into(),
-                }
-            }
-            SearcherVariant::OldNodeSearcher(view) => {
-                let documentation = view.documentation();
-                frp::extend! {project_view_network
-                    editing_committed <- view.editing_committed.constant(());
-                }
-                SearcherFrp {
-                    editing_committed,
-                    is_visible: view.output.is_visible.clone_ref().into(),
-                    is_empty: view.output.is_empty.clone_ref().into(),
-                    is_hovered: documentation.frp.is_hovered.clone_ref().into(),
-                }
-            }
-        }
-    }
-
-    fn documentation(&self) -> &documentation::View {
-        match self {
-            SearcherVariant::ComponentBrowser(view) => &view.model().documentation,
-            SearcherVariant::OldNodeSearcher(view) => view.documentation(),
-        }
-    }
-
-    fn show(&self) {
-        match self {
-            SearcherVariant::ComponentBrowser(view) => view.show(),
-            SearcherVariant::OldNodeSearcher(view) => view.show(),
-        }
-    }
-
-    fn hide(&self) {
-        match self {
-            SearcherVariant::ComponentBrowser(view) => view.hide(),
-            SearcherVariant::OldNodeSearcher(view) => view.hide(),
-        }
-    }
-
-    fn setup_anchor(&self, network: &frp::Network, anchor: &frp::Stream<Vector2<f32>>) {
-        match self {
-            SearcherVariant::ComponentBrowser(view) => {
-                frp::extend! {network
-                    cb_position <- all_with(anchor, &view.expression_input_position, |anchor, pos| anchor - pos);
-                    eval cb_position ((pos) view.set_xy(*pos));
-                }
-            }
-            SearcherVariant::OldNodeSearcher(view) => {
-                frp::extend! {network
-                    searcher_pos <- all_with(anchor, &view.size, |anchor, size| {
-                        let x = anchor.x + size.x / 2.0;
-                        let y = anchor.y - node::HEIGHT / 2.0 - size.y / 2.0;
-                        Vector2(x, y)
-                    });
-                    eval searcher_pos ((pos) view.set_xy(*pos));
-                }
-            }
-        }
-    }
-}
-
-impl display::Object for SearcherVariant {
-    fn display_object(&self) -> &display::object::Instance {
-        match self {
-            SearcherVariant::ComponentBrowser(view) => view.display_object(),
-            SearcherVariant::OldNodeSearcher(view) => view.display_object(),
-        }
-    }
-}
-
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     app:                    Application,
@@ -251,7 +136,7 @@ struct Model {
     /// These buttons are present only in a cloud environment.
     window_control_buttons: Immutable<Option<crate::window_control_buttons::View>>,
     graph_editor:           Rc<GraphEditor>,
-    searcher:               SearcherVariant,
+    searcher:               component_browser::View,
     code_editor:            code_editor::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     project_list:           Rc<ProjectList>,
@@ -262,7 +147,7 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
-        let searcher = SearcherVariant::new(app);
+        let searcher = app.new_view::<component_browser::View>();
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
@@ -471,7 +356,7 @@ impl View {
         let model = Model::new(app);
         let frp = Frp::new();
         let network = &frp.network;
-        let searcher = &model.searcher.frp(network);
+        let searcher = &model.searcher.frp();
         let graph = &model.graph_editor.frp;
         let project_list = &model.project_list;
         let searcher_anchor = DEPRECATED_Animation::<Vector2<f32>>::new(network);
@@ -555,24 +440,14 @@ impl View {
             frp.source.editing_aborted <+ aborted_in_searcher;
         }
 
-        match &model.searcher {
-            SearcherVariant::ComponentBrowser(browser) => {
-                let grid = &browser.model().list.model().grid;
-                frp::extend! { network
-                    committed_in_browser <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
-                    frp.source.editing_committed <+ committed_in_browser;
-                    frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
-                }
-            }
-            SearcherVariant::OldNodeSearcher(searcher) => {
-                frp::extend! { network
-                    committed_in_searcher <- searcher.editing_committed.map2(&last_searcher, |&entry, &s| (s.input, entry));
-                    frp.source.editing_committed_old_searcher <+ committed_in_searcher;
-                    frp.source.editing_committed_old_searcher <+ finished_with_searcher.map(|id| (*id,None));
-                }
-            }
+        let grid = &model.searcher.model().list.model().grid;
+        frp::extend! { network
+            committed_in_browser <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
+            frp.source.editing_committed <+ committed_in_browser;
+            frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
         }
 
+        let anchor = &searcher_anchor.value;
         frp::extend! { network
             committed_in_searcher_event <- searcher.editing_committed.constant(());
             aborted_in_searcher_event <- aborted_in_searcher.constant(());
@@ -641,6 +516,8 @@ impl View {
                 })
             );
 
+            cb_position <- all_with(anchor, &model.searcher.expression_input_position, |anchor, pos| anchor - pos);
+            eval cb_position ((pos) model.searcher.set_xy(*pos));
 
             // === Project Dialog ===
 
@@ -669,7 +546,7 @@ impl View {
 
             // === Fullscreen Visualization ===
 
-            // TODO[ao]: All DOM elements in visualizations ale displayed below canvas, because
+            // TODO[ao]: All DOM elements in visualizations are displayed below canvas, because
             //     The mouse cursor must be displayed over them. But fullscreen visualization should
             //     be displayed "above" nodes. The workaround is to hide whole graph editor except
             //     fullscreen visualization, and bring it back when fullscreen is closed.
@@ -688,7 +565,7 @@ impl View {
 
             // === Disabling Navigation ===
 
-            let documentation = model.searcher.documentation();
+            let documentation = &model.searcher.model().documentation;
             searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
             disable_navigation <- searcher_active || frp.project_list_shown;
             graph.set_navigator_disabled <+ disable_navigation;
@@ -706,7 +583,7 @@ impl View {
             model.debug_mode_popup.enabled <+ frp.enable_debug_mode;
             model.debug_mode_popup.disabled <+ frp.disable_debug_mode;
         }
-        model.searcher.setup_anchor(network, &searcher_anchor.value);
+
         init.emit(());
 
         Self { model, frp }
@@ -718,7 +595,7 @@ impl View {
     }
 
     /// Searcher View.
-    pub fn searcher(&self) -> &SearcherVariant {
+    pub fn searcher(&self) -> &component_browser::View {
         &self.model.searcher
     }
 
