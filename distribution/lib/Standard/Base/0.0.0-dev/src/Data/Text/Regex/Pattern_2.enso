@@ -51,7 +51,7 @@ type Pattern_2
 
     ## Tries to match the provided `input` against the pattern `self`.
 
-       Returns a `Vector Match_2` objects, each containing the matched text
+       Returns a `Vector Match_2` object, each containing the matched text
        and its match groups.
 
        Arguments:
