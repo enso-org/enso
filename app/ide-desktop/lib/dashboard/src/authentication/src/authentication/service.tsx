@@ -219,12 +219,15 @@ function isSignInRedirect(url: URL) {
 
 /** If the user is being redirected after clicking the reset password confirmation link in their
  * email, then the URL will be for the confirm password reset path. */
-const isResetPasswordRedirect = (url: URL) =>
-  url.pathname === app.RESET_PASSWORD_PATH;
+function isResetPasswordRedirect(url: URL) {
+  return url.pathname === app.RESET_PASSWORD_PATH;
+}
 
 /** If the user is being redirected after finishing the password reset flow,
  * then the URL will be for the login page. */
-const isLoginRedirect = (url: URL) => url.pathname === LOGIN_PATHNAME;
+function isLoginRedirect(url: URL) {
+  return url.pathname === LOGIN_PATHNAME;
+}
 
 /** When the user is being redirected from a federated identity provider, then we need to pass the
  * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */

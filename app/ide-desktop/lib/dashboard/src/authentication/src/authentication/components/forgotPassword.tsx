@@ -2,21 +2,21 @@
  * flow. */
 import * as router from "react-router-dom";
 
-import * as auth from "../providers/auth";
-import withRouter from "../../navigation";
-import * as hooks from "../../hooks";
-import * as utils from "../../utils";
 import * as app from "../../components/app";
+import * as auth from "../providers/auth";
+import * as hooks from "../../hooks";
 import * as icons from "../../components/svg";
+import * as utils from "../../utils";
+import withRouter from "../../navigation";
 
-// ===============================
-// === forgotPasswordContainer ===
-// ===============================
+// ======================
+// === ForgotPassword ===
+// ======================
 
-const forgotPasswordContainer = () => {
+function ForgotPassword() {
   const { forgotPassword } = auth.useAuth();
 
-  const { value: email, bind: bindEmail } = hooks.useInput("");
+  const [email, bindEmail] = hooks.useInput("");
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -27,7 +27,7 @@ const forgotPasswordContainer = () => {
         <div className="mt-10">
           <form
             onSubmit={utils.handleEvent(
-              async () => await forgotPassword(email)
+              async () => { await forgotPassword(email); }
             )}
           >
             <div className="flex flex-col mb-6">
@@ -48,8 +48,7 @@ const forgotPasswordContainer = () => {
                   type="email"
                   name="email"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="E-Mail Address"
-                />
+                  placeholder="E-Mail Address" />
               </div>
             </div>
             <div className="flex w-full">
@@ -79,6 +78,6 @@ const forgotPasswordContainer = () => {
       </div>
     </div>
   );
-};
+}
 
-export default withRouter(forgotPasswordContainer);
+export default withRouter(ForgotPassword);

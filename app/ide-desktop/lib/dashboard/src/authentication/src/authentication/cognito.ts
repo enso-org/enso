@@ -88,11 +88,12 @@ interface AuthError {
 }
 
 /** Hints to TypeScript if we can safely cast an `unknown` error to an `AuthError`. */
-const isAuthError = (error: unknown): error is AuthError => {
+function isAuthError(error: unknown): error is AuthError {
     if (error && typeof error === 'object') {
-        return 'name' in error && 'log' in error
+        return 'name' in error && 'log' in error;
+    } else {
+        return false;
     }
-    return false
 }
 
 // ===============
@@ -448,69 +449,68 @@ const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
         'Cannot reset password for the user as there is no registered/verified email or phone_number',
 } as const
 
-const forgotPassword = async (email: string) =>
-    results.Result.wrapAsync(() => amplify.Auth.forgotPassword(email))
-        /** We don't care about the details in the success case, just that it happened. */
-        .then(result => result.map(() => null))
+async function forgotPassword(email: string) {
+    return results.Result.wrapAsync(async () => { await amplify.Auth.forgotPassword(email); })
         .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoForgotPasswordErrorOrThrow))
+        .then(result => result.mapErr(intoForgotPasswordErrorOrThrow));
+}
 
-type ForgotPasswordErrorKind = 'UserNotFound' | 'UserNotConfirmed'
+type ForgotPasswordErrorKind = 'UserNotConfirmed' | 'UserNotFound'
 
 export interface ForgotPasswordError {
     kind: ForgotPasswordErrorKind
     message: string
 }
 
-const intoForgotPasswordErrorOrThrow = (error: AmplifyError): ForgotPasswordError => {
+function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordError {
     if (error.code === 'UserNotFoundException') {
         return {
             kind: 'UserNotFound',
             message: MESSAGES.forgotPassword.userNotFound,
-        }
-    } else if (error.code === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.internalCode) {
-        if (error.message === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.message) {
-            return {
-                kind: FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.kind,
-                message: MESSAGES.forgotPassword.userNotConfirmed,
-            }
-        }
+        };
+    } else if (
+        error.code === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.internalCode &&
+        error.message === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.message
+    ) {
+        return {
+            kind: FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.kind,
+            message: MESSAGES.forgotPassword.userNotConfirmed,
+        };
+    } else {
+        throw error;
     }
-
-    throw error
 }
 
 // ============================
 // === ForgotPasswordSubmit ===
 // ============================
 
-const forgotPasswordSubmit = async (email: string, code: string, password: string) =>
-    results.Result.wrapAsync(() => amplify.Auth.forgotPasswordSubmit(email, code, password))
-        /** We don't care about the details in the success case, just that it happened. */
-        .then(result => result.map(() => null))
-        .then(result => result.mapErr(intoForgotPasswordSubmitErrorOrThrow))
+async function forgotPasswordSubmit(email: string, code: string, password: string) {
+    return results.Result.wrapAsync(async () => { await amplify.Auth.forgotPasswordSubmit(email, code, password); })
+        .then(result => result.mapErr(intoForgotPasswordSubmitErrorOrThrow));
+}
 
-type ForgotPasswordSubmitErrorKind = 'AuthError' | 'AmplifyError'
+type ForgotPasswordSubmitErrorKind = 'AmplifyError' | 'AuthError'
 
 export interface ForgotPasswordSubmitError {
     kind: ForgotPasswordSubmitErrorKind
     message: string
 }
 
-const intoForgotPasswordSubmitErrorOrThrow = (error: unknown): ForgotPasswordSubmitError => {
+function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSubmitError {
     if (isAuthError(error)) {
         return {
             kind: 'AuthError',
             message: error.log,
-        }
+        };
     } else if (isAmplifyError(error)) {
         return {
             kind: 'AmplifyError',
             message: error.message,
-        }
+        };
+    } else {
+        throw error;
     }
-
-    throw error
 }
 
 // ===============

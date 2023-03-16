@@ -3,12 +3,12 @@
 import * as router from "react-router-dom";
 import toast from "react-hot-toast";
 
-import * as auth from "../providers/auth";
-import withRouter from "../../navigation";
-import * as hooks from "../../hooks";
-import * as utils from "../../utils";
 import * as app from "../../components/app";
+import * as auth from "../providers/auth";
+import * as hooks from "../../hooks";
 import * as icons from "../../components/svg";
+import * as utils from "../../utils";
+import withRouter from "../../navigation";
 
 // =================
 // === Constants ===
@@ -17,32 +17,30 @@ import * as icons from "../../components/svg";
 const RESET_PASSWORD_QUERY_PARAMS = {
   email: "email",
   verificationCode: "verification_code",
-};
+} as const;
 
-// ==============================
-// === resetPasswordContainer ===
-// ==============================
+// =====================
+// === ResetPassword ===
+// =====================
 
-const resetPasswordContainer = () => {
+function ResetPassword() {
   const { resetPassword } = auth.useAuth();
   const { search } = router.useLocation();
 
-  const { verificationCode: initialCode, email: initialEmail } =
-    parseUrlSearchParams(search);
+  const { verificationCode: initialCode, email: initialEmail } = parseUrlSearchParams(search);
 
-  const { value: email, bind: bindEmail } = hooks.useInput(initialEmail ?? "");
-  const { value: code, bind: bindCode } = hooks.useInput(initialCode ?? "");
-  const { value: newPassword, bind: bindNewPassword } = hooks.useInput("");
-  const { value: newPasswordConfirm, bind: bindNewPasswordConfirm } =
-    hooks.useInput("");
+  const [email, bindEmail] = hooks.useInput(initialEmail ?? "");
+  const [code, bindCode] = hooks.useInput(initialCode ?? "");
+  const [newPassword, bindNewPassword] = hooks.useInput("");
+  const [newPasswordConfirm, bindNewPasswordConfirm] = hooks.useInput("");
 
   const handleSubmit = () => {
     if (newPassword !== newPasswordConfirm) {
       toast.error("Passwords do not match");
       return Promise.resolve();
+    } else {
+      return resetPassword(email, code, newPassword);
     }
-
-    return resetPassword(email, code, newPassword);
   };
 
   return (
@@ -71,8 +69,7 @@ const resetPasswordContainer = () => {
                   type="email"
                   name="email"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="E-Mail Address"
-                />
+                  placeholder="E-Mail Address" />
               </div>
             </div>
             <div className="flex flex-col mb-6">
@@ -93,8 +90,7 @@ const resetPasswordContainer = () => {
                   type="text"
                   name="code"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="Confirmation Code"
-                />
+                  placeholder="Confirmation Code" />
               </div>
             </div>
             <div className="flex flex-col mb-6">
@@ -115,8 +111,7 @@ const resetPasswordContainer = () => {
                   type="password"
                   name="new_password"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="New Password"
-                />
+                  placeholder="New Password" />
               </div>
             </div>
             <div className="flex flex-col mb-6">
@@ -137,8 +132,7 @@ const resetPasswordContainer = () => {
                   type="password"
                   name="new_password_confirm"
                   className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
-                  placeholder="Confirm New Password"
-                />
+                  placeholder="Confirm New Password" />
               </div>
             </div>
             <div className="flex w-full">
@@ -168,15 +162,15 @@ const resetPasswordContainer = () => {
       </div>
     </div>
   );
-};
+}
 
-const parseUrlSearchParams = (search: string) => {
+function parseUrlSearchParams(search: string) {
   const query = new URLSearchParams(search);
   const verificationCode = query.get(
     RESET_PASSWORD_QUERY_PARAMS.verificationCode
   );
   const email = query.get(RESET_PASSWORD_QUERY_PARAMS.email);
   return { verificationCode, email };
-};
+}
 
-export default withRouter(resetPasswordContainer);
+export default withRouter(ResetPassword);
