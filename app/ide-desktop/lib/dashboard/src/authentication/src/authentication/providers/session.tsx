@@ -5,6 +5,7 @@ import * as react from "react";
 import * as results from "ts-results";
 
 import * as cognito from "../cognito";
+import * as error from "../../error";
 import * as hooks from "../../hooks";
 import * as listen from "../listen";
 
@@ -106,6 +107,9 @@ export function SessionProvider(props: SessionProviderProps) {
           window.history.replaceState({}, "", MAIN_PAGE_URL);
           refreshSession();
           break;
+        }
+        default: {
+          throw new error.UnreachableCaseError(event);
         }
       }
     };

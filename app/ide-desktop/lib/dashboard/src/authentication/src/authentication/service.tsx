@@ -197,8 +197,9 @@ function isConfirmRegistrationRedirect(url: URL) {
 /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/339
  * Don't use `enso://auth` for both authentication redirect & signout redirect so we don't have to
  * disambiguate between the two on the `DASHBOARD_PATH`. */
-const isSignOutRedirect = (url: URL) =>
-  url.pathname === SIGN_OUT_PATHNAME && url.search === "";
+function isSignOutRedirect(url: URL) {
+  return url.pathname === SIGN_OUT_PATHNAME && url.search === "";
+}
 
 /** If the user is being redirected after a sign-out, then query args will be present. */
 function isSignInRedirect(url: URL) {
