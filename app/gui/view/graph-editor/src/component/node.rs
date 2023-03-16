@@ -328,12 +328,13 @@ ensogl::define_endpoints_2! {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
         background_press         (),
-        /// Emitted when node expression is modified as a whole. Does not include partial changes on
-        /// individual spans, which are emitted via `expression_span` output.
-        expression               (ImString),
-        /// Emitted when node expression is edited in context of specific span. Does not include
-        /// changes to the expression as a whole, which are emitted via `expression` output.
-        expression_span          (span_tree::Crumbs, ImString),
+        /// Emitted when node expression is modified in edit mode. The event is emitted on every
+        /// keystroke, so it should be used only for immediate feedback. Always contains the whole
+        /// node expression, even if only a part of it was modified.
+        edit_mode_expression     (ImString),
+        /// Emitted when node wants to modify an expression in context of specific span. The event
+        /// is an intent of a permanent change, it is not emitted during active editing.
+        commit_span_expression   (span_tree::Crumbs, ImString),
         comment                  (Comment),
         skip                     (bool),
         freeze                   (bool),
@@ -752,10 +753,10 @@ impl Node {
             eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
             model.input.edit_expression <+ input.edit_expression;
-            out.expression                  <+ model.input.frp.expression;
-            out.expression_span             <+ model.input.frp.on_port_code_update;
-            out.requested_widgets           <+ model.input.frp.requested_widgets;
-            out.request_import              <+ model.input.frp.request_import;
+            out.edit_mode_expression    <+ model.input.frp.edit_mode_expression;
+            out.commit_span_expression  <+ model.input.frp.on_port_code_update;
+            out.requested_widgets       <+ model.input.frp.requested_widgets;
+            out.request_import          <+ model.input.frp.request_import;
 
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;

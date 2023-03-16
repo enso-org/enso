@@ -386,6 +386,8 @@ impl View {
         let shape = scene.shape().clone_ref();
 
         frp::extend! { network
+            init <- source::<()>();
+            shape <- all(shape, init)._0();
             eval shape ((shape) model.on_dom_shape_changed(shape));
 
             eval_ frp.show_graph_editor(model.show_graph_editor());
@@ -592,8 +594,6 @@ impl View {
                     model.hide_fullscreen_visualization()
                 }
             });
-
-            init <- source::<()>();
 
             // === Disabling Navigation ===
 

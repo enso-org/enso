@@ -1591,9 +1591,9 @@ impl GraphEditorModelWithNetwork {
                     )
                 ));
 
-            eval node.expression((t) model.frp.private.output.node_expression_set.emit((node_id,t.into())));
-
-            eval node.expression_span([model]((crumbs,code)) {
+            eval node.edit_mode_expression((t)
+                model.frp.private.output.node_expression_set.emit((node_id,t.into())));
+            eval node.commit_span_expression([model]((crumbs,code)) {
                 let args = (node_id, crumbs.clone(), code.clone());
                 model.frp.private.output.node_expression_span_set.emit(args)
             });
