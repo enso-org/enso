@@ -144,7 +144,7 @@ export class Cognito {
 
     /** Signs out the current user. */
     signOut() {
-        return signOut(this.logger);
+        return signOut(this.logger)
     }
 
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
@@ -422,10 +422,10 @@ async function signOut(logger: loggerProvider.Logger) {
     // also has the unintended consequence of delaying the sign out process by a few seconds (until
     // the timeout occurs).
     try {
-        await amplify.Auth.signOut();
+        await amplify.Auth.signOut()
     } catch (error) {
-        logger.error('Sign out failed', error);
+        logger.error('Sign out failed', error)
     } finally {
-        await amplify.Auth.signOut();
+        await amplify.Auth.signOut()
     }
 }

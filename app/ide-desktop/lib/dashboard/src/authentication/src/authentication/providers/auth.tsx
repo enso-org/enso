@@ -260,9 +260,9 @@ export function AuthProvider(props: AuthProviderProps) {
   };
 
   const signOut = () =>
-    cognito
-      .signOut()
-      .then(() => { toast.success(MESSAGES.signOutSuccess); });
+    cognito.signOut().then(() => {
+      toast.success(MESSAGES.signOutSuccess);
+    });
 
   const value = {
     signUp: withLoadingToast(signUp),
