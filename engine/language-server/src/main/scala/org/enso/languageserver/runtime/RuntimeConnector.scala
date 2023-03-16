@@ -41,7 +41,7 @@ class RuntimeConnector(
     case _ => stash()
   }
 
-  def registerEvent: PartialFunction[Any, Any] = { case event =>
+  private def registerEvent: PartialFunction[Any, Any] = { case event =>
     eventsMonitor.registerEvent(event)
     event
   }

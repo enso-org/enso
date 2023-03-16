@@ -1,23 +1,23 @@
-/** @file Main dashboard container responsible for listing user's projects as well as other
+/** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 
 import * as auth from "../../authentication/providers/auth";
 import withRouter from "../../navigation";
 
-// ==========================
-// === dashboardContainer ===
-// ==========================
+// =================
+// === Dashboard ===
+// =================
 
-const dashboardContainer = () => {
+function Dashboard() {
   const { signOut } = auth.useAuth();
   const { accessToken } = auth.useFullUserSession();
   return (
     <>
-      <h1>Hello dummy cloud dashboard</h1>
+      <h1>This is a placeholder page for the cloud dashboard.</h1>
       <p>Access token: {accessToken}</p>
       <button onClick={signOut}>Log out</button>
     </>
   );
-};
+}
 
-export default withRouter(dashboardContainer);
+export default withRouter(Dashboard);

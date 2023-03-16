@@ -385,6 +385,17 @@ final class SuggestionsHandler(
           )
         }
         .pipeTo(sender())
+      if (state.shouldStartBackgroundProcessing) {
+        runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
+        context.become(
+          initialized(
+            projectName,
+            graph,
+            clients,
+            state.copy(shouldStartBackgroundProcessing = false)
+          )
+        )
+      }
 
     case FileDeletedEvent(path) =>
       getModuleName(projectName, path)
@@ -860,12 +871,15 @@ object SuggestionsHandler {
     *
     * @param suggestionUpdatesQueue the queue containing update messages
     * @param isSuggestionUpdatesRunning a flag for a running update action
+    * @param shouldStartBackgroundProcessing a flag for starting a background
+    * processing action
     */
-  case class State(
+  final case class State(
     suggestionUpdatesQueue: mutable.Queue[
       Api.SuggestionsDatabaseModuleUpdateNotification
-    ]                                   = mutable.Queue.empty,
-    isSuggestionUpdatesRunning: Boolean = false
+    ]                                        = mutable.Queue.empty,
+    isSuggestionUpdatesRunning: Boolean      = false,
+    shouldStartBackgroundProcessing: Boolean = true
   )
 
   private def traverseSeq[A, B](xs: Seq[A])(f: A => Future[B]): Future[Seq[B]] =

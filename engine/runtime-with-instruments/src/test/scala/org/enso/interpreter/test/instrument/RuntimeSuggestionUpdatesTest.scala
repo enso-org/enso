@@ -138,8 +138,9 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -771,8 +772,9 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -957,8 +959,9 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(

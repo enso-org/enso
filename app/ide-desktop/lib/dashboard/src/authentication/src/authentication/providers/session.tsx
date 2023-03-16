@@ -1,10 +1,12 @@
 /** @file Provider for the {@link SessionContextType}, which contains information about the
  * currently authenticated user's session. */
-import react from "react";
+import * as react from "react";
+
 import * as results from "ts-results";
 
-import * as hooks from "../../hooks";
 import * as cognito from "../cognito";
+import * as error from "../../error";
+import * as hooks from "../../hooks";
 import * as listen from "../listen";
 
 // =================
@@ -18,11 +20,6 @@ import * as listen from "../listen";
  * will occur (which is the desired behaviour). */
 const MAIN_PAGE_URL = "http://localhost:8080";
 
-/** Initial value of the session refresh counter. This value itself is meaningless. The only point
- * of the session refresh counter is to trigger a re-fetch of the user's credentials and a re-render
- * of the `AuthProvider` component when the counter is incremented. */
-const INITIAL_REFRESH_COUNT = 0;
-
 // ======================
 // === SessionContext ===
 // ======================
@@ -32,8 +29,8 @@ interface SessionContextType {
 }
 
 /** See {@link AuthContext} for safety details. */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const SessionContext = react.createContext<SessionContextType>(
+  // eslint-disable-next-line no-restricted-syntax
   {} as SessionContextType
 );
 
@@ -42,30 +39,34 @@ const SessionContext = react.createContext<SessionContextType>(
 // =======================
 
 interface SessionProviderProps {
-  registerAuthEventListener: (callback: listen.ListenerCallback) => void;
+  registerAuthEventListener: listen.ListenFunction;
   userSession: () => Promise<results.Option<cognito.UserSession>>;
   children: react.ReactNode;
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const SessionProvider = (props: SessionProviderProps) => {
+export function SessionProvider(props: SessionProviderProps) {
   const { children, userSession, registerAuthEventListener } = props;
 
   /** Flag used to avoid rendering child components until we've fetched the user's session at least
    * once. Avoids flash of the login screen when the user is already logged in. */
   const [initialized, setInitialized] = react.useState(false);
 
-  /** State that, when incremented, forces a refresh of the user session. This is useful when a
+  /** Produces a new object every time.
+   * This is not equal to any other empty object because objects are compared by reference.
+   * Because it is not equal to the old value, React re-renders the component. */
+  function newRefresh() { return {}; }
+
+  /** State that, when set, forces a refresh of the user session. This is useful when a
    * user has just logged in (so their cached credentials are out of date). Should be used via the
    * `refreshSession` function. */
-  const [refresh, setRefresh] = react.useState(INITIAL_REFRESH_COUNT);
+  const [refresh, setRefresh] = react.useState(newRefresh());
 
   /** Function that forces a refresh of the user session.
    *
    * Should be called after any operation that **will** (not **might**) change the user's session.
    * For example, this should be called after signing out. Calling this will result in a re-render
    * of the whole page, which is why it should only be done when necessary. */
-  const refreshSession = () => setRefresh((refresh) => refresh + 1);
+  const refreshSession = () => { setRefresh(newRefresh()); };
 
   /** Register an async effect that will fetch the user's session whenever the `refresh` state is
    * incremented. This is useful when a user has just logged in (as their cached credentials are
@@ -73,9 +74,9 @@ export const SessionProvider = (props: SessionProviderProps) => {
   const session = hooks.useAsyncEffect(
     results.None,
     async () => {
-      const session = await userSession();
+      const innerSession = await userSession();
       setInitialized(true);
-      return session;
+      return innerSession;
     },
     [refresh, userSession]
   );
@@ -88,25 +89,28 @@ export const SessionProvider = (props: SessionProviderProps) => {
    * means we want the login screen to render (which is a child of this provider). */
   react.useEffect(() => {
     const listener: listen.ListenerCallback = (event) => {
-      if (event === "signIn") {
-        refreshSession();
-      } else if (event === "customOAuthState" || event === "cognitoHostedUI") {
-        /** AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
-         * we have to hack it by replacing the URL in the browser's history. This is done
-         * because otherwise the user will be redirected to a URL like `enso://auth`, which
-         * will not work.
-         *
-         * See:
-         * https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
-        window.history.replaceState({}, "", MAIN_PAGE_URL);
-        refreshSession();
-        /** Typescript tells us we don't need the final condition because this is an exhaustive
-         * match, but we don't want to turn this into an `else` in case we add more event types we
-         * care about in the future. If we did so, then TypeScript wouldn't notify us about missing
-         * cases. */
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      } else if (event === "signOut") {
-        refreshSession();
+      switch (event) {
+        case listen.AuthEvent.signIn:
+        case listen.AuthEvent.signOut: {
+          refreshSession();
+          break;
+        }
+        case listen.AuthEvent.customOAuthState:
+        case listen.AuthEvent.cognitoHostedUi: {
+          /** AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
+           * we have to hack it by replacing the URL in the browser's history. This is done
+           * because otherwise the user will be redirected to a URL like `enso://auth`, which
+           * will not work.
+           *
+           * See:
+           * https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
+          window.history.replaceState({}, "", MAIN_PAGE_URL);
+          refreshSession();
+          break;
+        }
+        default: {
+          throw new error.UnreachableCaseError(event);
+        }
       }
     };
 
@@ -124,10 +128,12 @@ export const SessionProvider = (props: SessionProviderProps) => {
       {initialized && children}
     </SessionContext.Provider>
   );
-};
+}
 
 // ==================
 // === useSession ===
 // ==================
 
-export const useSession = () => react.useContext(SessionContext);
+export function useSession() {
+  return react.useContext(SessionContext);
+}
