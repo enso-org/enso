@@ -241,7 +241,8 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
 
    Arguments:
    - typ: The type to obtain the constructors for.
-get_type_constructors : Atom -> Array
+   - factory: function to use to wrap constructors in
+get_type_constructors : Atom -> (Any -> Any) -> Array
 get_type_constructors typ factory = @Builtin_Method "Meta.get_type_constructors"
 
 ## PRIVATE
