@@ -5,6 +5,7 @@
 #![feature(extend_one)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
+#![feature(assert_matches)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -160,6 +161,7 @@ impl Parser {
 mod tests {
     use super::*;
     use ast::HasRepr;
+    use std::assert_matches::assert_matches;
 
     #[test]
     fn test_group_repr() {
@@ -219,5 +221,11 @@ main =
     fn test_as_lambda() {
         let ast = Parser::new().parse_line_ast("a->4").unwrap();
         assert!(ast::macros::as_lambda(&ast).is_some(), "{ast:?}");
+    }
+
+    #[test]
+    fn test_negative_number() {
+        let ast = Parser::new().parse_line_ast("-23").unwrap();
+        assert_matches!(ast.shape(), ast::Shape::Number(_));
     }
 }
