@@ -9,8 +9,6 @@ import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-# default_mask = Java_Pattern.CANON_EQ.bit_or Java_Pattern.UNICODE_CASE . bit_or Java_Pattern.UNICODE_CHARACTER_CLASS
-
 spec =
     Test.group "gmt" <|
         Test.specify "asdf" <|
