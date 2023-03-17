@@ -544,6 +544,7 @@ impl Model {
                             (crumbs.clone_ref(), expression)
                         }));
                         area_frp.source.on_port_code_update <+ code_update;
+                        area_frp.source.request_import <+ widget.request_import;
                     }
                 }
 
@@ -576,8 +577,7 @@ impl Model {
         call_info: &CallInfoMap,
     ) -> Option<(WidgetBind, widget::View)> {
         let call_id = port.kind.call_id().filter(|id| call_info.has_target(id))?;
-        let argument_info = port.kind.argument_info()?;
-        let argument_name = argument_info.name.as_ref()?.clone();
+        let argument_name = port.kind.argument_name()?.to_owned();
 
         let widget_bind = WidgetBind { call_id, argument_name };
 
@@ -605,7 +605,8 @@ impl Model {
             None => port.payload.init_widget(&self.app),
         };
 
-        widget.set_node_data(widget::NodeData { argument_info, port_size });
+        let tag_values = port.kind.tag_values().unwrap_or_default().to_vec();
+        widget.set_node_data(widget::NodeData { tag_values, port_size });
 
         Some((widget_bind, widget))
     }
@@ -905,6 +906,7 @@ ensogl::define_endpoints! {
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
         requested_widgets   (ast::Id, ast::Id),
+        request_import      (ImString),
     }
 }
 

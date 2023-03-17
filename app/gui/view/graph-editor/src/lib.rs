@@ -718,6 +718,7 @@ ensogl::define_endpoints_2! {
         visualization_registry_reload_requested (),
 
         widgets_requested                       (NodeId, ast::Id, ast::Id),
+        request_import                          (ImString),
 
         on_visualization_select     (Switch<NodeId>),
         some_visualisation_selected (bool),
@@ -1596,6 +1597,8 @@ impl GraphEditorModelWithNetwork {
                 let args = (node_id, *call_id, *target_id);
                 model.frp.private.output.widgets_requested.emit(args)
             });
+
+            model.frp.private.output.request_import <+ node.request_import;
 
 
             // === Actions ===

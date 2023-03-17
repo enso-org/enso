@@ -122,6 +122,10 @@
   sign up and sign in for users), via either email/password or GitHub/Google.
 - [New Enso documentation parser][5917]. Smaller and faster; enables planned
   improvements to internal documentation representation.
+- [Dropdown widgets now support custom labels][5705] and automatically generate
+  shortened labels for entries with long module paths. When an option is
+  selected from the dropdown, the necessary module imports are inserted,
+  eliminating the need for fully qualified names.
 
 #### EnsoGL (rendering engine)
 
@@ -534,6 +538,7 @@
 [5850]: https://github.com/enso-org/enso/pull/5850
 [5863]: https://github.com/enso-org/enso/pull/5863
 [5917]: https://github.com/enso-org/enso/pull/5917
+[5705]: https://github.com/enso-org/enso/pull/5705
 
 #### Enso Compiler
 
