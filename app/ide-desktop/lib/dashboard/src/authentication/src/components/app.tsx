@@ -110,6 +110,7 @@ function App(props: AppProps) {
 function AppRouter(props: AppProps) {
   const { logger, onAuthenticated } = props;
   const navigate = router.useNavigate();
+  const mainPageUrl = new URL(window.location.href)
   const memoizedAuthService = react.useMemo(() => {
     const authConfig = { navigate, ...props };
     return authService.initAuthService(authConfig);
@@ -122,6 +123,7 @@ function AppRouter(props: AppProps) {
   return (
     <loggerProvider.LoggerProvider logger={logger}>
       <session.SessionProvider
+        mainPageUrl={mainPageUrl}
         userSession={userSession}
         registerAuthEventListener={registerAuthEventListener}
       >

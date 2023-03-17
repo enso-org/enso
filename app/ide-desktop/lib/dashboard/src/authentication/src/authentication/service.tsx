@@ -148,8 +148,8 @@ function loadAmplifyConfig(
   return {
     ...baseConfig,
     ...platformConfig,
-    ...(urlOpener ? urlOpener : {}),
-  };
+    urlOpener,
+  }
 }
 
 function openUrlWithExternalBrowser(url: string) {
