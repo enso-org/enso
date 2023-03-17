@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Common.Type_Error
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 # === Test Resources ===
@@ -97,6 +97,69 @@ spec =
             Ordering.compare Ordering.Less 1 . should_fail_with Type_Error
             Ordering.compare Ordering.Less Nothing . should_fail_with Type_Error
             Ordering.compare Ordering.Less "Hello" . should_fail_with Type_Error
+
+    Test.group "Sorting" <|
+        ## Expects that `result` contains incomparable values warning.
+           The values within the warning message can be switched - the order
+           does not matter. Iterates through all the warnings of result.
+        expect_incomparable_warn : Any -> Any -> Any -> Nothing
+        expect_incomparable_warn left_val right_val result =
+            # Incomparable values warning wraps Text values in simple quotes
+            left_val_text = if Meta.is_a left_val Text then "'" + left_val + "'" else left_val.to_text
+            right_val_text = if Meta.is_a right_val Text then "'" + right_val + "'" else right_val.to_text
+            expected_warn_msg_left = "Values " + left_val_text + " and " + right_val_text + " are incomparable"
+            expected_warn_msg_right = "Values " + right_val_text + " and " + left_val_text + " are incomparable"
+            has_expected_warning = Warning.get_all result . map (_.value) . any (it-> it == expected_warn_msg_left || it == expected_warn_msg_right)
+            has_expected_warning . should_be_true
+
+        Test.specify "should be able to sort primitive types" <|
+            [3, 2, 1, Nothing].sort . should_equal [1, 2, 3, Nothing]
+            [Nothing, Number.nan].sort . at 0 . is_nan . should_be_true
+            [Nothing, Number.nan].sort . at 1 . is_nothing . should_be_true
+            [3, 2.5].sort . should_equal [2.5, 3]
+            ["hello", 3].sort . should_equal [3, "hello"]
+            ["hello", "ahoj", 3].sort . should_equal [3, "ahoj", "hello"]
+            ["hello", "ahoj", 3, 2].sort . should_equal [2, 3, "ahoj", "hello"]
+            ["hello", "ahoj", Number.nan, 3].sort . take 3 . should_equal [3, "ahoj", "hello"]
+            ["hello", "ahoj", Number.nan, 3].sort . at 3 . is_nan . should_be_true
+            [100, Date.new 2020, 50].sort . should_equal [50, 100, Date.new 2020]
+            [100, Nothing, Date.new 2020, 50].sort . should_equal [50, 100, Date.new 2020, Nothing]
+            [3, 2, True, False].sort . should_equal [2, 3, False, True]
+            [3, True, 2, False].sort . should_equal [2, 3, False, True]
+            [Nothing, False].sort . should_equal [False, Nothing]
+
+        Test.specify "should attach warning when trying to sort incomparable values" <|
+            expect_incomparable_warn Nothing Number.nan <| [Nothing, Number.nan].sort
+            expect_incomparable_warn 1 "hello" <| [1, "hello"].sort
+
+        Test.specify "should respect previous warnings on a vector" <|
+            Problems.expect_warning "my_warn" <| (Warning.attach "my_warn" [3, 2]) . sort
+            Problems.expect_warning "my_warn" <| (Warning.attach "my_warn" [3, Number.nan]) . sort
+            expect_incomparable_warn 3 Number.nan <| (Warning.attach "my_warn" [3, Number.nan]) . sort
+
+        Test.specify "should respect previous warnings on vector elements" <|
+            Problems.expect_warning "my_warn" <| [3, Warning.attach "my_warn" 2].sort . at 0
+            expect_incomparable_warn 1 Number.nan [1, Warning.attach "my_warn" Number.nan].sort
+            Problems.expect_warning "my_warn" <| [1, Warning.attach "my_warn" Number.nan].sort . at 1
+
+        Test.specify "should be able to sort types with different comparators" <|
+            [Ord.Value 4, Ord.Value 3, 20, 10].sort . should_equal [Ord.Value 3, Ord.Value 4, 10, 20]
+            [Ord.Value 4, 20, Ord.Value 3, 10].sort . should_equal [Ord.Value 3, Ord.Value 4, 10, 20]
+            [20, Ord.Value 4, Ord.Value 3, 10].sort . should_equal [10, 20, Ord.Value 3, Ord.Value 4]
+            [Ord.Value 4, 20, Ord.Value 3, 10].sort . should_equal [Ord.Value 3, Ord.Value 4, 10, 20]
+            [Nothing, Ord.Value 4, 20, Ord.Value 3, 10].sort . should_equal [Ord.Value 3, Ord.Value 4, 10, 20, Nothing]
+
+        Test.specify "should produce warning when sorting types with different comparators" <|
+            [Ord.Value 1, 1].sort . should_equal [Ord.Value 1, 1]
+            Problems.expect_warning "Different comparators: [Ord_Comparator, Default_Comparator]" <| [Ord.Value 1, 1].sort
+
+        Test.specify "should be able to sort primitive values in atoms" <|
+            [Ord.Value Number.nan, Ord.Value 20, Ord.Value 10].sort . should_equal [Ord.Value 10, Ord.Value 20, Ord.Value Number.nan]
+
+        Test.specify "should produce warnings when sorting primitive values in atoms" <|
+            expect_incomparable_warn 1 Number.nan [Ord.Value 1, Ord.Value Number.nan].sort
+
+
 
 
 main = Test_Suite.run_main spec
