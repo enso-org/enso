@@ -4,7 +4,6 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Ordering
 import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
 import project.Data.Range.Range
@@ -22,7 +21,11 @@ import project.Math
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random
+import project.Warning.Warning
 
+# We have to import also conversion methods, therefore, we import all from the Ordering
+# module
+from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
 
@@ -842,11 +845,12 @@ type Vector a
        - on: A projection from the element type to the value of that element
          being sorted on.
        - by: A function that compares the result of applying `on` to two
-         elements, returning an Ordering to compare them.
+         elements, returning an an `Ordering` if the two elements are comparable
+         or `Nothing` if they are not. If set to `Nothing` (the default argument),
+         `Ordering.compare _ _` method will be used.
 
-       By default, elements are sorted in ascending order, using the comparator
-       acquired from each element. A custom compare function may be passed to
-       the sort method.
+       By default, elements are sorted in ascending order.
+
 
        This is a stable sort, meaning that items that compare the same will not
        have their order changed by the sorting process.
@@ -864,6 +868,18 @@ type Vector a
          is partially sorted. When the vector is randomly ordered, the
          performance is equivalent to a standard mergesort.
 
+       ? Multiple comparators
+         Elements with different comparators are incomparable by definition.
+         This case is handled by first grouping the `self` vector into groups
+         with the same comparator, recursively sorting these groups, and then
+         merging them back together. The order of the sorted groups in the
+         resulting vector is based on the order of elements' comparators in the
+         `self` vector, with the exception of the group for the default
+         comparator, which is always the first group.
+
+         Additionally, a warning will be attached, explaining that incomparable
+         values were encountered.
+
          It takes equal advantage of ascending and descending runs in the array,
          making it much simpler to merge two or more sorted arrays: simply
          concatenate them and sort.
@@ -877,16 +893,49 @@ type Vector a
          Sorting a vector of `Pair`s on the first element, descending.
 
              [Pair 1 2, Pair -1 8].sort Sort_Direction.Descending (_.first)
-    sort : Sort_Direction -> (Any -> Any) -> (Any -> Any -> Ordering) -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (Ordering.compare _ _)) =
-        comp_ascending l r  = by (on l) (on r)
-        comp_descending l r = by (on r) (on l)
-        compare = if order == Sort_Direction.Ascending then comp_ascending else
-            comp_descending
 
-        new_vec_arr = self.to_array.sort compare
-        if new_vec_arr.is_error then Error.throw new_vec_arr else
-            Vector.from_polyglot_array new_vec_arr
+       > Example
+         Sorting a vector with elements with different comparators. Values 1
+         and My_Type have different comparators. 1 will be sorted before My_Type
+         because it has the default comparator, and warning will be attached to
+         the resulting vector.
+
+             [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
+    sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Vector Any ! Incomparable_Values
+    sort self (order = Sort_Direction.Ascending) on=x->x by=Nothing =
+        comps = self.map (it-> Comparable.from (on it)) . distinct
+        optimized_case = comps == [Default_Comparator] && by == Nothing
+        # In optimize_case, forward to Vector.sort_builtin, otherwise split to groups
+        # based on different comparators, and forward to Array.sort
+        case optimized_case of
+            True ->
+                elems = if on == Nothing then self else self.map it-> on it
+                elems.sort_builtin order.to_sign
+            False ->
+                # Groups of elements with different comparators
+                groups = comps.distinct.map comp->
+                    self.filter it->
+                        Comparable.from (on it) == comp
+                # TODO: Runtime.assert groups.reduce 0 acc->it-> acc + it.length == self.length
+                case groups.length of
+                    # self consists only of elements with the same comparator.
+                    # Forward to Array.sort
+                    1 ->
+                        # The default value of `by` parameter is `Ordering.compare _ _`
+                        by_non_null = if by == Nothing then (Ordering.compare _ _) else by
+                        comp_ascending l r  = by_non_null (on l) (on r)
+                        comp_descending l r = by_non_null (on r) (on l)
+                        compare = if order == Sort_Direction.Ascending then comp_ascending else
+                            comp_descending
+                        new_vec_arr = self.to_array.sort compare
+                        if new_vec_arr.is_error then Error.throw new_vec_arr else
+                            Vector.from_polyglot_array new_vec_arr
+                    _ ->
+                        # Recurse on each group, and attach a warning
+                        # TODO: Sort Default_Comparator group as the first one?
+                        sorted_groups = groups.map it-> it.sort order on by
+                        comparators_text = comps.distinct.to_text
+                        Warning.attach ("Different comparators: " + comparators_text) sorted_groups.flatten
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.

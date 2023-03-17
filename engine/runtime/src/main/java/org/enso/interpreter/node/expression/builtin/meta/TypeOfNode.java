@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -26,6 +27,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     name = "type_of",
     description = "Returns the type of a value.",
     autoRegister = false)
+@GenerateUncached
 public abstract class TypeOfNode extends Node {
 
   public abstract Object execute(@AcceptsError Object value);
