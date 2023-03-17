@@ -87,6 +87,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Child private InvokeConversionNode invokeConversionNode;
   @Child private ThunkExecutorNode thisExecutor;
   @Child private ThunkExecutorNode thatExecutor;
+  @Child private InvokeCallableNode childDispatch;
 
   private final boolean canApplyThis;
   private final boolean canApplyThat;
@@ -263,10 +264,29 @@ public abstract class InvokeCallableNode extends BaseNode {
       VirtualFrame callerFrame,
       State state,
       Object[] arguments,
-      @Cached InvokeCallableNode invokeCallableNode,
       @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
-      var result = invokeCallableNode.execute(
+      if (childDispatch == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        Lock lock = getLock();
+        lock.lock();
+        try {
+          if (childDispatch == null) {
+            childDispatch =
+                    insert(
+                            build(
+                                    invokeFunctionNode.getSchema(),
+                                    invokeFunctionNode.getDefaultsExecutionMode(),
+                                    invokeFunctionNode.getArgumentsExecutionMode()));
+            childDispatch.setTailStatus(getTailStatus());
+            notifyInserted(childDispatch);
+          }
+        } finally {
+          lock.unlock();
+        }
+      }
+
+      var result = childDispatch.execute(
                   warnings.removeWarnings(warning),
                   callerFrame,
                   state,
@@ -315,6 +335,9 @@ public abstract class InvokeCallableNode extends BaseNode {
     invokeFunctionNode.setTailStatus(isTail);
     invokeMethodNode.setTailStatus(isTail);
     invokeConversionNode.setTailStatus(isTail);
+    if (childDispatch != null) {
+      childDispatch.setTailStatus(isTail);
+    }
   }
 
   /** @return the source section for this node. */
