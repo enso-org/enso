@@ -6,15 +6,18 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.SourceFile;
 import org.enso.polyglot.Suggestion;
-import scala.jdk.CollectionConverters;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -30,9 +33,8 @@ public final class SuggestionsCache
   final LibraryName libraryName;
 
   public SuggestionsCache(LibraryName libraryName) {
+    super(Level.FINEST, libraryName.toString(), true, false);
     this.libraryName = libraryName;
-    this.logLevel = Level.FINEST;
-    this.stringRepr = libraryName.toString();
     this.entryName = libraryName.name();
     this.dataSuffix = SUGGESTIONS_CACHE_DATA_EXTENSION;
     this.metadataSuffix = SUGGESTIONS_CACHE_METADATA_EXTENSION;
@@ -48,22 +50,14 @@ public final class SuggestionsCache
   }
 
   @Override
-  protected boolean needsSourceDigestVerification() {
-    return true;
-  }
-
-  @Override
-  protected boolean needsDataDigestVerification() {
-    return false;
-  }
-
-  @Override
-  protected CachedSuggestions validateReadObject(Object obj, Metadata meta, TruffleLogger logger)
-      throws CacheException {
-    if (obj instanceof Suggestions suggestions) {
-      return new CachedSuggestions(libraryName, suggestions, Optional.empty());
-    } else {
-      throw new CacheException("Expected SuggestionsCache.Suggestions, got " + obj.getClass());
+  protected CachedSuggestions deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
+  throws ClassNotFoundException, ClassNotFoundException, IOException {
+    try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
+      if (stream.readObject() instanceof Suggestions suggestions) {
+        return new CachedSuggestions(libraryName, suggestions, Optional.empty());
+      } else {
+        throw new ClassNotFoundException("Expected SuggestionsCache.Suggestions, got " + data.getClass());
+      }
     }
   }
 
@@ -113,8 +107,12 @@ public final class SuggestionsCache
   }
 
   @Override
-  protected Object extractObjectToSerialize(CachedSuggestions entry) {
-    return entry.getSuggestionsObjectToSerialize();
+  protected byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
+    var byteStream = new ByteArrayOutputStream();
+    try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
+      stream.writeObject(entry.getSuggestionsObjectToSerialize());
+    }
+    return byteStream.toByteArray();
   }
 
   // Suggestions class is not a record because of a Frgaal bug leading to invalid compilation error.
