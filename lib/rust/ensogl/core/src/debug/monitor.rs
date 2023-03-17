@@ -212,8 +212,6 @@ impl DomData {
         root.set_style_or_warn("font-family", FONTS);
         root.set_style_or_warn("font-size", "12px");
 
-
-
         web::document.body_or_panic().prepend_with_node_1(&root).unwrap();
 
         let plot_area = MainArea::new(&config);
