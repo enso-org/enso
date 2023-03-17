@@ -7,9 +7,22 @@ import * as react from "react";
 import * as router from "react-router-dom";
 import toast from "react-hot-toast";
 
+import * as app from "../../components/app";
+import * as authServiceModule from "../service";
 import * as backendService from "../../dashboard/service";
+import * as errorModule from "../../error";
 import * as loggerProvider from "../../providers/logger";
 import * as sessionProvider from "./session";
+
+// =================
+// === Constants ===
+// =================
+
+const MESSAGES = {
+  signUpSuccess: "We have sent you an email with further instructions!",
+  confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
+  pleaseWait: "Please wait...",
+} as const;
 
 // =============
 // === Types ===
@@ -60,6 +73,8 @@ export interface PartialUserSession {
  *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
+  signUp: (email: string, password: string) => Promise<void>;
+  confirmSignUp: (email: string, code: string) => Promise<void>;
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `undefined`. */
@@ -67,7 +82,6 @@ interface AuthContextType {
 }
 
 // Eslint doesn't like headings.
-/* eslint-disable jsdoc/require-description-complete-sentence */
 /** Create a global instance of the `AuthContextType`, that will be re-used between all React
  * components that use the `useAuth` hook.
  *
@@ -91,7 +105,7 @@ interface AuthContextType {
  *
  * So changing the cast would provide no safety guarantees, and would require us to introduce null
  * checks everywhere we use the context. */
-/* eslint-enable jsdoc/require-description-complete-sentence */
+// eslint-disable-next-line no-restricted-syntax
 const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 
 // ====================
@@ -99,28 +113,29 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 // ====================
 
 export interface AuthProviderProps {
+  authService: authServiceModule.AuthService;
   /** Callback to execute once the user has authenticated successfully. */
   onAuthenticated: () => void;
   children: react.ReactNode;
 }
 
 export function AuthProvider(props: AuthProviderProps) {
-  const { children } = props;
+  const { authService, children } = props;
+  const { cognito } = authService;
   const { session } = sessionProvider.useSession();
   const logger = loggerProvider.useLogger();
+  const navigate = router.useNavigate();
   const onAuthenticated = react.useCallback(props.onAuthenticated, []);
   const [initialized, setInitialized] = react.useState(false);
   const [userSession, setUserSession] = react.useState<UserSession | undefined>(
     undefined
   );
 
-  /* eslint-disable jsdoc/require-description-complete-sentence */
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
    * When invoked, retrieves the access token (if available) from the storage method chosen when
    * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
    * If the token has expired, automatically refreshes the token and returns the new token. */
-  /* eslint-eable jsdoc/require-description-complete-sentence */
   react.useEffect(() => {
     const fetchSession = async () => {
       if (session.none) {
@@ -165,7 +180,44 @@ export function AuthProvider(props: AuthProviderProps) {
     });
   }, [session]);
 
+  const withLoadingToast =
+    <T extends unknown[]>(action: (...args: T) => Promise<void>) =>
+    async (...args: T) => {
+      const loadingToast = toast.loading(MESSAGES.pleaseWait);
+      try {
+        await action(...args);
+      } finally {
+        toast.dismiss(loadingToast);
+      }
+    };
+
+  const signUp = (username: string, password: string) =>
+    cognito.signUp(username, password).then((result) => {
+      if (result.ok) {
+        toast.success(MESSAGES.signUpSuccess);
+      } else {
+        toast.error(result.val.message);
+      }
+    });
+
+  const confirmSignUp = async (email: string, code: string) =>
+    cognito.confirmSignUp(email, code).then((result) => {
+      if (result.err) {
+        switch (result.val.kind) {
+          case "UserAlreadyConfirmed":
+            break;
+          default:
+            throw new errorModule.UnreachableCaseError(result.val.kind);
+        }
+      }
+
+      toast.success(MESSAGES.confirmSignUpSuccess);
+      navigate(app.LOGIN_PATH);
+    });
+
   const value = {
+    signUp: withLoadingToast(signUp),
+    confirmSignUp: withLoadingToast(confirmSignUp),
     session: userSession,
   };
 
@@ -209,17 +261,28 @@ export function useAuth() {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export function ProtectedLayout() {
-  const logger = loggerProvider.useLogger();
   const { session } = useAuth();
 
   if (!session) {
-    logger.error(
-      "User is not authenticated, but is trying to access a protected route."
-    );
-    return <>Unauthenticated</>;
+    return <router.Navigate to={app.LOGIN_PATH} />;
   }
 
   return <router.Outlet context={session} />;
+}
+
+// ===================
+// === GuestLayout ===
+// ===================
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export function GuestLayout() {
+  const { session } = useAuth();
+
+  if (session?.variant === "full") {
+    return <router.Navigate to={app.DASHBOARD_PATH} />;
+  }
+
+  return <router.Outlet />;
 }
 
 // ==========================

@@ -156,13 +156,10 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
     }
 }
 
-// This lint doesn't like "e.g." and "vs."".
-/* eslint-disable jsdoc/require-description-complete-sentence */
 /** The basic, common settings for the bundler, based on the environment variables.
  *
  * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build).
  */
-/* eslint-enable jsdoc/require-description-complete-sentence */
 export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
     return bundlerOptions(argumentsFromEnv())
 }

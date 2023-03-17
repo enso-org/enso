@@ -19,10 +19,32 @@ interface BuildInfo {
     name: string
 }
 
+// ==========================
+// === Authentication API ===
+// ==========================
+
+/** `window.authenticationApi` is a context bridge to the main process, when we're running in an
+ * Electron context.
+ *
+ * # Safety
+ *
+ * We're assuming that the main process has exposed the `authenticationApi` context bridge (see
+ * `lib/client/src/preload.ts` for details), and that it contains the functions defined in this
+ * interface. Our app can't function if these assumptions are not met, so we're disabling the
+ * TypeScript checks for this interface when we use it. */
+interface AuthenticationApi {
+    /** Open a URL in the system browser. */
+    openUrlInSystemBrowser: (url: string) => void
+    /** Set the callback to be called when the system browser redirects back to a URL in the app,
+     * via a deep link. See {@link setDeepLinkHandler} for details. */
+    setDeepLinkHandler: (callback: (url: string) => void) => void
+}
+
 declare global {
     interface Window {
         liveReloadListening?: boolean
         enso: Enso
+        authenticationApi: AuthenticationApi
     }
 
     namespace NodeJS {
