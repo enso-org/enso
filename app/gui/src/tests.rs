@@ -86,12 +86,10 @@ fn span_tree_args() {
         args.nth(n).and_then(|node| node.argument_info())
     };
 
-    let expected_this_param =
-        model::suggestion_database::entry::to_span_tree_param(&entry.arguments[0])
-            .with_call_id(Some(id));
-    let expected_arg1_param =
-        model::suggestion_database::entry::to_span_tree_param(&entry.arguments[1])
-            .with_call_id(Some(id));
+    let parser = executed_graph.parser();
+    let mut invocation_info = entry.invocation_info(suggestion_db, &parser);
+    let expected_this_param = invocation_info.parameters.remove(0).with_call_id(Some(id));
+    let expected_arg1_param = invocation_info.parameters.remove(0).with_call_id(Some(id));
 
     // === Method notation, without prefix application ===
     assert_eq!(get_node().info.expression().repr(), "Base.foo");

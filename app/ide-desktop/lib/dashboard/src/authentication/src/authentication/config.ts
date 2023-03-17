@@ -17,11 +17,11 @@ import * as utils from '../utils'
 // =================
 
 /** AWS region in which our Cognito pool is located. */
-export const AWS_REGION: AwsRegion = 'eu-west-1' as AwsRegion
+export const AWS_REGION = utils.brand<AwsRegion>('eu-west-1')
 /** Complete list of OAuth scopes used by the app. */
-export const OAUTH_SCOPES: OAuthScope[] = ['email' as OAuthScope, 'openid' as OAuthScope]
+export const OAUTH_SCOPES = [utils.brand<OAuthScope>('email'), utils.brand<OAuthScope>('openid')]
 /** OAuth response type used in the OAuth flows. */
-export const OAUTH_RESPONSE_TYPE: OAuthResponseType = 'code' as OAuthResponseType
+export const OAUTH_RESPONSE_TYPE = utils.brand<OAuthResponseType>('code')
 
 // =============
 // === Types ===
@@ -39,18 +39,18 @@ type AwsRegion = utils.Brand<'AwsRegion'> & string
  *
  * This is created automatically by our Terraform scripts when the backend infrastructure is
  * created. Look in the `enso-org/cloud-v2` repo for details. */
-type UserPoolId = utils.Brand<'UserPoolId'> & string
+export type UserPoolId = utils.Brand<'UserPoolId'> & string
 /** ID of an OAuth client authorized to interact with the Cognito user pool specified by the
  * {@link UserPoolId}.
  *
  * This is created automatically by our Terraform scripts when the backend infrastructure is
  * created. Look in the `enso-org/cloud-v2` repo for details. */
-type UserPoolWebClientId = utils.Brand<'UserPoolWebClientId'> & string
+export type UserPoolWebClientId = utils.Brand<'UserPoolWebClientId'> & string
 /** Domain of the Cognito user pool used for authenticating/identifying the user.
  *
  * This must correspond to the public-facing domain name of the Cognito pool identified by the
  * {@link UserPoolId}, and must not contain an HTTP scheme, or a pathname. */
-type OAuthDomain = utils.Brand<'OAuthDomain'> & string
+export type OAuthDomain = utils.Brand<'OAuthDomain'> & string
 /** Possible OAuth scopes to request from the federated identity provider during OAuth sign-in. */
 type OAuthScope = utils.Brand<'OAuthScope'> & string
 /** The response type used to complete the OAuth flow. "code" means that the federated identity
@@ -77,13 +77,11 @@ export type RegisterOpenAuthenticationUrlCallbackFn = () => void
 // =====================
 
 // Eslint does not like "etc.".
-/* eslint-disable jsdoc/require-description-complete-sentence */
 /** Configuration for the AWS Amplify library.
  *
  * This details user pools, federated identity providers, etc. that are used to authenticate users.
  * The values in this object are not secret, and can be swapped out for testing values to avoid
  * creating authenticated users in the production environment. */
-/* eslint-enable jsdoc/require-description-complete-sentence */
 export interface AmplifyConfig {
     region: AwsRegion
     userPoolId: UserPoolId

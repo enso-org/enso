@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::ArgumentInfo;
+use crate::TagValue;
 
 
 
@@ -169,6 +170,16 @@ impl Kind {
         }
     }
 
+    /// Get a reference to tag values of an argument represented by this node, if available. Returns
+    /// `None` if the node could not be attached with the argument information.
+    pub fn tag_values(&self) -> Option<&[TagValue]> {
+        match self {
+            Self::Argument(t) => Some(&t.tag_values),
+            Self::InsertionPoint(t) => Some(&t.tag_values),
+            _ => None,
+        }
+    }
+
     /// Get the function call AST ID associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
@@ -298,7 +309,7 @@ pub struct Argument {
     pub name:             Option<String>,
     pub tp:               Option<String>,
     pub call_id:          Option<ast::Id>,
-    pub tag_values:       Vec<String>,
+    pub tag_values:       Vec<TagValue>,
 }
 
 
@@ -361,7 +372,7 @@ pub struct InsertionPoint {
     pub name:       Option<String>,
     pub tp:         Option<String>,
     pub call_id:    Option<ast::Id>,
-    pub tag_values: Vec<String>,
+    pub tag_values: Vec<TagValue>,
 }
 
 // === Constructors ===

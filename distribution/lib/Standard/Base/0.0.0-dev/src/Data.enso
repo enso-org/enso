@@ -56,7 +56,7 @@ from project.Data.Boolean import Boolean, True, False
          import Standard.Examples
 
          example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
-read : File_Format -> Problem_Behavior -> Any ! File_Error
+read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read format on_problems
 
