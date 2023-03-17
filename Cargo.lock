@@ -2707,7 +2707,9 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-prelude",
+ "enso-types",
  "enso-web",
+ "ensogl-core",
  "js-sys",
  "wasm-bindgen",
  "wasm-bindgen-futures",
