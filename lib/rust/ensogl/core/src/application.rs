@@ -105,13 +105,13 @@ impl Application {
         let data = &self.inner;
         let network = self.frp.network();
         enso_frp::extend! { network
+            eval self.display.default_scene.frp.focused ((t) data.show_system_cursor(!t));
             frp.private.output.tooltip <+ frp.private.input.set_tooltip;
             eval_ frp.private.input.show_system_cursor(data.show_system_cursor(true));
             eval_ frp.private.input.hide_system_cursor(data.show_system_cursor(false));
         }
         // We hide the system cursor to replace it with the EnsoGL-provided one.
         self.frp.hide_system_cursor();
-
         self
     }
 

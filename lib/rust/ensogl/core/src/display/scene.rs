@@ -126,7 +126,7 @@ pub struct Mouse {
     pub click_count:   Uniform<i32>,
     pub hover_rgba:    Uniform<Vector4<u32>>,
     pub target:        Rc<Cell<PointerTargetId>>,
-    pub handles:       Rc<[callback::Handle; 4]>,
+    pub handles:       Rc<[callback::Handle; 6]>,
     pub frp:           enso_frp::io::Mouse,
     pub scene_frp:     Frp,
 }
@@ -147,7 +147,7 @@ impl Mouse {
         let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4::default());
         let target = Rc::new(Cell::new(target));
         let shaped_dom = root.clone_ref().into();
-        let mouse_manager = MouseManager::new_separated(&shaped_dom, root, &web::window);
+        let mouse_manager = MouseManager::new_separated(&shaped_dom, &**root, &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(js_event.handler(
             f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {
@@ -190,7 +190,15 @@ impl Mouse {
                 frp.wheel.emit(())
             }
         })));
-        let handles = Rc::new([on_move, on_down, on_up, on_wheel]);
+
+        let on_leave = mouse_manager.on_leave.add(js_event.handler(f_!(
+            scene_frp.focused_source.emit(false);
+        )));
+        let on_enter = mouse_manager.on_enter.add(js_event.handler(f_!(
+            scene_frp.focused_source.emit(true);
+        )));
+
+        let handles = Rc::new([on_move, on_down, on_up, on_wheel, on_leave, on_enter]);
         Self {
             mouse_manager,
             last_position,
@@ -626,8 +634,10 @@ pub struct Frp {
     pub shape:             frp::Sampler<Shape>,
     pub camera_changed:    frp::Stream,
     pub frame_time:        frp::Stream<f32>,
+    pub focused:           frp::Stream<bool>,
     camera_changed_source: frp::Source,
     frame_time_source:     frp::Source<f32>,
+    focused_source:        frp::Source<bool>,
 }
 
 impl Frp {
@@ -635,18 +645,22 @@ impl Frp {
     pub fn new(shape: &frp::Sampler<Shape>) -> Self {
         frp::new_network! { network
             camera_changed_source <- source();
-            frame_time_source     <- source();
+            frame_time_source <- source();
+            focused_source <- source();
         }
         let shape = shape.clone_ref();
         let camera_changed = camera_changed_source.clone_ref().into();
         let frame_time = frame_time_source.clone_ref().into();
+        let focused = focused_source.clone_ref().into();
         Self {
             network,
             shape,
             camera_changed,
             frame_time,
+            focused,
             camera_changed_source,
             frame_time_source,
+            focused_source,
         }
     }
 }

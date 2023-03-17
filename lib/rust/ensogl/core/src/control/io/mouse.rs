@@ -118,9 +118,10 @@ macro_rules! define_bindings {
 /// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
 fn event_listener_options() -> web::AddEventListenerOptions {
     let mut options = web::AddEventListenerOptions::new();
-    // We listen for events in capture phase, so we can decide ourself if it should be passed
-    // further.
-    options.capture(true);
+    // We listen for events in the bubbling phase. If we ever would like to listen in the capture
+    // phase, it would need to be set to "bubbling" for the "mouseleave" and "mouseenter" events,
+    // as they provide incorrect events for the "capture" phase.
+    options.capture(false);
     // We want to prevent default action on wheel events, thus listener cannot be passive.
     options.passive(false);
     options
@@ -131,5 +132,6 @@ define_bindings! { target, gloabl_target,
     MouseEvent::mouseup    => on_up    (gloabl_target, OnUp),
     MouseEvent::mousemove  => on_move  (gloabl_target, OnMove),
     MouseEvent::mouseleave => on_leave (target, OnLeave),
+    MouseEvent::mouseenter => on_enter (target, OnEnter),
     WheelEvent::wheel      => on_wheel (target, OnWheel),
 }
