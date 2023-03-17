@@ -8,8 +8,14 @@ use crate::system::web;
 use crate::system::web::dom::Shape;
 use crate::system::web::JsValue;
 
-use num_traits::cast::AsPrimitive;
 use std::f64;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod sampler;
 
 
 
@@ -24,8 +30,20 @@ const SELECTION_MOVEMENT_SPEED: f64 = 0.5;
 const PADDING_LEFT: f64 = 8.0;
 const PADDING_TOP: f64 = 8.0;
 const FONTS: &str =
-    "\"SF Pro Text\",\"SF Pro Icons\",\"Helvetica Neue\",\"Helvetica\",\"Arial\",sans-serif";
+    r#""SF Pro Text","SF Pro Icons","Helvetica Neue","Helvetica","Arial",sans-serif"#;
 
+/// The pause icon, a circle with two vertical bars inside.
+const PAUSE_ICON: &str = r###"<svg width="16" height="16">
+       <circle cx="8" cy="8" r="8" fill="#00000020" />
+       <rect x="5" y="4" width="2" height="8" style="fill:#00000080;" />
+       <rect x="9" y="4" width="2" height="8" style="fill:#00000080;" />
+    </svg>"###;
+
+/// The play icon, a circle with a triangle pointing right inside.
+const PLAY_ICON: &str = r###"<svg width="16" height="16">
+       <circle cx="8" cy="8" r="8" fill="#00000020" />
+       <polygon points="6,4 12,8 6,12" style="fill:#00000080;" />
+    </svg>"###;
 
 
 // ==============
@@ -175,7 +193,6 @@ pub struct DomData {
 
 impl Dom {
     /// Constructor.
-    #[allow(clippy::new_without_default)]
     pub fn new(frp: &api::Public, config: &Config, screen_shape: Shape) -> Self {
         let data = DomData::new(config, screen_shape);
         let button = &data.control_button;
@@ -199,7 +216,6 @@ impl Dom {
 
 impl DomData {
     /// Constructor.
-    #[allow(clippy::new_without_default)]
     pub fn new(config: &Config, screen_shape: Shape) -> Self {
         let config = config.clone();
         let root = web::document.create_div_or_panic();
@@ -254,7 +270,7 @@ impl DomData {
     pub fn move_selection(&self, offset: f64) -> usize {
         let start_x = self.config.plot_x();
         let end_x = self.config.plot_right_x();
-        let width = end_x - start_x - 1.0;
+        let width = end_x - start_x - self.config.plot_selection_width;
         let offset_normalized = (self.selection_offset.get() + offset).max(0.0).min(width);
         self.selection_offset.set(offset_normalized);
         let offset_rounded = offset_normalized.round();
@@ -302,10 +318,10 @@ impl Drop for DomData {
 #[derive(Debug, Deref)]
 pub struct MainArea {
     #[deref]
-    root:         web::HtmlDivElement,
-    plot:         web::HtmlCanvasElement,
-    plot_context: web::CanvasRenderingContext2d,
-    selection:    web::HtmlDivElement,
+    root:          web::HtmlDivElement,
+    plots:         web::HtmlCanvasElement,
+    plots_context: web::CanvasRenderingContext2d,
+    selection:     web::HtmlDivElement,
 }
 
 impl MainArea {
@@ -317,17 +333,17 @@ impl MainArea {
         root.set_style_or_warn("box-sizing", "content-box");
         root.set_style_or_warn("position", "relative");
 
-        let plot = web::document.create_canvas_or_panic();
-        plot.set_style_or_warn("display", "block");
-        root.append_child(&plot).unwrap();
+        let plots = web::document.create_canvas_or_panic();
+        plots.set_style_or_warn("display", "block");
+        root.append_child(&plots).unwrap();
 
-        let plot_context = plot.get_context("2d").unwrap().unwrap();
-        let plot_context: web::CanvasRenderingContext2d = plot_context.dyn_into().unwrap();
+        let plots_context = plots.get_context("2d").unwrap().unwrap();
+        let plots_context: web::CanvasRenderingContext2d = plots_context.dyn_into().unwrap();
 
         let selection_border = config.plot_selection_border;
         let selection_width = config.plot_selection_width + 2.0 * selection_border;
-        let selection_left =
-            config.plot_right_x() - 0.5 - config.plot_selection_width / 2.0 - selection_border;
+        let selection_center = (config.plot_selection_width + 1.0) / 2.0;
+        let selection_left = config.plot_right_x() - selection_center - selection_border;
         let selection = web::document.create_div_or_panic();
         selection.set_style_or_warn("position", "absolute");
         selection.set_style_or_warn("width", format!("{selection_width}px"));
@@ -345,13 +361,13 @@ impl MainArea {
         selection.append_child(&selection_inner).unwrap();
         root.append_child(&selection).unwrap();
 
-        Self { root, plot, plot_context, selection }
+        Self { root, plots, plots_context, selection }
     }
 
     fn set_size(&self, width: u32, height: u32) {
         let ratio = web::window.device_pixel_ratio();
-        self.plot.set_width(width);
-        self.plot.set_height(height);
+        self.plots.set_width(width);
+        self.plots.set_height(height);
         self.root.set_style_or_warn("display", "flex");
         self.root.set_style_or_warn("width", format!("{}px", width as f64 / ratio));
         self.root.set_style_or_warn("height", format!("{}px", height as f64 / ratio));
@@ -379,23 +395,12 @@ impl ControlButton {
         root.set_style_or_warn("top", "8px");
         root.set_style_or_warn("left", "8px");
 
-        let pause_icon = "<svg width=\"16\" height=\"16\">
-           <circle cx=\"8\" cy=\"8\" r=\"8\" fill=\"#00000020\" />
-           <rect x=\"5\" y=\"4\" width=\"2\" height=\"8\" style=\"fill:#00000080;\" />
-           <rect x=\"9\" y=\"4\" width=\"2\" height=\"8\" style=\"fill:#00000080;\" />
-        </svg>";
-
-        let play_icon = "<svg width=\"16\" height=\"16\">
-           <circle cx=\"8\" cy=\"8\" r=\"8\" fill=\"#00000020\" />
-           <polygon points=\"6,4 12,8 6,12\" style=\"fill:#00000080;\" />
-        </svg>";
-
         let pause = web::document.create_div_or_panic();
-        pause.set_inner_html(pause_icon);
+        pause.set_inner_html(PAUSE_ICON);
         root.append_child(&pause).unwrap();
 
         let play = web::document.create_div_or_panic();
-        play.set_inner_html(play_icon);
+        play.set_inner_html(PLAY_ICON);
         play.set_style_or_warn("display", "none");
         root.append_child(&play).unwrap();
         Self { root, pause, play }
@@ -444,19 +449,19 @@ impl Default for Monitor {
     fn default() -> Self {
         let frp = Frp::new();
         let mut renderer = Renderer::new(&frp.public);
-        renderer.add(FRAME_TIME);
-        renderer.add(FPS);
-        renderer.add(WASM_MEMORY_USAGE);
-        renderer.add(GPU_MEMORY_USAGE);
-        renderer.add(DRAW_CALL_COUNT);
-        renderer.add(DATA_UPLOAD_COUNT);
-        renderer.add(DATA_UPLOAD_SIZE);
-        renderer.add(BUFFER_COUNT);
-        renderer.add(SYMBOL_COUNT);
-        renderer.add(SHADER_COUNT);
-        renderer.add(SHADER_COMPILE_COUNT);
-        renderer.add(SPRITE_SYSTEM_COUNT);
-        renderer.add(SPRITE_COUNT);
+        renderer.add(sampler::FRAME_TIME);
+        renderer.add(sampler::FPS);
+        renderer.add(sampler::WASM_MEMORY_USAGE);
+        renderer.add(sampler::GPU_MEMORY_USAGE);
+        renderer.add(sampler::DRAW_CALL_COUNT);
+        renderer.add(sampler::DATA_UPLOAD_COUNT);
+        renderer.add(sampler::DATA_UPLOAD_SIZE);
+        renderer.add(sampler::BUFFER_COUNT);
+        renderer.add(sampler::SYMBOL_COUNT);
+        renderer.add(sampler::SHADER_COUNT);
+        renderer.add(sampler::SHADER_COMPILE_COUNT);
+        renderer.add(sampler::SPRITE_SYSTEM_COUNT);
+        renderer.add(sampler::SPRITE_COUNT);
         let initialized = default();
         Self { renderer: Rc::new(RefCell::new(renderer)), frp, initialized }
     }
@@ -496,7 +501,7 @@ impl Monitor {
                 eval pos_on_label_click ((p) renderer.borrow_mut().on_label_click(*p));
                 eval screen_shape ((s) renderer.borrow_mut().set_screen_shape(*s));
                 focus_sample <- plot_drag_diff.map(f!((p) renderer.borrow_mut().on_plot_drag(*p)));
-                eval focus_sample ((t) renderer.borrow_mut().set_focus_sample(Some(*t)));
+                eval focus_sample ((t) renderer.borrow_mut().set_focus_sample(*t));
                 eval_ self.frp.input.pause_data_processing (renderer.borrow_mut().pause());
                 eval_ self.frp.input.resume_data_processing (renderer.borrow_mut().resume());
             }
@@ -527,7 +532,6 @@ struct Renderer {
     paused:            bool,
     samples:           Vec<StatsData>,
     next_sample_index: usize,
-    focus_sample:      Option<usize>,
 }
 
 impl Renderer {
@@ -545,7 +549,6 @@ impl Renderer {
         let paused = default();
         let samples = default();
         let next_sample_index = default();
-        let focus_sample = default();
         let mut out = Self {
             frp,
             user_config,
@@ -560,7 +563,6 @@ impl Renderer {
             paused,
             samples,
             next_sample_index,
-            focus_sample,
         };
         out.update_config();
         out
@@ -588,7 +590,7 @@ impl Renderer {
     }
 
     /// Add new display element.
-    fn add(&mut self, sampler: Sampler) {
+    fn add(&mut self, sampler: sampler::Sampler) {
         let panel = Panel::new(self.config.clone(), sampler);
         self.panels.push(panel);
         self.resize();
@@ -628,8 +630,8 @@ impl Renderer {
             - self.user_config.outer_margin
             - self.user_config.margin / 2.0)
             / (self.user_config.margin + self.user_config.panel_height))
-            .floor() as usize;
-        let panel_index = panel_index.max(0).min(self.panels.len() - 1);
+            .floor();
+        let panel_index = (panel_index.max(0.0) as usize).min(self.panels.len() - 1);
         self.selected_panel = Some(panel_index);
     }
 
@@ -641,20 +643,17 @@ impl Renderer {
         }
     }
 
-    fn set_focus_sample(&mut self, index: Option<usize>) {
-        self.focus_sample = index;
-        if let Some(index) = index {
-            let local_index = index + self.next_sample_index;
-            let local_index = local_index % self.config.sample_count;
-            let sample = self.samples.get(local_index).or_else(|| self.samples.last());
-            if let Some(sample) = sample {
-                for panel in &self.panels {
-                    panel.sample_and_postprocess(sample);
-                }
-                self.draw_paused(sample);
-            } else {
-                warn!("No sample to focus on.");
+    fn set_focus_sample(&mut self, index: usize) {
+        let local_index = index + self.next_sample_index;
+        let local_index = local_index % self.config.sample_count;
+        let sample = self.samples.get(local_index).or_else(|| self.samples.last());
+        if let Some(sample) = sample {
+            for panel in &self.panels {
+                panel.sample_and_postprocess(sample);
             }
+            self.draw_paused(sample);
+        } else {
+            warn!("No sample to focus on.");
         }
     }
 
@@ -730,9 +729,9 @@ impl Renderer {
         let height = self.height;
         let shift = -(self.config.plot_step_size);
         dom.plot_area
-            .plot_context
+            .plots_context
             .draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                &dom.plot_area.plot,
+                &dom.plot_area.plots,
                 0.0,
                 0.0,
                 width,
@@ -753,20 +752,20 @@ impl Renderer {
 
     fn clear_labels_area(&self, dom: &Dom) {
         let width = self.config.margin + self.config.labels_width;
-        dom.plot_area.plot_context.set_fill_style(&self.config.background_color);
-        dom.plot_area.plot_context.fill_rect(0.0, 0.0, width, self.height);
+        dom.plot_area.plots_context.set_fill_style(&self.config.background_color);
+        dom.plot_area.plots_context.fill_rect(0.0, 0.0, width, self.height);
     }
 
     fn clear_values_area(&self, dom: &Dom) {
         let offset = self.config.margin + self.config.labels_width;
         let width = self.config.margin + self.config.results_width + self.config.margin;
-        dom.plot_area.plot_context.set_fill_style(&self.config.background_color);
-        dom.plot_area.plot_context.fill_rect(offset, 0.0, width, self.height);
+        dom.plot_area.plots_context.set_fill_style(&self.config.background_color);
+        dom.plot_area.plots_context.fill_rect(offset, 0.0, width, self.height);
     }
 
     fn clear_newest_plot_value_area(&mut self, dom: &Dom) {
         let step = self.config.plot_step_size;
-        dom.plot_area.plot_context.fill_rect(self.width - step, 0.0, step, self.height);
+        dom.plot_area.plots_context.fill_rect(self.width - step, 0.0, step, self.height);
     }
 
     fn draw_plots(&mut self, dom: &Dom, stats: &StatsData) {
@@ -774,25 +773,25 @@ impl Renderer {
     }
 
     fn first_draw(&self, dom: &Dom) {
-        dom.plot_area.plot_context.set_fill_style(&self.config.background_color);
-        dom.plot_area.plot_context.fill_rect(0.0, 0.0, self.width, self.height);
+        dom.plot_area.plots_context.set_fill_style(&self.config.background_color);
+        dom.plot_area.plots_context.fill_rect(0.0, 0.0, self.width, self.height);
         self.with_all_panels(dom, |_, panel| panel.first_draw(dom));
     }
 
     fn with_all_panels<F: Fn(bool, &Panel)>(&self, dom: &Dom, f: F) {
         let mut total_off = self.config.outer_margin;
-        dom.plot_area.plot_context.translate(0.0, total_off).unwrap();
+        dom.plot_area.plots_context.translate(0.0, total_off).unwrap();
         for (panel_index, panel) in self.panels.iter().enumerate() {
             let off = self.config.margin;
-            dom.plot_area.plot_context.translate(0.0, off).unwrap();
+            dom.plot_area.plots_context.translate(0.0, off).unwrap();
             total_off += off;
             let selected = self.selected_panel == Some(panel_index);
             f(selected, panel);
             let off = self.config.panel_height;
-            dom.plot_area.plot_context.translate(0.0, off).unwrap();
+            dom.plot_area.plots_context.translate(0.0, off).unwrap();
             total_off += off;
         }
-        dom.plot_area.plot_context.translate(0.0, -total_off).unwrap();
+        dom.plot_area.plots_context.translate(0.0, -total_off).unwrap();
     }
 }
 
@@ -811,7 +810,7 @@ pub struct Panel {
 
 impl Panel {
     /// Creates a new, empty Panel with a given sampler.
-    pub fn new(config: SamplerConfig, sampler: Sampler) -> Self {
+    pub fn new(config: SamplerConfig, sampler: sampler::Sampler) -> Self {
         let rc = Rc::new(RefCell::new(PanelData::new(config, sampler)));
         Self { rc }
     }
@@ -840,53 +839,6 @@ impl Panel {
 
 
 
-// ==================
-// === ValueCheck ===
-// ==================
-
-/// Values drawn in the monitor can be assigned with a check: `Correct`, `Warning`, and `Error`.
-/// It affects the way they are visually displayed.
-#[derive(Copy, Clone, Debug)]
-#[allow(missing_docs)]
-pub enum ValueCheck {
-    Correct,
-    Warning,
-    Error,
-}
-
-impl Default for ValueCheck {
-    fn default() -> Self {
-        Self::Correct
-    }
-}
-
-// To be removed after this gets resolved: https://github.com/rust-lang/rust-clippy/issues/4971
-#[allow(clippy::collapsible_else_if)]
-impl ValueCheck {
-    /// Construct the check by comparing the provided value to two threshold values.
-    pub fn from_threshold(warn_threshold: f64, err_threshold: f64, value: f64) -> Self {
-        if warn_threshold > err_threshold {
-            if value >= warn_threshold {
-                ValueCheck::Correct
-            } else if value >= err_threshold {
-                ValueCheck::Warning
-            } else {
-                ValueCheck::Error
-            }
-        } else {
-            if value <= warn_threshold {
-                ValueCheck::Correct
-            } else if value <= err_threshold {
-                ValueCheck::Warning
-            } else {
-                ValueCheck::Error
-            }
-        }
-    }
-}
-
-
-
 // =================
 // === PanelData ===
 // =================
@@ -900,9 +852,9 @@ pub struct PanelData {
     max_value:   f64,
     value:       f64,
     norm_value:  f64,
-    value_check: ValueCheck,
+    value_check: sampler::ValueCheck,
     precision:   usize,
-    sampler:     Sampler,
+    sampler:     sampler::Sampler,
 }
 
 
@@ -910,7 +862,7 @@ pub struct PanelData {
 
 impl PanelData {
     /// Constructor.
-    pub fn new(config: SamplerConfig, sampler: Sampler) -> Self {
+    pub fn new(config: SamplerConfig, sampler: sampler::Sampler) -> Self {
         let label = sampler.label.into();
         let min_value = f64::INFINITY;
         let max_value = f64::NEG_INFINITY;
@@ -999,8 +951,8 @@ impl PanelData {
     }
 
     fn first_draw(&mut self, dom: &Dom) {
-        dom.plot_area.plot_context.set_fill_style(&self.config.plot_background_color);
-        dom.plot_area.plot_context.fill_rect(
+        dom.plot_area.plots_context.set_fill_style(&self.config.plot_background_color);
+        dom.plot_area.plots_context.fill_rect(
             0.0,
             0.0,
             self.config.plot_width(),
@@ -1008,32 +960,33 @@ impl PanelData {
         );
     }
 
-    fn with_pen<T>(&mut self, dom: &Dom, offset: f64, f: impl FnOnce(&mut Self) -> T) -> T {
-        dom.plot_area.plot_context.translate(offset, 0.0).unwrap();
+    /// Move the pen, evaluate the passed function, and move the pen back.
+    fn with_moved_pen<T>(&mut self, dom: &Dom, offset: f64, f: impl FnOnce(&mut Self) -> T) -> T {
+        dom.plot_area.plots_context.translate(offset, 0.0).unwrap();
         let out = f(self);
-        dom.plot_area.plot_context.translate(-offset, 0.0).unwrap();
+        dom.plot_area.plots_context.translate(-offset, 0.0).unwrap();
         out
     }
 
     fn with_pen_at_label<T>(&mut self, dom: &Dom, f: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_pen(dom, self.config.margin, f)
+        self.with_moved_pen(dom, self.config.margin, f)
     }
 
     fn with_pen_at_value<T>(&mut self, dom: &Dom, f: impl FnOnce(&mut Self) -> T) -> T {
         self.with_pen_at_label(dom, |this| {
-            this.with_pen(dom, this.config.labels_width + this.config.margin, f)
+            this.with_moved_pen(dom, this.config.labels_width + this.config.margin, f)
         })
     }
 
     fn with_pen_at_plot<T>(&mut self, dom: &Dom, f: impl FnOnce(&mut Self) -> T) -> T {
         self.with_pen_at_value(dom, |this| {
-            this.with_pen(dom, this.config.results_width + this.config.margin, f)
+            this.with_moved_pen(dom, this.config.results_width + this.config.margin, f)
         })
     }
 
     fn with_pen_at_new_plot_part<T>(&mut self, dom: &Dom, f: impl FnOnce(&mut Self) -> T) -> T {
         self.with_pen_at_plot(dom, |this| {
-            this.with_pen(dom, this.config.plot_width() - this.config.plot_step_size, f)
+            this.with_moved_pen(dom, this.config.plot_width() - this.config.plot_step_size, f)
         })
     }
 
@@ -1046,17 +999,17 @@ impl PanelData {
         self.with_pen_at_label(dom, |this| {
             let y_pos = this.config.panel_height - this.config.font_vertical_offset;
             dom.plot_area
-                .plot_context
+                .plots_context
                 .set_font(&format!("bold {}px {}", this.config.font_size, FONTS));
-            dom.plot_area.plot_context.set_text_align("right");
+            dom.plot_area.plots_context.set_text_align("right");
             let color = if selected {
                 &this.config.label_color_ok_selected
             } else {
                 &this.config.label_color_ok
             };
-            dom.plot_area.plot_context.set_fill_style(color);
+            dom.plot_area.plots_context.set_fill_style(color);
             dom.plot_area
-                .plot_context
+                .plots_context
                 .fill_text(&this.label, this.config.labels_width, y_pos)
                 .unwrap();
         })
@@ -1068,13 +1021,13 @@ impl PanelData {
             let display_value = format!("{1:.0$}", this.precision, this.value);
             let y_pos = this.config.panel_height - this.config.font_vertical_offset;
             let color = match this.value_check {
-                ValueCheck::Correct => &this.config.label_color_ok,
-                ValueCheck::Warning => &this.config.label_color_warn,
-                ValueCheck::Error => &this.config.label_color_err,
+                sampler::ValueCheck::Correct => &this.config.label_color_ok,
+                sampler::ValueCheck::Warning => &this.config.label_color_warn,
+                sampler::ValueCheck::Error => &this.config.label_color_err,
             };
-            dom.plot_area.plot_context.set_fill_style(color);
+            dom.plot_area.plots_context.set_fill_style(color);
             dom.plot_area
-                .plot_context
+                .plots_context
                 .fill_text(&display_value, this.config.results_width, y_pos)
                 .unwrap();
         })
@@ -1084,8 +1037,8 @@ impl PanelData {
     /// the most recent plot value.
     fn draw_plot_update(&mut self, dom: &Dom) {
         self.with_pen_at_new_plot_part(dom, |this| {
-            dom.plot_area.plot_context.set_fill_style(&this.config.plot_background_color);
-            dom.plot_area.plot_context.fill_rect(
+            dom.plot_area.plots_context.set_fill_style(&this.config.plot_background_color);
+            dom.plot_area.plots_context.fill_rect(
                 0.0,
                 0.0,
                 this.config.plot_step_size,
@@ -1095,12 +1048,12 @@ impl PanelData {
             let y_pos = this.config.panel_height - value_height;
             let bar_height = this.config.plot_bar_size.unwrap_or(value_height);
             let color = match this.value_check {
-                ValueCheck::Correct => &this.config.plot_color_ok,
-                ValueCheck::Warning => &this.config.plot_color_warn,
-                ValueCheck::Error => &this.config.plot_color_err,
+                sampler::ValueCheck::Correct => &this.config.plot_color_ok,
+                sampler::ValueCheck::Warning => &this.config.plot_color_warn,
+                sampler::ValueCheck::Error => &this.config.plot_color_err,
             };
-            dom.plot_area.plot_context.set_fill_style(color);
-            dom.plot_area.plot_context.fill_rect(
+            dom.plot_area.plots_context.set_fill_style(color);
+            dom.plot_area.plots_context.fill_rect(
                 0.0,
                 y_pos,
                 this.config.plot_step_size,
@@ -1133,197 +1086,3 @@ impl PanelData {
         }
     }
 }
-
-
-
-// ===============
-// === Sampler ===
-// ===============
-
-/// Sampler is an utility to gather performance-related data and expose it in a way understandable
-/// by the performance monitor.
-#[derive(Copy, Clone)]
-pub struct Sampler {
-    /// Label of the sampler to be displayed in the performance monitor window.
-    label:          &'static str,
-    /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
-    expr:           fn(&StatsData) -> f64,
-    /// Get the details to be displayed in the details view.
-    details:        Option<fn(&StatsData) -> &[&'static str]>,
-    /// If the value crosses this threshold, the graph will be drawn in the warning color.
-    warn_threshold: f64,
-    /// If the value crosses this threshold, the graph will be drawn in the error color.
-    err_threshold:  f64,
-    /// The value will be divided by this number before being displayed.
-    value_divisor:  f64,
-    /// The minimum expected value in order to set proper scaling of the monitor plots. If the real
-    /// value will be smaller than this parameter, it will be clamped.
-    min_value:      Option<f64>,
-    /// The maximum expected value in order to set proper scaling of the monitor plots. If the real
-    /// value will be bigger than this parameter, it will be clamped.
-    max_value:      Option<f64>,
-    /// The number of digits after the dot which should be displayed in the monitor panel.
-    precision:      usize,
-}
-
-impl Debug for Sampler {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Sampler")
-    }
-}
-
-impl const Default for Sampler {
-    fn default() -> Self {
-        Self {
-            label:          "Unlabeled",
-            expr:           |_| 0.0,
-            details:        None,
-            warn_threshold: 0.0,
-            err_threshold:  0.0,
-            value_divisor:  1.0,
-            min_value:      None,
-            max_value:      None,
-            precision:      0,
-        }
-    }
-}
-
-impl Sampler {
-    fn value(&self, stats: &StatsData) -> f64 {
-        let raw_value: f64 = (self.expr)(stats).as_();
-        raw_value / self.value_divisor
-    }
-
-    fn check(&self, stats: &StatsData) -> ValueCheck {
-        let value = self.value(stats);
-        ValueCheck::from_threshold(self.warn_threshold, self.err_threshold, value)
-    }
-
-    fn min_size(&self) -> Option<f64> {
-        Some(self.warn_threshold)
-    }
-}
-
-
-
-// =================================================================================================
-// === Samplers ====================================================================================
-// =================================================================================================
-
-const MB: f64 = (1024 * 1024) as f64;
-
-const DEFAULT_SAMPLER: Sampler = Default::default();
-
-const FPS: Sampler = Sampler {
-    label: "Frames per second",
-    expr: |s| s.fps,
-    warn_threshold: 55.0,
-    err_threshold: 25.0,
-    precision: 2,
-    max_value: Some(60.0),
-    ..DEFAULT_SAMPLER
-};
-
-const FRAME_TIME: Sampler = Sampler {
-    label: "Frame time (ms)",
-    expr: |s| s.frame_time,
-    warn_threshold: 1000.0 / 55.0,
-    err_threshold: 1000.0 / 25.0,
-    precision: 2,
-    ..DEFAULT_SAMPLER
-};
-
-const WASM_MEMORY_USAGE: Sampler = Sampler {
-    label: "WASM memory usage (Mb)",
-    expr: |s| s.wasm_memory_usage as f64,
-    warn_threshold: 50.0,
-    err_threshold: 100.0,
-    precision: 2,
-    value_divisor: MB,
-    ..DEFAULT_SAMPLER
-};
-
-const GPU_MEMORY_USAGE: Sampler = Sampler {
-    label: "GPU memory usage (Mb)",
-    expr: |s| s.gpu_memory_usage as f64,
-    warn_threshold: 100.0,
-    err_threshold: 500.0,
-    precision: 2,
-    value_divisor: MB,
-    ..DEFAULT_SAMPLER
-};
-
-const DRAW_CALL_COUNT: Sampler = Sampler {
-    label: "Draw call count",
-    expr: |s| s.draw_calls.len() as f64,
-    details: Some(|s| &s.draw_calls),
-    warn_threshold: 100.0,
-    err_threshold: 500.0,
-    ..DEFAULT_SAMPLER
-};
-
-const BUFFER_COUNT: Sampler = Sampler {
-    label: "Buffer count",
-    expr: |s| s.buffer_count as f64,
-    warn_threshold: 100.0,
-    err_threshold: 500.0,
-    ..DEFAULT_SAMPLER
-};
-
-const DATA_UPLOAD_COUNT: Sampler = Sampler {
-    label: "Data upload count",
-    expr: |s| s.data_upload_count as f64,
-    warn_threshold: 100.0,
-    err_threshold: 500.0,
-    ..DEFAULT_SAMPLER
-};
-
-const DATA_UPLOAD_SIZE: Sampler = Sampler {
-    label: "Data upload size (Mb)",
-    expr: |s| s.data_upload_size as f64,
-    warn_threshold: 1.0,
-    err_threshold: 10.0,
-    precision: 2,
-    value_divisor: MB,
-    ..DEFAULT_SAMPLER
-};
-
-const SPRITE_SYSTEM_COUNT: Sampler = Sampler {
-    label: "Sprite system count",
-    expr: |s| s.sprite_system_count as f64,
-    warn_threshold: 100.0,
-    err_threshold: 500.0,
-    ..DEFAULT_SAMPLER
-};
-
-const SYMBOL_COUNT: Sampler = Sampler {
-    label: "Symbol count",
-    expr: |s| s.symbol_count as f64,
-    warn_threshold: 100.0,
-    err_threshold: 500.0,
-    ..DEFAULT_SAMPLER
-};
-
-const SPRITE_COUNT: Sampler = Sampler {
-    label: "Sprite count",
-    expr: |s| s.sprite_count as f64,
-    warn_threshold: 100_000.0,
-    err_threshold: 500_000.0,
-    ..DEFAULT_SAMPLER
-};
-
-const SHADER_COUNT: Sampler = Sampler {
-    label: "Shader count",
-    expr: |s| s.shader_count as f64,
-    warn_threshold: 100.0,
-    err_threshold: 500.0,
-    ..DEFAULT_SAMPLER
-};
-
-const SHADER_COMPILE_COUNT: Sampler = Sampler {
-    label: "Shader compile count",
-    expr: |s| s.shader_compile_count as f64,
-    warn_threshold: 10.0,
-    err_threshold: 100.0,
-    ..DEFAULT_SAMPLER
-};

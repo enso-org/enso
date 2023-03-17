@@ -396,7 +396,8 @@ class Histogram extends Visualization {
     }
 
     /** Removing `pointer-events` handling from brush element, as we want it to be inherited. D3 inserts
-     * `pointer-events: all` in the brush element and some of its children on brush creation and after brushing ends. */
+     * `pointer-events: all` in the brush element and some of its children on brush creation and after brushing ends.
+     * There is no documentation on that topic as far as we are aware, so this was observed and tested manually. */
     removePointerEventsAttrsFromBrush(brushElem) {
         brushElem.attr('pointer-events', null)
         brushElem.select(function () {

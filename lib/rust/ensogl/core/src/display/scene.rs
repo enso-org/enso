@@ -147,7 +147,7 @@ impl Mouse {
         let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4::default());
         let target = Rc::new(Cell::new(target));
         let shaped_dom = root.clone_ref().into();
-        let mouse_manager = MouseManager::new_separated(&shaped_dom, root, &web::window);
+        let mouse_manager = MouseManager::new(&shaped_dom, root, &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(js_event.handler(
             f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {

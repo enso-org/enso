@@ -63,11 +63,6 @@ macro_rules! define_bindings {
         }
 
         impl MouseManager {
-            /// Constructor. See docs of `new_separated` to learn more.
-            pub fn new(dom:&web::dom::WithKnownShape<web::EventTarget>) -> Self {
-                Self::new_separated(dom, dom.deref(), dom.deref())
-            }
-
             /// This is the constructor for mouse listeners which takes three arguments:
             ///
             /// 1. A DOM object to set resize observer on. This object should cover the entire screen.
@@ -83,7 +78,7 @@ macro_rules! define_bindings {
             /// this should be the window object. It is common for the element drag action to be
             /// initiated by a 'mousedown' event on one element and finished by a 'mouseup' event
             /// on another element. Handling these events globally covers such situations.
-            pub fn new_separated(
+            pub fn new(
                 dom: &web::dom::WithKnownShape<web::EventTarget>,
                 $target: &web::EventTarget,
                 $global_target: &web::EventTarget,

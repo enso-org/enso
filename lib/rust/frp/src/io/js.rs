@@ -85,13 +85,9 @@ fn event_listener_options() -> enso_web::AddEventListenerOptions {
 // === JsEventHandler ===
 // ======================
 
-/// Handler of currently processed js event.
-///
-/// Managed js event by this structure will be NOT propagated further to DOM elements, unless the
-/// `pass_to_dom` event will be emitted.
-///
-/// To make this class manage js event, you should wrap the closure passed as event listener using
-/// `handler` function.
+/// FRP wrapper for JS events. You can use the [`Self::handler`] method to generate a new event
+/// handler closure. When event is fired, it will be emitted as [`Self::event`] stream. After the
+/// event stops propagating, [`None`] will be emitted instead.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct JsEvent {

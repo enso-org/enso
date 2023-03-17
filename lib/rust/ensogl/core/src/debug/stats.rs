@@ -84,11 +84,11 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
     }
 
     /// Register a new draw call for the given symbol.
-    pub fn new_draw_call(&self, symbol_id: SymbolId) {
+    pub fn register_draw_call(&self, symbol_id: SymbolId) {
         let label = world::with_context(|ctx| {
             ctx.get_symbol(symbol_id).map(|t| t.label).unwrap_or("Unknown")
         });
-        self.rc.borrow_mut().stats_data.new_draw_call(label);
+        self.rc.borrow_mut().stats_data.register_draw_call(label);
     }
 }
 
@@ -235,7 +235,7 @@ gen_stats! {
 
 impl StatsData {
     /// Register a new draw call for the given symbol.
-    pub fn new_draw_call(&mut self, symbol_name: &'static str) {
+    pub fn register_draw_call(&mut self, symbol_name: &'static str) {
         self.draw_calls.push(symbol_name);
     }
 }

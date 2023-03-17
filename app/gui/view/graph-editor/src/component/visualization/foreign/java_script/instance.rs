@@ -248,8 +248,8 @@ impl InstanceModel {
     }
 
     fn set_active(&self, active: bool) {
-        let val = if active { "all" } else { "none " };
-        self.root_node.set_style_or_warn("pointer-events", val);
+        let attribute = if active { "all" } else { "none " };
+        self.root_node.set_style_or_warn("pointer-events", attribute);
     }
 }
 

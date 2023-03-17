@@ -12,9 +12,9 @@ use ensogl_core::system::web::Map;
 // =================
 
 /// Path within the asset directory to store the vertex shader.
-const VERTEX_FILE: &'static str = "vertex.glsl";
+const VERTEX_FILE: &str = "vertex.glsl";
 /// Path within the asset directory to store the fragment shader.
-const FRAGMENT_FILE: &'static str = "fragment.glsl";
+const FRAGMENT_FILE: &str = "fragment.glsl";
 
 
 
