@@ -312,6 +312,7 @@ impl MainArea {
         root.set_style_or_warn("overflow", "hidden");
         root.set_style_or_warn("border-radius", "6px");
         root.set_style_or_warn("border", "2px solid #000000c4");
+        root.set_style_or_warn("box-sizing", "content-box");
         root.set_style_or_warn("position", "relative");
 
         let plot = web::document.create_canvas_or_panic();
