@@ -1,7 +1,5 @@
 package org.enso.languageserver.search
 
-import org.enso.docs.generator.DocsGenerator
-import org.enso.docs.sections.DocSectionsBuilder
 import org.enso.polyglot.Suggestion
 
 import java.util.UUID
@@ -26,39 +24,28 @@ object Suggestions {
         |""".stripMargin.linesIterator.mkString("\n")
   }
 
-  val htmlDocsGenerator: DocsGenerator =
-    DocsGenerator
-  val docSectionsBuilder: DocSectionsBuilder =
-    DocSectionsBuilder()
-
   val module: Suggestion.Module = Suggestion.Module(
-    module                = "local.Test.Main",
-    documentation         = Some("Module doc"),
-    documentationHtml     = None,
-    documentationSections = Some(docSectionsBuilder.build("Module doc"))
+    module        = "local.Test.Main",
+    documentation = Some("Module doc")
   )
 
   val tpe: Suggestion.Type = Suggestion.Type(
-    externalId            = None,
-    module                = "local.Test.Main",
-    name                  = "Newtype",
-    params                = Vector(Suggestion.Argument("a", "Any", false, false, None)),
-    returnType            = "Newtype",
-    parentType            = Some("Any"),
-    documentation         = None,
-    documentationHtml     = None,
-    documentationSections = None
+    externalId    = None,
+    module        = "local.Test.Main",
+    name          = "Newtype",
+    params        = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType    = "Newtype",
+    parentType    = Some("Any"),
+    documentation = None
   )
 
   val constructor: Suggestion.Constructor = Suggestion.Constructor(
-    externalId            = None,
-    module                = "local.Test.Main",
-    name                  = "MyType",
-    arguments             = Vector(Suggestion.Argument("a", "Any", false, false, None)),
-    returnType            = "MyAtom",
-    documentation         = Some(comment.atom),
-    documentationHtml     = None,
-    documentationSections = Some(docSectionsBuilder.build(comment.atom))
+    externalId    = None,
+    module        = "local.Test.Main",
+    name          = "MyType",
+    arguments     = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType    = "MyAtom",
+    documentation = Some(comment.atom)
   )
 
   val method: Suggestion.Method = Suggestion.Method(
@@ -69,12 +56,10 @@ object Suggestions {
       Suggestion.Argument("this", "MyType", false, false, None),
       Suggestion.Argument("foo", "Number", false, true, Some("42"))
     ),
-    selfType              = "MyType",
-    returnType            = "Number",
-    isStatic              = false,
-    documentation         = Some("Lovely"),
-    documentationHtml     = None,
-    documentationSections = Some(docSectionsBuilder.build("Lovely"))
+    selfType      = "MyType",
+    returnType    = "Number",
+    isStatic      = false,
+    documentation = Some("Lovely")
   )
 
   val function: Suggestion.Function = Suggestion.Function(
@@ -89,9 +74,7 @@ object Suggestions {
     returnType = "IO",
     scope =
       Suggestion.Scope(Suggestion.Position(1, 9), Suggestion.Position(1, 22)),
-    documentation         = Some("My Function"),
-    documentationHtml     = None,
-    documentationSections = Some(docSectionsBuilder.build("My Function"))
+    documentation = Some("My Function")
   )
 
   val local: Suggestion.Local = Suggestion.Local(
@@ -112,12 +95,10 @@ object Suggestions {
       Suggestion.Argument("this", "Any", false, false, None),
       Suggestion.Argument("that", "Any", false, false, None)
     ),
-    selfType              = "Any",
-    returnType            = "Any",
-    isStatic              = false,
-    documentation         = Some("Lovely"),
-    documentationHtml     = None,
-    documentationSections = Some(docSectionsBuilder.build("Lovely"))
+    selfType      = "Any",
+    returnType    = "Any",
+    isStatic      = false,
+    documentation = Some("Lovely")
   )
 
   val methodOnNumber: Suggestion.Method = Suggestion.Method(
@@ -127,12 +108,10 @@ object Suggestions {
     arguments = Vector(
       Suggestion.Argument("this", "Number", false, false, None)
     ),
-    selfType              = "Number",
-    returnType            = "Number",
-    isStatic              = false,
-    documentation         = None,
-    documentationHtml     = None,
-    documentationSections = None
+    selfType      = "Number",
+    returnType    = "Number",
+    isStatic      = false,
+    documentation = None
   )
 
   val methodOnInteger: Suggestion.Method = Suggestion.Method(
@@ -142,12 +121,10 @@ object Suggestions {
     arguments = Vector(
       Suggestion.Argument("that", "Number", false, false, None)
     ),
-    selfType              = "Integer",
-    returnType            = "Number",
-    isStatic              = false,
-    documentation         = Some("Blah, blah"),
-    documentationHtml     = None,
-    documentationSections = Some(docSectionsBuilder.build("Blah, blah"))
+    selfType      = "Integer",
+    returnType    = "Number",
+    isStatic      = false,
+    documentation = Some("Blah, blah")
   )
 
   val all = Seq(

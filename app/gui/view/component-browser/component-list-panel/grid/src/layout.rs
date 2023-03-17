@@ -304,10 +304,11 @@ mod tests {
         let group_sizes = vec![2, 1, 3, 3, 2, 1];
         let group_data = group_ids.iter().zip(group_sizes.into_iter());
         let mk_group = |(id, size): (&GroupId, usize)| Group {
-            id:              *id,
-            height:          size,
-            original_height: size,
-            color:           default(),
+            id:               *id,
+            height:           size,
+            original_height:  size,
+            color:            default(),
+            best_match_score: default(),
         };
         let groups = group_data.map(mk_group).collect_vec();
         let groups_in_columns =
@@ -374,10 +375,11 @@ mod tests {
     fn checking_element_at_location_and_location_of_element_empty_column_and_empty_local_scope() {
         let mut layout = Layout::new(3, 3, 0);
         let group = Group {
-            id:              GroupId { section: SectionId::Popular, index: 0 },
-            height:          2,
-            original_height: 2,
-            color:           default(),
+            id:               GroupId { section: SectionId::Popular, index: 0 },
+            height:           2,
+            original_height:  2,
+            color:            default(),
+            best_match_score: default(),
         };
         layout.push_group(CENTER, group);
 
@@ -409,6 +411,7 @@ mod tests {
             height: size,
             original_height: size,
             color: None,
+            best_match_score: default(),
         });
         for (group, col) in groups.zip(group_columns) {
             layout.push_group(col, group);
@@ -452,6 +455,7 @@ mod tests {
             height: size,
             original_height: size,
             color: None,
+            best_match_score: default(),
         });
         for (group, col) in groups.zip(group_columns) {
             layout.push_group(col, group);

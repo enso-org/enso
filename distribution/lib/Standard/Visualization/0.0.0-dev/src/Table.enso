@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Extensions import slice_text
 from Standard.Visualization.Text import get_chunk_from_line
 import Standard.Base.Error.Common.Not_Found
-from Standard.Table import Table
+import Standard.Table as Table_Module
 
 
 ## PRIVATE
@@ -40,7 +40,7 @@ type Table_Update
    coordinate as origin and the extent of the window in text chunks and lines. The size of
    a chunk (the characters in it) is defined by `chunk_width`. The output is formatted as a message
    that can be sent to the IDE's lazy text visualisation.
-get_lazy_visualisation_data : Vector Integer ->  Vector Integer -> Vector Integer -> Text
+get_lazy_visualisation_data : Table_Module.Table -> Vector Integer -> Vector Integer -> Vector Integer -> Integer -> Text
 get_lazy_visualisation_data table table_cell_position text_window_position text_window_size chunk_size =
     update = compute_table_update table table_cell_position text_window_position text_window_size chunk_size
     update.to_json
