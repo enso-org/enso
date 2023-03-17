@@ -14,7 +14,7 @@ type SQLite_Options
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options
+    connect : Connection_Options -> SQLite_Connection.SQLite_Connection
     connect self options =
         properties = options.merge self.jdbc_properties
         SQLite_Connection.create self.jdbc_url properties
