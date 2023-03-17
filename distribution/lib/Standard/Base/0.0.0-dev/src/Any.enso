@@ -433,7 +433,7 @@ type Any
          Multiply by 2 and then add 1 as a function applied to 2.
 
              (+1 << *2) 2
-    << : (Any -> Any) -> (Any -> Any) -> Any -> Any
+    << : (Any -> Any) -> (Any -> Any)
     << self ~that = x -> self (that x)
 
     ## Composes two functions together in the forward direction, for `f >> g`
@@ -446,7 +446,7 @@ type Any
          Add one and then multiply by two as a function applied to 2.
 
              (+1 >> *2) 2
-    >> : (Any -> Any) -> (Any -> Any) -> Any -> Any
+    >> : (Any -> Any) -> (Any -> Any)
     >> self ~that = x -> that (self x)
 
 

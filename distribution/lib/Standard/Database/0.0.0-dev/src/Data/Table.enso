@@ -623,7 +623,7 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
-    set : Column | Text -> Text | Nothing -> Problem_Behavior -> Table ! Unsupported_Name | Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set : Column | Text -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Unsupported_Name | Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.compute column on_problems
@@ -1301,7 +1301,7 @@ type Table
 
     ## Parsing values is not supported in database tables, the table has to be
        loaded into memory first with `read`.
-    parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Table
+     parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
     parse_values columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -1443,7 +1443,7 @@ type Table
          avoid nesting subqueries without necessity. However, for now, for
          simplicity, we are always wrapping brittle operations. This may be
          revised in the future, to generate better and more concise SQL code.
-    updated_context_and_columns : Context -> Vector Internal_Column -> Table
+    updated_context_and_columns : Context -> Vector Internal_Column -> Boolean -> Table
     updated_context_and_columns self ctx internal_columns subquery=False = case subquery of
         True ->
             setup = ctx.as_subquery self.name [internal_columns]
