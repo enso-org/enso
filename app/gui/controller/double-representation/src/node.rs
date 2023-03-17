@@ -480,6 +480,10 @@ impl MainLine {
             MainLine::Expression { .. } => {}
         }
     }
+
+    pub fn enable_execution_context(&mut self, context_name: &str) {}
+
+    pub fn disable_execution_context(&mut self, context_name: &str) {}
 }
 
 impl ast::HasTokens for MainLine {
@@ -497,6 +501,7 @@ impl ast::HasTokens for MainLine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use parser::Parser;
 
     use ast::opr::predefined::ASSIGNMENT;
 
@@ -670,5 +675,58 @@ mod tests {
         node.set_skip(false);
         assert_eq!(node.repr(), format!("foo = bar"));
         assert_eq!(node.id(), id);
+    }
+
+    #[test]
+    fn test_recognizing_execution_context_switch() {
+        use ast::opr::Chain;
+        let parser = Parser::new();
+        let expr = parser
+            .parse_line_ast("Standard.Base.Runtime.enable_context \"Output\" <| 2 + 2")
+            .unwrap();
+        if let Ok(infix) = known::Infix::try_new(expr) {
+            let opr = ast::identifier::name(&infix.opr).unwrap();
+            if opr == "<|" {
+                if let Ok(prefix) = known::Prefix::try_new(infix.larg.clone()) {
+                    if let Some(infix_chain) = Chain::try_new(&prefix.func) {
+                        let every_operator_is_access = infix_chain
+                            .enumerate_operators()
+                            .all(|opr| opr.item.ast().repr() == ast::opr::predefined::ACCESS);
+                        let name_segments = infix_chain
+                            .enumerate_operands()
+                            .flatten()
+                            .filter_map(|opr| {
+                                ast::identifier::name(&opr.item.arg).map(ImString::new)
+                            })
+                            .collect_vec();
+                        eprintln!("Name: {:?}", name_segments);
+                    } else {
+                        panic!("Not infix chain");
+                    }
+                } else {
+                    panic!("Not prefix");
+                }
+            } else {
+                panic!("Not <|");
+            }
+        } else {
+            panic!("Not infix")
+        }
+    }
+
+    #[test]
+    fn execution_context_switch_expressions() {
+        let id = uuid::Uuid::new_v4();
+        let larg = Ast::var("foo");
+        let rarg = Ast::var("bar").with_id(id);
+        let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
+        let mut node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
+
+        assert_eq!(node.repr(), "foo = bar");
+        node.enable_execution_context("Output");
+        assert_eq!(node.repr(), "foo = Standard.Base.Runtime.enable_context \"Output\" <| bar");
+
+        node.disable_execution_context("Output");
+        assert_eq!(node.repr(), "foo = bar");
     }
 }
