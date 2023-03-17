@@ -165,7 +165,7 @@ type Any
              example_greater =
                  a = 7 * 28
                  a > 147
-    > : Any -> Boolean ! Incomparable_Values
+    > : Any -> Boolean ! (Incomparable_Values | Type_Error)
     > self that =
         assert_same_comparators self that <|
             case (Comparable.from self).compare self that of
@@ -194,7 +194,7 @@ type Any
              example_greater_eq =
                  a = 6 * 21
                  a >= 147
-    >= : Any -> Boolean ! Incomparable_Values
+    >= : Any -> Boolean ! (Incomparable_Values | Type_Error)
     >= self that =
         assert_same_comparators self that <|
             case (Comparable.from self).compare self that of
@@ -223,7 +223,7 @@ type Any
              example_less =
                  a = 7 * 21
                  a < 147
-    < : Any -> Boolean ! Incomparable_Values
+    < : Any -> Boolean ! (Incomparable_Values | Type_Error)
     < self that =
         assert_same_comparators self that <|
             case (Comparable.from self).compare self that of
@@ -254,7 +254,7 @@ type Any
              example_less_eq =
                  a = 7 * 21
                  a < 147
-    <= : Any -> Boolean ! Incomparable_Values
+    <= : Any -> Boolean ! (Incomparable_Values | Type_Error)
     <= self that =
         assert_same_comparators self that <|
             case (Comparable.from self).compare self that of
