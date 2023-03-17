@@ -36,6 +36,8 @@ function blobToBase64(blob: Blob) {
     const reader = new FileReader();
     reader.onload = () => {
       resolve(
+        // This cast is always safe because we read as data URL (a string).
+        // eslint-disable-next-line no-restricted-syntax
         (reader.result as string).replace(
           /^data:application\/octet-stream;base64,/,
           ""
@@ -57,55 +59,68 @@ export class Client {
   ) {}
 
   /** Sends an HTTP GET request to the specified URL. */
-  get = (url: string) => this.request(HttpMethod.get, url);
+  get<T = void>(url: string) {
+    return this.request<T>(HttpMethod.get, url);
+  }
 
   /** Sends a JSON HTTP POST request to the specified URL. */
-  post = (url: string, payload: object) =>
-    this.request(
+  post<T = void>(url: string, payload: object) {
+    return this.request<T>(
       HttpMethod.post,
       url,
       JSON.stringify(payload),
       "application/json"
     );
+  }
 
   /** Sends a base64-encoded binary HTTP POST request to the specified URL. */
-  postBase64 = async (url: string, payload: Blob) =>
-    await this.request(
+  async postBase64<T = void>(url: string, payload: Blob) {
+    return await this.request<T>(
       HttpMethod.post,
       url,
       await blobToBase64(payload),
       "application/octet-stream"
     );
+  }
 
   /** Sends a JSON HTTP PUT request to the specified URL. */
-  put = (url: string, payload: object) =>
-    this.request(
+  put<T = void>(url: string, payload: object) {
+    return this.request<T>(
       HttpMethod.put,
       url,
       JSON.stringify(payload),
       "application/json"
     );
+  }
 
   /** Sends an HTTP DELETE request to the specified URL. */
-  delete = (url: string) => this.request(HttpMethod.delete, url);
+  delete<T = void>(url: string) {
+    return this.request<T>(HttpMethod.delete, url);
+  }
 
   /** Executes an HTTP request to the specified URL, with the given HTTP method. */
-  private readonly request = (
+  private request<T = void>(
     method: HttpMethod,
     url: string,
     payload?: string,
     mimetype?: string
-  ) => {
+  ) {
     const defaultHeaders = this.defaultHeaders ?? [];
     const headers = new Headers(defaultHeaders);
     if (payload) {
       const contentType = mimetype ?? "application/json";
       headers.set("Content-Type", contentType);
     }
+    interface ResponseWithTypedJson<U> extends Response {
+      json: () => Promise<U>;
+    }
+    // This is an UNSAFE type assertion, however this is a HTTP client
+    // and should only be used to query APIs with known response types.
+    // eslint-disable-next-line no-restricted-syntax
     return fetch(url, {
       method,
       headers,
       ...(payload ? { body: payload } : {}),
-    });
-  };
+    }) as Promise<ResponseWithTypedJson<T>>;
+  }
 }

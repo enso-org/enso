@@ -19,8 +19,6 @@ final class SqlDatabase(config: Option[Config] = None)
 
   private var db: SQLiteProfile.backend.Database = _
 
-  open()
-
   /** @inheritdoc */
   override def run[A](query: DBIO[A]): Future[A] =
     db.run(query)
@@ -28,14 +26,19 @@ final class SqlDatabase(config: Option[Config] = None)
   /** @inheritdoc */
   override def open(): Unit =
     this.synchronized {
-      db = SQLiteProfile.backend.Database
-        .forConfig(SqlDatabase.configPath, config.orNull)
+      if (db eq null) {
+        db = SQLiteProfile.backend.Database
+          .forConfig(SqlDatabase.configPath, config.orNull)
+      }
     }
 
   /** @inheritdoc */
   override def close(): Unit =
     this.synchronized {
-      db.close()
+      if (db ne null) {
+        db.close()
+        db = null
+      }
     }
 }
 

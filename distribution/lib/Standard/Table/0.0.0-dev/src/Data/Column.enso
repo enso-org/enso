@@ -742,7 +742,7 @@ type Column
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    is_blank : Boolean -> Boolean -> Column
+    is_blank : Boolean -> Column
     is_blank self treat_nans_as_blank=False =
         new_name = Naming_Helpers.function_name "is_blank" [self]
         result = case self.storage_type of
@@ -885,7 +885,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.contains "hell"
-    contains : Column | Text -> Column
+    contains : Column | Text -> Case_Sensitivity -> Column
     contains self other case_sensitivity=Case_Sensitivity.Default =
         new_name = Naming_Helpers.function_name "contains" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity) new_name
