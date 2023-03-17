@@ -108,6 +108,9 @@
 - [Fixed missing result preview when editing nodes.][5757]
 - [Application retries its initialization after failures][5802], allowing a
   reconnecting after connectivity problems.
+- [Improved Component Browser Filtering][4115]. The best match is always
+  selected first, and the groups are rearranged, so the best matches are on the
+  bottom.
 - [Named arguments syntax is now recognized in IDE][5774]. Connections to
   function arguments will now use named argument syntax instead of inserting
   wildcards on all preceding arguments.
@@ -510,6 +513,7 @@
 [4078]: https://github.com/enso-org/enso/pull/4078
 [4085]: https://github.com/enso-org/enso/pull/4085
 [4097]: https://github.com/enso-org/enso/pull/4097
+[4115]: https://github.com/enso-org/enso/pull/4115
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4050]: https://github.com/enso-org/enso/pull/4050
 [4072]: https://github.com/enso-org/enso/pull/4072
@@ -631,6 +635,7 @@
 - [Comparators support partial ordering][5778]
 - [Merge ordered and unordered comparators][5845]
 - [Use SHA-1 for calculating hashes of modules' IR and bindings][5791]
+- [Don't install Python component on Windows][5900]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -731,6 +736,7 @@
 [5778]: https://github.com/enso-org/enso/pull/5778
 [5845]: https://github.com/enso-org/enso/pull/5845
 [5791]: https://github.com/enso-org/enso/pull/5791
+[5900]: https://github.com/enso-org/enso/pull/5900
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

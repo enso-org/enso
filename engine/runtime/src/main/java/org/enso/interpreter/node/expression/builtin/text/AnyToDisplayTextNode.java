@@ -32,6 +32,11 @@ public abstract class AnyToDisplayTextNode extends Node {
     }
   }
 
+  @Specialization
+  Text identity(Text self) {
+    return self;
+  }
+
   @Fallback
   Text doShowType(Object self, @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
     return Text.create(typeToDisplayTextNode.execute(self));
