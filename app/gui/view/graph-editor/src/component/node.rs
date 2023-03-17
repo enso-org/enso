@@ -359,6 +359,7 @@ ensogl::define_endpoints_2! {
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
         requested_widgets        (ast::Id, ast::Id),
+        request_import           (ImString),
     }
 }
 
@@ -752,6 +753,7 @@ impl Node {
             out.expression                  <+ model.input.frp.expression;
             out.expression_span             <+ model.input.frp.on_port_code_update;
             out.requested_widgets           <+ model.input.frp.requested_widgets;
+            out.request_import              <+ model.input.frp.request_import;
 
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;
