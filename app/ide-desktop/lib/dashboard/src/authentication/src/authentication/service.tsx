@@ -151,7 +151,7 @@ function loadAmplifyConfig(
   return {
     ...baseConfig,
     ...platformConfig,
-    ...(urlOpener ? urlOpener : {}),
+    urlOpener,
   };
 }
 

@@ -494,7 +494,7 @@ core_op mat value function =
 
    Arguments:
    - error: The value to throw as an error.
-core_op_handler : Any
+core_op_handler : Any -> Nothing ! Matrix_Error
 core_op_handler error =
     case error of
         Matrix_Error.Dimensions_Not_Equal -> Error.throw error

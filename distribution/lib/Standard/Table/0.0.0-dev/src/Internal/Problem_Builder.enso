@@ -82,7 +82,7 @@ type Problem_Builder
          methods regardless of the `Problem_Behavior` used. Defaults to `False`.
          Setting this to `True` is essentially a shorthand for adding these two
          problem types to `types_to_always_throw`.
-    new : Vector -> Problem_Builder
+    new : Vector -> Boolean -> Problem_Builder
     new types_to_always_throw=[] error_on_missing_columns=False =
         additional_types_to_throw = if error_on_missing_columns then [Missing_Input_Columns, Column_Indexes_Out_Of_Range, Invalid_Aggregate_Column] else []
         Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder

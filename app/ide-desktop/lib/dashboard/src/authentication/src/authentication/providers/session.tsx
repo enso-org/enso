@@ -9,17 +9,6 @@ import * as error from "../../error";
 import * as hooks from "../../hooks";
 import * as listen from "../listen";
 
-// =================
-// === Constants ===
-// =================
-
-/** URL that the Electron main page is hosted on.
- *
- * This **must** be the actual page that the Electron app is hosted on, otherwise the OAuth flow
- * will not work and will redirect the user to a blank page. If this is the correct URL, no redirect
- * will occur (which is the desired behaviour). */
-const MAIN_PAGE_URL = "http://localhost:8080";
-
 // ======================
 // === SessionContext ===
 // ======================
@@ -39,13 +28,26 @@ const SessionContext = react.createContext<SessionContextType>(
 // =======================
 
 interface SessionProviderProps {
+  /** URL that the content of the app is served at, by Electron.
+   *
+   * This **must** be the actual page that the content is served at, otherwise the OAuth flow will
+   * not work and will redirect the user to a blank page. If this is the correct URL, no redirect
+   * will occur (which is the desired behaviour).
+   *
+   * The URL includes a scheme, hostname, and port (e.g., `http://localhost:8080`). The port is not
+   * known ahead of time, since the content may be served on any free port. Thus, the URL is
+   * obtained by reading the window location at the time that authentication is instantiated. This
+   * is guaranteed to be the correct location, since authentication is instantiated when the content
+   * is initially served. */
+  mainPageUrl: URL;
   registerAuthEventListener: listen.ListenFunction;
   userSession: () => Promise<results.Option<cognito.UserSession>>;
   children: react.ReactNode;
 }
 
 export function SessionProvider(props: SessionProviderProps) {
-  const { children, userSession, registerAuthEventListener } = props;
+  const { mainPageUrl, children, userSession, registerAuthEventListener } =
+    props;
 
   /** Flag used to avoid rendering child components until we've fetched the user's session at least
    * once. Avoids flash of the login screen when the user is already logged in. */
@@ -108,7 +110,7 @@ export function SessionProvider(props: SessionProviderProps) {
            *
            * See:
            * https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
-          window.history.replaceState({}, "", MAIN_PAGE_URL);
+          window.history.replaceState({}, "", mainPageUrl);
           refreshSession();
           break;
         }

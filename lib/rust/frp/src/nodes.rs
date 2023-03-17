@@ -14,6 +14,7 @@ use crate::prelude::*;
 use enso_generics::traits::*;
 
 use crate::data::watch;
+use crate::microtasks::next_microtask;
 use crate::stream;
 use crate::stream::CallStack;
 use crate::stream::EventOutput;
@@ -133,14 +134,69 @@ impl Network {
         self.register(OwnedIter::new(label, event))
     }
 
-    /// On every incoming `input`, add it to the current batch. Once `event` fires, emit the batch.
-    /// If batch is empty when `event` fires, nothing is emitted.
-    pub fn batch<T1, T2>(&self, label: Label, input: &T1, event: &T2) -> Stream<Vec<Output<T1>>>
-    where
-        T1: EventOutput,
-        T2: EventOutput, {
-        self.register(OwnedBatch::new(label, input, event))
+    /// Delay and deduplicate the incoming events. Once an event is received, it will be emitted
+    /// after the current program execution finishes, but before returning to the event loop. If
+    /// multiple events are received within the same microtask, only the last one will be emitted.
+    ///
+    /// Use [`Network::batch`] if you want to collect all emitted values within a microtask.
+    ///
+    /// ```text
+    /// Input:       ───────1──2─3───────────
+    /// Microtasks:  ── ▶──── ▶──── ▶──── ▶──
+    /// Output:      ─────────1─────3────────
+    /// ```
+    ///
+    /// This node is useful when dealing with a diamond-shaped network, where a single source event
+    /// is flowing into multiple subgraphs, and those subgraphs eventually merge into a single node.
+    /// That final node would ordinarily receive multiple events for the same source event, once per
+    /// execution of each subgraph. It is usually a waste of resources to process those intermediate
+    /// events, and it can even lead to logical errors, as those events may contain partially
+    /// outdated data. This node can be used to deduplicate the events and only process the most
+    /// up-to-date one once all subgraphs have finished their execution.
+    ///
+    /// Example network with a diamond-shaped subgraph:
+    /// ```text
+    ///  clickPosition
+    ///     /   \
+    ///    /     \
+    ///  posX   absPosY
+    ///    \     /
+    ///     \   /
+    ///  combinedPosition
+    ///
+    /// Microtasks:       ▶─────────── ▶─────── ▶─────────── ▶───────
+    /// clickPosition:    ─(1,-2)─────          ─(2,-3)─────
+    /// posX:             ─1──────────          ─2──────────
+    /// absPosY:          ─2──────────          ─3──────────
+    /// combinedPosition: ─(1,0)(1,2)─          ─(2,2)(2,3)─
+    /// debounced:                     ─(1,2)──              ─(2,3)──
+    /// ```
+    ///
+    /// Note: See documentation of [`crate::microtasks`] module for more details about microtasks.
+    pub fn debounce<T>(&self, label: Label, event: &T) -> Stream<Output<T>>
+    where T: EventOutput {
+        self.register(OwnedDebounce::new(label, event))
     }
+
+    /// Batch all incoming events emitted within a single microtask. The batch will be emitted
+    /// after the current program execution finishes, but before returning to the event loop. All
+    /// emitted batches are guaranteed to be non-empty.
+    ///
+    /// Use [`Network::debounce`] if you want to receive only the latest value emitted within a
+    /// microtask.
+    ///
+    /// ```text
+    /// Input:       ───────1────2─3────────────
+    /// Microtasks:  ── ▶───── ▶───── ▶───── ▶──
+    /// Output:      ──────────[1]────[2,3]─────
+    /// ```
+    ///
+    /// Note: See documentation of [`crate::microtasks`] module for more details about microtasks.
+    pub fn batch<T>(&self, label: Label, input: &T) -> Stream<Vec<Output<T>>>
+    where T: EventOutput {
+        self.register(OwnedBatch::new(label, input))
+    }
+
 
     /// Fold the incoming value using [`Monoid`] implementation.
     pub fn fold<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
@@ -1737,7 +1793,7 @@ impl<T: EventOutput> OwnedTrace<T> {
 
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
-        debug!("[FRP] {}: {:?}", self.label(), event);
+        warn!("[FRP] {}: {:?}", self.label(), event);
         debug!("[FRP] {}", stack);
         self.emit_event(stack, event);
     }
@@ -2151,69 +2207,106 @@ where
 // =============
 
 #[derive(Debug)]
-pub struct BatchData<T1: HasOutput, T2> {
-    batch_collector: Rc<BatchCollector<T1>>,
-    _event:          T2,
+pub struct BatchData<T: HasOutput> {
+    _input:          T,
+    collected_batch: RefCell<Vec<Output<T>>>,
+    scheduled_task:  RefCell<Option<enso_callback::Handle>>,
 }
 
-pub type OwnedBatch<T1, T2> = stream::Node<BatchData<T1, T2>>;
-pub type Batch<T1, T2> = stream::WeakNode<BatchData<T1, T2>>;
+pub type OwnedBatch<T> = stream::Node<BatchData<T>>;
+pub type Batch<T> = stream::WeakNode<BatchData<T>>;
 
-impl<T1: HasOutput, T2> HasOutput for BatchData<T1, T2> {
-    type Output = Vec<Output<T1>>;
+impl<T: HasOutput> HasOutput for BatchData<T> {
+    type Output = Vec<Output<T>>;
 }
 
-impl<T1: EventOutput, T2: EventOutput> OwnedBatch<T1, T2> {
+impl<T: EventOutput> OwnedBatch<T> {
     /// Constructor.
-    pub fn new(label: Label, input: &T1, event: &T2) -> Self {
-        let batch_collector = Rc::new(BatchCollector {
+    pub fn new(label: Label, input: &T) -> Self {
+        let definition = BatchData {
             _input:          input.clone_ref(),
             collected_batch: default(),
-        });
-        let weak_collector = Rc::downgrade(&batch_collector);
-        input.register_target(stream::EventInput::new(Rc::new(weak_collector)));
-
-        let definition = BatchData { _event: event.clone_ref(), batch_collector };
-        Self::construct_and_connect(label, event, definition)
+            scheduled_task:  default(),
+        };
+        Self::construct_and_connect(label, input, definition)
     }
 }
 
-impl<T1: EventOutput, T2: EventOutput> stream::EventConsumer<Output<T2>> for OwnedBatch<T1, T2> {
-    fn on_event(&self, stack: CallStack, _: &Output<T2>) {
-        let batch = std::mem::take(&mut *self.batch_collector.collected_batch.borrow_mut());
-        if !batch.is_empty() {
-            self.emit_event(stack, &batch);
+impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedBatch<T> {
+    fn on_event(&self, _stack: CallStack, value: &Output<T>) {
+        self.collected_batch.borrow_mut().push(value.clone());
+        let mut scheduled_task = self.scheduled_task.borrow_mut();
+        if scheduled_task.is_none() {
+            let weak = self.downgrade();
+            let handle = next_microtask(move || {
+                let this = weak.upgrade();
+                let this = this.expect("BatchData holds callback handle, so it must be alive.");
+                this.scheduled_task.take();
+                let batch = this.collected_batch.borrow_mut().drain(..).collect();
+                this.emit_event(&default(), &batch);
+            });
+            scheduled_task.replace(handle);
         }
     }
 }
 
-impl<T1: EventOutput, T2> stream::InputBehaviors for BatchData<T1, T2> {
+impl<T: EventOutput> stream::InputBehaviors for BatchData<T> {
     fn input_behaviors(&self) -> Vec<Link> {
         vec![]
     }
 }
 
+
+// ================
+// === Debounce ===
+// ================
+
 #[derive(Debug)]
-struct BatchCollector<T: HasOutput> {
-    _input:          T,
-    collected_batch: RefCell<Vec<Output<T>>>,
+pub struct DebounceData<T: HasOutput> {
+    next_value:   RefCell<Option<Output<T>>>,
+    task_handler: RefCell<Option<enso_callback::Handle>>,
 }
 
-impl<T: HasOutput> stream::WeakEventConsumer<Output<T>> for Weak<BatchCollector<T>> {
-    fn is_dropped(&self) -> bool {
-        self.strong_count() == 0
+pub type OwnedDebounce<T> = stream::Node<DebounceData<T>>;
+pub type Debounce<T> = stream::WeakNode<DebounceData<T>>;
+
+impl<T: HasOutput> HasOutput for DebounceData<T> {
+    type Output = Output<T>;
+}
+
+impl<T: EventOutput> OwnedDebounce<T> {
+    /// Constructor.
+    pub fn new(label: Label, input: &T) -> Self {
+        let definition = DebounceData { next_value: default(), task_handler: default() };
+        Self::construct_and_connect(label, input, definition)
     }
-    fn on_event_if_exists(&self, _stack: CallStack, value: &Output<T>) -> bool {
-        match self.upgrade() {
-            Some(collector) => {
-                collector.collected_batch.borrow_mut().push(value.clone());
-                true
-            }
-            None => false,
+}
+
+impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedDebounce<T> {
+    fn on_event(&self, _stack: CallStack, value: &Output<T>) {
+        let mut next_value = self.next_value.borrow_mut();
+        let not_scheduled = next_value.is_none();
+        next_value.replace(value.clone());
+
+        if not_scheduled {
+            let weak = self.downgrade();
+            let handler = next_microtask(move || {
+                if let Some(node) = weak.upgrade() {
+                    if let Some(value) = node.next_value.borrow_mut().take() {
+                        node.emit_event(&default(), &value);
+                    }
+                }
+            });
+            self.task_handler.replace(Some(handler));
         }
     }
 }
 
+impl<T: EventOutput> stream::InputBehaviors for DebounceData<T> {
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![]
+    }
+}
 
 
 // ===========
