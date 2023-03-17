@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Metadata.Choice
 import Standard.Base.Metadata.Widget
 import Standard.Base.Metadata.Display
 
@@ -15,12 +16,14 @@ spec =
         mock_table = Table.from_rows ["A", "B C", 'D "E"', "F.G/H\I"] []
 
         Test.specify "works for `get` and `at`" <|
-            expect = [["selector", Widget.Single_Choice ["'A'", "'B C'", '\'D "E"\'', "'F.G/H\\I'"] Nothing Display.Always]] . to_json
-            Widgets.get_full_annotations_json mock_table "get" ["selector"] . should_equal expect
-            Widgets.get_full_annotations_json mock_table "at" ["selector"] . should_equal expect
+            choices = mock_table.column_names . map n-> Choice.Option n n.pretty
+            expect = [["selector", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            Widgets.get_widget_json mock_table "get" ["selector"] . should_equal expect
+            Widgets.get_widget_json mock_table "at" ["selector"] . should_equal expect
 
         Test.specify "works for `filter`" <|
-            expect = [["column", Widget.Single_Choice ["'A'", "'B C'", '\'D "E"\'', "'F.G/H\\I'"] Nothing Display.Always]] . to_json
-            Widgets.get_full_annotations_json mock_table "filter" ["column"] . should_equal expect
+            choices = mock_table.column_names . map n-> Choice.Option n n.pretty
+            expect = [["column", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            Widgets.get_widget_json mock_table "filter" ["column"] . should_equal expect
 
 main = Test_Suite.run_main spec
