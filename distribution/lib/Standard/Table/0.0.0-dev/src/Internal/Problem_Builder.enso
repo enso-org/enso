@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Error
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder

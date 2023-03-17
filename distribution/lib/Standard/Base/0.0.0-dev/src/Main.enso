@@ -6,7 +6,7 @@ import project.Data.Numbers
 import project.Data.Map.Map
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Error
+import project.Error
 import project.Function
 import project.IO
 import project.Math
@@ -36,7 +36,7 @@ export project.Data.List.List
 export project.Data.Map.Map
 export project.Data.Text.Text
 export project.Data.Vector.Vector
-export project.Error.Error
+export project.Error
 export project.IO
 export project.Math
 export project.Meta

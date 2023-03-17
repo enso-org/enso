@@ -176,7 +176,7 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
         Warning.get_all mapped . map (w-> w.origin.first.name) . should_contain_the_same_elements_as ["Warnings_Spec.map_odd_warnings_and_errors", "Warnings_Spec.attach_four_warnings"]
 
-        errored_2 = Error.throw 7
+        errored_2 = Error.Error.throw 7
         mapped_2 = map_odd_warnings_and_errors errored_2
         mapped_2.catch . should_equal 17
         Warning.get_all mapped_2 . catch . should_equal 17

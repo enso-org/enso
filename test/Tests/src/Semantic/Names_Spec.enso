@@ -3,7 +3,7 @@ from Standard.Base import all
 from project.Semantic.Names.Definitions import another_method, another_constant, method_with_local_vars, Bar_Data, Bar
 import project.Semantic.Names.Definitions
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 Definitions.Foo.my_method self = case self of
@@ -54,3 +54,6 @@ spec =
         Test.specify "should be correctly resolved" <|
             a = Standard.Base.Data.Array.Array.new 10
             a.length . should_equal 10
+            Standard.Base.Error.Problem_Behavior.Problem_Behavior.Report_Error.to_text . should_equal "Report_Error"
+
+main = Test_Suite.run_main spec

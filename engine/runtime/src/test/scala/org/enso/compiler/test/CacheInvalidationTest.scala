@@ -8,11 +8,11 @@ class CacheInvalidationTest extends ModifiedTest {
     assume(!SystemUtils.IS_OS_WINDOWS)
     evalTestProjectIteration("Test_Caching_Invalidation", iteration = 1)
     val outLines = consumeOut
-    outLines(0) shouldEqual "hmm..."
+    outLines(3) shouldEqual "hmm..."
 
     evalTestProjectIteration("Test_Caching_Invalidation", iteration = 2)
     val outLines2 = consumeOut
-    outLines2(0) shouldEqual "hmm..."
+    outLines2(3) shouldEqual "hmm..."
 
     the[InterpreterException] thrownBy evalTestProjectIteration(
       "Test_Caching_Invalidation",

@@ -39,8 +39,8 @@ Any.should_fail_with self matcher frames_to_skip=0 =
 
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
-Error.should_fail_with : Any -> Integer -> Test_Result
-Error.should_fail_with self matcher frames_to_skip=0 =
+Error.Error.should_fail_with : Any -> Integer -> Test_Result
+Error.Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 3+frames_to_skip
@@ -181,8 +181,8 @@ Any.should_start_with self that frames_to_skip=0 = case self of
          from Standard.Test import Test
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
-Error.should_equal : Any -> Integer -> Test_Result
-Error.should_equal self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
+Error.Error.should_equal : Any -> Integer -> Test_Result
+Error.Error.should_equal self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` is within `epsilon` from `that`.
 
@@ -247,8 +247,8 @@ Any.should_succeed self frames_to_skip=0 =
      Assert that a given action did not result in errors or warnings.
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
-Error.should_succeed : Integer -> Any
-Error.should_succeed self frames_to_skip=0 =
+Error.Error.should_succeed : Integer -> Any
+Error.Error.should_succeed self frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that the given `Boolean` is `True`
@@ -276,8 +276,8 @@ Boolean.should_be_true self = case self of
          from Standard.Test import Test
 
          example_should_be_true = Examples.get_boolean . should_be_true
-Error.should_be_true : Test_Result
-Error.should_be_true self = Test.fail_match_on_unexpected_error self 1
+Error.Error.should_be_true : Test_Result
+Error.Error.should_be_true self = Test.fail_match_on_unexpected_error self 1
 
 ## Asserts that the given `Boolean` is `False`
 
@@ -304,8 +304,8 @@ Boolean.should_be_false self = case self of
          from Standard.Test import Test
 
          example_should_be_false = Examples.get_boolean . should_be_false
-Error.should_be_false : Test_Result
-Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
+Error.Error.should_be_false : Test_Result
+Error.Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
 
 ## Asserts that a value is of a given type.
 
@@ -402,8 +402,8 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
          from Standard.Test import Test
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
-Error.should_contain_the_same_elements_as : Any -> Integer -> Test_Result
-Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
+Error.Error.should_contain_the_same_elements_as : Any -> Integer -> Test_Result
+Error.Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value contains an element.
 
@@ -450,6 +450,6 @@ Any.should_contain self element frames_to_skip=0 =
          from Standard.Test import Test
 
          example_should_equal = "foobar".should_contain "foo"
-Error.should_contain : Any -> Integer -> Test_Result
-Error.should_contain self _ frames_to_skip=0 =
+Error.Error.should_contain : Any -> Integer -> Test_Result
+Error.Error.should_contain self _ frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip

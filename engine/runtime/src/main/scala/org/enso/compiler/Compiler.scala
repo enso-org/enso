@@ -685,7 +685,7 @@ class Compiler(
     * Given module A/B/C.enso
     * ````
     *   type C
-    *       type C a
+    *       C a
     * ````
     * it is possible to
     * ```
