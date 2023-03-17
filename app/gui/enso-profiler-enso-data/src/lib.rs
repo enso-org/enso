@@ -43,6 +43,16 @@ pub enum Metadata {
     RpcRequest(json_rpc::log::RpcRequest),
     /// A message between the Language Server and the Engine.
     BackendMessage(backend::Message),
+    /// Any other metadata type.
+    ///
+    /// The types defined above are handled specially by `enso-profiler-enso-data` tools: E.g. the
+    /// RPC events and `RenderStats` are displayed in different ways by the `profiling_run_graph`
+    /// entry point.
+    ///
+    /// Other types are logged purely so they they can be seen in the events logs, e.g. when
+    /// inspecting a log with the `measurements` tool.
+    #[serde(other)]
+    Other,
 }
 
 impl Display for Metadata {
@@ -51,6 +61,7 @@ impl Display for Metadata {
             Metadata::RpcEvent(name) => f.collect_str(name),
             Metadata::RpcRequest(method) => f.collect_str(&method.to_string()),
             Metadata::BackendMessage(backend::Message { endpoint, .. }) => f.collect_str(endpoint),
+            Metadata::Other => f.collect_str("<value>"),
         }
     }
 }

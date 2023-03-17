@@ -103,7 +103,10 @@ type No_Fallback_Column
 Table.point_data : Table -> Vector
 Table.point_data self =
     get_point_data field = field.lookup_in self . rename field.name . catch Any (_->Nothing)
-    columns = Point_Data.all_fields.map get_point_data . filter (x -> x.is_nothing.not)
+    is_not_nothing x = case x of
+        Nothing -> False
+        _ -> True
+    columns = Point_Data.all_fields.map get_point_data . filter is_not_nothing
     (0.up_to self.row_count).to_vector.map <| row_n->
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing

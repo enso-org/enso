@@ -336,7 +336,7 @@ public final class BoolStorage extends Storage<Boolean> {
               }
             })
         .add(
-            new UnaryMapOperation<>(Maps.IS_MISSING) {
+            new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
               public BoolStorage run(BoolStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);

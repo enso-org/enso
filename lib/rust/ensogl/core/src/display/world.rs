@@ -25,7 +25,6 @@ use crate::display::shape::primitive::glsl;
 use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::system::gpu::shader;
-use crate::system::js;
 use crate::system::web;
 
 use enso_types::unit2::Duration;
@@ -151,53 +150,14 @@ thread_local! {
     pub static PRECOMPILED_SHADERS: RefCell<HashMap<String, PrecompiledShader>> = default();
 }
 
-/// Registers in JS a closure to acquire non-optimized shaders code and to set back optimized
-/// shaders code.
-#[before_main]
-pub fn register_get_and_set_shaders_fns() {
-    let js_app = js::app_or_panic();
-    let closure = Closure::new(|| {
-        let map = gather_shaders();
-        let js_map = web::Map::new();
-        for (key, code) in map {
-            let value = web::Object::new();
-            web::Reflect::set(&value, &"vertex".into(), &code.vertex.into()).unwrap();
-            web::Reflect::set(&value, &"fragment".into(), &code.fragment.into()).unwrap();
-            js_map.set(&key.into(), &value);
-        }
-        js_map.into()
+/// Set optimized shader code.
+pub fn set_shader_code(key: String, vertex: String, fragment: String) {
+    let vertex = strip_instance_declarations(&vertex);
+    let precompiled_shader = PrecompiledShader(shader::Code { vertex, fragment });
+    debug!("Registering precompiled shaders for '{key}'.");
+    PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
+        map.insert(key, precompiled_shader);
     });
-    js_app.register_get_shaders_rust_fn(&closure);
-    mem::forget(closure);
-
-    let closure = Closure::new(|value: JsValue| {
-        if extract_shaders_from_js(value).err().is_some() {
-            warn!("Internal error. Downloaded shaders are provided in a wrong format.")
-        }
-    });
-    js_app.register_set_shaders_rust_fn(&closure);
-    mem::forget(closure);
-}
-
-/// Extract optimized shaders code from the JS value.
-fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
-    let map = value.dyn_into::<web::Map>()?;
-    for opt_entry in map.entries() {
-        let entry = opt_entry?.dyn_into::<web::Array>()?;
-        let key: String = entry.get(0).dyn_into::<web::JsString>()?.into();
-        let value = entry.get(1).dyn_into::<web::Object>()?;
-        let vertex_field = web::Reflect::get(&value, &"vertex".into())?;
-        let fragment_field = web::Reflect::get(&value, &"fragment".into())?;
-        let vertex: String = vertex_field.dyn_into::<web::JsString>()?.into();
-        let fragment: String = fragment_field.dyn_into::<web::JsString>()?.into();
-        let vertex = strip_instance_declarations(&vertex);
-        let precompiled_shader = PrecompiledShader(shader::Code { vertex, fragment });
-        debug!("Registering precompiled shaders for '{key}'.");
-        PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
-            map.insert(key, precompiled_shader);
-        });
-    }
-    Ok(())
 }
 
 /// Remove initial instance variable declarations.
@@ -233,7 +193,8 @@ fn strip_instance_declarations(input: &str) -> String {
     code
 }
 
-fn gather_shaders() -> HashMap<&'static str, shader::Code> {
+/// Collect the un-optimized shader code for all the shapes used by the application.
+pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
     let mut map = HashMap::new();
     SHAPES_DEFINITIONS.with(|shapes| {

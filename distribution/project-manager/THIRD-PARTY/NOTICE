@@ -217,7 +217,7 @@ Copyright notices related to this dependency can be found in the directory `io.c
 
 
 'circe-yaml_2.13', licensed under the Apache 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
+The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-yaml_2.13-0.14.1`.
 
 

@@ -17,7 +17,7 @@ spec = Test.group "Random" <|
         rng = Random.new 12345
         rng.integer . should_equal 51
         rng.integer 0 10000 . should_equal 9080
-        rng.integer 0 100000000000000 . should_fail_with Illegal_Argument.Error
+        rng.integer 0 100000000000000 . should_fail_with Illegal_Argument
 
         random_range = 0.up_to 1000 . map _->rng.integer . compute_bulk [Statistic.Minimum, Statistic.Maximum]
         (random_range.at 0 >= 0) . should_equal True

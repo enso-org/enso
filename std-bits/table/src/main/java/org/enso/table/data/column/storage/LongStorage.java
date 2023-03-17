@@ -398,7 +398,7 @@ public final class LongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new UnaryMapOperation<>(Maps.IS_MISSING) {
+            new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
               public BoolStorage run(LongStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);

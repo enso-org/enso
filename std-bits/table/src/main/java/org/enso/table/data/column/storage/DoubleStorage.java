@@ -301,7 +301,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new UnaryMapOperation<>(Maps.IS_MISSING) {
+            new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
               public BoolStorage run(DoubleStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);

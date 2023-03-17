@@ -34,6 +34,7 @@ class ValuesGenerator {
   private final Context ctx;
   private final Set<Language> languages;
   private final Map<String, ValueInfo> values = new HashMap<>();
+  private final Map<String, List<Value>> multiValues = new HashMap<>();
 
   private ValuesGenerator(Context ctx, Set<Language> languages) {
     this.ctx = ctx;
@@ -49,10 +50,13 @@ class ValuesGenerator {
     return new ValuesGenerator(ctx, set);
   }
 
-  private ValueInfo v(String k, String t, String s) {
-    var v = values.get(k);
+  private ValueInfo v(String key, String prelude, String typeOrValue) {
+    if (key == null) {
+      key = typeOrValue;
+    }
+    var v = values.get(key);
     if (v == null) {
-      var f = ctx.eval("enso", t + "\nn = " + s);
+      var f = ctx.eval("enso", prelude + "\nn = " + typeOrValue);
       var value = f.invokeMember("eval_expression", "n");
       var c = ctx.eval("enso", """
       {import}
@@ -61,13 +65,13 @@ class ValuesGenerator {
           v : {type} -> 1
           _ -> 0
 
-      """.replace("{type}", s).replace("{import}", t)
+      """.replace("{type}", typeOrValue).replace("{import}", prelude)
       );
-      if (k != null) {
+      if (key != null) {
         var check = c.invokeMember("eval_expression", "check");
         assertTrue("Can execute the check", check.canExecute());
         v = new ValueInfo(value, check);
-        values.put(k, v);
+        values.put(key, v);
       } else {
         v = new ValueInfo(value, null);
       }
@@ -83,21 +87,46 @@ class ValuesGenerator {
    *
    * @param typeDefs Type definitions.
    * @param expressions List of expressions - every expression will be converted to a {@link Value}.
+   * @param checks list of names (with {@code null}) to define checks for
    * @return List of values converted from the given expressions.
    */
-  private List<Value> createValuesOfCustomType(String typeDefs, List<String> expressions) {
+  private List<Value> createValuesOfCustomType(String typeDefs, List<String> expressions, List<String> checks) {
+    var prev = multiValues.get(typeDefs);
+    if (prev != null) {
+      return prev;
+    }
+
     var sb = new StringBuilder();
     sb.append(typeDefs);
     sb.append("\n");
     for (int i = 0; i < expressions.size(); i++) {
       sb.append("var_").append(i).append(" = ").append(expressions.get(i)).append("\n");
     }
+    for (int i = 0; i < expressions.size(); i++) {
+      var c = checks != null ? checks.get(i) : null;
+      if (c == null) {
+        continue;
+      }
+      sb.append("""
+      check_{i} x = case x of
+          v : {type} -> 1
+          _ -> 0
+
+      """.replace("{type}", c).replace("{i}", "" + i));
+    }
     Value module = ctx.eval("enso", sb.toString());
     List<Value> values = new ArrayList<>(expressions.size());
     for (int i = 0; i < expressions.size(); i++) {
       Value val = module.invokeMember(Module.EVAL_EXPRESSION, "var_" + i);
       values.add(val);
+      var c = checks != null ? checks.get(i) : null;
+      if (c == null) {
+        continue;
+      }
+      Value check = module.invokeMember(Module.EVAL_EXPRESSION, "check_" + i);
+      this.values.put(c, new ValueInfo(val, check));
     }
+    multiValues.put(typeDefs, values);
     return values;
   }
 
@@ -390,7 +419,7 @@ class ValuesGenerator {
           "Time_Zone.parse 'Europe/London'",
           "Time_Zone.parse 'CET'"
       )) {
-        collect.add(v(null, "import Standard.Base.Data.Time.Time_Zone.Time_Zone", expr).type());
+        collect.add(v("timeZones-" + expr, "import Standard.Base.Data.Time.Time_Zone.Time_Zone", expr).type());
       }
     }
     if (languages.contains(Language.JAVA)) {
@@ -533,7 +562,7 @@ class ValuesGenerator {
           "Map.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
           "Map.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1"
       )) {
-        collect.add(v(null, imports, expr).type());
+        collect.add(v("maps-" + expr, imports, expr).type());
       }
     }
     return collect;
@@ -566,7 +595,7 @@ class ValuesGenerator {
           "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
           "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Nil) (Node.Value 22)) (Node.C2 (Node.Value 22) (Node.Nil)))"
       );
-      collect.addAll(createValuesOfCustomType(nodeTypeDef, exprs));
+      collect.addAll(createValuesOfCustomType(nodeTypeDef, exprs, null));
     }
     return collect;
   }
@@ -581,7 +610,38 @@ class ValuesGenerator {
     }
 
     for (var v : collect) {
-      assertTrue("It is can be executed" + v, v.canExecute());
+      assertTrue("It can be executed " + v, v.canExecute());
+    }
+    return collect;
+  }
+
+  public Value typeSumType() {
+    return constructorsAndValuesAndSumType().get(0);
+  }
+
+  public List<Value> constructorsAndValuesAndSumType() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      var code = """
+        type Sum_Type
+            Variant_A x
+            Variant_B y
+          """;
+      var constructors = List.of(
+          "Sum_Type",
+          "Sum_Type.Variant_A",
+          "Sum_Type.Variant_B",
+          "Sum_Type.Variant_A 'A'",
+          "Sum_Type.Variant_B 'B'"
+      );
+      var constructorTypes = Arrays.asList(new String[] {
+          "Sum_Type",
+          null,
+          null,
+          null,
+          null
+      });
+      collect.addAll(createValuesOfCustomType(code, constructors, constructorTypes));
     }
     return collect;
   }
