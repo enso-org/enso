@@ -309,12 +309,12 @@ impl List {
     pub fn build(mut self) -> component::List {
         let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
-            group.content.update_sorting(components_order);
+            group.content.update_match_info_and_sorting(components_order);
             if let Some(flattened) = &group.flattened_content {
-                flattened.update_sorting(components_order);
+                flattened.update_match_info_and_sorting(components_order);
             }
         }
-        self.local_scope.update_sorting(components_order);
+        self.local_scope.update_match_info_and_sorting(components_order);
         let favorites = self.build_favorites_and_add_to_all_components();
         let top_module_groups = self.module_groups.values().filter(|g| g.is_top_module).collect();
         let section_list_builder = Sections::new(top_module_groups);

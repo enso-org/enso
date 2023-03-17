@@ -3,6 +3,8 @@
 use crate::prelude::*;
 
 use double_representation::module::MethodId;
+use ordered_float::OrderedFloat;
+
 
 
 // ==============
@@ -178,7 +180,7 @@ impl Ord for MatchInfo {
             (DoesNotMatch, Matches { .. }) => Less,
             (Matches { .. }, DoesNotMatch) => Greater,
             (Matches { subsequence: lhs, .. }, Matches { subsequence: rhs, .. }) =>
-                lhs.compare_scores(rhs),
+                OrderedFloat(lhs.score).cmp(&OrderedFloat(rhs.score)),
         }
     }
 }
