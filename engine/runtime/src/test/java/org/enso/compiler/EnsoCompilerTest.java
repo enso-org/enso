@@ -1209,6 +1209,11 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testDotPrecedence() throws Exception {
+    equivalenceTest("x = -1.up_to 100", "x = (-1).up_to 100");
+  }
+
+  @Test
   public void testFreeze() throws Exception {
     equivalenceTest("a = x", "a = FREEZE x");
     equivalenceTest("a = x+1", "a = FREEZE x+1");
