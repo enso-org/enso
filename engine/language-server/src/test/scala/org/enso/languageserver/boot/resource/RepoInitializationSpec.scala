@@ -70,7 +70,7 @@ class RepoInitializationSpec
         )
     }
 
-    "recreate suggestion database when schema version is incorrect111" in withDb {
+    "recreate suggestion database when schema version is incorrect" in withDb {
       (config, sqlDatabase, suggestionsRepo, versionsRepo) =>
         system.eventStream.subscribe(self, classOf[InitializedEvent])
 
