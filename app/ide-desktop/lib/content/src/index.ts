@@ -140,7 +140,7 @@ class Main {
             } else {
                 if (
                     contentConfig.OPTIONS.options.authentication.value &&
-                    contentConfig.OPTIONS.groups.startup.options.entry.value !==
+                    contentConfig.OPTIONS.groups.startup.options.entry.value ===
                         contentConfig.OPTIONS.groups.startup.options.entry.default
                 ) {
                     const hideAuth = () => {
