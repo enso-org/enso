@@ -1,9 +1,11 @@
 package org.enso.languageserver.boot
 
 import akka.event.EventStream
+import org.enso.jsonrpc.ProtocolFactory
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   InitializationComponent,
+  JsonRpcInitializationComponent,
   RepoInitialization,
   SequentialResourcesInitialization,
   TruffleContextInitialization
@@ -23,6 +25,7 @@ object ResourcesInitialization {
     *
     * @param eventStream system event stream
     * @param directoriesConfig configuration of directories that should be created
+    * @param protocolFactory the JSON-RPC protocol factory
     * @param suggestionsRepo the suggestions repo
     * @param sqlDatabase the sql database
     * @param versionsRepo the file versions repo
@@ -32,6 +35,7 @@ object ResourcesInitialization {
   def apply(
     eventStream: EventStream,
     directoriesConfig: ProjectDirectoriesConfig,
+    protocolFactory: ProtocolFactory,
     sqlDatabase: SqlDatabase,
     suggestionsRepo: SqlSuggestionsRepo,
     versionsRepo: SqlVersionsRepo,
@@ -39,6 +43,7 @@ object ResourcesInitialization {
   )(implicit ec: ExecutionContext): InitializationComponent = {
     val resources = Seq(
       new DirectoriesInitialization(directoriesConfig),
+      new JsonRpcInitializationComponent(protocolFactory),
       new RepoInitialization(
         directoriesConfig,
         eventStream,
