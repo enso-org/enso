@@ -136,7 +136,7 @@ class TableVisualization extends Visualization {
                     filter: true,
                     resizable: true,
                     minWidth: 50,
-                }
+                },
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
