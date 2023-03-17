@@ -110,7 +110,7 @@ function App(props: AppProps) {
 function AppRouter(props: AppProps) {
   const { logger, onAuthenticated } = props;
   const navigate = router.useNavigate();
-  const mainPageUrl = new URL(window.location.href)
+  const mainPageUrl = new URL(window.location.href);
   const memoizedAuthService = react.useMemo(() => {
     const authConfig = { navigate, ...props };
     return authService.initAuthService(authConfig);

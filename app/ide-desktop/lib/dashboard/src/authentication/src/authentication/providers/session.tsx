@@ -38,14 +38,15 @@ interface SessionProviderProps {
    * obtained by reading the window location at the time that authentication is instantiated. This
    * is guaranteed to be the correct location, since authentication is instantiated when the content
    * is initially served. */
-  mainPageUrl: URL,
+  mainPageUrl: URL;
   registerAuthEventListener: listen.ListenFunction;
   userSession: () => Promise<results.Option<cognito.UserSession>>;
   children: react.ReactNode;
 }
 
 export function SessionProvider(props: SessionProviderProps) {
-  const { mainPageUrl, children, userSession, registerAuthEventListener } = props;
+  const { mainPageUrl, children, userSession, registerAuthEventListener } =
+    props;
 
   /** Flag used to avoid rendering child components until we've fetched the user's session at least
    * once. Avoids flash of the login screen when the user is already logged in. */

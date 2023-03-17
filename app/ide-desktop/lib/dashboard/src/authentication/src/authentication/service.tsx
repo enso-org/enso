@@ -149,7 +149,7 @@ function loadAmplifyConfig(
     ...baseConfig,
     ...platformConfig,
     urlOpener,
-  }
+  };
 }
 
 function openUrlWithExternalBrowser(url: string) {

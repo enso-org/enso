@@ -48,7 +48,7 @@ async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknow
  * download the application config, or one of the compared versions does not match the semver
  * scheme, it returns `true`. */
 async function checkMinSupportedVersion(config: typeof contentConfig.OPTIONS) {
-    let supported = false;
+    let supported = false
     if (config.groups.engine.options.skipMinVersionCheck.value) {
         supported = true
     } else {
