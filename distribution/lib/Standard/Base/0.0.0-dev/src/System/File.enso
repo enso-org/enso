@@ -276,7 +276,7 @@ type File
 
     ## PRIVATE
        Internal method to join two path segments together.
-    resolve : (Text | File) -> File
+    resolve : File
     resolve self = @Builtin_Method "File.resolve"
 
     ## Convert the file descriptor to a JS_Object.
