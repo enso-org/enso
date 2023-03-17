@@ -48,35 +48,38 @@ async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknow
  * download the application config, or one of the compared versions does not match the semver
  * scheme, it returns `true`. */
 async function checkMinSupportedVersion(config: typeof contentConfig.OPTIONS) {
+    let supported = false
     if (config.groups.engine.options.skipMinVersionCheck.value) {
-        return true
-    }
-    try {
-        const appConfig = await fetchTimeout(
-            config.groups.engine.options.configUrl.value,
-            FETCH_TIMEOUT
-        )
-        if (
-            typeof appConfig === 'object' &&
-            // `typeof x === 'object'` narrows to `object | null`, not `object | undefined`
-            // eslint-disable-next-line no-restricted-syntax
-            appConfig !== null &&
-            'minimumSupportedVersion' in appConfig
-        ) {
-            const minSupportedVersion = appConfig.minimumSupportedVersion
-            if (typeof minSupportedVersion === 'string') {
-                const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
-                return comparator.test(contentConfig.VERSION.ide)
+        supported = true
+    } else {
+        try {
+            const appConfig = await fetchTimeout(
+                config.groups.engine.options.configUrl.value,
+                FETCH_TIMEOUT
+            )
+            if (
+                typeof appConfig === 'object' &&
+                // `typeof x === 'object'` narrows to `object | null`, not `object | undefined`
+                // eslint-disable-next-line no-restricted-syntax
+                appConfig !== null &&
+                'minimumSupportedVersion' in appConfig
+            ) {
+                const minSupportedVersion = appConfig.minimumSupportedVersion
+                if (typeof minSupportedVersion !== 'string') {
+                    logger.error('The minimum supported version is not a string.')
+                } else {
+                    const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
+                    supported = comparator.test(contentConfig.VERSION.ide)
+                }
             } else {
-                logger.error('The minimum supported version is not a string.')
+                logger.error('The application config is not an object.')
             }
-        } else {
-            logger.error('The application config is not an object.')
+        } catch (e) {
+            console.error('Minimum version check failed.', e)
+            supported = true
         }
-    } catch (e) {
-        console.error('Minimum version check failed.', e)
-        return true
     }
+    return supported
 }
 
 /** Display information that the current app version is deprecated. */
@@ -137,7 +140,7 @@ class Main {
             } else {
                 if (
                     contentConfig.OPTIONS.options.authentication.value &&
-                    contentConfig.OPTIONS.groups.startup.options.entry.value !==
+                    contentConfig.OPTIONS.groups.startup.options.entry.value ===
                         contentConfig.OPTIONS.groups.startup.options.entry.default
                 ) {
                     const hideAuth = () => {

@@ -11,7 +11,7 @@ enso-text = { path = "../../../../lib/rust/text" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 enso-profiler = { path = "../../../../lib/rust/profiler" }
 failure = { workspace = true }
+parser = { path = "../parser" }
 
 [dev-dependencies]
-parser = { path = "../parser" }
 wasm-bindgen-test = { workspace = true }

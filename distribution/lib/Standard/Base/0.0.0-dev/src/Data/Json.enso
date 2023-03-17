@@ -264,7 +264,7 @@ make_javascript enso_object =
 
 ## PRIVATE
    Make a field name selector
-make_field_name_selector : JS_Object -> Single_Choice
+make_field_name_selector : JS_Object -> Display -> Single_Choice
 make_field_name_selector js_object display=Display.Always =
     Single_Choice display=display values=(js_object.field_names.map n->(Option n n.pretty))
 

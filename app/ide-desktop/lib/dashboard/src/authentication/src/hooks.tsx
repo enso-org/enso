@@ -3,9 +3,9 @@ import * as react from "react";
 
 import * as loggerProvider from "./providers/logger";
 
-// ================
-// === useInput ===
-// ================
+// ============
+// === Bind ===
+// ============
 
 /** Type of the second parameter returned by the {@link useInput} hook.
  *
@@ -24,6 +24,10 @@ interface Bind {
   value: string;
   onChange: (value: react.ChangeEvent<HTMLInputElement>) => void;
 }
+
+// ================
+// === useInput ===
+// ================
 
 /** A custom hook to handle input fields.
  *
