@@ -28,8 +28,10 @@ class VersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
   }
 
   def withRepo(test: SqlVersionsRepo => Any): Any = {
-    val tmpdb = Files.createTempFile(tmpdir, "versions-repo", ".db")
-    val repo  = new SqlVersionsRepo(SqlDatabase(tmpdb.toFile))
+    val tmpdb       = Files.createTempFile(tmpdir, "versions-repo", ".db")
+    val sqlDatabase = SqlDatabase(tmpdb.toFile)
+    sqlDatabase.open()
+    val repo = new SqlVersionsRepo(sqlDatabase)
     Await.ready(repo.init, Timeout)
     try test(repo)
     finally {

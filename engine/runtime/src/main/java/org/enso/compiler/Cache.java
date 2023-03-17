@@ -8,11 +8,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
 import org.enso.pkg.SourceFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -33,9 +29,46 @@ import java.util.logging.Level;
  * @param <M> type of the metadata associated with the data
  */
 public abstract class Cache<T, M extends Cache.Metadata> {
+  private final Object LOCK = new Object();
 
   /** Returns a default level of logging for this Cache. */
-  protected Level logLevel;
+  protected final Level logLevel;
+  /** Log name to use in log messages */
+  private final String logName;
+
+  /**
+   * Flag indicating if the de-serialization process should compute the hash of the sources from
+   * which the cache was created and compare it with the stored metadata entry.
+   */
+  private final boolean needsSourceDigestVerification;
+
+  /**
+   * Flag indicating if the de-serialization process should compute the hash of the stored cache and
+   * compare it with the stored metadata entry.
+   */
+  private final boolean needsDataDigestVerification;
+
+  /**
+   * Constructor for subclasses.
+   *
+   * @param logLevel logging level
+   * @param logName name to use in logs
+   * @param needsSourceDigestVerification Flag indicating if the de-serialization process should
+   *     compute the hash of the sources from which the cache was created and compare it with the
+   *     stored metadata entry.
+   * @param needsDataDigestVerification Flag indicating if the de-serialization process should
+   *     compute the hash of the stored cache and compare it with the stored metadata entry.
+   */
+  protected Cache(
+      Level logLevel,
+      String logName,
+      boolean needsSourceDigestVerification,
+      boolean needsDataDigestVerification) {
+    this.logLevel = logLevel;
+    this.logName = logName;
+    this.needsDataDigestVerification = needsDataDigestVerification;
+    this.needsSourceDigestVerification = needsSourceDigestVerification;
+  }
 
   /**
    * Saves data to a cache file.
@@ -46,33 +79,34 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return if non-empty, returns the location of the successfully saved location of the cached
    *     data
    */
-  public Optional<TruffleFile> save(T entry, EnsoContext context, boolean useGlobalCacheLocations) {
+  public final Optional<TruffleFile> save(
+      T entry, EnsoContext context, boolean useGlobalCacheLocations) {
     TruffleLogger logger = context.getLogger(this.getClass());
     return getCacheRoots(context)
         .flatMap(
             roots -> {
               try {
                 if (useGlobalCacheLocations) {
-                  if (saveCacheTo(roots.globalCacheRoot, entry, logger)) {
+                  if (saveCacheTo(context, roots.globalCacheRoot, entry, logger)) {
                     return Optional.of(roots.globalCacheRoot);
                   }
                 } else {
                   logger.log(
-                      logLevel, "Skipping use of global cache locations for " + stringRepr + ".");
+                      logLevel, "Skipping use of global cache locations for " + logName + ".");
                 }
 
-                if (saveCacheTo(roots.localCacheRoot, entry, logger)) {
+                if (saveCacheTo(context, roots.localCacheRoot, entry, logger)) {
                   return Optional.of(roots.localCacheRoot);
                 }
 
-                logger.log(logLevel, "Unable to write cache data for " + stringRepr + ".");
+                logger.log(logLevel, "Unable to write cache data for " + logName + ".");
                 return Optional.empty();
-              } catch (CacheException e) {
+              } catch (ClassNotFoundException e) {
                 logger.log(
-                    Level.SEVERE, "Failed to save cache for " + stringRepr + ": " + e.getMessage());
+                    Level.SEVERE, "Failed to save cache for " + logName + ": " + e.getMessage());
                 return Optional.empty();
               } catch (IOException ioe) {
-                logger.log(Level.SEVERE, "Failed to save cache for " + stringRepr + ".", ioe);
+                logger.log(Level.SEVERE, "Failed to save cache for " + logName + ".", ioe);
                 return Optional.empty();
               }
             });
@@ -87,22 +121,17 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return true, if successful, false otherwise
    * @throws IOException IOException encountered while writing data to files
    */
-  private boolean saveCacheTo(TruffleFile cacheRoot, T entry, TruffleLogger logger)
-      throws IOException, CacheException {
+  private boolean saveCacheTo(
+      EnsoContext context, TruffleFile cacheRoot, T entry, TruffleLogger logger)
+      throws IOException, ClassNotFoundException {
     if (ensureRoot(cacheRoot)) {
-      var byteStream = new ByteArrayOutputStream();
-      byte[] bytesToWrite;
-      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
-        stream.writeObject(extractObjectToSerialize(entry));
-        bytesToWrite = byteStream.toByteArray();
-      }
+      byte[] bytesToWrite = serialize(context, entry);
 
       String blobDigest = computeDigestFromBytes(bytesToWrite);
       String sourceDigest = computeDigest(entry, logger).get();
       if (sourceDigest == null) {
-        throw new CacheException("unable to compute digest");
+        throw new ClassNotFoundException("unable to compute digest");
       }
-      ;
       byte[] metadataBytes = metadata(sourceDigest, blobDigest, entry);
 
       TruffleFile cacheDataFile = getCacheDataPath(cacheRoot);
@@ -113,7 +142,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
         logger.log(
             logLevel,
             "Written cache data ["
-                + stringRepr
+                + logName
                 + "] to ["
                 + toMaskedPath(parentPath).applyMasking()
                 + "].");
@@ -155,8 +184,8 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param context the language context in which loading is taking place
    * @return the cached data if possible, and [[None]] if it could not load a valid cache
    */
-  public Optional<T> load(EnsoContext context) {
-    synchronized (this) {
+  public final Optional<T> load(EnsoContext context) {
+    synchronized (LOCK) {
       TruffleLogger logger = context.getLogger(this.getClass());
       return getCacheRoots(context)
           .flatMap(
@@ -169,7 +198,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                     logger.log(
                         logLevel,
                         "Using cache for ["
-                            + stringRepr
+                            + logName
                             + " at location ["
                             + toMaskedPath(roots.globalCacheRoot()).applyMasking()
                             + "].");
@@ -181,18 +210,18 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                     logger.log(
                         logLevel,
                         "Using cache for ["
-                            + stringRepr
+                            + logName
                             + " at location ["
                             + toMaskedPath(roots.localCacheRoot()).applyMasking()
                             + "].");
                     return loadedCache;
                   }
 
-                  logger.log(logLevel, "Unable to load a cache [" + stringRepr + "]");
+                  logger.log(logLevel, "Unable to load a cache [" + logName + "]");
                 } catch (IOException e) {
                   logger.log(
                       Level.WARNING,
-                      "Unable to load a cache [" + stringRepr + "]: " + e.getMessage(),
+                      "Unable to load a cache [" + logName + "]: " + e.getMessage(),
                       e);
                 }
                 return Optional.empty();
@@ -218,48 +247,37 @@ public abstract class Cache<T, M extends Cache.Metadata> {
     if (optMeta.isPresent()) {
       M meta = optMeta.get();
       boolean sourceDigestValid =
-          !needsSourceDigestVerification()
+          !needsSourceDigestVerification
               || computeDigestFromSource(context, logger)
                   .map(digest -> digest.equals(meta.sourceHash()))
                   .orElseGet(() -> false);
       byte[] blobBytes = dataPath.readAllBytes();
       boolean blobDigestValid =
-          !needsDataDigestVerification()
-              || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
+          !needsDataDigestVerification || computeDigestFromBytes(blobBytes).equals(meta.blobHash());
 
       if (sourceDigestValid && blobDigestValid) {
-        Object readObject;
-        try (ObjectInputStream stream =
-            new ObjectInputStream(new ByteArrayInputStream(blobBytes))) {
-          readObject = stream.readObject();
-        } catch (IOException ioe) {
-          logger.log(
-              logLevel,
-              "`" + stringRepr + "` failed to load (caused by: " + ioe.getMessage() + ").");
-          invalidateCache(cacheRoot, logger);
-          return Optional.empty();
-        } catch (ClassNotFoundException e) {
-          logger.log(Level.WARNING, stringRepr + " appears to be corrupted", e);
-          return Optional.empty();
-        }
-
         T cachedObject = null;
         try {
-          cachedObject = validateReadObject(readObject, meta, logger);
+          cachedObject = deserialize(context, blobBytes, meta, logger);
           if (cachedObject != null) {
             return Optional.of(cachedObject);
           } else {
-            logger.log(logLevel, "`" + stringRepr + "` was corrupt on disk.");
+            logger.log(logLevel, "`" + logName + "` was corrupt on disk.");
             invalidateCache(cacheRoot, logger);
             return Optional.empty();
           }
-        } catch (CacheException e) {
-          logger.log(logLevel, "`" + stringRepr + "` was corrupt on disk: " + e.getMessage());
+        } catch (IOException ioe) {
+          logger.log(
+              logLevel, "`" + logName + "` failed to load (caused by: " + ioe.getMessage() + ").");
+          invalidateCache(cacheRoot, logger);
+          return Optional.empty();
+        } catch (ClassNotFoundException e) {
+          logger.log(Level.WARNING, logName + " appears to be corrupted", e);
           return Optional.empty();
         }
       } else {
         logger.log(
-            logLevel, "One or more digests did not match for the cache for [" + stringRepr + "].");
+            logLevel, "One or more digests did not match for the cache for [" + logName + "].");
         invalidateCache(cacheRoot, logger);
         return Optional.empty();
       }
@@ -276,28 +294,19 @@ public abstract class Cache<T, M extends Cache.Metadata> {
   }
 
   /**
-   * Flag indicating if the de-serialization process should compute the hash of the sources from
-   * which the cache was created and compare it with the stored metadata entry.
-   */
-  protected abstract boolean needsSourceDigestVerification();
-
-  /**
-   * Flag indicating if the de-serialization process should compute the hash of the stored cache and
-   * compare it with the stored metadata entry.
-   */
-  protected abstract boolean needsDataDigestVerification();
-
-  /**
-   * Validates the deserialized data by returning the expected cached entry, or [[null]].
+   * Deserializes and validates data by returning the expected cached entry, or {@code null}.
    *
-   * @param obj deserialized object
+   * @param context the context
+   * @param data data to deserialize object from
    * @param meta metadata corresponding to the `obj`
    * @param logger Truffle's logger
-   * @return an `obj` transformed to a cached entry
-   * @throws CacheException exception thrown on unexpected deserialized data
+   * @return {@code data} transformed to a cached entry or {@code null}
+   * @throws ClassNotFoundException exception thrown on unexpected deserialized data
+   * @throws IOException when I/O goes wrong
+   * @throws ClassNotFoundException on problems with deserializaiton of Java classes
    */
-  protected abstract T validateReadObject(Object obj, M meta, TruffleLogger logger)
-      throws CacheException;
+  protected abstract T deserialize(EnsoContext context, byte[] data, M meta, TruffleLogger logger)
+      throws IOException, ClassNotFoundException, ClassNotFoundException;
 
   /**
    * Read metadata representation from the provided location
@@ -391,10 +400,16 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    */
   protected abstract Optional<Roots> getCacheRoots(EnsoContext context);
 
-  /** Returns the exact data to be serialized */
-  protected abstract Object extractObjectToSerialize(T entry);
-
-  protected String stringRepr;
+  /**
+   * Returns the exact data to be serialized. Override in subclasses to turn an {@code entry} into
+   * an array of bytes to persist
+   *
+   * @param context context we operate in
+   * @param entry entry to persist
+   * @return array of bytes
+   * @throws java.io.IOException if something goes wrong
+   */
+  protected abstract byte[] serialize(EnsoContext context, T entry) throws IOException;
 
   protected String entryName;
 
@@ -471,8 +486,8 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    *
    * @param context the langage context in which loading is taking place
    */
-  public void invalidate(EnsoContext context) {
-    synchronized (this) {
+  public final void invalidate(EnsoContext context) {
+    synchronized (LOCK) {
       TruffleLogger logger = context.getLogger(this.getClass());
       getCacheRoots(context)
           .ifPresent(
@@ -516,11 +531,5 @@ public abstract class Cache<T, M extends Cache.Metadata> {
     String sourceHash();
 
     String blobHash();
-  }
-
-  public static class CacheException extends Exception {
-    public CacheException(String errorMessage) {
-      super(errorMessage);
-    }
   }
 }

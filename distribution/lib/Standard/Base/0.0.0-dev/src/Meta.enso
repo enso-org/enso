@@ -14,9 +14,35 @@ import project.Nothing.Nothing
 import project.Polyglot.Java
 
 import project.Error.Error as Base_Error
-import project.Polyglot.Polyglot as Base_Polyglot
+import project.Polyglot as Base_Polyglot
 
 from project.Data.Boolean import Boolean, True, False
+
+type Type
+    ## UNSTABLE
+       ADVANCED
+
+       Type meta-representation.
+
+       Arguments:
+       - value: The value of the type in the meta representation.
+    Value value
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a vector of `Meta.Constructor` for this type
+    constructors : Vector
+    constructors self =
+        Vector.from_polyglot_array (get_type_constructors self.value Meta.Constructor.Value)
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a vector of `Meta.Constructor` for this type
+    methods : Vector
+    methods self =
+        Vector.from_polyglot_array (get_type_methods self.value)
 
 type Atom
     ## UNSTABLE
@@ -211,6 +237,25 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
 
 ## PRIVATE
 
+   Get the constructors for the provided type.
+
+   Arguments:
+   - typ: The type to obtain the constructors for.
+   - factory: function to use to wrap constructors in
+get_type_constructors : Atom -> (Any -> Any) -> Array
+get_type_constructors typ factory = @Builtin_Method "Meta.get_type_constructors"
+
+## PRIVATE
+
+   Get the methods for the provided type.
+
+   Arguments:
+   - typ: The type to obtain the methods for.
+get_type_methods : Atom -> Array
+get_type_methods typ = @Builtin_Method "Meta.get_type_methods"
+
+## PRIVATE
+
    Get a textual representation of the language from which an object comes.
 
    Arguments:
@@ -298,7 +343,8 @@ meta value = if is_atom value then Atom.Value value else
         if is_polyglot value then Polyglot.Value value else
             if is_unresolved_symbol value then Unresolved_Symbol.Value value else
                 if is_error value then Error.Value value.catch else
-                    Primitive.Value value
+                    if is_type value then Type.Value value.catch else
+                        Primitive.Value value
 
 ## UNSTABLE
    ADVANCED
@@ -391,6 +437,15 @@ is_atom value = @Builtin_Method "Meta.is_atom"
    - value: The value to check.
 is_error : Any -> Boolean
 is_error value = @Builtin_Method "Meta.is_error"
+
+## PRIVATE
+
+   Checks if the provided value is a type.
+
+   Arguments:
+   - value: The value to check.
+is_type : Any -> Boolean
+is_type value = @Builtin_Method "Meta.is_type"
 
 ## PRIVATE
 

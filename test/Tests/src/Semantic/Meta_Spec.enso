@@ -199,17 +199,46 @@ spec =
             e_tpe . should_equal_type IOException
             e_tpe . should_not_equal_type JException
 
-        Test.specify "fields of a Type" <|
+        Test.specify "constructors of Boolean" <|
             typ = Boolean
 
-            Meta.is_atom typ . should_be_true
+            Meta.is_atom typ . should_be_false
             meta_typ = Meta.meta typ
-            meta_typ . should_be_a Meta.Atom
-            fields = case meta_typ of
-                Meta.Atom.Value _ -> meta_typ.constructor.fields
-                _ -> Test.fail "Should be a Meta.Atom.Value: " + meta_typ.to_text
+            meta_typ . should_be_a Meta.Type
+            cons = case meta_typ of
+                Meta.Type.Value _ -> meta_typ.constructors
+                _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
 
-            fields . should_equal []
+            cons.length . should_equal 2
+            cons.at 0 . should_be_a Meta.Constructor
+            cons.at 1 . should_be_a Meta.Constructor
+            cons . map (x -> x.name) . sort . should_equal [ "False", "True" ]
+
+        Test.specify "constructors of MyType" <|
+            typ = My_Type
+
+            Meta.is_atom typ . should_be_false
+            meta_typ = Meta.meta typ
+            meta_typ . should_be_a Meta.Type
+            cons = case meta_typ of
+                Meta.Type.Value _ -> meta_typ.constructors
+                _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
+
+            cons.length . should_equal 1
+            cons.at 0 . should_be_a Meta.Constructor
+            cons . map (x -> x.name) . sort . should_equal [ "Value" ]
+
+        Test.specify "methods of MyType" <|
+            typ = My_Type
+
+            Meta.is_atom typ . should_be_false
+            meta_typ = Meta.meta typ
+            meta_typ . should_be_a Meta.Type
+            methods = case meta_typ of
+                _ : Meta.Type -> meta_typ.methods
+                _ -> Test.fail "Should be a Meta.Type: " + meta_typ.to_text
+
+            methods.sort . should_equal ['bar', 'baz', 'first_method', 'foo', 'my_method', 'other_method', 'second_method']
 
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Random.new
