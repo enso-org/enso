@@ -31,10 +31,18 @@ type Type
     ## UNSTABLE
        ADVANCED
 
-       Returns a vector of field names defined by a constructor.
+       Returns a vector of `Meta.Constructor` for this type
     constructors : Vector
-    constructors  self =
+    constructors self =
         Vector.from_polyglot_array (get_type_constructors self.value Meta.Constructor.Value)
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a vector of `Meta.Constructor` for this type
+    methods : Vector
+    methods self =
+        Vector.from_polyglot_array (get_type_methods self.value)
 
 type Atom
     ## UNSTABLE
@@ -232,9 +240,18 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
    Get the constructors for the provided type.
 
    Arguments:
-   - type: The type to obtain the constructors for.
+   - typ: The type to obtain the constructors for.
 get_type_constructors : Atom -> Array
-get_type_constructors type factory = @Builtin_Method "Meta.get_type_constructors"
+get_type_constructors typ factory = @Builtin_Method "Meta.get_type_constructors"
+
+## PRIVATE
+
+   Get the methods for the provided type.
+
+   Arguments:
+   - typ: The type to obtain the methods for.
+get_type_methods : Atom -> Array
+get_type_methods typ = @Builtin_Method "Meta.get_type_methods"
 
 ## PRIVATE
 
