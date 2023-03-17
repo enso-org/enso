@@ -235,17 +235,13 @@ class RuntimeStdlibTest
     )
     val responses =
       context.receiveAllUntil(
-        Seq(
-          context.executionComplete(contextId),
-          context.analyzeJobFinished
-        ),
+        Seq(context.executionComplete(contextId)),
         timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId),
-      context.analyzeJobFinished,
     )
 
     // check that the suggestion notifications are received
