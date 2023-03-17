@@ -100,7 +100,7 @@ type No_Fallback_Column
 ## PRIVATE
 
    Generates JSON that describes points data.
-Table.point_data : Table -> Vector
+Table.point_data : Vector
 Table.point_data self =
     get_point_data field = field.lookup_in self . rename field.name . catch Any (_->Nothing)
     is_not_nothing x = case x of
@@ -116,7 +116,7 @@ Table.point_data self =
 ## PRIVATE
 
    Generates JSON that describes plot axes.
-Table.axes : Table -> JS_Object
+Table.axes : JS_Object
 Table.axes self =
     describe_axis field =
         col_name = field.lookup_in self . name
@@ -131,7 +131,7 @@ Table.axes self =
     if axes_obj.length > 0 then axes_obj else Nothing
 
 ## PRIVATE
-Vector.point_data : Vector -> Vector
+Vector.point_data : Vector
 Vector.point_data self  =
     self.map_with_index i-> elem-> JS_Object.from_pairs [[Point_Data.X.name, i], [Point_Data.Y.name, elem]]
 

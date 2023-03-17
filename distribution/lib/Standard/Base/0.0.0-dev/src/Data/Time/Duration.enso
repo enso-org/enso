@@ -48,7 +48,7 @@ between_builtin start_inclusive end_exclusive timezone_aware = @Builtin_Method "
    - nanoseconds: nanoseconds
 
    Recommended to use `Duration.new` instead which provides defaults.
-new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
+new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
 new_builtin hours minutes seconds milliseconds nanoseconds = @Builtin_Method "Duration.new_builtin"
 
 ## PRIVATE
@@ -97,7 +97,7 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_duration = Duration.new hours=2
-    new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
+    new : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
     new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
         new_builtin hours minutes seconds milliseconds nanoseconds
 

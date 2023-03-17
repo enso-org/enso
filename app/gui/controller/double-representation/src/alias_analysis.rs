@@ -9,6 +9,7 @@ use crate::definition::ScopeKind;
 use ast::crumbs::Crumb;
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
+use ast::opr::match_named_argument;
 use std::borrow::Borrow;
 
 
@@ -288,6 +289,18 @@ impl AliasAnalyzer {
             } else if self.try_recording_identifier(OccurrenceKind::Used, ast) {
                 // Plain identifier: we just added as the condition side-effect.
                 // No need to do anything more.
+            } else if let Some(prefix_chain) = ast::prefix::Chain::from_ast(ast) {
+                self.process_located_ast(&prefix_chain.located_func());
+                for argument in prefix_chain.enumerate_args() {
+                    // Ignore the assignment used for named arguments. Descend directly into the
+                    // argument value.
+                    if let Some(named) = match_named_argument(argument.item) {
+                        let rhs = argument.descendant(InfixCrumb::RightOperand, named.rarg);
+                        self.process_located_ast(&rhs)
+                    } else {
+                        self.process_located_ast(&argument)
+                    }
+                }
             } else {
                 self.process_subtrees(ast);
             }

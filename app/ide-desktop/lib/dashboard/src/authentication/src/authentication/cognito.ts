@@ -2,7 +2,33 @@
  *
  * All of the functions used for authentication are provided by the AWS Amplify library, but we
  * provide a thin wrapper around them to make them easier to use. Mainly, we perform some error
- * handling and conditional logic to vary behaviour between desktop & cloud. */
+ * handling and conditional logic to vary behavior between desktop & cloud.
+ *
+ * # Error Handling
+ *
+ * The AWS Amplify library throws errors when authentication fails. We catch these errors and
+ * convert them to typed responses. This allows us to exhaustively handle errors by providing
+ * information on the types of errors returned, in function return types.
+ *
+ * Not all errors are caught and handled. Any errors not relevant to business logic or control flow
+ * are allowed to propagate up.
+ *
+ * Errors are grouped by the AWS Amplify function that throws the error (e.g., `signUp`). This is
+ * because the Amplify library reuses some error codes for multiple kinds of errors. For example,
+ * the `UsernameExistsException` error code is used for both the `signUp` and `confirmSignUp`
+ * functions. This would be fine if the same error code didn't meet different conditions for each
+ *
+ * Each error must provide a way to disambiguate from other errors. Typically, our error definitions
+ * include an `internalCode` field, which is the code that the Amplify library uses to identify the
+ * error.
+ *
+ * Some errors also include an `internalMessage` field, which is the message that the Amplify
+ * library associates with the error. This field is used to distinguish between errors that have the
+ * same `internalCode`.
+ *
+ * Amplify reuses some codes for multiple kinds of errors. In the case of ambiguous errors, the
+ * `kind` field provides a unique string that can be used to brand the error in place of the
+ * `internalCode`, when rethrowing the error. */
 import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
@@ -66,8 +92,8 @@ function isAmplifyError(error: unknown): error is AmplifyError {
     }
 }
 
-/** Converts the `unknown` error into an {@link AmplifyError} and returns it,
- * or re-throws it if conversion is not possible.
+/** Converts the `unknown` error into an {@link AmplifyError} and returns it, or re-throws it if
+ * conversion is not possible.
  * @throws If the error is not an amplify error. */
 function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
     if (isAmplifyError(error)) {

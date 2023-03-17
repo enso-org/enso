@@ -239,7 +239,7 @@ Column.is_numeric self =
 ## PRIVATE
    Returns the data requested to render a lazy view of the default visualisation. Decides
    whether to return a simplified version of the lazy data format.
-make_lazy_visualisation_data : Text -> Vector Integer -> Vector Integer -> Text
+make_lazy_visualisation_data : Text -> Vector Integer -> Vector Integer -> Integer -> Text
 make_lazy_visualisation_data text text_window_position text_window_size chunk_size =
     min_length_for_laziness = chunk_size * (text_window_size.first) * (text_window_size.second)
     if text.length < min_length_for_laziness then text else
@@ -248,7 +248,7 @@ make_lazy_visualisation_data text text_window_position text_window_size chunk_si
 ## UNSTABLE
    ADVANCED
    Returns the data requested to render a lazy view of the default visualisation.
-Any.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Text
+Any.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Integer -> Text
 Any.to_lazy_visualization_data self text_window_position text_window_size chunk_size =
     ## Workaround so that the JS String is converted to a Text
        https://www.pivotaltracker.com/story/show/184061302

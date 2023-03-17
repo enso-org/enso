@@ -1122,9 +1122,10 @@ class SuggestionsHandlerSpec
         testContentRoot.toFile
       )
     )
-    val router          = TestProbe("session-router")
-    val connector       = TestProbe("runtime-connector")
-    val sqlDatabase     = SqlDatabase.inmem("testdb")
+    val router      = TestProbe("session-router")
+    val connector   = TestProbe("runtime-connector")
+    val sqlDatabase = SqlDatabase.inmem("testdb")
+    sqlDatabase.open()
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
     val handler = newInitializedSuggestionsHandler(
