@@ -4,8 +4,9 @@ import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Regex.Match_2.Match_2
 import project.Data.Text.Regex.Pattern_2.Match_Iterator_Value
 import project.Data.Text.Regex.Pattern_2.Pattern_2
-import project.Data.Text.Regex_2.No_Such_Group
 import project.Data.Text.Regex_2
+import project.Data.Text.Regex_2.No_Such_Group
+import project.Data.Text.Regex_2.Too_Many_Groups
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -37,7 +38,7 @@ type Replacer
        Arguments
        - replacement_string: a string, possibly containing group references,
          that will be used to provide a replacement in a regex match.
-    new : Text -> Pattern_2 -> Replacer
+    new : Text -> Pattern_2 -> Replacer ! No_Such_Group ! Too_Many_Groups
     new replacement_string pattern =
         Replacer.Value (build_replacement_vector replacement_string pattern)
 
@@ -64,7 +65,7 @@ group_reference_regex = '\\$(([0-9]+)|(\\$)|(&)|(<([^>]+)>))'
 
    Parse the replacement string into an alternating series of literal
    strings and group reference numbers.
-build_replacement_vector : Text -> Pattern_2 -> Vector Replacement
+build_replacement_vector : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group ! Too_Many_Groups
 build_replacement_vector replacement_string pattern =
     replacement_pattern = Regex_2.compile group_reference_regex
     it = replacement_pattern.iterator replacement_string
@@ -73,13 +74,15 @@ build_replacement_vector replacement_string pattern =
     go it = case it.next of
         Match_Iterator_Value.Next filler match next_it ->
             replacement = parse_group_number pattern match
-            builder.append (Replacement.Literal filler.text)
-            builder.append replacement
-            go next_it
+            if replacement.is_error then Error.throw replacement else
+                builder.append (Replacement.Literal filler.text)
+                builder.append replacement
+                go next_it
         Match_Iterator_Value.Last filler ->
             builder.append (Replacement.Literal filler.text)
-    go it
-    builder.to_vector
+    result = go it
+    if result.is_error then Error.throw result else
+        builder.to_vector
 
 ## PRIVATE
 
@@ -93,11 +96,13 @@ build_replacement_vector replacement_string pattern =
    Returns a Replacement: a group number, or, in the case of `$$`, a literal.
 
    See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group
+parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group ! Too_Many_Groups
 parse_group_number pattern match =
     case match.text 2 of
         # E.g. `$1`
-        text : Text -> Replacement.Substitution (pattern.lookup_group (Integer.parse text))
+        text : Text ->
+            n = Integer.parse text
+            if n < 100 then Replacement.Substitution (pattern.lookup_group n) else Error.throw (Too_Many_Groups.Error n)
         Nothing -> case match.text 3 of
             # `$$`
             _ : Text -> Replacement.Literal "$"

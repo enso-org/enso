@@ -114,22 +114,22 @@ type Pattern_2
     replace : Text -> Text -> Boolean -> Text
     replace self input replacement only_first=False =
         replacer = Replacer.new replacement self
+        if replacer.is_error then Error.throw replacer else
+            string_builder = StringBuilder.new
+            it = Match_Iterator.new self input
+            go next = case next of
+                Match_Iterator_Value.Next filler match next_it ->
+                    string_builder.append filler.text
+                    string_builder.append (replacer.replace match)
 
-        string_builder = StringBuilder.new
-        it = Match_Iterator.new self input
-        go next = case next of
-            Match_Iterator_Value.Next filler match next_it ->
-                string_builder.append filler.text
-                string_builder.append (replacer.replace match)
-
-                # If we're only replacing the first, do an early exit
-                case only_first of
-                    True -> go next_it.early_exit
-                    False -> go next_it.next
-            Match_Iterator_Value.Last filler ->
-                string_builder.append filler.text
-        go it.next
-        string_builder.toString
+                    # If we're only replacing the first, do an early exit
+                    case only_first of
+                        True -> go next_it.early_exit
+                        False -> go next_it.next
+                Match_Iterator_Value.Last filler ->
+                    string_builder.append filler.text
+            go it.next
+            string_builder.toString
 
     ## PRIVATE
 

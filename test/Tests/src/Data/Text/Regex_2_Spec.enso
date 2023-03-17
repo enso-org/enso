@@ -5,22 +5,12 @@ import Standard.Base.Data.Text.Regex.Pattern_2.Pattern_2
 import Standard.Base.Data.Text.Regex_2
 import Standard.Base.Data.Text.Regex_2.No_Such_Group
 import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
+import Standard.Base.Data.Text.Regex_2.Too_Many_Groups
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec =
-    Test.group "gmt" <|
-        Test.specify "asdf" <|
-            Regex_2.compile "a([a-z])" . replace "abac ad aae a af" "A$1$1" . should_equal "AbbAcc Add Aaae a Aff"
-            Regex_2.compile "a(?<foo>[a-z])" . replace "abac ad aae a af" "A$<foo>$<foo>" . should_equal "AbbAcc Add Aaae a Aff"
-
-            Regex_2.compile "a([a-z])([a-z])" . replace "abac" "Q$2$1"
-            Regex_2.compile "a(?<one>[a-z])(?<two>[a-z])" . replace "abac" "Q$<two>$<one>"
-
-            Regex_2.compile "a([a-z])" . replace only_first=True "abac ad aae a af" "A$1$1" . should_equal "Abbac ad aae a af"
-            Regex_2.compile "a(?<foo>[a-z])" . replace only_first=True "abac ad aae a af" "A$<foo>$<foo>" . should_equal "Abbac ad aae a af"
-
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex_2.compile "(?<dots>..)" case_insensitive=True
@@ -228,6 +218,12 @@ spec =
 
             pattern.replace "foo bar, baz" "[$<capture>]" . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[$<capture>]" only_first=True . should_equal "[foo] bar, baz"
+
+        Test.specify "should disallow numbered group references over 99" <|
+            ## Note: this would also throw No_Such_Group but it checks for
+               Too_Many_Groups first
+            pattern = Regex_2.compile "."
+            pattern.replace "abc" "$100" . should_fail_with Too_Many_Groups
 
     Test.group "Match.text" <|
         pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
