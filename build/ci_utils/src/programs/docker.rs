@@ -9,8 +9,7 @@ use std::process::Stdio;
 
 /// Get the docker image identifier from the `docker build` command output.
 ///
-/// It is not that trivial, as the format of the output is not exactly stable. Please see the
-/// unit tests at the end of the module for examples of the output.
+/// This assumes format compatible with `--quiet` flag.
 #[context("Failed to get the image identifier from the output: {output:?}.")]
 fn get_image_id_from_build_output(output: &std::process::Output) -> Result<ImageId> {
     trace!("Output: {:?}", output);
