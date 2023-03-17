@@ -26,6 +26,7 @@ public abstract class GetTypeConstructorsNode extends Node {
   abstract Array execute(Object type, Object factory);
 
   @Specialization
+  @CompilerDirectives.TruffleBoundary
   Array allConstructors(Type type, AtomConstructor factory) {
     var rawConstructors = type.getConstructors().values();
     var rawResult = new Object[rawConstructors.size()];

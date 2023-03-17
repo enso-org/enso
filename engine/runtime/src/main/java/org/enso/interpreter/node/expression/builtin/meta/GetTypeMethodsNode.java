@@ -24,6 +24,7 @@ public abstract class GetTypeMethodsNode extends Node {
   abstract Array execute(Object type);
 
   @Specialization
+  @CompilerDirectives.TruffleBoundary
   Array allMethods(Type type) {
     var methodNames = type.getDefinitionScope().getMethods().get(type).keySet();
     return new Array(methodNames.toArray());
