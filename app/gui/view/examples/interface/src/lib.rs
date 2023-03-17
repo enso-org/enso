@@ -35,6 +35,7 @@ use ide_view::project;
 use ide_view::root;
 use ide_view::status_bar;
 use parser::Parser;
+use span_tree::TagValue;
 
 
 
@@ -408,9 +409,21 @@ pub fn expression_mock_trim() -> Expression {
         name: Some("where".to_owned()),
         tp: Some("Location".to_owned()),
         tag_values: vec![
-            "Location.Start".to_owned(),
-            "Location.End".to_owned(),
-            "Location.Both".to_owned(),
+            TagValue {
+                required_import: None,
+                expression:      "Location.Start".into(),
+                label:           Some("Start".into()),
+            },
+            TagValue {
+                required_import: None,
+                expression:      "Location.End".into(),
+                label:           Some("End".into()),
+            },
+            TagValue {
+                required_import: None,
+                expression:      "Location.Both".into(),
+                label:           Some("Both".into()),
+            },
         ],
         ..default()
     };
