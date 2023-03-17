@@ -1,5 +1,3 @@
-// This lint doesn't like headings and "etc.""
-/* eslint-disable jsdoc/require-description-complete-sentence */
 /** @file Definition of the Electron-specific parts of the authentication flows of the IDE.
  *
  * # Overview of Authentication/Authorization
@@ -73,7 +71,6 @@
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
-/* eslint-enable jsdoc/require-description-complete-sentence */
 
 import * as electron from 'electron'
 import opener from 'opener'

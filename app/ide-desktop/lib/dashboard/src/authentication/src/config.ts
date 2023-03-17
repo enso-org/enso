@@ -16,14 +16,14 @@ const CLOUD_REDIRECTS = {
      * The redirect URL must be known ahead of time because it is registered with the OAuth provider
      * when it is created. In the native app, the port is unpredictable, but this is not a problem
      * because the native app does not use port-based redirects, but deep links. */
-    development: 'http://localhost:8081' as auth.OAuthRedirect,
-    production: 'https://cloud.enso.org' as auth.OAuthRedirect,
+    development: utils.brand<auth.OAuthRedirect>('http://localhost:8081'),
+    production: utils.brand<auth.OAuthRedirect>('https://cloud.enso.org'),
 }
 
 /** All possible API URLs, sorted by environment. */
 const API_URLS = {
-    pbuchu: 'https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com' as ApiUrl,
-    production: 'https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com' as ApiUrl,
+    pbuchu: utils.brand<ApiUrl>('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
+    production: utils.brand<ApiUrl>('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
 }
 
 /** All possible configuration options, sorted by environment. */
@@ -31,11 +31,11 @@ const CONFIGS = {
     pbuchu: {
         cloudRedirect: CLOUD_REDIRECTS.development,
         apiUrl: API_URLS.pbuchu,
-    } as Config,
+    } satisfies Config,
     production: {
         cloudRedirect: CLOUD_REDIRECTS.production,
         apiUrl: API_URLS.production,
-    } as Config,
+    } satisfies Config,
 }
 /** Export the configuration that is currently in use. */
 export const ACTIVE_CONFIG: Config = CONFIGS[ENVIRONMENT]
