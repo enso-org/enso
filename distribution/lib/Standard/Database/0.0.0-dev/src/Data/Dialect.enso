@@ -54,6 +54,7 @@ type Dialect
        settings are supported by the given database backend.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
+        _ = [internal_column, sort_direction, text_ordering]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
@@ -61,12 +62,14 @@ type Dialect
        proper query.
     prepare_join : Connection -> Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
     prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
+        _ = [connection, join_kind, new_table_name, left_subquery, right_subquery, on_expressions, where_expressions, columns_to_select]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Prepares a distinct operation.
     prepare_distinct : Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
+        _ = [table, key_columns, case_sensitivity, problem_builder]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
@@ -74,6 +77,7 @@ type Dialect
        like a SQL query for the given dialect or is rather a table name.
     is_probably_a_query : Text -> Boolean
     is_probably_a_query self text =
+        _ = [text]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
