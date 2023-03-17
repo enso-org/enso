@@ -17,12 +17,14 @@ use enso_prelude::*;
 
 use crate::display::world;
 use crate::display::SymbolId;
+
 use enso_types::unit2::Duration;
 use enso_web::Performance;
 use enso_web::TimeProvider;
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use wasm_bindgen::JsCast;
+
 
 
 // =============
@@ -183,7 +185,6 @@ macro_rules! gen_stats {
         impl<T: TimeProvider> StatsWithTimeProvider<T> { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
-                // FIXME: clo
                 self.rc.borrow().stats_data.$field.clone()
             }
 
@@ -199,7 +200,6 @@ macro_rules! gen_stats {
                 self.[<set _ $field>](value);
             }
 
-            // FIXME: saturating_add is proper solution, but even without it it should not crash, but it does. To be investigated.
             emit_if_integer!($field_type,
                 /// Increments field's value.
                 pub fn [<inc _ $field>](&self) {

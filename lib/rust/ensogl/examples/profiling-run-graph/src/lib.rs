@@ -179,7 +179,6 @@ fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_gr
     profile
         .metadata()
         .filter_map(|metadata: &enso_profiler_data::Timestamped<Metadata>| match metadata.data {
-            // Metadata::RenderStats(_) => None,
             Metadata::RpcEvent(_) if !SHOW_RPC_EVENT_MARKS => None,
             Metadata::BackendMessage(_) if !SHOW_BACKEND_MESSAGE_MARKS => None,
             _ => {

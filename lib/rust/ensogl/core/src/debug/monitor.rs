@@ -7,8 +7,10 @@ use crate::debug::stats::StatsData;
 use crate::system::web;
 use crate::system::web::dom::Shape;
 use crate::system::web::JsValue;
+
 use num_traits::cast::AsPrimitive;
 use std::f64;
+
 
 
 // =================
@@ -318,7 +320,6 @@ impl MainArea {
         let plot = web::document.create_canvas_or_panic();
         plot.set_style_or_warn("display", "block");
         root.append_child(&plot).unwrap();
-
 
         let plot_context = plot.get_context("2d").unwrap().unwrap();
         let plot_context: web::CanvasRenderingContext2d = plot_context.dyn_into().unwrap();
@@ -722,6 +723,8 @@ impl Renderer {
         }
     }
 
+    /// Move the whole canvas image to the left, so it looks like an animation of plots being
+    /// shifted left.
     fn shift_plot_area_left(&mut self, dom: &Dom) {
         let width = self.width;
         let height = self.height;
