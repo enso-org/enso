@@ -54,7 +54,7 @@ pub struct PixelReadPass<T: JsTypedArrayItem> {
     data:          Option<PixelReadPassData<T>>,
     sync:          Option<WebGlSync>,
     position:      Uniform<Vector2<i32>>,
-    threshold:     usize,
+    threshold:     Rc<Cell<usize>>,
     to_next_read:  usize,
     #[derivative(Debug = "ignore")]
     callback:      Option<Rc<dyn Fn(Vec<T>)>>,
@@ -70,7 +70,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         let position = position.clone_ref();
         let callback = default();
         let sync_callback = default();
-        let threshold = 0;
+        let threshold = default();
         let to_next_read = 0;
         Self { data, sync, position, threshold, to_next_read, callback, sync_callback }
     }
@@ -91,11 +91,11 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         self.sync_callback = Some(Rc::new(f));
     }
 
-    /// Sets a threshold of how often the pass should be run. Threshold of 0 means that it will be
-    /// run every time. Threshold of N means that it will be only run every N-th call to the `run`
-    /// function.
-    pub fn set_threshold(&mut self, threshold: usize) {
-        self.threshold = threshold;
+    /// Returns a reference that can be used to set the threshold of how often the pass should be
+    /// run. Threshold of 0 means that it will be run every time. Threshold of N means that it will
+    /// be only run every N-th call to the `run` function.
+    pub fn get_threshold(&mut self) -> Rc<Cell<usize>> {
+        self.threshold.clone()
     }
 
     fn init_if_fresh(&mut self, context: &Context, variables: &UniformScope) {
@@ -139,6 +139,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         }
     }
 
+    #[profile(Detail)]
     fn run_not_synced(&mut self, context: &Context) {
         let data = self.data.as_ref().unwrap();
         let position = self.position.get();
@@ -160,6 +161,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         context.flush();
     }
 
+    #[profile(Detail)]
     fn check_and_handle_sync(&mut self, context: &Context, sync: &WebGlSync) {
         let data = self.data.as_ref().unwrap();
         let status = context.get_sync_parameter(sync, *Context::SYNC_STATUS);
@@ -184,12 +186,11 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
 }
 
 impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
-    #[profile(Task)]
     fn run(&mut self, instance: &pass::Instance, update_status: UpdateStatus) {
         if self.to_next_read > 0 {
             self.to_next_read -= 1;
         } else {
-            self.to_next_read = self.threshold;
+            self.to_next_read = self.threshold.get();
             self.init_if_fresh(&instance.context, &instance.variables);
             if let Some(sync) = self.sync.clone() {
                 self.check_and_handle_sync(&instance.context, &sync);
