@@ -19,12 +19,10 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
-<<<<<<< HEAD
 import opener from 'opener'
 import { DEEP_LINK_PROTOCOL } from '../shared'
-=======
 import * as process from 'process'
->>>>>>> develop
+
 const logger = content.logger
 
 // ===========
