@@ -1,0 +1,37 @@
+## Holds a value that is computed on first access.
+type Lazy
+    ## PRIVATE
+    Lazy cached_ref builder
+
+    ## PRIVATE
+    Eager cached_value
+
+    ## Creates a new lazy value.
+    new : Any -> Lazy
+    new ~lazy_computation =
+        builder _ = lazy_computation
+        cached_ref = Ref.new Lazy_Not_Computed_Mark
+        Lazy.Value cached_ref builder
+
+    ## Creates a pre-computed lazy value.
+       This can be useful if a value needs to admit the Lazy type API, but is
+       known beforehand.
+    new_eager value = Lazy.Eager value
+
+    ## Returns the stored value.
+
+       The value will be computed on first access and cached.
+    get : Any
+    get self = case self of
+        Lazy.Lazy cached_ref builder -> case cached_ref.get of
+            Lazy_Not_Computed_Mark ->
+                value = self.builder Nothing
+                self.cached_ref.put value
+                value
+            cached_value -> cached_value
+        Lazy.Eager value -> value
+
+## PRIVATE
+   This is a special value that should never be returned from a lazy computation
+   as it will prevent the lazy value from being cached.
+type Lazy_Not_Computed_Mark
