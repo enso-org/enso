@@ -892,10 +892,10 @@ public class EnsoCompilerTest {
 
   @Test
   public void testAutoScope() throws Exception {
-    equivalenceTest("""
+    parseTest("""
     fn that_meta =
         c_2 = that_meta.constructor ...
-        """, "");
+        """);
   }
 
   @Test
