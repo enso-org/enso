@@ -1,10 +1,6 @@
 /** @file Renders the list of templates that can be used to create a project from. */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as React from 'react'
-/** We are using temporary background images. */
-import BgUrl1 from '../../../assets/TempTemplateBg1.jpg'
-import BgUrl2 from '../../../assets/TempTemplateBg2.jpg'
-const genBackgroundImage = () => `url(${Math.random() > 0.5 ? BgUrl1 : BgUrl2})`
 
 // =================
 // === Templates ===
@@ -115,8 +111,8 @@ const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onTemplate
                     }}
                 >
                     <div
-                        style={{ backgroundImage: genBackgroundImage() }}
-                        className="flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left bg-cover"
+                        // style={{ backgroundImage }}
+                        className="flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left bg-cover bg-gray-500"
                     >
                         <div className="bg-black bg-opacity-30 px-4 pt-2 pb-4">
                             <div className="text-sm font-bold pb-2">{template.title}</div>
