@@ -6,6 +6,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.editions.LibraryName;
@@ -24,9 +29,8 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     private final LibraryName libraryName;
 
     public ImportExportCache(LibraryName libraryName) {
+        super(Level.FINEST, libraryName.toString(), true, false);
         this.libraryName = libraryName;
-        this.logLevel = Level.FINEST;
-        this.stringRepr = libraryName.toString();
         this.entryName = libraryName.name();
         this.dataSuffix = bindingsCacheDataExtension;
         this.metadataSuffix = bindingsCacheMetadataExtension;
@@ -42,22 +46,14 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     }
 
     @Override
-    protected boolean needsSourceDigestVerification() {
-        return true;
-    }
-
-    @Override
-    protected boolean needsDataDigestVerification() {
-        return false;
-    }
-
-    @Override
-    protected CachedBindings validateReadObject(Object obj, Metadata meta, TruffleLogger logger) throws CacheException {
-        if (obj instanceof MapToBindings bindings) {
-            return new CachedBindings(libraryName, bindings, Optional.empty());
+    protected CachedBindings deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
+      try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
+        if (stream.readObject() instanceof MapToBindings bindings) {
+          return new CachedBindings(libraryName, bindings, Optional.empty());
         } else {
-            throw new CacheException("Expected ImportExportCache.FileToBindings, got " + obj.getClass());
+          throw new ClassNotFoundException("Expected ImportExportCache.FileToBindings, got " + data.getClass());
         }
+      }
     }
 
     @Override
@@ -108,8 +104,12 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     }
 
     @Override
-    protected Object extractObjectToSerialize(CachedBindings entry) {
-        return entry.bindings();
+    protected byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
+      var byteStream = new ByteArrayOutputStream();
+      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
+        stream.writeObject(entry.bindings());
+      }
+      return byteStream.toByteArray();
     }
 
     static class MapToBindings implements Serializable {
