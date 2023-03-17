@@ -221,6 +221,21 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
         QualifiedNameRef { project: self.project.clone_ref(), path: &self.path.as_ref()[range] }
     }
 
+    /// Split the qualified into two parts: the qualified name of a nth parent module and the
+    /// remaining access chain of requested length. Returns `None` if the requested access chain
+    /// length is too long to split off.
+    pub fn split_chain(&self, access_chain_length: usize) -> Option<(QualifiedNameRef, String)> {
+        let path = self.path.as_ref();
+        if access_chain_length >= path.len() {
+            return None;
+        }
+
+        let (path, chain) = path.split_at(path.len() - access_chain_length);
+        let parent_name = QualifiedNameRef { project: self.project.clone_ref(), path };
+        let chain = chain.iter().map(|s| s.as_str()).join(ACCESS);
+        Some((parent_name, chain))
+    }
+
     /// Return the [`QualifiedNameRef`] referring to the this name's parent.
     ///
     /// ```rust

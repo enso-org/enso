@@ -181,7 +181,7 @@ Any.should_start_with self that frames_to_skip=0 = case self of
          from Standard.Test import Test
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
-Error.should_equal : Any -> Test_Result
+Error.should_equal : Any -> Integer -> Test_Result
 Error.should_equal self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` is within `epsilon` from `that`.
@@ -230,7 +230,7 @@ Number.should_equal self that epsilon=0 frames_to_skip=0 =
      Assert that a given action did not result in errors or warnings.
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
-Any.should_succeed : Boolean -> Integer -> Any
+Any.should_succeed : Integer -> Any
 Any.should_succeed self frames_to_skip=0 =
     _ = frames_to_skip
     self
@@ -247,7 +247,7 @@ Any.should_succeed self frames_to_skip=0 =
      Assert that a given action did not result in errors or warnings.
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
-Error.should_succeed : Boolean -> Integer -> Any
+Error.should_succeed : Integer -> Any
 Error.should_succeed self frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
@@ -402,7 +402,7 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
          from Standard.Test import Test
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
-Error.should_contain_the_same_elements_as : Any -> Test_Result
+Error.should_contain_the_same_elements_as : Any -> Integer -> Test_Result
 Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value contains an element.

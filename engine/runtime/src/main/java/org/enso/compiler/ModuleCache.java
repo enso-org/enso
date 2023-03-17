@@ -6,6 +6,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -13,9 +15,12 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
@@ -23,12 +28,11 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     private final Module module;
 
     public ModuleCache(Module module) {
-        this.module = module;
-        this.logLevel = Level.FINEST;
-        this.stringRepr = module.getName().toString();
-        this.entryName = module.getName().item();
-        this.dataSuffix = irCacheDataExtension;
-        this.metadataSuffix = irCacheMetadataExtension;
+      super(Level.FINEST, module.getName().toString(), true, false);
+      this.module = module;
+      this.entryName = module.getName().item();
+      this.dataSuffix = irCacheDataExtension;
+      this.metadataSuffix = irCacheMetadataExtension;
     }
 
     @Override
@@ -41,25 +45,17 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     }
 
     @Override
-    protected boolean needsSourceDigestVerification() {
-        return true;
-    }
-
-    @Override
-    protected boolean needsDataDigestVerification() {
-        return false;
-    }
-
-    @Override
-    protected CachedModule validateReadObject(Object obj, Metadata meta, TruffleLogger logger) throws CacheException {
-        if (obj instanceof IR.Module ir) {
-            try {
-                return new CachedModule(ir, Module.CompilationStage.valueOf(meta.compilationStage()), module.getSource());
-            } catch (IOException ioe) {
-                throw new CacheException(ioe.getMessage());
-            }
-        } else {
-            throw new CacheException("Expected IR.Module, got " + obj.getClass());
+    protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
+        try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
+          if (stream.readObject() instanceof IR.Module ir) {
+              try {
+                  return new CachedModule(ir, Module.CompilationStage.valueOf(meta.compilationStage()), module.getSource());
+              } catch (IOException ioe) {
+                  throw new ClassNotFoundException(ioe.getMessage());
+              }
+          } else {
+              throw new ClassNotFoundException("Expected IR.Module, got " + data.getClass());
+          }
         }
     }
 
@@ -145,8 +141,38 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     }
 
     @Override
-    protected Object extractObjectToSerialize(CachedModule entry) {
-        return entry.moduleIR();
+    protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
+      var byteStream = new ByteArrayOutputStream();
+      boolean noUUIDs = false;
+      for (var p : context.getPackageRepository().getLoadedPackagesJava()) {
+        if ("Standard".equals(p.namespace())) {
+          for (var s : p.listSourcesJava()) {
+            if (s.file().getPath().equals(entry.source().getPath())) {
+              noUUIDs = true;
+              break;
+            }
+          }
+        }
+      }
+      try (var stream = new ObjectOutputStream(byteStream) {
+        void filterUUIDs() {
+          enableReplaceObject(true);
+        }
+
+        @Override
+        protected Object replaceObject(Object obj) throws IOException {
+          if (obj instanceof UUID) {
+            return null;
+          }
+          return obj;
+        }
+      }) {
+        if (noUUIDs) {
+          stream.filterUUIDs();
+        }
+        stream.writeObject(entry.moduleIR());
+      }
+      return byteStream.toByteArray();
     }
 
     // CachedModule is not a record **on purpose**. There appears to be a Frgaal bug leading to invalid compilation error.

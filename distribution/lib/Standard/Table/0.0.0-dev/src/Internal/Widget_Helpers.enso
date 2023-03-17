@@ -8,7 +8,7 @@ from project.Data.Table import Table
 
 ## PRIVATE
    Make a column name selector.
-make_column_name_selector : Table -> Single_Choice
+make_column_name_selector : Table -> Display -> Single_Choice
 make_column_name_selector table display=Display.Always =
     Single_Choice display=display values=(table.column_names.map n->(Option n n.pretty))
 
