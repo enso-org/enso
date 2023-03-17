@@ -231,12 +231,12 @@ type Match_Iterator
         case regex_result.isMatch of
             False ->
                 filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
-                filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
+                filler_span = (Utf_16_Span.Value filler_range self.input)
                 Match_Iterator_Value.Last filler_span
             True ->
                 match_start = regex_result.getStart 0
                 filler_range = Range.new self.cursor match_start
-                filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
+                filler_span = (Utf_16_Span.Value filler_range self.input)
                 match = Match_2.Value self.pattern regex_result self.input
                 next_cursor = match.utf16_end 0
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
@@ -246,7 +246,7 @@ type Match_Iterator
     early_exit : Match_Iterator_Value
     early_exit self =
         filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
-        filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
+        filler_span = Utf_16_Span.Value filler_range self.input
         Match_Iterator_Value.Last filler_span
 
     to_text_debug : Vector Text

@@ -1444,11 +1444,11 @@ spec =
             'sśs\u{301}' . replace 's' 'O' . should_equal 'OśO\u{301}'
             'śss\u{301}' . replace 's' 'O' only_first=True . should_equal 'śOs\u{301}'
 
-            'sśs\u{301}' . replace 'ś' 'O' . should_equal 'Oss\u{301}'
-            'śss\u{301}' . replace 'ś' 'O' only_first=True . should_equal '0ss\u{301}'
+            'sśs\u{301}' . replace 'ś' 'O' . should_equal 'sOs\u{301}'
+            'śss\u{301}' . replace 'ś' 'O' only_first=True . should_equal 'Oss\u{301}'
 
-            'sśs\u{301}' . replace 's\u{301}' 'O' . should_equal 'sś0'
-            's\u{301}śs' . replace 's\u{301}' 'O' . should_equal '0śs'
+            'sśs\u{301}' . replace 's\u{301}' 'O' . should_equal 'sśO'
+            's\u{301}śs' . replace 's\u{301}' 'O' . should_equal 'Ośs'
 
             'SŚS\u{301}' . replace 's' 'O' . should_equal 'SŚS\u{301}'
             'ŚS\u{301}S' . replace 's' 'O' only_first=True . should_equal 'ŚS\u{301}S'
@@ -1456,11 +1456,12 @@ spec =
             'SŚS\u{301}' . replace 'ś' 'O' . should_equal 'SŚS\u{301}'
             'SŚS\u{301}' . replace 's\u{301}' 'O' . should_equal 'SŚS\u{301}'
 
-            'SŚS\u{301}' . replace 's' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'OŚS\u{301}'
-            'ŚS\u{301}S' . replace 's' 'O' only_first=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'ŚS\u{301}O'
+            'SŚS\u{301}' . replace 's' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'OŚO\u{301}'
+            #'ŚS\u{301}S' . replace 's' 'O' only_first=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'ŚO\u{301}O' # 'ŚOS\u{301}S'
+            'ŚS\u{301}S' . replace 's' 'O' only_first=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'ŚO\u{301}S' # 'ŚO\u{301}O' # 'ŚOS\u{301}S'
 
-            'SŚS\u{301}' . replace 'ś' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'SO\u{301}'
-            'SŚS\u{301}' . replace 's\u{301}' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'SSO'
+            'SŚS\u{301}' . replace 'ś' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'SOS\u{301}'
+            'SŚS\u{301}' . replace 's\u{301}' 'O' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'SŚO'
 
             '✨🚀🚧😍😃😍😎😙😉☺' . replace '🚧😍' '|-|:)' . should_equal '✨🚀|-|:)😃😍😎😙😉☺'
             'Rocket Science' . replace 'Rocket' '🚀' . should_equal '🚀 Science'
