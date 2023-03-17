@@ -368,7 +368,7 @@ pub struct InsertedSuggestion {
     /// spaces.
     pub inserted_text: text::Range<text::Byte>,
     /// An import that needs to be added when applying the suggestion.
-    pub import:        RequiredImport,
+    pub import:        Option<RequiredImport>,
 }
 
 
@@ -430,7 +430,7 @@ impl InsertContext<'_> {
     /// A list of name segments to replace the user input, and also a required import for the
     /// final expression. The returned list of segments contains both the segments already entered
     /// by the user and the segments that need to be added.
-    fn segments_to_replace(&self) -> Option<(Vec<ImString>, RequiredImport)> {
+    fn segments_to_replace(&self) -> Option<(Vec<ImString>, Option<RequiredImport>)> {
         if let Some(existing_segments) = self.qualified_name_segments() {
             if let action::Suggestion::FromDatabase(entry) = self.suggestion {
                 let name = entry.qualified_name();
@@ -445,13 +445,13 @@ impl InsertContext<'_> {
                 // means we don't need any import, as the entry is already in scope.
                 let minimal_count_of_segments = 2;
                 let import = if import_segments.len() <= minimal_count_of_segments {
-                    RequiredImport::None
+                    None
                 } else if let Ok(import) = QualifiedName::from_all_segments(import_segments.clone())
                 {
-                    RequiredImport::Name(import)
+                    Some(RequiredImport::Name(import))
                 } else {
                     error!("Invalid import formed in `segments_to_replace`: {import_segments:?}.");
-                    RequiredImport::None
+                    None
                 };
                 Some((name_segments, import))
             } else {
@@ -462,19 +462,18 @@ impl InsertContext<'_> {
         }
     }
 
-    fn code_to_insert(&self) -> (Cow<str>, RequiredImport) {
+    fn code_to_insert(&self) -> (Cow<str>, Option<RequiredImport>) {
         match self.suggestion {
             action::Suggestion::FromDatabase(entry) => {
                 if let Some((segments, import)) = self.segments_to_replace() {
                     (Cow::from(segments.iter().join(ast::opr::predefined::ACCESS)), import)
                 } else {
                     let code = entry.code_to_insert(true);
-                    let import = RequiredImport::Entry(entry.clone_ref());
+                    let import = Some(RequiredImport::Entry(entry.clone_ref()));
                     (code, import)
                 }
             }
-            action::Suggestion::Hardcoded(snippet) =>
-                (Cow::from(snippet.code.as_str()), RequiredImport::None),
+            action::Suggestion::Hardcoded(snippet) => (Cow::from(snippet.code.as_str()), None),
         }
     }
 }

@@ -6,7 +6,6 @@ use double_representation::module::MethodId;
 use ordered_float::OrderedFloat;
 
 
-
 // ==============
 // === Export ===
 // ==============

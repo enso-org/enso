@@ -159,11 +159,8 @@ impl Default for Actions {
 // ======================
 
 /// An import that is needed for the picked suggestion.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub enum RequiredImport {
-    /// No import needed.
-    #[default]
-    None,
     /// A specific entry needs to be imported.
     Entry(Rc<enso_suggestion_database::Entry>),
     /// An entry with a specific name needs to be imported.
@@ -262,7 +259,7 @@ impl Mode {
 pub struct PickedSuggestion {
     pub entry:         action::Suggestion,
     pub inserted_code: String,
-    pub import:        RequiredImport,
+    pub import:        Option<RequiredImport>,
 }
 
 impl PickedSuggestion {
@@ -652,8 +649,8 @@ impl Searcher {
         {
             // This block serves to limit the borrow of `self.data`.
             let data = self.data.borrow();
-            let requirements = data.picked_suggestions.iter().map(|ps| ps.import.clone());
-            let all_requirements = requirements.chain(iter::once(preview_change.import));
+            let requirements = data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
+            let all_requirements = requirements.chain(preview_change.import.iter().cloned());
             self.add_required_imports(all_requirements, false)?;
         }
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
@@ -745,7 +742,7 @@ impl Searcher {
         // intermediate state where imports would already be in use but not yet available.
         {
             let data = self.data.borrow();
-            let requirements = data.picked_suggestions.iter().map(|ps| ps.import.clone());
+            let requirements = data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
             self.add_required_imports(requirements, true)?;
         }
 
@@ -840,17 +837,15 @@ impl Searcher {
         permanent: bool,
     ) -> FallibleResult {
         let imports = import_requirements
-            .flat_map(|requirement| match requirement {
+            .filter_map(|requirement| match requirement {
                 RequiredImport::Entry(entry) => Some(
                     entry.required_imports(&self.database, self.module_qualified_name().as_ref()),
                 ),
                 RequiredImport::Name(name) => {
                     let (_id, entry) = self.database.lookup_by_qualified_name(&name)?;
                     let defined_in = self.module_qualified_name();
-                    let imports = entry.required_imports(&self.database, defined_in.as_ref());
-                    Some(imports)
+                    Some(entry.required_imports(&self.database, defined_in.as_ref()))
                 }
-                RequiredImport::None => None,
             })
             .flatten();
         let mut module = self.module();
@@ -1938,7 +1933,7 @@ pub mod test {
             let picked_method = PickedSuggestion {
                 entry:         action::Suggestion::FromDatabase(entry.clone_ref()),
                 inserted_code: default(),
-                import:        RequiredImport::Entry(entry.clone_ref()),
+                import:        Some(RequiredImport::Entry(entry.clone_ref())),
             };
             with(searcher.data.borrow_mut(), |mut data| {
                 data.picked_suggestions.push(picked_method);
@@ -1989,7 +1984,7 @@ pub mod test {
         let picked_method = PickedSuggestion {
             entry:         action::Suggestion::FromDatabase(test_method_3.clone_ref()),
             inserted_code: String::from("Test.test_method"),
-            import:        RequiredImport::Entry(test_method_3.clone_ref()),
+            import:        Some(RequiredImport::Entry(test_method_3.clone_ref())),
         };
         with(searcher.data.borrow_mut(), |mut data| {
             data.picked_suggestions.push(picked_method);
