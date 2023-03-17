@@ -285,25 +285,7 @@
     "name":"org.enso.pkg.QualifiedName"
   },
   {
-    "name":"org.enso.syntax.text.AST$ASTOf"
-  },
-  {
     "name":"org.enso.syntax.text.Location"
-  },
-  {
-    "name":"org.enso.syntax.text.Shape$Cons"
-  },
-  {
-    "name":"org.enso.syntax.text.Shape$Opr"
-  },
-  {
-    "name":"org.enso.syntax.text.Shape$Unexpected"
-  },
-  {
-    "name":"org.enso.syntax.text.Shape$Var"
-  },
-  {
-    "name":"org.enso.syntax.text.ast.opr.Assoc$Right$"
   },
   {
     "name":"scala.None$"

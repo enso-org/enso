@@ -85,7 +85,11 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       compile(module)
         .map { _ =>
           invalidateCaches(module, changeset)
-          ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
+          if (module.isIndexed) {
+            ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
+          } else {
+            AnalyzeModuleJob.analyzeModule(module, changeset)
+          }
           runCompilationDiagnostics(module)
         }
         .getOrElse(CompilationStatus.Failure)

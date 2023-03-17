@@ -12,7 +12,11 @@ import org.enso.editions.{EditionResolver, Editions}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.TestClock
-import org.enso.languageserver.boot.{ProfilingConfig, TimingsConfig}
+import org.enso.languageserver.boot.{
+  ProfilingConfig,
+  StartupConfig,
+  TimingsConfig
+}
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   RepoInitialization,
@@ -95,7 +99,8 @@ class BaseServerTest
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig(testContentRoot.file),
-      ProfilingConfig()
+      ProfilingConfig(),
+      StartupConfig()
     )
 
   override def protocol: Protocol = JsonRpc.protocol
@@ -135,6 +140,7 @@ class BaseServerTest
     new RepoInitialization(
       config.directories,
       system.eventStream,
+      sqlDatabase,
       suggestionsRepo,
       versionsRepo
     )

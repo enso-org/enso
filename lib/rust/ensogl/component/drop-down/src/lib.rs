@@ -153,7 +153,6 @@ impl<T: DropdownValue> Frp<T> {
         let output = &api.output;
 
         let open_anim = Animation::new(network);
-        let after_animations = ensogl_core::animation::on_after_animations();
 
         frp::extend! { network
             // === Static entries support ===
@@ -184,7 +183,7 @@ impl<T: DropdownValue> Frp<T> {
 
             // === Entry update and dynamic entries support ===
             requested_index <- model.grid.model_for_entry_needed._0();
-            requested_batch <- requested_index.batch(&after_animations);
+            requested_batch <- requested_index.batch();
             ready_and_request_ranges <- requested_batch.map(
                 f!((batch) model.get_ready_and_request_ranges(batch))
             );
@@ -252,8 +251,10 @@ impl<T: DropdownValue> Frp<T> {
 
             // === Initialization ===
             // request initial batch of entries after creating the dropdown
-            once_after_animations <- after_animations.constant(true).on_change().constant(());
-            model.grid.request_model_for_visible_entries <+ once_after_animations;
+            init <- source_();
+            run_once <- init.debounce();
+            init.emit(());
+            model.grid.request_model_for_visible_entries <+ run_once;
         }
     }
 }

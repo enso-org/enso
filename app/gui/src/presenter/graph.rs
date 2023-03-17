@@ -191,6 +191,19 @@ impl Model {
         );
     }
 
+    fn add_import_if_missing(&self, import_path: &str) {
+        self.log_action(
+            || {
+                let qualified_name =
+                    double_representation::name::QualifiedName::from_text(import_path);
+                let result = qualified_name
+                    .and_then(|name| self.controller.graph().add_import_if_missing(name));
+                Some(result)
+            },
+            "add import if missing",
+        );
+    }
+
     /// Update the widget target expression of a node. When this widget can be requested right now,
     /// return the request structure.
     fn update_widget_request_data(
@@ -700,6 +713,7 @@ impl Graph {
             eval view.node_expression_span_set(((node_id, crumbs, expression)) model.node_expression_span_set(*node_id, crumbs, expression.clone_ref()));
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
+            eval view.request_import((import_path) model.add_import_if_missing(import_path));
 
 
             // === Dropping Files ===
@@ -730,24 +744,16 @@ impl Graph {
             widget_refresh <- reset_node_types.map(
                 f!((view_id) model.refresh_all_widgets_of_node(*view_id))
             );
-        }
-        frp::extend! { network
             widgets_to_update <- any(...);
             widgets_to_update <+ widget_refresh._1().iter();
-        }
-        frp::extend! { network
             widgets_to_update <+ update_expression.filter_map(
                 f!((id) model.refresh_expression_widgets(*id))
             );
             widgets_to_update <+ view.widgets_requested.map(|(_, call, target)| (*call, *target));
-        }
-        frp::extend! { network
             widget_request <- widgets_to_update.filter_map(
                 f!(((call, target)) model.update_widget_request_data(*call, *target))
             );
             widget.request_widgets <+ widget_request;
-        }
-        frp::extend! { network
             widget.retain_node_expressions <+ widget_refresh._0().unwrap();
             view.update_node_widgets <+ widget.widget_data.filter_map(
                 f!(((id, updates)) model.map_widget_update_data(*id, updates.clone()))

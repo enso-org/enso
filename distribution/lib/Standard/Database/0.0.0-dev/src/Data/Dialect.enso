@@ -33,7 +33,9 @@ type Dialect
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
-    generate_sql self = Unimplemented.throw "This is an interface only."
+    generate_sql self query =
+        _ = [query]
+        Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Deduces the result type for an aggregation operation.
@@ -41,7 +43,9 @@ type Dialect
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self = Unimplemented.throw "This is an interface only."
+    resolve_target_sql_type self aggregate =
+        _ = [aggregate]
+        Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -49,26 +53,27 @@ type Dialect
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
-    prepare_order_descriptor self = Unimplemented.throw "This is an interface only."
+    prepare_order_descriptor self internal_column sort_direction text_ordering =
+        Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Prepares a join operation, returning a new table instance encapsulating a
        proper query.
     prepare_join : Connection -> Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
-    prepare_join self =
+    prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Prepares a distinct operation.
     prepare_distinct : Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table
-    prepare_distinct self =
+    prepare_distinct self table key_columns case_sensitivity problem_builder =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        A heuristic used by `Connection.query` to determine if a given text looks
        like a SQL query for the given dialect or is rather a table name.
     is_probably_a_query : Text -> Boolean
-    is_probably_a_query self =
+    is_probably_a_query self text =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
