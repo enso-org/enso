@@ -55,6 +55,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { workspace = true }
 sha3 = { version = "0.8.2" }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
+ordered-float = "3.4.0"
 # wasm-bindgen version 0.2.79 is causing issues with clippy.
 # See for more information. https://github.com/rustwasm/wasm-bindgen/issues/2774
 # Should be removed once 0.2.80 is available.

@@ -130,16 +130,18 @@ pub struct GroupEntryId {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Group {
     /// The group identifier.
-    pub id:              GroupId,
+    pub id:               GroupId,
     /// Height of group in rows, not counting the header as it will be visible in Component List
     /// Panel. If the entries are not filtered, should be equal to [`original_height`]. Otherwise
     /// the filtered out entries will not be counted.
-    pub height:          usize,
+    pub height:           usize,
     /// Height in rows the groups would have if no filtering is applied. Used to layout groups
     /// in columns.
-    pub original_height: usize,
+    pub original_height:  usize,
     /// The group color defined by library's author.
-    pub color:           Option<color::Rgb>,
+    pub color:            Option<color::Rgb>,
+    /// Match score of the entry with the best filtering pattern match.
+    pub best_match_score: f32,
 }
 
 

@@ -11,7 +11,7 @@ use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
 use enso_doc_parser::DocSection;
-
+use ordered_float::OrderedFloat;
 
 
 // ==============
@@ -29,6 +29,12 @@ pub use group::Group;
 // =================
 // === Constants ===
 // =================
+
+/// A "matching" score assigned to the entries which does not match the current pattern entirely.
+///
+/// **Note**: If some entries matches, but their score are equal or below this value, they will be
+/// filtered out as well!
+pub const NOT_MATCHING_SCORE: f32 = 0.0;
 
 /// A factor to multiply a component's alias match score by. It is intended to reduce the importance
 /// of alias matches compared to label matches.
@@ -204,7 +210,7 @@ impl Component {
                 None
             }
         });
-        let alias_match = alias_matches.max_by(|(lhs, _), (rhs, _)| lhs.compare_scores(rhs));
+        let alias_match = alias_matches.max_by_key(|(m, _)| OrderedFloat(m.score));
         let alias_match_info = alias_match.map(|(subsequence, alias)| {
             let subsequence = fuzzly::Subsequence {
                 score: subsequence.score * ALIAS_MATCH_ATTENUATION_FACTOR,
@@ -247,6 +253,13 @@ impl Component {
             _ => None,
         };
         aliases.into_iter().flatten()
+    }
+
+    pub(crate) fn score(&self) -> f32 {
+        match &*self.match_info.borrow() {
+            MatchInfo::DoesNotMatch => NOT_MATCHING_SCORE,
+            MatchInfo::Matches { subsequence, .. } => subsequence.score,
+        }
     }
 }
 
@@ -379,10 +392,10 @@ impl List {
             if pattern_not_empty { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
         let favorites_order = if pattern_not_empty { Order::ByMatch } else { Order::Initial };
         for group in self.all_groups_not_in_favorites() {
-            group.update_sorting(submodules_order);
+            group.update_match_info_and_sorting(submodules_order);
         }
         for group in self.favorites.iter() {
-            group.update_sorting(favorites_order);
+            group.update_match_info_and_sorting(favorites_order);
         }
         self.filtered.set(pattern_not_empty);
     }
@@ -407,6 +420,12 @@ impl List {
     /// Get the number of namespace sections.
     pub fn top_module_section_count(&self) -> usize {
         self.top_module_sections.len()
+    }
+
+    /// Check if the list is currently filtered (last [`update_filtering`](Self::update_filtering)
+    /// call was with non-empty pattern).
+    pub fn is_filtered(&self) -> bool {
+        self.filtered.get()
     }
 }
 
