@@ -8,7 +8,7 @@
 import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
-import * as process from 'node:process'
+import process from 'node:process'
 
 import * as electron from 'electron'
 
