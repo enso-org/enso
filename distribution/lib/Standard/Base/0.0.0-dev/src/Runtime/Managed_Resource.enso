@@ -63,5 +63,5 @@ type Managed_Resource
        Takes the value held by the managed resource and unregisters the
        finalization step for this resource, effectively removing it from the
        managed resources system.
-    take : Managed_Resource -> Any
+    take : Any
     take self = @Builtin_Method "Managed_Resource.take"
