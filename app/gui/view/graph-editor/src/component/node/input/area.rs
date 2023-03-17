@@ -532,7 +532,7 @@ impl Model {
                     if port.is_argument() {
                         let range = port.span();
                         let code = &expression.code[range];
-                        debug!("Setting current value while range is {range:?}, code is \"{code}\" \
+                        warn!("Setting current value while range is {range:?}, code is \"{code}\" \
                             and full expression is \"{}\".", expression.code);
                         widget.set_current_value(Some(code.into()));
                     } else {
@@ -608,7 +608,8 @@ impl Model {
         };
 
         let tag_values = port.kind.tag_values().unwrap_or_default().to_vec();
-        widget.set_node_data(widget::NodeData { tag_values, port_size });
+        let tp = port.kind.tp().cloned();
+        widget.set_node_data(widget::NodeData { tag_values, port_size, tp });
 
         Some((widget_bind, widget))
     }
