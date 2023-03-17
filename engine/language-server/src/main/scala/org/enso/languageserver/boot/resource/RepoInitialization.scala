@@ -19,12 +19,14 @@ import scala.util.{Failure, Success}
   *
   * @param directoriesConfig configuration of language server directories
   * @param eventStream akka events stream
+  * @param sqlDatabase the sql database
   * @param suggestionsRepo the suggestions repo
   * @param versionsRepo the versions repo
   */
 class RepoInitialization(
   directoriesConfig: ProjectDirectoriesConfig,
   eventStream: EventStream,
+  sqlDatabase: SqlDatabase,
   suggestionsRepo: SqlSuggestionsRepo,
   versionsRepo: SqlVersionsRepo
 )(implicit ec: ExecutionContext)
@@ -34,9 +36,24 @@ class RepoInitialization(
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
     for {
+      _ <- sqlDatabaseInit
       _ <- suggestionsRepoInit
       _ <- versionsRepoInit
     } yield InitializationComponent.Initialized
+
+  private def sqlDatabaseInit: Future[Unit] = {
+    val initAction = Future {
+      logger.info("Initializing sql database [{}]...", sqlDatabase)
+      sqlDatabase.open()
+      logger.info("Initialized sql database [{}].", sqlDatabase)
+    }
+    initAction.onComplete {
+      case Success(()) =>
+      case Failure(ex) =>
+        logger.error("Failed to initialize sql database [{}].", sqlDatabase, ex)
+    }
+    initAction
+  }
 
   private def suggestionsRepoInit: Future[Unit] = {
     val initAction =
