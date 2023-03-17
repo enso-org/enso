@@ -199,6 +199,18 @@ spec =
             e_tpe . should_equal_type IOException
             e_tpe . should_not_equal_type JException
 
+        Test.specify "fields of a Type" <|
+            typ = Boolean
+
+            Meta.is_atom typ . should_be_true
+            meta_typ = Meta.meta typ
+            meta_typ . should_be_a Meta.Atom
+            fields = case meta_typ of
+                Meta.Atom.Value _ -> meta_typ.constructor.fields
+                _ -> Test.fail "Should be a Meta.Atom.Value: " + meta_typ.to_text
+
+            fields . should_equal []
+
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Random.new
             java_meta . should_be_a Meta.Polyglot

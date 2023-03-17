@@ -173,6 +173,7 @@ pub mod fan;
 pub mod future;
 pub mod io;
 pub mod macros;
+pub mod microtasks;
 pub mod network;
 pub mod node;
 pub mod nodes;

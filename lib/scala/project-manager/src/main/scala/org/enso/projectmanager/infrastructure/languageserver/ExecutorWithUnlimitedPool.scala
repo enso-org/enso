@@ -73,8 +73,6 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     val versionManager = RuntimeVersionManagerFactory(distributionConfiguration)
       .makeRuntimeVersionManager(progressTracker)
 
-    versionManager.logAvailableComponentsForDebugging()
-
     val inheritedLogLevel =
       LoggingServiceManager.currentLogLevelForThisApplication()
     val options = LanguageServerOptions(
@@ -108,10 +106,14 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
         .flatMap(path =>
           Seq("--server-profiling-events-log-path", path.toString)
         )
+    val startupArgs =
+      if (descriptor.skipGraalVMUpdater) Seq("--skip-graalvm-updater")
+      else Seq()
     val additionalArguments =
       profilingPathArguments ++
       profilingTimeArguments ++
-      profilingEventsLogPathArguments
+      profilingEventsLogPathArguments ++
+      startupArgs
     val runSettings = runner
       .startLanguageServer(
         options             = options,

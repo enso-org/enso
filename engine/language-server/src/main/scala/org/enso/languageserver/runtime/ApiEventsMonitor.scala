@@ -42,7 +42,7 @@ final class ApiEventsMonitor(path: Path, clock: Clock) extends EventsMonitor {
       case _ =>
     }
 
-  def registerApiEvent(event: ApiEnvelope): Unit =
+  private def registerApiEvent(event: ApiEnvelope): Unit =
     event match {
       case Api.Request(requestId, payload) =>
         Files.write(

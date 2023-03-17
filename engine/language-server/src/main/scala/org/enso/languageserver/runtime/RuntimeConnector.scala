@@ -41,7 +41,7 @@ class RuntimeConnector(
     case _ => stash()
   }
 
-  def registerEvent: PartialFunction[Any, Any] = { case event =>
+  private def registerEvent: PartialFunction[Any, Any] = { case event =>
     eventsMonitor.registerEvent(event)
     event
   }
@@ -106,9 +106,9 @@ class RuntimeConnector(
           sender ! msg
         case None =>
           logger.warn(
-            s"No sender has been found associated with request id " +
-            s"[$correlationId], the response " +
-            s"[${payload.getClass.getCanonicalName}] will be dropped."
+            "No sender has been found associated with request id [{}], the response [{}] will be dropped.",
+            correlationId,
+            payload.getClass.getCanonicalName
           )
       }
       context.become(initialized(engine, senders - correlationId))

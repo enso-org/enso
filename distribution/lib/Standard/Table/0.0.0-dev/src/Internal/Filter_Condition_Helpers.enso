@@ -26,8 +26,8 @@ make_filter_column source_column filter_condition on_problems = case filter_cond
                 on_problems.escalate_warnings <|
                     source_column != value
     # Nothing
-    Is_Nothing -> source_column.is_missing
-    Not_Nothing -> source_column.is_missing.not
+    Is_Nothing -> source_column.is_nothing
+    Not_Nothing -> source_column.is_nothing.not
     # Boolean
     Is_True ->
         Value_Type.expect_boolean source_column.value_type <| source_column

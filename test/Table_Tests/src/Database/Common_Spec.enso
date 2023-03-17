@@ -112,10 +112,10 @@ spec prefix connection =
     Test.group prefix+"Missing Values" <|
         t4 = upload "T4" <|
             Table.new [["a", [0, 1, Nothing, 42, Nothing]], ["b", [True, Nothing, True, False, Nothing]], ["c", ["", "foo", "bar", Nothing, Nothing]]]
-        Test.specify "fill_missing should replace nulls" <|
-            t4.at 'a' . fill_missing 10 . to_vector . should_equal [0, 1, 10, 42, 10]
-            t4.at 'b' . fill_missing False . to_vector . should_equal [True, False, True, False, False]
-            t4.at 'c' . fill_missing "NA" . to_vector . should_equal ["", "foo", "bar", "NA", "NA"]
+        Test.specify "fill_nothing should replace nulls" <|
+            t4.at 'a' . fill_nothing 10 . to_vector . should_equal [0, 1, 10, 42, 10]
+            t4.at 'b' . fill_nothing False . to_vector . should_equal [True, False, True, False, False]
+            t4.at 'c' . fill_nothing "NA" . to_vector . should_equal ["", "foo", "bar", "NA", "NA"]
 
         Test.specify "should correctly be counted" <|
             t4.row_count . should_equal 5

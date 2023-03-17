@@ -269,8 +269,6 @@ impl Model {
         let icons = Icons::new();
         let shapes = compound::events::MouseEvents::default();
 
-        app.display.default_scene.layers.below_main.add(&hover_area);
-        app.display.default_scene.layers.below_main.add(&background);
         app.display.default_scene.layers.above_nodes.add(&icons);
 
         shapes.add_sub_shape(&hover_area);
