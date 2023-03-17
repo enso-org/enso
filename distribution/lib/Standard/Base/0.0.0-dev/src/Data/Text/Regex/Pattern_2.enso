@@ -103,14 +103,47 @@ type Pattern_2
        If this method performs no replacements it will return the `input` text
        unchanged.
 
-       > Example
-         Replace all instances of the pattern `"aa"` in the input with the text
-         `"REPLACED"`.
+       The replacement string can contain references to groups matched by the
+       regex. The following syntaxes are supported:
+           $0: the entire match string
+           $&: the entire match string
+           $nnn: group #nnn
+           $<foo>: Named group `foo`
 
-             example_match =
-                 pattern = Regex_2.compile "aa"
-                 input = "aabbaabbbbbaab"
-                 pattern.replace input "REPLACED"
+       > Example
+         Replace letters in the text "aaa".
+
+             'aaa'.replace 'aa' 'b' == 'ba'
+
+       > Example
+         Replace all occurrences of letters 'l' and 'o' with '#'.
+
+             "Hello World!".replace "[lo]" "#" == "He### W#r#d!"
+
+       > Example
+         Replace the first occurrence of letter 'l' with '#'.
+
+             "Hello World!".replace "l" "#" only_first=True == "He#lo World!"
+
+       > Example
+         Replace texts in quotes with parentheses.
+
+              '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher == '(abc) foo (bar) baz'
+
+       > Example
+         Replace a literal string with a replacement value.
+
+            pattern = Regex_2.compile "aa"
+            input = "aa ab aa ac ad aa aa ax"
+            match = pattern.replace input "xyz"
+            match . should_equal "xyz ab xyz ac ad xyz xyz ax"
+
+       > Example
+         Replace each word with the same word surrounded by `[]`.
+
+            pattern = Regex_2.compile "([a-z]+)"
+            pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
+
     replace : Text -> Text -> Boolean -> Text
     replace self input replacement only_first=False =
         replacer = Replacer.new replacement self

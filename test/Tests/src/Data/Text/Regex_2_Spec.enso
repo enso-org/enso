@@ -221,9 +221,19 @@ spec =
 
         Test.specify "should disallow numbered group references over 99" <|
             ## Note: this would also throw No_Such_Group but it checks for
-               Too_Many_Groups first
+               Too_Many_Groups first.
             pattern = Regex_2.compile "."
             pattern.replace "abc" "$100" . should_fail_with Too_Many_Groups
+
+         Text.specify "should correctly evaluate documentation examples" <|
+            pattern1 = Regex_2.compile 'aa'
+            pattern1.replace 'aaa' 'b' . should_equal 'ba'
+            pattern2 = Regex_2.compile '[lo]'
+            pattern2.replace 'Hello World!' '#' . should_equal 'He### W#r#d!'
+            pattern3 = Regex_2.compile 'l'
+            pattern3.replace 'Hello World!' '#' only_first=True . should_equal 'He#lo World!'
+            pattern4 = Regex_2.compile '"(.*?)"'
+            pattern4.replace '"abc" foo "bar" baz' '($1)' . should_equal '(abc) foo (bar) baz'
 
     Test.group "Match.text" <|
         pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
