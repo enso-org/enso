@@ -140,6 +140,7 @@ class BaseServerTest
     new RepoInitialization(
       config.directories,
       system.eventStream,
+      sqlDatabase,
       suggestionsRepo,
       versionsRepo
     )
