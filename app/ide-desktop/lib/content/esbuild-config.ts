@@ -128,8 +128,11 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
                 name: 'enso-generate-tailwind',
                 setup: build => {
                     build.onStart(() => {
-                        console.log(`Generating tailwind css from ${path.resolve(THIS_PATH, 'src', 'tailwind.css')} to ${path.join(outputPath, 'tailwind.css')}`)
-                        childProcess.execSync(`npx tailwindcss -i ${path.resolve(THIS_PATH, 'src', 'tailwind.css')} -o ${path.join(outputPath, 'tailwind.css')} -c ${path.resolve(THIS_PATH, 'tailwind.config.ts')} --minify`);
+                        const source = path.resolve(THIS_PATH, 'src', 'tailwind.css')
+                        const dest = path.join(outputPath, 'tailwind.css')
+                        const config = path.resolve(THIS_PATH, 'tailwind.config.ts')
+                        console.log(`Generating tailwind css from ${source} to ${dest}`)
+                        childProcess.spawnSync(`npx`, ['tailwindcss', '-i', source, '-o', dest, '-c', config, '--minify'])
                     })
                 }
             },
