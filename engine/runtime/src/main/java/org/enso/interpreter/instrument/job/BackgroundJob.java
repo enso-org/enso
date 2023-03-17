@@ -7,11 +7,17 @@ public abstract class BackgroundJob<A> extends Job<A> implements Comparable<Back
 
   private final int priority;
 
+  /**
+   * Create a background job with priority.
+   *
+   * @param priority the job priority. Lower number indicates higher priority.
+   */
   public BackgroundJob(int priority) {
     super(List$.MODULE$.empty(), false, false);
     this.priority = priority;
   }
 
+  /** @return the job priority. */
   public int getPriority() {
     return priority;
   }
