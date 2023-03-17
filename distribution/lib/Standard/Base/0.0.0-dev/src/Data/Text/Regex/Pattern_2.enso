@@ -241,6 +241,10 @@ type Pattern_2
     Performs the regex match, and iterates through the results. Yields both
     the matched parts of the string, and the 'filler' parts between them.
 
+    The 'filler' elements are `Utf_16_Span`s, not `Spans`. This is because
+    matches and replacement boundaries can fall in the middle of multi-
+    character graphemes, thereby splitting them apart.
+
     At each step, it yields a Match_Iterator_Value, whivch has either a filler
     and a match, or just the final filler. A Match_Iterator_Value.Last value is
     return at the end, and only at the end.

@@ -173,7 +173,7 @@ spec =
                 match.at 3 . should_equal "e"
                 match.at 4 . should_equal "f"
 
-    Test.group "The default regex engine's Pattern.replace" <|
+    Test.group "Pattern_2.replace" <|
         Test.specify "should be able to `replace` the first instance of the pattern in the input" <|
             pattern = Regex_2.compile "abc"
             input = "aa ab abc a bc abc"
@@ -218,6 +218,15 @@ spec =
 
             pattern.replace "foo bar, baz" "[$<capture>]" . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[$<capture>]" only_first=True . should_equal "[foo] bar, baz"
+
+            pattern.replace "foo bar, baz" "[$0]" . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[$0]" only_first=True . should_equal "[foo] bar, baz"
+            pattern.replace "foo bar, baz" "[$&]" . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[$&]" only_first=True . should_equal "[foo] bar, baz"
+
+        Test.specify "should handle unicode in capture group names" <|
+            pattern = Regex_2.compile "(?<건반>[a-z]+)"
+            pattern.replace "foo bar, baz" "[$<건반>]" . should_equal "[foo] [bar], [baz]"
 
         Test.specify "should disallow numbered group references over 99" <|
             ## Note: this would also throw No_Such_Group but it checks for
