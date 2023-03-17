@@ -299,7 +299,7 @@ impl<'s> ExpressionBuilder<'s> {
                             SectionTermination::Unwrap => lhs.map(|op| op.value),
                         };
                         let rhs = rhs_.map(syntax::Tree::from);
-                        let ast = syntax::tree::apply_operator(lhs, tokens, rhs, self.nospace);
+                        let ast = syntax::tree::apply_operator(lhs, tokens, rhs);
                         Operand::from(ast)
                     } else {
                         let rhs = rhs_.map(syntax::Tree::from);
@@ -307,9 +307,8 @@ impl<'s> ExpressionBuilder<'s> {
                         if tokens.len() != 1 || tokens[0].properties.can_form_section() {
                             elided += lhs.is_none() as u32 + rhs.is_none() as u32;
                         }
-                        let mut operand = Operand::from(lhs).map(|lhs| {
-                            syntax::tree::apply_operator(lhs, tokens, rhs, self.nospace)
-                        });
+                        let mut operand = Operand::from(lhs)
+                            .map(|lhs| syntax::tree::apply_operator(lhs, tokens, rhs));
                         operand.elided += elided;
                         operand
                     }
