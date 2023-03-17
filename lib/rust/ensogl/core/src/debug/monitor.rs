@@ -15,11 +15,16 @@ use std::f64;
 // === Constants ===
 // =================
 
+/// When dragging the plot selection (after stopping the performance monitor) this defines how fast
+/// the selection should follow the mouse cursor. For example, if set to `0.5`, every time the mouse
+/// moves by 2px, the selection will move by 1px.
 const SELECTION_MOVEMENT_SPEED: f64 = 0.5;
 const PADDING_LEFT: f64 = 8.0;
 const PADDING_TOP: f64 = 8.0;
 const FONTS: &str =
     "\"SF Pro Text\",\"SF Pro Icons\",\"Helvetica Neue\",\"Helvetica\",\"Arial\",sans-serif";
+
+
 
 // ==============
 // === Config ===

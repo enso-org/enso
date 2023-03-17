@@ -234,7 +234,6 @@ class ScatterPlot extends Visualization {
             .attr('width', boxWidth)
             .attr('height', boxHeight)
             .style('fill', 'none')
-            // .style('pointer-events', 'all')
             .call(zoom)
 
         let transformedScale = Object.assign({}, scaleAndAxis)

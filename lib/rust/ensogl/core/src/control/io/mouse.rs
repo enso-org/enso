@@ -63,16 +63,26 @@ macro_rules! define_bindings {
         }
 
         impl MouseManager {
-            /// Constructor.
+            /// Constructor. See docs of `new_separated` to learn more.
             pub fn new(dom:&web::dom::WithKnownShape<web::EventTarget>) -> Self {
                 Self::new_separated(dom, dom.deref(), dom.deref())
             }
 
-            /// Constructor which takes the exact element to set listener as a separate argument.
+            /// This is the constructor for mouse listeners which takes three arguments:
             ///
-            /// Sometimes we want to listen for mouse event for element without ResizeObserver.
-            /// Thus, some html element may be passed as a size provider, and another one where we
-            /// attach listeners (for example `body` and `window` respectively).
+            /// 1. A DOM object to set resize observer on. This object should cover the entire screen.
+            /// Since EnsoGL's scene origin is positioned in the left-bottom corner, the size of
+            /// the DOM object is used to translate mouse coordinates from HTML to the EnsoGL space.
+            ///
+            /// 2. A DOM object to set the 'mousedown', 'mousewheel', and 'mouseleave' listeners on.
+            /// In most cases, this should be the canvas used by EnsoGL. Alternatively, you can set
+            /// this argument to the window object if you want EnsoGL to capture all events, even if
+            /// it is placed behind another DOM element.
+            ///
+            /// 3. A DOM object to set the 'mouseup' and 'mousemove' listeners on. In most cases,
+            /// this should be the window object. It is common for the element drag action to be
+            /// initiated by a 'mousedown' event on one element and finished by a 'mouseup' event
+            /// on another element. Handling these events globally covers such situations.
             pub fn new_separated(
                 dom: &web::dom::WithKnownShape<web::EventTarget>,
                 $target: &web::EventTarget,

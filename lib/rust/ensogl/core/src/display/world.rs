@@ -269,14 +269,6 @@ impl Uniforms {
 }
 
 
-// =========================
-// === Metadata Profiler ===
-// =========================
-
-// FIXME
-// profiler::metadata_logger!("RenderStats", log_render_stats(StatsData));
-
-
 
 // =============
 // === World ===
@@ -475,8 +467,6 @@ impl WorldData {
         let garbage_collector = default();
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
-            // FIXME
-            // log_render_stats(*stats)
         }));
         let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));
