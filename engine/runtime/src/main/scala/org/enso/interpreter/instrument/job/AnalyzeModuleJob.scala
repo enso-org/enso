@@ -12,18 +12,12 @@ import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.ModuleExports
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.enso.text.buffer.Rope
 
-import java.util.UUID
 import java.util.logging.Level
 
 final class AnalyzeModuleJob(module: Module, changeset: Changeset[Rope])
-    extends Job[Unit](
-      List(AnalyzeModuleJob.backgroundContextId),
-      false,
-      false
-    ) {
+    extends BackgroundJob[Unit](AnalyzeModuleJob.Priority) {
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
@@ -39,7 +33,7 @@ object AnalyzeModuleJob {
   def apply(module: Module, changeset: Changeset[Rope]): AnalyzeModuleJob =
     new AnalyzeModuleJob(module, changeset)
 
-  val backgroundContextId: ContextId = UUID.randomUUID()
+  private val Priority = 10
 
   private val exportsBuilder = new ExportsBuilder
 
@@ -115,5 +109,4 @@ object AnalyzeModuleJob {
     ) {
       ctx.endpoint.sendToClient(Api.Response(payload))
     }
-
 }
