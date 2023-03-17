@@ -43,7 +43,7 @@ pub type Stats = StatsWithTimeProvider<Performance>;
 /// Contains all the gathered stats, and provides methods for modifying and retrieving their
 /// values.
 /// Uses [`T`] to access current time for calculating time-dependent stats (e.g. FPS).
-#[derive(Debug, CloneRef)]
+#[derive(Debug, Deref, CloneRef)]
 pub struct StatsWithTimeProvider<T> {
     rc: Rc<RefCell<FramedStatsData<T>>>,
 }
@@ -62,16 +62,17 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
         Self { rc }
     }
 
-    /// Starts tracking data for a new animation frame.
-    /// Also, calculates the [`fps`] stat.
-    /// Returns a snapshot of statistics data for the previous frame.
-    ///
-    /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
-    /// called, respectively, at the beginning and end of every frame. The very first time
-    /// [`begin_frame()`] is called, it returns `None`, because it does not have complete
-    /// statistics data for the preceding frame.
-    pub fn begin_frame(&self, time: Duration) -> Option<StatsData> {
-        self.rc.borrow_mut().begin_frame(time)
+    /// Calculate FPS for the last frame. This function should be called on the very beginning of
+    /// every frame. Please note, that it does not clean the per-frame statistics. You want to run
+    /// the [`reset_per_frame_statistics`] function before running rendering operations.
+    pub fn calculate_prev_frame_fps(&self, time: Duration) {
+        self.rc.borrow_mut().calculate_prev_frame_fps(time)
+    }
+
+    /// Clean the per-frame statistics, such as the per-frame number of draw calls. This function
+    /// should be called before any rendering calls were made.
+    pub fn reset_per_frame_statistics(&self) {
+        self.rc.borrow_mut().reset_per_frame_statistics()
     }
 
     /// Ends tracking data for the current animation frame.
@@ -95,10 +96,12 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
 // === FramedStatsData ===
 // =======================
 
+/// Internal representation of [`StatsWithTimeProvider`].
+#[allow(missing_docs)]
 #[derive(Debug)]
-struct FramedStatsData<T> {
+pub struct FramedStatsData<T> {
     time_provider:    T,
-    stats_data:       StatsData,
+    pub stats_data:   StatsData,
     frame_begin_time: Option<f64>,
 }
 
@@ -110,20 +113,14 @@ impl<T: TimeProvider> FramedStatsData<T> {
         Self { time_provider, stats_data, frame_begin_time }
     }
 
-    /// Starts tracking data for a new animation frame. The time is provided explicitly from the
-    /// JS `requestAnimationFrame` callback in order to be sure that we measure all the time,
-    /// including operations happening before calling this function.
-    fn begin_frame(&mut self, time: Duration) -> Option<StatsData> {
+    /// Calculate FPS for the last frame. This function should be called on the very beginning of
+    /// every frame. Please note, that it does not clean the per-frame statistics. You want to run
+    /// the [`reset_per_frame_statistics`] function before running rendering operations.
+    fn calculate_prev_frame_fps(&mut self, time: Duration) {
         let time = time.unchecked_raw() as f64;
-        // FIXME: clone
-        let mut previous_frame_stats = self.stats_data.clone();
-        self.reset_per_frame_statistics();
-        let previous_frame_begin_time = self.frame_begin_time.replace(time);
-        previous_frame_begin_time.map(|begin_time| {
-            let end_time = time;
-            previous_frame_stats.fps = 1000.0 / (end_time - begin_time);
-            previous_frame_stats
-        })
+        if let Some(previous_frame_begin_time) = self.frame_begin_time.replace(time) {
+            self.stats_data.fps = 1000.0 / (time - previous_frame_begin_time);
+        }
     }
 
     fn end_frame(&mut self) {
@@ -141,6 +138,8 @@ impl<T: TimeProvider> FramedStatsData<T> {
         }
     }
 
+    /// Clean the per-frame statistics, such as the per-frame number of draw calls. This function
+    /// should be called before any rendering calls were made.
     fn reset_per_frame_statistics(&mut self) {
         self.stats_data.draw_calls = default();
         self.stats_data.shader_compile_count = 0;
