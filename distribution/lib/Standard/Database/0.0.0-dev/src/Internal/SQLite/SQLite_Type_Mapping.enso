@@ -22,28 +22,32 @@ polyglot java import java.sql.Types
 type SQLite_Type_Mapping
     ## PRIVATE
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
-    value_type_to_sql value_type on_problems = case value_type of
-        Value_Type.Boolean -> boolean
-        # TODO should we allow these numeric types that are faked by SQLite or coerce all of them to INTEGER?
-        Value_Type.Byte -> SQL_Type.Value Types.TINYINT "TINYINT"
-        Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "SMALLINT"
-        Value_Type.Integer Bits.Bits_32 -> SQL_Type.Value Types.INTEGER "INTEGER"
-        Value_Type.Integer Bits.Bits_64 -> SQL_Type.Value Types.BIGINT "BIGINT"
-        Value_Type.Float Bits.Bits_32 -> SQL_Type.Value Types.REAL "REAL"
-        Value_Type.Float Bits.Bits_64 -> SQL_Type.Value Types.DOUBLE "DOUBLE"
-        Value_Type.Decimal precision scale -> numeric precision scale
-        Value_Type.Char size variable ->
-            if variable then varchar size else char size
-        Value_Type.Time -> blob
-        Value_Type.Date -> SQL_Type.Value Types.DATE "DATE"
-        Value_Type.Date_Time with_timezone -> SQL_Type.Value Types.TIMESTAMP "TIMESTAMP"
-        Value_Type.Binary size variable -> binary variable size
-        Value_Type.Mixed -> binary variable=True size=Nothing
-        Value_Type.Unsupported_Data_Type type_name underlying_type ->
-            underlying_type.if_nothing <|
-                Error.throw <|
-                    Illegal_Argument.Error <|
-                        "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
+    value_type_to_sql value_type on_problems =
+        result = case value_type of
+            Value_Type.Boolean -> boolean
+            # TODO should we allow these numeric types that are faked by SQLite or coerce all of them to INTEGER?
+            Value_Type.Byte -> SQL_Type.Value Types.TINYINT "TINYINT"
+            Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "SMALLINT"
+            Value_Type.Integer Bits.Bits_32 -> SQL_Type.Value Types.INTEGER "INTEGER"
+            Value_Type.Integer Bits.Bits_64 -> SQL_Type.Value Types.BIGINT "BIGINT"
+            Value_Type.Float Bits.Bits_32 -> SQL_Type.Value Types.REAL "REAL"
+            Value_Type.Float Bits.Bits_64 -> SQL_Type.Value Types.DOUBLE "DOUBLE"
+            Value_Type.Decimal precision scale -> numeric precision scale
+            Value_Type.Char size variable ->
+                if variable then varchar size else char size
+            Value_Type.Time -> blob
+            Value_Type.Date -> SQL_Type.Value Types.DATE "DATE"
+            Value_Type.Date_Time with_timezone -> SQL_Type.Value Types.TIMESTAMP "TIMESTAMP"
+            Value_Type.Binary size variable -> binary variable size
+            Value_Type.Mixed -> binary variable=True size=Nothing
+            Value_Type.Unsupported_Data_Type type_name underlying_type ->
+                underlying_type.if_nothing <|
+                    Error.throw <|
+                        Illegal_Argument.Error <|
+                            "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
+        # TODO check for inexact mappings
+        problems = []
+        on_problems.attach_problems_before problems result
 
     ## PRIVATE
     sql_type_to_value_type : SQL_Type -> Value_Type
