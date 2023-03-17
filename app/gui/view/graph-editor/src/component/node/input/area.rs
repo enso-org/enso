@@ -992,6 +992,8 @@ impl Area {
         let selection_color = Animation::new(network);
 
         frp::extend! { network
+            init <- source::<()>();
+            set_editing <- all(frp.set_editing, init)._0();
 
             // === Body Hover ===
             // This is meant to be on top of FRP network. Read more about `Node` docs to
@@ -1003,14 +1005,14 @@ impl Area {
 
             // === Cursor setup ===
 
-            eval frp.set_editing((is_editing) model.set_edit_mode(*is_editing));
+            eval set_editing((is_editing) model.set_edit_mode(*is_editing));
 
             // Disable selection mouse following right after starting edit mode to prevent it from
             // firing on initial mouse down event as a selection start. Otherwise, a selection would
             // be created between the initial cursor position (which takes code vis offset into
             // account) and current mouse position.
-            start_editing <- frp.set_editing.on_true();
-            stop_editing <- frp.set_editing.on_false();
+            start_editing <- set_editing.on_true();
+            stop_editing <- set_editing.on_false();
             start_editing_delayed <- start_editing.debounce();
             reenable_mouse_follow <- any(&start_editing_delayed, &stop_editing);
             mouse_follow_enabled <- bool(&start_editing, &reenable_mouse_follow);
@@ -1025,18 +1027,19 @@ impl Area {
             // === Show / Hide Phantom Ports ===
 
             let ports_active = &frp.set_ports_active;
-            edit_or_ready   <- frp.set_edit_ready_mode || frp.set_editing;
+            edit_or_ready   <- frp.set_edit_ready_mode || set_editing;
             reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, (a, _)| *e && !a);
             port_vis        <- all_with(&edit_or_ready, ports_active, |e, (a, _)| !e && *a);
             frp.output.source.ports_visible <+ port_vis;
-            frp.output.source.editing       <+ frp.set_editing;
+            frp.output.source.editing       <+ set_editing;
 
 
             // === Label Hover ===
 
             label_hovered <- reacts_to_hover && frp.output.body_hover;
-            model.ports_label.set_hover <+ label_hovered.gate_not(&frp.set_editing);
-            model.edit_mode_label.set_hover <+ label_hovered.gate(&frp.set_editing);
+            not_editing  <- set_editing.not();
+            model.ports_label.set_hover <+ label_hovered && not_editing;
+            model.edit_mode_label.set_hover <+ label_hovered && set_editing;
 
             // === Port Hover ===
 
@@ -1050,7 +1053,7 @@ impl Area {
 
             // === Properties ===
 
-            label_width <- frp.set_editing.switch(
+            label_width <- set_editing.switch(
                 &model.ports_label.width,
                 &model.edit_mode_label.width
             );
@@ -1061,10 +1064,10 @@ impl Area {
 
             let frp_endpoints = &frp.output;
             eval frp.set_expression([frp_endpoints, model](expr) model.set_expression(expr, &frp_endpoints));
-            legit_edit <- frp.input.edit_expression.gate(&frp.input.set_editing);
+            legit_edit <- frp.input.edit_expression.gate(&set_editing);
             model.edit_mode_label.select <+ legit_edit.map(|(range, _)| (range.start.into(), range.end.into()));
             model.edit_mode_label.insert <+ legit_edit._1();
-            expression_changed_by_user <- model.edit_mode_label.content.gate(&frp.set_editing);
+            expression_changed_by_user <- model.edit_mode_label.content.gate(&set_editing);
             frp.output.source.edit_mode_expression <+ expression_changed_by_user.ref_into();
             frp.output.source.expression_edit <+ model.edit_mode_label.selections.map2(
                 &expression_changed_by_user,
@@ -1104,13 +1107,13 @@ impl Area {
             selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
             model.ports_label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
 
-            init_colors         <- source::<()>();
-            std_base_color      <- all(std_base_color,init_colors)._0();
-            profiled_base_color <- all(profiled_base_color,init_colors)._0();
+            std_base_color      <- all(std_base_color,init)._0();
+            profiled_base_color <- all(profiled_base_color,init)._0();
             base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
             eval base_color ((color) model.ports_label.set_property_default(color));
-            init_colors.emit(());
         }
+
+        init.emit(());
 
         Self { frp, model }
     }
