@@ -96,7 +96,7 @@ type Delimited_Format
     ## PRIVATE
        Clone the instance with some properties overridden.
        Note: This function is internal until such time as Atom cloning with modification is built into Enso.
-    clone : Text -> Text -> (Boolean|Infer) -> Data_Formatter -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited_Format
+    clone : Quote_Style -> (Boolean|Infer) -> (Data_Formatter|Nothing) -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited_Format
     clone self (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
         Delimited_Format.Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 

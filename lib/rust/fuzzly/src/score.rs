@@ -155,28 +155,6 @@ pub struct Subsequence {
     pub indices: Vec<usize>,
 }
 
-impl Subsequence {
-    /// Compare scores of subsequences.
-    ///
-    /// The `f32` does not implement total ordering, however that does not help when we want to
-    /// sort items by their matching score. Therefore this function assumes that all NaNs are the
-    /// lowest values.
-    pub fn compare_scores(&self, rhs: &Subsequence) -> std::cmp::Ordering {
-        if self.score.is_nan() && rhs.score.is_nan() {
-            std::cmp::Ordering::Equal
-        } else if self.score.is_nan() {
-            std::cmp::Ordering::Less
-        } else if rhs.score.is_nan() {
-            std::cmp::Ordering::Greater
-        } else if self.score < rhs.score {
-            std::cmp::Ordering::Less
-        } else if self.score > rhs.score {
-            std::cmp::Ordering::Greater
-        } else {
-            std::cmp::Ordering::Equal
-        }
-    }
-}
 
 /// Find best subsequence in `text` which case-insensitively equals to `pattern` in terms of given
 /// `metric`.

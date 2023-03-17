@@ -41,7 +41,6 @@ class ProjectCreationService[
       val versionManager = RuntimeVersionManagerFactory(
         distributionConfiguration
       ).makeRuntimeVersionManager(progressTracker, missingComponentAction)
-      versionManager.logAvailableComponentsForDebugging()
       val configurationManager = new GlobalRunnerConfigurationManager(
         versionManager,
         distributionConfiguration.distributionManager

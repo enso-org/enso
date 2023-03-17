@@ -7,7 +7,11 @@ import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
-import org.enso.languageserver.boot.{LanguageServerConfig, ProfilingConfig}
+import org.enso.languageserver.boot.{
+  LanguageServerConfig,
+  ProfilingConfig,
+  StartupConfig
+}
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
@@ -69,6 +73,7 @@ object Main {
   private val HIDE_PROGRESS                  = "hide-progress"
   private val AUTH_TOKEN                     = "auth-token"
   private val AUTO_PARALLELISM_OPTION        = "with-auto-parallelism"
+  private val SKIP_GRAALVM_UPDATER           = "skip-graalvm-updater"
 
   private lazy val logger = Logger[Main.type]
 
@@ -345,6 +350,11 @@ object Main {
       .desc("Enables auto parallelism in the Enso interpreter.")
       .build
 
+    val skipGraalVMUpdater = CliOption.builder
+      .longOpt(SKIP_GRAALVM_UPDATER)
+      .desc("Skips GraalVM and its components setup during bootstrapping.")
+      .build
+
     val options = new Options
     options
       .addOption(help)
@@ -385,6 +395,7 @@ object Main {
       .addOption(noGlobalCacheOption)
       .addOptionGroup(cacheOptionsGroup)
       .addOption(autoParallelism)
+      .addOption(skipGraalVMUpdater)
 
     options
   }
@@ -905,13 +916,16 @@ object Main {
       profilingEventsLogPath <- Either
         .catchNonFatal(profilingEventsLogPathStr.map(Paths.get(_)))
         .leftMap(_ => "Profiling events log path is invalid")
+      graalVMUpdater = Option(line.hasOption(SKIP_GRAALVM_UPDATER))
+        .getOrElse(false)
     } yield boot.LanguageServerConfig(
       interface,
       rpcPort,
       dataPort,
       rootId,
       rootPath,
-      ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime)
+      ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime),
+      StartupConfig(graalVMUpdater)
     )
 
   /** Prints the version of the Enso executable.

@@ -6,7 +6,7 @@ import Standard.Table.Errors.Invalid_JSON_Format
 import project.Helpers
 import project.Helpers.Object_Type
 
-geo_json_to_table : (Vector | JS_Object) -> Table
+geo_json_to_table : (Vector | JS_Object) -> Vector Text -> Table
 geo_json_to_table geo_json fields=Nothing = case geo_json of
     _ : Vector ->
         rows = geo_json.map item-> case item of
