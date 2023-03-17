@@ -44,7 +44,7 @@ execute callable arguments = @Builtin_Method "Polyglot.execute"
     > Example
       Look up the field a on an object o.
           Polyglot.get_member o "a"
-get_member : Any -> Text
+get_member : Any -> Text -> Any
 get_member object member_name = @Builtin_Method "Polyglot.get_member"
 
 ## Returns a polyglot array of all of the members of the provided object.
@@ -114,4 +114,4 @@ is_language_installed language_name = @Builtin_Method "Polyglot.is_language_inst
 
    Returns the executable name of a polyglot object.
 get_executable_name : Any -> Text
-get_executable_name = @Builtin_Method "Polyglot.get_executable_name"
+get_executable_name value = @Builtin_Method "Polyglot.get_executable_name"

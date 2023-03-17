@@ -78,7 +78,7 @@ no_inline ~action = @Builtin_Method "Runtime.no_inline"
      Print something to the console without it being inlined.
 
          Runtime.no_inline_with_arg IO.println "Hi!"
-no_inline_with_arg : Any -> Any
+no_inline_with_arg : (Any -> Any) -> Any -> Any
 no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
 
 ## PRIVATE
