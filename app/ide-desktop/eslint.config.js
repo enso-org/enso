@@ -142,7 +142,8 @@ const RESTRICTED_SYNTAXES = [
         message: 'Avoid `as T`. Consider using a type annotation instead.',
     },
     {
-        selector: ':matches(TSUndefinedKeyword, Identifier[name=undefined], UnaryExpression[operator=void]:not(:has(CallExpression.argument)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined]))',
+        selector:
+            ':matches(TSUndefinedKeyword, Identifier[name=undefined], UnaryExpression[operator=void]:not(:has(CallExpression.argument)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined]))',
         message: 'Use `null` instead of `undefined`, `void 0`, or `typeof x === "undefined"`',
     },
     {
