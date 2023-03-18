@@ -17,6 +17,7 @@ import Standard.Test.Test_Environment
 
 import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator
+import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Common_Table_Operations
 
 postgres_specific_spec connection db_name =
@@ -227,6 +228,17 @@ table_spec =
             ca_fail.is_error . should_equal True
             ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
 
+    test_with_connection run_tests
+    test_with_connection Postgres_Type_Mapping_Spec.spec
+
+test_with_connection spec =
+    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
+    db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
+    db_host = db_host_port.at 0
+    db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
+    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
+    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
+
     case db_name.is_nothing of
         True ->
             message = "PostgreSQL test database is not configured. See README.md for instructions."
@@ -234,8 +246,7 @@ table_spec =
         False ->
             connection = Panic.rethrow <|
                 Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password))
-            run_tests connection db_name
-
+            spec connection db_name
 
 pgpass_file = enso_project.data / "pgpass.conf"
 

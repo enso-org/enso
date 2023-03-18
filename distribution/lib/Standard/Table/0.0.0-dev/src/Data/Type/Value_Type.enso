@@ -71,7 +71,7 @@ type Value_Type
     ## Arbitrary precision numerical value with a scale and precision.
 
        ANSI SQL: NUMERIC, DECIMAL
-    Decimal precision:(Integer|Nothing)=Nothing scale:(Integer|Nothing)=Nothing
+    Decimal precision:(Integer|Nothing)=Nothing scale:(Integer|Nothing)=0
 
     ## Character string.
 

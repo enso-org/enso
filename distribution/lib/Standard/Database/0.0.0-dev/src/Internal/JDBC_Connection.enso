@@ -24,6 +24,7 @@ polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.ResultSet
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
+polyglot java import java.sql.Types as Java_Types
 
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.database.JDBCUtils
@@ -99,7 +100,9 @@ type JDBC_Connection
                 sql_type = SQL_Type_Mapping.from_metadata metadata ix+1
                 [name, sql_type]
 
-            Vector.new metadata.getColumnCount resolve_column
+            res = Vector.new metadata.getColumnCount resolve_column
+            IO.println "Columns for ["+statement.to_text+"] are: "+res.to_text
+            res
 
     ## PRIVATE
 
@@ -185,7 +188,7 @@ set_statement_values stmt holes =
             Nothing ->
                 ## If we really don't have a clue what this should be, we choose a varchar for a blank column.
                 sql_type = if obj.second == SQL_Type.null then SQL_Type.text else obj.second
-                stmt.setNull position SQL_Type.null.typeid
+                stmt.setNull position Java_Types.NULL
             _ : Date_Time -> stmt.setTimestamp position (JDBCUtils.getTimestamp obj.first)
             _ -> stmt.setObject position obj.first
 

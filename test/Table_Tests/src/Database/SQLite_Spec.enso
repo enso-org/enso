@@ -147,6 +147,8 @@ spec =
 
     sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
 
+    SQLite_Type_Mapping_Spec.spec
+
     Test.group "SQLite_Format should allow connecting to SQLite files" <|
         file.delete_if_exists
 

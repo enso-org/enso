@@ -5,36 +5,8 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 
 polyglot java import java.sql.Types
 
-# TODO [RW] likely we could make this into a Base_SQL_Type_Mapping that can be reused across SQLite and Postgres, with adaptations if needed.
-
 ## PRIVATE
-   Mapping from Value_Type to SQLite is done by finding the closest matching
-   type corresponding to one of the 4 supported affinities: INTEGER, REAL,
-   NUMERIC, TEXT, BLOB. Thus many value types will end up being approximated by
-   a close but inexact type. Apart from that, a fourth artificial affinity is
-   introduced: BOOLEAN. Normally, SQLite does not have a dedicated boolean type
-   and uses INTEGER instead. However, it is useful for our users to distinguish
-   the boolean columns. We do this by manually overriding the type of columns
-   detected as boolean or returned from our boolean operations. The JDBC
-   automatically handles translating between the underlying INTEGER storage and
-   Java Booleans, so it is all seamless - only our type logic needs to be aware
-   that it cannot rely on the JDBC metadata as the type reported for boolean
-   operations will be INTEGER - so we need to carefully ensure there is the
-   override.
-
-   TODO update description - JDBC has more flexibility but its mostly fake, so maybe we map to what is truly there? probably yes
-   The types are mapped according to the rules set in the JDBC SQLite driver
-   which adds support for a few more types than raw SQLite - for example even
-   though a BOOLEAN column will be stored as numbers, the JDBC driver is able to
-   detect the BOOLEAN column type name and treat its contents as boolean values.
-   This is useful, as it allows us to use a bit more precise types than what
-   pure SQLite would allow. If the DB author declared a column as BOOLEAN, we
-   probably indeed want to view it as booleans values in Enso, and this
-   mechanism gives us this ability.
-
-   The exact rules can be found in the `JDBC3ResultSet::getColumnType` method in
-   the `org.xerial.sqlite-jdbc` module.
-type SQLite_Type_Mapping
+type Postgres_Type_Mapping
     ## PRIVATE
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems =
@@ -69,7 +41,7 @@ type SQLite_Type_Mapping
     sql_type_to_value_type sql_type =
         handle_not_found =
             Error.throw <| Illegal_Argument.Error <|
-                "The SQL type ["+sql_type.to_text+"] is not recognized as an SQLite compatible type."
+                "The SQL type "+sql_type.to_text+" is not recognized as an Postgres compatible type."
         simple_type = simple_types_map.get sql_type.typeid Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we
@@ -106,21 +78,26 @@ simple_types_map = Map.from_vector <|
     other = [[Types.BOOLEAN, Value_Type.Boolean], [Types.TIMESTAMP, Value_Type.Date_Time with_timezone=False], [Types.DATE, Value_Type.Date]]
     ints + other
 
-## PRIVATE
-text = SQL_Type.Value Types.VARCHAR "TEXT"
+complex_types_map = Map.from_vector <|
+    make_decimal sql_type =
+        Value_Type.Decimal sql_type.precision sql_type.scale
+    make_varchar sql_type =
+        Value_Type.Char size=sql_type.precision variable=True
+    make_char sql_type =
+        Value_Type.Char size=sql_type.precision variable=False
+    make_binary sql_type variable =
+        Value_Type.Binary size=sql_type.precision variable=variable
+    numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
+    # TODO [RW] should CLOB be text or not? should we have a separate type for it? otherwise we cannot round-trip (CLOB -> Char -> VARCHAR != CLOB)
+    strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
+    binaries = [[Types.BINARY, make_binary False], [Types.BLOB, make_binary True]]
+    numerics + strings + binaries
 
-## PRIVATE
-numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
-
-## PRIVATE
-integer = SQL_Type.Value Types.INTEGER "INTEGER"
-
-## PRIVATE
-real = SQL_Type.Value Types.REAL "REAL"
-
-## PRIVATE
-blob = SQL_Type.Value Types.BLOB "BLOB"
-
-## PRIVATE
-   The artificial 6th affinity that is used to distinguish boolean columns.
+numeric precision scale = SQL_Type.Value Types.NUMERIC "NUMERIC" precision=precision scale=scale
+varchar size = SQL_Type.Value Types.VARCHAR "VARCHAR" precision=size
 boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
+char size = SQL_Type.Value Types.CHAR "CHAR" precision=size
+binary variable size =
+    if variable then SQL_Type.Value Types.BLOB "BLOB" precision=size else
+        SQL_Type.Value Types.BINARY "BINARY" precision=size
+blob = binary variable=True size=Nothing

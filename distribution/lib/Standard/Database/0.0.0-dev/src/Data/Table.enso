@@ -1391,8 +1391,7 @@ type Table
             self.connection.dialect.generate_sql query
         count_table = self.connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
-        types = cols.map c-> c.sql_type.name
-        Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]]
+        Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", cols.map .value_type]]
 
     ## PRIVATE
 

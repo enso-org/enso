@@ -1,0 +1,68 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Bits
+
+from Standard.Database import SQL_Query
+
+from Standard.Test import Problems, Test, Test_Suite
+import Standard.Test.Extensions
+
+spec =
+    connection = Database.connect (SQLite In_Memory)
+    make_table prefix columns =
+        name = prefix
+        column_exprs = columns.map col_def->
+            col_def.first + " " + col_def.second
+        stmt = 'CREATE TABLE "'+name+'" ('+(column_exprs.join ', ')+');'
+        Problems.assume_no_problems <| connection.execute_update stmt
+        connection.query (SQL_Query.Table_Name name)
+
+    Test.group "[SQLite] Type Mapping" <|
+        Test.specify "should map its basic affinities" <|
+            t = make_table [["int", "INTEGER"], ["real", "REAL"], ["text", "TEXT"], ["blob", "BLOB"], ["numeric", "NUMERIC"]]
+            t.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t.at "real" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.at "text" . value_type . should_equal (Value_Type.Char size=Nothing variable=True)
+            t.at "blob" . value_type . should_equal (Value_Type.Binary size=Nothing variable=True)
+            t.at "numeric" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+
+        Test.specify "should map complex types to their closest approximation" <|
+            t = make_table [["a", "VARCHAR(15)"], ["b", "CHAR(10)"], ["c", "BINARY(10)"], ["d", "BIGINT"], ["e", "SMALLINT"], ["f", "TINYINT"], ["g", "FLOAT"], ["h", "DOUBLE"]]
+            t.at "a" . value_type . should_equal (Value_Type.Char size=Nothing variable=True)
+            t.at "b" . value_type . should_equal (Value_Type.Char size=Nothing variable=False)
+            t.at "c" . value_type . should_equal (Value_Type.Binary size=Nothing variable=False)
+            t.at "d" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t.at "e" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t.at "f" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t.at "g" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.at "h" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+
+        Test.specify "should allow for special handling of booleans to support the Boolean type that does not have a builtin affinity" <|
+            t = make_table "bools" [["a", "BOOLEAN"], ["b", "BOOLEAN"]]
+            t.at "b" . value_type . should_equal Value_Type.Boolean
+
+            c1 = t.compute "[a] || [b]"
+            c1 . value_type . should_equal Value_Type.Boolean
+
+            c2 = t.compute "[a] && False"
+            c2 . value_type . should_equal Value_Type.Boolean
+
+            c3 = t.compute "[a] && 10"
+            c3.should_fail_with Invalid_Value_Type
+
+        Test.specify "should correctly handle types through operations" <|
+            t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
+
+            t.compute 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
+            t.compute '[a] * [d]' . value_type . should_equal Value_Type.Float Bits.Bits_64
+            t.compute '[a] + 100' . value_type . should_equal Value_Type.Integer Bits.Bits_64
+            t.compute '[a] + 100.0' . value_type . should_equal Value_Type.Float Bits.Bits_64
+            t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
+            t.compute '[b] + "_suf"' . value_type . should_equal Value_Type.Char
+
+            # TODO
+            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a"]
+            t2.info.print
+
+main = Test_Suite.run_main spec
