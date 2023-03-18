@@ -1,9 +1,10 @@
 from Standard.Base import all
 
-from Standard.Table import Aggregate_Column, Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table import Aggregate_Column, Value_Type
+from Standard.Table.Errors import Invalid_Value_Type
 
-from Standard.Database import SQL_Query
+from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
@@ -20,18 +21,18 @@ spec =
 
     Test.group "[SQLite] Type Mapping" <|
         Test.specify "should map its basic affinities" <|
-            t = make_table [["int", "INTEGER"], ["real", "REAL"], ["text", "TEXT"], ["blob", "BLOB"], ["numeric", "NUMERIC"]]
+            t = make_table "basics" [["int", "INTEGER"], ["real", "REAL"], ["text", "TEXT"], ["blob", "BLOB"], ["numeric", "NUMERIC"]]
             t.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "real" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t.at "text" . value_type . should_equal (Value_Type.Char size=Nothing variable=True)
             t.at "blob" . value_type . should_equal (Value_Type.Binary size=Nothing variable=True)
-            t.at "numeric" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.at "numeric" . value_type . should_equal Value_Type.Decimal
 
         Test.specify "should map complex types to their closest approximation" <|
-            t = make_table [["a", "VARCHAR(15)"], ["b", "CHAR(10)"], ["c", "BINARY(10)"], ["d", "BIGINT"], ["e", "SMALLINT"], ["f", "TINYINT"], ["g", "FLOAT"], ["h", "DOUBLE"]]
-            t.at "a" . value_type . should_equal (Value_Type.Char size=Nothing variable=True)
-            t.at "b" . value_type . should_equal (Value_Type.Char size=Nothing variable=False)
-            t.at "c" . value_type . should_equal (Value_Type.Binary size=Nothing variable=False)
+            t = make_table "complex" [["a", "VARCHAR(15)"], ["b", "CHAR(10)"], ["c", "BINARY(10)"], ["d", "BIGINT"], ["e", "SMALLINT"], ["f", "TINYINT"], ["g", "FLOAT"], ["h", "DOUBLE"]]
+            t.at "a" . value_type . should_equal Value_Type.Char
+            t.at "b" . value_type . should_equal Value_Type.Char
+            t.at "c" . value_type . should_equal (Value_Type.Binary size=Nothing variable=True)
             t.at "d" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "e" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "f" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)

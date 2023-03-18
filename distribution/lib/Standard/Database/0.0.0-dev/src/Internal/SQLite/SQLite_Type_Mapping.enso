@@ -100,7 +100,8 @@ simple_types_map = Map.from_vector <|
     numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, Value_Type.Decimal]
     strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, Value_Type.Char size=Nothing variable=True]
     blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Binary size=Nothing variable=True]
-    ints + floats + numerics + strings + blobs
+    special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
+    ints + floats + numerics + strings + blobs + special_types
 
 type SQLite_Types
     ## PRIVATE
