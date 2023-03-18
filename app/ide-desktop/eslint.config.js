@@ -102,6 +102,11 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector:
+            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)))) > * > ReturnStatement',
+        message: 'No early returns',
+    },
+    {
+        selector:
             'TSTypeAliasDeclaration > :matches(TSBooleanKeyword, TSBigintKeyword, TSNullKeyword, TSNumberKeyword, TSObjectKeyword, TSStringKeyword, TSSymbolKeyword, TSUndefinedKeyword, TSUnknownKeyword, TSVoidKeyword)',
         message:
             'No aliases to primitives - consider using brands instead: `string & { _brand: "BrandName"; }`',
