@@ -22,6 +22,8 @@ type SQL_Fragment
        - code: A fragment of SQL code.
     Code_Part code:Text
 
+    # TODO [RW] we should be able to safely remove sql_type from Interpolation
+
     ## UNSTABLE
 
        A SQL fragment that represents an object which will be interpolated into

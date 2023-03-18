@@ -18,6 +18,7 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Query.Query
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 from project.Data.Table import Table, freshen_columns
 
@@ -35,6 +36,7 @@ type Column
        Arguments:
        - name: The name of the column.
        - connection: The connection with which the column is associated.
+       - sql_type_reference: Lazily computed SQL type of the column.
        - expression: The expressions to apply to the column.
        - context: The SQl context in which the column exists.
 
@@ -44,7 +46,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    Value name:Text connection:Connection sql_type:SQL_Type expression:SQL_Expression context:Context
+    Value name:Text connection:Connection sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
 
     ## UNSTABLE
 
@@ -963,11 +965,15 @@ type Column
 
     ## PRIVATE
     as_internal : Internal_Column
-    as_internal self = Internal_Column.Value self.name self.sql_type self.expression
+    as_internal self = Internal_Column.Value self.name self.sql_type_reference self.expression
 
     ## Provides a simplified text representation for display in the REPL and errors.
     to_text : Text
     to_text self = "(Database Column "+self.name.to_text+")"
+
+    ## PRIVATE
+    sql_type : SQL_Type
+    sql_type self = self.sql_type_reference.get
 
     ## PRIVATE
     naming_helpers self = self.connection.dialect.get_naming_helpers

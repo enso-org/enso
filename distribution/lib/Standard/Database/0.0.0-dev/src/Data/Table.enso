@@ -1555,7 +1555,10 @@ type Table
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
-        cols = columns.map (p -> Internal_Column.Value p.first p.second (SQL_Expression.Column table_name p.first))
+        cols = columns.map p->
+            name = p.first
+            sql_type = p.second
+            Internal_Column.Value name (SQL_Type_Reference.from_constant sql_type) (SQL_Expression.Column table_name name))
         Table.Value table_name connection cols ctx
 
 ## PRIVATE

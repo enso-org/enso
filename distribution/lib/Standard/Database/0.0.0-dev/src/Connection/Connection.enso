@@ -219,7 +219,10 @@ type Connection
          batch.
     upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Table
     upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State <|
-        create_sql = create_table_statement name table temporary
+        type_mapping = self.dialect.get_type_mapping
+        # TODO [RW] problem handling! probably want to add on_probelms to this method?
+        type_mapper value_type = type_mapping.value_type_to_sql Problem_Behavior.Report_Error
+        create_sql = create_table_statement type_mapper name table temporary
         create_table = self.execute_update create_sql
 
         db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)

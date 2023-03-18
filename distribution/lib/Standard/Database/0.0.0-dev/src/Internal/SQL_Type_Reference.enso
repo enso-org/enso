@@ -1,0 +1,46 @@
+import Standard.Base.Runtime.Lazy.Lazy
+
+import project.Connection.Connection.Connection
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.Context.Context
+import project.Internal.IR.SQL_Expression.SQL_Expression
+
+type SQL_Type_Reference
+    ## Refers to the SQL type of a given column, as computed by the Database
+       itself.
+
+       Since fetching this type requires querying the database, it is computed
+       lazily and cached.
+    Reference (lazy_ref : Lazy)
+
+    ## PRIVATE
+       Returns the stored SQL type.
+
+       This may perform a database query on first access.
+    get : SQL_Type
+    get self = self.lazy_ref.get
+
+## PRIVATE
+   Creates an `SQL_Type_Reference` from a known constant.
+
+   This is useful when the type is already known (for example in
+   `Database.make_table`, because the column types were already fetched) or when
+   the type is overridden (for example when pretending that SQLite has a boolean
+   type).
+from_constant : SQL_Type -> SQL_Type_Reference
+from_constant sql_type = SQL_Type_Reference.Reference (Lazy.new_eager sql_type)
+
+## PRIVATE
+   Creates a new `SQL_Type_Reference` from a given SQL expression evaluated in a
+   provided context. The connection is used to ask the database engine what the
+   expected type will be.
+new : Connection -> Context -> SQL_Expression -> SQL_Type_Reference
+new connection context expression =
+    do_fetch =
+        # TODO remove type from here
+        empty_context = context.add_where_filters [SQL_Expression.Constant SQL_Type.boolean False]
+        statement = self.connection.dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
+        columns = connection.jdbc_connection.fetch_columns statement
+        only_column = columns.first
+        only_column.second
+    SQL_Type_Reference.Reference (Lazy.new do_fetch)

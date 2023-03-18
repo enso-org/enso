@@ -192,29 +192,11 @@ set_statement_values stmt holes =
 
 ## PRIVATE
    Given a Materialized_Table, create a SQL statement to build the table.
-create_table_statement : Text -> Materialized_Table -> Boolean -> SQL_Statement
-create_table_statement name table temporary =
-    column_types = table.columns.map col-> default_sql_column_type col.value_type
+create_table_statement : (Value_Type -> SQL_Type) -> Text -> Materialized_Table -> Boolean -> SQL_Statement
+create_table_statement type_mapper name table temporary =
+    column_types = table.columns.map col-> type_mapper col.value_type
     column_names = table.columns.map .name
     col_makers = column_names.zip column_types name-> typ->
         Base_Generator.wrap_in_quotes name ++ " " ++ typ.name
     create_prefix = Builder.code <| if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
     (create_prefix ++ Base_Generator.wrap_in_quotes name ++ " (" ++ (Builder.join ", " col_makers) ++ ")").build
-
-## PRIVATE
-   Returns the default database type corresponding to an in-memory storage type.
-
-   Used for the Table upload prototype.
-default_sql_column_type : Value_Type -> SQL_Type
-default_sql_column_type value_type =
-    # TODO [RW] this this should instead use the backend-specific type mapping once available!!!
-    # doing this only to keep tests passing
-    case value_type of
-        Value_Type.Char _ _ -> SQL_Type.text
-        Value_Type.Integer _ -> SQL_Type.integer
-        Value_Type.Float _ -> SQL_Type.double
-        Value_Type.Boolean -> SQL_Type.boolean
-        Value_Type.Date -> SQL_Type.date
-        Value_Type.Time -> SQL_Type.time_of_day
-        Value_Type.Date_Time _ -> SQL_Type.date_time
-        _ -> SQL_Type.text

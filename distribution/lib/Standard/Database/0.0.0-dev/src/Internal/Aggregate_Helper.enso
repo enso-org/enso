@@ -20,7 +20,8 @@ from project.Errors import Unsupported_Database_Operation
    You may need to transform it with `resolve_aggregate` first.
 make_aggregate_column : Table -> Aggregate_Column -> Text -> Internal_Column
 make_aggregate_column table aggregate new_name =
-    sql_type = table.connection.dialect.resolve_target_sql_type aggregate
+    # TODO move thi to Table instead, much easier there...
+    sql_type = Error.throw "TODO we need to use the new context already!"
     expression = make_expression aggregate table.connection.dialect
     Internal_Column.Value new_name sql_type expression
 
