@@ -41,12 +41,12 @@ spec connection db_name =
             t2.at "c" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t2.at "d" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
-            t3 = make_table "decimals" [["a", "decimal"], ["b", "numeric"], ["c", "decimal(10, 2)"], ["d", "numeric(20, -2)"], ["e", "decimal(10)"], ["f", "numeric(20)"]]
+            t3 = make_table "decimals" [["a", "decimal"], ["b", "numeric"], ["c", "decimal(10, 2)"], ["d", "numeric(20, 4)"], ["e", "decimal(10)"], ["f", "numeric(20)"]]
             t3.info.print
             t3.at "a" . value_type . should_equal Value_Type.Decimal
             t3.at "b" . value_type . should_equal Value_Type.Decimal
             t3.at "c" . value_type . should_equal (Value_Type.Decimal precision=10 scale=2)
-            t3.at "d" . value_type . should_equal (Value_Type.Decimal precision=20 scale=(-2))
+            t3.at "d" . value_type . should_equal (Value_Type.Decimal precision=20 scale=4)
             t3.at "e" . value_type . should_equal (Value_Type.Decimal precision=10)
             t3.at "f" . value_type . should_equal (Value_Type.Decimal precision=20)
 
@@ -54,9 +54,9 @@ spec connection db_name =
             t = make_table "texts" [["a", "char(10)"], ["b", "varchar"], ["c", "varchar(20)"], ["d", "text"]]
             t.info.print
             t.at "a" . value_type . should_equal (Value_Type.Char size=10 variable=False)
-            t.at "b" . value_type . should_equal (Value_Type.Char size=Nothing variable=True)
+            t.at "b" . value_type . should_equal default_text
             t.at "c" . value_type . should_equal (Value_Type.Char size=20 variable=True)
-            t.at "d" . value_type . should_equal (Value_Type.Char size=Nothing variable=True)
+            t.at "d" . value_type . should_equal default_text
 
         Test.specify "binary" <|
             t = make_table "binaries" [["a", "bit(1)"], ["b", "bit varying"], ["c", "bit varying(10)"], ["d", "bytea"]]
@@ -73,17 +73,17 @@ spec connection db_name =
 
             t2 = make_table "times" [["a", "time"], ["b", "timetz"], ["c", "time without time zone"], ["d", "time with time zone"]]
             t2.info.print
-            t2.at "a" . value_type . should_equal Value_Type.Time_Of_Day
-            t2.at "b" . value_type . should_equal Value_Type.Time_Of_Day
-            t2.at "c" . value_type . should_equal Value_Type.Time_Of_Day
-            t2.at "d" . value_type . should_equal Value_Type.Time_Of_Day
+            t2.at "a" . value_type . should_equal Value_Type.Time
+            t2.at "b" . value_type . should_equal Value_Type.Time
+            t2.at "c" . value_type . should_equal Value_Type.Time
+            t2.at "d" . value_type . should_equal Value_Type.Time
 
             t3 = make_table "timestamps" [["a", "timestamp"], ["b", "timestamptz"], ["c", "timestamp without time zone"], ["d", "timestamp with time zone"]]
             t3.info.print
-            t3.at "a" . value_type . should_equal (Value_Type.DateTime with_timezone=False)
-            t3.at "b" . value_type . should_equal (Value_Type.DateTime with_timezone=True)
-            t3.at "c" . value_type . should_equal (Value_Type.DateTime with_timezone=False)
-            t3.at "d" . value_type . should_equal (Value_Type.DateTime with_timezone=True)
+            t3.at "a" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
+            t3.at "b" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
+            t3.at "c" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
+            t3.at "d" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
 
         Test.specify "boolean" <|
             t = make_table "bools" [["a", "boolean"], ["b", "bool"]]
@@ -95,11 +95,11 @@ spec connection db_name =
             t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
 
             t.compute 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
-            t.compute '[a] * [d]' . value_type . should_equal Value_Type.Float Bits.Bits_64
-            t.compute '[a] + 100' . value_type . should_equal Value_Type.Integer Bits.Bits_32
-            t.compute '[a] + 100.0' . value_type . should_equal Value_Type.Float Bits.Bits_64
+            t.compute '[a] * [d]' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.compute '[a] + 100' . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            t.compute '[a] + 100.0' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
-            t.compute '[b] + "_suf"' . value_type . should_equal Value_Type.Char
+            t.compute '[b] + "_suf"' . value_type . should_equal default_text
 
             # TODO
             t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a"]
@@ -107,7 +107,18 @@ spec connection db_name =
 
             # TODO curious
             t3 = make_table "foo2" [["a", "char(5)"], ["b", "char(8)"]]
+            t3.info.print
             IO.println <|
-                "char(5)+char(8) = " + (t3.compute '[a] + [b]' . value_type)
+                "char(5)+char(8) = " + (t3.compute '[a] + [b]' . value_type . to_text)
+
+        Test.specify "other types" <|
+            t = make_table "other" [["a", "box"], ["b", "polygon"]]
+            t.at "a" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
+            t.at "a" . value_type . type_name . should_equal "box"
+            t.at "b" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
+            t.at "b" . value_type . type_name . should_equal "polygon"
 
 main = Test_Suite.run_main (test_with_connection spec)
+
+max_int4 = 2147483647
+default_text = Value_Type.Char size=max_int4 variable=True

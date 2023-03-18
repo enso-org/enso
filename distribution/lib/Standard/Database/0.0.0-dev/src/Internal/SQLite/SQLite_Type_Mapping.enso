@@ -2,6 +2,10 @@ from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table.Errors import Inexact_Type_Coercion
+
+import project.Data.SQL_Type.SQL_Type
 
 polyglot java import java.sql.Types
 
@@ -63,7 +67,7 @@ type SQLite_Type_Mapping
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
         on_not_found =
-            Value_Type.Unsupported_Data_Type sql_type.type_name sql_type
+            Value_Type.Unsupported_Data_Type sql_type.name sql_type
         simple_types_map.get sql_type.typeid on_not_found
 
 ## The types that SQLite JDBC driver will report are:

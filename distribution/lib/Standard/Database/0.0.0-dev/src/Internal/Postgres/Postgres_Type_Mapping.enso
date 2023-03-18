@@ -2,6 +2,10 @@ from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table.Errors import Inexact_Type_Coercion
+
+import project.Data.SQL_Type.SQL_Type
 
 polyglot java import java.sql.Types
 
@@ -11,72 +15,74 @@ type Postgres_Type_Mapping
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems =
         result = case value_type of
-            Value_Type.Boolean -> boolean
-            # TODO should we allow these numeric types that are faked by SQLite or coerce all of them to INTEGER?
-            Value_Type.Byte -> SQL_Type.Value Types.TINYINT "TINYINT"
-            Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "SMALLINT"
-            Value_Type.Integer Bits.Bits_32 -> SQL_Type.Value Types.INTEGER "INTEGER"
-            Value_Type.Integer Bits.Bits_64 -> SQL_Type.Value Types.BIGINT "BIGINT"
-            Value_Type.Float Bits.Bits_32 -> SQL_Type.Value Types.REAL "REAL"
-            Value_Type.Float Bits.Bits_64 -> SQL_Type.Value Types.DOUBLE "DOUBLE"
-            Value_Type.Decimal precision scale -> numeric precision scale
+            Value_Type.Boolean ->
+                SQL_Type.Value Types.BOOLEAN "boolean"
+            # Byte is not available on Postgres so we substitute it with int2, the closest matching integral type.
+            Value_Type.Byte ->
+                SQL_Type.Value Types.SMALLINT "int2"
+            Value_Type.Integer Bits.Bits_16 ->
+                SQL_Type.Value Types.SMALLINT "int2"
+            Value_Type.Integer Bits.Bits_32 ->
+                SQL_Type.Value Types.INTEGER "int4"
+            Value_Type.Integer Bits.Bits_64 ->
+                SQL_Type.Value Types.BIGINT "int8"
+            Value_Type.Float Bits.Bits_32 ->
+                SQL_Type.Value Types.REAL "float4"
+            Value_Type.Float Bits.Bits_64 ->
+                SQL_Type.Value Types.DOUBLE "float8"
+            Value_Type.Decimal precision scale ->
+                SQL_Type.Value Types.DECIMAL "decimal" precision scale
             Value_Type.Char size variable ->
-                if variable then varchar size else char size
-            Value_Type.Time -> blob
-            Value_Type.Date -> SQL_Type.Value Types.DATE "DATE"
-            Value_Type.Date_Time with_timezone -> SQL_Type.Value Types.TIMESTAMP "TIMESTAMP"
-            Value_Type.Binary size variable -> binary variable size
-            Value_Type.Mixed -> binary variable=True size=Nothing
+                case variable of
+                    True  -> case size of
+                        Nothing -> SQL_Type.Value Types.TEXT "text"
+                        _       -> SQL_Type.Value Types.VARCHAR "varchar" size
+                    False -> SQL_Type.Value Types.CHAR "char" size
+            Value_Type.Time ->
+                SQL_Type.Value Types.TIME "time"
+            Value_Type.Date ->
+                SQL_Type.Value Types.DATE "date"
+            Value_Type.Date_Time with_timezone ->
+                type_name = if with_timezone then "timestamptz" else "timestamp"
+                SQL_Type.Value Types.TIMESTAMP type_name
+            Value_Type.Binary size variable ->
+                case variable of
+                    True  -> case size of
+                        Nothing -> SQL_Type.Value Types.BINARY "bytea"
+                        # TODO check this
+                        _       -> SQL_Type.Value Types.VARBINARY "bit varying" size
+                    False -> SQL_Type.Value Types.BIT "bit" size
+            Value_Type.Mixed ->
+                Error.throw (Illegal_Argument.Error "Postgres tables do not support Mixed types.")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <|
                     Error.throw <|
                         Illegal_Argument.Error <|
                             "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
-        # TODO check for inexact mappings
-        problems = []
+        approximated_value_type = Postgres_Type_Mapping.sql_type_to_value_type result
+        problems = if approximated_value_type == value_type then [] else [Inexact_Type_Coercion.Warning value_type approximated_value_type]
         on_problems.attach_problems_before problems result
 
     ## PRIVATE
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
-        handle_not_found =
-            Error.throw <| Illegal_Argument.Error <|
-                "The SQL type "+sql_type.to_text+" is not recognized as an Postgres compatible type."
+        on_not_found =
+            Value_Type.Unsupported_Data_Type sql_type.name sql_type
         simple_type = simple_types_map.get sql_type.typeid Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we
                continue with the more complex mappings that take stuff like
                precision into account.
-            builder = complex_types_map.get sql_type.typeid handle_not_found
-            builder sql_type
+            case complex_types_map.get sql_type.typeid Nothing of
+                Nothing -> on_not_found
+                builder -> builder sql_type
 
-## The types that SQLite JDBC driver will report are:
-   - BOOLEAN
-   - TINYINT
-   - SMALLINT
-   - BIGINT
-   - INTEGER
-   - DECIMAL
-   - DOUBLE
-   - REAL
-   - FLOAT
-   - NUMERIC
-   - DATE
-   - TIMESTAMP
-   - CHAR
-   - VARCHAR
-   - BINARY
-   - BLOB
-   - CLOB
-
-   This maps the types that are mapped to a constant value type.
-   For some types, a more involved logic is needed.
 simple_types_map = Map.from_vector <|
-    ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_64]]
-    # In SQLite all reals are 64-bit floats. For other engines we may need to distinguish between these.
-    floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_64], [Types.FLOAT, Value_Type.Float Bits.Bits_64]]
-    other = [[Types.BOOLEAN, Value_Type.Boolean], [Types.TIMESTAMP, Value_Type.Date_Time with_timezone=False], [Types.DATE, Value_Type.Date]]
-    ints + other
+    ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
+    floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
+    # TODO Bit1, Date_Time
+    other = [[Types.BOOLEAN, Value_Type.Boolean], [Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time]]
+    ints + floats + other
 
 complex_types_map = Map.from_vector <|
     make_decimal sql_type =
@@ -85,19 +91,10 @@ complex_types_map = Map.from_vector <|
         Value_Type.Char size=sql_type.precision variable=True
     make_char sql_type =
         Value_Type.Char size=sql_type.precision variable=False
-    make_binary sql_type variable =
+    make_binary variable sql_type =
         Value_Type.Binary size=sql_type.precision variable=variable
     numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
     # TODO [RW] should CLOB be text or not? should we have a separate type for it? otherwise we cannot round-trip (CLOB -> Char -> VARCHAR != CLOB)
     strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
-    binaries = [[Types.BINARY, make_binary False], [Types.BLOB, make_binary True]]
+    binaries = [[Types.BINARY, make_binary False], [Types.BIT, make_binary False], [Types.BLOB, make_binary True]]
     numerics + strings + binaries
-
-numeric precision scale = SQL_Type.Value Types.NUMERIC "NUMERIC" precision=precision scale=scale
-varchar size = SQL_Type.Value Types.VARCHAR "VARCHAR" precision=size
-boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
-char size = SQL_Type.Value Types.CHAR "CHAR" precision=size
-binary variable size =
-    if variable then SQL_Type.Value Types.BLOB "BLOB" precision=size else
-        SQL_Type.Value Types.BINARY "BINARY" precision=size
-blob = binary variable=True size=Nothing

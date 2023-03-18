@@ -106,12 +106,9 @@ type Column
        implemented.
     value_type : Value_Type
     value_type self =
-        ## TODO This is a temporary implementation that should be revised once
-           types are implemented properly.
-        if self.sql_type.is_definitely_boolean then Value_Type.Boolean else
-            if self.sql_type.is_definitely_text then Value_Type.Char else
-                if self.sql_type.is_definitely_double then Value_Type.Float else
-                    Value_Type.Unsupported_Data_Type self.sql_type.name
+        mapping = self.connection.dialect.get_type_mapping
+        mapping.sql_type_to_value_type self.sql_type
+
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this column.

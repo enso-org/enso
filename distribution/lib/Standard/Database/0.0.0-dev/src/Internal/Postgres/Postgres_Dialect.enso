@@ -24,6 +24,8 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
+import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 
 from project.Errors import Unsupported_Database_Operation
 
@@ -103,6 +105,12 @@ type Postgres_Dialect
        given backend.
     get_naming_helpers : Naming_Helpers
     get_naming_helpers self = Naming_Helpers
+
+    ## PRIVATE
+       Returns the mapping between SQL types of this dialect and Enso
+       `Value_Type`.
+    get_type_mapping : SQL_Type_Mapping
+    get_type_mapping self = Postgres_Type_Mapping
 
 ## PRIVATE
 make_internal_generator_dialect =

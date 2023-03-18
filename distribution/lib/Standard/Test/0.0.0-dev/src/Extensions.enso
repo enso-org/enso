@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Test_Result.Test_Result
 from project.Test import Test
@@ -251,6 +252,16 @@ Error.should_succeed : Integer -> Any
 Error.should_succeed self frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
+## Handles an unexpected dataflow error.
+Error.should_be_a : Integer -> Any
+Error.should_be_a self frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Handles an unexpected dataflow error.
+Error.should_be_an : Integer -> Any
+Error.should_be_an self frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
 ## Asserts that the given `Boolean` is `True`
 
    > Example
@@ -320,18 +331,29 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Test_Result
 Any.should_be_a self typ =
-    ok = case Meta.meta typ of
+    loc = Meta.get_source_location 1
+    case Meta.meta typ of
         c : Meta.Constructor -> case Meta.meta self of
-            a : Meta.Atom -> a.constructor == c
-            _ -> False
-        _ -> self.is_a typ || self==typ
-
-    if ok then Test_Result.Success else
-        loc = Meta.get_source_location 3
-        expected_type = Meta.get_qualified_type_name typ
-        actual_type = Meta.get_qualified_type_name self
-        message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
-        Test.fail message
+                a : Meta.Atom ->
+                    if a.constructor == c then Test_Result.Success else
+                        expected_type = Meta.get_qualified_type_name typ
+                        actual_type = Meta.get_qualified_type_name self
+                        message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+loc+")."
+                        Test.fail message
+                _ ->
+                    expected_type = Meta.get_qualified_type_name typ
+                    actual_type = Meta.get_qualified_type_name self
+                    message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value of type "+actual_type+" instead (at "+loc+")."
+                    Test.fail message
+        _ : Meta.Type ->
+            ok = self.is_a typ || self==typ
+            if ok then Test_Result.Success else
+                expected_type = Meta.get_qualified_type_name typ
+                actual_type = Meta.get_qualified_type_name self
+                message = "Expected a value of type "+expected_type+" but got a value of type "+actual_type+" instead (at "+loc+")."
+                Test.fail message
+        _ -> Panic.throw <|
+            Illegal_Argument.Error "typ ("+typ.to_display_text+") must either be a type or an atom constructor. Use `should_equal` for value equality test instead."
 
 ## Asserts that a value is of a given type.
 
