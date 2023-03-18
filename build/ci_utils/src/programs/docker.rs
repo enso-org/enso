@@ -23,7 +23,7 @@ fn get_image_id_from_build_output(output: &std::process::Output) -> Result<Image
         .last()
         .with_context(|| "The last line has no space!")?;
     debug!("Image {} successfully built!", built_image_id);
-    Ok(ImageId::from_str(built_image_id)?)
+    ImageId::from_str(built_image_id)
 }
 
 #[derive(Clone, Debug, PartialEq, Ord, PartialOrd, Eq, Hash)]
