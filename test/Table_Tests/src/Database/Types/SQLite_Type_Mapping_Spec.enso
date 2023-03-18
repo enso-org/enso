@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Aggregate_Column, Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 
 from Standard.Database import SQL_Query

@@ -39,44 +39,32 @@ type SQLite_Type_Mapping
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems =
         result = case value_type of
-            Value_Type.Boolean -> boolean
-            # TODO should we allow these numeric types that are faked by SQLite or coerce all of them to INTEGER?
-            Value_Type.Byte -> SQL_Type.Value Types.TINYINT "TINYINT"
-            Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "SMALLINT"
-            Value_Type.Integer Bits.Bits_32 -> SQL_Type.Value Types.INTEGER "INTEGER"
-            Value_Type.Integer Bits.Bits_64 -> SQL_Type.Value Types.BIGINT "BIGINT"
-            Value_Type.Float Bits.Bits_32 -> SQL_Type.Value Types.REAL "REAL"
-            Value_Type.Float Bits.Bits_64 -> SQL_Type.Value Types.DOUBLE "DOUBLE"
-            Value_Type.Decimal precision scale -> numeric precision scale
-            Value_Type.Char size variable ->
-                if variable then varchar size else char size
-            Value_Type.Time -> blob
-            Value_Type.Date -> SQL_Type.Value Types.DATE "DATE"
-            Value_Type.Date_Time with_timezone -> SQL_Type.Value Types.TIMESTAMP "TIMESTAMP"
-            Value_Type.Binary size variable -> binary variable size
-            Value_Type.Mixed -> binary variable=True size=Nothing
+            Value_Type.Boolean -> SQLite_Types.boolean
+            Value_Type.Byte -> SQLite_Types.integer
+            Value_Type.Integer _ -> SQLite_Types.integer
+            Value_Type.Float _ -> SQLite_Types.real
+            Value_Type.Decimal _ _ -> SQLite_Types.numeric
+            Value_Type.Char _ _ -> SQLite_Types.text
+            Value_Type.Time -> SQLite_Types.blob
+            Value_Type.Date -> SQLite_Types.blob
+            Value_Type.Date_Time _ -> SQLite_Types.blob
+            Value_Type.Binary _ _ -> SQLite_Types.blob
+            Value_Type.Mixed -> SQLite_Types.blob
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <|
                     Error.throw <|
                         Illegal_Argument.Error <|
                             "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
-        # TODO check for inexact mappings
-        problems = []
+        approximated_value_type = SQLite_Type_Mapping.sql_type_to_value_type result
+        problems = if approximated_value_type == value_type then [] else [Inexact_Type_Coercion.Warning value_type approximated_value_type]
         on_problems.attach_problems_before problems result
 
     ## PRIVATE
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
-        handle_not_found =
-            Error.throw <| Illegal_Argument.Error <|
-                "The SQL type ["+sql_type.to_text+"] is not recognized as an SQLite compatible type."
-        simple_type = simple_types_map.get sql_type.typeid Nothing
-        simple_type.if_nothing <|
-            ## If we didn't match any of the types from the simple mapping, we
-               continue with the more complex mappings that take stuff like
-               precision into account.
-            builder = complex_types_map.get sql_type.typeid handle_not_found
-            builder sql_type
+        on_not_found =
+            Value_Type.Unsupported_Data_Type sql_type.type_name sql_type
+        simple_types_map.get sql_type.typeid on_not_found
 
 ## The types that SQLite JDBC driver will report are:
    - BOOLEAN
@@ -97,30 +85,35 @@ type SQLite_Type_Mapping
    - BLOB
    - CLOB
 
-   This maps the types that are mapped to a constant value type.
-   For some types, a more involved logic is needed.
+   We map the types to how they are actually stored, with the exception of
+   boolean which is mapped as boolean type as explained above.
+
+   For types like dates - we map them to unsupported type, because date
+   operations in SQLite are currently not supported due to their weird storage.
 simple_types_map = Map.from_vector <|
-    ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_64]]
-    # In SQLite all reals are 64-bit floats. For other engines we may need to distinguish between these.
-    floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_64], [Types.FLOAT, Value_Type.Float Bits.Bits_64]]
-    other = [[Types.BOOLEAN, Value_Type.Boolean], [Types.TIMESTAMP, Value_Type.Date_Time with_timezone=False], [Types.DATE, Value_Type.Date]]
-    ints + other
+    ints = [Types.TINYINT, Types.SMALLINT, Types.BIGINT, Types.INTEGER] . map x-> [x, Value_Type.Integer Bits.Bits_64]
+    floats = [Types.DOUBLE, Types.REAL, Types.FLOAT] . map x-> [x, Value_Type.Float Bits.Bits_64]
+    numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, Value_Type.Decimal]
+    strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, Value_Type.Char size=Nothing variable=True]
+    blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Binary size=Nothing variable=True]
+    ints + floats + numerics + strings + blobs
 
-## PRIVATE
-text = SQL_Type.Value Types.VARCHAR "TEXT"
+type SQLite_Types
+    ## PRIVATE
+    text = SQL_Type.Value Types.VARCHAR "TEXT"
 
-## PRIVATE
-numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
+    ## PRIVATE
+    numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
 
-## PRIVATE
-integer = SQL_Type.Value Types.INTEGER "INTEGER"
+    ## PRIVATE
+    integer = SQL_Type.Value Types.INTEGER "INTEGER"
 
-## PRIVATE
-real = SQL_Type.Value Types.REAL "REAL"
+    ## PRIVATE
+    real = SQL_Type.Value Types.REAL "REAL"
 
-## PRIVATE
-blob = SQL_Type.Value Types.BLOB "BLOB"
+    ## PRIVATE
+    blob = SQL_Type.Value Types.BLOB "BLOB"
 
-## PRIVATE
-   The artificial 6th affinity that is used to distinguish boolean columns.
-boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
+    ## PRIVATE
+       The artificial 6th affinity that is used to distinguish boolean columns.
+    boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"

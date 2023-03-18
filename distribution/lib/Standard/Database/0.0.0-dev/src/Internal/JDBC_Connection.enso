@@ -186,8 +186,6 @@ set_statement_values stmt holes =
         position = ix + 1
         case obj.first of
             Nothing ->
-                ## If we really don't have a clue what this should be, we choose a varchar for a blank column.
-                sql_type = if obj.second == SQL_Type.null then SQL_Type.text else obj.second
                 stmt.setNull position Java_Types.NULL
             _ : Date_Time -> stmt.setTimestamp position (JDBCUtils.getTimestamp obj.first)
             _ -> stmt.setObject position obj.first

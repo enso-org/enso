@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Aggregate_Column, Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 
 from Standard.Database import SQL_Query
@@ -106,8 +106,8 @@ spec connection db_name =
             t2.info.print
 
             # TODO curious
-            t2 = make_table "foo2" [["a", "char(5)"], ["b", "char(8)"]]
+            t3 = make_table "foo2" [["a", "char(5)"], ["b", "char(8)"]]
             IO.println <|
-                "char(5)+char(8) = " + (t2.compute '[a] + [b]' . value_type)
+                "char(5)+char(8) = " + (t3.compute '[a] + [b]' . value_type)
 
 main = Test_Suite.run_main (test_with_connection spec)

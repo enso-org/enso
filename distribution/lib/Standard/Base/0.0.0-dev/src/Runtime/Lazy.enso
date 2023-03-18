@@ -1,3 +1,7 @@
+import project.Any.Any
+import project.Nothing.Nothing
+import project.Runtime.Ref
+
 ## Holds a value that is computed on first access.
 type Lazy
     ## PRIVATE
@@ -25,8 +29,8 @@ type Lazy
     get self = case self of
         Lazy.Lazy cached_ref builder -> case cached_ref.get of
             Lazy_Not_Computed_Mark ->
-                value = self.builder Nothing
-                self.cached_ref.put value
+                value = builder Nothing
+                cached_ref.put value
                 value
             cached_value -> cached_value
         Lazy.Eager value -> value
