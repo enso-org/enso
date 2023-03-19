@@ -403,7 +403,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       suggestionsRepo,
       versionsRepo,
       context,
-      zioRuntime,
+      zioRuntime
     )(system.dispatcher)
 
   private val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
