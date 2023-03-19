@@ -1,6 +1,6 @@
 package org.enso.interpreter.instrument.execution
 
-import org.enso.interpreter.instrument.job.Job
+import org.enso.interpreter.instrument.job.{BackgroundJob, Job}
 
 import scala.concurrent.Future
 
@@ -20,7 +20,7 @@ trait JobProcessor {
     * @param job a job to execute
     * @return the future result of an asynchronous computation
     */
-  def runBackground[A](job: Job[A]): Unit
+  def runBackground[A](job: BackgroundJob[A]): Unit
 
   /** Stops the job processor. */
   def stop(): Unit

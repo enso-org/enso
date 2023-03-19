@@ -21,6 +21,7 @@ import * as sessionProvider from "./session";
 const MESSAGES = {
   signUpSuccess: "We have sent you an email with further instructions!",
   confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
+  signInWithPasswordSuccess: "Successfully logged in!",
   pleaseWait: "Please wait...",
 } as const;
 
@@ -75,6 +76,9 @@ export interface PartialUserSession {
 interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithGitHub: () => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `undefined`. */
@@ -141,34 +145,34 @@ export function AuthProvider(props: AuthProviderProps) {
       if (session.none) {
         setInitialized(true);
         setUserSession(undefined);
-        return;
-      }
-      const { accessToken, email } = session.val;
-
-      const backend = backendService.createBackend(accessToken, logger);
-      const organization = await backend.getUser();
-      let newUserSession: UserSession;
-      if (!organization) {
-        newUserSession = {
-          variant: "partial",
-          email,
-          accessToken,
-        };
       } else {
-        newUserSession = {
-          variant: "full",
-          email,
-          accessToken,
-          organization,
-        };
+        const { accessToken, email } = session.val;
 
-        /** Execute the callback that should inform the Electron app that the user has logged in.
-         * This is done to transition the app from the authentication/dashboard view to the IDE. */
-        onAuthenticated();
+        const backend = backendService.createBackend(accessToken, logger);
+        const organization = await backend.getUser();
+        let newUserSession: UserSession;
+        if (!organization) {
+          newUserSession = {
+            variant: "partial",
+            email,
+            accessToken,
+          };
+        } else {
+          newUserSession = {
+            variant: "full",
+            email,
+            accessToken,
+            organization,
+          };
+
+          /** Execute the callback that should inform the Electron app that the user has logged in.
+           * This is done to transition the app from the authentication/dashboard view to the IDE. */
+          onAuthenticated();
+        }
+
+        setUserSession(newUserSession);
+        setInitialized(true);
       }
-
-      setUserSession(newUserSession);
-      setInitialized(true);
     };
 
     fetchSession().catch((error) => {
@@ -215,9 +219,25 @@ export function AuthProvider(props: AuthProviderProps) {
       navigate(app.LOGIN_PATH);
     });
 
+  const signInWithPassword = async (email: string, password: string) =>
+    cognito.signInWithPassword(email, password).then((result) => {
+      if (result.ok) {
+        toast.success(MESSAGES.signInWithPasswordSuccess);
+      } else {
+        if (result.val.kind === "UserNotFound") {
+          navigate(app.REGISTRATION_PATH);
+        }
+
+        toast.error(result.val.message);
+      }
+    });
+
   const value = {
     signUp: withLoadingToast(signUp),
     confirmSignUp: withLoadingToast(confirmSignUp),
+    signInWithGoogle: cognito.signInWithGoogle.bind(cognito),
+    signInWithGitHub: cognito.signInWithGitHub.bind(cognito),
+    signInWithPassword: withLoadingToast(signInWithPassword),
     session: userSession,
   };
 
@@ -265,9 +285,9 @@ export function ProtectedLayout() {
 
   if (!session) {
     return <router.Navigate to={app.LOGIN_PATH} />;
+  } else {
+    return <router.Outlet context={session} />;
   }
-
-  return <router.Outlet context={session} />;
 }
 
 // ===================
@@ -280,9 +300,9 @@ export function GuestLayout() {
 
   if (session?.variant === "full") {
     return <router.Navigate to={app.DASHBOARD_PATH} />;
+  } else {
+    return <router.Outlet />;
   }
-
-  return <router.Outlet />;
 }
 
 // ==========================

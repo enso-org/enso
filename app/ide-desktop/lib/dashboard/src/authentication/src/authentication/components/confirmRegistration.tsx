@@ -32,20 +32,19 @@ function ConfirmRegistration() {
   react.useEffect(() => {
     if (!email || !verificationCode) {
       navigate(app.LOGIN_PATH);
-      return;
+    } else {
+      confirmSignUp(email, verificationCode)
+        .then(() => {
+          navigate(app.LOGIN_PATH + search.toString());
+        })
+        .catch((error) => {
+          logger.error("Error while confirming sign-up", error);
+          toast.error(
+            "Something went wrong! Please try again or contact the administrators."
+          );
+          navigate(app.LOGIN_PATH);
+        });
     }
-
-    confirmSignUp(email, verificationCode)
-      .then(() => {
-        navigate(app.LOGIN_PATH + search.toString());
-      })
-      .catch((error) => {
-        logger.error("Error while confirming sign-up", error);
-        toast.error(
-          "Something went wrong! Please try again or contact the administrators."
-        );
-        navigate(app.LOGIN_PATH);
-      });
   }, []);
 
   return <></>;

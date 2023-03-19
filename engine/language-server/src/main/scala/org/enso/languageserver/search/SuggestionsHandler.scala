@@ -201,6 +201,10 @@ final class SuggestionsHandler(
         initialized(projectName, graph, clients - client.clientId, state)
       )
 
+    case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification
+        if state.isSuggestionLoadingRunning =>
+      state.suggestionLoadingQueue.enqueue(msg)
+
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification =>
       logger.debug(
         "Starting loading suggestions for library [{}].",
@@ -218,13 +222,23 @@ final class SuggestionsHandler(
                 sessionRouter ! DeliverToJsonController(clientId, notification)
               }
             }
+            self ! SuggestionsHandler.SuggestionLoadingCompleted
           case Failure(ex) =>
             logger.error(
               "Error applying suggestion updates for loaded library [{}].",
               msg.libraryName,
               ex
             )
+            self ! SuggestionsHandler.SuggestionLoadingCompleted
         }
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.copy(isSuggestionLoadingRunning = true)
+        )
+      )
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification
         if state.isSuggestionUpdatesRunning =>
@@ -516,6 +530,18 @@ final class SuggestionsHandler(
         )
       )
 
+    case SuggestionLoadingCompleted =>
+      if (state.suggestionLoadingQueue.nonEmpty) {
+        self ! state.suggestionLoadingQueue.dequeue()
+      }
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.copy(isSuggestionLoadingRunning = false)
+        )
+      )
   }
 
   /** Transition the initialization process.
@@ -775,9 +801,12 @@ object SuggestionsHandler {
   }
 
   /** The notification that the suggestion updates are processed. */
-  case object SuggestionUpdatesCompleted
+  private case object SuggestionUpdatesCompleted
 
-  case class SuggestionUpdatesBatch(
+  /** The notification that the suggestions loading is complete. */
+  private case object SuggestionLoadingCompleted
+
+  private case class SuggestionUpdatesBatch(
     updates: Seq[Api.SuggestionsDatabaseModuleUpdateNotification]
   )
 
@@ -809,15 +838,20 @@ object SuggestionsHandler {
   /** The suggestion updates state.
     *
     * @param suggestionUpdatesQueue the queue containing update messages
-    * @param isSuggestionUpdatesRunning a flag for a running update action
+    * @param isSuggestionUpdatesRunning a flag for a running suggestion update action
+    * @param isSuggestionLoadingRunning a flag for a running suggestion loading action
     * @param shouldStartBackgroundProcessing a flag for starting a background
     * processing action
     */
   final case class State(
     suggestionUpdatesQueue: mutable.Queue[
       Api.SuggestionsDatabaseModuleUpdateNotification
+    ] = mutable.Queue.empty,
+    suggestionLoadingQueue: mutable.Queue[
+      Api.SuggestionsDatabaseSuggestionsLoadedNotification
     ]                                        = mutable.Queue.empty,
     isSuggestionUpdatesRunning: Boolean      = false,
+    isSuggestionLoadingRunning: Boolean      = false,
     shouldStartBackgroundProcessing: Boolean = true
   )
 

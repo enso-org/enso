@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 
 import * as app from "../../components/app";
 import * as auth from "../providers/auth";
+import * as common from "./common";
 import * as hooks from "../../hooks";
 import * as icons from "../../components/svg";
 import * as utils from "../../utils";
@@ -15,28 +16,6 @@ import * as utils from "../../utils";
 const INPUT_CLASS_NAME =
   "text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full " +
   "py-2 focus:outline-none focus:border-indigo-400";
-
-// ============
-// === Icon ===
-// ============
-
-interface IconProps {
-  data: string;
-}
-
-function Icon(props: IconProps) {
-  return (
-    <div
-      className={
-        "inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400"
-      }
-    >
-      <span>
-        <icons.Svg {...props} />
-      </span>
-    </div>
-  );
-}
 
 // ====================
 // === Registration ===
@@ -53,17 +32,17 @@ function Registration() {
     if (password !== confirmPassword) {
       toast.error("Passwords do not match.");
       return Promise.resolve();
+    } else {
+      return signUp(email, password);
     }
-
-    return signUp(email, password);
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-300 px-4 py-8">
       <div
         className={
-          "rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 shadow-md px-4 " +
-          "py-6 sm:p-8"
+          "rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 " +
+          "shadow-md px-4 py-6 sm:p-8"
         }
       >
         <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
@@ -79,7 +58,7 @@ function Registration() {
               E-Mail Address:
             </label>
             <div className="relative">
-              <Icon data={icons.PATHS.at} />
+              <common.SvgIcon data={icons.PATHS.at} />
 
               <input
                 {...bindEmail}
@@ -99,7 +78,7 @@ function Registration() {
               Password:
             </label>
             <div className="relative">
-              <Icon data={icons.PATHS.lock} />
+              <common.SvgIcon data={icons.PATHS.lock} />
 
               <input
                 {...bindPassword}
@@ -119,7 +98,7 @@ function Registration() {
               Confirm Password:
             </label>
             <div className="relative">
-              <Icon data={icons.PATHS.lock} />
+              <common.SvgIcon data={icons.PATHS.lock} />
 
               <input
                 {...bindConfirmPassword}
@@ -153,8 +132,8 @@ function Registration() {
         <router.Link
           to={app.LOGIN_PATH}
           className={
-            "inline-flex items-center font-bold text-indigo-500 hover:text-indigo-700 text-sm " +
-            "text-center"
+            "inline-flex items-center font-bold text-indigo-500 hover:text-indigo-700 " +
+            "text-sm text-center"
           }
         >
           <span>

@@ -24,7 +24,7 @@ import org.enso.languageserver.boot.resource.{
 }
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
-import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.effect.{TestRuntime, ZioExec}
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
@@ -132,7 +132,7 @@ class BaseServerTest
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
-  val zioExec         = ZioExec(zio.Runtime.default)
+  val zioExec         = ZioExec(new TestRuntime)
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
