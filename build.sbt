@@ -2168,10 +2168,11 @@ buildStdLib := Def.inputTaskDyn {
 
 lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
 pkgStdLibInternal := Def.inputTask {
-  val cmd             = allStdBits.parsed
-  val root            = engineDistributionRoot.value
-  val log: sbt.Logger = streams.value.log
-  val cacheFactory    = streams.value.cacheStoreFactory
+  val cmd               = allStdBits.parsed
+  val root              = engineDistributionRoot.value
+  val log: sbt.Logger   = streams.value.log
+  val cacheFactory      = streams.value.cacheStoreFactory
+  val standardNamespace = "Standard"
   cmd match {
     case "Base" =>
       (`std-base` / Compile / packageBin).value
@@ -2197,7 +2198,7 @@ pkgStdLibInternal := Def.inputTask {
   val libs =
     if (cmd != "All") Seq(cmd)
     else {
-      val prefix = "Standard."
+      val prefix = s"$standardNamespace."
       Editions.standardLibraries
         .filter(_.startsWith(prefix))
         .map(_.stripPrefix(prefix))
@@ -2209,6 +2210,16 @@ pkgStdLibInternal := Def.inputTask {
       cacheFactory,
       log,
       defaultDevEnsoVersion
+    )
+    val stdlibStandardRoot = root / "lib" / standardNamespace
+    DistributionPackage.indexStdLib(
+      libMajor       = stdlibStandardRoot,
+      libName        = stdlibStandardRoot / lib,
+      stdLibVersion  = defaultDevEnsoVersion,
+      ensoVersion    = defaultDevEnsoVersion,
+      ensoExecutable = root / "bin" / "enso",
+      cacheFactory   = cacheFactory.sub("stdlib"),
+      log            = log
     )
   }
 }.evaluated
