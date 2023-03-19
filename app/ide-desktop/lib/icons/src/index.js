@@ -1,40 +1,53 @@
-/// This file generates the product logo as SVG and then converts it to set of PNGs, MacOS ICNS, and
-/// Windows ICO formats.
+/** @file
+ * This file generates the product logo as SVG and then converts it to set of PNGs, MacOS ICNS, and
+ * Windows ICO formats.
+ */
 
-import { default as fss } from 'fs'
-import { promises as fs } from 'fs'
+import * as childProcess from 'node:child_process'
+import * as fs from 'node:fs/promises'
+import * as fsSync from 'node:fs'
+import * as os from 'node:os'
+import * as path from 'node:path'
+import * as url from 'node:url'
 
-import { execSync } from 'child_process'
-import { default as toIco } from 'to-ico'
-import { default as sharp } from 'sharp'
-import { platform } from 'os'
-import path from 'path'
-import url from 'url'
+import sharp from 'sharp'
+import toIco from 'to-ico'
+
+// =================
+// === Constants ===
+// =================
+
+const DEFAULT_SIZE = 64
+const INNER_SIZE = 56
+const BORDER_MAX = 10
+const BORDER_WIDTH = 7
+/** How much bigger the left atom is compared to the right atom. */
+const LEFT_ATOM_ENLARGEMENT = 4
+/** The atoms are spaced one radius apart, so the centers are spaced three radii apart. */
+const ATOM_SPACING_FACTOR = 3
+const MACOS_DPI = 144
+
+// ============
+// === Logo ===
+// ============
 
 class Logo {
-    constructor(size = 64, compatibleMode = true) {
+    constructor(size = DEFAULT_SIZE, compatibleMode = true) {
         this.xsize = size
-        this.size = 64
+        this.size = DEFAULT_SIZE
         this.compatibleMode = compatibleMode
-        this.borderMax = 10
+        this.borderMax = BORDER_MAX
         this.borderSpread = 2
-        this.init()
-    }
-
-    init() {
-        var scaleStop = 128
-        var scaleLog = Math.log2(scaleStop)
-        this.borderWidth = 7
-        this.topRadius = 32
+        this.borderWidth = BORDER_WIDTH
+        this.topRadius = this.size / 2
         this.borderOffset = this.borderWidth - this.borderSpread
         this.innerRadius = this.topRadius - this.borderWidth - this.borderOffset
         this.atomRadius = this.innerRadius / 2
         this.atomDiff = 0
-        this.d = 4
-        let innerSize = 56
-        this.scale1 = innerSize / 64
-        this.scale = this.xsize / 64
-        this.tx = (64 - innerSize) / 2
+        this.d = LEFT_ATOM_ENLARGEMENT
+        this.scale1 = INNER_SIZE / this.size
+        this.scale = this.xsize / this.size
+        this.tx = (this.size - INNER_SIZE) / 2
         if (this.compatibleMode) {
             this.ref = 'xlink:href'
         } else {
@@ -54,7 +67,10 @@ class Logo {
             this.borderWidth + this.borderOffset + this.atomRadius + this.atomDiff - this.d
         }" cy="32" r="${this.atomRadius + this.atomDiff + this.d}"/>
         <circle id="rightAtom"   cx="${
-            this.borderWidth + this.borderOffset + 3 * this.atomRadius + this.atomDiff
+            this.borderWidth +
+            this.borderOffset +
+            ATOM_SPACING_FACTOR * this.atomRadius +
+            this.atomDiff
         }" cy="32" r="${this.atomRadius - this.atomDiff}"/>
         <mask id="innerCircleMask">
             <use ${this.ref}="#innerCircle" fill="white"/>
@@ -63,7 +79,7 @@ class Logo {
         <rect id="bg" width="64" height="64" fill="white"/>
             <mask id="bgmask">
             <use ${this.ref}="#bg"/>
-            <circle cx="32" cy="32" r="${32 - this.borderWidth}" fill="black"/>
+            <circle cx="32" cy="32" r="${this.size / 2 - this.borderWidth}" fill="black"/>
         </mask>
 
         <mask id="mainShapeMask">
@@ -114,28 +130,18 @@ class Logo {
     }
 }
 
-class AppLogo extends Logo {
-    constructor(size, compatibleMode) {
-        super(size, compatibleMode)
-        this.init()
-    }
-}
-
-const fastGenerate =
-    cons =>
-    (...args) =>
-        new cons(...args).generate()
-
-function generateMinimalWhiteLogo() {
-    return fastGenerate(AppLogo)
-}
-
+/**
+ * Generate icons.
+ * @param {string} outputDir - The directory in which the icons will be placed.
+ */
 async function genIcons(outputDir) {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     let sizes = [16, 32, 64, 128, 256, 512, 1024]
-    let win_sizes = [16, 32, 64, 128, 256]
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    let winSizes = [16, 32, 64, 128, 256]
 
     const donePath = path.join(outputDir, 'init')
-    if (fss.existsSync(donePath)) {
+    if (fsSync.existsSync(donePath)) {
         console.log(`The ${donePath} file exists. Icons will not be regenerated.`)
         return
     } else {
@@ -145,9 +151,9 @@ async function genIcons(outputDir) {
     console.log('Generating SVG icons.')
     await fs.mkdir(path.resolve(outputDir, 'svg'), { recursive: true })
     await fs.mkdir(path.resolve(outputDir, 'png'), { recursive: true })
-    for (let size of sizes) {
+    for (const size of sizes) {
         let name = `icon_${size}x${size}.svg`
-        let logo = generateMinimalWhiteLogo()(size, true)
+        let logo = new Logo(size, true).generate()
         await fs.writeFile(`${outputDir}/svg/${name}`, logo)
     }
 
@@ -156,10 +162,10 @@ async function genIcons(outputDir) {
     /// It is required to properly display png images on MacOS.
     /// There is currently no other way in `sharp` to do it.
     console.log('Generating PNG icons.')
-    for (let size of sizes) {
+    for (const size of sizes) {
         let inName = `icon_${size}x${size}.svg`
         let outName = `icon_${size}x${size}.png`
-        await sharp(`${outputDir}/svg/${inName}`, { density: 144 })
+        await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
             .png()
             .resize({
                 width: size,
@@ -168,11 +174,11 @@ async function genIcons(outputDir) {
             .toFile(`${outputDir}/png/${outName}`)
     }
 
-    for (let size of sizes.slice(1)) {
+    for (const size of sizes.slice(1)) {
         let size2 = size / 2
         let inName = `icon_${size}x${size}.svg`
         let outName = `icon_${size2}x${size2}@2x.png`
-        await sharp(`${outputDir}/svg/${inName}`, { density: 144 })
+        await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
             .png()
             .resize({
                 width: size,
@@ -181,27 +187,29 @@ async function genIcons(outputDir) {
             .toFile(`${outputDir}/png/${outName}`)
     }
 
-    if (platform() === 'darwin') {
+    if (os.platform() === 'darwin') {
         console.log('Generating ICNS.')
-        execSync(`cp -R ${outputDir}/png ${outputDir}/png.iconset`)
-        execSync(`iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`)
+        childProcess.execSync(`cp -R ${outputDir}/png ${outputDir}/png.iconset`)
+        childProcess.execSync(
+            `iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`
+        )
     }
 
     console.log('Generating ICO.')
     let files = []
-    for (let size of win_sizes) {
+    for (const size of winSizes) {
         let inName = `icon_${size}x${size}.png`
         let data = await fs.readFile(`${outputDir}/png/${inName}`)
         files.push(data)
     }
-    toIco(files).then(buf => {
-        fss.writeFileSync(`${outputDir}/icon.ico`, buf)
-    })
+    const icoBuffer = await toIco(files)
+    fsSync.writeFileSync(`${outputDir}/icon.ico`, icoBuffer)
 
     let handle = await fs.open(donePath, 'w')
     await handle.close()
 }
 
+/** Main entry function. */
 async function main() {
     const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
     if (!outputDir) {

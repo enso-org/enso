@@ -6,13 +6,13 @@ import project.Helpers
 ## PRIVATE
 
    Get first numeric column of the table.
-Table.first_numeric : Table -> Column ! Nothing
+Table.first_numeric : Column ! Nothing
 Table.first_numeric self = self.columns.find if_missing=(Error.throw Nothing) _.is_numeric
 
 ## PRIVATE
 
    Get the value column - the column that will be used to create histogram.
-Table.value_column : Table -> Column ! Nothing
+Table.value_column : Column ! Nothing
 Table.value_column self =
     named_col = self.lookup_ignore_case 'value'
     named_col.catch_ self.first_numeric

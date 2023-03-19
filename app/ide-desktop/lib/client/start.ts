@@ -1,51 +1,46 @@
-/** This script starts the IDE using the Electron executable. */
+/** @file This script starts the IDE using the Electron executable. */
 
-import { bundlerOptionsFromEnv, outdir } from './esbuild-config.js'
-import esbuild from 'esbuild'
-import {
-    getGuiDirectory,
-    getIdeDirectory,
-    getProjectManagerBundle,
-    getProjectManagerInBundlePath,
-    project_manager_bundle,
-} from './paths.js'
-import path from 'node:path'
-import fs from 'node:fs/promises'
-import * as assert from 'assert'
-import child_process from 'node:child_process'
+import * as childProcess from 'node:child_process'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
 
-const guiDist = path.resolve(getGuiDirectory())
-const ideDist = getIdeDirectory()
-const projectManagerBundle = getProjectManagerBundle()
+import * as esbuild from 'esbuild'
 
-const scriptArgs = process.argv.slice(2)
-console.log('Script arguments:')
+import * as esbuildConfig from './esbuild-config.js'
+import * as paths from './paths.js'
+
+const GUI_PATH = path.resolve(paths.getGuiDirectory())
+const IDE_PATH = paths.getIdeDirectory()
+const PROJECT_MANAGER_BUNDLE = paths.getProjectManagerBundlePath()
+
+const SCRIPT_ARGS = process.argv.slice(2)
+console.log('Script arguments:', ...SCRIPT_ARGS.map(arg => JSON.stringify(arg)))
 
 console.log('Cleaning IDE dist directory.')
-await fs.rm(ideDist, { recursive: true, force: true })
-await fs.mkdir(ideDist, { recursive: true })
+await fs.rm(IDE_PATH, { recursive: true, force: true })
+await fs.mkdir(IDE_PATH, { recursive: true })
 
 console.log('Bundling client.')
-const bundlerOptions = bundlerOptionsFromEnv()
-bundlerOptions.outdir = path.resolve(ideDist)
-await esbuild.build(bundlerOptions)
+const BUNDLER_OPTIONS = esbuildConfig.bundlerOptionsFromEnv()
+BUNDLER_OPTIONS.outdir = path.resolve(IDE_PATH)
+await esbuild.build(BUNDLER_OPTIONS)
 
 console.log('Linking GUI files.')
-await fs.symlink(path.join(guiDist, 'assets'), path.join(ideDist, 'assets'), 'dir')
+await fs.symlink(path.join(GUI_PATH, 'assets'), path.join(IDE_PATH, 'assets'), 'dir')
 
 console.log('LinkingProject Manager files.')
-await fs.symlink(projectManagerBundle, path.join(ideDist, project_manager_bundle), 'dir')
+await fs.symlink(PROJECT_MANAGER_BUNDLE, path.join(IDE_PATH, paths.PROJECT_MANAGER_BUNDLE), 'dir')
 
 console.log('Spawning Electron process.')
-const electronArgs = [path.join(ideDist, 'index.cjs'), '--', ...scriptArgs]
-const electronProcess = child_process.spawn('electron', electronArgs, {
+const ELECTRON_ARGS = [path.join(IDE_PATH, 'index.cjs'), '--', ...SCRIPT_ARGS]
+const ELECTRON_PROCESS = childProcess.spawn('electron', ELECTRON_ARGS, {
     stdio: 'inherit',
     shell: true,
 })
 
 // Wait till process finished.
-const code = await new Promise((resolve, reject) => {
-    electronProcess.on('close', resolve)
-    electronProcess.on('error', reject)
+const CODE = await new Promise<string>((resolve, reject) => {
+    ELECTRON_PROCESS.on('close', resolve)
+    ELECTRON_PROCESS.on('error', reject)
 })
-console.log(`Electron process finished. Exit code: ${code}.`)
+console.log(`Electron process finished. Exit code: ${CODE}.`)

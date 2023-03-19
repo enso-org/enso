@@ -108,4 +108,5 @@ type Regex_Matcher
 
              Text_Matcher.match_criteria [Pair.new "foo" 42, Pair.new "bar" 33, Pair.new "baz" 10, Pair.new "foo" 0, Pair.new 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair.new "bar" 33, Pair.new "foo" 42, Pair.new "foo" 0]
     match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! Matching.No_Matches_Found
-    match_criteria self = Matching.match_criteria_implementation self
+    match_criteria self objects criteria reorder=False name_mapper=(x->x) on_problems=Problem_Behavior.Report_Warning =
+        Matching.match_criteria_implementation self objects criteria reorder name_mapper on_problems

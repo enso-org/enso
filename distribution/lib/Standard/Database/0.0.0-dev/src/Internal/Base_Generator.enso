@@ -48,7 +48,7 @@ type Internal_Dialect
 
    Arguments:
    - name: The name of the binary operator.
-make_binary_op : Text -> Vector Builder -> Builder
+make_binary_op : Text -> (Vector Builder -> Builder)
 make_binary_op name =
     arguments ->
         case arguments.length == 2 of
@@ -64,7 +64,7 @@ make_binary_op name =
 
    Arguments:
    - name: The name of the unary operator.
-make_unary_op : Text -> Vector Builder -> Builder
+make_unary_op : Text -> (Vector Builder -> Builder)
 make_unary_op name =
     arguments ->
         case arguments.length == 1 of
@@ -112,7 +112,7 @@ lift_binary_op name function =
 
    Arguments:
    - name: The name of the unary operator.
-make_right_unary_op : Text -> Vector Builder -> Builder
+make_right_unary_op : Text -> (Vector Builder -> Builder)
 make_right_unary_op name =
     arguments ->
         case arguments.length == 1 of
@@ -127,7 +127,7 @@ make_right_unary_op name =
 
    Arguments:
    - name: The name of the function.
-make_function : Text -> Vector Builder -> Builder
+make_function : Text -> (Vector Builder -> Builder)
 make_function name =
     arguments ->
         (code name) ++ (SQL.join ", " arguments . paren)
@@ -138,7 +138,7 @@ make_function name =
 
    Arguments:
    - sql_code: The SQL code for the constant.
-make_constant : Text -> Vector Builder -> Builder
+make_constant : Text -> (Vector Builder -> Builder)
 make_constant sql_code =
     arguments ->
         if arguments.not_empty then Error.throw <| Illegal_State.Error "No arguments were expected" else

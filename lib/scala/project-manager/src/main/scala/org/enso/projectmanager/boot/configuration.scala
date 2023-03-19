@@ -84,10 +84,12 @@ object configuration {
     *
     * @param numberOfRetries how many times a bootloader should try to boot the LS
     * @param delayBetweenRetry delays between retries
+    * @param skipGraalVMUpdater indicates if the check and installation of the required GraalVM should be skipped
     */
   case class BootloaderConfig(
     numberOfRetries: Int,
-    delayBetweenRetry: FiniteDuration
+    delayBetweenRetry: FiniteDuration,
+    skipGraalVMUpdater: Boolean = false
   )
 
   /** A configuration object for supervisor properties.

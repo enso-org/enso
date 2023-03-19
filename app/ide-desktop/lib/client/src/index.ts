@@ -24,7 +24,15 @@ import * as process from 'process'
 import isDev from "electron-is-dev";
 import {clientArguments} from "paths";
 import dialog from 'electron/main'
-const logger = content.logger
+
+const logger = contentConfig.logger
+
+// =================
+// === Constants ===
+// =================
+
+/** Indent size for outputting JSON. */
+const INDENT_SIZE = 4
 
 export function attemptingToOpenFile(clientArgs: string[]): string | null {
     // If we are invoked with exactly one argument and this argument is a file, we assume that we have been
@@ -58,23 +66,7 @@ class App {
     }
 
     async run() {
-        console.debug(`Client arguments: ${clientArguments}`)
-        let clientArgs = clientArguments
-        let openedFile = attemptingToOpenFile(clientArgs)
-        const { args, windowSize, chromeOptions } = (() => {
-            let argsToParse = openedFile ? [] : clientArgs
-            let ret = configParser.parseArgs()
-            if (openedFile !== null) {
-                const rootPath = paths.getProjectRoot(openedFile)
-                // TODO: install project, if it is not under the projects directory
-                console.debug(`Project root: ${rootPath}`)
-                const projectId = paths.getProjectId(rootPath)
-                console.debug(`Project ID: ${projectId}`)
-                ret.args.groups.startup.options.project.value = projectId
-            }
-            return ret
-        })()
-
+        const { args, windowSize, chromeOptions } = configParser.parseArgs()
         this.args = args
         if (this.args.options.version.value) {
             await this.printVersion()

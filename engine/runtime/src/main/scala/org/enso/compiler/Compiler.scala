@@ -2,11 +2,9 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
+import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Expression
-
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
@@ -24,7 +22,7 @@ import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
-import org.enso.syntax.text.{AST, Parser}
+import org.enso.syntax.text.Parser
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
@@ -61,6 +59,8 @@ class Compiler(
   private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
     RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
   )
+  private val isInteractiveMode =
+    context.getEnvironment.getOptions.get(RuntimeOptions.INTERACTIVE_MODE_KEY)
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
@@ -162,8 +162,13 @@ class Compiler(
     *
     * @param shouldCompileDependencies whether compilation should also compile
     *                                  the dependencies of the requested package
+    * @param useGlobalCacheLocations whether or not the compilation result should
+    *                                  be written to the global cache
     */
-  def compile(shouldCompileDependencies: Boolean): Unit = {
+  def compile(
+    shouldCompileDependencies: Boolean,
+    useGlobalCacheLocations: Boolean
+  ): Unit = {
     val packageRepository = context.getPackageRepository
 
     packageRepository.getMainProjectPackage match {
@@ -204,7 +209,7 @@ class Compiler(
 
             serializationManager.serializeLibrary(
               pkg.libraryName,
-              useGlobalCacheLocations = true
+              useGlobalCacheLocations = useGlobalCacheLocations
             )
         }
     }
@@ -392,10 +397,14 @@ class Compiler(
           val shouldStoreCache =
             irCachingEnabled && !module.wasLoadedFromCache()
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
-            serializationManager.serializeModule(
-              module,
-              useGlobalCacheLocations
-            )
+            if (isInteractiveMode) {
+              context.getNotificationHandler.serializeModule(module.getName)
+            } else {
+              serializationManager.serializeModule(
+                module,
+                useGlobalCacheLocations
+              )
+            }
           }
         } else {
           logger.log(
@@ -536,21 +545,9 @@ class Compiler(
       isGeneratingDocs = isGenDocs
     )
 
-    val src = module.getSource
-    def oldParser() = {
-      System.err.println("Using old parser to process " + src.getURI())
-      val tree = parse(src)
-      generateIR(tree)
-    }
-    val expr =
-      if (
-        !"scala".equals(System.getenv("ENSO_PARSER")) && ensoCompiler.isReady()
-      ) {
-        val tree = ensoCompiler.parse(src)
-        ensoCompiler.generateIR(tree)
-      } else {
-        oldParser()
-      }
+    val src  = module.getSource
+    val tree = ensoCompiler.parse(src)
+    val expr = ensoCompiler.generateIR(tree)
 
     val exprWithModuleExports =
       if (module.isSynthetic)
@@ -666,14 +663,6 @@ class Compiler(
     module.getScope
   }
 
-  /** Parses the provided language sources.
-    *
-    * @param source the code to parse
-    * @return an AST representation of `source`
-    */
-  def parse(source: Source): AST =
-    Parser().runWithIds(source.getCharacters.toString)
-
   /** Parses the given source with the new Rust parser.
     *
     * @param source The inline code to parse
@@ -688,15 +677,6 @@ class Compiler(
     */
   def parseMeta(source: CharSequence): IDMap =
     Parser().splitMeta(source.toString)._2
-
-  /** Lowers the input AST to the compiler's high-level intermediate
-    * representation.
-    *
-    * @param sourceAST the parser AST input
-    * @return an IR representation of the program represented by `sourceAST`
-    */
-  def generateIR(sourceAST: AST): IR.Module =
-    AstToIr.translate(sourceAST)
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
@@ -779,15 +759,6 @@ class Compiler(
       passes.moduleDiscoveryPasses
     )
   }
-
-  /** Lowers the input AST to the compiler's high-level intermediate
-    * representation.
-    *
-    * @param sourceAST the parser AST representing the program source
-    * @return an IR representation of the program represented by `sourceAST`
-    */
-  def generateIRInline(sourceAST: AST): Option[Expression] =
-    AstToIr.translateInline(sourceAST)
 
   /** Runs the various compiler passes.
     *

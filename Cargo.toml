@@ -18,6 +18,7 @@ members = [
   "build/deprecated/rust-scripts",
   "build/shader-tools",
   "lib/rust/*",
+  "lib/rust/parser/doc-parser",
   "lib/rust/parser/src/syntax/tree/visitor",
   "lib/rust/parser/jni",
   "lib/rust/parser/generate-java",

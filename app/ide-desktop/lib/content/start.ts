@@ -1,10 +1,12 @@
-import bundler from './esbuild-config.js'
-// @ts-ignore
-import * as server from 'enso-gui-server'
-import esbuild from 'esbuild'
+/** @file Start the file watch service. */
+import * as esbuild from 'esbuild'
 
-const opts = bundler.bundleOptions()
-const root = opts.outdir
-const assets = root
-await esbuild.build(opts)
-await server.start({ root, assets })
+import * as guiServer from 'enso-gui-server'
+
+import bundler from './esbuild-config.js'
+
+const OPTS = bundler.bundleOptions()
+const ROOT = OPTS.outdir
+const ASSETS = ROOT
+await esbuild.build(OPTS)
+await guiServer.start({ root: ROOT, assets: ASSETS })

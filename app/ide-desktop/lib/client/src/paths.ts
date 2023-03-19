@@ -1,10 +1,12 @@
 /** @file File system paths used by the application. */
 
-import path from 'node:path'
-import { project_manager_bundle } from '../paths'
-import Electron from 'electron'
-import isDev from 'electron-is-dev'
 import fss from "node:fs";
+import * as path from 'node:path'
+
+import * as electron from 'electron'
+import electronIsDev from 'electron-is-dev'
+
+import * as paths from '../paths'
 
 // =============
 // === Paths ===
@@ -13,25 +15,24 @@ import fss from "node:fs";
 /** The root of the application bundle.
  *
  * This path is like:
- *  - for packaged application `…/resources/app.asar`;
- *  - for development `…` (just the directory with `index.js`).
- **/
-export const app = Electron.app.getAppPath()
+ * - for packaged application `…/resources/app.asar`;
+ * - for development `…` (just the directory with `index.js`).
+ */
+export const APP_PATH = electron.app.getAppPath()
 
 /** The application assets, all files bundled with it. */
-export const assets = path.join(app, 'assets')
+export const ASSETS_PATH = path.join(APP_PATH, 'assets')
 
 /** Path to the `resources` folder.
  *
  * Contains other app resources, including binaries, such a project manager.
- **/
-export const resources = isDev ? app : path.join(app, '..')
+ */
+export const RESOURCES_PATH = electronIsDev ? APP_PATH : path.join(APP_PATH, '..')
 
 /** Project manager binary path. */
-export const projectManager = path.join(
-    resources,
-    project_manager_bundle,
-    // @ts-ignore
+export const PROJECT_MANAGER_PATH = path.join(
+    RESOURCES_PATH,
+    paths.PROJECT_MANAGER_BUNDLE,
     // Placeholder for a bundler-provided define.
     PROJECT_MANAGER_IN_BUNDLE_PATH
 )
@@ -40,7 +41,7 @@ export const projectManager = path.join(
 export const projectMetadataRelative = path.join('.enso', 'project.json')
 
 /** Get the arguments, excluding the initial program name and any electron dev mode arguments. */
-export const clientArguments = isDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv.slice(1)
+export const clientArguments = electronIsDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv.slice(1)
 
     /** Check if the given path represents the root of an Enso project. This is decided by the presence of Project Manager's metadata.
     */
