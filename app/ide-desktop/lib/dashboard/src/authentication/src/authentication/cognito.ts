@@ -34,7 +34,26 @@ import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
 import * as config from './config'
+import * as loggerProvider from '../providers/logger'
 import * as platformModule from '../platform'
+
+// =================
+// === Constants ===
+// =================
+
+/** String used to identify the GitHub federated identity provider in AWS Amplify.
+ *
+ * This provider alone requires a string because it is not a standard provider, and thus has no
+ * constant defined in the AWS Amplify library. */
+const GITHUB_PROVIDER = 'Github'
+
+const MESSAGES = {
+    signInWithPassword: {
+        userNotFound: 'User not found. Please register first.',
+        userNotConfirmed: 'User is not confirmed. Please check your email for a confirmation link.',
+        incorrectUsernameOrPassword: 'Incorrect username or password.',
+    },
+}
 
 // ====================
 // === AmplifyError ===
@@ -63,8 +82,9 @@ interface AmplifyError extends Error {
 function isAmplifyError(error: unknown): error is AmplifyError {
     if (error && typeof error === 'object') {
         return 'code' in error && 'message' in error && 'name' in error
+    } else {
+        return false
     }
-    return false
 }
 
 /** Converts the `unknown` error into an {@link AmplifyError} and returns it, or re-throws it if
@@ -82,15 +102,12 @@ function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
 // === Cognito ===
 // ===============
 
-/** Interface defining the methods provided by this module for interacting with Cognito for
- * authentication.
- *
- * The methods defined in this API are thin wrappers around the AWS Amplify library with error
- * handling added. This way, the methods don't throw all errors, but define exactly which errors
- * they return. The caller can then handle them via pattern matching on the {@link results.Result}
- * type. */
+/** Thin wrapper around Cognito endpoints from the AWS Amplify library with error handling added.
+ * This way, the methods don't throw all errors, but define exactly which errors they return.
+ * The caller can then handle them via pattern matching on the {@link results.Result} type. */
 export class Cognito {
     constructor(
+        private readonly logger: loggerProvider.Logger,
         private readonly platform: platformModule.Platform,
         amplifyConfig: config.AmplifyConfig
     ) {
@@ -102,21 +119,20 @@ export class Cognito {
         amplify.Auth.configure(nestedAmplifyConfig)
     }
 
-    // === Interface `impl`s ===
-
-    /** Returns the current user's session, or `None` if the user is not logged in.
+    /** Returns the current {@link UserSession}, or `None` if the user is not logged in.
      *
-     * Will refresh the session if it has expired. */
-    async userSession(this: void) {
-        const amplifySession = await getAmplifyCurrentSession()
-        return amplifySession.map(parseUserSession).toOption()
+     * Will refresh the {@link UserSession} if it has expired. */
+    userSession() {
+        return userSession()
     }
+
     /** Sign up with with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
     signUp(username: string, password: string) {
         return signUp(username, password, this.platform)
     }
+
     /** Sends the email address verification code.
      *
      * The user will receive a link in their email. The user must click the link to go to the email
@@ -125,6 +141,53 @@ export class Cognito {
      * address is verified, the user can sign in. */
     confirmSignUp(email: string, code: string) {
         return confirmSignUp(email, code)
+    }
+
+    /** Signs in via the Google federated identity provider.
+     *
+     * This function will open the Google authentication page in the user's browser. The user will
+     * be asked to log in to their Google account, and then to grant access to the application.
+     * After the user has granted access, the browser will be redirected to the application. */
+    signInWithGoogle() {
+        return signInWithGoogle(this.customState())
+    }
+
+    /** Signs in via the GitHub federated identity provider.
+     *
+     * This function will open the GitHub authentication page in the user's browser. The user will
+     * be asked to log in to their GitHub account, and then to grant access to the application.
+     * After the user has granted access, the browser will be redirected to the application. */
+    signInWithGitHub() {
+        return signInWithGitHub()
+    }
+
+    /** Signs in with the given username and password.
+     *
+     * Does not rely on external identity providers (e.g., Google or GitHub). */
+    signInWithPassword(username: string, password: string) {
+        return signInWithPassword(username, password)
+    }
+
+    /** We want to signal to Amplify to fire a "custom state change" event when the user is
+     * redirected back to the application after signing in via an external identity provider. This
+     * is done so we get a chance to fix the location history. The location history is the history
+     * of the pages visited within the application. Amplify messes up the history when it redirects
+     * the user to the identity provider's authentication page. This is because Amplify believes
+     * that we are in the browser, so the location needs to be modified to account for leaving the
+     * page and coming back. However, in the Electron app we never leave the page. The rest of the
+     * flow is handled in the system browser instead. So we must undo the changes that Amplify
+     * makes.
+     *
+     * In order to do so, we need to pass custom state along for the entire OAuth flow, which is
+     * obtained by calling this function. This function will return the current location path if
+     * the user is signing in from the desktop application, and `null` otherwise.
+     *
+     * We use `null` outside of the desktop application because Amplify only messes up the
+     * location history in the desktop application.
+     *
+     * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
+    private customState() {
+        return this.platform === platformModule.Platform.desktop ? window.location.pathname : null
     }
 }
 
@@ -144,6 +207,11 @@ export interface UserSession {
     email: string
     /** User's access token, used to authenticate the user (e.g., when making API calls). */
     accessToken: string
+}
+
+async function userSession() {
+    const amplifySession = await getAmplifyCurrentSession()
+    return amplifySession.map(parseUserSession).toOption()
 }
 
 /** Returns the current `CognitoUserSession` if the user is logged in, or `CurrentSessionErrorKind`
@@ -249,9 +317,9 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
             kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
             message: error.message,
         }
+    } else {
+        throw error
     }
-
-    throw error
 }
 
 // =====================
@@ -280,17 +348,82 @@ export interface ConfirmSignUpError {
 }
 
 function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError {
-    if (error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode) {
-        if (error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage) {
-            return {
-                /** Don't re-use the original `error.code` here because Amplify overloads the same
-                 * code for multiple kinds of errors. We replace it with a custom code that has no
-                 * ambiguity. */
-                kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
-                message: error.message,
-            }
+    if (
+        error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode &&
+        error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage
+    ) {
+        return {
+            /** Don't re-use the original `error.code` here because Amplify overloads the same code
+             * for multiple kinds of errors. We replace it with a custom code that has no
+             * ambiguity. */
+            kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
+            message: error.message,
         }
+    } else {
+        throw error
     }
+}
 
-    throw error
+// ========================
+// === SignInWithGoogle ===
+// ========================
+
+async function signInWithGoogle(customState: string | null) {
+    const provider = amplify.CognitoHostedUIIdentityProvider.Google
+    const options = {
+        provider,
+        ...(customState ? { customState } : {}),
+    }
+    await amplify.Auth.federatedSignIn(options)
+}
+
+// ========================
+// === SignInWithGoogle ===
+// ========================
+
+async function signInWithGitHub() {
+    await amplify.Auth.federatedSignIn({
+        customProvider: GITHUB_PROVIDER,
+    })
+}
+
+// ==========================
+// === SignInWithPassword ===
+// ==========================
+
+async function signInWithPassword(username: string, password: string) {
+    return results.Result.wrapAsync(async () => {
+        await amplify.Auth.signIn(username, password)
+    })
+        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
+        .then(result => result.mapErr(intoSignInWithPasswordErrorOrThrow))
+}
+
+type SignInWithPasswordErrorKind = 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
+
+export interface SignInWithPasswordError {
+    kind: SignInWithPasswordErrorKind
+    message: string
+}
+
+function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPasswordError {
+    switch (error.code) {
+        case 'UserNotFoundException':
+            return {
+                kind: 'UserNotFound',
+                message: MESSAGES.signInWithPassword.userNotFound,
+            }
+        case 'UserNotConfirmedException':
+            return {
+                kind: 'UserNotConfirmed',
+                message: MESSAGES.signInWithPassword.userNotConfirmed,
+            }
+        case 'NotAuthorizedException':
+            return {
+                kind: 'NotAuthorized',
+                message: MESSAGES.signInWithPassword.incorrectUsernameOrPassword,
+            }
+        default:
+            throw error
+    }
 }

@@ -46,10 +46,10 @@ export function run(
   const root = document.getElementById(ROOT_ELEMENT_ID);
   if (root == null) {
     logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`);
-    return;
+  } else {
+    const props = { logger, platform, onAuthenticated };
+    reactDOM.createRoot(root).render(<App {...props} />);
   }
-  const props = { logger, platform, onAuthenticated };
-  reactDOM.createRoot(root).render(<App {...props} />);
 }
 
 export type AppProps = app.AppProps;

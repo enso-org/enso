@@ -75,8 +75,9 @@ export class Backend {
         response.status === http.HttpStatus.notFound
       ) {
         return null;
+      } else {
+        return response.json();
       }
-      return response.json();
     });
   }
 }

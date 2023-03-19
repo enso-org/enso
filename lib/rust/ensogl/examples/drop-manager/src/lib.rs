@@ -57,11 +57,14 @@ fn download_file(file: ensogl_drop_manager::File) {
 #[allow(dead_code)]
 pub fn main() {
     let world = World::new().displayed_in("root");
-    let drop_manager = ensogl_drop_manager::Manager::new(world.default_scene.dom.root.as_ref());
+    let scene = world.default_scene.clone_ref();
+    let drop_manager =
+        ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), &scene);
     let network = enso_frp::Network::new("Debug Scene");
     enso_frp::extend! { network
         let file_received = drop_manager.files_received().clone_ref();
-        eval file_received ([](files) for file in files { download_file(file.clone_ref())});
+        eval file_received ([](ensogl_drop_manager::DropEventData{ files, ..})
+            for file in files { download_file(file.clone_ref())});
     }
 
     let mut loader_hidden = false;

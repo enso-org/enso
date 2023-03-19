@@ -105,9 +105,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   log.trace("Created ActorSystem [{}].", system)
 
-  private val zioRuntime =
-    effect.Runtime.fromExecutionContext(system.dispatcher)
-  private val zioExec = effect.ZioExec(zioRuntime)
+  private val zioRuntime = new effect.ExecutionContextRuntime(system.dispatcher)
+  private val zioExec    = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
   private val fileSystem: FileSystem = new FileSystem
@@ -351,7 +350,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     sqlDatabase,
     suggestionsRepo,
     versionsRepo,
-    context
+    context,
+    zioRuntime
   )(system.dispatcher)
 
   val projectSettingsManager = system.actorOf(
