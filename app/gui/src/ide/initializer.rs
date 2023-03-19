@@ -7,13 +7,13 @@ use crate::ide::Ide;
 use crate::transport::web::WebSocket;
 use crate::FailedIde;
 
+use crate::config::ProjectToOpen;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
 use enso_web::sleep;
 use ensogl::application::Application;
 use std::time::Duration;
 use uuid::Uuid;
-
 
 
 // =================
@@ -40,9 +40,9 @@ const INITIALIZATION_RETRY_TIMES: &[Duration] =
 
 /// Error raised when project with given name was not found.
 #[derive(Clone, Debug, Fail)]
-#[fail(display = "Project with the name {} was not found.", name)]
+#[fail(display = "Project '{}' was not found.", name)]
 pub struct ProjectNotFound {
-    name: ProjectName,
+    name: ProjectToOpen,
 }
 
 
@@ -127,8 +127,8 @@ impl Initializer {
         match &self.config.backend {
             ProjectManager { endpoint } => {
                 let project_manager = self.setup_project_manager(endpoint).await?;
-                let project_name = self.config.project_name.clone();
-                let controller = controller::ide::Desktop::new(project_manager, project_name);
+                let project_to_open = self.config.project_to_open.clone();
+                let controller = controller::ide::Desktop::new(project_manager, project_to_open);
                 Ok(Rc::new(controller.await?))
             }
             LanguageServer { json_endpoint, binary_endpoint, namespace, project_name } => {
@@ -184,13 +184,16 @@ impl Initializer {
 pub struct WithProjectManager {
     #[derivative(Debug = "ignore")]
     pub project_manager: Rc<dyn project_manager::API>,
-    pub project_name:    ProjectName,
+    pub project_to_open: ProjectToOpen,
 }
 
 impl WithProjectManager {
     /// Constructor.
-    pub fn new(project_manager: Rc<dyn project_manager::API>, project_name: ProjectName) -> Self {
-        Self { project_manager, project_name }
+    pub fn new(
+        project_manager: Rc<dyn project_manager::API>,
+        project_to_open: ProjectToOpen,
+    ) -> Self {
+        Self { project_manager, project_to_open }
     }
 
     /// Create and initialize a new Project Model, for a project with name passed in constructor.
@@ -203,13 +206,12 @@ impl WithProjectManager {
     }
 
     /// Creates a new project and returns its id, so the newly connected project can be opened.
-    pub async fn create_project(&self) -> FallibleResult<Uuid> {
+    pub async fn create_project(&self, project_name: &ProjectName) -> FallibleResult<Uuid> {
         use project_manager::MissingComponentAction::Install;
-        info!("Creating a new project named '{}'.", self.project_name);
+        info!("Creating a new project named '{}'.", project_name);
         let version = &enso_config::ARGS.groups.engine.options.preferred_version.value;
         let version = (!version.is_empty()).as_some_from(|| version.clone());
-        let name = &self.project_name;
-        let response = self.project_manager.create_project(name, &None, &version, &Install);
+        let response = self.project_manager.create_project(project_name, &None, &version, &Install);
         Ok(response.await?.project_id)
     }
 
@@ -217,9 +219,9 @@ impl WithProjectManager {
         let response = self.project_manager.list_projects(&None).await?;
         let mut projects = response.projects.iter();
         projects
-            .find(|project_metadata| project_metadata.name == self.project_name)
+            .find(|project_metadata| self.project_to_open.matches(project_metadata))
             .map(|md| md.id)
-            .ok_or_else(|| ProjectNotFound { name: self.project_name.clone() }.into())
+            .ok_or_else(|| ProjectNotFound { name: self.project_to_open.clone() }.into())
     }
 
     /// Look for the project with the name specified when constructing this initializer,
@@ -228,9 +230,12 @@ impl WithProjectManager {
         let project = self.lookup_project().await;
         if let Ok(project_id) = project {
             Ok(project_id)
+        } else if let ProjectToOpen::Name(name) = &self.project_to_open {
+            info!("Attempting to create {}", name);
+            self.create_project(name).await
         } else {
-            info!("Attempting to create {}", self.project_name);
-            self.create_project().await
+            // TODO TODO TODO
+            panic!()
         }
     }
 }

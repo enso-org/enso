@@ -21,7 +21,26 @@ import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 import * as process from 'process'
+import isDev from "electron-is-dev";
+import {clientArguments} from "paths";
+import dialog from 'electron/main'
 const logger = content.logger
+
+export function attemptingToOpenFile(clientArgs: string[]): string | null {
+    // If we are invoked with exactly one argument and this argument is a file, we assume that we have been
+    // invoked with a file to open (e.g. through double-clicking on a file in the file explorer).
+    //
+    // In this case, we must translate this path to the actual argument that'd open the project containing this file.
+    if (clientArgs.length === 1 && clientArgs[0] !== undefined) {
+        try {
+            fss.accessSync(clientArgs[0])
+            return clientArgs[0]
+        } catch (e) {
+            console.log(`The single argument '${clientArgs[0]}' does not denote a readable file: ${e}`)
+        }
+    }
+    return null
+}
 
 // ===========
 // === App ===
@@ -39,7 +58,23 @@ class App {
     }
 
     async run() {
-        const { args, windowSize, chromeOptions } = configParser.parseArgs()
+        console.debug(`Client arguments: ${clientArguments}`)
+        let clientArgs = clientArguments
+        let openedFile = attemptingToOpenFile(clientArgs)
+        const { args, windowSize, chromeOptions } = (() => {
+            let argsToParse = openedFile ? [] : clientArgs
+            let ret = configParser.parseArgs()
+            if (openedFile !== null) {
+                const rootPath = paths.getProjectRoot(openedFile)
+                // TODO: install project, if it is not under the projects directory
+                console.debug(`Project root: ${rootPath}`)
+                const projectId = paths.getProjectId(rootPath)
+                console.debug(`Project ID: ${projectId}`)
+                ret.args.groups.startup.options.project.value = projectId
+            }
+            return ret
+        })()
+
         this.args = args
         if (this.args.options.version.value) {
             await this.printVersion()

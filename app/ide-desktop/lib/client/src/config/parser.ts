@@ -9,6 +9,7 @@ import stringLength from 'string-length'
 import { hideBin } from 'yargs/helpers'
 import { logger } from 'enso-content-config'
 import Electron from 'electron'
+import {clientArguments} from "../paths";
 
 // ============
 // === Help ===
@@ -246,9 +247,9 @@ function argvAndChromeOptions(processArgs: string[]): {
 // === Option Parser ===
 // =====================
 
-export function parseArgs() {
+export function parseArgs(clientArgs: string[] = clientArguments) {
     const args = config.config
-    const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(hideBin(process.argv)))
+    const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(hideBin(clientArgs)))
 
     const yargsOptions = args.optionsRecursive().reduce((opts: { [key: string]: any }, option) => {
         const yargsParam = Object.assign({}, option)
@@ -311,7 +312,7 @@ export function parseArgs() {
 
     const printHelpAndExit = (exitCode?: number) => {
         printHelp({
-            args,
+            args: args,
             groupsOrdering: [
                 args.groups.loader.name,
                 args.groups.startup.name,
@@ -343,5 +344,5 @@ export function parseArgs() {
         printHelpAndExit(1)
     }
 
-    return { args, windowSize, chromeOptions }
+    return { args: args, windowSize, chromeOptions }
 }
