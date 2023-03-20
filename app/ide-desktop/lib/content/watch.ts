@@ -11,5 +11,5 @@ const OPTS = bundler.watchOptions(() => {
 await esbuild.build(OPTS)
 const LIVE_SERVER = await guiServer.start({
     root: OPTS.outdir,
-    assets: OPTS.outdir,
+    assets: OPTS.outdir ?? null,
 })

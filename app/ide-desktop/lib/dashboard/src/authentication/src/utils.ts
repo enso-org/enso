@@ -29,7 +29,7 @@ export function brand<T extends Brand<string>>(s: NoBrand & Omit<T, '$brand'>): 
     // branded type, even if that value is not an instance of the branded type. For example, the
     // string "foo" could be cast to the `UserPoolId` branded type, although this string is clearly
     // not a valid `UserPoolId`. This is acceptable because the branded type is only used to prevent
-    // accidental misuse of values, and not to enforce correctness.  That is, it is up to the
+    // accidental misuse of values, and not to enforce correctness. That is, it is up to the
     // programmer to declare the correct type of a value. After that point, it is up to the branded
     // type to keep that guarantee by preventing accidental misuse of the value.
     // eslint-disable-next-line no-restricted-syntax
