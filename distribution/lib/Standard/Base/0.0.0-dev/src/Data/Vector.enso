@@ -679,7 +679,7 @@ type Vector a
        - at: The index at which to remove the item.
          If the index is less than 0, the index will be counted back from the
          end.
-    remove : Integer -> Any -> Vector
+    remove : Integer -> Vector
     remove self at=-1 =
         self_len = self.length
         used_index = if at < 0 then self_len + at else at

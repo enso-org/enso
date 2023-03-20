@@ -8,6 +8,7 @@
  * included in the final bundle. */
 // It is safe to disable `no-restricted-syntax` because the `PascalCase` naming is required
 // as per the above comment.
+// @ts-expect-error See above comment for why this import is needed.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-restricted-syntax
 import * as React from "react";
 import * as reactDOM from "react-dom/client";
@@ -33,6 +34,8 @@ const ROOT_ELEMENT_ID = "dashboard";
  * Running this function finds a `div` element with the ID `dashboard`, and renders the
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
  * for redirecting the user to/from the login page). */
+// This is not a React component even though it contains JSX.
+// eslint-disable-next-line no-restricted-syntax
 export function run(
   /** Logger to use for logging. */
   logger: loggerProvider.Logger,
@@ -44,10 +47,10 @@ export function run(
   const root = document.getElementById(ROOT_ELEMENT_ID);
   if (root == null) {
     logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`);
-    return;
+  } else {
+    const props = { logger, platform, onAuthenticated };
+    reactDOM.createRoot(root).render(<App {...props} />);
   }
-  const props = { logger, platform, onAuthenticated };
-  reactDOM.createRoot(root).render(<App {...props} />);
 }
 
 export type AppProps = app.AppProps;

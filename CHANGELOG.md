@@ -351,6 +351,7 @@
   and renamed them to `match`, `find`, `find_all` (respectively).][5721]
 - [Updated `rename_columns` to new API. Added `first_row`, `second_row` and
   `last_row` to Table types][5719]
+- [Introducing `Meta.Type`.][5768]
 - [Remove many regex compile flags; separated `match` into `match` and
   `match_all`.][5785]
 - [Aligned names of columns created by column operations.][5850]
@@ -519,6 +520,7 @@
 [4078]: https://github.com/enso-org/enso/pull/4078
 [4085]: https://github.com/enso-org/enso/pull/4085
 [4097]: https://github.com/enso-org/enso/pull/4097
+[4115]: https://github.com/enso-org/enso/pull/4115
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4050]: https://github.com/enso-org/enso/pull/4050
 [4072]: https://github.com/enso-org/enso/pull/4072
@@ -535,6 +537,7 @@
 [5806]: https://github.com/enso-org/enso/pull/5806
 [5802]: https://github.com/enso-org/enso/pull/5802
 [4115]: https://github.com/enso-org/enso/pull/4115
+[5768]: https://github.com/enso-org/enso/pull/5768
 [5774]: https://github.com/enso-org/enso/pull/5774
 [5779]: https://github.com/enso-org/enso/pull/5779
 [5785]: https://github.com/enso-org/enso/pull/5785

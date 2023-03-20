@@ -137,7 +137,6 @@ class TableVisualization extends Visualization {
                     resizable: true,
                     minWidth: 50,
                 },
-                enableRangeSelection: true,
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
