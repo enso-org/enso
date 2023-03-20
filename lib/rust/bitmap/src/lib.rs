@@ -1,6 +1,5 @@
 //! Library for working with simple uncompressed bitmaps.
 
-// === Features ===
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
