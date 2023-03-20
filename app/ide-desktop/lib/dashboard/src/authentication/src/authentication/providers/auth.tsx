@@ -249,7 +249,8 @@ export function AuthProvider(props: AuthProviderProps) {
     };
 
     /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
-     * Don't create a new API client here, reuse the one from the context. */
+     * The API client is reinitialised on every request. That is an inefficient way of usage.
+     * Fix it by using React context and implementing it as a singleton. */
     const backend = backendService.createBackend(accessToken, logger);
 
     await backend.setUsername(body);

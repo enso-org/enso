@@ -23,8 +23,6 @@ abstract class Job[+A](
     * @param ctx contains suppliers of services to perform a request
     */
   def run(implicit ctx: RuntimeContext): A
-
-  override def toString: String = this.getClass.getSimpleName
 }
 
 /** The job queue can contain only one job of this type with the same `key`.

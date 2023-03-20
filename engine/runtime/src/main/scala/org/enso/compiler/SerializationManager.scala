@@ -94,12 +94,14 @@ final class SerializationManager(
     *
     * @param module the module to serialize
     * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
+    * @param useThreadPool if true, will perform serialization asynchronously
     * @return Future referencing the serialization task. On completion Future will return
     *         `true` if `module` has been successfully serialized, `false` otherwise
     */
   def serializeModule(
     module: Module,
-    useGlobalCacheLocations: Boolean
+    useGlobalCacheLocations: Boolean,
+    useThreadPool: Boolean = true
   ): Future[Boolean] = {
     logger.log(
       debugLogLevel,
@@ -120,7 +122,7 @@ final class SerializationManager(
       module.getSource,
       useGlobalCacheLocations
     )
-    if (compiler.context.getEnvironment.isCreateThreadAllowed) {
+    if (useThreadPool) {
       isWaitingForSerialization.synchronized {
         val future = pool.submit(task)
         isWaitingForSerialization.put(module.getName, future)
@@ -178,6 +180,10 @@ final class SerializationManager(
     libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
   ): Callable[Boolean] = () => {
+    while (isSerializingLibrary(libraryName)) {
+      Thread.sleep(100)
+    }
+
     logger.log(
       debugLogLevel,
       "Running serialization for bindings [{}].",
@@ -347,7 +353,7 @@ final class SerializationManager(
       abort(module)
       None
     } else {
-      while (isSerializingModule(module)) {
+      while (isSerializingModule(module.getName)) {
         Thread.sleep(100)
       }
 
@@ -401,11 +407,11 @@ final class SerializationManager(
     * @return `true` if `module` is currently being serialized, `false`
     *         otherwise
     */
-  def isSerializingModule(module: Module): Boolean = {
-    isSerializing.contains(module.getName)
+  private def isSerializingModule(module: QualifiedName): Boolean = {
+    isSerializing.contains(module)
   }
 
-  def isSerializingLibrary(library: LibraryName): Boolean = {
+  private def isSerializingLibrary(library: LibraryName): Boolean = {
     isSerializing.contains(library.toQualifiedName)
   }
 
@@ -420,7 +426,7 @@ final class SerializationManager(
     * @param module the module to check
     * @return `true` if `module` is waiting for serialization, `false` otherwise
     */
-  def isWaitingForSerialization(module: Module): Boolean = {
+  private def isWaitingForSerialization(module: Module): Boolean = {
     isWaitingForSerialization(module.getName)
   }
 
@@ -429,11 +435,11 @@ final class SerializationManager(
     * @param library the library to check
     * @return `true` if `library` is waiting for serialization, `false` otherwise
     */
-  def isWaitingForSerialization(library: LibraryName): Boolean = {
+  private def isWaitingForSerialization(library: LibraryName): Boolean = {
     isWaitingForSerialization(library.toQualifiedName)
   }
 
-  def abort(name: QualifiedName): Boolean = {
+  private def abort(name: QualifiedName): Boolean = {
     isWaitingForSerialization.synchronized {
       if (isWaitingForSerialization(name)) {
         isWaitingForSerialization
@@ -453,7 +459,7 @@ final class SerializationManager(
     * @return `true` if serialization for `module` was aborted, `false`
     *         otherwise
     */
-  def abort(module: Module): Boolean = {
+  private def abort(module: Module): Boolean = {
     abort(module.getName)
   }
 
@@ -466,7 +472,7 @@ final class SerializationManager(
     * @return `true` if serialization for `library` was aborted, `false`
     *         otherwise
     */
-  def abort(library: LibraryName): Boolean = {
+  private def abort(library: LibraryName): Boolean = {
     abort(library.toQualifiedName)
   }
 
@@ -542,6 +548,10 @@ final class SerializationManager(
     source: Source,
     useGlobalCacheLocations: Boolean
   ): Callable[Boolean] = { () =>
+    while (isSerializingModule(name)) {
+      Thread.sleep(100)
+    }
+
     logger.log(
       debugLogLevel,
       "Running serialization for module [{}].",
