@@ -34,7 +34,7 @@ electron.contextBridge.exposeInMainWorld('enso_lifecycle', {
 
 // Save and load profile data.
 let onProfiles: ((profiles: string[]) => void)[] = []
-let profilesLoaded: string[] | undefined
+let profilesLoaded: string[] | null
 electron.ipcRenderer.on(ipc.Channel.profilesLoaded, (_event, profiles: string[]) => {
     for (const callback of onProfiles) {
         callback(profiles)
@@ -49,7 +49,7 @@ electron.contextBridge.exposeInMainWorld('enso_profiling_data', {
     },
     // Requests any loaded profiling logs.
     loadProfiles: (callback: (profiles: string[]) => void) => {
-        if (profilesLoaded === undefined) {
+        if (profilesLoaded == null) {
             electron.ipcRenderer.send('load-profiles')
             onProfiles.push(callback)
         } else {

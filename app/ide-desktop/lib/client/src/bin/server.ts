@@ -105,26 +105,26 @@ export class Server {
 
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
-        if (requestUrl === undefined) {
+        if (requestUrl == null) {
             logger.error('Request URL is null.')
-            return
-        }
-        const url = requestUrl.split('?')[0]
-        const resource = url === '/' ? '/index.html' : requestUrl
-        const resourceFile = `${this.config.dir}${resource}`
-        fs.readFile(resourceFile, (err, data) => {
-            if (err) {
-                logger.error(`Resource '${resource}' not found.`)
-            } else {
-                const contentType = mime.contentType(path.extname(resourceFile))
-                const contentLength = data.length
-                if (contentType !== false) {
-                    response.setHeader('Content-Type', contentType)
+        } else {
+            const url = requestUrl.split('?')[0]
+            const resource = url === '/' ? '/index.html' : requestUrl
+            const resourceFile = `${this.config.dir}${resource}`
+            fs.readFile(resourceFile, (err, data) => {
+                if (err) {
+                    logger.error(`Resource '${resource}' not found.`)
+                } else {
+                    const contentType = mime.contentType(path.extname(resourceFile))
+                    const contentLength = data.length
+                    if (contentType !== false) {
+                        response.setHeader('Content-Type', contentType)
+                    }
+                    response.setHeader('Content-Length', contentLength)
+                    response.writeHead(HTTP_STATUS_OK)
+                    response.end(data)
                 }
-                response.setHeader('Content-Length', contentLength)
-                response.writeHead(HTTP_STATUS_OK)
-                response.end(data)
-            }
-        })
+            })
+        }
     }
 }

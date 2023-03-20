@@ -59,9 +59,7 @@ async function checkMinSupportedVersion(config: typeof contentConfig.OPTIONS) {
             )
             if (
                 typeof appConfig === 'object' &&
-                // `typeof x === 'object'` narrows to `object | null`, not `object | undefined`
-                // eslint-disable-next-line no-restricted-syntax
-                appConfig !== null &&
+                appConfig != null &&
                 'minimumSupportedVersion' in appConfig
             ) {
                 const minSupportedVersion = appConfig.minimumSupportedVersion
@@ -88,13 +86,13 @@ function displayDeprecatedVersionDialog() {
         'This version is no longer supported. Please download a new one.'
     )
 
-    const root = document.getElementById('root') ?? undefined
+    const root = document.getElementById('root')
     const versionCheckDiv = document.createElement('div')
     versionCheckDiv.id = 'version-check'
     versionCheckDiv.className = 'auth-info'
     versionCheckDiv.style.display = 'block'
     versionCheckDiv.appendChild(versionCheckText)
-    if (root === undefined) {
+    if (root == null) {
         console.error('Cannot find the root DOM element.')
     } else {
         root.appendChild(versionCheckDiv)

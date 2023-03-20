@@ -4,8 +4,9 @@ declare module 'enso-gui-server' {
     export const LIVE_RELOAD_LISTENER_PATH: string
 
     interface StartParams {
-        root?: string
-        assets?: string
+        // These are not values we explicitly supply
+        root: string
+        assets?: string | null
         port?: number
     }
     interface ExectionInfo {
