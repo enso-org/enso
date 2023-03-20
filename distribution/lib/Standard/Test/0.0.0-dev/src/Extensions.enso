@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Errors.Common.No_Such_Method
 
 import project.Test_Result.Test_Result
 from project.Test import Test

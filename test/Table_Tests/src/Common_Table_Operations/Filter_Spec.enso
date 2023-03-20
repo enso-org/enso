@@ -1,9 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Arithmetic_Error
-import Standard.Base.Error.Common.Index_Out_Of_Bounds
-import Standard.Base.Error.Common.Type_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Expression.Expression_Error
