@@ -6,9 +6,25 @@ use crate::extensions::child::ChildExt;
 use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::process::Stdio;
-use std::str::FromStr;
 
-
+/// Get the docker image identifier from the `docker build` command output.
+///
+/// This assumes format compatible with `--quiet` flag.
+#[context("Failed to get the image identifier from the output: {output:?}.")]
+fn get_image_id_from_build_output(output: &std::process::Output) -> Result<ImageId> {
+    trace!("Output: {:?}", output);
+    let built_image_id = std::str::from_utf8(&output.stdout)?
+        .lines()
+        .inspect(|line| debug!("{}", line))
+        .filter(|line| !line.is_empty())
+        .last()
+        .with_context(|| "Docker provided no output.")?
+        .split(' ')
+        .last()
+        .with_context(|| "The last line has no space!")?;
+    debug!("Image {} successfully built!", built_image_id);
+    ImageId::from_str(built_image_id)
+}
 
 #[derive(Clone, Debug, PartialEq, Ord, PartialOrd, Eq, Hash)]
 pub enum NetworkDriver {
@@ -99,18 +115,8 @@ impl Docker {
         command.arg("build").args(options.args());
         debug!("{:?}", command);
         let output = command.output_ok().await?;
-        trace!("Output: {:?}", output);
-        let built_image_id = std::str::from_utf8(&output.stdout)?
-            .lines()
-            .inspect(|line| debug!("{}", line))
-            .filter(|line| !line.is_empty())
-            .last()
-            .ok_or_else(|| anyhow!("Docker provided no output"))?
-            .split(' ')
-            .last()
-            .ok_or_else(|| anyhow!("The last line has no space!"))?;
-        debug!("Image {} successfully built!", built_image_id);
-        Ok(ImageId(built_image_id.into()))
+        let built_image_id = get_image_id_from_build_output(&output)?;
+        Ok(built_image_id)
     }
 
     pub fn run_cmd(&self, options: &RunOptions) -> Result<Command> {
@@ -281,6 +287,35 @@ impl BuildOptions {
         }
     }
 
+    /// Get the environment variable and pass its value to docker build as a build argument.
+    ///
+    /// Build argument name will be the same as the environment variable name.
+    /// If the environment variable is not set, an error is raised.
+    /// ```
+    /// use ide_ci::define_env_var;
+    /// use ide_ci::prelude::*;
+    /// use ide_ci::programs::docker::BuildOptions;
+    /// define_env_var! {DOCKER_USERNAME, String;};
+    /// let mut options = BuildOptions::new(".");
+    ///
+    /// // Variable is not set, so this will fail.
+    /// assert!(options.add_build_arg_from_env(DOCKER_USERNAME).is_err());
+    /// assert!(options.build_args.is_empty());
+    ///
+    /// // Set the variable and try again.
+    /// DOCKER_USERNAME.set("my_username".into()).unwrap();
+    /// options.add_build_arg_from_env(DOCKER_USERNAME).unwrap();
+    /// assert_eq!(options.build_args.get("DOCKER_USERNAME"), Some(&Some("my_username".into())));
+    /// ```
+    pub fn add_build_arg_from_env(
+        &mut self,
+        variable: impl crate::env::accessor::RawVariable,
+    ) -> Result {
+        let value = variable.get_raw()?;
+        self.build_args.insert(variable.name().into(), Some(value));
+        Ok(())
+    }
+
     pub fn add_build_arg_from_env_or<R>(
         &mut self,
         name: impl AsRef<str>,
@@ -300,6 +335,7 @@ impl BuildOptions {
     pub fn args(&self) -> Vec<OsString> {
         let mut ret = Vec::new();
         ret.push(self.context.clone().into());
+        ret.push("--quiet".into());
         if let Some(target) = self.target.as_ref() {
             ret.push("--target".into());
             ret.push(target.clone());
@@ -516,13 +552,21 @@ impl RunOptions {
     }
 }
 
-#[derive(Clone, Display, Debug)]
+#[derive(Clone, Display, Debug, PartialEq, Eq, Hash)]
 pub struct ImageId(pub String);
+
+impl std::str::FromStr for ImageId {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Ok(ImageId(s.into()))
+    }
+}
 
 #[derive(Clone, Debug, Display, Deref, AsRef)]
 pub struct ContainerId(pub String);
 
-impl FromStr for ContainerId {
+impl std::str::FromStr for ContainerId {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -533,6 +577,44 @@ impl FromStr for ContainerId {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Get the OS kernel version.
+    ///
+    /// For Windows, the returned value is the build number, e.g. 20348 for Windows Server 2022
+    /// 21H2.
+    // This function might be unused, depending on what platform-specific tests are compiled.
+    #[allow(dead_code)]
+    fn get_kernel_version() -> Result<u32> {
+        let mut sysinfo = sysinfo::System::new();
+        sysinfo.refresh_all();
+        let ret = sysinfo
+            .kernel_version()
+            .with_context(|| "Failed to get OS kernel version.")?
+            .parse2()?;
+        debug!("OS kernel version: {ret}.");
+        Ok(ret)
+    }
+
+    /// See the tag listing on https://hub.docker.com/_/microsoft-windows-servercore
+    // This function might be unused, depending on what platform-specific tests are compiled.
+    #[allow(dead_code)]
+    fn get_windows_image_tag(kernel_version: u32) -> Result<&'static str> {
+        Ok(match kernel_version {
+            20348..=u32::MAX => "ltsc2022",
+            17763..=20347 => "ltsc2019",
+            14393..=17762 => "ltsc2016",
+            _ => anyhow::bail!("Unsupported OS kernel version: {kernel_version}."),
+        })
+    }
+
+
+    /// Provide a Windows image tag for the OS that we are running on.
+    ///
+    /// See also: [`get_windows_image_tag`].
+    fn get_windows_image_tag_for_local() -> Result<&'static str> {
+        let kernel_version = get_kernel_version()?;
+        get_windows_image_tag(kernel_version)
+    }
 
     #[tokio::test]
     #[ignore]
@@ -548,6 +630,43 @@ mod tests {
     async fn build() -> Result {
         let opts = BuildOptions::new(r"C:\Users\mwu\ci\image\windows\");
         dbg!(Docker.build(opts).await?);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn build_test_linux() -> Result {
+        setup_logging()?;
+        let temp = tempfile::tempdir()?;
+        if Docker.lookup().is_err() {
+            info!("Docker not found, skipping test.");
+            return Ok(());
+        }
+
+        let dockerfile_text = match TARGET_OS {
+            OS::Linux => r#"
+                FROM ubuntu:22.04
+                RUN echo "Hello, world!"
+                "#
+            .to_string(),
+            OS::Windows => {
+                let tag = get_windows_image_tag_for_local()?;
+                format!(
+                    r#"
+                    FROM mcr.microsoft.com/windows/nanoserver:{tag}
+                    RUN cmd /c "echo Hello World"
+                    "#
+                )
+            }
+            _ => {
+                info!("Unsupported OS, skipping test.");
+                return Ok(());
+            }
+        };
+        let dockerfile_path = temp.path().join("Dockerfile");
+        crate::fs::tokio::write(&dockerfile_path, dockerfile_text).await?;
+        let opts = BuildOptions::new(temp.path());
+        // Make sure that the build succeeds and ID is returned.
+        let _id = Docker.build(opts).await?;
         Ok(())
     }
 }

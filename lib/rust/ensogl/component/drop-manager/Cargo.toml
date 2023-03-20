@@ -5,6 +5,8 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
+ensogl-core = { path = "../../core" }
+enso-types = { path = "../../../types" }
 enso-web = { path = "../../../web" }
 enso-frp = { path = "../../../frp" }
 enso-prelude = { path = "../../../prelude" }

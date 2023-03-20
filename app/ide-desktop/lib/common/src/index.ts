@@ -1,9 +1,8 @@
 /** @file This module contains metadata about the product and distribution.
  *
- * The code in this module was originally used by both the `enso` and the
- * `enso-authentication` packages. The `enso` package depends on the
- * `enso-authentication` package. To avoid a circular dependency, the common code was moved
- * here. */
+ * Code in this package is used by two or more sibling packages of this package. The code is defined
+ * here when it is not possible for a sibling package to own that code without introducing a
+ * circular dependency in our packages. */
 
 /** URL protocol scheme for deep links to authentication flow pages.
  *

@@ -98,6 +98,12 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                 value: true,
                 description: 'Start the engine process.',
             }),
+            inspect: new contentConfig.Option({
+                passToWebApplication: false,
+                primary: false,
+                value: '',
+                description: `Instructs Node.js to listen for a debugging client on the given port.`,
+            }),
         },
         groups: {
             window: new contentConfig.Group({
