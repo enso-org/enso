@@ -7123,7 +7123,7 @@ object IR {
         override val location: Option[IdentifiedLocation]
       ) extends Shadowed {
         override def message: String =
-          s"The exported type `$tpeName` in `$name` module will cause name conflict" +
+          s"The exported type `$tpeName` in `$name` module will cause name conflict " +
           s"when attempting to use a fully qualified name of the `$firstConflict` module."
 
         /** The important keys identifying identity of the diagnostic
