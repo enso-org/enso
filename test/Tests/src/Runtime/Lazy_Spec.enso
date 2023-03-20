@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Runtime.Lazy.Lazy
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -82,5 +84,12 @@ spec = Test.group "Lazy" <|
 
         r.get . should_equal "Value"
         ref.get . should_equal 1
+
+    Test.specify "eager mode will not handle dataflow errors/panics specially" <|
+        r = Lazy.new_eager (Error.throw (Illegal_Argument.Error "FOO"))
+        r.should_fail_with Illegal_Argument
+
+        Test.expect_panic_with matcher=Illegal_Argument <|
+            Lazy.new_eager (Panic.throw (Illegal_Argument.Error "FOO"))
 
 main = Test_Suite.run_main spec
