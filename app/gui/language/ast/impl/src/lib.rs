@@ -4,6 +4,7 @@
 #![feature(trivial_bounds)]
 #![feature(type_alias_impl_trait)]
 #![feature(let_chains)]
+
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

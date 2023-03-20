@@ -42,8 +42,11 @@ pub use container::*;
 pub use data::*;
 pub use definition::*;
 pub use foreign::*;
-pub use instance::Instance;
 pub use layer::*;
 pub use metadata::*;
 pub use path::*;
 pub use registry::*;
+pub use instance::Instance;
+
+
+

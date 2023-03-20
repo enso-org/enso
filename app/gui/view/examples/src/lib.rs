@@ -8,6 +8,7 @@
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -28,3 +29,6 @@ pub use debug_scene_icons as icons;
 pub use debug_scene_interface as interface;
 pub use debug_scene_text_grid_visualization as text_grid_visualization;
 pub use debug_scene_visualization as visualization;
+
+
+

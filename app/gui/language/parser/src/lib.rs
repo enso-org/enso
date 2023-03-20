@@ -6,11 +6,13 @@
 #![feature(let_chains)]
 #![feature(if_let_guard)]
 #![feature(assert_matches)]
+
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 

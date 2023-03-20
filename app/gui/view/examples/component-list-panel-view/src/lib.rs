@@ -1,6 +1,7 @@
 //! Example scene showing a grid view with Component Group Entries.
 
 #![recursion_limit = "512"]
+
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(negative_impls)]
@@ -18,11 +19,13 @@
 #![feature(trace_macros)]
 #![feature(const_trait_impl)]
 #![feature(slice_as_chunks)]
+
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
