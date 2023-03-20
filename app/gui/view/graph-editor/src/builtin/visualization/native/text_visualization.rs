@@ -373,10 +373,10 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             eval frp.set_size  ((size) model.set_size(*size));
         }
 
-        self.init_text_grid_api(&init, &on_data_update, text_provider);
-        self.init_table_layout(&init, text_provider);
-        self.init_scrolling(&init, text_provider, &on_data_update);
         self.init_style(&init);
+        self.init_text_grid_api(&init, &on_data_update, text_provider);
+        self.init_table_layout(&init, text_provider, &on_data_update);
+        self.init_scrolling(&init, text_provider);
 
         init.emit(());
     }
@@ -416,14 +416,19 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                 GRAPHEMES_PER_CHUNK as f32 * char_width
             })).on_change();
             item_update <- all(init, item_width, font_size);
-            text_grid.set_entries_size <+ item_update.map(f!([]((_, _, item_height)) {
-                Vector2::new(0.0, TEXT_PADDING*item_height)
+            text_grid.set_entries_size <+ item_update.map(f!([]((_, width, height)) {
+                Vector2::new(*width, TEXT_PADDING*height)
             }));
         }
     }
 
 
-    fn init_table_layout(&self, init: &frp::Source, text_provider: &text_provider::Frp) {
+    fn init_table_layout(
+        &self,
+        init: &frp::Source,
+        text_provider: &text_provider::Frp,
+        on_data_update: &frp::Stream,
+    ) {
         let network = &self.network;
         let text_grid = &self.text_grid;
         let init = init.clone_ref();
@@ -432,16 +437,49 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         use theme::graph_editor::visualization::text_grid as text_grid_style;
         let font_name = style_watch.get_text(text_grid_style::font);
         let font_size = style_watch.get_number(text_grid_style::font_size);
+        let on_data_update = on_data_update.clone_ref();
 
         frp::extend! { network
+
+            forced_update <- any (init,on_data_update);
+
+            has_table <- all(&forced_update, &text_provider.table_specification)._1().map(|table_specification| {
+                table_specification.is_some()
+            }).on_change();
+
             table_specification_change <-
-            all(&init,&text_provider.table_specification)._1().unwrap();
+            all(&forced_update,&text_provider.table_specification)._1().unwrap();
+
+            content_size_from_table <- table_specification_change.map(|table_specification| {
+                table_specification.grid_size_in_chunks()
+            }).gate(&has_table);
+
+            longest_line_with_init <- all(&forced_update, &text_provider.graphemes_in_longest_line)._1();
+            lines_with_init        <- all(&forced_update, &text_provider.line_count)._1();
+
+            longest_line <- longest_line_with_init.on_change();
+            line_count <- lines_with_init.on_change();
+
+            content_size_from_text <- all(forced_update, longest_line, line_count).map(
+                |(_, width,height)| {
+                    let height = *height as usize;
+                    let width = *width as usize / GRAPHEMES_PER_CHUNK; // Width in chunks
+                    (height, width)
+            }).gate_not(&has_table);
+
+            content_size <- any2(&content_size_from_table, &content_size_from_text);
+            content_size <- content_size.map(|(columns, rows)| {
+                ((*rows).max(1), (*columns).max(1))
+            }).on_change();
+
+            text_grid.resize_grid <+ content_size;
+            text_grid.reset_entries <+ content_size;
 
             column_size_update <=
             all3(&table_specification_change,&font_name,&font_size).map(
                 f!([]((table_specification,font_name,font_size)) {
                     let char_width = measure_character_width(font_name, *font_size);
-                    let column_sizes = table_specification.iter_column_items()
+                    let column_sizes = table_specification.iter_column_items_per_chunk()
                         .map(|item| item.size() as f32 * char_width).enumerate().collect_vec();
                     column_sizes
                 }));
@@ -474,18 +512,12 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         }
     }
 
-    fn init_scrolling(
-        &self,
-        init: &frp::Source,
-        text_provider: &text_provider::Frp,
-        on_data_update: &frp::Stream,
-    ) {
+    fn init_scrolling(&self, init: &frp::Source, text_provider: &text_provider::Frp) {
         let network = &self.network;
         let text_grid = &self.text_grid;
         let scrollbar_h = &self.model.scroll_bar_horizontal;
         let scrollbar_v = &self.model.scroll_bar_vertical;
         let dom_entry_root = &self.model.dom_entry_root;
-        let on_data_update = on_data_update.clone_ref();
         let frp = &self.frp;
         let init = init.clone_ref();
 
@@ -493,19 +525,6 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
             scroll_positition <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
 
-            longest_line_with_init <- all(&init, &text_provider.graphemes_in_longest_line)._1();
-            lines_with_init        <- all(&init, &text_provider.line_count)._1();
-
-            longest_line <- longest_line_with_init.on_change();
-            line_count <- lines_with_init.on_change();
-
-            content_size <- all(on_data_update, longest_line, line_count).map(
-                |(_, width,height)| {
-                ((*width).max(1) as usize, (*height).max(1) as usize)
-            }).on_change();
-
-            text_grid.resize_grid <+ content_size;
-            text_grid.reset_entries <+ content_size;
             text_grid.request_model_for_visible_entries <+ text_provider.data_refresh;
 
             text_grid_content_size_x <- text_grid.content_size.map(|size| size.x).on_change();

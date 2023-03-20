@@ -231,6 +231,16 @@ fn cum_sum_chunks(values: &[Option<ColumnWidth>]) -> Vec<usize> {
     cum_sum
 }
 
+/// Return the value left of at the given index. If the index is 0, returns 0, if the index is
+/// out of bounds, returns the last value of the vector.
+fn get_left_value(vec: &Vec<usize>, index: usize) -> usize {
+    if index == 0 {
+        0
+    } else {
+        vec.get(index - 1).copied().unwrap_or_else(|| vec.last().copied().unwrap_or_default())
+    }
+}
+
 impl TableSpecification {
     /// Create a new table specification from the given column and row widths.
     pub fn new(columns: Vec<Option<ColumnWidth>>, rows: Vec<Option<RowHeight>>) -> Self {
@@ -286,8 +296,13 @@ impl TableSpecification {
     /// Return the height of the content row at the given index in lines.
     fn row_height(&self, index: usize) -> usize {
         let row_height = self.rows.get(index).copied().flatten().unwrap_or_default();
-        let heading_height =
-            self.column_names.get(index).cloned().flatten().map(grapheme_count).unwrap_or_default();
+        let heading_height = self
+            .column_names
+            .get(index)
+            .cloned()
+            .flatten()
+            .map(|text| text.lines().count())
+            .unwrap_or_default();
         row_height.max(heading_height)
     }
 
@@ -301,7 +316,9 @@ impl TableSpecification {
     /// use enso_prelude::*;
     /// use ide_view_graph_editor::builtin::visualization::native::text_visualization::text_provider::{TableItem, TableSpecification};
     ///
-    /// let spec = TableSpecification { columns: vec![Some(3), Some(4), Some(5)], ..default() };
+    /// let columns = vec![Some(3), Some(4), Some(5)];
+    /// let rows = vec![];
+    /// let spec = TableSpecification::new(columns, rows);
     /// let mut iter = spec.iter_content_columns();
     /// assert_eq!(iter.next(), Some(TableItem::Content { size: 3, index: 0, offset: 0 }));
     /// assert_eq!(iter.next(), Some(TableItem::Content { size: 4, index: 1, offset: 0 }));
@@ -325,7 +342,9 @@ impl TableSpecification {
     /// use enso_prelude::*;
     /// use ide_view_graph_editor::builtin::visualization::native::text_visualization::text_provider::{TableItem, TableSpecification};
     ///
-    /// let spec = TableSpecification { rows: vec![Some(3), Some(4), Some(5)], ..default() };
+    /// let columns = vec![];
+    /// let rows = vec![Some(3), Some(4), Some(5)];
+    /// let spec = TableSpecification::new(columns, rows);
     /// let mut iter = spec.iter_content_rows();
     /// assert_eq!(iter.next(), Some(TableItem::Content { size: 3, index: 0, offset: 0 }));
     /// assert_eq!(iter.next(), Some(TableItem::Content { size: 4, index: 1, offset: 0 }));
@@ -404,24 +423,14 @@ impl TableSpecification {
 
         // If not in cache, compute.
         let (chunk_x, chunk_y) = (grid_position.x as usize, grid_position.y as usize);
-        let column_ix = self.column_width_cumulative.partition_point(|x| *x < chunk_x);
+        let column_ix = self.column_chunks_cumulative.partition_point(|x| *x < chunk_x);
         let row_ix = self.row_height_cumulative.partition_point(|x| *x < chunk_y);
 
-        let all_column_width =
-            self.column_width_cumulative.get(column_ix).copied().unwrap_or_else(|| {
-                self.column_width_cumulative.last().copied().unwrap_or_default()
-            });
-        let column_width = self.columns.get(column_ix).copied().flatten().unwrap_or_default();
+        let all_column_width = get_left_value(&self.column_chunks_cumulative, column_ix);
+        let all_row_height = get_left_value(&self.row_height_cumulative, row_ix);
 
-        let all_row_height = self
-            .row_height_cumulative
-            .get(row_ix)
-            .copied()
-            .unwrap_or_else(|| self.row_height_cumulative.last().copied().unwrap_or_default());
-        let row_height = self.rows.get(row_ix).copied().flatten().unwrap_or_default();
-
-        let chunk_x = chunk_x - all_column_width - column_width;
-        let chunk_y = chunk_y - all_row_height - row_height;
+        let chunk_x = chunk_x - all_column_width;
+        let chunk_y = chunk_y - all_row_height;
         let cell = GridPosition::new(column_ix as i32, row_ix as i32);
         let chunk = GridPosition::new(chunk_x as i32, chunk_y as i32);
 
@@ -431,23 +440,15 @@ impl TableSpecification {
         result
     }
 
-    /// Return the size of the grid in chunks/lines. This includes the dividers, but not the
-    /// column/row names.
+    /// Return the size of the grid in chunks/lines. This includes the dividers, and column/row
+    /// names.
     pub fn grid_size_in_chunks(&self) -> (usize, usize) {
-        let column_content_width: usize = self
-            .columns
-            .iter()
-            .map(|width| width.map(|value| value.div_ceil(GRAPHEMES_PER_CHUNK)).unwrap_or(1))
-            .sum();
-        let column_content_height: usize = self.rows.iter().map(|height| height.unwrap_or(1)).sum();
-
-        // We need to account for dividers.
-        let height = column_content_height + self.content_row_count() - 1;
-        let width = column_content_width + self.content_column_count() + 1;
+        let width = self.iter_column_items_per_chunk().count();
+        let height = self.iter_row_items_per_line().collect_vec().len();
         (width, height)
     }
 
-    /// Iterate over the column layout items.
+    /// Iterate over the column layout items. (Left to right).
     pub fn iter_column_items(&self) -> impl Iterator<Item = TableItem> + '_ {
         let content_columns = self.iter_content_columns();
         [TableItem::Heading { size: self.row_heading_width(), offset: 0 }, TableItem::Divider]
@@ -456,7 +457,7 @@ impl TableSpecification {
             .chain([TableItem::Divider])
     }
 
-    /// Iterate over the row layout items.
+    /// Iterate over the row layout items. (Top to bottom).
     fn iter_row_items(&self) -> impl Iterator<Item = TableItem> + '_ {
         let content_rows = self.iter_content_rows();
         [TableItem::Heading { size: self.column_heading_height(), offset: 0 }, TableItem::Divider]
@@ -478,16 +479,33 @@ impl TableSpecification {
     }
 
     /// Iterate over the items in the table, but each item is split into multiple items, one for
-    /// each chunk in the item.
-    fn iter_column_items_per_chunk(&self) -> impl Iterator<Item = TableItem> + '_ {
+    /// each chunk in the item. Size is in graphemes.
+    pub fn iter_column_items_per_chunk(&self) -> impl Iterator<Item = TableItem> + '_ {
         self.iter_column_items().flat_map(|item| match item {
-            TableItem::Content { size, index, .. } => (0..size.div_ceil(GRAPHEMES_PER_CHUNK))
-                .map(|offset| TableItem::Content { size: 1, index, offset })
-                .collect_vec(),
+            TableItem::Content { size, index, .. } => {
+                let full_chunks = size / GRAPHEMES_PER_CHUNK;
+                let last_chunk = size % GRAPHEMES_PER_CHUNK;
+                (0..full_chunks)
+                    .map(|offset| TableItem::Content { size: GRAPHEMES_PER_CHUNK, index, offset })
+                    .chain(iter::once(TableItem::Content {
+                        size: last_chunk,
+                        index,
+                        offset: full_chunks,
+                    }))
+                    .collect_vec()
+            }
             TableItem::Divider => iter::once(TableItem::Divider).collect_vec(),
-            TableItem::Heading { size, .. } => (0..size.div_ceil(GRAPHEMES_PER_CHUNK))
-                .map(|offset| TableItem::Heading { size: 1, offset })
-                .collect_vec(),
+            TableItem::Heading { size, .. } => {
+                let full_chunks = size / GRAPHEMES_PER_CHUNK;
+                let last_chunk = size % GRAPHEMES_PER_CHUNK;
+                (0..full_chunks)
+                    .map(|offset| TableItem::Heading { size: GRAPHEMES_PER_CHUNK, offset })
+                    .chain(iter::once(TableItem::Heading {
+                        size:   last_chunk,
+                        offset: full_chunks,
+                    }))
+                    .collect_vec()
+            }
         })
     }
 
@@ -696,13 +714,12 @@ impl DebugGridTextProvider {
             .graphemes_in_longest_line
             .emit(column_count * GRAPHEMES_PER_CHUNK as u32);
 
-        let spec = TableSpecification {
-            columns: Self::column_widths(column_count, line_count),
-            rows: iter::repeat(Some(1)).take(line_count as usize).collect(),
-            column_names: vec![],
-            row_names: vec![],
-            ..default()
-        };
+        let columns = Self::column_widths(column_count, line_count);
+        let rows = iter::repeat(Some(1)).take(line_count as usize).collect();
+        let column_names = Self::column_names(column_count);
+        let row_names = Self::row_names(line_count);
+        let spec = TableSpecification::new_with_names(columns, rows, column_names, row_names);
+
         frp.private().output.table_specification.emit(Some(spec));
 
         Self { frp }
@@ -720,6 +737,24 @@ impl DebugGridTextProvider {
         }
 
         widths
+    }
+
+    fn column_names(column_count: u32) -> Vec<Option<String>> {
+        let mut names = Vec::with_capacity(column_count as usize);
+        for column_ix in 0..column_count {
+            let name = format!("Column {}", column_ix);
+            names.push(Some(name));
+        }
+        names
+    }
+
+    fn row_names(row_count: u32) -> Vec<Option<String>> {
+        let mut names = Vec::with_capacity(row_count as usize);
+        for row_ix in 0..row_count {
+            let name = format!("Row {}", row_ix);
+            names.push(Some(name));
+        }
+        names
     }
 }
 
@@ -922,9 +957,6 @@ impl BackendTableProvider {
             table_window <- any_mut::<TableWindow>();
         }
 
-        let longest_observed_line: Rc<Cell<u32>> = default();
-        let max_observed_lines: Rc<Cell<u32>> = default();
-
         let table_specification = Rc::new(RefCell::new(default()));
         let grid_cache_update = f!([table_specification,table_window](new_grid_window:GridWindow){
             let new_window = new_grid_window.to_table_window(&table_specification.borrow());
@@ -969,33 +1001,6 @@ impl BackendTableProvider {
                     text_cache.borrow_mut().add_item(grid_position, text.clone());
                 }
             });
-
-            grid_size <- table_spec_update.map(f!([table_specification](_) {
-                table_specification.borrow().grid_size_in_chunks()
-            }));
-
-            graphemes_in_longest_line <- table_spec_update.map(
-                f_!([table_specification]
-                    table_specification.borrow().width_in_graphemes() as u32
-                )
-            ).on_change();
-            line_count <- grid_size._1().map(|line_count| *line_count as u32).on_change();
-
-            output.graphemes_in_longest_line <+ graphemes_in_longest_line.map(
-                f!([longest_observed_line](longest_line) {
-                    let observed_value = longest_observed_line.get();
-                    let longest_line = observed_value.max(*longest_line);
-                    longest_observed_line.set(longest_line);
-                    longest_line
-            })).on_change();
-
-            output.line_count <+ line_count.map(f!([max_observed_lines](line_count) {
-                let observed_value = max_observed_lines.get();
-                let max_lines = observed_value.max(*line_count);
-                max_observed_lines.set(max_lines);
-                max_lines
-            })).on_change();
-
         }
         Self { frp, text_cache, register_access }
     }
@@ -1368,21 +1373,24 @@ mod tests {
         assert!(!specification.is_row_divider(4));
     }
 
-    #[test]
-    fn test_table_items_access() {
-        //   | A__ | B |
-        //  -|-----+---+
-        //  1| ___ | _ |
-        //   | ___ | _ |
-        //  -|-----+---+
-        //  2| ___ | _ |
-        //  -|-----+---+
+    //   | A__ | B |
+    //  -|-----+---+
+    //  1| ___ | _ |
+    //   | ___ | _ |
+    //  2| ___ | _ |
+    //  -|-----+---+
+    fn sample_table() -> TableSpecification {
         let rows = vec![Some(2), Some(1)];
         let columns = vec![Some(GRAPHEMES_PER_CHUNK * 5 / 2), Some(GRAPHEMES_PER_CHUNK)];
         let column_names = vec![Some("A".to_string()), Some("B".to_string())];
         let row_names = vec![Some("1".to_string()), Some("2".to_string())];
-        let spec = TableSpecification::new_with_names(columns, rows, column_names, row_names);
+        TableSpecification::new_with_names(columns, rows, column_names, row_names)
+    }
 
+
+    #[test]
+    fn test_table_items_access() {
+        let spec = sample_table();
         let assert_item = |column: usize, row: usize, item: TableContentItem| {
             assert_eq!(
                 spec.grid_view_position_to_table_item(
@@ -1451,16 +1459,21 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_overlong_column_name() {
-        //   | A_ | B |
-        //  1| _  | _ |
+    //   | A_ | B |
+    // --+----+---+
+    //  1| _  | _ |
+    // --+----+---+
+    fn table_with_long_column_name() -> TableSpecification {
         let rows = vec![Some(1)];
         let columns = vec![Some(GRAPHEMES_PER_CHUNK), Some(GRAPHEMES_PER_CHUNK)];
         let column_names = vec![Some("A".repeat(GRAPHEMES_PER_CHUNK * 2)), Some("B".to_string())];
         let row_names = vec![Some("1".to_string())];
-        let spec = TableSpecification::new_with_names(columns, rows, column_names, row_names);
+        TableSpecification::new_with_names(columns, rows, column_names, row_names)
+    }
 
+    #[test]
+    fn test_overlong_column_name() {
+        let spec = table_with_long_column_name();
         let assert_item = |column: usize, row: usize, item: TableContentItem| {
             assert_eq!(
                 spec.grid_view_position_to_table_item(
@@ -1501,5 +1514,31 @@ mod tests {
             assert_item(5, 2, Content { content_index: GridPosition::new(1, 0) });
             assert_item(6, 2, Divider { bottom: true, top: true, left: false, right: false });
         }
+    }
+
+    #[test]
+    fn test_grid_size_in_chunks() {
+        let table1 = sample_table();
+        assert_eq!(table1.grid_size_in_chunks(), (8, 6));
+
+        let table2 = table_with_long_column_name();
+        assert_eq!(table2.grid_size_in_chunks(), (7, 4));
+    }
+
+    #[test]
+    fn test_content_row_index() {
+        let table = sample_table();
+        assert_eq!(table.get_content_row_index(0), None);
+        assert_eq!(table.get_content_row_index(1), None);
+        assert_eq!(table.get_content_row_index(2), Some(0));
+        assert_eq!(table.get_content_row_index(3), Some(0));
+        assert_eq!(table.get_content_row_index(4), Some(1));
+
+
+        let table = table_with_long_column_name();
+        assert_eq!(table.get_content_row_index(0), None);
+        assert_eq!(table.get_content_row_index(1), None);
+        assert_eq!(table.get_content_row_index(2), Some(0));
+        assert_eq!(table.get_content_row_index(3), None);
     }
 }

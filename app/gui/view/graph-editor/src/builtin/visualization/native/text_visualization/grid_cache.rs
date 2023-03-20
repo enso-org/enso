@@ -150,7 +150,7 @@ impl<T: Clone> GridCache<T> {
 
     fn padded_grid_window(&self) -> GridWindow {
         let offset = GridVector::new(self.cache_padding as i32, self.cache_padding as i32) / 2;
-        let position = self.cached_grid_pos - offset;
+        let position = (self.cached_grid_pos - offset).map(|value| value.max(0));
         let size = self.cached_grid_size + GridSize::new(self.cache_padding, self.cache_padding);
         GridWindow { position, size }
     }

@@ -155,11 +155,13 @@ impl grid_view::Entry for Entry {
         let network = new_entry.frp.network();
         enso_frp::extend! { network
             init <- source_();
-            eval input.set_model((model) new_entry.set_model(model));
             eval input.set_params((params) new_entry.set_params(params));
 
-            pos_size <- all(&input.position_set, &input.set_size);
-            eval pos_size (((pos, size)) new_entry.set_position_and_size(pos, size));
+            model_pos_size <- all3(&input.set_model, &input.position_set, &input.set_size);
+            eval model_pos_size (((model, pos, size)) {
+                new_entry.set_position_and_size(pos, size);
+                new_entry.set_model(model);
+            });
         }
         init.emit(());
         new_entry
