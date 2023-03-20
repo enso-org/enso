@@ -238,13 +238,13 @@ function handleAuthResponse(url: string) {
     try {
       /** # Safety
        *
-       * It is safe to disable the `no-unsafe-member-access` and `no-unsafe-call` lints here
-       * because we know that the `Auth` object has the `_handleAuthResponse` method, and we
-       * know that it is safe to call it with the `url` argument. There is no way to prove
-       * this to the TypeScript compiler, because these methods are intentionally not part of
-       * the public AWS Amplify API. */
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-      await (amplify.Auth as any)._handleAuthResponse(url);
+       * It is safe to disable the `no-unsafe-call` lint here because we know that the `Auth` object
+       * has the `_handleAuthResponse` method, and we know that it is safe to call it with the `url`
+       * argument. There is no way to prove this to the TypeScript compiler, because these methods
+       * are intentionally not part of the public AWS Amplify API. */
+      // @ts-expect-error `_handleAuthResponse` is a private method without typings.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      await amplify.Auth._handleAuthResponse(url);
     } finally {
       /** Restore the original `window.location.replaceState` function. */
       window.history.replaceState = replaceState;

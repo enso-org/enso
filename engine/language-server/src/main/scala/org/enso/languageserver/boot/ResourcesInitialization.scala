@@ -1,14 +1,18 @@
 package org.enso.languageserver.boot
 
 import akka.event.EventStream
+import org.enso.jsonrpc.ProtocolFactory
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   InitializationComponent,
+  JsonRpcInitializationComponent,
   RepoInitialization,
   SequentialResourcesInitialization,
-  TruffleContextInitialization
+  TruffleContextInitialization,
+  ZioRuntimeInitialization
 }
 import org.enso.languageserver.data.ProjectDirectoriesConfig
+import org.enso.languageserver.effect
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.graalvm.polyglot.Context
 
@@ -23,22 +27,28 @@ object ResourcesInitialization {
     *
     * @param eventStream system event stream
     * @param directoriesConfig configuration of directories that should be created
+    * @param protocolFactory the JSON-RPC protocol factory
     * @param suggestionsRepo the suggestions repo
     * @param sqlDatabase the sql database
     * @param versionsRepo the file versions repo
     * @param truffleContext the runtime context
+    * @param runtime the runtime to run effects
     * @return the initialization component
     */
   def apply(
     eventStream: EventStream,
     directoriesConfig: ProjectDirectoriesConfig,
+    protocolFactory: ProtocolFactory,
     sqlDatabase: SqlDatabase,
     suggestionsRepo: SqlSuggestionsRepo,
     versionsRepo: SqlVersionsRepo,
-    truffleContext: Context
+    truffleContext: Context,
+    runtime: effect.Runtime
   )(implicit ec: ExecutionContext): InitializationComponent = {
     val resources = Seq(
       new DirectoriesInitialization(directoriesConfig),
+      new JsonRpcInitializationComponent(protocolFactory),
+      new ZioRuntimeInitialization(runtime),
       new RepoInitialization(
         directoriesConfig,
         eventStream,

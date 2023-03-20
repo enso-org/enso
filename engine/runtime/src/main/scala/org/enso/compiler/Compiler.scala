@@ -5,7 +5,6 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
@@ -60,6 +59,8 @@ class Compiler(
   private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
     RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
   )
+  private val isInteractiveMode =
+    context.getEnvironment.getOptions.get(RuntimeOptions.INTERACTIVE_MODE_KEY)
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
@@ -396,10 +397,14 @@ class Compiler(
           val shouldStoreCache =
             irCachingEnabled && !module.wasLoadedFromCache()
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
-            serializationManager.serializeModule(
-              module,
-              useGlobalCacheLocations
-            )
+            if (isInteractiveMode) {
+              context.getNotificationHandler.serializeModule(module.getName)
+            } else {
+              serializationManager.serializeModule(
+                module,
+                useGlobalCacheLocations
+              )
+            }
           }
         } else {
           logger.log(

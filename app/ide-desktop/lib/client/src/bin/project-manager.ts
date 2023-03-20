@@ -31,9 +31,7 @@ export function pathOrPanic(args: config.Args): string {
 /** Executes the Project Manager with given arguments. */
 async function exec(args: config.Args, processArgs: string[]) {
     const binPath = pathOrPanic(args)
-    return await execFile(binPath, processArgs).catch(function (err) {
-        throw err
-    })
+    return await execFile(binPath, processArgs)
 }
 
 /** Spawn Project Manager process.
@@ -62,5 +60,7 @@ export function spawn(args: config.Args, processArgs: string[]): childProcess.Ch
 export async function version(args: config.Args) {
     if (args.options.engine.value) {
         return await exec(args, ['--version']).then(t => t.stdout)
+    } else {
+        return
     }
 }

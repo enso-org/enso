@@ -10,7 +10,7 @@ import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
-import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.languageserver.TestClock
 import org.enso.languageserver.boot.{
   ProfilingConfig,
@@ -24,7 +24,7 @@ import org.enso.languageserver.boot.resource.{
 }
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
-import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.effect.{TestRuntime, ZioExec}
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
@@ -32,7 +32,7 @@ import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.IdlenessMonitor
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
-  JsonRpc
+  JsonRpcProtocolFactory
 }
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
@@ -58,6 +58,7 @@ import org.scalatest.OptionValues
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -103,7 +104,8 @@ class BaseServerTest
       StartupConfig()
     )
 
-  override def protocol: Protocol = JsonRpc.protocol
+  override def protocolFactory: ProtocolFactory =
+    new JsonRpcProtocolFactory
 
   val stdOut    = new ObservableOutputStream
   val stdErr    = new ObservableOutputStream
@@ -130,7 +132,7 @@ class BaseServerTest
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
-  val zioExec         = ZioExec(zio.Runtime.default)
+  val zioExec         = ZioExec(new TestRuntime)
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
