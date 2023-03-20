@@ -12,7 +12,6 @@ import * as contentConfig from 'enso-content-config'
 import * as config from 'config'
 import * as naming from 'naming'
 
-import Electron from 'electron'
 import {clientArguments} from "../paths";
 
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
@@ -365,7 +364,7 @@ export function parseArgs(clientArgs: string[] = clientArguments) {
 
     const printHelpAndExit = (exitCode?: number) => {
         printHelp({
-            args: args,
+            args,
             groupsOrdering: [
                 args.groups.loader.name,
                 args.groups.startup.name,
@@ -398,5 +397,5 @@ export function parseArgs(clientArgs: string[] = clientArguments) {
         printHelpAndExit(1)
     }
 
-    return { args: args, windowSize, chromeOptions }
+    return { args, windowSize, chromeOptions }
 }
