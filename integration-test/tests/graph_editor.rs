@@ -38,7 +38,7 @@ async fn create_new_project_and_add_nodes() {
 
     let added_node =
         graph_editor.nodes().get_cloned_ref(&added_node_id).expect("Added node is not added");
-    assert_eq!(added_node.view.expression.value().to_string(), "");
+    assert_eq!(added_node.view.edit_mode_expression.value().to_string(), "");
 }
 
 #[wasm_bindgen_test]
