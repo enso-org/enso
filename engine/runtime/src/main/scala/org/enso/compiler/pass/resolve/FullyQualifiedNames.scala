@@ -106,7 +106,7 @@ case object FullyQualifiedNames extends IRPass {
               ir.exports.foreach { export =>
                 export match {
                   case m: IR.Module.Scope.Export.Module
-                      if m.name.name == resolution.qualifiedName.qualifiedNameString =>
+                      if m.name.name == resolution.qualifiedName.toString =>
                     m.addDiagnostic(
                       IR.Warning.Shadowed.TypeInModuleNameConflicts(
                         exportedModule.getName.toString,
