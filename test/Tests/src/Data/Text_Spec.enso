@@ -1190,9 +1190,9 @@ spec =
             "Strasse".find "ß" Case_Sensitivity.Insensitive . should_equal Nothing
 
         Test.specify "find should produce correct spans" <|
-            "Hello World!".find ".o" Case_Sensitivity.Insensitive . grapheme_span 0 . should_equal (Span.Value (3.up_to 5) "Hello World!")
-            "Hello World!".find_all ".o" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
-            "foobar".find "BAR" Case_Sensitivity.Insensitive . grapheme_span 0 . should_equal (Span.Value (3.up_to 6) "foobar")
+            "Hello World!".find ".o" Case_Sensitivity.Insensitive . span 0 . should_equal (Span.Value (3.up_to 5) "Hello World!")
+            "Hello World!".find_all ".o" . map (match-> match.span 0) . should_equal [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
+            "foobar".find "BAR" Case_Sensitivity.Insensitive . span 0 . should_equal (Span.Value (3.up_to 6) "foobar")
 
         Test.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
@@ -1201,12 +1201,12 @@ spec =
             accents.find 'e\u{301}' . text 0 . should_equal 'e\u{301}'
 
             # Check both UTF16 spans
-            accents.find_all 'h' . map (match-> match.span 0) . should_equal [Utf_16_Span.Value (6.up_to 7) accents, Utf_16_Span.Value (9.up_to 10) accents]
-            accents.find_all 'e\u{301}' . map (match-> match.span 0) . should_equal [Utf_16_Span.Value (2.up_to 4) accents, Utf_16_Span.Value (7.up_to 9) accents]
+            accents.find_all 'h' . map (match-> match.utf_16_span 0) . should_equal [Utf_16_Span.Value (6.up_to 7) accents, Utf_16_Span.Value (9.up_to 10) accents]
+            accents.find_all 'e\u{301}' . map (match-> match.utf_16_span 0) . should_equal [Utf_16_Span.Value (2.up_to 4) accents, Utf_16_Span.Value (7.up_to 9) accents]
 
             # Check both grapheme spans
-            accents.find_all 'h' . map (match-> match.grapheme_span 0) . should_equal [Span.Value (3.up_to 4) accents, Span.Value (5.up_to 6) accents]
-            accents.find_all 'e\u{301}' . map (match-> match.grapheme_span 0) . should_equal [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
+            accents.find_all 'h' . map (match-> match.span 0) . should_equal [Span.Value (3.up_to 4) accents, Span.Value (5.up_to 6) accents]
+            accents.find_all 'e\u{301}' . map (match-> match.span 0) . should_equal [Span.Value (1.up_to 2) accents, Span.Value (4.up_to 5) accents]
 
             # Check contents to make sure the spans' ranges are ok
             accents.find 'h' . text 0 . should_equal 'h'
@@ -1281,20 +1281,20 @@ spec =
                expose normalization methods to allow developers to do it
                themselves.
             accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.find accent_1 . grapheme_span 0 . should_equal (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
+            accents.find accent_1 . span 0 . should_equal (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
 
         Test.specify "can return a vector of all match groups" <|
             "abc".find "ab((c)|(d))" . groups . should_equal ['abc', 'c', 'c', Nothing]
 
-        Test.specify "should default to group 0 in .span and .grapheme_span" <|
-            "abacadae".find "a[bc]" . span . should_equal (Utf_16_Span.Value (0.up_to 2) "abacadae")
-            'a\u{301}e\u{301}o\u{301}'.find 'e\u{301}' . grapheme_span . should_equal (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
+        Test.specify "should default to group 0 in .span and .span" <|
+            "abacadae".find "a[bc]" . utf_16_span . should_equal (Utf_16_Span.Value (0.up_to 2) "abacadae")
+            'a\u{301}e\u{301}o\u{301}'.find 'e\u{301}' . span . should_equal (Span.Value (1.up_to 2) 'a\u{301}e\u{301}o\u{301}')
 
         Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
-            "abacadae".find_all "a[bc]" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
-            "abacadae".find_all "a." . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
-            "abacadae".find_all "a.*" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 8) "abacadae"]
-            "abacadae".find_all "a.+?" . map (match-> match.grapheme_span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
+            "abacadae".find_all "a[bc]" . map (match-> match.span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae"]
+            "abacadae".find_all "a." . map (match-> match.span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
+            "abacadae".find_all "a.*" . map (match-> match.span 0) . should_equal [Span.Value (0.up_to 8) "abacadae"]
+            "abacadae".find_all "a.+?" . map (match-> match.span 0) . should_equal [Span.Value (0.up_to 2) "abacadae", Span.Value (2.up_to 4) "abacadae", Span.Value (4.up_to 6) "abacadae", Span.Value (6.up_to 8) "abacadae"]
 
         Test.specify "should allow access to match groups by number" <|
             "abcddd".find "ab(c(d+))" . text 0 . should_equal "abcddd"

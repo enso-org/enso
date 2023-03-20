@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Data.Text.Regex.Match_2.Match_2
 import Standard.Base.Data.Text.Regex.Pattern_2.Pattern_2
@@ -394,10 +395,10 @@ spec =
         match . should_be_a Match_2
 
         Test.specify "should get the span of a group by index" <|
-            match.span 1 . should_equal (Utf_16_Span.Value (0.up_to 6) input)
+            match.span 1 . should_equal (Span.Value (0.up_to 6) input)
 
         Test.specify "should get the span of a group by name" <|
-            match.span "letters" . should_equal (Utf_16_Span.Value (6.up_to 18) input)
+            match.span "letters" . should_equal (Span.Value (6.up_to 18) input)
 
         Test.specify "should return Nothing if the group didn't match" <|
             match.span 3 . should_equal Nothing
@@ -406,6 +407,26 @@ spec =
         Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
             match.span 5 . should_fail_with No_Such_Group
             match.span "nonexistent" . should_fail_with No_Such_Group
+
+    Test.group "Match.utf_16_span" <|
+        pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input
+        match . should_be_a Match_2
+
+        Test.specify "should get the utf16 span of a group by index" <|
+            match.utf_16_span 1 . should_equal (Utf_16_Span.Value (0.up_to 6) input)
+
+        Test.specify "should get the utf16 span of a group by name" <|
+            match.utf_16_span "letters" . should_equal (Utf_16_Span.Value (6.up_to 18) input)
+
+        Test.specify "should return Nothing if the group didn't match" <|
+            match.utf_16_span 3 . should_equal Nothing
+            match.utf_16_span "empty" . should_equal Nothing
+
+        Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
+            match.utf_16_span 5 . should_fail_with No_Such_Group
+            match.utf_16_span "nonexistent" . should_fail_with No_Such_Group
 
     Test.group "caching" <|
         Test.specify "Replacer cache drops old values" <|
