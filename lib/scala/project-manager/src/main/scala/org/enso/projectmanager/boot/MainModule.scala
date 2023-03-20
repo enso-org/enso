@@ -23,7 +23,7 @@ import org.enso.projectmanager.infrastructure.random.SystemGenerator
 import org.enso.projectmanager.infrastructure.repository.ProjectFileRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.protocol.{
-  JsonRpc,
+  JsonRpcProtocolFactory,
   ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
@@ -138,5 +138,6 @@ class MainModule[
       timeoutConfig                   = config.timeout
     )
 
-  lazy val server = new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
+  lazy val server =
+    new JsonRpcServer(new JsonRpcProtocolFactory, clientControllerFactory)
 }
