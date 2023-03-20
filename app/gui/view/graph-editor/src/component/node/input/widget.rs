@@ -5,10 +5,7 @@ use crate::prelude::*;
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::object::event;
-use ensogl_component::drop_down::Dropdown;
 use ensogl_component::drop_down::DropdownValue;
 
 
@@ -18,17 +15,6 @@ use ensogl_component::drop_down::DropdownValue;
 
 pub mod vector_editor;
 
-
-
-/// =================
-/// === Constants ===
-/// =================
-
-const ACTIVATION_SHAPE_COLOR: color::Lch = color::Lch::new(0.56708, 0.23249, 0.71372);
-const ACTIVATION_SHAPE_Y_OFFSET: f32 = -5.0;
-const ACTIVATION_SHAPE_SIZE: Vector2 = Vector2(15.0, 11.0);
-/// Distance between the dropdown and the bottom of the port.
-const DROPDOWN_Y_OFFSET: f32 = 5.0;
 
 
 // ===========
@@ -50,21 +36,136 @@ ensogl::define_endpoints_2! {
     }
 }
 
+/// ======================
+/// === Widget modules ===
+/// ======================
+
+/// Common trait for constructing and reconfiguring all widget variants.
+pub trait SpanWidget {
+    type Config: Debug + Clone + PartialEq;
+    fn new(config: &Self::Config, ctx: ConfigContext<'_>) -> Self;
+    fn configure(&mut self, config: &Self::Config, ctx: ConfigContext<'_>);
+}
+
+pub struct ConfigContext<'a> {
+    app:            &'a Application,
+    display_object: &'a display::object::Instance,
+    frp:            &'a SampledFrp,
+    label:          Option<ImString>,
+    display:        Display,
+}
+
+macro_rules! define_widget_modules(
+    ($(
+        $(#[$meta:meta])*
+        $name:ident $module:ident,
+    )*) => {
+        $(pub mod $module;)*
+
+        /// A widget configuration that determines the widget kind.
+        #[derive(Debug, Clone, PartialEq)]
+        #[allow(missing_docs)]
+        pub enum Config {
+            $($name(<$module::Widget as SpanWidget>::Config),)*
+        }
+
+        /// A part of widget model that is dependant on the widget kind.
+        #[derive(Debug)]
+        #[allow(missing_docs)]
+        enum DynWidget {
+            $(
+                $(#[$meta])*
+                $name($module::Widget)
+            ),*
+        }
+
+        $(
+            impl From<<$module::Widget as SpanWidget>::Config> for Config {
+                fn from(config: <$module::Widget as SpanWidget>::Config) -> Self {
+                    Self::$name(config)
+                }
+            }
+
+            impl From<$module::Widget> for DynWidget {
+                fn from(config: $module::Widget) -> Self {
+                    Self::$name(config)
+                }
+            }
+        )*
+
+        impl SpanWidget for DynWidget {
+            type Config = Config;
+            fn new(config: &Config, ctx: ConfigContext<'_>) -> Self {
+                match config {
+                    $(
+                        Config::$name(config) => DynWidget::$name(SpanWidget::new(config, ctx)),
+                    )*
+                }
+            }
+
+            fn configure(&mut self, config: &Config, ctx: ConfigContext<'_>) {
+                match (self, config) {
+                    $((DynWidget::$name(model), Config::$name(config)) => {
+                        SpanWidget::configure(model, config, ctx);
+                    },)*
+                    (this, _) => {
+                        *this = SpanWidget::new(config, ctx);
+                    },
+                }
+            }
+        }
+    };
+);
+
+define_widget_modules! {
+    /// Default widget that only displays text.
+    Label label,
+    /// A widget for selecting a single value from a list of available options.
+    SingleChoice single_choice,
+    /// A widget for managing a list of values - adding, removing or reordering them.
+    VectorEditor vector_editor,
+}
+
+impl Config {
+    const FALLBACK: Self = Config::Label(label::Config);
+}
+
+/// ================
+/// === Metadata ===
+/// ================
+
 /// Widget metadata that comes from an asynchronous visualization. Defines which widget should be
 /// used and a set of options that it should allow to choose from.
 #[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub struct Metadata {
-    pub kind:            Kind,
-    pub display:         Display,
-    /// Entries that should be displayed by the widget, as proposed by language server. This list
-    /// is not exhaustive. The widget implementation might present additional options or allow
-    /// arbitrary user input.
-    pub dynamic_entries: Vec<Entry>,
+    /// The placeholder text value. By default, the parameter name is used.
+    pub label:   Option<ImString>,
+    pub display: Display,
+    pub config:  Config,
+}
+
+impl Metadata {
+    const FALLBACK: Self =
+        Metadata { label: None, display: Display::Always, config: Config::FALLBACK };
+
+    /// Widget metadata for static dropdown, based on the tag values provided by suggestion
+    /// database.
+    fn static_dropdown(tag_values: &[span_tree::TagValue]) -> Metadata {
+        let entries = Rc::new(tag_values.into_iter().map(Entry::from).collect());
+        let config = single_choice::Config { entries }.into();
+        Self { label: None, display: Display::Always, config }
+    }
+
+    fn vector_editor() -> Metadata {
+        let config = vector_editor::Config::default().into();
+        Self { label: None, display: Display::Always, config }
+    }
 }
 
 /// Widget display mode. Determines when the widget should be expanded.
 #[derive(serde::Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[serde(tag = "constructor")]
 pub enum Display {
     /// The widget should always be in its expanded mode.
     #[default]
@@ -72,7 +173,7 @@ pub enum Display {
     /// The widget should only be in its expanded mode when it has non-default value.
     #[serde(rename = "When_Modified")]
     WhenModified,
-    /// The widget should only be in its expanded mode whe the whole node is expanded.
+    /// The widget should only be in its expanded mode when the whole node is expanded.
     #[serde(rename = "Expanded_Only")]
     ExpandedOnly,
 }
@@ -216,7 +317,6 @@ impl View {
     }
 }
 
-
 /// =============
 /// === Model ===
 /// =============
@@ -225,8 +325,9 @@ impl View {
 struct Model {
     app:            Application,
     display_object: display::object::Instance,
-    kind_model:     RefCell<Option<KindModel>>,
+    inner_widget:   RefCell<Option<DynWidget>>,
 }
+
 
 impl Model {
     /// Create a new node widget, selecting the appropriate widget type based on the provided
@@ -234,8 +335,8 @@ impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
-        let kind = default();
-        Self { app, display_object, kind_model: kind }
+        let inner_widget = default();
+        Self { app, display_object, inner_widget }
     }
 
     #[profile(Task)]
@@ -245,18 +346,24 @@ impl Model {
         let is_array_type = node_data.tp.as_ref().map_or(false, |tp| tp.contains(VECTOR_TYPE));
         let has_tag_values = !node_data.tag_values.is_empty();
         let kind_fallback = (is_array_enabled && is_array_type)
-            .then_some(Kind::VectorEditor)
-            .or(has_tag_values.then_some(Kind::SingleChoice));
+            .then(|| Metadata::vector_editor())
+            .or((meta.is_none() && has_tag_values)
+                .then(|| Metadata::static_dropdown(&node_data.tag_values)));
+        let meta = meta.as_ref().or(tag_value_meta.as_ref()).unwrap_or(&Metadata::FALLBACK);
 
-        let desired_kind = meta.as_ref().map(|m| m.kind).or(kind_fallback);
-        let current_kind = self.kind_model.borrow().as_ref().map(|m| m.kind());
+        self.display_object.set_size(node_data.port_size);
 
-        if current_kind != desired_kind {
-            *self.kind_model.borrow_mut() = desired_kind.map(|desired_kind| {
-                KindModel::new(&self.app, &self.display_object, desired_kind, frp, meta, node_data)
-            });
-        } else if let Some(model) = self.kind_model.borrow().as_ref() {
-            model.update(meta, node_data);
+        let ctx = ConfigContext {
+            app: &self.app,
+            display_object: &self.display_object,
+            frp,
+            label: meta.label.clone(),
+            display: meta.display,
+        };
+
+        match self.inner_widget.borrow_mut().deref_mut() {
+            Some(inner_widget) => inner_widget.configure(&meta.config, ctx),
+            model @ None => *model = Some(DynWidget::new(&meta.config, ctx)),
         }
     }
 }
@@ -289,9 +396,6 @@ pub enum Kind {
     /// A widget for selecting a single value from a list of available options.
     #[serde(rename = "Single_Choice")]
     SingleChoice,
-    /// A widget for constructing and modifying vector of various types.
-    #[serde(rename = "Vector_Editor")]
-    VectorEditor,
 }
 
 /// A part of widget model that is dependant on the widget kind.
@@ -299,8 +403,6 @@ pub enum Kind {
 pub enum KindModel {
     /// A widget for selecting a single value from a list of available options.
     SingleChoice(SingleChoiceModel),
-    /// A widget for constructing and modifying vector of various types.
-    VectorEditor(vector_editor::Model),
 }
 
 impl KindModel {
@@ -315,8 +417,6 @@ impl KindModel {
         let this = match kind {
             Kind::SingleChoice =>
                 Self::SingleChoice(SingleChoiceModel::new(app, display_object, frp)),
-            Kind::VectorEditor =>
-                Self::VectorEditor(vector_editor::Model::new(app, display_object, frp)),
         };
 
         this.update(meta, node_data);
@@ -333,17 +433,12 @@ impl KindModel {
                 inner.set_port_size(node_data.port_size);
                 inner.set_entries(entries);
             }
-            KindModel::VectorEditor(inner) => {
-                warn!("VectorEditor updated with metadata {meta:#?} and node data {node_data:#?}.");
-                inner.set_port_size.emit(node_data.port_size);
-            }
         }
     }
 
     fn kind(&self) -> Kind {
         match self {
             Self::SingleChoice(_) => Kind::SingleChoice,
-            Self::VectorEditor(_) => Kind::VectorEditor,
         }
     }
 }

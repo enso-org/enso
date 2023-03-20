@@ -44,7 +44,7 @@ pub struct Model {
 }
 
 impl Model {
-    /// A gap between the `activation_shape` and `elements` view.  
+    /// A gap between the `activation_shape` and `elements` view.
     const GAP: f32 = 3.0;
 
     /// Create Model for Vector Editor widget.
@@ -198,4 +198,24 @@ impl Model {
         });
         opt_iterator.into_iter().flatten()
     }
+}
+
+
+
+/// ==============
+/// === Widget ===
+/// ==============
+
+struct Widget {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+struct Config {}
+
+impl super::SpanWidget for Widget {
+    type Config = Config;
+    fn new(config: &Config, ctx: super::ConfigContext<'_>) -> Self {
+        Self {}
+    }
+
+    fn configure(&mut self, config: &Config, ctx: super::ConfigContext<'_>) {}
 }

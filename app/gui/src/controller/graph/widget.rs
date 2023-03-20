@@ -3,6 +3,11 @@
 //! The Widget Controller is responsible for querying the language server for information about
 //! the node's widget metadata or resolving it from local cache.
 
+
+
+mod metadata;
+mod response;
+
 use crate::prelude::*;
 
 use crate::controller::visualization::manager::Manager;
@@ -170,7 +175,7 @@ impl Model {
     ) -> Option<(NodeId, WidgetUpdates)> {
         let query_data = self.widget_queries.get_mut(&target)?;
 
-        let (updates, errors) = VisualizationData::try_deserialize(&data);
+        let (updates, errors) = metadata::deserialize_widget_update(&data);
 
         for error in errors {
             error!("{:?}", error);
@@ -414,79 +419,5 @@ impl QueryData {
         }
         buffer.push(']');
         buffer
-    }
-}
-
-
-
-/// ===============================
-/// === WidgetVisualizationData ===
-/// ===============================
-
-/// A type representing the data received from the widget visualization for a single widget.
-///
-/// The structure of this struct is dictated by the expected widget visualization JSON result shape.
-#[derive(Debug, serde::Deserialize)]
-struct VisualizationData {
-    constructor: widget::Kind,
-    display:     VisualizationDataDisplay,
-    values:      Vec<VisualizationDataChoice>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct VisualizationDataDisplay {
-    constructor: widget::Display,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct VisualizationDataChoice {
-    value: String,
-    label: Option<String>,
-}
-
-impl From<&VisualizationDataChoice> for widget::Entry {
-    fn from(choice: &VisualizationDataChoice) -> Self {
-        let value: ImString = (&choice.value).into();
-        let label = choice.label.as_ref().map_or_else(|| value.clone(), |label| label.into());
-        Self { required_import: None, value, label }
-    }
-}
-
-impl VisualizationData {
-    fn into_metadata(self) -> widget::Metadata {
-        let kind = self.constructor;
-        let display = self.display.constructor;
-        let dynamic_entries = self.values.iter().map(Into::into).collect();
-        widget::Metadata { kind, display, dynamic_entries }
-    }
-
-    /// Try to deserialize widget visualization update data. If deserialization fails for only part
-    /// of the response, the rest of the response is still processed, while errors are returned
-    /// separately for each failed widget.
-    fn try_deserialize(data: &VisualizationUpdateData) -> (Vec<WidgetUpdate>, Vec<failure::Error>) {
-        let arguments: Vec<(String, serde_json::Value)> = match serde_json::from_slice(data) {
-            Ok(args) => args,
-            Err(err) => {
-                let err = err
-                    .context("Failed to deserialize a list of arguments in widget response")
-                    .into();
-                return (default(), vec![err]);
-            }
-        };
-
-        let updates = arguments.into_iter().map(
-            |(argument_name, meta_json)| -> FallibleResult<WidgetUpdate> {
-                let deserialized = serde_json::from_value(meta_json);
-                let deserialized: Option<VisualizationData> = deserialized.map_err(|e| {
-                    let message =
-                        format!("Failed to deserialize widget data for argument '{argument_name}'");
-                    e.context(message)
-                })?;
-                let meta = deserialized.map(VisualizationData::into_metadata);
-                Ok(WidgetUpdate { argument_name, meta })
-            },
-        );
-
-        updates.partition_result()
     }
 }
