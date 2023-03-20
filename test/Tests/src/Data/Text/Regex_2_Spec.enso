@@ -10,7 +10,17 @@ import Standard.Base.Data.Text.Regex_2.Too_Many_Groups
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+import Standard.Base.IO
+
 spec =
+    Test.group "gmt" <|
+        Test.specify "asdf" <|
+            pattern = Regex_2.compile('([a-c])')
+            s = pattern.replace "abcdef" "q$1$1q"
+            IO.println s
+            s2 = pattern.replace "abcdef" "q$1$1q"
+            IO.println s2
+
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex_2.compile "(?<dots>..)" case_insensitive=True

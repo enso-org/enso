@@ -14,10 +14,12 @@ import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Polyglot
+import project.IO
 
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import java.lang.StringBuilder
+polyglot java import org.enso.base.Replacer_Cache
 polyglot java import org.enso.base.Text_Utils
 
 type Pattern_2
