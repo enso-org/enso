@@ -81,8 +81,8 @@ interface AuthContextType {
   signInWithPassword: (email: string, password: string) => Promise<void>;
   /** Session containing the currently authenticated user's authentication information.
    *
-   * If the user has not signed in, the session will be `undefined`. */
-  session: UserSession | undefined;
+   * If the user has not signed in, the session will be `null`. */
+  session: UserSession | null;
 }
 
 // Eslint doesn't like headings.
@@ -94,7 +94,7 @@ interface AuthContextType {
  * An `as ...` cast is unsafe. We use this cast when creating the context. So it appears that the
  * `AuthContextType` can be unsafely (i.e., only partially) initialized as a result of this.
  *
- * So it appears that we should remove the cast and initialize the context as `undefined` instead.
+ * So it appears that we should remove the cast and initialize the context as `null` instead.
  *
  * **However**, initializing a context the existing way is the recommended way to initialize a
  * context in React.  It is safe, for non-obvious reasons. It is safe because the `AuthContext` is
@@ -131,8 +131,8 @@ export function AuthProvider(props: AuthProviderProps) {
   const navigate = router.useNavigate();
   const onAuthenticated = react.useCallback(props.onAuthenticated, []);
   const [initialized, setInitialized] = react.useState(false);
-  const [userSession, setUserSession] = react.useState<UserSession | undefined>(
-    undefined
+  const [userSession, setUserSession] = react.useState<UserSession | null>(
+    null
   );
 
   /** Fetch the JWT access token from the session via the AWS Amplify library.
@@ -144,7 +144,7 @@ export function AuthProvider(props: AuthProviderProps) {
     const fetchSession = async () => {
       if (session.none) {
         setInitialized(true);
-        setUserSession(undefined);
+        setUserSession(null);
       } else {
         const { accessToken, email } = session.val;
 

@@ -134,8 +134,8 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
         event.preventDefault()
         if (parsedUrl.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
             logger.error(`${url} is not a deep link, ignoring.`)
-            return
+        } else {
+            window().webContents.send(ipc.Channel.openDeepLink, url)
         }
-        window().webContents.send(ipc.Channel.openDeepLink, url)
     })
 }
