@@ -108,7 +108,7 @@ class Compiler(
     if (!builtins.isIrInitialized) {
       logger.log(
         Compiler.defaultLogLevel,
-        "Initialising IR for [{}].",
+        "Initialising IR for [{0}].",
         builtins.getModule.getName
       )
 
@@ -188,8 +188,8 @@ class Compiler(
           case None =>
             logger.log(
               Level.SEVERE,
-              "Could not find entry point for compilation in package [{}]",
-              s"${pkg.namespace}.${pkg.name}"
+              "Could not find entry point for compilation in package [{0}.{1}]",
+              Array(pkg.namespace, pkg.name)
             )
             CompletableFuture.completedFuture(false)
           case Some(m) =>
@@ -277,7 +277,7 @@ class Compiler(
       ) {
         logger.log(
           Compiler.defaultLogLevel,
-          "Some imported modules' caches were invalided, forcing invalidation of {}",
+          "Some imported modules' caches were invalided, forcing invalidation of {0}",
           module.getName.toString
         )
         module.getCache.invalidate(context)
@@ -298,14 +298,14 @@ class Compiler(
           if (!flags.contains(false)) {
             logger.log(
               Compiler.defaultLogLevel,
-              "Restored links (late phase) for module [{}].",
+              "Restored links (late phase) for module [{0}].",
               module.getName
             )
           } else {
             hasInvalidModuleRelink = true
             logger.log(
               Compiler.defaultLogLevel,
-              "Failed to restore links (late phase) for module [{}].",
+              "Failed to restore links (late phase) for module [{0}].",
               module.getName
             )
             uncachedParseModule(module, isGenDocs = false)
@@ -389,7 +389,7 @@ class Compiler(
         if (generateCode) {
           logger.log(
             Compiler.defaultLogLevel,
-            "Generating code for module [{}].",
+            "Generating code for module [{0}].",
             module.getName
           )
 
@@ -413,7 +413,7 @@ class Compiler(
         } else {
           logger.log(
             Compiler.defaultLogLevel,
-            "Skipping serialization for [{}].",
+            "Skipping serialization for [{0}].",
             module.getName
           )
         }
@@ -503,7 +503,7 @@ class Compiler(
   ): Unit = {
     logger.log(
       Compiler.defaultLogLevel,
-      "Parsing module [{}].",
+      "Parsing module [{0}].",
       module.getName
     )
     module.ensureScopeExists(context)
@@ -536,7 +536,7 @@ class Compiler(
   private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
     logger.log(
       Compiler.defaultLogLevel,
-      "Loading module [{}] from source.",
+      "Loading module [{0}] from source.",
       module.getName
     )
     module.ensureScopeExists(context)
