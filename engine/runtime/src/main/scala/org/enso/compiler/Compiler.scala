@@ -409,7 +409,11 @@ class Compiler(
         }
         module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
 
-        if (module.getIr != null && (shouldCompileDependencies || isModuleInRootPackage(module))) {
+        if (
+          module.getIr != null && (shouldCompileDependencies || isModuleInRootPackage(
+            module
+          ))
+        ) {
           val shouldStoreCache =
             irCachingEnabled && !module.wasLoadedFromCache()
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
@@ -458,6 +462,7 @@ class Compiler(
       catch { case e: ExportCycleException => reportCycle(e) }
 
     /*
+     */
     val parsingTasks: List[CompletableFuture[Unit]] =
       modulesImportedWithCachedBindings.map { module =>
         if (config.parallelParsing) {
@@ -474,7 +479,6 @@ class Compiler(
       }
 
     joinAllFutures(parsingTasks).get()
-    */
 
     // ** Order matters for codegen **
     // Consider a case when an exported symbol is referenced but the module that defines the symbol
@@ -533,12 +537,46 @@ class Compiler(
     uncachedParseModule(module, isGenDocs)
   }
 
+  private val ieb: scala.collection.mutable.Map[Module, BindingsMap] =
+    scala.collection.mutable.HashMap.empty;
+
   /** Retrieve module bindings from cache, if available.
     *
     * @param module module which is conssidered
-    * @return module's bindings, if available in libraries' bindings cache
+    * @return module's bindings, either from cache or from the IR
     */
-  def importExportBindings(module: Module): Option[BindingsMap] = {
+  def importExportBindings(module: Module): BindingsMap = {
+    var m = ieb.get(module)
+    if (m == None) {
+      importExportBindingsOption(module) match {
+        case Some(b) =>
+          val converted = b
+            .toConcrete(packageRepository.getModuleMap)
+          (
+            converted
+              .map(
+                _.resolvedImports
+                  .map(_.target.module.unsafeAsModule())
+                  .distinct
+              )
+              .getOrElse(Nil),
+            false
+          )
+          m = converted
+        case None =>
+          m = Some(
+            module.getIr.unsafeGetMetadata(
+              BindingAnalysis,
+              "Non-parsed module used in stubs generator"
+            )
+          )
+      }
+      ieb(module) = m.get
+    }
+    m.get
+  }
+
+  def importExportBindingsOption(module: Module): Option[BindingsMap] = {
     if (irCachingEnabled && !module.isInteractive) {
       val libraryName = Option(module.getPackage).map(_.libraryName)
       libraryName
@@ -868,7 +906,8 @@ class Compiler(
     * @return the diagnostics from the module
     */
   def gatherDiagnostics(module: Module): List[IR.Diagnostic] = {
-    if (module.getIr == null) List() else
+    if (module.getIr == null) List()
+    else
       GatherDiagnostics
         .runModule(
           module.getIr,

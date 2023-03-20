@@ -3,7 +3,6 @@ package org.enso.compiler.codegen
 import org.enso.compiler.Compiler
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
@@ -19,16 +18,9 @@ class RuntimeStubsGenerator(builtins: Builtins) {
     *
     * @param module the module to generate stubs in.
     */
-  def run(c : Compiler, module: Module): Unit = {
-    val ir    = module.getIr
-    val scope = module.getScope
-    val localBindings = c.importExportBindings(module) match {
-      case Some(b) => b
-      case None => ir.unsafeGetMetadata(
-        BindingAnalysis,
-        "Non-parsed module used in stubs generator"
-      )
-    }
+  def run(c: Compiler, module: Module): Unit = {
+    val scope         = module.getScope
+    val localBindings = c.importExportBindings(module)
     val types = localBindings.definedEntities.collect {
       case t: BindingsMap.Type => t
     }
