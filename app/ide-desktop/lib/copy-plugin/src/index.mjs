@@ -79,20 +79,21 @@ export function create(filesProvider) {
             }
         })
         build.onLoad({ filter: /.*/, namespace: PLUGIN_NAME }, async () => {
-            if (build.initialOptions.outdir === undefined) {
+            if (build.initialOptions.outdir == null) {
                 console.error('`copy-plugin` requires `outdir` to be specified.')
                 return
-            }
-            let watchFiles = []
-            for await (const file of files) {
-                const to = path.join(build.initialOptions.outdir, path.basename(file))
-                await copy(file, to)
-                watchFiles.push(file)
-            }
-            console.log('Copied files.', watchFiles)
-            return {
-                contents: '',
-                watchFiles,
+            } else {
+                let watchFiles = []
+                for await (const file of files) {
+                    const to = path.join(build.initialOptions.outdir, path.basename(file))
+                    await copy(file, to)
+                    watchFiles.push(file)
+                }
+                console.log('Copied files.', watchFiles)
+                return {
+                    contents: '',
+                    watchFiles,
+                }
             }
         })
         build.onEnd(() => {

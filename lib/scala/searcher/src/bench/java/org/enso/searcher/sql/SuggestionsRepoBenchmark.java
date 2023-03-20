@@ -41,11 +41,11 @@ public class SuggestionsRepoBenchmark {
 
   @Setup
   public void setup() throws TimeoutException, InterruptedException {
-    repo =
-        new SqlSuggestionsRepo(
-            SqlDatabase.apply(dbfile.toFile(), none()), ExecutionContext.global());
+    var sqlDatabase = SqlDatabase.apply(dbfile.toFile(), none());
+    sqlDatabase.open();
+    repo = new SqlSuggestionsRepo(sqlDatabase, ExecutionContext.global());
     if (Files.notExists(dbfile)) {
-      System.out.println("initializing " + dbfile.toString() + " ...");
+      System.out.println("initializing " + dbfile + " ...");
       Await.ready(repo.init(), TIMEOUT);
       System.out.println("inserting records...");
       int size = 0;

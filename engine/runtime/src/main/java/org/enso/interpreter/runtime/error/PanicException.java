@@ -28,6 +28,7 @@ import org.enso.interpreter.runtime.state.State;
 @ExportLibrary(TypesLibrary.class)
 public class PanicException extends AbstractTruffleException {
   final Object payload;
+  String cacheMessage;
 
   /**
    * Creates an instance of this class.
@@ -42,6 +43,12 @@ public class PanicException extends AbstractTruffleException {
       throw new IllegalArgumentException("Only interop values are supported: " + payload);
     }
     this.payload = payload;
+    InteropLibrary library = InteropLibrary.getUncached();
+    try {
+      cacheMessage = library.asString(library.getExceptionMessage(this));
+    } catch (UnsupportedMessageException e) {
+      cacheMessage = TypeToDisplayTextNodeGen.getUncached().execute(payload);
+    }
   }
 
   /**
@@ -55,12 +62,7 @@ public class PanicException extends AbstractTruffleException {
 
   @Override
   public String getMessage() {
-    InteropLibrary library = InteropLibrary.getUncached();
-    try {
-      return library.asString(library.getExceptionMessage(this));
-    } catch (UnsupportedMessageException e) {
-      return TypeToDisplayTextNodeGen.getUncached().execute(payload);
-    }
+    return cacheMessage;
   }
 
   @Override
