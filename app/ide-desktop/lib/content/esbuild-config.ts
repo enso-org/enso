@@ -132,9 +132,18 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
                         const dest = path.join(outputPath, 'tailwind.css')
                         const config = path.resolve(THIS_PATH, 'tailwind.config.ts')
                         console.log(`Generating tailwind css from ${source} to ${dest}`)
-                        childProcess.spawnSync(`npx`, ['tailwindcss', '-i', source, '-o', dest, '-c', config, '--minify'])
+                        childProcess.spawnSync(`node`, [
+                            '../../node_modules/.bin/tailwindcss',
+                            '-i',
+                            source,
+                            '-o',
+                            dest,
+                            '-c',
+                            config,
+                            '--minify',
+                        ])
                     })
-                }
+                },
             },
             esbuildPluginCopy.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
         ],
