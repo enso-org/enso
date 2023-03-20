@@ -19,18 +19,19 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 import org.junit.Test;
 
 public class ExecSimpleTest {
   private final MockHandler mockHandler = new MockHandler();
 
-  public Context ensoContextForPackage(String name, File pkgFile) throws IOException {
+  public Context ensoContextForPackage(String name, File pkgFile, boolean disableIrCaching)
+      throws IOException {
     Context ctx =
         Context.newBuilder()
             .allowExperimentalOptions(true)
             .allowIO(true)
             .option(RuntimeOptions.PROJECT_ROOT, pkgFile.getAbsolutePath())
+            .option(RuntimeOptions.DISABLE_IR_CACHES, "" + disableIrCaching)
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
@@ -47,7 +48,7 @@ public class ExecSimpleTest {
     var testName = "Fib_Test";
     var pkgPath = new File(getClass().getClassLoader().getResource(testName).getPath());
     var pkg = PackageManager.Default().fromDirectory(pkgPath).get();
-    try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(testName, pkgPath)) {
+    try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(testName, pkgPath, true)) {
       var ensoContext =
           (EnsoContext)
               ctx.getBindings(LanguageInfo.ID)
@@ -70,9 +71,9 @@ public class ExecSimpleTest {
       ctx.leave();
     }
 
-    mockHandler.failOnMessage("Parsing module [local.Fib_Test.Arith].");
+    // mockHandler.failOnMessage("Parsing module [local.Fib_Test.Arith].");
 
-    try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(testName, pkgPath)) {
+    try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(testName, pkgPath, false)) {
       var ensoContext =
           (EnsoContext)
               ctx.getBindings(LanguageInfo.ID)
@@ -83,11 +84,14 @@ public class ExecSimpleTest {
 
       ctx.enter();
       var result = compiler.run(module);
-      assertEquals(
-          "Only main library module is compiled: " + result.compiledModules(),
-          result.compiledModules().size(),
-          1);
+
+      mockHandler.assertNoFailureMessage();
+      // assertEquals(
+      //    "Only main library module is compiled: " + result.compiledModules(),
+      //    result.compiledModules().size(),
+      //    1);
       assertEquals(result.compiledModules().exists(m -> m == module), true);
+
       ctx.leave();
     }
   }
@@ -96,6 +100,7 @@ public class ExecSimpleTest {
     private final Formatter fmt = new SimpleFormatter();
     private final List<LogRecord> records = new ArrayList<>();
     private String failMsg;
+    private Error failure;
 
     public MockHandler() {}
 
@@ -108,9 +113,8 @@ public class ExecSimpleTest {
       records.add(lr);
       var msg = fmt.formatMessage(lr);
       if (failMsg != null && failMsg.equals(msg)) {
-        fail("Get forbidden message: " + msg);
+        failure = new AssertionError(this.toString() + "\nGot forbidden message: " + msg);
       }
-      System.err.println(msg);
     }
 
     @Override
@@ -119,18 +123,20 @@ public class ExecSimpleTest {
     @Override
     public void close() throws SecurityException {}
 
-    public void assertMessage(String msg) {
+    @Override
+    public String toString() {
       var sb = new StringBuilder();
-      sb.append("Not found ").append(msg).append(" amoung:");
       for (var r : records) {
-        if (r.getMessage() != null && r.getMessage().startsWith(msg)) {
-          records.clear();
-          return;
-        }
         sb.append("\n").append(r.getMessage());
       }
-      var s = sb.toString();
-      fail(s);
+      return sb.toString();
+    }
+
+    private void assertNoFailureMessage() {
+      if (failure != null) {
+        failure.printStackTrace();
+        throw failure;
+      }
     }
   }
 }

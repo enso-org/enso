@@ -22,7 +22,7 @@ case class ExportCycleException(modules: List[Module])
       "Compilation aborted due to a cycle in export statements."
     )
 
-class ExportsResolution(val compiler : Compiler) {
+class ExportsResolution(val compiler: Compiler) {
 
   private case class Edge(
     exporter: Node,
@@ -40,20 +40,20 @@ class ExportsResolution(val compiler : Compiler) {
 
   private def getBindings(module: Module): BindingsMap = {
     compiler.importExportBindings(module) match {
-              case Some(bindings) =>
-                val converted = bindings
-                  .toConcrete(compiler.packageRepository.getModuleMap)
-                  .map { concreteBindings =>
-                    concreteBindings
-                  }
-                converted.get
-              case None =>
-                compiler.ensureParsed(module)
-                module.getIr.unsafeGetMetadata(
-                  BindingAnalysis,
-                  "module without binding analysis in Exports Resolution"
-                )
-            }
+      case Some(bindings) =>
+        val converted = bindings
+          .toConcrete(compiler.packageRepository.getModuleMap)
+          .map { concreteBindings =>
+            concreteBindings
+          }
+        converted.get
+      case None =>
+        compiler.ensureParsed(module)
+        module.getIr.unsafeGetMetadata(
+          BindingAnalysis,
+          "module without binding analysis in Exports Resolution"
+        )
+    }
   }
 
   private def buildGraph(modules: List[Module]): List[Node] = {

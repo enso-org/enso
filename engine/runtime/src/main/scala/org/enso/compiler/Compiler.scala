@@ -122,12 +122,12 @@ class Compiler(
               Module.CompilationStage.AFTER_CODEGEN
             )
           case _ =>
-            builtins.initializeBuiltinsIr(freshNameSupply, passes)
+            builtins.initializeBuiltinsIr(this, freshNameSupply, passes)
             builtins.getModule.setHasCrossModuleLinks(true)
 
         }
       } else {
-        builtins.initializeBuiltinsIr(freshNameSupply, passes)
+        builtins.initializeBuiltinsIr(this, freshNameSupply, passes)
         builtins.getModule.setHasCrossModuleLinks(true)
       }
 
@@ -294,11 +294,15 @@ class Compiler(
         if (!module.hasCrossModuleLinks) {
           if (module.getIr == null) {
             logger.log(
-              Level.WARNING, "Module IR is null: {0}", module
+              Level.WARNING,
+              "Module IR is null: {0}",
+              module
             )
           } else {
             val flags =
-              module.getIr.preorder.map(_.passData.restoreFromSerialization(this))
+              module.getIr.preorder.map(
+                _.passData.restoreFromSerialization(this)
+              )
 
             if (!flags.contains(false)) {
               logger.log(
@@ -452,6 +456,7 @@ class Compiler(
       catch { case e: ExportCycleException => reportCycle(e) }
 
     /*
+     */
     val parsingTasks: List[CompletableFuture[Unit]] =
       modulesImportedWithCachedBindings.map { module =>
         if (config.parallelParsing) {
@@ -461,8 +466,13 @@ class Compiler(
         }
       }
 
+    def joinAllFutures[T](
+      futures: List[CompletableFuture[T]]
+    ): CompletableFuture[List[T]] = {
+      CompletableFuture.allOf(futures: _*).thenApply(_ => futures.map(_.join()))
+    }
+
     joinAllFutures(parsingTasks).get()
-    */
 
     // ** Order matters for codegen **
     // Consider a case when an exported symbol is referenced but the module that defines the symbol
@@ -471,12 +481,6 @@ class Compiler(
     val sortedCachedModules =
       new ExportsResolution(this).runSort(modulesImportedWithCachedBindings)
     sortedCachedModules ++ requiredModules
-  }
-
-  def joinAllFutures[T](
-    futures: List[CompletableFuture[T]]
-  ): CompletableFuture[List[T]] = {
-    CompletableFuture.allOf(futures: _*).thenApply(_ => futures.map(_.join()))
   }
 
   /** Runs the initial passes of the compiler to gather the import statements,
