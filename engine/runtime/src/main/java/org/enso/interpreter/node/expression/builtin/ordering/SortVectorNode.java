@@ -1,5 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.ordering;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -8,7 +10,10 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
@@ -24,7 +29,6 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
-import org.enso.interpreter.runtime.util.Collections.ArrayListObj;
 
 /**
  * Sorts a vector with elements that have only Default_Comparator, thus, only elements with a
@@ -63,6 +67,7 @@ public abstract class SortVectorNode extends Node {
       @Cached HostValueToEnsoNode hostValueToEnsoNode,
       @Cached TypeOfNode typeOfNode,
       @Cached AnyToTextNode toTextNode,
+      @Cached BranchProfile warningEncounteredProfile,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warningsLib) {
     EnsoContext ctx = EnsoContext.get(this);
@@ -93,13 +98,15 @@ public abstract class SortVectorNode extends Node {
     Arrays.sort(elems, comparator);
     var vector = Vector.fromArray(new Array(elems));
 
-    // Check for the warnings attached from the Comparator
-    Warning[] currWarns = null;
     if (comparator.encounteredWarnings()) {
-      currWarns = (Warning[]) comparator.getWarnings();
-    }
-    if (currWarns != null) {
-      return WithWarnings.appendTo(vector, new ArrayRope<>(currWarns));
+      warningEncounteredProfile.enter();
+      CompilerDirectives.transferToInterpreter();
+      Warning[] warns = comparator.getWarnings()
+          .stream()
+          .map(Text::create)
+          .map(text -> Warning.create(EnsoContext.get(this), text, this))
+          .toArray(Warning[]::new);
+      return WithWarnings.appendTo(vector, new ArrayRope<>(warns));
     } else {
       return vector;
     }
@@ -135,7 +142,12 @@ public abstract class SortVectorNode extends Node {
     }
     else if (type == builtins.duration()) {
       return 6;
-    } else {
+    }
+    else if (type == builtins.vector()) {
+      // vectors are incomparable, but we want to sort them before Nothings and NaNs.
+      return 50;
+    }
+    else {
       throw new IllegalStateException("Unexpected type: " + type);
     }
   }
@@ -159,7 +171,7 @@ public abstract class SortVectorNode extends Node {
     private final TypeOfNode typeOfNode;
     private final AnyToTextNode toTextNode;
     private final boolean ascending;
-    private final ArrayListObj<Warning> warnings = new ArrayListObj<>();
+    private final Set<String> warnings = new HashSet<>();
 
     private Comparator(LessThanNode lessThanNode, EqualsNode equalsNode, TypeOfNode typeOfNode,
         AnyToTextNode toTextNode, boolean ascending) {
@@ -205,23 +217,20 @@ public abstract class SortVectorNode extends Node {
       return ascending ? res : -res;
     }
 
+    @TruffleBoundary
     private void attachIncomparableValuesWarning(Object x, Object y) {
       var xStr = toTextNode.execute(x).toString();
       var yStr = toTextNode.execute(y).toString();
-      var payload = Text.create("Values " + xStr + " and " + yStr + " are incomparable");
-      var sortNode = SortVectorNode.this;
-      var warn = Warning.create(EnsoContext.get(sortNode), payload, sortNode);
-      warnings.add(warn);
+      String warnText = "Values " + xStr + " and " + yStr + " are incomparable";
+      warnings.add(warnText);
     }
 
     private boolean encounteredWarnings() {
-      return warnings.size() > 0;
+      return !warnings.isEmpty();
     }
 
-    private Object[] getWarnings() {
-      Warning[] warns = new Warning[warnings.size()];
-      warns = warnings.toArray(warns.getClass());
-      return warns;
+    private Set<String> getWarnings() {
+      return warnings;
     }
   }
 }

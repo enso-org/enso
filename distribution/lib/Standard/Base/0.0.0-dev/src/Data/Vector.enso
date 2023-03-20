@@ -18,10 +18,13 @@ import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Math
+import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random
 import project.Warning.Warning
+
+import project.IO
 
 # We have to import also conversion methods, therefore, we import all from the Ordering
 # module
@@ -873,9 +876,9 @@ type Vector a
          This case is handled by first grouping the `self` vector into groups
          with the same comparator, recursively sorting these groups, and then
          merging them back together. The order of the sorted groups in the
-         resulting vector is based on the order of elements' comparators in the
-         `self` vector, with the exception of the group for the default
-         comparator, which is always the first group.
+         resulting vector is based on the order of fully qualified names of
+         the comparators in the `self` vector, with the exception of the group
+         for the default comparator, which is always the first group.
 
          Additionally, a warning will be attached, explaining that incomparable
          values were encountered.
@@ -912,17 +915,18 @@ type Vector a
                 elems = if on == Nothing then self else self.map it-> on it
                 elems.sort_builtin order.to_sign
             False ->
+                # The "default value" of `by` parameter is `Ordering.compare _ _`, but because
+                # there is no function equality, the real default value is Nothing.
+                by_non_null = if by == Nothing then (Ordering.compare _ _) else by
                 # Groups of elements with different comparators
-                groups = comps.distinct.map comp->
+                groups = comps.map comp->
                     self.filter it->
                         Comparable.from (on it) == comp
-                # TODO: Runtime.assert groups.reduce 0 acc->it-> acc + it.length == self.length
                 case groups.length of
-                    # self consists only of elements with the same comparator.
+                    # self consists only of elements with the same comparator, that
+                    # is not `Default_Comparator`.
                     # Forward to Array.sort
                     1 ->
-                        # The default value of `by` parameter is `Ordering.compare _ _`
-                        by_non_null = if by == Nothing then (Ordering.compare _ _) else by
                         comp_ascending l r  = by_non_null (on l) (on r)
                         comp_descending l r = by_non_null (on r) (on l)
                         compare = if order == Sort_Direction.Ascending then comp_ascending else
@@ -931,11 +935,21 @@ type Vector a
                         if new_vec_arr.is_error then Error.throw new_vec_arr else
                             Vector.from_polyglot_array new_vec_arr
                     _ ->
-                        # Recurse on each group, and attach a warning
-                        # TODO: Sort Default_Comparator group as the first one?
-                        sorted_groups = groups.map it-> it.sort order on by
-                        comparators_text = comps.distinct.to_text
-                        Warning.attach ("Different comparators: " + comparators_text) sorted_groups.flatten
+                        # Partition into groups sorted by FQN of their comparator's name,
+                        # with the default comparator as the first group.
+                        groups_with_comps_sorted_by_fqn = groups.zip comps . sort by=pair_1->pair_2->
+                            comp_1 = pair_1.last
+                            comp_2 = pair_2.last
+                            if comp_1 == Default_Comparator then Ordering.Less else
+                                if comp_2 == Default_Comparator then Ordering.Greater else
+                                    comp_1_fqn = Meta.get_qualified_type_name comp_1
+                                    comp_2_fqn = Meta.get_qualified_type_name comp_2
+                                    Ordering.compare comp_1_fqn comp_2_fqn
+                        # Recurse on each group
+                        sorted_groups = groups_with_comps_sorted_by_fqn.map it-> it.first.sort order on by
+                        # Merge the groups and attach a warning
+                        comparators_warn_text = groups_with_comps_sorted_by_fqn.map (it-> it.last) . to_text
+                        Warning.attach ("Different comparators: " + comparators_warn_text) sorted_groups.flatten
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.
