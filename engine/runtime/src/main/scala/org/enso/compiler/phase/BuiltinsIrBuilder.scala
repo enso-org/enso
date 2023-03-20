@@ -49,7 +49,7 @@ object BuiltinsIrBuilder {
     module.unsafeSetIr(irAfterModDiscovery)
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
 
-    new ExportsResolution().run(List(module))
+    new ExportsResolution(null).run(List(module))
     val irAfterTypes = passManager.runPassesOnModule(
       irAfterModDiscovery,
       moduleContext,

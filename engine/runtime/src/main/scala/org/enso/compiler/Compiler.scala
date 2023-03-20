@@ -292,23 +292,29 @@ class Compiler(
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
         if (!module.hasCrossModuleLinks) {
-          val flags =
-            module.getIr.preorder.map(_.passData.restoreFromSerialization(this))
-
-          if (!flags.contains(false)) {
+          if (module.getIr == null) {
             logger.log(
-              Compiler.defaultLogLevel,
-              "Restored links (late phase) for module [{0}].",
-              module.getName
+              Level.WARNING, "Module IR is null: {0}", module
             )
           } else {
-            hasInvalidModuleRelink = true
-            logger.log(
-              Compiler.defaultLogLevel,
-              "Failed to restore links (late phase) for module [{0}].",
-              module.getName
-            )
-            uncachedParseModule(module, isGenDocs = false)
+            val flags =
+              module.getIr.preorder.map(_.passData.restoreFromSerialization(this))
+
+            if (!flags.contains(false)) {
+              logger.log(
+                Compiler.defaultLogLevel,
+                "Restored links (late phase) for module [{0}].",
+                module.getName
+              )
+            } else {
+              hasInvalidModuleRelink = true
+              logger.log(
+                Compiler.defaultLogLevel,
+                "Failed to restore links (late phase) for module [{0}].",
+                module.getName
+              )
+              uncachedParseModule(module, isGenDocs = false)
+            }
           }
         }
       }
@@ -442,9 +448,10 @@ class Compiler(
       }
 
     val requiredModules =
-      try { new ExportsResolution().run(importedModules) }
+      try { new ExportsResolution(this).run(importedModules) }
       catch { case e: ExportCycleException => reportCycle(e) }
 
+    /*
     val parsingTasks: List[CompletableFuture[Unit]] =
       modulesImportedWithCachedBindings.map { module =>
         if (config.parallelParsing) {
@@ -455,17 +462,18 @@ class Compiler(
       }
 
     joinAllFutures(parsingTasks).get()
+    */
 
     // ** Order matters for codegen **
     // Consider a case when an exported symbol is referenced but the module that defines the symbol
     // has not yet registered the method in its scope. This will result in No_Such_Method method during runtime;
     // the symbol brought to the scope has not been properly resolved yet.
     val sortedCachedModules =
-      new ExportsResolution().runSort(modulesImportedWithCachedBindings)
+      new ExportsResolution(this).runSort(modulesImportedWithCachedBindings)
     sortedCachedModules ++ requiredModules
   }
 
-  private def joinAllFutures[T](
+  def joinAllFutures[T](
     futures: List[CompletableFuture[T]]
   ): CompletableFuture[List[T]] = {
     CompletableFuture.allOf(futures: _*).thenApply(_ => futures.map(_.join()))
