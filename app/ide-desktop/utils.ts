@@ -39,6 +39,9 @@ export function requireEnvResolvedPath(name: string) {
  */
 export function requireEnvPathExist(name: string) {
     const value = requireEnv(name)
-    if (fs.existsSync(value)) return value
-    else throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
+    if (fs.existsSync(value)) {
+        return value
+    } else {
+        throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
+    }
 }

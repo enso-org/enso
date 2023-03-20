@@ -49,7 +49,7 @@ export class ProjectManager {
             name: name,
             missingComponentAction: action,
         }
-        if (template !== undefined) {
+        if (template != null) {
             Object.assign(params, {
                 projectTemplate: template,
             })

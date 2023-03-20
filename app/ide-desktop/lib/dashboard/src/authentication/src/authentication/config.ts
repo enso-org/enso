@@ -130,7 +130,7 @@ export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfi
         userPoolWebClientId: config.userPoolWebClientId,
         oauth: {
             options: {
-                urlOpener: config.urlOpener,
+                ...(config.urlOpener ? { urlOpener: config.urlOpener } : {}),
             },
             domain: config.domain,
             scope: config.scope,
