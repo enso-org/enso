@@ -25,7 +25,6 @@ spec connection db_name =
     Test.group "[PostgreSQL] Type Mapping" <|
         Test.specify "numeric" <|
             t = make_table "ints" [["a", "smallint"], ["b", "int2"], ["c", "int"], ["d", "integer"], ["e", "int4"], ["f", "bigint"], ["g", "int8"]]
-            t.info.print
             t.at "a" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             t.at "b" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             t.at "c" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
@@ -35,14 +34,12 @@ spec connection db_name =
             t.at "g" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
             t2 = make_table "floats" [["a", "real"], ["b", "float4"], ["c", "double precision"], ["d", "float8"]]
-            t2.info.print
             t2.at "a" . value_type . should_equal (Value_Type.Float Bits.Bits_32)
             t2.at "b" . value_type . should_equal (Value_Type.Float Bits.Bits_32)
             t2.at "c" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t2.at "d" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
             t3 = make_table "decimals" [["a", "decimal"], ["b", "numeric"], ["c", "decimal(10, 2)"], ["d", "numeric(20, 4)"], ["e", "decimal(10)"], ["f", "numeric(20)"]]
-            t3.info.print
             t3.at "a" . value_type . should_equal Value_Type.Decimal
             t3.at "b" . value_type . should_equal Value_Type.Decimal
             t3.at "c" . value_type . should_equal (Value_Type.Decimal precision=10 scale=2)
@@ -52,7 +49,6 @@ spec connection db_name =
 
         Test.specify "text" <|
             t = make_table "texts" [["a", "char(10)"], ["b", "varchar"], ["c", "varchar(20)"], ["d", "text"]]
-            t.info.print
             t.at "a" . value_type . should_equal (Value_Type.Char size=10 variable=False)
             t.at "b" . value_type . should_equal default_text
             t.at "c" . value_type . should_equal (Value_Type.Char size=20 variable=True)
@@ -68,11 +64,9 @@ spec connection db_name =
 
         Test.specify "datetime" <|
             t = make_table "dates" [["a", "date"]]
-            t.info.print
             t.at "a" . value_type . should_equal Value_Type.Date
 
             t2 = make_table "times" [["a", "time"], ["b", "timetz"], ["c", "time without time zone"], ["d", "time with time zone"]]
-            t2.info.print
             t2.at "a" . value_type . should_equal Value_Type.Time
             t2.at "b" . value_type . should_equal Value_Type.Time
             t2.at "c" . value_type . should_equal Value_Type.Time
@@ -87,7 +81,6 @@ spec connection db_name =
 
         Test.specify "boolean" <|
             t = make_table "bools" [["a", "boolean"], ["b", "bool"]]
-            t.info.print
             t.at "a" . value_type . should_equal Value_Type.Boolean
             t.at "b" . value_type . should_equal Value_Type.Boolean
 
@@ -101,15 +94,14 @@ spec connection db_name =
             t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
             t.compute '[b] + "_suf"' . value_type . should_equal default_text
 
-            # TODO
-            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a"]
-            t2.info.print
+            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a"]
+            t2.at "b" . value_type . should_equal default_text
+            t2.at "Sum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Maximum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
 
-            # TODO curious
+            # Postgres does not try to be clever and two fixed-length columns concatenated get promoted to a varying column.
             t3 = make_table "foo2" [["a", "char(5)"], ["b", "char(8)"]]
-            t3.info.print
-            IO.println <|
-                "char(5)+char(8) = " + (t3.compute '[a] + [b]' . value_type . to_text)
+            t3.compute '[a] + [b]' . value_type . should_equal default_text
 
         Test.specify "other types" <|
             t = make_table "other" [["a", "box"], ["b", "polygon"]]

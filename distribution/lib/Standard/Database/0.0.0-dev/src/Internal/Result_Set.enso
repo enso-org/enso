@@ -33,9 +33,10 @@ result_set_to_table result_set expected_types=Nothing last_row_only=False =
     column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
     metadata_types = Vector.new ncols ix-> SQL_Type_Mapping.from_metadata metadata ix+1
     column_types = if expected_types.is_nothing.not then expected_types else metadata_types
-    IO.println "Column names:   "+column_names.to_text
-    IO.println "Expected types: "+expected_types.to_text
-    IO.println "Metadata types: "+metadata_types.to_text
+    # FIXME remove debug prints
+    #IO.println "Column names:   "+column_names.to_text
+    #IO.println "Expected types: "+expected_types.to_text
+    #IO.println "Metadata types: "+metadata_types.to_text
     column_builders = column_types.map create_builder
     case last_row_only of
         True ->

@@ -53,6 +53,14 @@ spec prefix connection =
             m2.at "b" . to_vector . should_equal [5]
             m2.at "c" . should_fail_with No_Such_Column
 
+        Test.specify "should use labels for column names" <|
+            t2 = connection.query (SQL_Query.Raw_SQL ('SELECT a AS c, b FROM "' + name + '" WHERE a >= 3'))
+            m2 = t2.read
+            m2.column_names . should_equal ["c", "b"]
+            m2.at "c" . to_vector . should_equal [4]
+            m2.at "b" . to_vector . should_equal [5]
+            m2.at "a" . should_fail_with No_Such_Column
+
         Test.specify "should allow a shorthand trying to deduce if the query is a table name or an SQL query" <|
             t2 = connection.query name
             t2.read . should_equal t1.read

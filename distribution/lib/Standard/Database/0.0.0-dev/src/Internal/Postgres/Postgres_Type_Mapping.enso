@@ -16,7 +16,7 @@ type Postgres_Type_Mapping
     value_type_to_sql value_type on_problems =
         result = case value_type of
             Value_Type.Boolean ->
-                SQL_Type.Value Types.BOOLEAN "boolean"
+                SQL_Type.Value Types.BIT "bit" precision=1
             # Byte is not available on Postgres so we substitute it with int2, the closest matching integral type.
             Value_Type.Byte ->
                 SQL_Type.Value Types.SMALLINT "int2"
