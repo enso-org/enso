@@ -122,6 +122,10 @@
   sign up and sign in for users), via either email/password or GitHub/Google.
 - [New Enso documentation parser][5917]. Smaller and faster; enables planned
   improvements to internal documentation representation.
+- [Dropdown widgets now support custom labels][5705] and automatically generate
+  shortened labels for entries with long module paths. When an option is
+  selected from the dropdown, the necessary module imports are inserted,
+  eliminating the need for fully qualified names.
 
 #### EnsoGL (rendering engine)
 
@@ -344,6 +348,7 @@
   and renamed them to `match`, `find`, `find_all` (respectively).][5721]
 - [Updated `rename_columns` to new API. Added `first_row`, `second_row` and
   `last_row` to Table types][5719]
+- [Introducing `Meta.Type`.][5768]
 - [Remove many regex compile flags; separated `match` into `match` and
   `match_all`.][5785]
 - [Aligned names of columns created by column operations.][5850]
@@ -512,6 +517,7 @@
 [4078]: https://github.com/enso-org/enso/pull/4078
 [4085]: https://github.com/enso-org/enso/pull/4085
 [4097]: https://github.com/enso-org/enso/pull/4097
+[4115]: https://github.com/enso-org/enso/pull/4115
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4050]: https://github.com/enso-org/enso/pull/4050
 [4072]: https://github.com/enso-org/enso/pull/4072
@@ -525,7 +531,7 @@
 [5719]: https://github.com/enso-org/enso/pull/5719
 [5721]: https://github.com/enso-org/enso/pull/5721
 [5757]: https://github.com/enso-org/enso/pull/5757
-[4115]: https://github.com/enso-org/enso/pull/4115
+[5768]: https://github.com/enso-org/enso/pull/5768
 [5774]: https://github.com/enso-org/enso/pull/5774
 [5779]: https://github.com/enso-org/enso/pull/5779
 [5785]: https://github.com/enso-org/enso/pull/5785
@@ -534,6 +540,7 @@
 [5850]: https://github.com/enso-org/enso/pull/5850
 [5863]: https://github.com/enso-org/enso/pull/5863
 [5917]: https://github.com/enso-org/enso/pull/5917
+[5705]: https://github.com/enso-org/enso/pull/5705
 
 #### Enso Compiler
 

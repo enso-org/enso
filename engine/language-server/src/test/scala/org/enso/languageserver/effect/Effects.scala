@@ -11,7 +11,7 @@ trait Effects {
 
   implicit final class UnsafeRunZio[E, A](io: zio.ZIO[zio.ZEnv, E, A]) {
     def unsafeRunSync(): Either[E, A] =
-      Await.result(ZioExec(zio.Runtime.default).exec(io), opTimeout)
+      Await.result(ZioExec(new TestRuntime).exec(io), opTimeout)
   }
 }
 

@@ -539,8 +539,24 @@ impl Entry {
     }
 
     /// Generate information about invoking this entity for span tree context.
-    pub fn invocation_info(&self) -> span_tree::generate::context::CalledMethodInfo {
-        self.into()
+    pub fn invocation_info(
+        &self,
+        suggestion_db: &SuggestionDatabase,
+        parser: &parser::Parser,
+    ) -> span_tree::generate::context::CalledMethodInfo {
+        let parameters = self
+            .arguments
+            .iter()
+            .map(|arg| to_span_tree_param(arg, suggestion_db, parser))
+            .collect();
+        let is_static = self.is_static;
+        let is_constructor = matches!(self.kind, Kind::Constructor);
+        span_tree::generate::context::CalledMethodInfo {
+            is_static,
+            is_constructor,
+            parameters,
+            ..default()
+        }
     }
 
     /// Get the full qualified name of the entry.
@@ -812,20 +828,6 @@ impl TryFrom<Entry> for language_server::MethodPointer {
     }
 }
 
-impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
-    fn from(entry: &Entry) -> span_tree::generate::context::CalledMethodInfo {
-        let parameters = entry.arguments.iter().map(to_span_tree_param).collect();
-        let is_static = entry.is_static;
-        let is_constructor = matches!(entry.kind, Kind::Constructor);
-        span_tree::generate::context::CalledMethodInfo {
-            is_static,
-            is_constructor,
-            parameters,
-            ..default()
-        }
-    }
-}
-
 
 
 // ===============
@@ -837,15 +839,156 @@ impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
 
 /// Converts the information about function parameter from suggestion database into the form used
 /// by the span tree nodes.
-pub fn to_span_tree_param(param_info: &Argument) -> span_tree::ArgumentInfo {
+pub fn to_span_tree_param(
+    param_info: &Argument,
+    db: &SuggestionDatabase,
+    parser: &parser::Parser,
+) -> span_tree::ArgumentInfo {
+    let tag_values = argument_tag_values(&param_info.tag_values, db, parser);
     span_tree::ArgumentInfo {
         // TODO [mwu] Check if database actually do must always have both of these filled.
-        name:       Some(param_info.name.clone()),
-        tp:         Some(param_info.repr_type.clone()),
-        call_id:    None,
-        tag_values: param_info.tag_values.clone(),
+        name: Some(param_info.name.clone()),
+        tp: Some(param_info.repr_type.clone()),
+        call_id: None,
+        tag_values,
     }
 }
+
+enum TagValueResolution<'a> {
+    Resolved(Rc<Entry>, ast::opr::Chain),
+    Parsed(ast::opr::Chain),
+    Unresolved(&'a str),
+}
+
+fn resolve_tag_value<'a>(
+    raw_expression: &'a str,
+    db: &SuggestionDatabase,
+    parser: &parser::Parser,
+) -> TagValueResolution<'a> {
+    let qualified_name = QualifiedName::from_text(raw_expression).ok();
+    if let Some(mut qualified_name) = qualified_name {
+        let entry = db.lookup_by_qualified_name(&qualified_name).or_else(move || {
+            // Second try at lookup. Enum values usually have the module and type name deduplicated,
+            // but the resolution database does not take that into account. So we need to manually
+            // expand the name and try again.
+            let last_segment = qualified_name.pop_segment()?;
+            let segment_to_duplicate = qualified_name.pop_segment()?;
+            qualified_name.push_segment(segment_to_duplicate.clone());
+            qualified_name.push_segment(segment_to_duplicate);
+            qualified_name.push_segment(last_segment);
+            db.lookup_by_qualified_name(&qualified_name)
+        });
+
+        let resolved = entry.and_then(|(_, entry)| {
+            let qualified_name: String = entry.qualified_name().to_string();
+            let ast = parser.parse_line_ast(qualified_name).ok()?;
+            let chain = ast::opr::as_access_chain(&ast)?;
+            Some(TagValueResolution::Resolved(entry, chain))
+        });
+
+        if let Some(resolved) = resolved {
+            return resolved;
+        }
+    }
+
+    let chain =
+        parser.parse_line_ast(raw_expression).ok().and_then(|ast| ast::opr::as_access_chain(&ast));
+    if let Some(chain) = chain {
+        return TagValueResolution::Parsed(chain);
+    }
+
+    TagValueResolution::Unresolved(raw_expression)
+}
+
+/// Generate tag value suggestion list from argument entry data, shortening labels as appropriate.
+pub fn argument_tag_values(
+    raw_expressions: &[String],
+    db: &SuggestionDatabase,
+    parser: &parser::Parser,
+) -> Vec<span_tree::TagValue> {
+    let resolved = raw_expressions.iter().map(|e| resolve_tag_value(e, db, parser)).collect_vec();
+    let mut only_access_chains_iter = resolved.iter().filter_map(|r| match r {
+        TagValueResolution::Resolved(_, chain) => Some(chain),
+        TagValueResolution::Parsed(chain) => Some(chain),
+        _ => None,
+    });
+
+    // Gather a list of expression reprs from first access chain. Includes each infix element
+    // that can be considered for removal.
+    let operands: Option<Vec<String>> = only_access_chains_iter.next().map(|chain| {
+        let mut operands = chain
+            .enumerate_operands()
+            .map(|operand| operand.map_or_default(|op| op.arg.repr()))
+            .collect_vec();
+        // Pop last chain element, as we never want to strip it from the label.
+        let last = operands.pop();
+
+        // If the last chain element is a "Value" literal, we want to preserve one extra chain
+        // element before it.
+        if last.map_or(false, |last| last == "Value") {
+            operands.pop();
+        }
+        operands
+    });
+
+    // Find the number of operands that are common for all access chains.
+    let common_operands_count: usize = operands.map_or(0, |common_operands| {
+        only_access_chains_iter.fold(common_operands.len(), |common_so_far, chain| {
+            let operand_reprs =
+                chain.enumerate_operands().map(|op| op.map_or_default(|op| op.arg.repr()));
+            operand_reprs
+                .zip(&common_operands[0..common_so_far])
+                .take_while(|(repr, common_repr)| repr == *common_repr)
+                .count()
+        })
+    });
+
+    let chain_to_label = move |chain: &ast::opr::Chain| {
+        if common_operands_count > 0 {
+            let mut chain = chain.clone();
+            chain.erase_leading_operands(common_operands_count);
+            Some(chain.into_ast().repr())
+        } else {
+            None
+        }
+    };
+
+    resolved
+        .into_iter()
+        .map(|resolution| match resolution {
+            TagValueResolution::Resolved(entry, chain) => {
+                let label = chain_to_label(&chain);
+                let qualified_name = entry.qualified_name();
+                let parent_module = qualified_name.parent();
+                let required_import = parent_module.as_ref().map(|n| n.to_string());
+
+                let expression = if let Some(parent) = parent_module {
+                    let in_module_name = qualified_name.name();
+                    let parent_name = parent.name();
+                    [parent_name, in_module_name].join(opr::predefined::ACCESS)
+                } else {
+                    qualified_name.to_string()
+                };
+                let expression =
+                    if entry.arguments.is_empty() { expression } else { format!("({expression})") };
+
+                span_tree::TagValue { required_import, expression, label }
+            }
+            TagValueResolution::Parsed(chain) => {
+                let label = chain_to_label(&chain);
+                let expression = chain.into_ast().repr();
+
+                span_tree::TagValue { required_import: None, expression, label }
+            }
+            TagValueResolution::Unresolved(expression) => span_tree::TagValue {
+                required_import: None,
+                expression:      expression.to_owned(),
+                label:           None,
+            },
+        })
+        .collect_vec()
+}
+
 
 
 // === Entry helpers ===
@@ -881,6 +1024,7 @@ mod test {
     use super::*;
 
     use engine_protocol::language_server::SuggestionArgumentUpdate;
+    use parser::Parser;
 
     use crate::mock;
     use crate::mock_suggestion_database;
@@ -1258,5 +1402,71 @@ mod test {
             SuggestionsDatabaseModification { arguments: vec![remove_argument], ..default() };
         let result = test.check_modification(modification);
         assert!(result.is_empty());
+    }
+
+    fn run_tag_value_test_case(expression_and_expected_label: &[(&str, Option<&str>)]) {
+        let parser = Parser::new();
+        let db = SuggestionDatabase::new_empty();
+        let expressions =
+            expression_and_expected_label.iter().map(|(expr, _)| expr.to_string()).collect_vec();
+        let tag_values = argument_tag_values(&expressions, &db, &parser);
+        let expected_values = expression_and_expected_label
+            .iter()
+            .map(|(expression, label)| span_tree::TagValue {
+                required_import: None,
+                expression:      expression.to_string(),
+                label:           label.map(ToString::to_string),
+            })
+            .collect_vec();
+
+        assert_eq!(tag_values, expected_values);
+    }
+
+    #[test]
+    fn tag_value_shortening_single_entry() {
+        run_tag_value_test_case(&[("Location.Start", Some("Start"))]);
+    }
+
+    #[test]
+    fn tag_value_shortening_single_entry_with_value() {
+        run_tag_value_test_case(&[("Foo.Bar.Value", Some("Bar.Value"))]);
+    }
+
+    #[test]
+    fn tag_value_shortening_common_prefix() {
+        run_tag_value_test_case(&[
+            ("Location.Start", Some("Start")),
+            ("Location.End", Some("End")),
+            ("Location.Both", Some("Both")),
+        ]);
+    }
+
+    #[test]
+    fn tag_value_shortening_multiple_elements() {
+        run_tag_value_test_case(&[
+            ("A.B.C.D", Some("C.D")),
+            ("A.B.C.E", Some("C.E")),
+            ("A.B.F.G.H", Some("F.G.H")),
+        ]);
+    }
+
+    #[test]
+    fn tag_value_shortening_no_prefix() {
+        run_tag_value_test_case(&[("Foo.Bar", None), ("Foo.Baz", None), ("Baz.Qux", None)]);
+    }
+
+    #[test]
+    fn tag_value_non_infix() {
+        run_tag_value_test_case(&[("Foo Bar", None), ("Foo Baz", None), ("Baz Qux", None)]);
+    }
+
+
+    #[test]
+    fn tag_value_some_infix() {
+        run_tag_value_test_case(&[
+            ("Foo.Bar", Some("Bar")),
+            ("Foo.Baz", Some("Baz")),
+            ("Baz Qux", None),
+        ]);
     }
 }

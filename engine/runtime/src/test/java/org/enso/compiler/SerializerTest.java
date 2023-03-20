@@ -56,7 +56,8 @@ public class SerializerTest {
     var result = compiler.run(module);
     assertEquals(result.compiledModules().exists(m -> m == module), true);
     var serializationManager = new SerializationManager(ensoContext.getCompiler());
-    var future = serializationManager.serializeModule(module, true);
+    var useThreadPool = compiler.context().getEnvironment().isCreateThreadAllowed();
+    var future = serializationManager.serializeModule(module, true, useThreadPool);
     var serialized = future.get(5, TimeUnit.SECONDS);
     assertEquals(serialized, true);
     var deserialized = serializationManager.deserialize(module);

@@ -16,11 +16,7 @@ import java.util.logging.Level
 
 final class AnalyzeModuleInScopeJob(
   modules: Iterable[Module]
-) extends Job[Unit](
-      List(AnalyzeModuleJob.backgroundContextId),
-      false,
-      false
-    ) {
+) extends BackgroundJob[Unit](AnalyzeModuleInScopeJob.Priority) {
 
   private val exportsBuilder = new ExportsBuilder
 
@@ -37,6 +33,9 @@ final class AnalyzeModuleInScopeJob(
       )
     }
   }
+
+  override def toString: String =
+    s"AnalyzeModuleInScopeJob($modules)"
 
   private def analyzeModuleInScope(module: Module)(implicit
     ctx: RuntimeContext
@@ -101,4 +100,6 @@ object AnalyzeModuleInScopeJob {
     */
   def apply(modules: Iterable[Module]): AnalyzeModuleInScopeJob =
     new AnalyzeModuleInScopeJob(modules)
+
+  private val Priority = 11
 }

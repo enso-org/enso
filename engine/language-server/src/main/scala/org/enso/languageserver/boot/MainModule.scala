@@ -105,12 +105,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   log.trace("Created ActorSystem [{}].", system)
 
-  private val zioRuntime =
-    effect.Runtime.fromExecutionContext(system.dispatcher)
-  private val zioExec = effect.ZioExec(zioRuntime)
+  private val zioRuntime = new effect.ExecutionContextRuntime(system.dispatcher)
+  private val zioExec    = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
-  val fileSystem: FileSystem = new FileSystem
+  private val fileSystem: FileSystem = new FileSystem
   log.trace("Created file system [{}].", fileSystem)
 
   val git = Git.withEmptyUserConfig(
@@ -348,9 +347,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val initializationComponent = ResourcesInitialization(
     system.eventStream,
     directoriesConfig,
+    sqlDatabase,
     suggestionsRepo,
     versionsRepo,
-    context
+    context,
+    zioRuntime
   )(system.dispatcher)
 
   val projectSettingsManager = system.actorOf(
@@ -381,7 +382,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   )
 
-  val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
+  private val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     mainComponent          = initializationComponent,
     bufferRegistry         = bufferRegistry,
     capabilityRouter       = capabilityRouter,

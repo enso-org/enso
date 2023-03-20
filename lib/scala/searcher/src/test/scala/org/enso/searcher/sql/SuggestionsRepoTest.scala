@@ -30,8 +30,10 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
   }
 
   def withRepo(test: SqlSuggestionsRepo => Any): Any = {
-    val tmpdb = Files.createTempFile(tmpdir, "suggestions-repo", ".db")
-    val repo  = new SqlSuggestionsRepo(SqlDatabase(tmpdb.toFile))
+    val tmpdb       = Files.createTempFile(tmpdir, "suggestions-repo", ".db")
+    val sqlDatabase = SqlDatabase(tmpdb.toFile)
+    sqlDatabase.open()
+    val repo = new SqlSuggestionsRepo(sqlDatabase)
     Await.ready(repo.init, Timeout)
     try test(repo)
     finally {
