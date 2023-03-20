@@ -1621,6 +1621,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ide-view-component-list-panel-grid",
  "ide-view-component-list-panel-icons",
+ "ide-view-graph-editor",
  "wasm-bindgen",
 ]
 
@@ -2707,7 +2708,9 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-prelude",
+ "enso-types",
  "enso-web",
+ "ensogl-core",
  "js-sys",
  "wasm-bindgen",
  "wasm-bindgen-futures",

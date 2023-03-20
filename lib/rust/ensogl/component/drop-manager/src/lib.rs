@@ -21,6 +21,7 @@
 /// Commonly used utilities.
 pub mod prelude {
     pub use enso_prelude::*;
+    pub use enso_types::*;
 }
 
 use crate::prelude::*;
@@ -30,6 +31,8 @@ use enso_web as web;
 use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
 use enso_web::Closure;
+use ensogl_core::display::scene::Scene;
+use ensogl_core::system::web::dom::WithKnownShape;
 
 #[cfg(target_arch = "wasm32")]
 use enso_web::JsCast;
@@ -113,6 +116,15 @@ impl File {
 type DropClosure = Closure<dyn Fn(web_sys::DragEvent)>;
 type DragOverClosure = Closure<dyn Fn(web_sys::DragEvent) -> bool>;
 
+#[derive(Clone, Debug, Default)]
+/// The data emitted by the `files_received` frp endpoint.
+pub struct DropEventData {
+    /// The position of the drop event in the scene coordinates.
+    pub position: Vector2,
+    /// The dropped files.
+    pub files:    Vec<File>,
+}
+
 /// The Manager of dropped files.
 ///
 /// It adds listeners for drag and drop events to the target passed during construction. It provides
@@ -122,7 +134,7 @@ type DragOverClosure = Closure<dyn Fn(web_sys::DragEvent) -> bool>;
 pub struct Manager {
     #[allow(dead_code)]
     network:          frp::Network,
-    files_received:   frp::Source<Vec<File>>,
+    files_received:   frp::Source<DropEventData>,
     #[allow(dead_code)]
     drop_handle:      web::EventListenerHandle,
     #[allow(dead_code)]
@@ -131,17 +143,18 @@ pub struct Manager {
 
 impl Manager {
     /// Constructor, adding listener to the given target.
-    pub fn new(target: &enso_web::EventTarget) -> Self {
+    pub fn new(dom: &WithKnownShape<web::EventTarget>, scene: &Scene) -> Self {
         debug!("Creating.");
         let network = frp::Network::new("DropFileManager");
         frp::extend! { network
             files_received <- source();
         }
 
-        let drop: DropClosure = Closure::new(f!([files_received](event:web_sys::DragEvent) {
+        let target: &web::EventTarget = dom.deref();
+        let drop: DropClosure = Closure::new(f!([files_received,scene](event:web_sys::DragEvent) {
             debug!("Dropped files.");
             event.prevent_default();
-            Self::handle_drop_event(event,&files_received)
+            Self::handle_drop_event(event, &files_received, &scene);
         }));
         // To mark element as a valid drop target, the `dragover` event handler should return
         // `false`. See
@@ -156,11 +169,28 @@ impl Manager {
     }
 
     /// The frp endpoint emitting signal when a file is dropped.
-    pub fn files_received(&self) -> &frp::Source<Vec<File>> {
+    pub fn files_received(&self) -> &frp::Source<DropEventData> {
         &self.files_received
     }
 
-    fn handle_drop_event(event: web_sys::DragEvent, files_received: &frp::Source<Vec<File>>) {
+    /// Retrieve the position of the drop event in the scene coordinates.
+    fn event_position(scene: &Scene, event: &web_sys::DragEvent) -> Vector2 {
+        let dom: WithKnownShape<web::EventTarget> = scene.dom.root.clone_ref().into();
+        let shape = dom.shape.value();
+        let base = Vector2::new(0.0, shape.height);
+        let position = Vector2::new(event.client_x() as f32, -event.client_y() as f32);
+        let position = base + position;
+        let center = scene.frp.shape.value().center();
+        let position = position - center;
+        scene.screen_to_scene_coordinates(Vector3::new(position.x, position.y, 0.0)).xy()
+    }
+
+    fn handle_drop_event(
+        event: web_sys::DragEvent,
+        files_received: &frp::Source<DropEventData>,
+        scene: &Scene,
+    ) {
+        let position = Self::event_position(scene, &event);
         let opt_files = event.data_transfer().and_then(|t| t.files());
         if let Some(js_files) = opt_files {
             let js_files_iter = (0..js_files.length()).filter_map(|i| js_files.get(i));
@@ -171,7 +201,8 @@ impl Manager {
                     None
                 }
             });
-            files_received.emit(files_iter.collect_vec());
+            let data = DropEventData { position, files: files_iter.collect_vec() };
+            files_received.emit(data);
         }
     }
 }

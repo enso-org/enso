@@ -22,7 +22,7 @@ export const LIVE_RELOAD_LISTENER_PATH = path.join(DIR_NAME, 'live-reload.js')
 
 /** Start the server.
  *
- * @param {{ root: string; assets?: string; port?: number; }} options - Configuration options for this server.
+ * @param {{ root: string; assets?: string | null; port?: number; }} options - Configuration options for this server.
  */
 export async function start({ root, assets, port }) {
     assets = assets ?? path.join(root, 'assets')

@@ -8,6 +8,7 @@
  * included in the final bundle. */
 // It is safe to disable `no-restricted-syntax` because the `PascalCase` naming is required
 // as per the above comment.
+// @ts-expect-error See above comment for why this import is needed.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-restricted-syntax
 import * as React from "react";
 import * as reactDOM from "react-dom/client";

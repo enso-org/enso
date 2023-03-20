@@ -1,12 +1,13 @@
 package org.enso.languageserver.effect
 
-import java.util.concurrent.{ExecutionException, TimeoutException}
-
+import org.enso.languageserver.effect
 import zio._
 import zio.blocking.blocking
 
-import scala.concurrent.{Future, Promise}
+import java.util.concurrent.{ExecutionException, TimeoutException}
+
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{Future, Promise}
 
 /** Abstract entity that executes effects `F`.
   */
@@ -41,7 +42,7 @@ trait Exec[-F[_, _]] {
   *
   * @param runtime zio runtime
   */
-case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
+case class ZioExec(runtime: effect.Runtime) extends Exec[ZioExec.IO] {
 
   /** Execute Zio effect.
     *
@@ -50,7 +51,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     */
   override def exec[E, A](op: ZIO[ZEnv, E, A]): Future[Either[E, A]] = {
     val promise = Promise[Either[E, A]]()
-    runtime.unsafeRunAsync(op) {
+    runtime.instance.unsafeRunAsync(op) {
       _.fold(
         ZioExec.completeFailure(promise, _),
         ZioExec.completeSuccess(promise, _)
@@ -71,7 +72,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     op: ZIO[ZEnv, E, A]
   ): Future[Either[E, A]] = {
     val promise = Promise[Either[E, A]]()
-    runtime.unsafeRunAsync(
+    runtime.instance.unsafeRunAsync(
       op.disconnect.timeout(zio.duration.Duration.fromScala(timeout))
     ) {
       _.fold(
@@ -89,7 +90,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     * @param op effect to execute
     */
   override def exec_[E, A](op: ZIO[ZEnv, E, A]): Unit =
-    runtime.unsafeRunAsync_(blocking(op))
+    runtime.instance.unsafeRunAsync_(blocking(op))
 }
 
 object ZioExec {

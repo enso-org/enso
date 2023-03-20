@@ -6,6 +6,7 @@ import org.enso.cli.task.{ProgressNotification, ProgressReporter, TaskProgress}
 import org.enso.distribution.ProgressAndLockNotificationForwarder
 import org.enso.distribution.locking.{LockUserInterface, Resource}
 import org.enso.editions.{LibraryName, LibraryVersion}
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import java.nio.file.Path
@@ -26,6 +27,12 @@ trait NotificationHandler extends ProgressReporter with LockUserInterface {
     libraryVersion: LibraryVersion,
     location: Path
   ): Unit
+
+  /** A request to serialize the module.
+    *
+    * @param moduleName qualified module name
+    */
+  def serializeModule(moduleName: QualifiedName): Unit
 }
 
 object NotificationHandler {
@@ -47,6 +54,9 @@ object NotificationHandler {
     ): Unit = {
       // Library notifications are deliberately ignored in text mode.
     }
+
+    /** @inheritdoc */
+    override def serializeModule(module: QualifiedName): Unit = ()
 
     /** @inheritdoc */
     override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
@@ -78,6 +88,10 @@ object NotificationHandler {
       location: Path
     ): Unit = for (listener <- listeners)
       listener.addedLibrary(libraryName, libraryVersion, location)
+
+    /** @inheritdoc */
+    def serializeModule(module: QualifiedName): Unit =
+      listeners.foreach(_.serializeModule(module))
 
     /** @inheritdoc */
     override def trackProgress(message: String, task: TaskProgress[_]): Unit =
@@ -130,6 +144,12 @@ object NotificationHandler {
         )
       )
     }
+
+    /** @inheritdoc */
+    override def serializeModule(module: QualifiedName): Unit =
+      endpoint.sendToSelf(
+        Api.Request(Api.SerializeModule(module))
+      )
 
     /** @inheritdoc */
     override def trackProgress(message: String, task: TaskProgress[_]): Unit = {

@@ -9,4 +9,4 @@ const OPTS = bundler.bundleOptions()
 const ROOT = OPTS.outdir
 const ASSETS = ROOT
 await esbuild.build(OPTS)
-await guiServer.start({ root: ROOT, assets: ASSETS })
+await guiServer.start({ root: ROOT, assets: ASSETS ?? null })

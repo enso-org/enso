@@ -242,17 +242,13 @@ class RuntimeComponentsTest
     )
     val responses =
       context.receiveAllUntil(
-        Seq(
-          context.executionComplete(contextId),
-          context.analyzeJobFinished
-        ),
+        Seq(context.executionComplete(contextId)),
         timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId),
-      context.analyzeJobFinished
     )
 
     // check LibraryLoaded notifications
@@ -335,17 +331,13 @@ class RuntimeComponentsTest
     )
     val responses =
       context.receiveAllUntil(
-        Seq(
-          context.executionComplete(contextId),
-          context.analyzeJobFinished
-        ),
+        Seq(context.executionComplete(contextId)),
         timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId),
-      context.analyzeJobFinished
     )
 
     // check the registered component groups
