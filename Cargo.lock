@@ -1621,6 +1621,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ide-view-component-list-panel-grid",
  "ide-view-component-list-panel-icons",
+ "ide-view-graph-editor",
  "wasm-bindgen",
 ]
 
