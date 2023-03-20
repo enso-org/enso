@@ -14,6 +14,7 @@ loadStyleFromString(scrollbarStyle)
 // ===========================
 // === CreateCustomTooltip ===
 // ===========================
+
 const createCustomTooltip = tableElem =>
     class CustomTooltip {
         isOverflowing(element) {
