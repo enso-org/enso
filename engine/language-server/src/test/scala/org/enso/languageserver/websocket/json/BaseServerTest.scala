@@ -10,7 +10,7 @@ import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
-import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.languageserver.TestClock
 import org.enso.languageserver.boot.{
   ProfilingConfig,
@@ -32,7 +32,7 @@ import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.IdlenessMonitor
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
-  JsonRpc
+  JsonRpcProtocolFactory
 }
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
@@ -104,7 +104,8 @@ class BaseServerTest
       StartupConfig()
     )
 
-  override def protocol: Protocol = JsonRpc.protocol
+  override def protocolFactory: ProtocolFactory =
+    new JsonRpcProtocolFactory
 
   val stdOut    = new ObservableOutputStream
   val stdErr    = new ObservableOutputStream

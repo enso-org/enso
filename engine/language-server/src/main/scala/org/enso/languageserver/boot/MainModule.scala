@@ -29,7 +29,7 @@ import org.enso.languageserver.protocol.binary.{
 }
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
-  JsonRpc
+  JsonRpcProtocolFactory
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime._
@@ -344,16 +344,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "std-in-controller"
     )
 
-  val initializationComponent = ResourcesInitialization(
-    system.eventStream,
-    directoriesConfig,
-    sqlDatabase,
-    suggestionsRepo,
-    versionsRepo,
-    context,
-    zioRuntime
-  )(system.dispatcher)
-
   val projectSettingsManager = system.actorOf(
     ProjectSettingsManager.props(contentRoot.file, editionResolver),
     "project-settings-manager"
@@ -382,6 +372,40 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   )
 
+  val pingHandlerProps =
+    PingHandler.props(
+      List(
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        contextRegistry
+      ),
+      10.seconds,
+      true
+    )
+
+  private val healthCheckEndpoint =
+    new HealthCheckEndpoint(pingHandlerProps, system)(
+      serverConfig.computeExecutionContext
+    )
+
+  private val idlenessEndpoint =
+    new IdlenessEndpoint(idlenessMonitor)
+
+  private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
+
+  private val initializationComponent =
+    ResourcesInitialization(
+      system.eventStream,
+      directoriesConfig,
+      jsonRpcProtocolFactory,
+      sqlDatabase,
+      suggestionsRepo,
+      versionsRepo,
+      context,
+      zioRuntime
+    )(system.dispatcher)
+
   private val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     mainComponent          = initializationComponent,
     bufferRegistry         = bufferRegistry,
@@ -405,29 +429,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     jsonRpcControllerFactory
   )
 
-  val pingHandlerProps =
-    PingHandler.props(
-      List(
-        bufferRegistry,
-        capabilityRouter,
-        fileManager,
-        contextRegistry
-      ),
-      10.seconds,
-      true
-    )
-
-  val healthCheckEndpoint =
-    new HealthCheckEndpoint(pingHandlerProps, system)(
-      serverConfig.computeExecutionContext
-    )
-
-  val idlenessEndpoint =
-    new IdlenessEndpoint(idlenessMonitor)
-
   val jsonRpcServer =
     new JsonRpcServer(
-      JsonRpc.protocol,
+      jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
