@@ -106,13 +106,16 @@ export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: st
 /**
  * Generate the builder options.
  */
-export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
+export function bundlerOptions(args: Arguments) {
     const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath } = args
-    return {
+    // This is required to make the `true` properties be typed as `boolean`.
+    // eslint-disable-next-line no-restricted-syntax
+    let trueBoolean = true as boolean
+    const buildOptions = {
         // Disabling naming convention because these are third-party options.
         /* eslint-disable @typescript-eslint/naming-convention */
         absWorkingDir: THIS_PATH,
-        bundle: true,
+        bundle: trueBoolean,
         entryPoints: [path.resolve(THIS_PATH, 'src', 'index.ts')],
         outdir: outputPath,
         outbase: 'src',
@@ -129,14 +132,14 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
         },
-        sourcemap: true,
-        minify: true,
-        metafile: true,
+        sourcemap: trueBoolean,
+        minify: trueBoolean,
+        metafile: trueBoolean,
         format: 'esm',
         publicPath: '/assets',
         platform: 'browser',
-        incremental: true,
-        color: true,
+        incremental: trueBoolean,
+        color: trueBoolean,
         logOverride: {
             // Happens in ScalaJS-generated parser (scala-parser.js):
             //    6 │   "fileLevelThis": this
@@ -152,14 +155,18 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
             'suspicious-boolean-not': 'silent',
         },
         /* eslint-enable @typescript-eslint/naming-convention */
-    }
+    } satisfies esbuild.BuildOptions
+    // The narrower type is required to avoid non-null assertions elsewhere.
+    // The intersection with `esbuild.BuildOptions` is required to allow mutation.
+    const correctlyTypedBuildOptions: esbuild.BuildOptions & typeof buildOptions = buildOptions
+    return correctlyTypedBuildOptions
 }
 
 /** The basic, common settings for the bundler, based on the environment variables.
  *
  * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build).
  */
-export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
+export function bundlerOptionsFromEnv() {
     return bundlerOptions(argumentsFromEnv())
 }
 

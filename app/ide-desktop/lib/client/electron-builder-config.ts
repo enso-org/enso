@@ -18,7 +18,6 @@ import yargs from 'yargs'
 import * as common from 'enso-common'
 
 import * as paths from './paths.js'
-import * as shared from './shared.js'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
@@ -83,7 +82,7 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 export function createElectronBuilderConfig(passedArgs: Arguments): electronBuilder.Configuration {
     return {
         appId: 'org.enso',
-        productName: shared.PRODUCT_NAME,
+        productName: common.PRODUCT_NAME,
         extraMetadata: {
             version: BUILD_INFO.version,
         },
@@ -106,7 +105,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         protocols: [
             /** Electron URL protocol scheme definition for deep links to authentication flow pages. */
             {
-                name: `${shared.PRODUCT_NAME} url`,
+                name: `${common.PRODUCT_NAME} url`,
                 schemes: [common.DEEP_LINK_SCHEME],
                 role: 'Editor',
             },

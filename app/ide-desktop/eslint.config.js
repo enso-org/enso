@@ -29,7 +29,7 @@ const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|react-hot
 const OUR_MODULES = 'enso-content-config|enso-common'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|index|ipc|naming|paths|preload|security'
-const STRING_LITERAL = 'Literal[raw=/^["\']/]'
+const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)/'
@@ -102,7 +102,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector:
-            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)))) > * > ReturnStatement',
+            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))):has(:matches([finalizer=null], .finalizer :matches(ReturnStatement, ThrowStatement))))) > * > ReturnStatement',
         message: 'No early returns',
     },
     {
@@ -141,7 +141,7 @@ const RESTRICTED_SYNTAXES = [
     {
         // Matches `as T` in either:
         // - anything other than a variable declaration
-        // - a variable declaration that is not at the top levelshouldn't be `as const`
+        // - a variable declaration that is not at the top level
         // - a top-level variable declaration that shouldn't be `as const`
         // - a top-level variable declaration that should be `as const`, but is `as SomeActualType` instead
         selector: `:matches(:not(VariableDeclarator) > TSAsExpression, :not(:matches(Program, ExportNamedDeclaration)) > VariableDeclaration > * > TSAsExpression, :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TSAsExpression > .expression:not(ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))), :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TsAsExpression:not(:has(TSTypeReference > Identifier[name=const])) > ObjectExpression.expression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL}))))`,

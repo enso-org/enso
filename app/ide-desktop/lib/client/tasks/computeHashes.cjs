@@ -25,17 +25,17 @@ function getChecksum(path, type) {
     return new Promise(
         // This JSDoc annotation is required for correct types that are also type-safe.
         /** @param {(value: string) => void} resolve - Fulfill the promise with the given value. */
-        function (resolve, reject) {
-            const hash = cryptoModule.createHash(type)
-            const input = fs.createReadStream(path)
-            input.on('error', reject)
-            input.on('data', function (chunk) {
-                hash.update(chunk)
-            })
-            input.on('close', function () {
-                resolve(hash.digest('hex'))
-            })
-        }
+        (resolve, reject) => {
+        const hash = cryptoModule.createHash(type)
+        const input = fs.createReadStream(path)
+        input.on('error', reject)
+        input.on('data', (chunk) => {
+            hash.update(chunk)
+        })
+        input.on('close', () => {
+            resolve(hash.digest('hex'))
+        })
+    }
     )
 }
 

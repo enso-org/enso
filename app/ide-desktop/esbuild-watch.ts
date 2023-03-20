@@ -7,11 +7,11 @@ import * as esbuild from 'esbuild'
  * @param onRebuild - Callback to be called after each rebuild.
  * @param inject - See [esbuild docs](https://esbuild.github.io/api/#inject).
  */
-export function toWatchOptions(
-    config: esbuild.BuildOptions,
+export function toWatchOptions<T extends esbuild.BuildOptions>(
+    config: T,
     onRebuild?: () => void,
     inject?: esbuild.BuildOptions['inject']
-): esbuild.BuildOptions {
+) {
     return {
         ...config,
         inject: [...(config.inject ?? []), ...(inject ?? [])],
@@ -21,5 +21,5 @@ export function toWatchOptions(
                 else onRebuild?.()
             },
         },
-    }
+    } satisfies esbuild.BuildOptions
 }

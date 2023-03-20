@@ -152,49 +152,50 @@ function wordWrap(str: string, width: number): string[] {
     if (width <= 0) {
         logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
         return []
-    }
-    let firstLine = true
-    let line = ''
-    const lines = []
-    const inputLines = str.split('\n')
-    for (const inputLine of inputLines) {
-        if (!firstLine) {
-            lines.push(line)
-            line = ''
-        }
-        firstLine = false
-        for (const originalWord of inputLine.split(' ')) {
-            let word = originalWord
-            if (stringLength(word) > width) {
-                if (line.length > 0) {
-                    lines.push(line)
-                    line = ''
+    } else {
+        let firstLine = true
+        let line = ''
+        const lines = []
+        const inputLines = str.split('\n')
+        for (const inputLine of inputLines) {
+            if (!firstLine) {
+                lines.push(line)
+                line = ''
+            }
+            firstLine = false
+            for (const originalWord of inputLine.split(' ')) {
+                let word = originalWord
+                if (stringLength(word) > width) {
+                    if (line.length > 0) {
+                        lines.push(line)
+                        line = ''
+                    }
+                    const wordChunks = []
+                    while (stringLength(word) > width) {
+                        wordChunks.push(word.slice(0, width))
+                        word = word.slice(width)
+                    }
+                    wordChunks.push(word)
+                    for (const wordChunk of wordChunks) {
+                        lines.push(wordChunk)
+                    }
+                } else {
+                    if (stringLength(line) + stringLength(word) >= width) {
+                        lines.push(line)
+                        line = ''
+                    }
+                    if (line.length !== 0) {
+                        line += ' '
+                    }
+                    line += word
                 }
-                const wordChunks = []
-                while (stringLength(word) > width) {
-                    wordChunks.push(word.slice(0, width))
-                    word = word.slice(width)
-                }
-                wordChunks.push(word)
-                for (const wordChunk of wordChunks) {
-                    lines.push(wordChunk)
-                }
-            } else {
-                if (stringLength(line) + stringLength(word) >= width) {
-                    lines.push(line)
-                    line = ''
-                }
-                if (line.length !== 0) {
-                    line += ' '
-                }
-                line += word
             }
         }
+        if (line) {
+            lines.push(line)
+        }
+        return lines
     }
-    if (line) {
-        lines.push(line)
-    }
-    return lines
 }
 
 // ======================
