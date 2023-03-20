@@ -12,6 +12,38 @@ loadStyle('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine
 loadStyleFromString(scrollbarStyle)
 
 // ===========================
+// === CreateCustomTooltip ===
+// ===========================
+const createCustomTooltip = tableElem =>
+    class CustomTooltip {
+        isOverflowing(element) {
+            return element.scrollWidth > element.offsetWidth
+        }
+
+        init(params) {
+            const eGui = (this.eGui = document.createElement('div'))
+            eGui.style.backgroundColor = 'white'
+            eGui.style.border = '1px solid gray'
+            eGui.innerHTML = `
+                <p>${params.value}</p>
+            `
+
+            const cell = tableElem.querySelector(
+                `[row-id="${params.rowIndex}"] > .ag-cell[col-id="${params.column.colId}"]`
+            )
+            if (this.isOverflowing(cell)) {
+                eGui.style.visibility = 'visible'
+            } else {
+                eGui.style.visibility = 'hidden'
+            }
+        }
+
+        getGui() {
+            return this.eGui
+        }
+    }
+
+// ===========================
 // === Table visualization ===
 // ===========================
 
@@ -136,7 +168,11 @@ class TableVisualization extends Visualization {
                     filter: true,
                     resizable: true,
                     minWidth: 50,
+                    tooltipComponent: createCustomTooltip(tabElem),
                 },
+                tooltipShowDelay: 1000,
+                tooltipMouseTrack: true,
+                enableRangeSelection: true,
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
@@ -180,7 +216,10 @@ class TableVisualization extends Visualization {
                     return { field: h, headerName: headerName }
                 }
             )
-            columnDefs = [...indices_header, ...parsedData.header.map(h => ({ field: h }))]
+            columnDefs = [
+                ...indices_header,
+                ...parsedData.header.map(h => ({ field: h, tooltipField: h })),
+            ]
 
             const rows =
                 parsedData.data && parsedData.data.length > 0
