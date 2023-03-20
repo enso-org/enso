@@ -1,0 +1,6 @@
+
+import project.Arith
+
+from Standard.Base import
+
+main = Arith.mul 6 7

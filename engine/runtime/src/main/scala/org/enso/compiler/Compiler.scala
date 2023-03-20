@@ -36,6 +36,7 @@ import java.util.concurrent.{
 import java.util.logging.Level
 
 import scala.jdk.OptionConverters._
+import java.util.concurrent.Future
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -164,11 +165,12 @@ class Compiler(
     *                                  the dependencies of the requested package
     * @param useGlobalCacheLocations whether or not the compilation result should
     *                                  be written to the global cache
+    * @return future to track subsequent serialization of the library
     */
   def compile(
     shouldCompileDependencies: Boolean,
     useGlobalCacheLocations: Boolean
-  ): Unit = {
+  ): Future[Boolean] = {
     val packageRepository = context.getPackageRepository
 
     packageRepository.getMainProjectPackage match {
@@ -177,6 +179,7 @@ class Compiler(
           Level.SEVERE,
           "No package found in the compiler environment. Aborting."
         )
+        CompletableFuture.completedFuture(false)
       case Some(pkg) =>
         val packageModule = packageRepository.getModuleMap.get(
           s"${pkg.namespace}.${pkg.name}.Main"
@@ -188,6 +191,7 @@ class Compiler(
               "Could not find entry point for compilation in package [{}]",
               s"${pkg.namespace}.${pkg.name}"
             )
+            CompletableFuture.completedFuture(false)
           case Some(m) =>
             logger.log(
               Compiler.defaultLogLevel,
