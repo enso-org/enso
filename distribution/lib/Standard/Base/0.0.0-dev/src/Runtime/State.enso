@@ -4,7 +4,7 @@
 
 import project.Any.Any
 
-from project.Error.Common import Uninitialized_State
+from project.Errors.Common import Uninitialized_State
 
 ## Executes a stateful computation in a local state environment.
 

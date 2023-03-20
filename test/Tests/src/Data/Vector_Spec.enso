@@ -6,7 +6,6 @@ import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
-import Standard.Base.Error.Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every

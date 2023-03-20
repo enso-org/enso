@@ -3,7 +3,6 @@
    revisited when proper type support is implemented.
 
 from Standard.Base import all
-import Standard.Base.Error.Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from project.Errors import Invalid_Value_Type

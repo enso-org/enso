@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 from Standard.Base.Data.Json import render
-import Standard.Base.Error.Error
 
 from Standard.Table import Table, Column
 import Standard.Table.Data.Row.Row

@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
-import Standard.Base.Error.Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 polyglot java import org.enso.base.Encoding_Utils

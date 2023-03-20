@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Error.Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Table.Table as Materialized_Table

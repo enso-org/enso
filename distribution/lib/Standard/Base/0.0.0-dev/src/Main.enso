@@ -7,6 +7,7 @@ import project.Data.Map.Map
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors
 import project.Function
 import project.IO
 import project.Math
@@ -37,6 +38,7 @@ export project.Data.Map.Map
 export project.Data.Text.Text
 export project.Data.Vector.Vector
 export project.Error.Error
+export project.Errors
 export project.IO
 export project.Math
 export project.Meta

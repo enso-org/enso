@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base
-import Standard.Base.Error.Error
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -12,7 +11,7 @@ polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
-from Standard.Base.Error.Common import Uninitialized_State
+from Standard.Base.Errors.Common import Uninitialized_State
 import Standard.Base.Errors.File_Error.File_Error
 
 type My_Type

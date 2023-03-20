@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
-import Standard.Base.Error.Error
 import Standard.Base.Errors.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite

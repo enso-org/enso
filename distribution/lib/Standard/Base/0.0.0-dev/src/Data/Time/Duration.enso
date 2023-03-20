@@ -7,11 +7,11 @@ import project.Data.Pair.Pair
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.Illegal_State.Illegal_State
-import project.Error.Time_Error.Time_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
+import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Panic.Panic
 import project.Runtime

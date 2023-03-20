@@ -15,9 +15,9 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Time_Error.Time_Error
+import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic

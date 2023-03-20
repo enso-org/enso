@@ -2,9 +2,9 @@ import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Error
-import project.Error.Common.Incomparable_Values
-import project.Error.Common.No_Such_Conversion
-import project.Error.Common.Type_Error
+import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.No_Such_Conversion
+import project.Errors.Common.Type_Error
 import project.Nothing.Nothing
 import project.Meta
 import project.Panic.Panic
