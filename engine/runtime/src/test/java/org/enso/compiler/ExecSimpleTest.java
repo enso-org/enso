@@ -71,7 +71,7 @@ public class ExecSimpleTest {
       ctx.leave();
     }
 
-    mockHandler.failOnMessage("Parsing module [local.Fib_Test.Arith].");
+    // mockHandler.failOnMessage("Parsing module [local.Fib_Test.Arith].");
 
     try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(testName, pkgPath, false)) {
       var ensoContext =
@@ -84,13 +84,16 @@ public class ExecSimpleTest {
 
       ctx.enter();
       var result = compiler.run(module);
-
       mockHandler.assertNoFailureMessage();
-      assertEquals(
-         "Only main library module is compiled: " + result.compiledModules(),
-         result.compiledModules().size(),
-         1);
       assertEquals(result.compiledModules().exists(m -> m == module), true);
+
+      var methods = module.getScope().getMethods();
+      var methodsOfMain = methods.values().iterator().next();
+      var main = methodsOfMain.values().iterator().next();
+
+      assertEquals("Main.main", main.getName());
+      var mainValue = ctx.asValue(main);
+      assertEquals(42, mainValue.execute().asInt());
 
       ctx.leave();
     }
