@@ -169,8 +169,8 @@ without user-interaction. It can be run as follows:
 
 The `profile` entry point selects batch mode; when it is used, the
 `profile.workflow` argument is mandatory. `profile.save` specifies an output
-filename; `profile.workflow` selects from a list of defined batch-mode
-workflows to measure. Supported workflows include:
+filename; `profile.workflow` selects from a list of defined batch-mode workflows
+to measure. Supported workflows include:
 
 - `new_project`: This workflow includes starting the application, opening an
   empty project, and closing the application.
