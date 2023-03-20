@@ -9,7 +9,6 @@
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 
 #![recursion_limit = "1024"]
-
 // === Features ===
 #![feature(array_methods)]
 #![feature(drain_filter)]
@@ -17,13 +16,11 @@
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
 #![feature(int_roundings)]
-
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

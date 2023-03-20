@@ -17,6 +17,3 @@ pub use client::MockAPI as MockClient;
 pub use client::Notification;
 pub use client::API;
 pub use connection::Connection;
-
-
-

@@ -5,13 +5,11 @@
 //! we need to avoid crates' circular dependencies.
 
 #![recursion_limit = "256"]
-
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -24,8 +22,6 @@
 use enso_prelude::*;
 use ensogl::prelude::*;
 
-use ide_view_documentation as documentation;
-use ide_view_graph_editor::component::node::HEIGHT as NODE_HEIGHT;
 use enso_frp as frp;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
@@ -33,6 +29,8 @@ use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser as theme;
+use ide_view_documentation as documentation;
+use ide_view_graph_editor::component::node::HEIGHT as NODE_HEIGHT;
 
 
 // ==============

@@ -1,5 +1,3 @@
-
-
 const CONFIG_PATH: &str = "../config.yaml";
 
 fn main() {

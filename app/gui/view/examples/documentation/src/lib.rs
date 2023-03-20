@@ -1,7 +1,6 @@
 //! Example scene showing a documentation panel of the component browser.
 
 #![recursion_limit = "256"]
-
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

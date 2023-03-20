@@ -1,7 +1,6 @@
 //! The crate contains all structures for representing suggestions and their database.
 
 #![recursion_limit = "512"]
-
 // === Features ===
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(arc_unwrap_or_clone)]
@@ -18,13 +17,11 @@
 #![feature(assert_matches)]
 #![feature(hash_drain_filter)]
 #![feature(unwrap_infallible)]
-
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
