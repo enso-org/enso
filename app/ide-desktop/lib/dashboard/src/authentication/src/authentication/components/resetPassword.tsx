@@ -8,7 +8,6 @@ import * as auth from "../providers/auth";
 import * as hooks from "../../hooks";
 import * as icons from "../../components/svg";
 import * as utils from "../../utils";
-import withRouter from "../../navigation";
 
 // =================
 // === Constants ===
@@ -178,4 +177,4 @@ function parseUrlSearchParams(search: string) {
   return { verificationCode, email };
 }
 
-export default withRouter(ResetPassword);
+export default ResetPassword;

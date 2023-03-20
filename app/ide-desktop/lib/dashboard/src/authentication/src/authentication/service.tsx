@@ -190,10 +190,11 @@ function setDeepLinkHandler(
     switch (parsedUrl.pathname) {
       /** If the user is being redirected after clicking the registration confirmation link in their
        * email, then the URL will be for the confirmation page path. */
-      case CONFIRM_REGISTRATION_PATHNAME:
+      case CONFIRM_REGISTRATION_PATHNAME: {
         const redirectUrl = `${app.CONFIRM_REGISTRATION_PATH}${parsedUrl.search}`;
         navigate(redirectUrl);
         break;
+      }
       /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/339
        * Don't use `enso://auth` for both authentication redirect & signout redirect so we don't
        * have to disambiguate between the two on the `DASHBOARD_PATH`. */
@@ -214,10 +215,11 @@ function setDeepLinkHandler(
       /** If the user is being redirected from a password reset email, then we need to navigate to
        * the password reset page, with the verification code and email passed in the URL so they can
        * be filled in automatically. */
-      case app.RESET_PASSWORD_PATH:
+      case app.RESET_PASSWORD_PATH: {
         const resetPasswordRedirectUrl = `${app.RESET_PASSWORD_PATH}${parsedUrl.search}`;
         navigate(resetPasswordRedirectUrl);
         break;
+      }
       default:
         logger.error(`${url} is an unrecognized deep link. Ignoring.`);
     }
