@@ -131,7 +131,9 @@ export function AuthProvider(props: AuthProviderProps) {
   const navigate = router.useNavigate();
   const onAuthenticated = react.useCallback(props.onAuthenticated, []);
   const [initialized, setInitialized] = react.useState(false);
-  const [userSession, setUserSession] = react.useState<UserSession | null>(null);
+  const [userSession, setUserSession] = react.useState<UserSession | null>(
+    null
+  );
 
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
