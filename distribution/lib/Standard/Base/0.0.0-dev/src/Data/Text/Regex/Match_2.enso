@@ -248,7 +248,7 @@ type Match_2
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
        (Pattern_2.lookup_group 3) will return 3. `named_groups` will map
-       a named group that does not particiapte to the deafult value.
+       a named group that does not participate to the default value.
 
        > Example
          Get the map of all of the named groups in this match, replacing the

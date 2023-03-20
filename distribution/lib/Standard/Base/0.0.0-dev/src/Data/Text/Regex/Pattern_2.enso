@@ -108,7 +108,7 @@ type Pattern_2
        regex. The following syntaxes are supported:
            $0: the entire match string
            $&: the entire match string
-           $nnn: group #nnn
+           $nn: group #nn
            $<foo>: Named group `foo`
 
        > Example

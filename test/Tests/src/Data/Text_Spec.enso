@@ -1406,6 +1406,10 @@ spec =
             "Hello World!".replace "l" "#" only_first=True . should_equal "He#lo World!"
             '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' . should_equal '(abc) foo (bar) baz'
 
+        Test.specify "works when mapped over a vector of inputs" <|
+            inputs = ["axyz", "bxyz", "xabcz", "zazaz"]
+            inputs.map (s-> s.replace "[abc]" "q") . should_equal ["qxyz", "qxyz", "xqqqz", "zqzqz"]
+
         Test.specify "should correctly handle empty-string edge cases" <|
             [True, False] . each only_first->
                 'aaa'.replace '' 'foo' only_first=only_first . should_equal 'aaa'
