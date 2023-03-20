@@ -98,7 +98,7 @@ class PassManager(
             c.shouldWriteToContext = isLastRunOf(index, pass, passGroup)
           )
 
-        pass.runModule(intermediateIR, newContext)
+        if (intermediateIR == null) null else pass.runModule(intermediateIR, newContext)
       }
     }
   }

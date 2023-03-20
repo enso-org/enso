@@ -115,6 +115,7 @@ public class ExecSimpleTest {
       if (failMsg != null && failMsg.equals(msg)) {
         failure = new AssertionError(this.toString() + "\nGot forbidden message: " + msg);
       }
+      System.err.println(msg);
     }
 
     @Override

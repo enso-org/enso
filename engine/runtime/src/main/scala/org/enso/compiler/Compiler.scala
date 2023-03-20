@@ -383,7 +383,7 @@ class Compiler(
           Module.CompilationStage.AFTER_RUNTIME_STUBS
         )
       ) {
-        stubsGenerator.run(module)
+        stubsGenerator.run(this, module)
         module.unsafeSetCompilationStage(
           Module.CompilationStage.AFTER_RUNTIME_STUBS
         )
@@ -403,11 +403,13 @@ class Compiler(
             module.getName
           )
 
-          truffleCodegen(module.getIr, module.getSource, module.getScope)
+          if (module.getIr != null) {
+            truffleCodegen(module.getIr, module.getSource, module.getScope)
+          }
         }
         module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
 
-        if (shouldCompileDependencies || isModuleInRootPackage(module)) {
+        if (module.getIr != null && (shouldCompileDependencies || isModuleInRootPackage(module))) {
           val shouldStoreCache =
             irCachingEnabled && !module.wasLoadedFromCache()
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
@@ -866,16 +868,17 @@ class Compiler(
     * @return the diagnostics from the module
     */
   def gatherDiagnostics(module: Module): List[IR.Diagnostic] = {
-    GatherDiagnostics
-      .runModule(
-        module.getIr,
-        ModuleContext(module, compilerConfig = config)
-      )
-      .unsafeGetMetadata(
-        GatherDiagnostics,
-        "No diagnostics metadata right after the gathering pass."
-      )
-      .diagnostics
+    if (module.getIr == null) List() else
+      GatherDiagnostics
+        .runModule(
+          module.getIr,
+          ModuleContext(module, compilerConfig = config)
+        )
+        .unsafeGetMetadata(
+          GatherDiagnostics,
+          "No diagnostics metadata right after the gathering pass."
+        )
+        .diagnostics
   }
 
   private def hasErrors(module: Module): Boolean =
