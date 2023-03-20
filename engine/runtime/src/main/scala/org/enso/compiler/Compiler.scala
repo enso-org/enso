@@ -458,7 +458,6 @@ class Compiler(
       catch { case e: ExportCycleException => reportCycle(e) }
 
     /*
-    */
     val parsingTasks: List[CompletableFuture[Unit]] =
       modulesImportedWithCachedBindings.map { module =>
         if (config.parallelParsing) {
@@ -475,6 +474,7 @@ class Compiler(
       }
 
     joinAllFutures(parsingTasks).get()
+    */
 
     // ** Order matters for codegen **
     // Consider a case when an exported symbol is referenced but the module that defines the symbol
