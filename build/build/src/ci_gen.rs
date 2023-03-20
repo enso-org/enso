@@ -184,9 +184,7 @@ pub fn setup_customized_script_steps(
     steps.extend(customize(run(command_line)));
     steps.extend(list_everything_on_failure());
     steps.push(
-        clean_step
-            .with_if(format!("always() && {}", post_clean_condition))
-            .with_name("Clean after"),
+        clean_step.with_if(format!("always() && {post_clean_condition}")).with_name("Clean after"),
     );
     steps
 }
@@ -475,11 +473,10 @@ pub fn benchmark() -> Result<Workflow> {
         ..WorkflowDispatchInput::new("If set, benchmarks will be only checked to run correctly, not to measure actual performance.", true)
     };
     let on = Event {
-        push: Some(on_default_branch_push()),
         workflow_dispatch: Some(
             WorkflowDispatch::default().with_input(just_check_input_name, just_check_input),
         ),
-        schedule: vec![Schedule::new("0 5 * * 2-6")?],
+        schedule: vec![Schedule::new("0 0 * * *")?],
         ..default()
     };
     let mut workflow = Workflow { name: "Benchmark Engine".into(), on, ..default() };
@@ -490,8 +487,9 @@ pub fn benchmark() -> Result<Workflow> {
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
 
-    let benchmark_job =
+    let mut benchmark_job =
         plain_job(&BenchmarkRunner, "Benchmark Engine", "backend benchmark runtime enso");
+    benchmark_job.timeout_minutes = Some(60 * 8);
     workflow.add_job(benchmark_job);
     Ok(workflow)
 }

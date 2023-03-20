@@ -11,15 +11,18 @@ class GraalVMComponentConfiguration extends RuntimeComponentConfiguration {
   override def getRequiredComponents(
     version: GraalVMVersion,
     os: OS
-  ): Seq[GraalVMComponent] =
+  ): Seq[GraalVMComponent] = {
+    val optPythonComponent =
+      if (os.hasPythonSupport) Seq(GraalVMComponent.python) else Seq()
     version.graalVersion match {
       case GraalVersions.Major(v) if v >= 22 =>
-        Seq(GraalVMComponent.js, GraalVMComponent.python, GraalVMComponent.R)
+        Seq(GraalVMComponent.js, GraalVMComponent.R) ++ optPythonComponent
       case GraalVersions.Major(v) if v > 20 && os.hasSulongSupport =>
-        Seq(GraalVMComponent.python, GraalVMComponent.R)
+        Seq(GraalVMComponent.R) ++ optPythonComponent
       case _ =>
         Seq()
     }
+  }
 
 }
 object GraalVMComponentConfiguration {
@@ -39,6 +42,17 @@ object GraalVMComponentConfiguration {
         case OS.Linux   => true
         case OS.MacOS   => true
         case OS.Windows => false
+      }
+
+    /** Check if the provided OS supports Python.
+      * Python is currently not supported in any form on Windows.
+      *
+      * @return `true` if the OS supports Pythong runtime
+      */
+    def hasPythonSupport: Boolean =
+      os match {
+        case OS.Windows => false
+        case _          => true
       }
   }
 

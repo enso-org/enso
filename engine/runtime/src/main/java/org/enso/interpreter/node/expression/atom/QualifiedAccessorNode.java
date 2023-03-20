@@ -23,6 +23,11 @@ public class QualifiedAccessorNode extends RootNode {
     this.atomConstructor = atomConstructor;
   }
 
+  /** @return the atom constructor. */
+  public AtomConstructor getAtomConstructor() {
+    return atomConstructor;
+  }
+
   /**
    * Executes the node, returning the predefined constructor.
    *

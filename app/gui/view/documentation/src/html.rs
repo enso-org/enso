@@ -4,6 +4,11 @@ use enso_prelude::*;
 use horrorshow::prelude::*;
 
 use double_representation::name::QualifiedName;
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Mark;
+use enso_profiler as profiler;
+use enso_profiler::profile;
+use enso_suggestion_database::documentation_ir::BuiltinDocumentation;
 use enso_suggestion_database::documentation_ir::Constructors;
 use enso_suggestion_database::documentation_ir::Documentation;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
@@ -17,8 +22,6 @@ use enso_suggestion_database::documentation_ir::Synopsis;
 use enso_suggestion_database::documentation_ir::Tag;
 use enso_suggestion_database::documentation_ir::TypeDocumentation;
 use enso_suggestion_database::documentation_ir::Types;
-use enso_suggestion_database::engine_protocol::language_server::DocSection;
-use enso_suggestion_database::engine_protocol::language_server::Mark;
 use enso_suggestion_database::entry::Argument;
 use horrorshow::box_html;
 use horrorshow::labels;
@@ -43,7 +46,7 @@ const ICON_SVG_XMLNS: &str = "http://www.w3.org/2000/svg";
 /// A single icon used in headers. `content` is an SVG code of the icon's content _without_ the
 /// surrounding `<svg>` tags.
 fn svg_icon(content: &'static str) -> impl Render {
-    let class = "w-5 h-5 fill-none flex-shrink-0 mt-0.5";
+    let class = "w-[12px] h-[12px] fill-none flex-shrink-0 mt-0.5";
     owned_html! {
         svg(class=class, viewBox=ICON_VIEWBOX, xmlns=ICON_SVG_XMLNS) {
             :Raw(content)
@@ -58,6 +61,7 @@ fn svg_icon(content: &'static str) -> impl Render {
 // ==============
 
 /// Render entry documentation to HTML code with Tailwind CSS styles.
+#[profile(Detail)]
 pub fn render(docs: EntryDocumentation) -> String {
     match docs {
         EntryDocumentation::Placeholder(placeholder) => match placeholder {
@@ -66,7 +70,6 @@ pub fn render(docs: EntryDocumentation) -> String {
                 render_virtual_component_group_docs(name),
         },
         EntryDocumentation::Docs(docs) => render_documentation(docs),
-        EntryDocumentation::Builtin(docs) => render_builtin_docs(docs),
     }
 }
 
@@ -82,6 +85,7 @@ fn render_documentation(docs: Documentation) -> String {
             render_type_documentation(&type_docs, Some(&name)),
         Documentation::ModuleMethod { module_docs, name } =>
             render_module_documentation(&module_docs, Some(&name)),
+        Documentation::Builtin(builtin_docs) => render_builtin_documentation(&builtin_docs),
     }
 }
 
@@ -95,13 +99,6 @@ fn render_virtual_component_group_docs(name: ImString) -> String {
     docs_content(content).into_string().unwrap()
 }
 
-/// Render a documentation of a builtin entry that is not present in the suggestion database.
-fn render_builtin_docs(html_docs: ImString) -> String {
-    let content = owned_html! {
-        : Raw(&*html_docs);
-    };
-    docs_content(content).into_string().unwrap()
-}
 
 // === Types ===
 
@@ -475,6 +472,20 @@ fn local_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
 }
 
 
+// === Builtin entries ===
+
+/// Render documentation for built-in entries.
+///
+/// Consists of only a synopsis.
+fn render_builtin_documentation(docs: &BuiltinDocumentation) -> String {
+    let synopsis = section_content(module_synopsis(&docs.synopsis));
+    let content = owned_html! {
+        : &synopsis;
+    };
+    docs_content(content).into_string().unwrap()
+}
+
+
 
 // =======================
 // === Common elements ===
@@ -484,7 +495,7 @@ fn local_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
 /// class.
 fn docs_content(content: impl Render) -> impl Render {
     owned_html! {
-        div(class="enso-docs text-docsText bg-docsBackground pl-4 pr-2") {
+        div(class="enso-docs text-docsText text-base bg-docsBackground pl-4 pr-2") {
             : &content;
         }
     }
@@ -492,7 +503,7 @@ fn docs_content(content: impl Render) -> impl Render {
 
 fn section_content(content: impl Render) -> impl Render {
     owned_html! {
-        div(class="pl-7") {
+        div(class="pl-5") {
             : &content;
         }
     }
@@ -525,7 +536,7 @@ fn arguments_list<'a>(arguments: &'a [Argument]) -> Box<dyn Render + 'a> {
 fn single_argument(argument: &Argument) -> impl Render {
     let Argument { name, default_value, .. } = argument;
     let text = if let Some(default_value) = default_value {
-        format!("{} = {},", name, default_value)
+        format!("{name} = {default_value},")
     } else {
         name.to_string()
     };
@@ -626,7 +637,7 @@ pub fn caption_html() -> String {
     owned_html! {
         div(class="bg-captionBackground rounded-t-[14px] w-full h-full flex \
                    items-center justify-center") {
-            div(class="text-xs text-white") {
+            div(class="text-base text-white") {
                 : "Hovered item preview. Press the right mouse button to lock it.";
             }
         }

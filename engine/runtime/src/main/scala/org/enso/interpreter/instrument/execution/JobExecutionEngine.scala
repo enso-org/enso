@@ -1,12 +1,13 @@
 package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
-import org.enso.interpreter.instrument.job.{Job, UniqueJob}
+import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
 import org.enso.text.Sha3_224VersionCalculator
 
-import java.util.UUID
+import java.util
+import java.util.{Collections, UUID}
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{ExecutorService, Executors}
+import java.util.concurrent.ExecutorService
 import java.util.logging.Level
 
 import scala.concurrent.{Future, Promise}
@@ -37,16 +38,16 @@ final class JobExecutionEngine(
 
   private val jobParallelism = context.getJobParallelism
 
-  val jobExecutor: ExecutorService =
-    Executors.newFixedThreadPool(
-      jobParallelism,
-      new TruffleThreadFactory(context, "job-pool")
-    )
+  private var isBackgroundJobsStarted = false
 
-  val backgroundJobExecutor: ExecutorService =
-    Executors.newSingleThreadExecutor(
-      new TruffleThreadFactory(context, "background-job-pool")
-    )
+  private val delayedBackgroundJobsQueue =
+    new util.ArrayList[BackgroundJob[_]](4096)
+
+  val jobExecutor: ExecutorService =
+    context.newFixedThreadPool(jobParallelism, "job-pool", false)
+
+  private val backgroundJobExecutor: ExecutorService =
+    context.newFixedThreadPool(1, "background-job-pool", false)
 
   private val runtimeContext =
     RuntimeContext(
@@ -62,8 +63,14 @@ final class JobExecutionEngine(
     )
 
   /** @inheritdoc */
-  override def runBackground[A](job: Job[A]): Future[A] =
-    runInternal(job, backgroundJobExecutor, backgroundJobsRef)
+  override def runBackground[A](job: BackgroundJob[A]): Unit =
+    synchronized {
+      if (isBackgroundJobsStarted) {
+        runInternal(job, backgroundJobExecutor, backgroundJobsRef)
+      } else {
+        delayedBackgroundJobsQueue.add(job)
+      }
+    }
 
   /** @inheritdoc */
   override def run[A](job: Job[A]): Future[A] = {
@@ -147,6 +154,15 @@ final class JobExecutionEngine(
   }
 
   /** @inheritdoc */
+  override def startBackgroundJobs(): Boolean =
+    synchronized {
+      val result = !isBackgroundJobsStarted
+      isBackgroundJobsStarted = true
+      submitBackgroundJobsOrdered()
+      result
+    }
+
+  /** @inheritdoc */
   override def stop(): Unit = {
     val allJobs = runningJobsRef.get()
     allJobs.foreach(_.future.cancel(true))
@@ -155,4 +171,10 @@ final class JobExecutionEngine(
     jobExecutor.shutdownNow()
   }
 
+  /** Submit background jobs preserving the stable order. */
+  private def submitBackgroundJobsOrdered(): Unit = {
+    Collections.sort(delayedBackgroundJobsQueue)
+    delayedBackgroundJobsQueue.forEach(job => runBackground(job))
+    delayedBackgroundJobsQueue.clear()
+  }
 }

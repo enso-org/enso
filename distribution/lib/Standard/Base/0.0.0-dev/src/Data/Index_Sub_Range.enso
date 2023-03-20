@@ -165,7 +165,7 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
         end = 0.up_to length . find i-> (predicate (at i)).not
         true_end = if end.is_nothing then length else end
         single_slice 0 true_end
-    Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds.Error, Illegal_Argument.Error] <|
+    Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds, Illegal_Argument] <|
         indices = case one_or_many_descriptors of
             _ : Vector -> one_or_many_descriptors
             _ -> [one_or_many_descriptors]
@@ -215,7 +215,7 @@ drop_helper length at single_slice slice_ranges index_sub_range = case index_sub
         end = 0.up_to length . find i-> (predicate (at i)).not
         true_end = if end.is_nothing then length else end
         single_slice true_end length
-    Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds.Error, Illegal_Argument.Error] <|
+    Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds, Illegal_Argument] <|
         indices = case one_or_many_descriptors of
             _ : Vector -> one_or_many_descriptors
             _ -> [one_or_many_descriptors]

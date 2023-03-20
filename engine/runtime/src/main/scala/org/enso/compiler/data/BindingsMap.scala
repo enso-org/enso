@@ -21,6 +21,10 @@ import scala.annotation.unused
   * @param moduleMethods the methods defined with current module as `this`
   * @param currentModule the module holding these bindings
   */
+
+@SerialVersionUID(
+  5568L // stable serialization of bindings
+)
 case class BindingsMap(
   definedEntities: List[DefinedEntity],
   currentModule: ModuleReference
@@ -840,9 +844,11 @@ object BindingsMap {
       tpe.toConcrete(moduleMap).map(tpe => this.copy(tpe = tpe))
     }
 
+    /** @inheritdoc */
     override def qualifiedName: QualifiedName =
-      module.getName.createChild(cons.name)
+      tpe.qualifiedName.createChild(cons.name)
 
+    /** @inheritdoc */
     override def module: ModuleReference = tpe.module
   }
 

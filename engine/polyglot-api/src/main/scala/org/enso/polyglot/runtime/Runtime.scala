@@ -9,7 +9,7 @@ import com.fasterxml.jackson.module.scala.{
 }
 import org.enso.editions.LibraryName
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
-import org.enso.pkg.ComponentGroups
+import org.enso.pkg.{ComponentGroups, QualifiedName}
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.ContentVersion
@@ -94,7 +94,7 @@ object Runtime {
         name  = "getComponentGroupsResponse"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.SetModuleSourcesNotification],
+        value = classOf[Api.OpenFileNotification],
         name  = "setModuleSourcesNotification"
       ),
       new JsonSubTypes.Type(
@@ -206,6 +206,10 @@ object Runtime {
         name  = "suggestionsDatabaseModuleUpdateNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.SuggestionsDatabaseSuggestionsLoadedNotification],
+        name  = "suggestionsDatabaseSuggestionsLoadedNotification"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.AnalyzeModuleInScopeJobFinished],
         name  = "analyzeModuleInScopeJobFinished"
       ),
@@ -216,14 +220,6 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexResponse],
         name  = "invalidateModulesIndexResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VerifyModulesIndexRequest],
-        name  = "verifyModulesIndexRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VerifyModulesIndexResponse],
-        name  = "verifyModulesIndexResponse"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.GetTypeGraphRequest],
@@ -268,6 +264,22 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.LockReleaseFailed],
         name  = "lockReleaseFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.DeserializeLibrarySuggestions],
+        name  = "deserializeLibrarySuggestions"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.StartBackgroundProcessing],
+        name  = "startBackgroundProcessing"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.BackgroundJobsStartedNotification],
+        name  = "backgroundJobsStartedNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SerializeModule],
+        name  = "serializeModule"
       )
     )
   )
@@ -1301,12 +1313,12 @@ object Runtime {
       */
     final case class InvalidStackItemError(contextId: ContextId) extends Error
 
-    /** A notification sent to the server about setting module's sources to literal contents.
+    /** A notification sent to the server about opening a file.
       *
       * @param path the file being moved to memory.
       * @param contents the current module's contents.
       */
-    final case class SetModuleSourcesNotification(
+    final case class OpenFileNotification(
       path: File,
       contents: String
     ) extends ApiRequest
@@ -1314,7 +1326,7 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "SetModuleSourcesNotification(" +
+        "OpenFileNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
         s"contents=${MaskedString(contents).toLogString(shouldMask)}," +
         ")"
@@ -1514,6 +1526,25 @@ object Runtime {
         ")"
     }
 
+    /** A notification about the suggestions of the loaded library.
+      *
+      * @param libraryName the name of the loaded library
+      * @param suggestions the loaded suggestions
+      */
+    final case class SuggestionsDatabaseSuggestionsLoadedNotification(
+      libraryName: LibraryName,
+      suggestions: Vector[Suggestion]
+    ) extends ApiNotification
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "SuggestionsDatabaseSuggestionsLoadedNotification(" +
+        s"libraryName=$libraryName," +
+        s"suggestions=${suggestions.map(_.toLogString(shouldMask))}" +
+        ")"
+    }
+
     /** A notification about the finished background analyze job. */
     final case class AnalyzeModuleInScopeJobFinished() extends ApiNotification
 
@@ -1522,20 +1553,6 @@ object Runtime {
 
     /** Signals that the module indexes has been invalidated. */
     final case class InvalidateModulesIndexResponse() extends ApiResponse
-
-    /** A request to verify the modules in the suggestions database.
-      *
-      * @param modules the list of modules
-      */
-    final case class VerifyModulesIndexRequest(modules: Seq[String])
-        extends ApiRequest
-
-    /** A response to the module verification request.
-      *
-      * @param remove the list of modules to remove from suggestions database.
-      */
-    final case class VerifyModulesIndexResponse(remove: Seq[String])
-        extends ApiResponse
 
     /** A request for the type hierarchy graph. */
     final case class GetTypeGraphRequest() extends ApiRequest
@@ -1649,6 +1666,28 @@ object Runtime {
       *                     this failure
       */
     final case class LockReleaseFailed(errorMessage: String) extends ApiResponse
+
+    /** A request to deserialize the library suggestions.
+      *
+      * Does not have a companion response message. The response will be
+      * delivered asynchronously as a notification.
+      *
+      * @param libraryName the name of the loaded library.
+      */
+    final case class DeserializeLibrarySuggestions(libraryName: LibraryName)
+        extends ApiRequest
+
+    /** A request to start the background jobs processing. */
+    final case class StartBackgroundProcessing() extends ApiRequest
+
+    /** A notification about started background jobs. */
+    final case class BackgroundJobsStartedNotification() extends ApiNotification
+
+    /** A request to serialize the module.
+      *
+      * @param module qualified module name
+      */
+    final case class SerializeModule(module: QualifiedName) extends ApiRequest
 
     private lazy val mapper = {
       val factory = new CBORFactory()

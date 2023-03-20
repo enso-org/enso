@@ -182,7 +182,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         let artifact_fut = self.build_internal(context, job);
         let this = self.clone();
         async move {
-            let artifact = artifact_fut.await.context(format!("Failed to build {:?}.", this))?;
+            let artifact = artifact_fut.await.context(format!("Failed to build {this:?}."))?;
             // We upload only built artifacts. There would be no point in uploading something that
             // we've just downloaded. That's why the uploading code is here.
             if upload_artifacts {
@@ -255,8 +255,8 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         release.assets.iter().find(|asset| self.matches_asset(asset)).with_context(|| {
             let asset_names = release.assets.iter().map(|asset| &asset.name).join(", ");
             format!(
-                "No matching asset for target {:?} in release {:?}. Available assets: {}",
-                self, release, asset_names
+                "No matching asset for target {self:?} in release {release:?}. \
+                Available assets: {asset_names}"
             )
         })
     }
@@ -392,4 +392,31 @@ pub trait IsWatchable: IsTarget {
         context: Context,
         job: WatchTargetJob<Self>,
     ) -> BoxFuture<'static, Result<Self::Watcher>>;
+}
+
+/// Sets up a watcher, if a given target is built locally.
+///
+/// Otherwise, if static artifact is used, only its location will be referenced.
+pub fn perhaps_watch<T: IsWatchable>(
+    target: T,
+    context: Context,
+    job: GetTargetJob<T>,
+    watch_input: T::WatchInput,
+) -> BoxFuture<'static, Result<PerhapsWatched<T>>> {
+    match job.inner {
+        Source::BuildLocally(local) => target
+            .watch(context, WatchTargetJob {
+                watch_input,
+                build: WithDestination { inner: local, destination: job.destination },
+            })
+            .map_ok(PerhapsWatched::Watched)
+            .boxed(),
+        Source::External(external) => target
+            .get_external(context, WithDestination {
+                inner:       external,
+                destination: job.destination,
+            })
+            .map_ok(PerhapsWatched::Static)
+            .boxed(),
+    }
 }

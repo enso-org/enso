@@ -291,6 +291,7 @@ impl ContainerModel {
 
     fn init(self) -> Self {
         self.display_object.add_child(&self.drag_root);
+        self.scene.layers.above_nodes.add(&self.action_bar);
 
         self.update_shape_sizes();
         self.init_corner_roundness();
@@ -499,6 +500,17 @@ impl Container {
         frp::extend! { network
             eval  frp.set_visibility    ((v) model.set_visibility(*v));
             eval_ frp.toggle_visibility (model.toggle_visibility());
+
+            visualisation_uninitialised <- frp.set_visualization.map(|t| t.is_none());
+            default_visualisation <- visualisation_uninitialised.on_true().map(|_| {
+                Some(visualization::Registry::default_visualisation())
+            });
+            vis_input_type <- frp.set_vis_input_type.gate(&visualisation_uninitialised).unwrap();
+            default_visualisation_for_type <- vis_input_type.map(f!((tp) {
+               registry.default_visualization_for_type(tp)
+            }));
+            default_visualisation <- any(&default_visualisation, &default_visualisation_for_type);
+
             eval  frp.set_data          ((t) model.set_visualization_data(t));
             frp.source.size    <+ frp.set_size;
             frp.source.visible <+ frp.set_visibility;
@@ -524,7 +536,7 @@ impl Container {
         // === Switching Visualizations ===
 
         frp::extend! { network
-            new_vis_definition <- any(frp.set_visualization,vis_after_cycling);
+            new_vis_definition <- any(frp.set_visualization,vis_after_cycling,default_visualisation);
             let preprocessor   =  &frp.source.preprocessor;
             frp.source.visualisation <+ new_vis_definition.map(f!(
                 [model,action_bar,app,preprocessor](vis_definition) {
@@ -661,7 +673,7 @@ impl Container {
         // This is not optimal the optimal solution to this problem, as it also means that we have
         // an animation on an invisible component running.
         frp.set_size.emit(Vector2(DEFAULT_SIZE.0, DEFAULT_SIZE.1));
-        frp.set_visualization.emit(Some(visualization::Registry::default_visualisation()));
+        frp.set_visualization.emit(None);
         self
     }
 

@@ -1,3 +1,9 @@
+<!--
+  FIXME [NP]: https://github.com/enso-org/cloud-v2/issues/345
+  This file is used by both the `content` and `dashboard` packages. The `dashboard` package uses it
+  via a symlink. This is temporary, while the `content` and `dashboard` have separate entrypoints
+  for cloud and desktop. Once they are merged, the symlink must be removed.
+-->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -27,13 +33,13 @@
             user-scalable = no"
     />
     <title>Enso</title>
-    <link rel="stylesheet" href="/assets/style.css" />
-    <link rel="stylesheet" href="/assets/docsStyle.css" />
-    <script type="module" src="/assets/index.js" defer></script>
-    <script type="module" src="/assets/run.js" defer></script>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/docsStyle.css" />
+    <script type="module" src="/index.js" defer></script>
+    <script type="module" src="/run.js" defer></script>
   </head>
   <body>
-    <div class="titlebar"></div>
+    <div id="dashboard"></div>
     <div id="root"></div>
     <noscript>
       This page requires JavaScript to run. Please enable it in your browser.

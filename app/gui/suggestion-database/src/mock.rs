@@ -13,6 +13,15 @@ use enso_text::Location;
 
 
 
+// ===============
+// === Exports ===
+// ===============
+
+// Re-exported here so it can be referenced by macro-generated code.
+pub use enso_doc_parser;
+
+
+
 // =================
 // === Constants ===
 // =================
@@ -49,9 +58,7 @@ pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 ///     .add_and_enter_type("Type", vec![], |e| e.with_icon(IconName::from_snake_case("an_icon")));
 /// builder.add_constructor("Constructor", vec![], |e| e);
 /// builder.leave();
-/// builder.add_method("module_method", vec![], "local.Project.Type", true, |e| {
-///     e.with_documentation("A module method")
-/// });
+/// builder.add_method("module_method", vec![], "local.Project.Type", true, |e| e);
 /// builder.leave();
 /// let db = builder.result;
 ///
@@ -311,7 +318,6 @@ macro_rules! mock_suggestion_database_entries {
 ///    }
 ///    local.Project {
 ///        mod Submodule {
-///            #[with_documentation("Some test type")]
 ///            type TestType (a: Standard.Base.Number, b: Standard.Base.Maybe) {
 ///                static fn static_method(x) -> Standard.Base.Number;
 ///            }
@@ -380,13 +386,13 @@ macro_rules! mock_suggestion_database {
 #[macro_export]
 macro_rules! doc_section_mark {
     (!) => {
-        $crate::engine_protocol::language_server::Mark::Important
+        $crate::mock::enso_doc_parser::Mark::Important
     };
     (>) => {
-        $crate::engine_protocol::language_server::Mark::Example
+        $crate::mock::enso_doc_parser::Mark::Example
     };
     (?) => {
-        $crate::engine_protocol::language_server::Mark::Info
+        $crate::mock::enso_doc_parser::Mark::Info
     };
 }
 
@@ -423,33 +429,27 @@ macro_rules! doc_section_mark {
 #[macro_export]
 macro_rules! doc_section {
     (@ $tag:expr, $body:expr) => {
-        $crate::engine_protocol::language_server::DocSection::Tag {
-            name: $tag.into(),
-            body: $body.into(),
-        }
+        $crate::mock::enso_doc_parser::DocSection::Tag { name: $tag.into(), body: $body.into() }
     };
     ($mark:tt $body:expr) => {
-        $crate::engine_protocol::language_server::DocSection::Marked {
+        $crate::mock::enso_doc_parser::DocSection::Marked {
             mark:   $crate::doc_section_mark!($mark),
             header: None,
             body:   $body.into(),
         }
     };
     ($mark:tt $header:expr, $body:expr) => {
-        $crate::engine_protocol::language_server::DocSection::Marked {
+        $crate::mock::enso_doc_parser::DocSection::Marked {
             mark:   $crate::doc_section_mark!($mark),
             header: Some($header.into()),
             body:   $body.into(),
         }
     };
     ($paragraph:expr) => {
-        $crate::engine_protocol::language_server::DocSection::Paragraph { body: $paragraph.into() }
+        $crate::mock::enso_doc_parser::DocSection::Paragraph { body: $paragraph.into() }
     };
     ($key:expr => $body:expr) => {
-        $crate::engine_protocol::language_server::DocSection::Keyed {
-            key:  $key.into(),
-            body: $body.into(),
-        }
+        $crate::mock::enso_doc_parser::DocSection::Keyed { key: $key.into(), body: $body.into() }
     };
 }
 
@@ -475,7 +475,6 @@ pub fn standard_db_mock() -> SuggestionDatabase {
         }
         local.Project {
             mod Submodule {
-                #[with_documentation("Some test type")]
                 type TestType (a: Standard.Base.Number, b: Standard.Base.Maybe) {
                     static fn static_method(x) -> Standard.Base.Number;
                 }

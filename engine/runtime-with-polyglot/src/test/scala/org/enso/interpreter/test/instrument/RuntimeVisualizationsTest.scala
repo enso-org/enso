@@ -275,7 +275,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -294,7 +294,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -308,8 +308,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -393,7 +394,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -412,7 +413,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -426,8 +427,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -530,7 +532,7 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -538,7 +540,7 @@ class RuntimeVisualizationsTest
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -559,8 +561,9 @@ class RuntimeVisualizationsTest
     )
 
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -657,7 +660,7 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -665,7 +668,7 @@ class RuntimeVisualizationsTest
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -686,8 +689,9 @@ class RuntimeVisualizationsTest
     )
 
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -784,7 +788,7 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -792,7 +796,7 @@ class RuntimeVisualizationsTest
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -813,8 +817,9 @@ class RuntimeVisualizationsTest
     )
 
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -987,12 +992,12 @@ class RuntimeVisualizationsTest
 
     // open files
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -1020,8 +1025,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1114,12 +1120,12 @@ class RuntimeVisualizationsTest
 
     // open files
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -1153,7 +1159,8 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
         Api.ExecutionFailed(
@@ -1259,7 +1266,7 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -1267,7 +1274,7 @@ class RuntimeVisualizationsTest
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1288,8 +1295,9 @@ class RuntimeVisualizationsTest
     )
 
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1366,12 +1374,12 @@ class RuntimeVisualizationsTest
 
     // open files
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -1399,8 +1407,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1515,7 +1524,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1529,8 +1538,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1579,7 +1589,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1593,8 +1603,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1674,7 +1685,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1688,8 +1699,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1752,7 +1764,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1766,8 +1778,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1844,7 +1857,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           visualisationCode
         )
@@ -1863,7 +1876,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1877,8 +1890,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1972,7 +1986,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1985,9 +1999,8 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val responses = context.receiveNIgnoreStdLib(n = 3)
-
-    responses should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -2062,7 +2075,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2076,8 +2089,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -2176,7 +2190,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2189,8 +2203,8 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushContextResponses = context.receiveNIgnoreStdLib(3)
-    pushContextResponses should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -2275,7 +2289,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2288,9 +2302,10 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushContextResponses =
-      context.receiveNIgnorePendingExpressionUpdates(3)
-    pushContextResponses should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -2353,7 +2368,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -2372,7 +2387,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2386,8 +2401,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2479,7 +2495,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.AnnotatedVisualisation.code
         )
@@ -2498,7 +2514,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2512,8 +2528,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2651,7 +2668,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
+        Api.OpenFileNotification(
           visualisationFile,
           context.AnnotatedVisualisation.code
         )
@@ -2670,7 +2687,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2684,8 +2701,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2830,7 +2848,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2844,8 +2862,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -2927,7 +2946,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2941,8 +2960,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.VECTOR),
       context.executionComplete(contextId)
@@ -3021,7 +3041,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3035,8 +3055,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -3059,6 +3080,9 @@ class RuntimeVisualizationsTest
         s"$moduleName.Newtype",
         payload = Api.ExpressionUpdate.Payload.Value(
           Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'")))
+        ),
+        methodPointer = Some(
+          Api.MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
         )
       ),
       context.executionComplete(contextId)
@@ -3136,7 +3160,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3150,14 +3174,15 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idX, s"$moduleName.T"),
       TestMessages.update(
         contextId,
         idY,
-        ConstantsGen.INTEGER,
+        ConstantsGen.INTEGER_BUILTIN,
         Api.MethodPointer(moduleName, s"$moduleName.T", "inc")
       ),
       context.executionComplete(contextId)

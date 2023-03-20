@@ -42,14 +42,6 @@ final class StatementNode extends ExpressionNode {
 
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    if (CompilerDirectives.inInterpreter()) {
-      var ctx = EnsoContext.get(this);
-      Assumption chromeInspectorNotAttached = ctx.getChromeInspectorNotAttached();
-      if (chromeInspectorNotAttached.isValid()
-          && ctx.getEnvironment().getInstruments().containsKey("inspect")) {
-        chromeInspectorNotAttached.invalidate("Chrome inspector attached");
-      }
-    }
     return node.executeGeneric(frame);
   }
 

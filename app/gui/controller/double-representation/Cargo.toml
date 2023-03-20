@@ -9,8 +9,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { path = "../../language/ast/impl" }
+parser = { path = "../../language/parser" }
 engine-protocol = { path = "../engine-protocol" }
-parser-scala = { path = "../../language/parser" }
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 enso-profiler = { path = "../../../../lib/rust/profiler" }

@@ -3,6 +3,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
+import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
@@ -110,12 +111,25 @@ type SQLite_Dialect
         new_context = Context.for_subquery setup.subquery . set_groups distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
+    ## PRIVATE
+       A heuristic used by `Connection.query` to determine if a given text looks
+       like a SQL query for the given dialect or is rather a table name.
+    is_probably_a_query : Text -> Boolean
+    is_probably_a_query self text =
+        (text.contains "SELECT ") || (text.contains "EXEC ")
+
+    ## PRIVATE
+       Returns an utility that allows ensuring column names are valid for the
+       given backend.
+    get_naming_helpers : Naming_Helpers
+    get_naming_helpers self = Naming_Helpers
+
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [starts_with, contains, ends_with, fold_case, make_case_sensitive]+concat_ops
+    text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
-    arith_extensions = [decimal_div]
+    arith_extensions = [decimal_div, mod_op]
 
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool
@@ -227,17 +241,13 @@ agg_count_distinct_include_null args = case args.length == 1 of
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = str ++ " LIKE (" ++ sub ++ " || '%')"
+    res = str ++ " GLOB (" ++ sub ++ " || '*')"
     res.paren
 
 ## PRIVATE
 ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
-    res = str ++ " LIKE ('%' || " ++ sub ++ ")"
+    res = str ++ " GLOB ('*' || " ++ sub ++ ")"
     res.paren
-
-## PRIVATE
-fold_case = Base_Generator.lift_unary_op "FOLD_CASE" arg->
-    code "((" ++ arg ++ ") COLLATE NOCASE)"
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
@@ -257,3 +267,7 @@ bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "/" x-> y->
     code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
+
+## PRIVATE
+mod_op = Base_Generator.lift_binary_op "mod" x-> y->
+    x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y

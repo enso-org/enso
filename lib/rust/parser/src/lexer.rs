@@ -385,7 +385,7 @@ pub fn is_newline_char(t: char) -> bool {
 /// Check whether the provided character is a decimal digit.
 #[inline(always)]
 fn is_decimal_digit(t: char) -> bool {
-    ('0'..='9').contains(&t)
+    t.is_ascii_digit()
 }
 
 /// Check whether the provided character is a binary digit.
@@ -619,22 +619,48 @@ impl<'s> Lexer<'s> {
             }
         });
         if let Some(token) = token {
-            if token.code == "+-" {
-                let (left, right) = token.split_at_(Bytes(1));
-                let lhs = analyze_operator(&left.code);
-                self.submit_token(left.with_variant(token::Variant::operator(lhs)));
-                let rhs = analyze_operator(&right.code);
-                self.submit_token(right.with_variant(token::Variant::operator(rhs)));
-                return;
+            match token.code.as_ref() {
+                // Special-case: Split into multiple operators.
+                "+-" => {
+                    let (left, right) = token.split_at_(Bytes(1));
+                    let lhs = analyze_operator(&left.code);
+                    self.submit_token(left.with_variant(token::Variant::operator(lhs)));
+                    let rhs = analyze_operator(&right.code);
+                    self.submit_token(right.with_variant(token::Variant::operator(rhs)));
+                }
+                // Composed of operator characters, but not an operator node.
+                "..." => {
+                    let token = token.with_variant(token::Variant::auto_scope());
+                    self.submit_token(token);
+                }
+                // Decimal vs. method-application must be distinguished before parsing because they
+                // have different precedences; this is a special case here because the distinction
+                // requires lookahead.
+                "." if self.last_spaces_visible_offset.width_in_spaces == 0
+                        && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    let opr = token::OperatorProperties::new()
+                        .with_binary_infix_precedence(81)
+                        .as_decimal();
+                    let token = token.with_variant(token::Variant::operator(opr));
+                    self.submit_token(token);
+                }
+                // The unary-negation operator binds tighter to numeric literals than other
+                // expressions.
+                "-" if self.last_spaces_visible_offset.width_in_spaces == 0
+                    && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    let opr = token::OperatorProperties::new()
+                        .with_unary_prefix_mode(token::Precedence::unary_minus_numeric_literal())
+                        .with_binary_infix_precedence(15);
+                    let token = token.with_variant(token::Variant::operator(opr));
+                    self.submit_token(token);
+                }
+                // Normally-structured operator.
+                _ => {
+                    let tp = token::Variant::operator(analyze_operator(&token.code));
+                    let token = token.with_variant(tp);
+                    self.submit_token(token);
+                }
             }
-            if token.code == "..." {
-                let token = token.with_variant(token::Variant::auto_scope());
-                self.submit_token(token);
-                return;
-            }
-            let tp = token::Variant::operator(analyze_operator(&token.code));
-            let token = token.with_variant(tp);
-            self.submit_token(token);
         }
     }
 }
@@ -703,8 +729,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_compile_time_operation()
                 .as_special()
                 .as_sequence(),
-        "." =>
-            return operator.with_binary_infix_precedence(80).with_decimal_interpretation().as_dot(),
+        "." => return operator.with_binary_infix_precedence(80).as_dot(),
         _ => (),
     }
     // "The precedence of all other operators is determined by the operator's Precedence Character:"
@@ -821,9 +846,13 @@ impl<'s> Lexer<'s> {
                     token::Base::Hexadecimal =>
                         self.token(|this| this.take_while(is_hexadecimal_digit)),
                 };
-                if let Some(token) = token {
-                    self.submit_token(token.with_variant(token::Variant::digits(Some(base))));
-                }
+                let joiner = token::OperatorProperties::new()
+                    .with_binary_infix_precedence(usize::MAX)
+                    .as_token_joiner();
+                self.submit_token(Token("", "", token::Variant::operator(joiner)));
+                // Every number has a digits-token, even if it's zero-length.
+                let token = token.unwrap_or_default();
+                self.submit_token(token.with_variant(token::Variant::digits(Some(base))));
             } else {
                 self.submit_token(token.with_variant(token::Variant::digits(None)));
             }
@@ -900,8 +929,7 @@ impl<'s> Lexer<'s> {
         text_type: TextType,
     ) {
         let open_quote_end = self.mark();
-        let token =
-            self.make_token(open_quote_start, open_quote_end.clone(), token::Variant::text_start());
+        let token = self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
         self.output.push(token);
         let mut initial_indent = None;
         if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {
@@ -1049,7 +1077,7 @@ impl<'s> Lexer<'s> {
                 let splice_quote_end = self.mark();
                 let token = self.make_token(
                     splice_quote_start,
-                    splice_quote_end.clone(),
+                    splice_quote_end,
                     token::Variant::open_symbol(),
                 );
                 self.output.push(token);
@@ -1516,7 +1544,7 @@ mod tests {
             "a'b''",
         ]));
         for zero_space in UNICODE_ZERO_SPACES.chars() {
-            let var = format!("pre{}post", zero_space);
+            let var = format!("pre{zero_space}post");
             test_lexer(&var, vec![ident_("", &var)])
         }
     }

@@ -57,7 +57,7 @@ bench =
     partially_sorted_vec = make_partially_sorted_vec vector_size
     random_vec = Utils.make_random_vec vector_size
     projection = x -> x % 10
-    comparator = l -> r -> r.compare_to l
+    comparator = l -> r -> Ordering.compare l r
 
     Bench.measure (sorted_vec.sort) "Already Sorted" iter_size num_iterations
     Bench.measure (sorted_vec.sort Sort_Direction.Descending) "Sorted in Opposite Order" iter_size num_iterations
@@ -66,6 +66,6 @@ bench =
     Bench.measure (random_vec.sort) "Random Elements Ascending" iter_size num_iterations
     Bench.measure (random_vec.sort Sort_Direction.Descending) "Random Elements Descending" iter_size num_iterations
     Bench.measure (random_vec.sort on=projection) "Sorting with a Custom Projection" iter_size num_iterations
-    Bench.measure (random_vec.sort by=comparator) "Sorting with a Custom Comparison" iter_size num_iterations
+    Bench.measure (random_vec.sort by=comparator) "Sorting with the Default_Ordered_Comparator" iter_size num_iterations
 
 main = bench

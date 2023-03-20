@@ -48,16 +48,16 @@ impl Shell for PwSh {
     fn modify_env(&self, change: &Modification) -> Result<String> {
         let name = &change.variable_name;
         Ok(match &change.action {
-            Action::Remove => format!(r"Remove-Item Env:\{}", name),
+            Action::Remove => format!(r"Remove-Item Env:\{name}"),
             Action::Set(value) => {
-                format!(r#"$env:{} = "{}""#, name, value)
+                format!(r#"$env:{name} = "{value}""#)
             }
             Action::PrependPaths(paths) => self.set_prepended_paths(name, paths)?,
         })
     }
 
     fn access_environment_variable(&self, name: &str) -> String {
-        format!(r"$env:{}", name)
+        format!(r"$env:{name}")
     }
 }
 

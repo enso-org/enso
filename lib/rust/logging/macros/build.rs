@@ -15,14 +15,14 @@
 
 
 fn main() {
-    declare_env_dependence("ENSO_MAX_LOGGING_LEVEL");
-    declare_env_dependence("ENSO_UNCOLLAPSED_LOGGING_LEVEL");
+    declare_env_dependence("ENSO_MAX_LOG_LEVEL");
+    declare_env_dependence("ENSO_UNCOLLAPSED_LOG_LEVEL");
 }
 
 /// Make cargo aware that the result of compiling this crate depends on an environment variable.
 fn declare_env_dependence(env: &str) {
-    println!("cargo:rerun-if-env-changed={}", env);
+    println!("cargo:rerun-if-env-changed={env}");
     // This is a no-op assignment, except it makes cargo aware that the output depends on the env.
     let value = std::env::var(env).unwrap_or_default();
-    println!("cargo:rustc-env={}={}", env, value);
+    println!("cargo:rustc-env={env}={value}");
 }

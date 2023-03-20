@@ -66,14 +66,28 @@ impl Registry {
     pub fn valid_sources(&self, tp: &enso::Type) -> Vec<visualization::Definition> {
         let type_map = self.type_map.borrow();
         let any_type = enso::Type::any();
-        let mut result: Vec<visualization::Definition> =
-            type_map.get(tp).cloned().unwrap_or_default();
+        // IndexSet preserves insertion order.
+        let mut result: indexmap::IndexSet<visualization::Definition> = default();
+        result.extend(type_map.get(tp).cloned().unwrap_or_default());
         if tp != &any_type {
             if let Some(vis_for_any) = type_map.get(&any_type) {
                 result.extend(vis_for_any.iter().cloned());
             }
         }
-        result
+        result.into_iter().collect()
+    }
+
+    /// Return the `visualization::Definition` that should be used as default for the given type.
+    pub fn default_visualization_for_type(
+        &self,
+        tp: &enso::Type,
+    ) -> Option<visualization::Definition> {
+        // TODO[MM]: Visualisations are order by "matching the type" first, followed by and then
+        // "matching any type". So we just take the first one, which should be the most appropriate
+        // one. This should be replaced with the proper solution described in
+        // https://github.com/enso-org/enso/issues/5195
+        let valid_sources = self.valid_sources(tp);
+        valid_sources.into_iter().next()
     }
 
     /// Return the `visualization::Definition` registered for the given `visualization::Path`.
@@ -92,11 +106,14 @@ impl Registry {
 
     /// Add default visualizations to the registry.
     pub fn add_default_visualizations(&self) {
+        // Note that the order is important. Visualisations that are added first will be
+        // prioritised as default (as long as they have a matching type to the value they will
+        // represent.
         self.add(builtin::visualization::native::text_visualization::text_visualisation());
+        self.try_add_java_script(builtin::visualization::java_script::table_visualization());
         self.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
         self.try_add_java_script(builtin::visualization::java_script::histogram_visualization());
         self.try_add_java_script(builtin::visualization::java_script::heatmap_visualization());
-        self.try_add_java_script(builtin::visualization::java_script::table_visualization());
         self.try_add_java_script(builtin::visualization::java_script::sql_visualization());
         self.try_add_java_script(builtin::visualization::java_script::geo_map_visualization());
         self.try_add_java_script(builtin::visualization::java_script::image_base64_visualization());
@@ -112,5 +129,29 @@ impl Registry {
 impl Default for Registry {
     fn default() -> Self {
         Registry::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    fn assert_no_duplicates<T: Eq + Hash + Debug + Clone>(items: &[T]) {
+        let vec_length = items.len();
+        let set: HashSet<T> = items.iter().cloned().collect();
+        assert_eq!(set.len(), vec_length, "Duplicate entries found: {items:?}");
+    }
+
+    #[wasm_bindgen_test]
+    fn assert_no_duplicate_default_visualisations() {
+        let registry = Registry::new();
+        registry.add_default_visualizations();
+
+        for entry in registry.type_map.borrow().values() {
+            let signatures = entry.iter().map(|class| class.signature.clone()).collect_vec();
+            assert_no_duplicates(&signatures);
+        }
     }
 }

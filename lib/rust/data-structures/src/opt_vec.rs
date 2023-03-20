@@ -165,14 +165,14 @@ impl<T, I: Index> OptVec<T, I> {
 impl<T, I: Index> std::ops::Index<I> for OptVec<T, I> {
     type Output = T;
     fn index(&self, index: I) -> &Self::Output {
-        let error = || panic!("Trying to access removed index `{:?}`.", index);
+        let error = || panic!("Trying to access removed index `{index:?}`.");
         self.items.index(index.into()).as_ref().unwrap_or_else(error)
     }
 }
 
 impl<T, I: Index> std::ops::IndexMut<I> for OptVec<T, I> {
     fn index_mut(&mut self, index: I) -> &mut Self::Output {
-        let error = || panic!("Trying to access removed index `{:?}`.", index);
+        let error = || panic!("Trying to access removed index `{index:?}`.");
         self.items.index_mut(index.into()).as_mut().unwrap_or_else(error)
     }
 }

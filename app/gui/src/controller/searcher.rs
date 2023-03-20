@@ -26,7 +26,7 @@ use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 use flo_stream::Subscriber;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 // ==============
@@ -559,6 +559,11 @@ impl ComponentsProvider {
     /// Returns the number of namespace sections.
     pub fn namespace_section_count(&self) -> usize {
         self.list.top_module_section_count()
+    }
+
+    /// Check if the component list is filtered.
+    pub fn is_filtered(&self) -> bool {
+        self.list.is_filtered()
     }
 }
 
@@ -1140,7 +1145,7 @@ impl Searcher {
     /// The current list will be set as "Loading" and Language Server will be requested for a new
     /// list - once it be retrieved, the new list will be set and notification will be emitted.
     #[profile(Debug)]
-    fn reload_list(&self) {
+    pub fn reload_list(&self) {
         let this_type = self.this_arg_type_for_next_completion();
         let return_types = match self.data.borrow().input.next_completion_id() {
             CompletedFragmentId::Function => vec![],
@@ -1222,10 +1227,12 @@ impl Searcher {
                     info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(responses.iter());
                     let mut data = this.data.borrow_mut();
+                    list.update_filtering(&data.input.pattern);
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
                     data.components =
                         this.make_component_list(completions, &this_type, &return_types);
+                    data.components.update_filtering(&data.input.pattern);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
@@ -1234,6 +1241,7 @@ impl Searcher {
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =
                         this.make_component_list(this.database.keys(), &this_type, &return_types);
+                    data.components.update_filtering(&data.input.pattern);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1300,6 +1308,7 @@ impl Searcher {
             &self.database,
             module_name.as_ref(),
             &*favorites,
+            self.ide.are_component_browser_private_entries_visible(),
         );
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
@@ -1420,18 +1429,17 @@ impl Searcher {
         let self_type = module.clone();
         for method in &["data", "root"] {
             let entry = model::suggestion_database::Entry {
-                name:               (*method).to_owned(),
-                kind:               model::suggestion_database::entry::Kind::Method,
-                defined_in:         module.clone(),
-                arguments:          vec![],
-                return_type:        "Standard.Base.System.File.File".try_into().unwrap(),
-                documentation:      vec![],
-                documentation_html: None,
-                self_type:          Some(self_type.clone()),
-                is_static:          true,
-                scope:              model::suggestion_database::entry::Scope::Everywhere,
-                icon_name:          None,
-                reexported_in:      None,
+                name:          (*method).to_owned(),
+                kind:          model::suggestion_database::entry::Kind::Method,
+                defined_in:    module.clone(),
+                arguments:     vec![],
+                return_type:   "Standard.Base.System.File.File".try_into().unwrap(),
+                documentation: vec![],
+                self_type:     Some(self_type.clone()),
+                is_static:     true,
+                scope:         model::suggestion_database::entry::Scope::Everywhere,
+                icon_name:     None,
+                reexported_in: None,
             };
             let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
             libraries_cat_builder.add_action(action);
@@ -1446,8 +1454,13 @@ fn component_list_builder_with_favorites<'a>(
     suggestion_db: &model::SuggestionDatabase,
     local_scope_module: QualifiedNameRef,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
+    private_entries_visibile: bool,
 ) -> component::builder::List {
-    let mut builder = component::builder::List::new();
+    let mut builder = if private_entries_visibile {
+        component::builder::List::new_with_private_components()
+    } else {
+        component::builder::List::new()
+    };
     if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
         builder = builder.with_local_scope_module_id(id);
     }
@@ -1778,11 +1791,12 @@ pub mod test {
             project.expect_qualified_name().returning_st(move || project_qname.clone());
             project.expect_name().returning_st(move || project_name.clone());
             let project = Rc::new(project);
-            ide.expect_parser().return_const(Parser::new_or_panic());
+            ide.expect_parser().return_const(Parser::new());
             let current_project = project.clone_ref();
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
+            ide.expect_are_component_browser_private_entries_visible().returning_st(|| false);
             let node_metadata_guard = default();
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
@@ -2123,7 +2137,7 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn parsed_input() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
 
         fn args_reprs(prefix: &ast::prefix::Chain) -> Vec<String> {
             prefix.args.iter().map(|arg| arg.repr()).collect()
@@ -2186,9 +2200,7 @@ pub mod test {
         let expression = parsed.expression.unwrap();
         assert_eq!(expression.off, 0);
         assert_eq!(expression.func.repr(), "foo");
-        assert_eq!(args_reprs(&expression), vec![" bar".to_string()]);
-        assert_eq!(parsed.pattern_offset, 1);
-        assert_eq!(parsed.pattern.as_str(), "(baz ");
+        assert_eq!(args_reprs(&expression), vec![" bar".to_string(), " (baz".to_string()]);
     }
 
     fn are_same(
@@ -2272,10 +2284,10 @@ pub mod test {
             }
 
             fn run(&self) {
-                let parser = Parser::new_or_panic();
+                let parser = Parser::new();
                 let ast = parser.parse_line_ast(self.before).unwrap();
                 let new_ast = apply_this_argument("foo", &ast);
-                assert_eq!(new_ast.repr(), self.after, "Case {:?} failed: {:?}", self, ast);
+                assert_eq!(new_ast.repr(), self.after, "Case {self:?} failed: {ast:?}");
             }
         }
 
@@ -2424,7 +2436,7 @@ pub mod test {
 
         let module = searcher.graph.graph().module.clone_ref();
         // Setup searcher.
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let picked_method = FragmentAddedByPickingSuggestion {
             id:                CompletedFragmentId::Function,
             picked_suggestion: action::Suggestion::FromDatabase(entry4),
@@ -2507,7 +2519,7 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn simple_function_call_parsing() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
 
         let ast = parser.parse_line_ast("foo").unwrap();
         let call = SimpleFunctionCall::try_new(&ast).expect("Returned None for \"foo\"");

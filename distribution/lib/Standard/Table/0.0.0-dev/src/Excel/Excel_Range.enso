@@ -5,7 +5,7 @@ polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 
 ## PRIVATE
    Wrapper for validation of a value prior to execution.
-validate : Boolean -> Text -> Any
+validate : Boolean -> Text -> Any -> Any
 validate validation ~error_message ~wrapped =
     if validation then wrapped else Error.throw (Illegal_Argument.Error error_message)
 

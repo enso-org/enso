@@ -9,7 +9,11 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.testkit._
 import io.circe.{ACursor, Decoder, DecodingFailure, HCursor, Json}
 import io.circe.parser.parse
-import org.enso.jsonrpc.{ClientControllerFactory, JsonRpcServer, Protocol}
+import org.enso.jsonrpc.{
+  ClientControllerFactory,
+  JsonRpcServer,
+  ProtocolFactory
+}
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -49,13 +53,13 @@ abstract class JsonRpcServerTestKit
   var server: JsonRpcServer       = _
   var binding: Http.ServerBinding = _
 
-  def protocol: Protocol
+  def protocolFactory: ProtocolFactory
 
   def clientControllerFactory: ClientControllerFactory
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    server  = new JsonRpcServer(protocol, clientControllerFactory)
+    server  = new JsonRpcServer(protocolFactory, clientControllerFactory)
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"
   }

@@ -18,7 +18,6 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
@@ -35,15 +34,15 @@ import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionKey;
 
-import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
+import java.util.concurrent.ExecutorService;
+import java.util.stream.StreamSupport;
 
 import scala.jdk.javaapi.OptionConverters;
 
@@ -66,6 +65,7 @@ public class EnsoContext {
   private @CompilationFinal PackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
+  private final ThreadExecutors threadExecutors;
   private final ResourceManager resourceManager;
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
@@ -78,9 +78,6 @@ public class EnsoContext {
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
-
-  private final Assumption chromeInspectorNotAttached =
-      Truffle.getRuntime().createAssumption("chromeInspectorNotAttached");
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
   private final IOPermissions rootIOPermissions;
@@ -109,6 +106,7 @@ public class EnsoContext {
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     this.threadManager = new ThreadManager(environment);
+    this.threadExecutors = new ThreadExecutors(this);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
@@ -185,6 +183,7 @@ public class EnsoContext {
 
   /** Performs eventual cleanup before the context is disposed of. */
   public void shutdown() {
+    threadExecutors.shutdown();
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
@@ -213,11 +212,6 @@ public class EnsoContext {
    */
   public final Compiler getCompiler() {
     return compiler;
-  }
-
-  /** Returns an {@link Assumption} that Chrome inspector is not attached to this context. */
-  public Assumption getChromeInspectorNotAttached() {
-    return chromeInspectorNotAttached;
   }
 
   /**
@@ -344,13 +338,7 @@ public class EnsoContext {
    */
   public Optional<Module> findModuleByExpressionId(UUID expressionId) {
     return getTopScope().getModules().stream()
-        .filter(
-            module ->
-                module.getIr() != null
-                    && module
-                        .getIr()
-                        .preorder()
-                        .exists(ir -> ir.getExternalId().contains(expressionId)))
+        .filter(m -> m.containsUUID(expressionId))
         .findFirst();
   }
 
@@ -364,7 +352,7 @@ public class EnsoContext {
     if (file == null) {
       return Optional.empty();
     }
-    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
+    return StreamSupport.stream(packageRepository.getLoadedPackagesJava().spliterator(), true)
         .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
         .findFirst();
   }
@@ -442,9 +430,23 @@ public class EnsoContext {
     return n == null ? 1 : n.intValue();
   }
 
-  /** Creates a new thread that has access to the current language context. */
-  public Thread createThread(Runnable runnable) {
-    return environment.createThread(runnable);
+  /**
+   * @param name human-readable name of the pool
+   * @param systemThreads use system threads or polyglot threads
+   * @return new execution service for this context
+   */
+  public ExecutorService newCachedThreadPool(String name, boolean systemThreads) {
+    return threadExecutors.newCachedThreadPool(name, systemThreads);
+  }
+
+  /**
+   * @param parallel amount of parallelism for the pool
+   * @param name human-readable name of the pool
+   * @param systemThreads use system threads or polyglot threads
+   * @return new execution service for this context
+   */
+  public ExecutorService newFixedThreadPool(int parallel, String name, boolean systemThreads) {
+    return threadExecutors.newFixedThreadPool(parallel, name, systemThreads);
   }
 
   /** @return the thread manager for this context. */
@@ -520,6 +522,11 @@ public class EnsoContext {
 
   public int getMaxUnboxingLayouts() {
     return 10;
+  }
+
+  /** @return the notification handler. */
+  public NotificationHandler getNotificationHandler() {
+    return notificationHandler;
   }
 
   private <T> T getOption(OptionKey<T> key) {

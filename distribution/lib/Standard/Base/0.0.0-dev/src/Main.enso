@@ -76,6 +76,8 @@ import project.Data.Maybe.Maybe
 import project.Data.Noise
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Default_Comparator
 import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
 import project.Data.Range.Range
@@ -87,8 +89,8 @@ import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
-import project.Data.Text.Location
-import project.Data.Text.Matching_Mode
+import project.Data.Text.Location.Location
+import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Regex.Regex_Option.Regex_Option
@@ -127,6 +129,8 @@ export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Ordering
+export project.Data.Ordering.Comparable
+export project.Data.Ordering.Default_Comparator
 export project.Data.Ordering.Sort_Direction.Sort_Direction
 export project.Data.Pair.Pair
 export project.Data.Range.Range
@@ -137,8 +141,8 @@ export project.Data.Text.Case_Sensitivity.Case_Sensitivity
 export project.Data.Text.Encoding.Encoding
 export project.Data.Text.Extensions
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
-export project.Data.Text.Location
-export project.Data.Text.Matching_Mode
+export project.Data.Text.Location.Location
+export project.Data.Text.Matching_Mode.Matching_Mode
 export project.Data.Text.Regex
 export project.Data.Text.Regex.Regex_Mode.Regex_Mode
 export project.Data.Text.Regex.Regex_Option.Regex_Option

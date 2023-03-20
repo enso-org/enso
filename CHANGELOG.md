@@ -86,6 +86,46 @@
   present only when the argument is of type that has a predefined set of values.
 - [Separate component browser navigator sections for modules imported from
   different namespaces][4044]
+- [Internal components (private API) are not displayed in the component
+  browser.][4085]
+- [The correct default visualisation for tables is shown on new nodes.][4120]
+- [Added restoring of last project snapshot on shortcut.][4050]
+- [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
+  contain suggestions which are based on evaluated data.
+- [Added a shortcut to show internal components (private API) in the component
+  browser.][5582]
+- [Improved component browser entry filtering and sorting][5645]. The component
+  browser will now provide suggestions matching either the component's label or
+  the corresponding code.
+- [Improved argument placeholder resolution in more complex expressions][5656].
+  It is now possible to drop node connections onto missing arguments of chained
+  and nested function calls.
+- [The component browser suggestions take into account entry aliases][5678]. The
+  searcher input is now matched to entry aliases too. The alias match is used to
+  filter and sort component browser entries.
+- [The Component Browser icons are cached on texture][5779] improving its
+  performance on slower machines.
+- [Fixed missing result preview when editing nodes.][5757]
+- [Application retries its initialization after failures][5802], allowing a
+  reconnecting after connectivity problems.
+- [Improved Component Browser Filtering][4115]. The best match is always
+  selected first, and the groups are rearranged, so the best matches are on the
+  bottom.
+- [Named arguments syntax is now recognized in IDE][5774]. Connections to
+  function arguments will now use named argument syntax instead of inserting
+  wildcards on all preceding arguments.
+- [Added boilerplate React app for authorization via Cognito+AWS Amplify][5798].
+  This PR adds a React app that renders the dashboard (which has been ported
+  from the cloud. The dashboard displays a list of projects, and allows users to
+  open them in the IDE (which is not part of the React app, but can be switched
+  to from the dashboard). The PR also adds authentication+authorization (i.e.,
+  sign up and sign in for users), via either email/password or GitHub/Google.
+- [New Enso documentation parser][5917]. Smaller and faster; enables planned
+  improvements to internal documentation representation.
+- [Dropdown widgets now support custom labels][5705] and automatically generate
+  shortened labels for entries with long module paths. When an option is
+  selected from the dropdown, the necessary module imports are inserted,
+  eliminating the need for fully qualified names.
 
 #### EnsoGL (rendering engine)
 
@@ -220,8 +260,8 @@
   API and added builders for customizing less common settings.][3516]
 - [Allow control of sort direction in `First` and `Last` aggregations.][3517]
 - [Implemented `Text.write`, replacing `File.write_text`.][3518]
-- [Removed obsolete `select`, `group`, `sort` and releated types from tables.]
-  [3519]
+- [Removed obsolete `select`, `group`, `sort` and releated types from
+  tables.][3519]
 - [Removed obsolete `from_xls` and `from_xlsx` functions. Added support for
   reading column names from first row in `File_Format.Excel`][3523]
 - [Added `File_Format.Delimited` support to `Table.write` for new files.][3528]
@@ -298,6 +338,22 @@
   backend.][4063]
 - [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new
   simpler API.][4078]
+- [Updated `Table.set` to new API. New `Column.parse` function and added case
+  sensitivity to `Filter_Condition` and column functions.][4097]
+- [Updated column selector APIs and new `Excel_Workbook` type.][5646]
+- [Moved regex functionality out of `Text.locate` and `Text.locate_all` into
+  `Text.match` and `Text.match_all`.][5679]
+- [`File.parent` may return `Nothing`.][5699]
+- [Removed non-regex functionality from `is_match`, `match`, and `match_all`,
+  and renamed them to `match`, `find`, `find_all` (respectively).][5721]
+- [Updated `rename_columns` to new API. Added `first_row`, `second_row` and
+  `last_row` to Table types][5719]
+- [Introducing `Meta.Type`.][5768]
+- [Remove many regex compile flags; separated `match` into `match` and
+  `match_all`.][5785]
+- [Aligned names of columns created by column operations.][5850]
+- [Improved `cross_tab`. Renamed `fill_missing` and `is_missing` to
+  `fill_nothing` and `is_nothing`. Added `fill_empty`.][5863]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -459,6 +515,32 @@
 [4052]: https://github.com/enso-org/enso/pull/4052
 [4063]: https://github.com/enso-org/enso/pull/4063
 [4078]: https://github.com/enso-org/enso/pull/4078
+[4085]: https://github.com/enso-org/enso/pull/4085
+[4097]: https://github.com/enso-org/enso/pull/4097
+[4115]: https://github.com/enso-org/enso/pull/4115
+[4120]: https://github.com/enso-org/enso/pull/4120
+[4050]: https://github.com/enso-org/enso/pull/4050
+[4072]: https://github.com/enso-org/enso/pull/4072
+[5582]: https://github.com/enso-org/enso/pull/5582
+[5645]: https://github.com/enso-org/enso/pull/5645
+[5646]: https://github.com/enso-org/enso/pull/5646
+[5656]: https://github.com/enso-org/enso/pull/5656
+[5678]: https://github.com/enso-org/enso/pull/5678
+[5679]: https://github.com/enso-org/enso/pull/5679
+[5699]: https://github.com/enso-org/enso/pull/5699
+[5719]: https://github.com/enso-org/enso/pull/5719
+[5721]: https://github.com/enso-org/enso/pull/5721
+[5757]: https://github.com/enso-org/enso/pull/5757
+[5768]: https://github.com/enso-org/enso/pull/5768
+[5774]: https://github.com/enso-org/enso/pull/5774
+[5779]: https://github.com/enso-org/enso/pull/5779
+[5785]: https://github.com/enso-org/enso/pull/5785
+[5798]: https://github.com/enso-org/enso/pull/5798
+[5802]: https://github.com/enso-org/enso/pull/5802
+[5850]: https://github.com/enso-org/enso/pull/5850
+[5863]: https://github.com/enso-org/enso/pull/5863
+[5917]: https://github.com/enso-org/enso/pull/5917
+[5705]: https://github.com/enso-org/enso/pull/5705
 
 #### Enso Compiler
 
@@ -546,6 +628,19 @@
 - [Add Meta.get_annotation method][4049]
 - [Resolve Fully Qualified Names][4056]
 - [Optimize Atom storage layouts][3862]
+- [Make instance methods callable like statics for builtin types][4077]
+- [Convert large longs to doubles, safely, for host calls][4099]
+- [Consistent ordering with comparators](4067)
+- [Profile engine startup][4110]
+- [Report type of polyglot values][4111]
+- [Engine can now recover from serialization failures][5591]
+- [Use sbt runEngineDistribution][5609]
+- [Update to GraalVM 22.3.1][5602]
+- [Cache library bindings to optimize import/export resolution][5700]
+- [Comparators support partial ordering][5778]
+- [Merge ordered and unordered comparators][5845]
+- [Use SHA-1 for calculating hashes of modules' IR and bindings][5791]
+- [Don't install Python component on Windows][5900]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -588,7 +683,7 @@
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
-[3637]: https://github.com/enso-org/enso/pull/3638
+[3638]: https://github.com/enso-org/enso/pull/3638
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3658]: https://github.com/enso-org/enso/pull/3658
 [3671]: https://github.com/enso-org/enso/pull/3671
@@ -632,8 +727,21 @@
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
 [4048]: https://github.com/enso-org/enso/pull/4048
-[4056]: https://github.com/enso-org/enso/pull/4049
+[4049]: https://github.com/enso-org/enso/pull/4049
 [4056]: https://github.com/enso-org/enso/pull/4056
+[4077]: https://github.com/enso-org/enso/pull/4077
+[4099]: https://github.com/enso-org/enso/pull/4099
+[4067]: https://github.com/enso-org/enso/pull/4067
+[4110]: https://github.com/enso-org/enso/pull/4110
+[4111]: https://github.com/enso-org/enso/pull/4111
+[5591]: https://github.com/enso-org/enso/pull/5591
+[5609]: https://github.com/enso-org/enso/pull/5609
+[5602]: https://github.com/enso-org/enso/pull/5602
+[5700]: https://github.com/enso-org/enso/pull/5700
+[5778]: https://github.com/enso-org/enso/pull/5778
+[5845]: https://github.com/enso-org/enso/pull/5845
+[5791]: https://github.com/enso-org/enso/pull/5791
+[5900]: https://github.com/enso-org/enso/pull/5900
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

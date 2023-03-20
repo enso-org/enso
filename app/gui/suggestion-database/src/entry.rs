@@ -13,9 +13,9 @@ use double_representation::name;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
-use engine_protocol::language_server::DocSection;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
+use enso_doc_parser::DocSection;
 use enso_text::Location;
 use language_server::types::FieldAction;
 
@@ -226,30 +226,28 @@ pub enum Scope {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Entry {
     /// A type of suggestion.
-    pub kind:               Kind,
+    pub kind:          Kind,
     /// A module where the suggested object is defined.
-    pub defined_in:         QualifiedName,
+    pub defined_in:    QualifiedName,
     /// A name of suggested object.
-    pub name:               String,
+    pub name:          String,
     /// Argument lists of suggested object (atom or function). If the object does not take any
     /// arguments, the list is empty.
-    pub arguments:          Vec<Argument>,
+    pub arguments:     Vec<Argument>,
     /// A type returned by the suggested object.
-    pub return_type:        QualifiedName,
+    pub return_type:   QualifiedName,
     /// A module reexporting this entity.
-    pub reexported_in:      Option<QualifiedName>,
-    /// A HTML documentation associated with object.
-    pub documentation_html: Option<String>,
+    pub reexported_in: Option<QualifiedName>,
     /// A list of documentation sections associated with object.
-    pub documentation:      Vec<DocSection>,
+    pub documentation: Vec<DocSection>,
     /// A type of the "self" argument. This field is `None` for non-method suggestions.
-    pub self_type:          Option<QualifiedName>,
+    pub self_type:     Option<QualifiedName>,
     /// A flag set to true if the method is a static or module method.
-    pub is_static:          bool,
+    pub is_static:     bool,
     /// A scope where this suggestion is visible.
-    pub scope:              Scope,
+    pub scope:         Scope,
     /// A name of a custom icon to use when displaying the entry.
-    pub icon_name:          Option<IconName>,
+    pub icon_name:     Option<IconName>,
 }
 
 
@@ -258,7 +256,7 @@ pub struct Entry {
 impl Entry {
     /// Create new entry with required parameters only.
     ///
-    /// The entry will be flagget as non-static, with [`Scope::Everywhere`] and all optional fields
+    /// The entry will be flagged as non-static, with [`Scope::Everywhere`] and all optional fields
     /// will be [`None`].
     pub fn new(
         kind: Kind,
@@ -274,7 +272,6 @@ impl Entry {
             return_type: return_type.into(),
             is_static: false,
             reexported_in: None,
-            documentation_html: None,
             documentation: default(),
             self_type: None,
             scope: Scope::Everywhere,
@@ -389,12 +386,6 @@ impl Entry {
     /// Takes self and returns it with new [`reexported_in`] value.
     pub fn reexported_in(mut self, module: QualifiedName) -> Self {
         self.reexported_in = Some(module);
-        self
-    }
-
-    /// Takes self and returns it with new [`documentation_html`] value.
-    pub fn with_documentation(mut self, html: impl Into<String>) -> Self {
-        self.documentation_html = Some(html.into());
         self
     }
 
@@ -548,8 +539,24 @@ impl Entry {
     }
 
     /// Generate information about invoking this entity for span tree context.
-    pub fn invocation_info(&self) -> span_tree::generate::context::CalledMethodInfo {
-        self.into()
+    pub fn invocation_info(
+        &self,
+        suggestion_db: &SuggestionDatabase,
+        parser: &parser::Parser,
+    ) -> span_tree::generate::context::CalledMethodInfo {
+        let parameters = self
+            .arguments
+            .iter()
+            .map(|arg| to_span_tree_param(arg, suggestion_db, parser))
+            .collect();
+        let is_static = self.is_static;
+        let is_constructor = matches!(self.kind, Kind::Constructor);
+        span_tree::generate::context::CalledMethodInfo {
+            is_static,
+            is_constructor,
+            parameters,
+            ..default()
+        }
     }
 
     /// Get the full qualified name of the entry.
@@ -604,19 +611,17 @@ impl Entry {
             })
         }
 
-        let (documentation, icon_name, doc_sections) = match &mut entry {
-            Type { documentation, documentation_html, documentation_sections, .. }
-            | Constructor { documentation, documentation_html, documentation_sections, .. }
-            | Method { documentation, documentation_html, documentation_sections, .. }
-            | Module { documentation, documentation_html, documentation_sections, .. }
-            | Function { documentation, documentation_html, documentation_sections, .. }
-            | Local { documentation, documentation_html, documentation_sections, .. } => {
-                let documentation =
-                    Self::make_html_docs(mem::take(documentation), mem::take(documentation_html));
-                let icon_name = find_icon_name_in_doc_sections(&*documentation_sections);
-                (documentation, icon_name, mem::take(documentation_sections))
-            }
+        let documentation = match &entry {
+            Type { documentation, .. }
+            | Constructor { documentation, .. }
+            | Method { documentation, .. }
+            | Module { documentation, .. }
+            | Function { documentation, .. }
+            | Local { documentation, .. } =>
+                documentation.as_ref().map(|s| s.as_ref()).unwrap_or_default(),
         };
+        let doc_sections = enso_doc_parser::parse(documentation);
+        let icon_name = find_icon_name_in_doc_sections(&doc_sections);
         let reexported_in: Option<QualifiedName> = match &mut entry {
             Type { reexport: Some(reexport), .. }
             | Constructor { reexport: Some(reexport), .. }
@@ -654,34 +659,10 @@ impl Entry {
             ),
             Module { module, .. } => Self::new_module(to_qualified_name(module)),
         };
-        this.documentation_html = documentation;
         this.documentation = doc_sections;
         this.icon_name = icon_name;
         this.reexported_in = reexported_in;
         this
-    }
-
-    /// Returns the documentation in html depending on the information received from the Engine.
-    ///
-    /// Depending on the engine version, we may receive the documentation in HTML format already,
-    /// or the raw text which needs to be parsed. This function takes two fields of
-    /// [`language_server::types::SuggestionEntry`] and depending on availability, returns the
-    /// HTML docs fields, or parsed raw docs field.
-    fn make_html_docs(docs: Option<String>, docs_html: Option<String>) -> Option<String> {
-        if docs_html.is_some() {
-            docs_html
-        } else {
-            docs.map(|docs| {
-                let parser = parser_scala::DocParser::new();
-                match parser {
-                    Ok(p) => {
-                        let output = p.generate_html_doc_pure((*docs).to_string());
-                        output.unwrap_or(docs)
-                    }
-                    Err(_) => docs,
-                }
-            })
-        }
     }
 
     /// Apply modification to the entry.
@@ -694,19 +675,11 @@ impl Entry {
         let return_type = m.return_type.map(|f| f.try_map(QualifiedName::from_text)).transpose();
         let self_type = m.self_type.map(|f| f.try_map(QualifiedName::from_text)).transpose();
         let reexport = m.reexport.map(|f| f.try_map(QualifiedName::from_text)).transpose();
+        let docs = m.documentation.map(|docs| docs.map(|docs| enso_doc_parser::parse(&docs)));
         let update_results = [
             return_type
                 .and_then(|m| Entry::apply_field_update("return_type", &mut self.return_type, m)),
-            Entry::apply_opt_field_update(
-                "documentation",
-                &mut self.documentation_html,
-                m.documentation,
-            ),
-            Entry::apply_field_update(
-                "documentation_sections",
-                &mut self.documentation,
-                m.documentation_sections,
-            ),
+            Entry::apply_default_field_update("documentation", &mut self.documentation, docs),
             module.and_then(|m| Entry::apply_field_update("module", &mut self.defined_in, m)),
             self_type
                 .and_then(|s| Entry::apply_opt_field_update("self_type", &mut self.self_type, s)),
@@ -815,18 +788,29 @@ impl Entry {
         }
         Ok(())
     }
-}
 
-impl From<language_server::types::SuggestionEntry> for Entry {
-    fn from(entry: language_server::types::SuggestionEntry) -> Self {
-        Self::from_ls_entry(entry)
+    /// Apply an update to a field that can be removed by settings its value to its type's default.
+    fn apply_default_field_update<T: Default>(
+        field_name: &'static str,
+        field: &mut T,
+        update: Option<FieldUpdate<T>>,
+    ) -> FallibleResult {
+        let err = InvalidFieldUpdate(field_name);
+        if let Some(update) = update {
+            *field = match update.tag {
+                FieldAction::Set => update.value.ok_or(err)?,
+                FieldAction::Remove => default(),
+            };
+        }
+        Ok(())
     }
 }
 
 impl TryFrom<&Entry> for language_server::MethodPointer {
     type Error = failure::Error;
     fn try_from(entry: &Entry) -> FallibleResult<Self> {
-        (entry.kind == Kind::Method).ok_or_else(|| NotAMethod(entry.name.clone()))?;
+        let is_method_or_constructor = matches!(entry.kind, Kind::Method | Kind::Constructor);
+        is_method_or_constructor.ok_or_else(|| NotAMethod(entry.name.clone()))?;
         let missing_this_err = || MissingSelfOnMethod(entry.name.clone());
         let defined_on_type = entry.self_type.clone().ok_or_else(missing_this_err)?;
         Ok(language_server::MethodPointer {
@@ -844,13 +828,6 @@ impl TryFrom<Entry> for language_server::MethodPointer {
     }
 }
 
-impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
-    fn from(entry: &Entry) -> span_tree::generate::context::CalledMethodInfo {
-        let parameters = entry.arguments.iter().map(to_span_tree_param).collect();
-        span_tree::generate::context::CalledMethodInfo { parameters }
-    }
-}
-
 
 
 // ===============
@@ -862,14 +839,156 @@ impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
 
 /// Converts the information about function parameter from suggestion database into the form used
 /// by the span tree nodes.
-pub fn to_span_tree_param(param_info: &Argument) -> span_tree::ArgumentInfo {
+pub fn to_span_tree_param(
+    param_info: &Argument,
+    db: &SuggestionDatabase,
+    parser: &parser::Parser,
+) -> span_tree::ArgumentInfo {
+    let tag_values = argument_tag_values(&param_info.tag_values, db, parser);
     span_tree::ArgumentInfo {
         // TODO [mwu] Check if database actually do must always have both of these filled.
-        name:       Some(param_info.name.clone()),
-        tp:         Some(param_info.repr_type.clone()),
-        tag_values: param_info.tag_values.clone(),
+        name: Some(param_info.name.clone()),
+        tp: Some(param_info.repr_type.clone()),
+        call_id: None,
+        tag_values,
     }
 }
+
+enum TagValueResolution<'a> {
+    Resolved(Rc<Entry>, ast::opr::Chain),
+    Parsed(ast::opr::Chain),
+    Unresolved(&'a str),
+}
+
+fn resolve_tag_value<'a>(
+    raw_expression: &'a str,
+    db: &SuggestionDatabase,
+    parser: &parser::Parser,
+) -> TagValueResolution<'a> {
+    let qualified_name = QualifiedName::from_text(raw_expression).ok();
+    if let Some(mut qualified_name) = qualified_name {
+        let entry = db.lookup_by_qualified_name(&qualified_name).or_else(move || {
+            // Second try at lookup. Enum values usually have the module and type name deduplicated,
+            // but the resolution database does not take that into account. So we need to manually
+            // expand the name and try again.
+            let last_segment = qualified_name.pop_segment()?;
+            let segment_to_duplicate = qualified_name.pop_segment()?;
+            qualified_name.push_segment(segment_to_duplicate.clone());
+            qualified_name.push_segment(segment_to_duplicate);
+            qualified_name.push_segment(last_segment);
+            db.lookup_by_qualified_name(&qualified_name)
+        });
+
+        let resolved = entry.and_then(|(_, entry)| {
+            let qualified_name: String = entry.qualified_name().to_string();
+            let ast = parser.parse_line_ast(qualified_name).ok()?;
+            let chain = ast::opr::as_access_chain(&ast)?;
+            Some(TagValueResolution::Resolved(entry, chain))
+        });
+
+        if let Some(resolved) = resolved {
+            return resolved;
+        }
+    }
+
+    let chain =
+        parser.parse_line_ast(raw_expression).ok().and_then(|ast| ast::opr::as_access_chain(&ast));
+    if let Some(chain) = chain {
+        return TagValueResolution::Parsed(chain);
+    }
+
+    TagValueResolution::Unresolved(raw_expression)
+}
+
+/// Generate tag value suggestion list from argument entry data, shortening labels as appropriate.
+pub fn argument_tag_values(
+    raw_expressions: &[String],
+    db: &SuggestionDatabase,
+    parser: &parser::Parser,
+) -> Vec<span_tree::TagValue> {
+    let resolved = raw_expressions.iter().map(|e| resolve_tag_value(e, db, parser)).collect_vec();
+    let mut only_access_chains_iter = resolved.iter().filter_map(|r| match r {
+        TagValueResolution::Resolved(_, chain) => Some(chain),
+        TagValueResolution::Parsed(chain) => Some(chain),
+        _ => None,
+    });
+
+    // Gather a list of expression reprs from first access chain. Includes each infix element
+    // that can be considered for removal.
+    let operands: Option<Vec<String>> = only_access_chains_iter.next().map(|chain| {
+        let mut operands = chain
+            .enumerate_operands()
+            .map(|operand| operand.map_or_default(|op| op.arg.repr()))
+            .collect_vec();
+        // Pop last chain element, as we never want to strip it from the label.
+        let last = operands.pop();
+
+        // If the last chain element is a "Value" literal, we want to preserve one extra chain
+        // element before it.
+        if last.map_or(false, |last| last == "Value") {
+            operands.pop();
+        }
+        operands
+    });
+
+    // Find the number of operands that are common for all access chains.
+    let common_operands_count: usize = operands.map_or(0, |common_operands| {
+        only_access_chains_iter.fold(common_operands.len(), |common_so_far, chain| {
+            let operand_reprs =
+                chain.enumerate_operands().map(|op| op.map_or_default(|op| op.arg.repr()));
+            operand_reprs
+                .zip(&common_operands[0..common_so_far])
+                .take_while(|(repr, common_repr)| repr == *common_repr)
+                .count()
+        })
+    });
+
+    let chain_to_label = move |chain: &ast::opr::Chain| {
+        if common_operands_count > 0 {
+            let mut chain = chain.clone();
+            chain.erase_leading_operands(common_operands_count);
+            Some(chain.into_ast().repr())
+        } else {
+            None
+        }
+    };
+
+    resolved
+        .into_iter()
+        .map(|resolution| match resolution {
+            TagValueResolution::Resolved(entry, chain) => {
+                let label = chain_to_label(&chain);
+                let qualified_name = entry.qualified_name();
+                let parent_module = qualified_name.parent();
+                let required_import = parent_module.as_ref().map(|n| n.to_string());
+
+                let expression = if let Some(parent) = parent_module {
+                    let in_module_name = qualified_name.name();
+                    let parent_name = parent.name();
+                    [parent_name, in_module_name].join(opr::predefined::ACCESS)
+                } else {
+                    qualified_name.to_string()
+                };
+                let expression =
+                    if entry.arguments.is_empty() { expression } else { format!("({expression})") };
+
+                span_tree::TagValue { required_import, expression, label }
+            }
+            TagValueResolution::Parsed(chain) => {
+                let label = chain_to_label(&chain);
+                let expression = chain.into_ast().repr();
+
+                span_tree::TagValue { required_import: None, expression, label }
+            }
+            TagValueResolution::Unresolved(expression) => span_tree::TagValue {
+                required_import: None,
+                expression:      expression.to_owned(),
+                label:           None,
+            },
+        })
+        .collect_vec()
+}
+
 
 
 // === Entry helpers ===
@@ -905,6 +1024,7 @@ mod test {
     use super::*;
 
     use engine_protocol::language_server::SuggestionArgumentUpdate;
+    use parser::Parser;
 
     use crate::mock;
     use crate::mock_suggestion_database;
@@ -1123,7 +1243,7 @@ mod test {
     /// of a keyed [`DocSection`] which has its key equal to the `Icon` string.
     #[test]
     fn find_icon_name_in_doc_section_with_icon_key() {
-        use language_server::types::DocSection;
+        use enso_doc_parser::DocSection;
         let doc_sections = [
             DocSection::Paragraph { body: "Some paragraph.".into() },
             DocSection::Keyed { key: "NotIcon".into(), body: "example_not_icon_body".into() },
@@ -1165,8 +1285,7 @@ mod test {
                 tag_values:    Vec::new(),
             };
             let entry = Entry::new_method(defined_in, on_type, "entry", return_type, true)
-                .with_arguments(vec![argument])
-                .with_documentation("Some docs");
+                .with_arguments(vec![argument]);
             Self { modified_entry: entry.clone(), expected_entry: entry }
         }
 
@@ -1190,25 +1309,23 @@ mod test {
     #[test]
     fn applying_simple_fields_modification() {
         let mut test = ApplyModificationTest::new();
+        let new_documentation = "NewDocumentation";
         let modification = SuggestionsDatabaseModification {
-            arguments:              vec![],
-            module:                 Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
-            self_type:              Some(FieldUpdate::set(
-                "local.Project.NewModule.NewType".to_owned(),
-            )),
-            return_type:            Some(FieldUpdate::set(
+            arguments:     vec![],
+            module:        Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
+            self_type:     Some(FieldUpdate::set("local.Project.NewModule.NewType".to_owned())),
+            return_type:   Some(FieldUpdate::set(
                 "local.Project.NewModule.NewReturnType".to_owned(),
             )),
-            documentation:          Some(FieldUpdate::set("NewDocumentation".to_owned())),
-            documentation_sections: None,
-            scope:                  None,
-            reexport:               Some(FieldUpdate::set("local.Project.NewReexport".to_owned())),
+            documentation: Some(FieldUpdate::set(new_documentation.to_owned())),
+            scope:         None,
+            reexport:      Some(FieldUpdate::set("local.Project.NewReexport".to_owned())),
         };
         test.expected_entry.defined_in = "local.Project.NewModule".try_into().unwrap();
         test.expected_entry.self_type = Some("local.Project.NewModule.NewType".try_into().unwrap());
         test.expected_entry.return_type =
             "local.Project.NewModule.NewReturnType".try_into().unwrap();
-        test.expected_entry.documentation_html = Some("NewDocumentation".to_owned());
+        test.expected_entry.documentation = enso_doc_parser::parse(new_documentation);
         test.expected_entry.reexported_in = Some("local.Project.NewReexport".try_into().unwrap());
         let result = test.check_modification(modification);
         assert!(result.is_empty());
@@ -1221,7 +1338,6 @@ mod test {
             documentation: Some(FieldUpdate::remove()),
             ..default()
         };
-        test.expected_entry.documentation_html = None;
         let result = test.check_modification(modification);
         assert!(result.is_empty());
     }
@@ -1240,7 +1356,6 @@ mod test {
             ..default()
         };
         test.expected_entry.defined_in = "local.Project.NewModule".try_into().unwrap();
-        test.expected_entry.documentation_html = None;
         let result = test.check_modification(modification);
         assert_eq!(result.len(), 1);
     }
@@ -1287,5 +1402,71 @@ mod test {
             SuggestionsDatabaseModification { arguments: vec![remove_argument], ..default() };
         let result = test.check_modification(modification);
         assert!(result.is_empty());
+    }
+
+    fn run_tag_value_test_case(expression_and_expected_label: &[(&str, Option<&str>)]) {
+        let parser = Parser::new();
+        let db = SuggestionDatabase::new_empty();
+        let expressions =
+            expression_and_expected_label.iter().map(|(expr, _)| expr.to_string()).collect_vec();
+        let tag_values = argument_tag_values(&expressions, &db, &parser);
+        let expected_values = expression_and_expected_label
+            .iter()
+            .map(|(expression, label)| span_tree::TagValue {
+                required_import: None,
+                expression:      expression.to_string(),
+                label:           label.map(ToString::to_string),
+            })
+            .collect_vec();
+
+        assert_eq!(tag_values, expected_values);
+    }
+
+    #[test]
+    fn tag_value_shortening_single_entry() {
+        run_tag_value_test_case(&[("Location.Start", Some("Start"))]);
+    }
+
+    #[test]
+    fn tag_value_shortening_single_entry_with_value() {
+        run_tag_value_test_case(&[("Foo.Bar.Value", Some("Bar.Value"))]);
+    }
+
+    #[test]
+    fn tag_value_shortening_common_prefix() {
+        run_tag_value_test_case(&[
+            ("Location.Start", Some("Start")),
+            ("Location.End", Some("End")),
+            ("Location.Both", Some("Both")),
+        ]);
+    }
+
+    #[test]
+    fn tag_value_shortening_multiple_elements() {
+        run_tag_value_test_case(&[
+            ("A.B.C.D", Some("C.D")),
+            ("A.B.C.E", Some("C.E")),
+            ("A.B.F.G.H", Some("F.G.H")),
+        ]);
+    }
+
+    #[test]
+    fn tag_value_shortening_no_prefix() {
+        run_tag_value_test_case(&[("Foo.Bar", None), ("Foo.Baz", None), ("Baz.Qux", None)]);
+    }
+
+    #[test]
+    fn tag_value_non_infix() {
+        run_tag_value_test_case(&[("Foo Bar", None), ("Foo Baz", None), ("Baz Qux", None)]);
+    }
+
+
+    #[test]
+    fn tag_value_some_infix() {
+        run_tag_value_test_case(&[
+            ("Foo.Bar", Some("Bar")),
+            ("Foo.Baz", Some("Baz")),
+            ("Baz Qux", None),
+        ]);
     }
 }

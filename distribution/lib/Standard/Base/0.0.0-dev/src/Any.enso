@@ -1,12 +1,16 @@
-import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Error
+import project.Error.Common.Incomparable_Values
+import project.Error.Common.No_Such_Conversion
+import project.Error.Common.Type_Error
 import project.Nothing.Nothing
 import project.Meta
+import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Ordering import all
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 
@@ -101,7 +105,22 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == self that = @Builtin_Method "Any.=="
+    == self that =
+        # If there is No_Such_Conversion, then `self` and `that` are probably
+        # host or polyglot values, so we just compare them with the default comparator.
+        eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Comparator
+        eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Comparator
+        similar_type = Meta.is_same_object eq_self eq_that
+        case similar_type of
+            False -> False
+            True ->
+                case Meta.is_same_object eq_self Default_Comparator of
+                    # Shortcut for objects with Default_Comparator, because of the performance.
+                    True -> Comparable.equals_builtin self that
+                    False ->
+                        case eq_self.compare self that of
+                            Ordering.Equal -> True
+                            _ -> False
 
     ## ALIAS Inequality
 
@@ -133,12 +152,10 @@ type Any
        Arguments:
        - that: The value to compare `self` against.
 
-       To have `>` defined, a type must define `compare_to`, returning an Ordering.
-
-       ! Implementing Greater Than
-         Many types can admit a definition of greater than that is more efficient
-         than the generic one given here. When implementing this for your own types
-         please ensure that it is semantically equivalent to using `.compare_to`.
+       To be comparable, a custom object must have an associated comparator
+       which will return `Ordering.Less/Greater` for unequal values. Otherwise,
+       this will raise `Incomparable_Values` error. See `Ordering.enso` for
+       information how comparators work.
 
        > Example
          Checking if the variable `a` is greater than `147`.
@@ -148,8 +165,13 @@ type Any
              example_greater =
                  a = 7 * 28
                  a > 147
-    > : Any -> Boolean
-    > self that = self.compare_to that == Ordering.Greater
+    > : Any -> Boolean ! Incomparable_Values
+    > self that =
+        assert_same_comparators self that <|
+            case (Comparable.from self).compare self that of
+                Ordering.Greater -> True
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
+                _ -> False
 
     ## ALIAS Greater Than or Equal
 
@@ -157,8 +179,6 @@ type Any
 
        Arguments:
        - that: The value to compare `self` against.
-
-       To have `>=` defined, a type must define both `>` and `==`.
 
        ! Implementing Greater Than or Equal
          While it is often possible to implement a more efficient version of this
@@ -174,10 +194,14 @@ type Any
              example_greater_eq =
                  a = 6 * 21
                  a >= 147
-    >= : Any -> Boolean
+    >= : Any -> Boolean ! Incomparable_Values
     >= self that =
-        ordering = self.compare_to that
-        (ordering == Ordering.Greater) || (ordering == Ordering.Equal)
+        assert_same_comparators self that <|
+            case (Comparable.from self).compare self that of
+                Ordering.Equal -> True
+                Ordering.Greater -> True
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
+                _ -> False
 
     ## ALIAS Less Than
 
@@ -186,12 +210,10 @@ type Any
        Arguments:
        - that: The value to compare `self` against.
 
-       To have `<` defined, a type must define `compare_to`, returning an Ordering.
-
-       ! Implementing Less Than
-         Many types can admit a definition of less than that is more efficient than
-         the generic one given here. When implementing this for your own types
-         please ensure that it is semantically equivalent to using `.compare_to`.
+       To be comparable, a custom object must have an associated comparator
+       which will return `Ordering.Less/Greater` for unequal values. Otherwise,
+       this will raise `Incomparable_Values` error. See `Ordering.enso` for
+       information how comparators work.
 
        > Example
          Checking if the variable `a` is less than `147`.
@@ -201,8 +223,13 @@ type Any
              example_less =
                  a = 7 * 21
                  a < 147
-    < : Any -> Boolean
-    < self that = self.compare_to that == Ordering.Less
+    < : Any -> Boolean ! Incomparable_Values
+    < self that =
+        assert_same_comparators self that <|
+            case (Comparable.from self).compare self that of
+                Ordering.Less -> True
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
+                _ -> False
 
     ## ALIAS Less Than or Equal
 
@@ -227,10 +254,14 @@ type Any
              example_less_eq =
                  a = 7 * 21
                  a < 147
-    <= : Any -> Boolean
+    <= : Any -> Boolean ! Incomparable_Values
     <= self that =
-        ordering = self.compare_to that
-        (ordering == Ordering.Less) || (ordering == Ordering.Equal)
+        assert_same_comparators self that <|
+            case (Comparable.from self).compare self that of
+                Ordering.Equal -> True
+                Ordering.Less -> True
+                Nothing -> Error.throw (Incomparable_Values.Error self that)
+                _ -> False
 
     ## Checks if the type is an instance of `Nothing`.
 
@@ -269,7 +300,7 @@ type Any
 
              example_catch =
                  error = Error.throw (Illegal_Argument.Error "My message")
-                 error.catch Illegal_Argument.Error (err -> err.message)
+                 error.catch Illegal_Argument (err -> err.message)
 
        > Example
          Catching any dataflow error and turning it into a regular value.
@@ -315,6 +346,27 @@ type Any
              1.is_error
     is_error : Boolean
     is_error self = False
+
+    ## UNSTABLE
+       Returns the provided `other` value, unless `self` is an error.
+
+       Arguments:
+       - other: The value to return if `self` is not an error.
+
+       The primary application of this function is to introduce a dataflow
+       dependency between two otherwise unrelated operations. Very useful if one
+       of the operations is performing a side-effect.
+
+       Aside from ensuring that any dataflow errors are propagated, the result
+       will also inherit any warnings attached to any of the two inputs.
+
+       > Example
+         Writing to a file and returning the file object if all went well, or an
+         error if it failed.
+
+             file.write "foo" . if_not_error file
+    if_not_error : Any -> Any
+    if_not_error self ~other = other
 
     ## Applies the provided function to `self` unless `self` is `Nothing`, which is
        returned unchanged.
@@ -381,7 +433,7 @@ type Any
          Multiply by 2 and then add 1 as a function applied to 2.
 
              (+1 << *2) 2
-    << : (Any -> Any) -> (Any -> Any) -> Any -> Any
+    << : (Any -> Any) -> (Any -> Any)
     << self ~that = x -> self (that x)
 
     ## Composes two functions together in the forward direction, for `f >> g`
@@ -394,5 +446,17 @@ type Any
          Add one and then multiply by two as a function applied to 2.
 
              (+1 >> *2) 2
-    >> : (Any -> Any) -> (Any -> Any) -> Any -> Any
+    >> : (Any -> Any) -> (Any -> Any)
     >> self ~that = x -> that (self x)
+
+
+## PRIVATE
+   Checks if the comparators for the given objects are both of the same type. If so,
+   proceeds with the given action, and if not, throws `Type_Error`.
+assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Type_Error
+assert_same_comparators this that ~action =
+    comp_this = Comparable.from this
+    comp_that = Comparable.from that
+    case Meta.is_same_object comp_this comp_that of
+        True -> action
+        False -> Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that")

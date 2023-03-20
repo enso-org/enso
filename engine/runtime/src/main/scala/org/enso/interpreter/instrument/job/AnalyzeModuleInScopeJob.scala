@@ -8,7 +8,6 @@ import org.enso.compiler.context.{
 }
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
-import org.enso.pkg.QualifiedName
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ModuleExports, Suggestion}
@@ -16,13 +15,8 @@ import org.enso.polyglot.{ModuleExports, Suggestion}
 import java.util.logging.Level
 
 final class AnalyzeModuleInScopeJob(
-  moduleName: Option[QualifiedName],
   modules: Iterable[Module]
-) extends Job[Unit](
-      List(AnalyzeModuleJob.backgroundContextId),
-      false,
-      false
-    ) {
+) extends BackgroundJob[Unit](AnalyzeModuleInScopeJob.Priority) {
 
   private val exportsBuilder = new ExportsBuilder
 
@@ -33,29 +27,15 @@ final class AnalyzeModuleInScopeJob(
     // disable the suggestion updates and reduce the number of messages that
     // runtime sends.
     if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
-      // When the project module is compiled it can involve compilation of
-      // global (library) modules, so we need to check if the global
-      // suggestions are enabled as well.
-      if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
-        modules.foreach(analyzeModuleInScope)
-        ctx.endpoint.sendToClient(
-          Api.Response(Api.AnalyzeModuleInScopeJobFinished())
-        )
-      } else {
-        // When the global suggestions are disabled, we will skip indexing
-        // of external libraries, but still want to index the modules that
-        // belongs to the project.
-        val projectModules =
-          moduleName match {
-            case Some(name) =>
-              modules.filter(m => rootName(m.getName) == rootName(name))
-            case None =>
-              Seq()
-          }
-        projectModules.foreach(analyzeModuleInScope)
-      }
+      modules.foreach(analyzeModuleInScope)
+      ctx.endpoint.sendToClient(
+        Api.Response(Api.AnalyzeModuleInScopeJobFinished())
+      )
     }
   }
+
+  override def toString: String =
+    s"AnalyzeModuleInScopeJob($modules)"
 
   private def analyzeModuleInScope(module: Module)(implicit
     ctx: RuntimeContext
@@ -94,9 +74,6 @@ final class AnalyzeModuleInScopeJob(
       case _: Suggestion.Local       => false
     }
 
-  private def rootName(name: QualifiedName): String =
-    name.path.headOption.getOrElse(name.item)
-
   /** Send notification about module updates.
     *
     * @param payload the module update
@@ -118,21 +95,11 @@ object AnalyzeModuleInScopeJob {
 
   /** Create an instance of [[AnalyzeModuleInScopeJob]].
     *
-    * @param project the project module name
-    * @param modules the list of modules to analyze
-    * @return the [[AnalyzeModuleInScopeJob]]
-    */
-  def apply(
-    project: QualifiedName,
-    modules: Iterable[Module]
-  ): AnalyzeModuleInScopeJob =
-    new AnalyzeModuleInScopeJob(Some(project), modules)
-
-  /** Create an instance of [[AnalyzeModuleInScopeJob]].
-    *
     * @param modules the list of modules to analyze
     * @return the [[AnalyzeModuleInScopeJob]]
     */
   def apply(modules: Iterable[Module]): AnalyzeModuleInScopeJob =
-    new AnalyzeModuleInScopeJob(None, modules)
+    new AnalyzeModuleInScopeJob(modules)
+
+  private val Priority = 11
 }

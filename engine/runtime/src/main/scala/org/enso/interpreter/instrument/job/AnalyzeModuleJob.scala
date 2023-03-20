@@ -12,32 +12,41 @@ import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.ModuleExports
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.enso.text.buffer.Rope
 
-import java.util.UUID
 import java.util.logging.Level
 
 final class AnalyzeModuleJob(module: Module, changeset: Changeset[Rope])
-    extends Job[Unit](
-      List(AnalyzeModuleJob.backgroundContextId),
-      false,
-      false
-    ) {
-
-  private val exportsBuilder = new ExportsBuilder
+    extends BackgroundJob[Unit](AnalyzeModuleJob.Priority) {
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
-    if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
-      analyzeModule(module, changeset)
-    }
+    AnalyzeModuleJob.analyzeModule(module, changeset)
   }
 
   override def toString: String =
     s"${getClass.getSimpleName}(${module.getName}, ...)"
+}
 
-  private def analyzeModule(
+object AnalyzeModuleJob {
+
+  def apply(module: Module, changeset: Changeset[Rope]): AnalyzeModuleJob =
+    new AnalyzeModuleJob(module, changeset)
+
+  private val Priority = 10
+
+  private val exportsBuilder = new ExportsBuilder
+
+  def analyzeModule(
+    module: Module,
+    changeset: Changeset[Rope]
+  )(implicit ctx: RuntimeContext): Unit = {
+    if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
+      doAnalyzeModule(module, changeset)
+    }
+  }
+
+  private def doAnalyzeModule(
     module: Module,
     changeset: Changeset[Rope]
   )(implicit ctx: RuntimeContext): Unit = {
@@ -100,12 +109,4 @@ final class AnalyzeModuleJob(module: Module, changeset: Changeset[Rope])
     ) {
       ctx.endpoint.sendToClient(Api.Response(payload))
     }
-}
-
-object AnalyzeModuleJob {
-
-  def apply(module: Module, changeset: Changeset[Rope]): AnalyzeModuleJob =
-    new AnalyzeModuleJob(module, changeset)
-
-  val backgroundContextId: ContextId = UUID.randomUUID()
 }

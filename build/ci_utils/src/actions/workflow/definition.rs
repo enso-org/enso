@@ -97,12 +97,7 @@ pub fn shell_os(os: OS, command_line: impl Into<String>) -> Step {
 }
 
 pub fn shell(command_line: impl Into<String>) -> Step {
-    Step {
-        run: Some(command_line.into()),
-        env: once(github_token_env()).collect(),
-        timeout_minutes: Some(DEFAULT_TIMEOUT_IN_MINUTES),
-        ..default()
-    }
+    Step { run: Some(command_line.into()), env: once(github_token_env()).collect(), ..default() }
 }
 
 /// Invoke our entry point to the build scripts, i.e. the `./run` script.
@@ -955,7 +950,7 @@ pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> 
     let submodules_workaround_win = Step {
         // We can't add git-bash to PATH because this would break the Rust build.
         // Instead we manually spawn the bash with a given command from CMD shell.
-        run: Some(format!(r#""c:\Program Files\Git\bin\bash.exe" -c "{}""#, git_bash_command)),
+        run: Some(format!(r#""c:\Program Files\Git\bin\bash.exe" -c "{git_bash_command}""#)),
         shell: Some(Shell::Cmd),
         r#if: Some(is_windows_runner()),
         name: Some(

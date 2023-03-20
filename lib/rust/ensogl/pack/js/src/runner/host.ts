@@ -1,5 +1,7 @@
 /** @file Utilities to work with the host environment, whether it is a browser of node. */
 
+import { logger } from './log'
+
 // ======================
 // === Host Utilities ===
 // ======================
@@ -13,15 +15,44 @@ const browser = typeof window !== 'undefined'
 const node = !browser
 
 /** The global object. In case of a browser, this is the window. In case of node, it's the built-in
- * `global` object. */
+ * `global` object.
+ *
+ * The `no-unnecessary-condition` lint fires a false positive when `global` is not `undefined`. This
+ * it the case when running the script in node. */
 // const global = {}
+// @typescript-eslint/no-unnecessary-condition
 global ??= window
 
+interface UrlParams {
+    [key: string]: string | UrlParams
+}
+
 /** Returns the parameters passed in the URL query string. */
-function urlParams(): Record<string, any> {
+function urlParams(): UrlParams {
     if (browser) {
+        const out: UrlParams = {}
         const urlParams = new URLSearchParams(window.location.search)
-        return Object.fromEntries(urlParams.entries())
+        for (const [name, value] of urlParams.entries()) {
+            let obj = out
+            const path = name.split('.')
+            const lastSegment = path.pop()
+            if (lastSegment == null) {
+                logger.error(`Invalid URL parameter name: '${name}'`)
+            } else {
+                let segment = null
+                while ((segment = path.shift()) != null) {
+                    const nextObj = obj[segment] ?? {}
+                    if (typeof nextObj === 'string') {
+                        logger.error(`Duplicate URL parameter name: '${name}'`)
+                    } else {
+                        obj[segment] = nextObj
+                        obj = nextObj
+                    }
+                }
+                obj[lastSegment] = value
+            }
+        }
+        return out
     } else {
         return {}
     }

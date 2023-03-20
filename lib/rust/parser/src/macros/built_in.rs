@@ -47,14 +47,9 @@ fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
     let defs = [
         macro_definition! {("import", everything()) import_body},
         macro_definition! {("import", everything(), "as", everything()) import_body},
-        macro_definition! {("import", everything(), "hiding", everything()) import_body},
         macro_definition! {("polyglot", everything(), "import", everything()) import_body},
         macro_definition! {
         ("polyglot", everything(), "import", everything(), "as", everything()) import_body},
-        macro_definition! {
-        ("polyglot", everything(), "import", everything(), "hiding", everything()) import_body},
-        macro_definition! {
-        ("from", everything(), "import", everything(), "hiding", everything()) import_body},
         macro_definition! {
         ("from", everything(), "import", nothing(), "all", nothing()) import_body},
         macro_definition! {

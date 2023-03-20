@@ -1,10 +1,15 @@
+/** @file File watch and compile service. */
+import * as esbuild from 'esbuild'
+
+import * as guiServer from 'enso-gui-server'
+
 import bundler from './esbuild-config.js'
-// @ts-ignore
-import * as server from 'enso-gui-server'
 
-await bundler.watch(() => liveServer?.reload(), [server.LIVE_RELOAD_LISTENER_PATH])
-
-const liveServer = await server.start({
-    root: bundler.output_path,
-    assets: bundler.output_path,
+const OPTS = bundler.watchOptions(() => {
+    LIVE_SERVER.reload()
+}, [guiServer.LIVE_RELOAD_LISTENER_PATH])
+await esbuild.build(OPTS)
+const LIVE_SERVER = await guiServer.start({
+    root: OPTS.outdir,
+    assets: OPTS.outdir ?? null,
 })

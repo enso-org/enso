@@ -12,8 +12,9 @@ polyglot java import java.lang.StringBuilder as Java_String_Builder
 polyglot java import java.util.ArrayList
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalTime
+polyglot java import org.enso.base.statistics.Moments
 
-Any.test_me x = x.is_nothing
+Any.test_me self x = x.is_nothing
 
 spec =
     Test.group "Java FFI" <|
@@ -27,7 +28,7 @@ spec =
         Test.specify "should report missing method error on Java Arrays" <|
             list = ArrayList.new
             list.add 432
-            Test.expect_panic_with (list.asList) No_Such_Method.Error
+            Test.expect_panic_with (list.asList) No_Such_Method
         Test.specify "should auto-convert numeric types across the polyglot boundary" <|
             (Float.valueOf "123.3" + 5).should_equal 128.3 epsilon=0.0001
             (Integer.sum 1 2 + 3) . should_equal 6
@@ -42,6 +43,12 @@ spec =
         Test.specify "should invoke static methods" <|
             x = Integer.valueOf 1
             x.test_me x . should_equal False
+
+    Test.group "Numeric values" <|
+        Test.specify "can be passed in host calls without lossy coercion exception" <|
+            large_long = 6907338656278321365
+            moments = Moments.new 1
+            moments.add large_long
 
     Test.group "Java/Enso Date" <|
         Test.specify "Java date has Enso properties" <|

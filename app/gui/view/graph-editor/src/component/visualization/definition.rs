@@ -59,11 +59,13 @@ impl Signature {
 /// Generic definition of a visualization. Provides information about the visualization `Signature`,
 /// and a way to create new instances.
 #[derive(Clone, CloneRef, Derivative)]
-#[derivative(Debug)]
+#[derivative(Debug, PartialEq, Eq, Hash)]
 #[allow(missing_docs)]
 pub struct Definition {
     pub signature:   Signature,
     #[derivative(Debug = "ignore")]
+    #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
     pub constructor: Rc<dyn Fn(&Application) -> InstantiationResult>,
 }
 
@@ -107,8 +109,7 @@ impl Display for InstantiationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             InstantiationError::ConstructorError(value) => f.write_fmt(format_args!(
-                "Could not construct visualisation because of error: {:?}",
-                value
+                "Could not construct visualisation because of error: {value:?}"
             )),
         }
     }

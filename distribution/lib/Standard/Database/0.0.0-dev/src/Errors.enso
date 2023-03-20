@@ -127,3 +127,19 @@ type Integrity_Error
        Pretty print the integrity error.
     to_display_text : Text
     to_display_text self = self.to_text
+
+type Table_Not_Found
+    ## Indicates that a table was not found in the database.
+
+       Arguments:
+       - table_name: The name of the table that was not found.
+       - related_query_error: The error that was thrown when the query looking
+         for the table was executed.
+       - treated_as_query: Whether the table name was treated as a raw query
+         string.
+    Error (name:Text) (related_query_error:SQL_Error) (treated_as_query:Boolean)
+
+    to_display_text : Text
+    to_display_text self = case self.treated_as_query of
+        True -> "The name " + self.name + " was treated as a query, but the query failed with the following error: " + self.related_query_error.to_display_text + "; if you want to force to use that as a table name, wrap it in `SQL_Query.Table_Name`."
+        False -> "Table " + self.name + " was not found in the database."

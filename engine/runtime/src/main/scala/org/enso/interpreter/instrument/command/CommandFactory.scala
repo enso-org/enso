@@ -46,8 +46,8 @@ object CommandFactory {
       case payload: Api.RenameProject =>
         new RenameProjectCmd(request.requestId, payload)
 
-      case payload: Api.SetModuleSourcesNotification =>
-        new SetModuleSourcesCmd(payload)
+      case payload: Api.OpenFileNotification =>
+        new OpenFileCmd(payload)
       case payload: Api.CloseFileNotification => new CloseFileCmd(payload)
       case payload: Api.EditFileNotification  => new EditFileCmd(payload)
       case payload: Api.SetExpressionValueNotification =>
@@ -56,11 +56,17 @@ object CommandFactory {
       case payload: Api.InvalidateModulesIndexRequest =>
         new InvalidateModulesIndexCmd(request.requestId, payload)
 
-      case payload: Api.VerifyModulesIndexRequest =>
-        new VerifyModulesIndexCmd(request.requestId, payload)
-
       case _: Api.GetTypeGraphRequest =>
         new GetTypeGraphCommand(request.requestId)
+
+      case payload: Api.DeserializeLibrarySuggestions =>
+        new DeserializeLibrarySuggestionsCmd(request.requestId, payload)
+
+      case _: Api.StartBackgroundProcessing =>
+        new StartBackgroundProcessingCmd(request.requestId)
+
+      case payload: Api.SerializeModule =>
+        new SerializeModuleCommand(request.requestId, payload.module)
 
       case Api.ShutDownRuntimeServer() =>
         throw new IllegalArgumentException(

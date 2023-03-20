@@ -210,7 +210,7 @@ below:
 - **Selective mode** In order to compile only part of the project, and thus
   drastically shorten the incremental compile time, you are advised to use the
   selective compilation mode by passing the `--crate-path` option to the `build`
-  or `watch` command, e.g. `./run ide watch --crate-path ensogl/example` to
+  or `watch` command, e.g. `./run ide watch --crate-path ensogl/examples` to
   compile only the renderer-related example scenes. Please note, that in order
   to run a scene in a web-browser, the scene has to be compiled and has to
   expose a public function with a name starting with `entry_point_`. Thus, if

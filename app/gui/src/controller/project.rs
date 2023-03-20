@@ -12,7 +12,7 @@ use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -30,7 +30,7 @@ pub const MAIN_DEFINITION_NAME: &str = "main";
 
 /// The code with definition of the default `main` method.
 pub fn default_main_method_code() -> String {
-    format!(r#"{} = "Hello, World!""#, MAIN_DEFINITION_NAME)
+    format!(r#"{MAIN_DEFINITION_NAME} = "Hello, World!""#)
 }
 
 /// The default content of the newly created initial main module file.
@@ -57,10 +57,10 @@ pub fn main_method_ptr(
 pub fn package_yaml_path(project_name: &str) -> String {
     match platform::current() {
         Some(Platform::Linux) | Some(Platform::MacOS) =>
-            format!("~/enso/projects/{}/package.yaml", project_name),
+            format!("~/enso/projects/{project_name}/package.yaml"),
         Some(Platform::Windows) =>
-            format!("%userprofile%\\enso\\projects\\{}\\package.yaml", project_name),
-        _ => format!("<path-to-enso-projects>/{}/package.yaml", project_name),
+            format!("%userprofile%\\enso\\projects\\{project_name}\\package.yaml"),
+        _ => format!("<path-to-enso-projects>/{project_name}/package.yaml"),
     }
 }
 
@@ -244,6 +244,19 @@ impl Project {
             Ok(())
         }
     }
+
+    /// Restores the state of the project to the last snapshot saved to the VCS.
+    #[profile(Detail)]
+    pub fn restore_project_snapshot(&self) -> impl Future<Output = FallibleResult> {
+        let project_root_id = self.model.project_content_root_id();
+        let path_segments: [&str; 0] = [];
+        let root_path = Path::new(project_root_id, &path_segments);
+        let language_server = self.model.json_rpc();
+        async move {
+            language_server.restore_vcs(&root_path, &None).await?;
+            Ok(())
+        }
+    }
 }
 
 
@@ -276,7 +289,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn adding_missing_main() {
         let _ctx = TestWithLocalPoolExecutor::set_up();
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = parser::Parser::new();
         let mut data = crate::test::mock::Unified::new();
         let module_name = data.module_path.module_name().to_owned();
         let main_ptr = main_method_ptr(data.project_name.clone(), &data.module_path);
@@ -300,7 +313,7 @@ mod tests {
             assert_eq!(code, module.ast().repr());
         };
         expect_intact("main = 5");
-        expect_intact(&format!("{}.main = 5", module_name));
+        expect_intact(&format!("{module_name}.main = 5"));
     }
 
 

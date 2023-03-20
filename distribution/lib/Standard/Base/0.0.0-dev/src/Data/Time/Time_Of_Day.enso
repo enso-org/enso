@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
@@ -19,7 +19,6 @@ import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 
-polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
@@ -356,24 +355,3 @@ type Time_Of_Day
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
     format : Text -> Text
     format self pattern = @Builtin_Method "Time_Of_Day.format"
-
-    ## Compares `self` to `that` to produce an ordering.
-
-       Arguments:
-       - that: The other `Time_Of_Day` to compare against.
-
-       > Example
-         Compare two times for their ordering.
-
-             from Standard.Base import Time_Of_Day
-
-             example_compare_to =
-                 time_1 = Time_Of_Day.new hour=2 minute=30
-                 time_2 = Time_Of_Day.new minute=50
-                 time_1.compare_to time_2
-    compare_to : Time_Of_Day -> Ordering
-    compare_to self that = case that of
-        _ : Time_Of_Day ->
-            sign = Time_Utils.compare_to_localtime self that
-            Ordering.from_sign sign
-        _ -> Error.throw (Type_Error.Error Time_Of_Day that "that")

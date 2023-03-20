@@ -263,7 +263,7 @@ mod tests {
 
     fn expect_field<'a, Obj: 'a>(obj: &'a Map<String, Value>, field_name: &str) -> &'a Value
     where &'a Obj: Into<&'a Value> {
-        let missing_msg = format!("missing field {}", field_name);
+        let missing_msg = format!("missing field {field_name}");
         obj.get(field_name).expect(&missing_msg)
     }
 
@@ -360,7 +360,7 @@ mod tests {
                 assert_eq!(message, "Service error");
                 assert!(data.is_none());
             }
-            _ => panic!("Invalid decoding result of {}: {:?}", text, decoding_result),
+            _ => panic!("Invalid decoding result of {text}: {decoding_result:?}"),
         }
     }
 }

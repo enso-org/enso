@@ -1,6 +1,7 @@
 package org.enso.table.aggregations;
 
 import com.ibm.icu.text.BreakIterator;
+import org.enso.base.Text_Utils;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -26,12 +27,12 @@ public class ShortestOrLongest extends Aggregator {
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
-        if (!(value instanceof String)) {
+        if (!(value instanceof String asString)) {
           this.addProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
           return null;
         }
 
-        long valueLength = GraphemeLength((String) value);
+        long valueLength = Text_Utils.grapheme_length(asString);
         if (current == null || Long.compare(valueLength, length) == minOrMax) {
           length = valueLength;
           current = value;
@@ -40,17 +41,5 @@ public class ShortestOrLongest extends Aggregator {
     }
 
     return current;
-  }
-
-  private static long GraphemeLength(String text) {
-    BreakIterator iter = BreakIterator.getCharacterInstance();
-    iter.setText(text);
-
-    int count = 0;
-    for (int end = iter.next(); end != BreakIterator.DONE; end = iter.next()) {
-      count++;
-    }
-
-    return count;
   }
 }

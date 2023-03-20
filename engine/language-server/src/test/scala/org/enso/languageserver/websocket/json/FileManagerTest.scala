@@ -4,7 +4,7 @@ import io.circe.literal._
 import io.circe.parser.parse
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.util.encoders.Hex
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
@@ -14,7 +14,6 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files, Paths}
 import java.security.MessageDigest
 import java.util.UUID
-
 import scala.concurrent.duration._
 
 class FileManagerTest extends BaseServerTest with RetrySpec {
@@ -25,11 +24,12 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     Config(
       testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
-      VcsManagerConfig(timeout  = 5.seconds),
+      VcsManagerConfig(),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(testContentRoot.file),
-      ProfilingConfig()
+      ProfilingConfig(),
+      StartupConfig()
     )
   }
 

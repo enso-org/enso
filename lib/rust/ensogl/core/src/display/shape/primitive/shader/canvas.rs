@@ -43,7 +43,7 @@ pub struct ShapeData {
 impl ShapeData {
     /// Constructor.
     pub fn new(shape_id: usize) -> Self {
-        let name = format!("shape_{}", shape_id);
+        let name = format!("shape_{shape_id}");
         Self { name }
     }
 
@@ -230,6 +230,14 @@ impl Canvas {
         })
     }
 
+    /// Flip the shape upside-down, mirroring it over the X axis.
+    pub fn flip_y(&mut self, num: usize, s1: Shape) -> Shape {
+        self.if_not_defined(num, |this| {
+            this.add_current_function_code_line("position.y = -position.y;");
+            this.new_shape_from_expr(&format!("return {};", s1.getter()))
+        })
+    }
+
     /// Fill the shape with the provided color.
     pub fn fill<Color: Into<Var<color::Rgba>>>(
         &mut self,
@@ -240,8 +248,42 @@ impl Canvas {
         self.if_not_defined(num, |this| {
             let color: Glsl = color.into().glsl();
             this.add_current_function_code_line(format!("Shape shape = {};", s.getter()));
-            this.add_current_function_code_line(format!("Srgba color = srgba({color});"));
-            this.new_shape_from_expr("return set_color(shape,color);")
+            this.add_current_function_code_line(format!("Rgba color = rgba({color});"));
+            this.new_shape_from_expr("return set_color(shape, color);")
+        })
+    }
+
+
+    /// Change the shape color depending on RGB components.
+    ///
+    /// Assuming `s.color` is a previous shape premultiplied color (i.e. the alpha component is
+    /// applied to each channel), a new color is defined as:
+    /// `r * s.color.r + b * s.color.b + g * s.color.g`.
+    ///
+    /// See [`ShapeOps` counterpart
+    /// documentation](crate::display::shape::class::ShapeOps::recolorize) for usage examples.
+    pub fn recolorize<RColor, GColor, BColor>(
+        &mut self,
+        num: usize,
+        s: Shape,
+        r: RColor,
+        g: GColor,
+        b: BColor,
+    ) -> Shape
+    where
+        RColor: Into<Var<color::Rgba>>,
+        GColor: Into<Var<color::Rgba>>,
+        BColor: Into<Var<color::Rgba>>,
+    {
+        self.if_not_defined(num, |this| {
+            let r: Glsl = r.into().glsl();
+            let g: Glsl = g.into().glsl();
+            let b: Glsl = b.into().glsl();
+            this.add_current_function_code_line(format!("Shape shape = {};", s.getter()));
+            this.add_current_function_code_line(format!("Rgba r = rgba({r});"));
+            this.add_current_function_code_line(format!("Rgba g = rgba({g});"));
+            this.add_current_function_code_line(format!("Rgba b = rgba({b});"));
+            this.new_shape_from_expr("return recolorize(shape, r, g, b);")
         })
     }
 

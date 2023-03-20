@@ -120,6 +120,11 @@ pub enum Notification {
     #[serde(rename = "text/autoSave")]
     TextAutoSave(TextAutoSave),
 
+    /// This is a notification sent from the server to the clients to inform them of any changes
+    /// made to files that they have open.
+    #[serde(rename = "text/didChange")]
+    TextDidChange(FileEditList),
+
     /// Sent from the server to the client to inform about new information for certain expressions
     /// becoming available. This notification is superseded by executionContext/expressionUpdates.
     #[serde(rename = "executionContext/expressionValuesComputed")]
@@ -211,7 +216,7 @@ pub struct ExpressionUpdate {
     pub expression_id:  ExpressionId,
     #[serde(rename = "type")] // To avoid collision with the `type` keyword.
     pub typename: Option<String>,
-    pub method_pointer: Option<SuggestionId>,
+    pub method_pointer: Option<MethodPointer>,
     pub profiling_info: Vec<ProfilingInfo>,
     pub from_cache:     bool,
     pub payload:        ExpressionUpdatePayload,
@@ -232,7 +237,9 @@ pub enum ProfilingInfo {
 #[allow(missing_docs)]
 #[serde(tag = "type")]
 pub enum ExpressionUpdatePayload {
-    Value,
+    Value {
+        warnings: Option<Warnings>,
+    },
     #[serde(rename_all = "camelCase")]
     DataflowError {
         trace: Vec<ExpressionId>,
@@ -247,6 +254,20 @@ pub enum ExpressionUpdatePayload {
         message:  Option<String>,
         progress: Option<f64>,
     },
+}
+
+/// Information about warnings associated with the value.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[allow(missing_docs)]
+pub struct Warnings {
+    /// The number of attached warnings.
+    pub count: usize,
+    /// If the value has a single warning attached, this field contains textual representation of
+    /// gg
+    ///
+    /// the attached warning. In general, warning values should be obtained by attaching an
+    /// appropriate visualization to a value.
+    pub value: Option<String>,
 }
 
 
@@ -666,6 +687,15 @@ pub struct FileEdit {
     pub new_version: Sha3_224,
 }
 
+/// A list of file edits.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct FileEditList {
+    pub edits: Vec<FileEdit>,
+}
+
+
 
 // ========================
 // === ExecutionContext ===
@@ -817,62 +847,6 @@ pub enum RegisterOptions {
 
 
 
-// ===================
-// === Doc Section ===
-// ===================
-
-/// Text rendered as HTML (may contain HTML tags).
-pub type HtmlString = String;
-
-/// Documentation section mark.
-#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[allow(missing_docs)]
-pub enum Mark {
-    Important,
-    Info,
-    Example,
-}
-
-/// A single section of the documentation.
-#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[allow(missing_docs)]
-#[serde(tag = "type")]
-#[serde(rename_all = "camelCase")]
-pub enum DocSection {
-    /// The documentation tag.
-    #[serde(rename_all = "camelCase")]
-    Tag {
-        /// The tag name.
-        name: String,
-        /// The tag text.
-        body: HtmlString,
-    },
-    /// The paragraph of the text.
-    #[serde(rename_all = "camelCase")]
-    Paragraph {
-        /// The elements that make up this paragraph.
-        body: HtmlString,
-    },
-    /// The section that starts with the key followed by the colon and the body.
-    #[serde(rename_all = "camelCase")]
-    Keyed {
-        /// The section key.
-        key:  String,
-        /// The elements that make up the body of the section.
-        body: HtmlString,
-    },
-    /// The section that starts with the mark followed by the header and the body.
-    #[serde(rename_all = "camelCase")]
-    Marked {
-        /// The section mark.
-        mark:   Mark,
-        /// The section header.
-        header: Option<String>,
-        /// The elements that make up the body of the section.
-        body:   HtmlString,
-    },
-}
-
 // ===========================
 // === Suggestion Database ===
 // ===========================
@@ -958,79 +932,57 @@ pub enum SuggestionEntryType {
 pub enum SuggestionEntry {
     #[serde(rename_all = "camelCase")]
     Type {
-        external_id:            Option<Uuid>,
-        name:                   String,
-        module:                 String,
-        params:                 Vec<SuggestionEntryArgument>,
-        parent_type:            Option<String>,
-        reexport:               Option<String>,
-        documentation:          Option<String>,
-        documentation_html:     Option<String>,
-        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
-        documentation_sections: Vec<DocSection>,
+        external_id:   Option<Uuid>,
+        name:          String,
+        module:        String,
+        params:        Vec<SuggestionEntryArgument>,
+        parent_type:   Option<String>,
+        reexport:      Option<String>,
+        documentation: Option<String>,
     },
     #[serde(rename_all = "camelCase")]
     Constructor {
-        external_id:            Option<Uuid>,
-        name:                   String,
-        module:                 String,
-        arguments:              Vec<SuggestionEntryArgument>,
-        return_type:            String,
-        reexport:               Option<String>,
-        documentation:          Option<String>,
-        documentation_html:     Option<String>,
-        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
-        documentation_sections: Vec<DocSection>,
+        external_id:   Option<Uuid>,
+        name:          String,
+        module:        String,
+        arguments:     Vec<SuggestionEntryArgument>,
+        return_type:   String,
+        reexport:      Option<String>,
+        documentation: Option<String>,
     },
     #[serde(rename_all = "camelCase")]
     Method {
-        external_id:            Option<Uuid>,
-        name:                   String,
-        module:                 String,
-        arguments:              Vec<SuggestionEntryArgument>,
-        self_type:              String,
-        return_type:            String,
-        is_static:              bool,
-        reexport:               Option<String>,
-        documentation:          Option<String>,
-        documentation_html:     Option<String>,
-        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
-        documentation_sections: Vec<DocSection>,
+        external_id:   Option<Uuid>,
+        name:          String,
+        module:        String,
+        arguments:     Vec<SuggestionEntryArgument>,
+        self_type:     String,
+        return_type:   String,
+        is_static:     bool,
+        reexport:      Option<String>,
+        documentation: Option<String>,
     },
     #[serde(rename_all = "camelCase")]
     Function {
-        external_id:            Option<Uuid>,
-        name:                   String,
-        module:                 String,
-        arguments:              Vec<SuggestionEntryArgument>,
-        return_type:            String,
-        scope:                  SuggestionEntryScope,
-        documentation:          Option<String>,
-        documentation_html:     Option<String>,
-        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
-        documentation_sections: Vec<DocSection>,
+        external_id:   Option<Uuid>,
+        name:          String,
+        module:        String,
+        arguments:     Vec<SuggestionEntryArgument>,
+        return_type:   String,
+        scope:         SuggestionEntryScope,
+        documentation: Option<String>,
     },
     #[serde(rename_all = "camelCase")]
     Local {
-        external_id:            Option<Uuid>,
-        name:                   String,
-        module:                 String,
-        return_type:            String,
-        scope:                  SuggestionEntryScope,
-        documentation:          Option<String>,
-        documentation_html:     Option<String>,
-        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
-        documentation_sections: Vec<DocSection>,
+        external_id:   Option<Uuid>,
+        name:          String,
+        module:        String,
+        return_type:   String,
+        scope:         SuggestionEntryScope,
+        documentation: Option<String>,
     },
     #[serde(rename_all = "camelCase")]
-    Module {
-        module:                 String,
-        documentation:          Option<String>,
-        documentation_html:     Option<String>,
-        reexport:               Option<String>,
-        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
-        documentation_sections: Vec<DocSection>,
-    },
+    Module { module: String, documentation: Option<String>, reexport: Option<String> },
 }
 
 impl SuggestionEntry {
@@ -1086,7 +1038,7 @@ impl<T> FieldUpdate<T> {
     }
 
     /// Maps the field update by applying `f` on the underlying value.
-    pub fn map<U>(self, f: impl Fn(T) -> U) -> FieldUpdate<U> {
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> FieldUpdate<U> {
         FieldUpdate { tag: self.tag, value: self.value.map(f) }
     }
 
@@ -1094,15 +1046,15 @@ impl<T> FieldUpdate<T> {
     /// Otherwise returns the error returned by `f`.
     pub fn try_map<U, E>(
         self,
-        f: impl Fn(T) -> std::result::Result<U, E>,
+        f: impl FnOnce(T) -> std::result::Result<U, E>,
     ) -> std::result::Result<FieldUpdate<U>, E> {
         Ok(FieldUpdate { tag: self.tag, value: self.value.map(f).transpose()? })
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
+#[serde(tag = "type")]
 pub enum SuggestionArgumentUpdate {
     #[serde(rename_all = "camelCase")]
     Add { index: usize, argument: SuggestionEntryArgument },
@@ -1152,14 +1104,13 @@ pub enum SuggestionsDatabaseUpdate {
 #[serde(rename_all = "camelCase")]
 pub struct SuggestionsDatabaseModification {
     #[serde(default)]
-    pub arguments:              Vec<SuggestionArgumentUpdate>,
-    pub module:                 Option<FieldUpdate<String>>,
-    pub self_type:              Option<FieldUpdate<String>>,
-    pub return_type:            Option<FieldUpdate<String>>,
-    pub documentation:          Option<FieldUpdate<String>>,
-    pub documentation_sections: Option<FieldUpdate<Vec<DocSection>>>,
-    pub scope:                  Option<FieldUpdate<SuggestionEntryScope>>,
-    pub reexport:               Option<FieldUpdate<String>>,
+    pub arguments:     Vec<SuggestionArgumentUpdate>,
+    pub module:        Option<FieldUpdate<String>>,
+    pub self_type:     Option<FieldUpdate<String>>,
+    pub return_type:   Option<FieldUpdate<String>>,
+    pub documentation: Option<FieldUpdate<String>>,
+    pub scope:         Option<FieldUpdate<SuggestionEntryScope>>,
+    pub reexport:      Option<FieldUpdate<String>>,
 }
 
 /// Notification about change in the suggestions database.
@@ -1226,7 +1177,7 @@ pub mod test {
             method_pointer: None,
             profiling_info: default(),
             from_cache:     false,
-            payload:        ExpressionUpdatePayload::Value,
+            payload:        ExpressionUpdatePayload::Value { warnings: None },
         }
     }
 
@@ -1234,7 +1185,7 @@ pub mod test {
     /// method pointer.
     pub fn value_update_with_method_ptr(
         id: ExpressionId,
-        method_pointer: SuggestionId,
+        method_pointer: MethodPointer,
     ) -> ExpressionUpdate {
         ExpressionUpdate {
             expression_id:  id,
@@ -1242,7 +1193,7 @@ pub mod test {
             method_pointer: Some(method_pointer),
             profiling_info: default(),
             from_cache:     false,
-            payload:        ExpressionUpdatePayload::Value,
+            payload:        ExpressionUpdatePayload::Value { warnings: None },
         }
     }
 

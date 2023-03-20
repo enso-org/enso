@@ -8,6 +8,7 @@
 use crate::prelude::*;
 
 use double_representation::name::QualifiedName;
+use enso_doc_parser::DocSection;
 use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
 
 
@@ -72,18 +73,18 @@ pub fn input_snippets_with_matching_return_type(
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Snippet {
     /// The name displayed in the [Component Browser](crate::controller::searcher).
-    pub name:               &'static str,
+    pub name:          &'static str,
     /// The code inserted when picking the snippet.
-    pub code:               &'static str,
+    pub code:          &'static str,
     /// A list of types that the return value of this snippet's code typechecks as. Used by the
     /// [Component Browser](crate::controller::searcher) to decide whether to display the
     /// snippet when filtering components by return type.
-    pub return_types:       Vec<QualifiedName>,
+    pub return_types:  Vec<QualifiedName>,
     /// The documentation bound to the snippet.
-    pub documentation_html: Option<String>,
+    pub documentation: Option<Vec<DocSection>>,
     /// The ID of the icon bound to this snippet's entry in the [Component
     /// Browser](crate::controller::searcher).
-    pub icon:               IconId,
+    pub icon:          IconId,
 }
 
 impl Snippet {
@@ -101,15 +102,10 @@ impl Snippet {
         self
     }
 
-    /// Returns a modified suggestion with [`Snippet::documentation_html`] field set. This method
-    /// is only intended to be used when defining hardcoded suggestions and panics if a
-    /// documentation parser cannot be created or the argument fails to parse as valid
-    /// documentation.
+    /// Returns a modified suggestion with the [`Snippet::documentation`] field set. This method
+    /// is only intended to be used when defining hardcoded suggestions.
     fn with_documentation(mut self, documentation: &str) -> Self {
-        let doc_parser = parser_scala::DocParser::new().unwrap();
-        let doc_string = documentation.to_string();
-        let documentation_html = doc_parser.generate_html_doc_pure(doc_string);
-        self.documentation_html = Some(documentation_html.unwrap());
+        self.documentation = Some(enso_doc_parser::parse(documentation));
         self
     }
 }

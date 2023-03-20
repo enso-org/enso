@@ -32,12 +32,6 @@ public abstract class IsValueOfTypeNode extends Node {
   public abstract boolean execute(Object expectedType, Object payload);
 
   @Specialization
-  boolean doAtom(AtomConstructor consr, Object payload) {
-    Object expectedType = consr.getType();
-    return execute(expectedType, payload);
-  }
-
-  @Specialization
   boolean doPolyglotProxy(Object expectedType, PolyglotProxy proxy) {
     Object tpeOfPayload = typeOfNode.execute(proxy);
     return isSameObject.execute(expectedType, tpeOfPayload);

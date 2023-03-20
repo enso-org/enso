@@ -1,6 +1,7 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
+import buildinfo.Info
 import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
@@ -28,7 +29,7 @@ import org.enso.languageserver.protocol.binary.{
 }
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
-  JsonRpc
+  JsonRpcProtocolFactory
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime._
@@ -41,9 +42,9 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
-import org.enso.logger.masking.Masking
+import org.enso.logger.masking.{MaskedPath, Masking}
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
-import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
+import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
@@ -53,6 +54,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URI
 import java.time.Clock
+
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -65,7 +67,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   private val log = LoggerFactory.getLogger(this.getClass)
   log.info(
-    "Initializing main module of the Language Server from [{}, {}]",
+    "Initializing main module of the Language Server from [{}, {}, {}]",
+    Info.currentEdition,
     serverConfig,
     logLevel
   )
@@ -80,11 +83,16 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val languageServerConfig = Config(
     contentRoot,
     FileManagerConfig(timeout = 3.seconds),
-    VcsManagerConfig(timeout  = 3.seconds),
+    VcsManagerConfig(
+      initTimeout = 5.seconds,
+      timeout     = 3.seconds,
+      asyncInit   = true
+    ),
     PathWatcherConfig(),
     ExecutionContextConfig(),
     directoriesConfig,
-    serverConfig.profilingConfig
+    serverConfig.profilingConfig,
+    serverConfig.startupConfig
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
@@ -95,18 +103,18 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       None,
       Some(serverConfig.computeExecutionContext)
     )
-  log.trace(s"Created ActorSystem $system.")
+  log.trace("Created ActorSystem [{}].", system)
 
-  private val zioRuntime =
-    effect.Runtime.fromExecutionContext(system.dispatcher)
-  private val zioExec = effect.ZioExec(zioRuntime)
+  private val zioRuntime = new effect.ExecutionContextRuntime(system.dispatcher)
+  private val zioExec    = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
-  val fileSystem: FileSystem = new FileSystem
+  private val fileSystem: FileSystem = new FileSystem
   log.trace("Created file system [{}].", fileSystem)
 
   val git = Git.withEmptyUserConfig(
-    Some(languageServerConfig.vcsManager.dataDirectory)
+    Some(languageServerConfig.vcsManager.dataDirectory),
+    languageServerConfig.vcsManager.asyncInit
   )
   log.trace("Created git [{}].", git)
 
@@ -157,7 +165,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
             monitor
           case Failure(exception) =>
             log.error(
-              s"Failed to create runtime events monitor for $path ($exception)."
+              "Failed to create runtime events monitor for [{}].",
+              MaskedPath(path),
+              exception
             )
             new NoopEventsMonitor
         }
@@ -165,7 +175,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         new NoopEventsMonitor
     }
   log.trace(
-    s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
+    "Started runtime events monitor [{}].",
+    runtimeEventsMonitor.getClass.getName
   )
 
   lazy val runtimeConnector =
@@ -253,7 +264,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     system.actorOf(
       ContextRegistry
         .props(
-          suggestionsRepo,
           languageServerConfig,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
@@ -270,6 +280,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val context = Context
     .newBuilder()
     .allowAllAccess(true)
+    .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.INTERACTIVE_MODE, "true")
@@ -279,10 +290,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
     )
     .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
+    .option(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
     .option(
       RuntimeServerInfo.JOB_PARALLELISM_OPTION,
       Runtime.getRuntime.availableProcessors().toString
     )
+    .option(RuntimeOptions.PREINITIALIZE, "js")
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
@@ -331,14 +344,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "std-in-controller"
     )
 
-  val initializationComponent = ResourcesInitialization(
-    system.eventStream,
-    directoriesConfig,
-    suggestionsRepo,
-    versionsRepo,
-    context
-  )(system.dispatcher)
-
   val projectSettingsManager = system.actorOf(
     ProjectSettingsManager.props(contentRoot.file, editionResolver),
     "project-settings-manager"
@@ -367,7 +372,41 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   )
 
-  val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
+  val pingHandlerProps =
+    PingHandler.props(
+      List(
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        contextRegistry
+      ),
+      10.seconds,
+      true
+    )
+
+  private val healthCheckEndpoint =
+    new HealthCheckEndpoint(pingHandlerProps, system)(
+      serverConfig.computeExecutionContext
+    )
+
+  private val idlenessEndpoint =
+    new IdlenessEndpoint(idlenessMonitor)
+
+  private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
+
+  private val initializationComponent =
+    ResourcesInitialization(
+      system.eventStream,
+      directoriesConfig,
+      jsonRpcProtocolFactory,
+      sqlDatabase,
+      suggestionsRepo,
+      versionsRepo,
+      context,
+      zioRuntime
+    )(system.dispatcher)
+
+  private val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     mainComponent          = initializationComponent,
     bufferRegistry         = bufferRegistry,
     capabilityRouter       = capabilityRouter,
@@ -390,29 +429,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     jsonRpcControllerFactory
   )
 
-  val pingHandlerProps =
-    PingHandler.props(
-      List(
-        bufferRegistry,
-        capabilityRouter,
-        fileManager,
-        contextRegistry
-      ),
-      10.seconds,
-      true
-    )
-
-  val healthCheckEndpoint =
-    new HealthCheckEndpoint(pingHandlerProps, system)(
-      serverConfig.computeExecutionContext
-    )
-
-  val idlenessEndpoint =
-    new IdlenessEndpoint(idlenessMonitor)
-
   val jsonRpcServer =
     new JsonRpcServer(
-      JsonRpc.protocol,
+      jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),

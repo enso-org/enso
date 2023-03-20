@@ -2,13 +2,12 @@ package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
 import io.circe.parser.parse
-
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.languageserver.vcsmanager.VcsApi
 import org.enso.testkit.RetrySpec
@@ -27,12 +26,13 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
     sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
     Config(
       testContentRoot,
-      FileManagerConfig(timeout = 3.seconds),
-      VcsManagerConfig(timeout  = 5.seconds),
+      FileManagerConfig(timeout  = 3.seconds),
+      VcsManagerConfig(asyncInit = false),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(testContentRoot.file),
-      ProfilingConfig()
+      ProfilingConfig(),
+      StartupConfig()
     )
   }
 

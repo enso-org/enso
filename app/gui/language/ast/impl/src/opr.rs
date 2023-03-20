@@ -18,6 +18,7 @@ use crate::SectionLeft;
 use crate::SectionRight;
 use crate::SectionSides;
 use crate::Shape;
+use crate::Var;
 
 
 
@@ -26,7 +27,7 @@ use crate::Shape;
 // =================
 
 /// Symbols that can appear in operator name, as per
-/// https://dev.enso.org/docs/enso/syntax/naming.html#operator-naming
+/// https://enso.org/docs/developer/enso/syntax/naming.html#operator-naming
 pub const SYMBOLS: [char; 25] = [
     '!', '$', '%', '&', '*', '+', '-', '/', '<', '>', '?', '^', '~', '|', ':', '\\', ',', '.', '(',
     ')', '[', ']', '{', '}', '=',
@@ -50,8 +51,8 @@ pub mod predefined {
 
 /// Checks if the given AST has Opr shape with the name matching given string.
 pub fn is_opr_named(ast: &Ast, name: impl Str) -> bool {
-    let opr_opt = known::Opr::try_from(ast).ok();
-    opr_opt.contains_if(|opr| opr.name == name.as_ref())
+    let name_ref = name.as_ref();
+    matches!(ast.shape(), Shape::Opr(Opr { name, .. }) if name == name_ref)
 }
 
 /// Checks if given Ast is an assignment operator identifier.
@@ -97,23 +98,68 @@ pub fn to_access(ast: &Ast) -> Option<known::Infix> {
     to_specific_infix(ast, predefined::ACCESS)
 }
 
+/// Checks if a given node is an access infix expression.
+pub fn is_access(ast: &Ast) -> bool {
+    matches!(ast.shape(), Shape::Infix(Infix { opr, .. }) if is_access_opr(opr))
+}
+
 /// Checks if a given node is an assignment infix expression.
 pub fn is_assignment(ast: &Ast) -> bool {
-    let infix = known::Infix::try_from(ast);
-    infix.map(|infix| is_assignment_opr(&infix.opr)).unwrap_or(false)
+    matches!(ast.shape(), Shape::Infix(Infix { opr, .. }) if is_assignment_opr(opr))
 }
 
 /// Obtains a new `Opr` with an assignment.
 pub fn assignment() -> known::Opr {
     // TODO? We could cache and reuse, if we care.
     let name = predefined::ASSIGNMENT.into();
-    let opr = Opr { name };
+    let opr = Opr { name, right_assoc: false };
     known::Opr::new(opr, None)
 }
 
 /// Split qualified name into segments, like `"Int.add"` into `["Int","add"]`.
 pub fn name_segments(name: &str) -> impl Iterator<Item = &str> {
     name.split(predefined::ACCESS)
+}
+
+
+
+// =======================
+// === Named arguments ===
+// =======================
+
+/// Matched AST fragments for named argument, flattened into easy to access structure.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct NamedArgumentDef<'a> {
+    pub id:   Option<Id>,
+    pub name: &'a str,
+    pub larg: &'a Ast,
+    pub loff: usize,
+    pub opr:  &'a Ast,
+    pub roff: usize,
+    pub rarg: &'a Ast,
+}
+
+/// Match AST against named argument pattern. Pack AST fragments into flat `NamedArgumentDef`
+/// structure. Does not clone or allocate.
+///
+/// ```text
+/// name=expression - Infix
+/// name              |- Var
+///     =             |- Opr ASSIGN
+///      expression   `- any Ast
+/// ```
+pub fn match_named_argument(ast: &Ast) -> Option<NamedArgumentDef<'_>> {
+    let id = ast.id;
+    match ast.shape() {
+        Shape::Infix(Infix { larg, loff, opr, roff, rarg }) if is_assignment_opr(opr) =>
+            match larg.shape() {
+                Shape::Var(Var { name }) =>
+                    Some(NamedArgumentDef { id, name, larg, loff: *loff, opr, roff: *roff, rarg }),
+                _ => None,
+            },
+        _ => None,
+    }
 }
 
 
@@ -150,7 +196,10 @@ pub fn make_operator(opr: &Ast) -> Option<Operator> {
 
 /// Describes associativity of the given operator AST.
 pub fn assoc(ast: &known::Opr) -> Assoc {
-    Assoc::of(&ast.name)
+    match ast.right_assoc {
+        true => Assoc::Right,
+        false => Assoc::Left,
+    }
 }
 
 
@@ -260,18 +309,18 @@ impl GeneralizedInfix {
     }
 
     /// The self operand, target of the application.
-    pub fn target_operand(&self) -> Operand {
+    pub fn target_operand(&self) -> &Operand {
         match self.assoc() {
-            Assoc::Left => self.left.clone(),
-            Assoc::Right => self.right.clone(),
+            Assoc::Left => &self.left,
+            Assoc::Right => &self.right,
         }
     }
 
     /// Operand other than self.
-    pub fn argument_operand(&self) -> Operand {
+    pub fn argument_operand(&self) -> &Operand {
         match self.assoc() {
-            Assoc::Left => self.right.clone(),
-            Assoc::Right => self.left.clone(),
+            Assoc::Left => &self.right,
+            Assoc::Right => &self.left,
         }
     }
 
@@ -283,17 +332,27 @@ impl GeneralizedInfix {
     }
 
     fn flatten_with_offset(&self, offset: usize) -> Chain {
-        let target = self.target_operand();
+        let target = self.target_operand().clone();
         let rest = ChainElement {
             offset,
             operator: self.opr.clone(),
-            operand: self.argument_operand(),
+            operand: self.argument_operand().clone(),
             infix_id: self.id,
         };
 
+        let rest_offset = rest.operand.as_ref().map_or_default(|op| op.offset);
+
         let target_subtree_infix = target.clone().and_then(|arg| {
             let offset = arg.offset;
-            GeneralizedInfix::try_new(&arg.arg).map(|arg| ArgWithOffset { arg, offset })
+            GeneralizedInfix::try_new(&arg.arg).map(|arg| ArgWithOffset { arg, offset }).filter(
+                |target_infix| {
+                    // For access operators, do not flatten them if there is a space before the dot.
+                    // For example, `Foo . Bar . Baz` should not be flattened to `Foo.Bar.Baz`, as
+                    // those should be treated as potential separate prefix expressions, allowing
+                    // operator placeholders to be inserted.
+                    rest_offset == 0 || target_infix.arg.name() != predefined::ACCESS
+                },
+            )
         });
         let mut target_subtree_flat = match target_subtree_infix {
             Some(target_infix) if target_infix.arg.name() == self.name() =>
@@ -327,7 +386,7 @@ pub struct Chain {
     /// Subsequent operands applied to the `target`.
     pub args:     Vec<ChainElement>,
     /// Operator AST. Generally all operators in the chain should be the same (except for id).
-    /// It is not specified which exactly operator's in the chain this AST belongs to.
+    /// It is not specified exactly which operators in the chain this AST belongs to.
     pub operator: known::Opr,
 }
 
@@ -411,17 +470,21 @@ impl Chain {
         self.insert_operand(last_index, operand)
     }
 
-    /// Add operand at the front of the chain, actually making it a new target (see docs for
-    /// `insert_operand`.
-    pub fn push_front_operand(&mut self, operand: ArgWithOffset<Ast>) {
-        self.insert_operand(0, operand)
-    }
-
     /// Erase the current target from chain, and make the current first operand a new target.
     /// Panics if there is no operand besides target.
     pub fn erase_target(&mut self) {
-        let new_target = self.args.pop_front().unwrap().operand;
+        let new_target = self.args.remove(0).operand;
         self.target = new_target
+    }
+
+    /// Erase `n` leading arguments from chain (including target), and make the next remaining
+    /// argument a new target. Panics if there are not enough arguments to remove.
+    pub fn erase_leading_operands(&mut self, n: usize) {
+        if n == 0 {
+            return;
+        }
+        let last_removed_arg = self.args.drain(0..n).next_back();
+        self.target = last_removed_arg.expect("Not enough operands to erase").operand;
     }
 
     /// Replace the target and first argument with a new target being an proper Infix or Section

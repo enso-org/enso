@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.map.text;
 
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -21,7 +22,7 @@ public abstract class StringBooleanOp extends MapOperation<String, SpecializedSt
   }
 
   @Override
-  public BoolStorage runMap(SpecializedStorage<String> storage, Object arg) {
+  public BoolStorage runMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -53,7 +54,7 @@ public abstract class StringBooleanOp extends MapOperation<String, SpecializedSt
   }
 
   @Override
-  public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg) {
+  public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof StringStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();

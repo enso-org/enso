@@ -1,9 +1,0 @@
-from Standard.Base import all
-
-import project.Data.Column.Column
-import project.Data.Sort_Column.Sort_Column
-
-type Sort_Column_Selector
-    By_Name (columns : Vector (Sort_Column.Name | Text)) (matcher:Matcher=Text_Matcher.Case_Sensitive)
-    By_Index (columns : Vector (Sort_Column.Index | Integer))
-    By_Column (columns : Vector (Sort_Column.Column | Column))

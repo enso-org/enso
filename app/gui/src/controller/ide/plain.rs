@@ -11,7 +11,7 @@ use crate::model::project::synchronized::Properties;
 
 use double_representation::name::project;
 use engine_protocol::project_manager::ProjectName;
-use parser_scala::Parser;
+use parser::Parser;
 
 
 
@@ -38,16 +38,23 @@ pub struct ProjectOperationsNotSupported;
 #[derive(Clone, CloneRef, Debug)]
 pub struct Handle {
     pub status_notifications: StatusNotificationPublisher,
-    pub parser:               Parser,
-    pub project:              model::Project,
+    pub parser: Parser,
+    pub project: model::Project,
+    component_browser_private_entries_visibility_flag: Rc<Cell<bool>>,
 }
 
 impl Handle {
     /// Create IDE Controller for a given opened project.
     pub fn new(project: model::Project) -> Self {
         let status_notifications = default();
-        let parser = Parser::new_or_panic();
-        Self { status_notifications, parser, project }
+        let parser = Parser::new();
+        let component_browser_private_entries_visibility_flag = default();
+        Self {
+            status_notifications,
+            parser,
+            project,
+            component_browser_private_entries_visibility_flag,
+        }
     }
 
     /// Create IDE Controller from Language Server endpoints, describing the opened project.
@@ -73,8 +80,14 @@ impl Handle {
         )
         .await?;
         let status_notifications = default();
-        let parser = Parser::new_or_panic();
-        Ok(Self { status_notifications, parser, project })
+        let parser = Parser::new();
+        let component_browser_private_entries_visibility_flag = default();
+        Ok(Self {
+            status_notifications,
+            parser,
+            project,
+            component_browser_private_entries_visibility_flag,
+        })
     }
 }
 
@@ -95,5 +108,16 @@ impl controller::ide::API for Handle {
 
     fn manage_projects(&self) -> FallibleResult<&dyn ManagingProjectAPI> {
         Err(ProjectOperationsNotSupported.into())
+    }
+
+    fn are_component_browser_private_entries_visible(&self) -> bool {
+        self.component_browser_private_entries_visibility_flag.get()
+    }
+
+    fn set_component_browser_private_entries_visibility(&self, visibility: bool) {
+        debug!(
+            "Setting the visibility of private entries in the component browser to {visibility}."
+        );
+        self.component_browser_private_entries_visibility_flag.set(visibility);
     }
 }

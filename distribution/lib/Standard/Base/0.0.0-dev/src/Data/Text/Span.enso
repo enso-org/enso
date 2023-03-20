@@ -7,7 +7,7 @@
 
          example_span =
              text = "Hello!"
-             Span.Value 0 3 text
+             Span.Value (Range.new 0 3) text
 
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair

@@ -4,6 +4,7 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
+import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
@@ -91,12 +92,25 @@ type Postgres_Dialect
         new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
+    ## PRIVATE
+       A heuristic used by `Connection.query` to determine if a given text looks
+       like a SQL query for the given dialect or is rather a table name.
+    is_probably_a_query : Text -> Boolean
+    is_probably_a_query self text =
+        (text.contains "SELECT ") || (text.contains "EXEC ")
+
+    ## PRIVATE
+       Returns an utility that allows ensuring column names are valid for the
+       given backend.
+    get_naming_helpers : Naming_Helpers
+    get_naming_helpers self = Naming_Helpers
+
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest]+concat_ops+cases
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive]+concat_ops+cases
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
-    arith_extensions = [is_nan, decimal_div]
+    arith_extensions = [is_nan, decimal_div, mod_op,  ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -242,7 +256,7 @@ agg_count_distinct_include_null args =
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = str ++ " LIKE CONCAT(" ++ sub ++ ", '%')"
+    res = code "starts_with(" ++ str ++ "," ++ sub ++ ")"
     res.paren
 
 ## PRIVATE
@@ -252,7 +266,7 @@ ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
-    code "((" ++ arg ++ ') COLLATE "C.utf8")'
+    code "((" ++ arg ++ ') COLLATE "ucs_basic")'
 
 ## PRIVATE
 make_contains_expr expr substring =
@@ -296,3 +310,7 @@ bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "/" x-> y->
     code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
+
+## PRIVATE
+mod_op = Base_Generator.lift_binary_op "mod" x-> y->
+    x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y

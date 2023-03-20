@@ -19,7 +19,6 @@ use crate::display::symbol::SymbolId;
 use enso_data_structures::dependency_graph::DependencyGraph;
 use enso_shapely::shared;
 use smallvec::alloc::collections::BTreeSet;
-use std::any::TypeId;
 
 
 
@@ -1143,8 +1142,8 @@ shared! { ShapeSystemRegistry
 /// the same type on the same layer. Read the docs of [`ShapeProxy`] to learn more.
 #[derive(Default,Debug)]
 pub struct ShapeSystemRegistryData {
-    shape_system_map : HashMap<(TypeId, ShapeSystemFlavor),ShapeSystemRegistryEntry>,
-    shape_system_flavors: HashMap<TypeId, Vec<ShapeSystemFlavor>>,
+    shape_system_map : HashMap<(ShapeSystemId, ShapeSystemFlavor),ShapeSystemRegistryEntry>,
+    shape_system_flavors: HashMap<ShapeSystemId, Vec<ShapeSystemFlavor>>,
 }
 
 impl {
@@ -1184,7 +1183,7 @@ impl {
 
         // Intentional short-circuit - avoid computing `total_system_instances` when we know there
         // are still more instances in the currently processed entry.
-        let no_more_instances = entry_is_empty && self.total_system_instances(*system_id) == 0;
+        let no_more_instances = entry_is_empty && self.total_system_instances(system_id) == 0;
 
         (no_more_instances, system_id, PhantomData)
     }
@@ -1198,7 +1197,7 @@ impl ShapeSystemRegistryData {
     where
         S: Shape,
     {
-        let id = TypeId::of::<S>();
+        let id = ShapeSystemId::of::<S>();
         self.shape_system_map.get_mut(&(id, flavor)).and_then(|t| {
             let shape_system = t.shape_system.downcast_mut::<ShapeSystem<S>>();
             let instance_count = &mut t.instance_count;
@@ -1217,7 +1216,7 @@ impl ShapeSystemRegistryData {
     where
         S: Shape,
     {
-        let id = TypeId::of::<S>();
+        let id = ShapeSystemId::of::<S>();
         let flavor = S::flavor(data);
         let system = ShapeSystem::<S>::new(data);
         let any = Box::new(system);
@@ -1229,7 +1228,7 @@ impl ShapeSystemRegistryData {
     }
 
     /// Get total number of shape instances from shape systems of given type and all flavors.
-    fn total_system_instances(&self, system_id: TypeId) -> usize {
+    fn total_system_instances(&self, system_id: ShapeSystemId) -> usize {
         let Some(flavors) = self.shape_system_flavors.get(&system_id) else { return 0 };
         flavors.iter().map(|f| self.shape_system_map[&(system_id, *f)].instance_count).sum()
     }

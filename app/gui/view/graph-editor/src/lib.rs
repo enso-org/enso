@@ -93,7 +93,13 @@ pub mod prelude {
 // =================
 
 const SNAP_DISTANCE_THRESHOLD: f32 = 10.0;
+/// Time between key down and key up event to consider it a press and hold action as opposed to a
+/// simple key press.
 const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS: f32 = 300.0;
+/// Number of frames we expect to pass during the `VIZ_PREVIEW_MODE_TOGGLE_TIME_MS` interval.
+/// Assumes 60fps. We use this value to check against dropped frames during the interval.
+const VIZ_PREVIEW_MODE_TOGGLE_FRAMES: i32 =
+    (VIZ_PREVIEW_MODE_TOGGLE_TIME_MS / 1000.0 * 60.0) as i32;
 const MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH: f32 = 52.0;
 const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
 /// Horizontal and vertical offset between traffic lights and window border
@@ -103,8 +109,10 @@ const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
 const MAX_ZOOM: f32 = 1.0;
 
 fn traffic_lights_gap_width() -> f32 {
-    let is_macos = ARGS.platform.map(|p| p.is_macos()) == Some(true);
-    if is_macos && !ARGS.frame {
+    let platform_str = ARGS.groups.startup.options.platform.value.as_str();
+    let platform = web::platform::Platform::try_from(platform_str);
+    let is_macos = platform.map(|p| p.is_macos()).ok() == Some(true);
+    if is_macos && !ARGS.groups.window.options.frame.value {
         MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
     } else {
         0.0
@@ -536,11 +544,16 @@ ensogl::define_endpoints_2! {
 
         // === Visualization ===
 
-        /// Simulates a visualization open press event. In case the event will be shortly followed by `release_visualization_visibility`, the visualization will be shown permanently. In other case, it will be disabled as soon as the `release_visualization_visibility` is emitted.
+        /// Simulates a visualization open press event. In case the event will be shortly followed
+        /// by `release_visualization_visibility`, the visualization will be shown permanently. In
+        /// other case, it will be disabled as soon as the `release_visualization_visibility` is
+        /// emitted.
         press_visualization_visibility(),
-        /// Simulates a visualization open double press event. This event toggles the visualization fullscreen mode.
+        /// Simulates a visualization open double press event. This event toggles the visualization
+        /// fullscreen mode.
         double_press_visualization_visibility(),
-        /// Simulates a visualization open release event. See `press_visualization_visibility` to learn more.
+        /// Simulates a visualization open release event. See `press_visualization_visibility` to
+        /// learn more.
         release_visualization_visibility(),
         /// Cycle the visualization for the selected nodes.
         cycle_visualization_for_selected_node(),
@@ -570,7 +583,8 @@ ensogl::define_endpoints_2! {
         debug_push_breadcrumb(),
         /// Pop a breadcrumb without notifying the controller.
         debug_pop_breadcrumb(),
-        /// Set a test visualization data for the selected nodes. Useful for testing visualizations during their development.
+        /// Set a test visualization data for the selected nodes. Useful for testing visualizations
+        /// during their development.
         debug_set_test_visualization_data_for_selected_node(),
 
 
@@ -602,7 +616,7 @@ ensogl::define_endpoints_2! {
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
-        set_method_pointer           ((ast::Id,Option<MethodPointer>)),
+        update_node_widgets          ((NodeId,WidgetUpdates)),
         cycle_visualization          (NodeId),
         set_visualization            ((NodeId,Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
@@ -622,6 +636,7 @@ ensogl::define_endpoints_2! {
 
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
+
     }
 
     Output {
@@ -634,6 +649,7 @@ ensogl::define_endpoints_2! {
         has_detached_edge                      (bool),
         on_edge_add                            (EdgeId),
         on_edge_drop                           (EdgeId),
+        on_edge_drop_overlapping               (EdgeId),
         on_edge_drop_to_create_node            (EdgeId),
         on_edge_source_set                     ((EdgeId,EdgeEndpoint)),
         on_edge_source_set_with_target_not_set ((EdgeId,EdgeEndpoint)),
@@ -700,6 +716,9 @@ ensogl::define_endpoints_2! {
         is_fs_visualization_displayed           (bool),
         visualization_preprocessor_changed      ((NodeId,PreprocessorConfiguration)),
         visualization_registry_reload_requested (),
+
+        widgets_requested                       (NodeId, ast::Id, ast::Id),
+        request_import                          (ImString),
 
         on_visualization_select     (Switch<NodeId>),
         some_visualisation_selected (bool),
@@ -968,9 +987,9 @@ pub struct LocalCall {
 
 
 
-// ==================
+// ====================
 // === EdgeEndpoint ===
-// ==================
+// ====================
 
 #[derive(Clone, CloneRef, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
@@ -1043,6 +1062,30 @@ impl Grid {
             }
         }
     }
+}
+
+
+
+// =====================
+// === WidgetUpdates ===
+// =====================
+
+/// A structure describing a widget update batch for arguments of single function call.
+#[derive(Debug, Default, Clone)]
+pub struct WidgetUpdates {
+    /// The function call expression ID.
+    pub call_id: ast::Id,
+    /// Update of a widget for each function argument.
+    pub updates: Rc<Vec<WidgetUpdate>>,
+}
+
+/// A structure describing a widget update for specific argument of a function call.
+#[derive(Debug)]
+pub struct WidgetUpdate {
+    /// The function argument name that this widget is for.
+    pub argument_name: String,
+    /// Widget metadata queried from the language server.
+    pub meta:          Option<node::input::widget::Metadata>,
 }
 
 
@@ -1550,6 +1593,13 @@ impl GraphEditorModelWithNetwork {
                 model.frp.private.output.node_expression_span_set.emit(args)
             });
 
+            eval node.requested_widgets([model]((call_id, target_id)) {
+                let args = (node_id, *call_id, *target_id);
+                model.frp.private.output.widgets_requested.emit(args)
+            });
+
+            model.frp.private.output.request_import <+ node.request_import;
+
 
             // === Actions ===
 
@@ -1573,11 +1623,15 @@ impl GraphEditorModelWithNetwork {
 
             selected    <- vis_is_selected.on_true();
             deselected  <- vis_is_selected.on_false();
-            output.visualization_preprocessor_changed <+
-                node_model.visualization.frp.preprocessor.map(move |preprocessor|
-                    (node_id,preprocessor.clone()));
             output.on_visualization_select <+ selected.constant(Switch::On(node_id));
             output.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
+
+            preprocessor_changed <-
+                node_model.visualization.frp.preprocessor.map(move |preprocessor| {
+                    (node_id,preprocessor.clone())
+                });
+            output.visualization_preprocessor_changed <+ preprocessor_changed.gate(&node.visualization_visible);
+
 
             metadata <- any(...);
             metadata <+ node_model.visualization.frp.preprocessor.map(visualization::Metadata::new);
@@ -1702,7 +1756,8 @@ impl GraphEditorModel {
         let profiling_statuses = profiling::Statuses::new();
         let profiling_button = component::profiling::Button::new(&app);
         let add_node_button = Rc::new(component::add_node_button::AddNodeButton::new(&app));
-        let drop_manager = ensogl_drop_manager::Manager::new(&scene.dom.root);
+        let drop_manager =
+            ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
         let selection_controller =
             selection::Controller::new(&frp, &app.cursor, &scene.mouse.frp, &touch_state, &nodes);
@@ -2086,6 +2141,7 @@ impl GraphEditorModel {
         }
     }
 
+    #[profile(Debug)]
     fn set_node_expression_usage_type(
         &self,
         node_id: impl Into<NodeId>,
@@ -2106,6 +2162,12 @@ impl GraphEditorModel {
             if let Some(crumbs) = crumbs {
                 node.view.set_expression_usage_type.emit((crumbs, maybe_type));
             }
+        }
+    }
+
+    fn update_node_widgets(&self, node_id: NodeId, updates: &WidgetUpdates) {
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.view.update_widgets.emit(updates.clone());
         }
     }
 
@@ -2897,8 +2959,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         on_new_edge_source <- new_edge_source.constant(());
         on_new_edge_target <- new_edge_target.constant(());
 
-        overlapping_edges       <= out.on_edge_target_set._1().map(f!((t) model.overlapping_edges(t)));
-        out.on_edge_drop <+ overlapping_edges;
+        overlapping_edges            <= out.on_edge_target_set._1().map(f!((t) model.overlapping_edges(t)));
+        out.on_edge_drop_overlapping <+ overlapping_edges;
 
         drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
         drop_edges     <- any (drop_on_bg_up,clicked_to_drop_edge);
@@ -2972,7 +3034,12 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
         node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
         edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
-        node_to_edit          <- touch.nodes.down.gate(&edit_mode);
+        clicked_node <- touch.nodes.down.gate(&edit_mode);
+        clicked_and_edited_nodes <- clicked_node.map2(&out.node_being_edited, |n, c| (*n, *c));
+        let not_being_edited_already = |(clicked, edited): &(NodeId, Option<NodeId>)| {
+            if let Some(edited) = edited { edited != clicked } else { true }
+        };
+        node_to_edit          <- clicked_and_edited_nodes.filter(not_being_edited_already)._0();
         edit_node             <- any(node_to_edit, node_to_edit_after_adding, inputs.edit_node);
         stop_edit_on_bg_click <- clicked_to_abort_edit.gate(&node_in_edit_mode);
         stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
@@ -3240,7 +3307,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
          nodes.get_cloned_ref(node_id).map(|node| node.all_edges())
     )).unwrap();
     eval edges_to_refresh ((edge) model.refresh_edge_position(*edge));
-
+    eval inputs.update_node_widgets(((node, updates)) model.update_node_widgets(*node, updates));
     }
 
 
@@ -3397,10 +3464,29 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     viz_was_pressed      <- viz_pressed.previous();
     viz_press            <- viz_press_ev.gate_not(&viz_was_pressed);
     viz_release          <- viz_release_ev.gate(&viz_was_pressed);
-    viz_press_time       <- viz_press   . map(|_| web::window.performance_or_panic().now() as f32);
+    viz_press_time       <- viz_press   . map(|_| {
+            let time = web::window.performance_or_panic().now() as f32;
+            let frame_counter = Rc::new(web::FrameCounter::start_counting());
+            (time, Some(frame_counter))
+        });
     viz_release_time     <- viz_release . map(|_| web::window.performance_or_panic().now() as f32);
-    viz_press_time_diff  <- viz_release_time.map2(&viz_press_time,|t1,t0| t1-t0);
-    viz_preview_mode     <- viz_press_time_diff.map(|t| *t > VIZ_PREVIEW_MODE_TOGGLE_TIME_MS);
+    viz_preview_mode  <- viz_release_time.map2(&viz_press_time,|t1,(t0,counter)| {
+        let diff = t1-t0;
+        // We check the time between key down and key up. If the time is less than the threshold
+        // then it was a key press and we do not want to enter preview mode. If it is longer then
+        // it was a key hold and we want to enter preview mode.
+        let long_enough = diff > VIZ_PREVIEW_MODE_TOGGLE_TIME_MS;
+        // We also check the number of passed frames, since the time measure can be misleading, if
+        // there were dropped frames. The visualisation might have just appeared while more than
+        // the threshold time has passed.
+        let enough_frames = if let Some(counter) = counter {
+            let frames = counter.frames_since_start();
+            frames > VIZ_PREVIEW_MODE_TOGGLE_FRAMES
+        } else {
+            false
+        };
+        long_enough && enough_frames
+    });
     viz_preview_mode_end <- viz_release.gate(&viz_preview_mode).gate_not(&out.is_fs_visualization_displayed);
     viz_tgt_nodes        <- viz_press.gate_not(&out.is_fs_visualization_displayed).map(f_!(model.nodes.all_selected()));
     viz_tgt_nodes_off    <- viz_tgt_nodes.map(f!([model](node_ids) {
@@ -3541,7 +3627,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     // === Drop ===
 
-    eval out.on_edge_drop    ((id) model.remove_edge(id));
+    eval out.on_edge_drop_overlapping ((id) model.remove_edge(id));
+    eval out.on_edge_drop             ((id) model.remove_edge(id));
 
 
 
@@ -3633,6 +3720,16 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
+    // ========================
+    // === Focus management ===
+    // ========================
+
+    frp::extend! { network
+        // Remove focus from any element when background is clicked.
+        eval_ touch.background.down (model.display_object.blur_tree());
+    }
+
+
     // ===============
     // === Tooltip ===
     // ===============
@@ -3656,12 +3753,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let default_gap = model.styles_frp.get_number_or(gap_path, 0.0);
     let files_received = model.drop_manager.files_received().clone_ref();
     frp::extend! { network
-        files_with_positions <- files_received.map3(&cursor_pos_in_scene,&default_gap,
-            |files,cursor_pos,default_gap| {
+        files_with_positions <- files_received.map2(&default_gap,
+            move |drop_event_data,default_gap| {
+                let files = &drop_event_data.files;
+                let drop_posititon = drop_event_data.position;
                 let single_offset = default_gap + node::HEIGHT;
                 files.iter().enumerate().map(|(index,file)| {
                     let offset = Vector2(0.0, single_offset * index as f32);
-                    (file.clone_ref(),cursor_pos+offset)
+                    (file.clone_ref(), drop_posititon + offset)
                 }).collect_vec()
             }
         );

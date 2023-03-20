@@ -19,6 +19,8 @@ use enso_prelude::*;
 
 use enso_shapely::before_main;
 use ensogl_core::prelude::ImString;
+use ensogl_text::font::DEFAULT_FONT;
+use ensogl_text::font::DEFAULT_FONT_MONO;
 
 
 
@@ -215,7 +217,7 @@ define_themes! { [light:0, dark:1]
                         dimmed = Rgb::from_base_255(160.0, 163.0, 165.0), Rgb::from_base_255(160.0, 163.0, 165.0);
                         padding = 16.0, 16.0;
                         text {
-                            font = "mplus1p", "mplus1p";
+                            font = DEFAULT_FONT, DEFAULT_FONT;
                             y_offset = 8.0, 8.0;
                             y_offset_header = 5.0, 5.0;
                             x_offset_header = 0.0, 0.0;
@@ -316,7 +318,7 @@ define_themes! { [light:0, dark:1]
                         entry {
                             margin = 1.0, 1.0;
                             hover_color = Rgba(0.0, 0.0, 0.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
-                            font = "mplus1p", "mplus1p";
+                            font = DEFAULT_FONT, DEFAULT_FONT;
                             text_y_offset = 6.0, 6.0;
                             text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
@@ -368,30 +370,32 @@ define_themes! { [light:0, dark:1]
                 }
             }
         }
-        file_browser {
-            width  = 0.0,   0.0; // Should be updated when file browser will be implemented.
-            height = 421.0, 421.0;
-        }
-        open_dialog {
-            // Should be updated when file browser will be implemented.
-            gap_between_panels = 0.0, 0.0;
-        }
         project_list {
             width      = 202.0 , 202.0;
-            padding    = 16.0, 16.0;
-            height     = 421.0, 421.0;
+            height     = 428.0, 428.0;
             background = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
-            text       = widget::list_view::text, widget::list_view::text;
-            text {
-                size    = 12.0, 12.0;
-                padding = 6.0 , 6.0 ;
-            }
+            shadow_extent = 10.0, 10.0;
+            corners_radius = 16.0, 16.0;
+            paddings = 4.0, 4.0;
             bar {
-                height      = 45.0, 45.0;
+                height = 45.0, 45.0;
                 border_size = 1.0, 1.0;
                 border_color = Rgba(0.808,0.808,0.808,1.0)    , Rgba(0.808,0.808,0.808,1.0);
                 label {
-                    size  = 12.0, 12.0;
+                    padding = 16.0, 16.0;
+                    size = 12.0, 12.0;
+                    color = Rgba(0.439,0.439,0.439,1.0), Rgba(0.439,0.439,0.439,1.0);
+                }
+            }
+            entry {
+                height = 25.0, 25.0;
+                corners_radius = application::project_list::corners_radius, application::project_list::corners_radius;
+                selection_color = Rgba::transparent(), Rgba::transparent();
+                hover_color = Rgba(0.906,0.914,0.922,1.0), Rgba(0.906,0.914,0.922,1.0);
+                text {
+                    padding_left = 10.0, 10.0;
+                    padding_bottom = 7.0, 7.0;
+                    size = 12.0, 12.0;
                     color = Rgba(0.439,0.439,0.439,1.0), Rgba(0.439,0.439,0.439,1.0);
                 }
             }
@@ -541,8 +545,9 @@ define_themes! { [light:0, dark:1]
                 edited    = Lcha::yellow(0.9,1.0), Lcha::yellow(0.9,1.0);
             }
             error {
-                dataflow     = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
-                panic        = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                dataflow     = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                panic        = Rgba(0.7,0.235,0.08,1.0), Rgba(0.7,0.235,0.08,1.0);
+                warning      = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
                 width        = 4.0  , 4.0;
                 repeat_x     = 20.0 , 20.0;
                 repeat_y     = 20.0 , 20.0;
@@ -564,8 +569,9 @@ define_themes! { [light:0, dark:1]
             text           = Lcha(0.0,0.0,0.0,0.7)   , Lcha(1.0,0.0,0.0,0.7);
             text.selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             error {
-                dataflow.text = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
-                panic.text    = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                dataflow.text = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                panic.text = Rgba(0.7,0.235,0.08,1.0), Rgba(0.7,0.235,0.08,1.0);
+                warning.text = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
             }
             action_bar {
                 // Original RGB values (for reference after fixing color-conversion issues)
@@ -655,7 +661,7 @@ define_themes! { [light:0, dark:1]
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-                font      = "default-mono", "default-mono";
+                font      = DEFAULT_FONT_MONO, DEFAULT_FONT_MONO;
                 size      = 12.0, 12.0;
                 highlight_bold = 0.02, 0.02;
             }
@@ -682,7 +688,7 @@ define_themes! { [light:0, dark:1]
             text {
                 offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
-                font   = "default", "default";
+                font   = DEFAULT_FONT, DEFAULT_FONT;
             }
             padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;

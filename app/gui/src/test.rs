@@ -134,7 +134,7 @@ pub mod mock {
         pub module_path:  model::module::Path,
         pub suggestions:  HashMap<suggestion_database::entry::Id, suggestion_database::Entry>,
         pub context_id:   model::execution_context::Id,
-        pub parser:       parser_scala::Parser,
+        pub parser:       parser::Parser,
         code:             String,
         id_map:           ast::IdMap,
         metadata:         crate::model::module::Metadata,
@@ -171,7 +171,7 @@ pub mod mock {
                 metadata: default(),
                 context_id: CONTEXT_ID,
                 root_definition: definition_name(),
-                parser: parser_scala::Parser::new_or_panic(),
+                parser: parser::Parser::new(),
             }
         }
 
@@ -180,7 +180,7 @@ pub mod mock {
         }
 
         pub fn module(&self, urm: Rc<undo_redo::Manager>) -> crate::model::Module {
-            let ast = self.parser.parse_module(self.code.clone(), self.id_map.clone()).unwrap();
+            let ast = self.parser.parse_module(&self.code, self.id_map.clone()).unwrap();
             let path = self.module_path.clone();
             let metadata = self.metadata.clone();
             let repository = urm.repository.clone_ref();
@@ -432,8 +432,11 @@ pub fn assert_call_info(
     entry: &model::suggestion_database::Entry,
 ) {
     assert_eq!(info.parameters.len(), entry.arguments.len());
+    let parser = parser::Parser::new();
+    let db = model::suggestion_database::SuggestionDatabase::new_empty();
     for (encountered, expected) in info.parameters.iter().zip(entry.arguments.iter()) {
-        let expected_info = model::suggestion_database::entry::to_span_tree_param(expected);
+        let expected_info =
+            model::suggestion_database::entry::to_span_tree_param(expected, &db, &parser);
         assert_eq!(encountered, &expected_info);
     }
 }

@@ -1,15 +1,15 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Incomparable_Values
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
-from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
+from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
 import Standard.Table.Main as Table_Module
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Data.Storage import Storage
 import Standard.Table.Data.Value_Type.Value_Type
-from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Grouping, Invalid_Value_Type
+from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Equality, Invalid_Value_Type
 
 import Standard.Visualization
 
@@ -20,17 +20,26 @@ import Standard.Test.Extensions
 
 from project.Util import all
 
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import org.enso.table.data.table.Table as Java_Table
+
 type My
     Data x y
 
-    == self that = case that of
-        My.Data x1 y1 -> (self.x + self.y) == (x1 + y1)
-        _ -> False
-
-    compare_to self that = self.x+self.y . compare_to that.x+that.y
-
     frobnicate self = case self of
         My.Data x1 y1 -> My.Data y1 x1
+
+type My_Comparator
+    compare left right =
+        left_sum = left.x + left.y
+        right_sum = right.x + right.y
+        (Comparable.from left_sum) . compare left_sum right_sum
+
+    hash my =
+        sum = my.x + my.y
+        Comparable.from sum . hash sum
+
+Comparable.from (_:My) = My_Comparator
 
 spec =
     make_varied_type_table =
@@ -75,14 +84,19 @@ spec =
             r2.at "bar" . to_vector . should_equal []
 
         Test.specify "should handle error scenarios gracefully" <|
-            Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument.Error
-            Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument.Error
-            Table.new [] . should_fail_with Illegal_Argument.Error
+            Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
+            Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
+            Table.new [] . should_fail_with Illegal_Argument
 
-            Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument.Error
-            Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with Index_Out_Of_Bounds.Error
-            Table.from_rows [] [] . should_fail_with Illegal_Argument.Error
-            Table.from_rows [] [[]] . should_fail_with Illegal_Argument.Error
+            Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument
+            Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with Index_Out_Of_Bounds
+            Table.from_rows [] [] . should_fail_with Illegal_Argument
+            Table.from_rows [] [[]] . should_fail_with Illegal_Argument
+
+            Table.new [["X", [1,2,3]], ["", [4,5,6]]] . should_fail_with Illegal_Argument
+
+        Test.specify "should be internally guarded against creating a table without columns" <|
+            Test.expect_panic_with (Java_Table.new []) IllegalArgumentException
 
         Test.specify "should correctly infer storage types" <|
             varied_type_table.at "strs" . storage_type . should_equal Storage.Text
@@ -99,7 +113,7 @@ spec =
 
         pending_python_missing = if Polyglot.is_language_installed "python" . not then
             "Can't run Python tests, Python is not installed."
-        Test.specify "should also work with polyglot values coming from Python" pending=pending_python_missing <|
+        Test.specify "should work with polyglot values coming from Python" pending=pending_python_missing <|
             enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
             py_dates = ["py_dates", [py_make_date 2022 8 27, py_make_date 1999 1 1]]
             py_objects = ["py_objects", [py_make_object "a" "b", py_make_object "foo" "bar"]]
@@ -109,7 +123,7 @@ spec =
 
             (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
 
-        Test.specify "should also work with polyglot values coming from JS" <|
+        Test.specify "should work with polyglot values coming from JS" <|
             enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
             js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
             js_objects = ["js_objects", [js_make_object "a" "b", js_make_object "foo" "bar"]]
@@ -124,6 +138,13 @@ spec =
             (js_converted_dates == table.at "enso_dates").to_vector . should_equal [True, True]
             (enso_date_times == table.at "js_dates").to_vector . should_equal [True, True]
 
+        Test.specify "should work with a Text value split into lines" <|
+            ## This tests verifies an issue with passing through a `List<String>` to the table.
+            words = 'The\nquick\nbrown\nfox\njumps\nover\nthe\nlazy\ndog'.lines
+            table = Table.new [["words", words]]
+            table.at "words" . storage_type . should_equal Storage.Text
+            table.at "words" . to_vector . should_equal words
+
         Test.specify "should handle Unicode normalization when accessing table columns" <|
             col1 = ['s\u0301ciana', [1, 2, 3]]
             col2 = ['café', [4, 5, 6]]
@@ -132,7 +153,7 @@ spec =
             t.at 's\u0301ciana' . to_vector . should_equal [1, 2, 3]
             t.at 'cafe\u0301' . to_vector . should_equal [4, 5, 6]
             t.at 'café' . to_vector . should_equal [4, 5, 6]
-            t.at 'sciana' . should_fail_with No_Such_Column.Error
+            t.at 'sciana' . should_fail_with No_Such_Column
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
@@ -270,49 +291,49 @@ spec =
     Test.group "Filling Missing Values" <|
         Test.specify "should coerce non-coercible types to Object" <|
             strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
-            strs_filled = strs.fill_missing False
+            strs_filled = strs.fill_nothing False
             strs_filled.to_vector . should_equal ["a", False, "b", False]
             strs_filled.storage_type . should_equal Storage.Any
 
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_missing "X"
+            ints_filled = ints.fill_nothing "X"
             ints_filled.to_vector . should_equal [1, "X", 2, "X"]
             ints_filled.storage_type . should_equal Storage.Any
 
             bools = Column.from_vector 'x' [True, False, Nothing]
-            bools_filled = bools.fill_missing "X"
+            bools_filled = bools.fill_nothing "X"
             bools_filled.to_vector . should_equal [True, False, "X"]
             bools_filled.storage_type . should_equal Storage.Any
 
         Test.specify "should coerce long and double types to double" <|
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_missing 0.5
+            ints_filled = ints.fill_nothing 0.5
             ints_filled.to_vector . should_equal [1.0, 0.5, 2.0, 0.5]
             ints_filled.storage_type . should_equal Storage.Decimal
 
             decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
-            decimals_filled = decimals.fill_missing 42
+            decimals_filled = decimals.fill_nothing 42
             decimals_filled.to_vector . should_equal [0.5, 42.0, 42.0, 0.25]
             decimals_filled.storage_type . should_equal Storage.Decimal
 
         Test.specify "should keep String, Boolean, Long and Double type" <|
             strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
-            strs_filled = strs.fill_missing "X"
+            strs_filled = strs.fill_nothing "X"
             strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
             strs_filled.storage_type . should_equal Storage.Text
 
             bools = Column.from_vector 'x' [True, False, Nothing]
-            bools_filled = bools.fill_missing False
+            bools_filled = bools.fill_nothing False
             bools_filled.to_vector . should_equal [True, False, False]
             bools_filled.storage_type . should_equal Storage.Boolean
 
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_missing 42
+            ints_filled = ints.fill_nothing 42
             ints_filled.to_vector . should_equal [1, 42, 2, 42]
             ints_filled.storage_type . should_equal Storage.Integer
 
             decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
-            decimals_filled = decimals.fill_missing 1.0
+            decimals_filled = decimals.fill_nothing 1.0
             decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
             decimals_filled.storage_type . should_equal Storage.Decimal
 
@@ -367,7 +388,7 @@ spec =
             c_1 = ['id', [1, 2, 3, 4, 5, 6]]
             c_2 = ['val', [My.Data 1 2, My.Data 3 4, My.Data 2 1, My.Data 5 2, My.Data 7 0, My.Data 4 -1]]
             df = Table.new [c_1, c_2]
-            r = df.order_by (Sort_Column_Selector.By_Name ['val'])
+            r = df.order_by (['val'])
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
@@ -383,7 +404,7 @@ spec =
             mixed_dates = [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 2000]
 
             df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs], ['dates', dates], ['times', times], ['datetimes', datetimes], ['mixed_dates', mixed_dates]]
-            r = df.order_by (Sort_Column_Selector.By_Name ['ord'])
+            r = df.order_by (['ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
             df.at 'ints' . to_vector . should_equal ints
@@ -410,23 +431,23 @@ spec =
             df.at 'datetimes' . to_vector . should_equal datetimes
 
             # TODO move this test to Common_Table_Operations once we support dates there
-            r2 = df.order_by (Sort_Column_Selector.By_Name ['dates'])
+            r2 = df.order_by (['dates'])
             r2.at 'dates' . to_vector . should_equal [Date.new 1999, Date.new 1999 12 31, Date.new 2000 2 7, Date.new 2000 10 3, Date.new 2020]
             r2.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
 
-            r3 = df.order_by (Sort_Column_Selector.By_Name ['times'])
+            r3 = df.order_by (['times'])
             r3.at 'times' . to_vector . should_equal [Time_Of_Day.new 1 30 40, Time_Of_Day.new 10 20 30, Time_Of_Day.new 12, Time_Of_Day.new 12 30 0, Time_Of_Day.new 23 59 59]
             r3.at 'ints' . to_vector . should_equal [2, 5, 1, 4, 3]
 
-            r4 = df.order_by (Sort_Column_Selector.By_Name ['datetimes'])
+            r4 = df.order_by (['datetimes'])
             r4.at 'datetimes' . to_vector . should_equal [Date_Time.new 1999 1 1 1 30 40, Date_Time.new 1999 12 31 12 30 0, Date_Time.new 2000 10 3 10 20 30, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 2020 1 1 12]
             r4.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
 
-            r5 = df.order_by (Sort_Column_Selector.By_Name ['objs'])
+            r5 = df.order_by (['objs'])
             r5.at 'objs' . to_vector . should_equal [My.Data 2 3, My.Data 6 7, My.Data 8 9, My.Data 10 30, My.Data 100 2]
             r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
 
-            r6 = df.order_by (Sort_Column_Selector.By_Name ['mixed_dates'])
+            r6 = df.order_by (['mixed_dates'])
             r6 . should_fail_with Incomparable_Values
 
     Test.group "Sorting Columns" <|
@@ -449,7 +470,7 @@ spec =
 
         Test.specify 'should allow passing a custom comparator' <|
             c = Column.from_vector 'foo' [My.Data 1 2, My.Data 2 5, My.Data 3 4, My.Data 6 3, Nothing, My.Data 1 0]
-            cmp a b = (a.x-a.y).abs . compare_to (b.x-b.y).abs
+            cmp a b = Ordering.compare (a.x-a.y).abs (b.x-b.y).abs
             r = c.sort by=cmp
             r.to_vector.should_equal [My.Data 1 2, My.Data 3 4, My.Data 1 0, My.Data 2 5, My.Data 6 3, Nothing]
 
@@ -605,7 +626,7 @@ spec =
             texts1 = ["texts1", ["foo", "bar", "baz"]]
             texts2 = ["texts2", ["baz", "quux", "spam"]]
             table = Table.new [bools, texts1, texts2]
-            actual = table.replace_text (Column_Selector.By_Name ["texts1", "texts2"]) "a" "o"
+            actual = table.replace_text ["texts1", "texts2"] "a" "o"
             actual.at "bools"  . to_vector . should_equal [False, False, True]
             actual.at "texts1" . to_vector . should_equal ["foo", "bor", "boz"]
             actual.at "texts2" . to_vector . should_equal ["boz", "quux", "spom"]
@@ -663,7 +684,7 @@ spec =
             texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]
             ints = ["ints", [1, 2, 4, 8, 16, 32]]
             table = Table.new [texts, ints]
-            r1 = table.aggregate [Group_By "texts", Sum "ints"] . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "texts"])
+            r1 = table.aggregate [Group_By "texts", Sum "ints"] . order_by ([Sort_Column.Name "texts"])
             r1.at "texts" . to_vector . should_equal ['sciana', 'ściana', 'łąka']
             r1.at "Sum ints" . to_vector . should_equal [32, 11, 20]
 
@@ -681,7 +702,7 @@ spec =
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = Table.new [a, b, c]
 
-            r2 = t.distinct (Column_Selector.By_Name ["A", "B"]) on_problems=Report_Error
+            r2 = t.distinct ["A", "B"] on_problems=Report_Error
             r2.at "A" . to_vector . should_equal ["a", "a"]
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
@@ -690,7 +711,7 @@ spec =
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = Table.new [a, b]
-            r = t.distinct (Column_Selector.By_Name ["A"]) on_problems=Report_Error
+            r = t.distinct ["A"] on_problems=Report_Error
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
 
@@ -702,11 +723,11 @@ spec =
             x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
             y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
             t1 = Table.new [x, y]
-            d1 = t1.distinct (Column_Selector.By_Name ["X"]) on_problems=Report_Error
+            d1 = t1.distinct ["X"] on_problems=Report_Error
             d1.at "X" . to_vector . should_equal ['A', 'a', 'enso', 'śledź', 'Enso']
             d1.at "Y" . to_vector . should_equal [1, 2, 3, 4, 5]
 
-            d2 = t1.distinct (Column_Selector.By_Name ["X"]) case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
+            d2 = t1.distinct ["X"] case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
             d2.at "X" . to_vector . should_equal ['A', 'enso', 'śledź']
             d2.at "Y" . to_vector . should_equal [1, 3, 4]
 
@@ -718,19 +739,19 @@ spec =
             action1 = t1.distinct on_problems=_
             tester1 table =
                 table.at "X" . to_vector . should_equal [3.0, 1.0, 2.0]
-            problems1 = [Floating_Point_Grouping.Error "X"]
+            problems1 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action1 problems1 tester1
 
             t2 = Table.new [["X", [1.00000000000001, -0.3, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]
             action2 = t2.distinct on_problems=_
             tester2 table =
                 table.at "X" . to_vector . should_equal [1.00000000000001, -0.3, 1.00000000000002, 1.5]
-            problems2 = [Floating_Point_Grouping.Error "X"]
+            problems2 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|
             t = Table.new [["X", [My.Data 1 2, My.Data 3 4, My.Data 1 2]]]
-            t.distinct . should_fail_with Illegal_Argument.Error
+            t.distinct . should_fail_with Illegal_Argument
 
     Test.group "[In-Memory] Table.filter" <|
         Test.specify "by a custom predicate" <|
@@ -842,11 +863,11 @@ spec =
                             expected_vector = column_vector.filter (Filter_Condition.Is_In in_vector)
                             expected_neg_vector = negated_column_vector.filter (Filter_Condition.Is_In in_vector)
 
-                            t.filter "X" (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "X" . to_vector . should_equal expected_vector
-                            t.filter "X" (Filter_Condition.Is_In in_column) on_problems=Report_Error . at "X" . to_vector . should_equal expected_vector
-                            t2 = t.set "Y" (t.at "X" . not)
-                            t2.filter "Y" (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "Y" . to_vector . should_equal expected_neg_vector
-                            t2.filter "Y" (Filter_Condition.Is_In in_column) on_problems=Report_Error . at "Y" . to_vector . should_equal expected_neg_vector
+                            t.filter "X" (Filter_Condition.Is_In in_vector) . at "X" . to_vector . should_equal expected_vector
+                            t.filter "X" (Filter_Condition.Is_In in_column) . at "X" . to_vector . should_equal expected_vector
+                            t2 = t.set (t.at "X" . not) new_name="Y"
+                            t2.filter "Y" (Filter_Condition.Is_In in_vector) . at "Y" . to_vector . should_equal expected_neg_vector
+                            t2.filter "Y" (Filter_Condition.Is_In in_column) . at "Y" . to_vector . should_equal expected_neg_vector
 
         Test.specify "should perform `Is_In` efficiently for builtin types" <|
             first_day = Date_Time.new 2000 1 1
@@ -884,131 +905,16 @@ spec =
             check_timing "dates" <|
                 t.filter date_col (Filter_Condition.Is_In dates_vec) . at "X" . to_vector . should_equal expected_vector
 
-    # TODO move these to Common_Table_Operations
-    Test.group "[In-Memory] Table.transpose" <|
-        Test.specify "should transpose all columns by default" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose
-            t1.row_count . should_equal 12
-            t1.column_count . should_equal 2
-            t1.at "Name" . to_vector . should_equal ["Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another"]
-            t1.at "Value" . to_vector . should_equal ["x", 1, 10, Nothing, "y", 2, Nothing, "Hello", "z", 3, 20, "World"]
-
-        Test.specify "should allow custom names" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose name_field="Key" value_field="Object"
-            t1.row_count . should_equal 12
-            t1.column_count . should_equal 2
-            t1.at "Key" . to_vector . should_equal ["Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another"]
-            t1.at "Object" . to_vector . should_equal ["x", 1, 10, Nothing, "y", 2, Nothing, "Hello", "z", 3, 20, "World"]
-
-        Test.specify "should allow id fields" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose ["Key"]
-            t1.row_count . should_equal 9
-            t1.column_count . should_equal 3
-            t1.at "Key" . to_vector . should_equal ["x", "x", "x", "y", "y", "y", "z", "z", "z"]
-            t1.at "Name" . to_vector . should_equal ["Value", "Another", "Yet Another", "Value", "Another", "Yet Another", "Value", "Another", "Yet Another"]
-            t1.at "Value" . to_vector . should_equal [1, 10, Nothing, 2, Nothing, "Hello", 3, 20, "World"]
-
-        Test.specify "should allow single id field" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose "Key"
-            t1.row_count . should_equal 9
-            t1.column_count . should_equal 3
-            t1.at "Key" . to_vector . should_equal ["x", "x", "x", "y", "y", "y", "z", "z", "z"]
-            t1.at "Name" . to_vector . should_equal ["Value", "Another", "Yet Another", "Value", "Another", "Yet Another", "Value", "Another", "Yet Another"]
-            t1.at "Value" . to_vector . should_equal [1, 10, Nothing, 2, Nothing, "Hello", 3, 20, "World"]
-
-        Test.specify "should allow all id fields with warning or error" <|
-            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose t.column_names
-            t1.row_count . should_equal 3
-            t1.column_count . should_equal 6
-            t1.at "Key" . to_vector . should_equal ["x", "y", "z"]
-            t1.at "Value" . to_vector . should_equal [1, 2, 3]
-            t1.at "Name" . to_vector . should_equal [Nothing, Nothing, Nothing]
-            t1.at "Value_1" . to_vector . should_equal [Nothing, Nothing, Nothing]
-
-            # ToDo: Verify the warnings and error handling within transpose.
-
-    # TODO move these to Common_Table_Operations
-    Test.group "[In-Memory] Table.cross_tab" <|
-        Test.specify "should cross_tab counts by default using first column as names" <|
-            t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
-            t1.at "x" . to_vector . should_equal [4]
-            t1.at "y" . to_vector . should_equal [3]
-            t1.at "z" . to_vector . should_equal [2]
-
-        Test.specify "should allow a different aggregate" <|
-            t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab values=[Sum "Value"]
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
-            t1.at "x" . to_vector . should_equal [10]
-            t1.at "y" . to_vector . should_equal [18]
-            t1.at "z" . to_vector . should_equal [17]
-
-        Test.specify "should allow a custom expression for the aggregate" <|
-            t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab values=[Sum "[Value]*[Value]"]
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
-            t1.at "x" . to_vector . should_equal [30]
-            t1.at "y" . to_vector . should_equal [110]
-            t1.at "z" . to_vector . should_equal [145]
-
-        Test.specify "should allow a chosen column" <|
-            t = Table.new [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Species", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab [] "Species"
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 3
-            t1.at "x" . to_vector . should_equal [4]
-            t1.at "y" . to_vector . should_equal [3]
-            t1.at "z" . to_vector . should_equal [2]
-
-        Test.specify "should allow a grouping" <|
-            t = Table.new [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab ["Group"] "Key"
-            t1.row_count . should_equal 2
-            t1.column_count . should_equal 4
-            t1.at "Group" . to_vector . should_equal ["A", "B"]
-            t1.at "x" . to_vector . should_equal [2, 2]
-            t1.at "y" . to_vector . should_equal [2, 1]
-            t1.at "z" . to_vector . should_equal [1, 1]
-
-        Test.specify "should allow a grouping by text" <|
-            t = Table.new [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab "Group" "Key"
-            t1.row_count . should_equal 2
-            t1.column_count . should_equal 4
-            t1.at "Group" . to_vector . should_equal ["A", "B"]
-            t1.at "x" . to_vector . should_equal [2, 2]
-            t1.at "y" . to_vector . should_equal [2, 1]
-            t1.at "z" . to_vector . should_equal [1, 1]
-
-        Test.specify "should aggregate if name_field not found" <|
-            t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = t.cross_tab [] "Name"
-            t1.row_count . should_equal 1
-            t1.column_count . should_equal 1
-            t1.at "Count" . to_vector . should_equal [9]
-
-            # ToDo: Verify the warnings and error handling within cross_tab.
-
-    Test.group "[In-Memory] Table.join" <|
+    Test.group "[In-Memory-specific] Table.join" <|
         Test.specify "should correctly report unsupported cross-backend joins" <|
             t = Table.new [["X", [1, 2, 3]]]
-            t.join 42 . should_fail_with Type_Error.Error
+            t.join 42 . should_fail_with Type_Error
 
             db = Database.connect (SQLite In_Memory)
             db_table = db.upload_table "test" (Table.new [["Y", [4, 5, 6]]])
 
             r = t.join db_table
-            r.should_fail_with Illegal_Argument.Error
+            r.should_fail_with Illegal_Argument
             r.catch.message . contains "cross-backend" . should_be_true
 
 main = Test_Suite.run_main spec

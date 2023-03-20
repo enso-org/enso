@@ -71,7 +71,8 @@ enum RelativePosition {
 // === Background ===
 // ==================
 
-mod background {
+/// A background shape.
+pub mod background {
     use super::*;
 
     ensogl::shape! {

@@ -155,28 +155,6 @@ pub struct Subsequence {
     pub indices: Vec<usize>,
 }
 
-impl Subsequence {
-    /// Compare scores of subsequences.
-    ///
-    /// The `f32` does not implement total ordering, however that does not help when we want to
-    /// sort items by their matching score. Therefore this function assumes that all NaNs are the
-    /// lowest values.
-    pub fn compare_scores(&self, rhs: &Subsequence) -> std::cmp::Ordering {
-        if self.score.is_nan() && rhs.score.is_nan() {
-            std::cmp::Ordering::Equal
-        } else if self.score.is_nan() {
-            std::cmp::Ordering::Less
-        } else if rhs.score.is_nan() {
-            std::cmp::Ordering::Greater
-        } else if self.score < rhs.score {
-            std::cmp::Ordering::Less
-        } else if self.score > rhs.score {
-            std::cmp::Ordering::Greater
-        } else {
-            std::cmp::Ordering::Equal
-        }
-    }
-}
 
 /// Find best subsequence in `text` which case-insensitively equals to `pattern` in terms of given
 /// `metric`.
@@ -230,6 +208,7 @@ pub fn find_best_subsequence(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::metric;
 
     mod mock_metric {
         use super::*;
@@ -334,5 +313,29 @@ mod test {
         let pattern = "any";
         let text = "";
         assert_eq!(find_best_subsequence(text, pattern, mock_metric::Sum::default()), None);
+    }
+
+    #[test]
+    fn correct_scoring_of_trailing_pattern() {
+        let pattern = "list";
+        let target_text = "File.list";
+        let target_text_2 = "File.list_immediate_children";
+
+        let score1 =
+            find_best_subsequence(target_text, pattern, metric::SubsequentLettersBonus::default())
+                .unwrap()
+                .score;
+        let score2 = find_best_subsequence(
+            target_text_2,
+            pattern,
+            metric::SubsequentLettersBonus::default(),
+        )
+        .unwrap()
+        .score;
+
+        assert!(
+            score1 > score2,
+            "Score of trailing pattern should be higher than score of non-trailing pattern."
+        );
     }
 }

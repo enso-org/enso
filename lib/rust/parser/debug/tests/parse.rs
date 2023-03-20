@@ -748,8 +748,25 @@ fn minus_unary() {
     test!("x=-x", (Assignment (Ident x) "=" (UnaryOprApp "-" (Ident x))));
     test!("-x+x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "+") (Ident x)));
     test!("-x*x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "*") (Ident x)));
+}
+
+#[test]
+fn minus_unary_decimal() {
     test!("-2.1", (UnaryOprApp "-" (Number () "2" ("." "1"))));
-    //test!("-1.x", (OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident x)));
+}
+
+#[test]
+fn minus_unary_in_method_app() {
+    test!("-1.x", (OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident x)));
+    test!("-1.up_to 100",
+        (App (OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident up_to))
+             (Number () "100" ())));
+}
+
+#[test]
+fn method_app_in_minus_unary() {
+    test!("-Number.positive_infinity",
+        (UnaryOprApp "-" (OprApp (Ident Number) (Ok ".") (Ident positive_infinity))));
 }
 
 
@@ -840,6 +857,9 @@ fn export() {
 fn metadata_raw() {
     let code = [
         "x",
+        "",
+        "",
+        "",
         "#### METADATA ####",
         r#"[[{"index":{"value":7},"size":{"value":8}},"5bad897e-099b-4b00-9348-64092636746d"]]"#,
     ];
@@ -1194,6 +1214,7 @@ fn numbers() {
     test!("0o122137", (Number "0o" "122137" ()));
     test!("0xAE2F14", (Number "0x" "AE2F14" ()));
     test!("pi = 3.14", (Assignment (Ident pi) "=" (Number () "3" ("." "14"))));
+    test!("0.0.x", (OprApp (Number () "0" ("." "0")) (Ok ".") (Ident x)));
 }
 
 #[test]
@@ -1208,6 +1229,7 @@ fn new_delimited_numbers() {
 #[test]
 fn old_nondecimal_numbers() {
     test!("2_01101101", (Number "2_" "01101101" ()));
+    test!("-2_01101101", (UnaryOprApp "-" (Number "2_" "01101101" ())));
     test!("16_17ffffffffffffffa", (Number "16_" "17ffffffffffffffa" ()));
 }
 
@@ -1376,6 +1398,11 @@ fn illegal_foreign_body() {
     test_invalid("foreign 4 * 4");
     test_invalid("foreign foo = \"4\"");
     test_invalid("foreign js foo = 4");
+}
+
+#[test]
+fn unexpected_tokens_in_inner_macro_segment() {
+    test_invalid("from Foo import all What_Is_This_Doing_Here hiding Bar");
 }
 
 

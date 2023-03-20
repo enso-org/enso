@@ -6,12 +6,10 @@ import * as name from 'runner/name'
 import * as log from 'runner/log'
 import * as wasm from 'runner/wasm'
 import * as config from 'runner/config'
-import * as array from 'runner/data/array'
 import * as debug from 'runner/debug'
 
 import host from 'runner/host'
 import { logger } from 'runner/log'
-import { sortedWasmFunctions } from 'runner/wasm'
 
 // ===============
 // === Exports ===
@@ -22,7 +20,7 @@ export { config }
 export type { LogLevel } from 'runner/log/logger'
 
 export { logger, Logger, Consumer } from 'runner/log'
-export { Param } from 'runner/config'
+export { Option } from 'runner/config'
 
 // ==============================
 // === Files to be downloaded ===
@@ -34,12 +32,13 @@ class Files<T> {
     pkgJs: T
     /** Main WASM file that contains the compiled WASM code. */
     pkgWasm: T
-    /** Precompiled shaders files. */
-    shaders = new Shaders<T>()
+    /** Dynamic assets. */
+    assets: T[]
 
-    constructor(pkgJs: T, pkgWasm: T) {
+    constructor(pkgJs: T, pkgWasm: T, assets: T[]) {
         this.pkgJs = pkgJs
         this.pkgWasm = pkgWasm
+        this.assets = assets
     }
 
     async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Files<S>> {
@@ -54,74 +53,62 @@ class Files<T> {
 
     /** Converts the structure fields to an array. */
     toArray(): T[] {
-        return [this.pkgJs, this.pkgWasm, ...this.shaders.toArray()]
+        return [this.pkgJs, this.pkgWasm, ...this.assets]
     }
 
     /** Assign array values to the structure fields. The elements order should be the same as the
      * output of the `toArray` function. */
     fromArray<S>(array: S[]): Files<S> | null {
-        const [pkgJs, pkgWasm, ...shaders] = array
+        const [pkgJs, pkgWasm, ...assets] = array
         if (pkgJs != null && pkgWasm != null) {
-            const files = new Files<S>(pkgJs, pkgWasm)
-            files.shaders = this.shaders.fromArray(shaders) ?? new Shaders()
-            return files
+            return new Files<S>(pkgJs, pkgWasm, assets)
         } else {
             return null
         }
     }
 }
 
-/** Mapping between a shader identifier and precompiled shader sources. */
-class Shaders<T> {
-    map = new Map<string, Shader<T>>()
+class AssetDefinition {
+    dir: string
+    files: string[]
 
-    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Shaders<S>> {
-        const mapped = await Promise.all(this.toArray().map(f))
-        const out = this.fromArray(mapped)
-        if (out != null) {
-            return out
-        } else {
-            log.panic()
-        }
-    }
-
-    /** Converts the structure fields to an array. The shader names are not preserved. */
-    toArray(): T[] {
-        return Array.from(this.map.values()).flatMap(shader => shader.toArray())
-    }
-
-    /** Assign array values to the structure fields. The elements order should be the same as the
-     * output of the `toArray` function. The shader names will be preserved and assigned to the
-     * input values in order. */
-    fromArray<S>(arr: S[]): Shaders<S> | null {
-        const shaders = new Shaders<S>()
-        const keys = Array.from(this.map.keys())
-        const tuples = array.arrayIntoTuples(arr)
-        if (tuples == null) {
-            log.panic()
-        } else {
-            for (const [key, [vertex, fragment]] of array.zip(keys, tuples)) {
-                const shader = new Shader(vertex, fragment)
-                shaders.map.set(key, shader)
-            }
-            return shaders
-        }
+    constructor(dir: string, files: string[]) {
+        this.dir = dir
+        this.files = files
     }
 }
 
-/** Precompiled shader sources */
-class Shader<T> {
-    vertex: T
-    fragment: T
+class Assets<T> {
+    assets: Asset<T>[]
 
-    constructor(vertex: T, fragment: T) {
-        this.vertex = vertex
-        this.fragment = fragment
+    constructor(assets: Asset<T>[]) {
+        this.assets = assets
     }
 
-    /** Converts the structure fields to an array. The shader names are not preserved. */
-    toArray(): T[] {
-        return [this.vertex, this.fragment]
+    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Assets<S>> {
+        const assets = await Promise.all(this.assets.map(asset => asset.mapAndAwaitAll(f)))
+        return new Assets(assets)
+    }
+}
+
+class Asset<T> {
+    type: string
+    key: string
+    data: Map<string, T>
+
+    constructor(type: string, key: string, data: Map<string, T>) {
+        this.type = type
+        this.key = key
+        this.data = data
+    }
+
+    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Asset<S>> {
+        const mapValue: ([k, v]: [string, T]) => Promise<[string, S]> = async ([k, v]) => [
+            k,
+            await f(v),
+        ]
+        const data = new Map(await Promise.all(Array.from(this.data, mapValue)))
+        return new Asset(this.type, this.key, data)
     }
 }
 
@@ -193,26 +180,34 @@ class Scheduler {
 /** The main application class. */
 export class App {
     packageInfo: debug.PackageInfo
-    config: config.Config
+    config: config.Options
     wasm: any = null
     loader: wasm.Loader | null = null
-    shaders: Shaders<string> | null = null
+    assets: Assets<ArrayBuffer> | null = null
     wasmFunctions: string[] = []
     beforeMainEntryPoints = new Map<string, wasm.BeforeMainEntryPoint>()
     mainEntryPoints = new Map<string, wasm.EntryPoint>()
+    progressIndicator: wasm.ProgressIndicator | null = null
     initialized = false
 
     constructor(opts?: {
-        configExtension?: config.ExternalConfig
+        configOptions?: config.Options
         packageInfo?: Record<string, string>
-        config?: Record<string, any>
+        config?: config.StringConfig
     }) {
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
-        this.config = new config.Config(opts?.configExtension)
-        const unrecognizedParams = this.config.resolve([opts?.config, host.urlParams()])
-        if (unrecognizedParams) {
-            this.config.print()
-            this.showConfigOptions(unrecognizedParams)
+        this.config = config.options
+        const unrecognized = log.Task.runCollapsed('Resolving application configuration.', () => {
+            const inputConfig = opts?.configOptions
+            if (inputConfig != null) {
+                this.config = inputConfig
+            }
+            logger.log(this.config.prettyPrint())
+            return this.config.loadAll([opts?.config, host.urlParams()])
+        })
+        if (unrecognized.length > 0) {
+            logger.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
+            this.showConfigOptions(unrecognized)
         } else {
             this.initBrowser()
             this.initialized = true
@@ -221,21 +216,25 @@ export class App {
         host.exportGlobal({ ensoglApp: this })
     }
 
-    /** Registers the Rust function that extracts the shader definitions. */
-    registerGetShadersRustFn(fn: GetShadersFn) {
-        logger.log(`Registering 'getShadersFn'.`)
-        rustGetShadersFn = fn
+    /** Registers the Rust function that extracts asset source files. */
+    registerGetDynamicAssetsSourcesRustFn(fn: GetAssetsSourcesFn) {
+        logger.log(`Registering 'getAssetsSourcesFn'.`)
+        rustGetAssetsSourcesFn = fn
     }
 
-    /** Registers the Rust function that injects the shader definitions. */
-    registerSetShadersRustFn(fn: SetShadersFn) {
-        logger.log(`Registering 'setShadersFn'.`)
-        rustSetShadersFn = fn
+    /** Registers the Rust function that injects dynamic assets. */
+    registerSetDynamicAssetRustFn(fn: SetAssetFn) {
+        logger.log(`Registering 'setAssetFn'.`)
+        rustSetAssetFn = fn
     }
 
     /** Log the message on the remote server. */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     remoteLog(message: string, data: any) {
-        // TODO: Implement remote logging. This should be done after cloud integration.
+        // FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/359
+        // Implement remote logging. This should be done after cloud integration.
+        // Function interface is left intentionally for readability.
+        // Remove typescript error suppression after resolving fixme.
     }
 
     /** Initialize the browser. Set the background color, print user-facing warnings, etc. */
@@ -243,7 +242,7 @@ export class App {
         if (host.browser) {
             this.styleRoot()
             dom.disableContextMenu()
-            if (this.config.params.debug.value) {
+            if (this.config.options.debug.value) {
                 logger.log('Application is run in debug mode. Logs will not be hidden.')
             } else {
                 this.printScamWarning()
@@ -267,7 +266,6 @@ export class App {
         if (!this.initialized) {
             logger.log("App wasn't initialized properly. Skipping run.")
         } else {
-            this.config.print()
             await this.loadAndInitWasm()
             await this.runEntryPoints()
         }
@@ -289,15 +287,14 @@ export class App {
                  return module.exports`
             )()
             const out: unknown = await snippetsFn.init(wasm)
-            if (this.config.params.enableSpector.value) {
+            if (this.config.groups.debug.options.enableSpector.value) {
                 /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
                 /* eslint @typescript-eslint/no-unsafe-call: "off" */
                 if (host.browser) {
                     const spectorModule: unknown = snippetsFn.spector()
                     console.log(spectorModule)
-                    // @ts-ignore
+                    // @ts-expect-error
                     const spector = new spectorModule.Spector()
-                    // @ts-ignore
                     spector.displayUI()
                 }
             }
@@ -309,42 +306,59 @@ export class App {
     async loadWasm() {
         const loader = new wasm.Loader(this.config)
 
-        const shadersUrl = this.config.params.shadersUrl.value
-        const shadersNames = await log.Task.asyncRunCollapsed(
-            'Downloading shaders list.',
+        const assetsUrl = this.config.groups.loader.options.assetsUrl.value
+        const manifest = await log.Task.asyncRunCollapsed(
+            'Downloading assets manifest.',
             async () => {
-                const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
-                const shadersList = await shadersListResponse.text()
-                return shadersList.split('\n').filter(line => line.length > 0)
+                const manifestResponse = await fetch(`${assetsUrl}/manifest.json`)
+                const manifest: Record<
+                    string,
+                    Record<string, AssetDefinition>
+                > = await manifestResponse.json()
+                return manifest
             }
         )
-
-        const files = new Files(
-            this.config.params.pkgJsUrl.value,
-            this.config.params.pkgWasmUrl.value
-        )
-        for (const mangledName of shadersNames) {
-            const unmangledName = name.unmangle(mangledName)
-            const vertexUrl = `${shadersUrl}/${mangledName}.vertex.glsl`
-            const fragmentUrl = `${shadersUrl}/${mangledName}.fragment.glsl`
-            files.shaders.map.set(unmangledName, new Shader(vertexUrl, fragmentUrl))
+        const assetsUrls: string[] = []
+        const assetsInfo: Asset<number>[] = []
+        for (const [type, typeAssets] of Object.entries(manifest)) {
+            for (const [key, asset] of Object.entries(typeAssets)) {
+                const toUrl = (name: string) => {
+                    const index = assetsUrls.length
+                    assetsUrls.push(`${assetsUrl}/${type}/${asset.dir}/${name}`)
+                    return index
+                }
+                const urls = new Map(asset.files.map(name => [name, toUrl(name)]))
+                assetsInfo.push(new Asset<number>(type, key, urls))
+            }
         }
+        const files = new Files(
+            this.config.groups.loader.options.jsUrl.value,
+            this.config.groups.loader.options.wasmUrl.value,
+            assetsUrls
+        )
 
         const responses = await files.mapAndAwaitAll(url => fetch(url))
-        const responsesArray = responses.toArray()
-        loader.load(responsesArray)
+        loader.load(responses.toArray())
         const downloadSize = loader.showTotalBytes()
         const task = log.Task.startCollapsed(`Downloading application files (${downloadSize}).`)
-        void loader.done.then(() => task.end())
 
-        for (const file of files.toArray()) {
-            logger.log(`Downloading '${file}'.`)
-        }
+        void loader.done.then(() => task.end())
+        const assetsResponses = responses.assets
+        const assetsBlobs = await Promise.all(
+            assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer()))
+        )
+        const assets = assetsInfo.map(info => {
+            // The non-null assertion on the following line is safe since we are mapping `assetsBlobs` from
+            // success assets response.
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const data = new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))
+            return new Asset(info.type, info.key, data)
+        })
 
         const pkgJs = await responses.pkgJs.text()
         this.loader = loader
         this.wasm = await this.compileAndRunWasm(pkgJs, responses.pkgWasm)
-        this.shaders = await responses.shaders.mapAndAwaitAll(t => t.text())
+        this.assets = new Assets(assets)
     }
 
     /** Loads the WASM binary and its dependencies. After the files are fetched, the WASM module is
@@ -387,7 +401,7 @@ export class App {
     /** Check whether the time needed to run before main entry points is reasonable. Print a warning
      * message otherwise. */
     checkBeforeMainEntryPointsTime(time: number) {
-        if (time > this.config.params.maxBeforeMainEntryPointsTimeMs.value) {
+        if (time > this.config.groups.startup.options.maxBeforeMainTimeMs.value) {
             logger.error(
                 `Entry points took ${time} milliseconds to run. This is too long. ` +
                     'Before main entry points should be used for fast initialization only.'
@@ -395,13 +409,38 @@ export class App {
         }
     }
 
-    /** Run both before main entry points and main entry point. */
+    /** Show a spinner. The displayed progress is constant. */
+    showProgressIndicator(progress: number) {
+        if (this.progressIndicator) {
+            this.hideProgressIndicator()
+        }
+        this.progressIndicator = new wasm.ProgressIndicator(this.config)
+        this.progressIndicator.set(progress)
+    }
+
+    /** Hide the progress indicator. */
+    hideProgressIndicator() {
+        if (this.progressIndicator) {
+            // Setting the progress to 100% is necessary to allow animation to finish.
+            this.progressIndicator.set(1)
+            this.progressIndicator.destroy()
+            this.progressIndicator = null
+        }
+    }
+
+    /** Run both before-main entry points and main entry point. */
     async runEntryPoints() {
-        const entryPointName = this.config.params.entry.value
+        const entryPointName = this.config.groups.startup.options.entry.value
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             await this.runBeforeMainEntryPoints()
-            if (this.shaders) this.setShaders(this.shaders.map)
+            log.Task.runCollapsed(`Sending dynamic assets to Rust.`, () => {
+                if (this.assets) {
+                    for (const asset of this.assets.assets) {
+                        this.setAsset(asset.type, asset.key, asset.data)
+                    }
+                }
+            })
             if (this.loader) this.loader.destroy()
             logger.log(`Running the main entry point '${entryPoint.displayName()}'.`)
             const fn = this.wasm[entryPoint.name()]
@@ -433,25 +472,75 @@ export class App {
                     description = rustDocs
                 }
             }
-            const href = '?entry=' + entryPoint.strippedName
+            const href = '?startup.entry=' + entryPoint.strippedName
             return new debug.HelpScreenEntry(entryPoint.strippedName, [description], href)
         })
+        const name = 'Entry points'
+        const sections = [new debug.HelpScreenSection({ name, entries })]
 
         const headers = ['Name', 'Description']
-        new debug.HelpScreen().display({ title, headers, entries })
+        new debug.HelpScreen().display({ title, headers, sections })
     }
 
-    showConfigOptions(unknownConfigOptions?: string[]) {
+    showConfigOptions(unknownOptions?: string[]) {
         logger.log('Showing config options help screen.')
-        const msg = unknownConfigOptions
-            ? `Unknown config options: '${unknownConfigOptions.join(', ')}'. `
-            : ''
-        const title = msg + 'Available options:'
-        const entries = Array.from(Object.entries(this.config.params)).map(([key, option]) => {
-            return new debug.HelpScreenEntry(key, [option.description, String(option.default)])
+        let msg = ''
+        if (unknownOptions) {
+            const optionLabel = unknownOptions.length > 1 ? 'options' : 'option'
+            msg = `Unknown config ${optionLabel}: ${unknownOptions.map(t => `'${t}'`).join(', ')}. `
+        }
+        const sectionsData: [string, string, debug.HelpScreenEntry[]][] = Object.entries(
+            this.config.groups
+        ).map(([groupName, group]) => {
+            const groupOptions = group.optionsRecursive()
+            const entriesData: [string, string, string][] = groupOptions.map(opt => [
+                opt.qualifiedName(),
+                opt.description,
+                String(opt.default),
+            ])
+            entriesData.sort()
+            const entries = entriesData.map(([name, description, def]) => {
+                return new debug.HelpScreenEntry(name, [description, def])
+            })
+            const option = this.config.options[groupName]
+            if (option != null) {
+                const entry = new debug.HelpScreenEntry(groupName, [
+                    option.description,
+                    String(option.default),
+                ])
+                entries.unshift(entry)
+            }
+            const name =
+                groupName.charAt(0).toUpperCase() +
+                groupName.slice(1).replace(/([A-Z])/g, ' $1') +
+                ' Options'
+            const description = group.description
+            return [name, description, entries]
         })
+        sectionsData.sort()
+        const sections = sectionsData.map(
+            ([name, description, entries]) =>
+                new debug.HelpScreenSection({ name, description, entries })
+        )
+
+        const rootEntries = Object.entries(this.config.options).flatMap(([optionName, option]) => {
+            if (optionName in this.config.groups) {
+                return []
+            }
+            const entry = new debug.HelpScreenEntry(optionName, [
+                option.description,
+                String(option.default),
+            ])
+            return [entry]
+        })
+        if (rootEntries.length > 0) {
+            const name = 'Other Options'
+            sections.push(new debug.HelpScreenSection({ name, entries: rootEntries }))
+        }
+
+        const title = msg + 'Available options:'
         const headers = ['Name', 'Description', 'Default']
-        new debug.HelpScreen().display({ title, headers, entries })
+        new debug.HelpScreen().display({ title, headers, sections })
     }
 
     /** Print the warning for the end user that they should not copy any code to the console. */
@@ -481,30 +570,31 @@ export class App {
         console.log('%c' + msg2, msgCSS)
     }
 
-    /* Get not optimized shaders from WASM. */
-    getShaders(): Map<string, { vertex: string; fragment: string }> | null {
-        return log.Task.run('Getting shaders from Rust.', () => {
-            if (!rustGetShadersFn) {
-                logger.error('The Rust shader extraction function was not registered.')
+    getAssetSources(): Map<string, Map<string, Map<string, ArrayBuffer>>> | null {
+        return log.Task.run('Getting dynamic asset sources from Rust.', () => {
+            if (!rustGetAssetsSourcesFn) {
+                logger.error('The Rust dynamic asset sources function was not registered.')
                 return null
             } else {
-                const result = rustGetShadersFn()
-                logger.log(`Got ${result.size} shader definitions.`)
+                const resultUnmangled = rustGetAssetsSourcesFn()
+                const mangleKeys = <T>(map: Map<string, T>) =>
+                    new Map(Array.from(map, ([key, value]) => [name.mangle(key), value]))
+                const result = new Map(
+                    Array.from(resultUnmangled, ([key, value]) => [key, mangleKeys(value)])
+                )
+                logger.log(`Got ${result.size} asset definitions.`)
                 return result
             }
         })
     }
 
-    /* Set optimized shaders in WASM. */
-    setShaders(map: Map<string, { vertex: string; fragment: string }>) {
-        log.Task.runCollapsed(`Sending ${map.size} shaders to Rust.`, () => {
-            if (!rustSetShadersFn) {
-                logger.error('The Rust shader injection function was not registered.')
-            } else {
-                logger.log(`Setting ${map.size} shader definitions.`)
-                rustSetShadersFn(map)
-            }
-        })
+    setAsset(builder: string, keyMangled: string, data: Map<string, ArrayBuffer>) {
+        if (!rustSetAssetFn) {
+            logger.error('The Rust asset injection function was not registered.')
+        } else {
+            const key = name.unmangle(keyMangled)
+            rustSetAssetFn(builder, key, data)
+        }
     }
 }
 
@@ -512,22 +602,8 @@ export class App {
 // === App Initialization ===
 // ==========================
 
-type GetShadersFn = () => Map<string, { vertex: string; fragment: string }>
-type SetShadersFn = (map: Map<string, { vertex: string; fragment: string }>) => void
+type GetAssetsSourcesFn = () => Map<string, Map<string, Map<string, ArrayBuffer>>>
+type SetAssetFn = (builder: string, key: string, data: Map<string, ArrayBuffer>) => void
 
-let rustGetShadersFn: null | GetShadersFn = null
-let rustSetShadersFn: null | SetShadersFn = null
-
-/** Registers the Rust function that extracts the shader definitions. */
-function registerGetShadersRustFn(fn: GetShadersFn) {
-    logger.log(`Registering 'getShadersFn'.`)
-    rustGetShadersFn = fn
-}
-
-/** Registers the Rust function that injects the shader definitions. */
-function registerSetShadersRustFn(fn: SetShadersFn) {
-    logger.log(`Registering 'setShadersFn'.`)
-    rustSetShadersFn = fn
-}
-
-host.exportGlobal({ registerGetShadersRustFn, registerSetShadersRustFn })
+let rustGetAssetsSourcesFn: null | GetAssetsSourcesFn = null
+let rustSetAssetFn: null | SetAssetFn = null

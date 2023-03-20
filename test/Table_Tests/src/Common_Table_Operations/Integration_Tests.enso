@@ -8,6 +8,7 @@ from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Core_Spec import weird_names
 
 main = run_default_backend spec
 
@@ -15,6 +16,21 @@ spec setup =
     table_builder = setup.table_builder
     materialize = setup.materialize
     Test.group setup.prefix+" Interactions Between various operations" <|
+        Test.specify "using weird column names with operations and filtering" <|
+            columns = weird_names.map_with_index ix-> name->
+                [name, [100+ix, 200+ix, 300+ix]]
+            table = table_builder columns
+
+            conditions = weird_names.map_with_index ix-> name->
+                (table.at name - ix) == 200
+
+            result = table.filter (conditions.reduce (&&))
+            result.row_count . should_equal 1
+            result.columns.map .name . should_equal weird_names
+
+            weird_names.map_with_index ix-> name->
+                result.at name . to_vector . should_equal [200+ix]
+
         Test.specify "aggregates and joins" <|
             t1 = table_builder [["Count", [1, 2, 3]], ["Class", ["X", "Y", "Z"]]]
             t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "A", "C", "D", "D", "B", "B"]]]
@@ -39,7 +55,8 @@ spec setup =
             rows = t4.rows . map .to_vector
             r1 = rows.at 0
             r1.second . should_equal 5
-            ["A", "B"].contains r1.first . should_be_true
+            a_or_b = (r1.first == "A") || (r1.first == "B")
+            a_or_b . should_be_true
             rows.at 1 . should_equal ["C", 13]
 
         Test.specify "aggregates and filtering" <|
@@ -76,7 +93,7 @@ spec setup =
                 a = ["A", ["a", "a", "a", "a", "a", "a"]]
                 b = ["B", [1, 1, 2, 2, 1, 2]]
                 c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
-                t = table_builder [a, b, c] . order_by (Sort_Column_Selector.By_Name [(Sort_Column.Name "C" Sort_Direction.Descending)])
+                t = table_builder [a, b, c] . order_by ([(Sort_Column.Name "C" Sort_Direction.Descending)])
 
                 t2 = t.distinct ["A", "B"] on_problems=Report_Error
                 # Now, reverse the order!

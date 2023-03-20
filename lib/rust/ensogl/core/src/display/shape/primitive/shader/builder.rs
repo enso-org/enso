@@ -3,6 +3,7 @@
 
 use crate::prelude::*;
 
+use crate::display::shape::cached::CACHED_TEXTURE_MAX_DISTANCE;
 use crate::display::shape::primitive::def::primitive;
 use crate::display::shape::primitive::glsl::codes;
 use crate::display::shape::primitive::shader::overload;
@@ -47,10 +48,8 @@ impl Builder {
         canvas.submit_shape_constructor("run");
         let shape_def = overload::allow_overloading(&canvas.to_glsl());
         let code = [GLSL_BOILERPLATE.as_str(), "", &shape_header, &shape_def].join("\n\n");
-        let main = format!(
-            "bool pointer_events_enabled = {};\n{}",
-            pointer_events_enabled, FRAGMENT_RUNNER
-        );
+        let main =
+            format!("bool pointer_events_enabled = {pointer_events_enabled};\n{FRAGMENT_RUNNER}");
 
         CodeTemplate::new(code, main, "")
     }
@@ -83,13 +82,18 @@ fn glsl_codes() -> String {
         .join("\n");
     let error_codes =
         format!("const int ID_ENCODING_OVERFLOW_ERROR = {};", codes::ID_ENCODING_OVERFLOW_ERROR);
-    format!("{}\n\n{}\n{}", header, display_modes, error_codes)
+    format!("{header}\n\n{display_modes}\n{error_codes}")
 }
 
-/// The GLSL common code and debug codes.
-pub fn glsl_prelude_and_codes() -> String {
+fn glsl_constants() -> String {
     let codes = glsl_codes();
-    format!("{}\n\n{}", GLSL_PRELUDE, codes)
+    format!("{codes}\n\nconst float CACHED_SHAPE_MAX_DISTANCE = {CACHED_TEXTURE_MAX_DISTANCE:?};")
+}
+
+/// The GLSL common code and shared constants (including debug codes).
+pub fn glsl_prelude_and_constants() -> String {
+    let constants = glsl_constants();
+    format!("{GLSL_PRELUDE}\n\n{constants}")
 }
 
 fn gen_glsl_boilerplate() -> String {
@@ -98,7 +102,7 @@ fn gen_glsl_boilerplate() -> String {
     let color = overload::allow_overloading(COLOR);
     let debug = overload::allow_overloading(DEBUG);
     let shape = overload::allow_overloading(SHAPE);
-    let codes_and_prelude = glsl_prelude_and_codes();
+    let codes_and_prelude = glsl_prelude_and_constants();
     let defs_header = header("SDF Primitives");
     let sdf_defs = overload::allow_overloading(&primitive::all_shapes_glsl_definitions());
     [

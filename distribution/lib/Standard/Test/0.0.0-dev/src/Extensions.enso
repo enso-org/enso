@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.No_Such_Method
 
 import project.Test_Result.Test_Result
 from project.Test import Test
@@ -42,7 +43,7 @@ Error.should_fail_with : Any -> Integer -> Test_Result
 Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
-        loc = Meta.get_source_location 2+frames_to_skip
+        loc = Meta.get_source_location 3+frames_to_skip
         Test.fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
 
 ## Asserts that `self` value is equal to the expected value.
@@ -64,7 +65,18 @@ Any.should_equal self that frames_to_skip=0 = case self == that of
     True -> Test_Result.Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
-        msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
+        additional_comment = case self of
+            _ : Vector -> case that of
+                _ : Vector ->
+                    case self.length == that.length of
+                        True ->
+                            diff = self.zip that . index_of p->
+                                p.first != p.second
+                            "; first difference at index " + diff.to_text + " "
+                        False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
+                _ -> ""
+            _ -> ""
+        msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + loc + ")."
         Test.fail msg
 
 ## Asserts that `self` value is equal to the expected type value.
@@ -157,30 +169,6 @@ Any.should_start_with self that frames_to_skip=0 = case self of
         msg = self.to_text + " is not a `Text` value (at " + loc + ")."
         Test.fail msg
 
-## Asserts that `self` value is a Text value and contains `that`.
-
-   Arguments:
-   - that: The value to check `self` contains.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
-
-   > Example
-     Assert that one value should contain another.
-
-         from Standard.Test import Test
-
-         example_should_start_with = "Hello World!" . should_contain "World"
-Any.should_contain : Text -> Integer -> Test_Result
-Any.should_contain self that frames_to_skip=0 = case self of
-    _ : Text -> if self.contains that then Test_Result.Success else
-        loc = Meta.get_source_location 3+frames_to_skip
-        msg = self.to_text + " does not contain " + that.to_text + " (at " + loc + ")."
-        Test.fail msg
-    _ ->
-        loc = Meta.get_source_location 2+frames_to_skip
-        msg = self.to_text + " is not a `Text` value (at " + loc + ")."
-        Test.fail msg
-
 ## Asserts that `self` value is equal to the expected value.
 
    Arguments:
@@ -193,7 +181,7 @@ Any.should_contain self that frames_to_skip=0 = case self of
          from Standard.Test import Test
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
-Error.should_equal : Any -> Test_Result
+Error.should_equal : Any -> Integer -> Test_Result
 Error.should_equal self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` is within `epsilon` from `that`.
@@ -242,7 +230,7 @@ Number.should_equal self that epsilon=0 frames_to_skip=0 =
      Assert that a given action did not result in errors or warnings.
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
-Any.should_succeed : Boolean -> Integer -> Any
+Any.should_succeed : Integer -> Any
 Any.should_succeed self frames_to_skip=0 =
     _ = frames_to_skip
     self
@@ -259,7 +247,7 @@ Any.should_succeed self frames_to_skip=0 =
      Assert that a given action did not result in errors or warnings.
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
-Error.should_succeed : Boolean -> Integer -> Any
+Error.should_succeed : Integer -> Any
 Error.should_succeed self frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
@@ -277,7 +265,7 @@ Boolean.should_be_true self = case self of
     True -> Test_Result.Success
     False ->
         loc = Meta.get_source_location 2
-        Panic.throw (Test_Result.Failure "Expected False to be True (at "+loc+").")
+        Test.fail "Expected False to be True (at "+loc+")."
 
 ## Asserts that the given `Boolean` is `True`.
 
@@ -304,7 +292,7 @@ Boolean.should_be_false : Test_Result
 Boolean.should_be_false self = case self of
     True ->
         loc = Meta.get_source_location 2
-        Panic.throw (Test_Result.Failure "Expected True to be False (at "+loc+").")
+        Test.fail "Expected True to be False (at "+loc+")."
     False -> Test_Result.Success
 
 ## Asserts that the given `Boolean` is `False`
@@ -331,12 +319,19 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
 
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Test_Result
-Any.should_be_a self typ = if self.is_a typ || self==typ then Test_Result.Success else
-    loc = Meta.get_source_location 0
-    expected_type = Meta.get_qualified_type_name typ
-    actual_type = Meta.get_qualified_type_name self
-    message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
-    Panic.throw <| Test_Result.Failure message
+Any.should_be_a self typ =
+    ok = case Meta.meta typ of
+        c : Meta.Constructor -> case Meta.meta self of
+            a : Meta.Atom -> a.constructor == c
+            _ -> False
+        _ -> self.is_a typ || self==typ
+
+    if ok then Test_Result.Success else
+        loc = Meta.get_source_location 3
+        expected_type = Meta.get_qualified_type_name typ
+        actual_type = Meta.get_qualified_type_name self
+        message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
+        Test.fail message
 
 ## Asserts that a value is of a given type.
 
@@ -384,6 +379,7 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
         if that.contains element . not then
             msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
             Test.fail msg
+    Test_Result.Success
 
 ## Asserts that `self` value contains the same elements as `that`.
 
@@ -406,5 +402,54 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
          from Standard.Test import Test
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
-Error.should_contain_the_same_elements_as : Any -> Test_Result
+Error.should_contain_the_same_elements_as : Any -> Integer -> Test_Result
 Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value contains an element.
+
+   Arguments:
+   - element: The element to check.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   This method delegates to the `contains` method of `self` and will use the
+   rules of the particular type - be it a `Vector`, `Text` or any custom type
+   implementing a method `contains : a -> Boolean`.
+
+   > Example
+     Assert that a string contains a substring.
+
+         from Standard.Test import Test
+
+         example_should_equal = "foobar".should_contain "foo"
+Any.should_contain : Any -> Integer -> Test_Result
+Any.should_contain self element frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
+        if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
+            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + loc + ")."
+            Test.fail msg
+    if contains_result then Test_Result.Success else
+        msg = "The value (" + self.to_text + ") did not contain the element (" + element.to_text + ") (at " + loc + ")."
+        Test.fail msg
+
+## Asserts that `self` value contains an element.
+
+   Arguments:
+   - element: The element to check.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   This method delegates to the `contains` method of `self` and will use the
+   rules of the particular type - be it a `Vector`, `Text` or any custom type
+   implementing a method `contains : a -> Boolean`.
+
+   > Example
+     Assert that a string contains a substring.
+
+         from Standard.Test import Test
+
+         example_should_equal = "foobar".should_contain "foo"
+Error.should_contain : Any -> Integer -> Test_Result
+Error.should_contain self _ frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip

@@ -49,7 +49,7 @@ pub fn print_matrix(matrix: &data::Matrix<dfa::State>) {
         for column in 0..matrix.columns {
             let elem = matrix.safe_index(row, column).unwrap();
             let repr = if elem.is_invalid() { "-".into() } else { format!("{}", elem.id()) };
-            print!("{} ", repr);
+            print!("{repr} ");
         }
         println!();
     }
@@ -150,7 +150,7 @@ impl<T> HashSetRegistryModel<T> {
 
     fn init(mut self) -> Self {
         for key in SIDE_KEYS {
-            let alts = vec![format!("{}-left", key), format!("{}-right", key), (*key).to_string()];
+            let alts = vec![format!("{key}-left"), format!("{key}-right"), (*key).to_string()];
             self.side_keys.insert((*key).to_string(), alts);
         }
         self
@@ -258,7 +258,7 @@ impl<T: HashSetRegistryItem> HashSetRegistryModel<T> {
                     } else {
                         let local_out = mem::take(&mut out);
                         for alt in alts {
-                            out.extend(local_out.iter().map(|expr| format!("{} {}", expr, alt)));
+                            out.extend(local_out.iter().map(|expr| format!("{expr} {alt}")));
                         }
                     },
                 None =>
@@ -266,7 +266,7 @@ impl<T: HashSetRegistryItem> HashSetRegistryModel<T> {
                         out.push(key.into());
                     } else {
                         for el in out.iter_mut() {
-                            *el = format!("{} {}", el, key);
+                            *el = format!("{el} {key}");
                         }
                     },
             }
@@ -289,9 +289,9 @@ fn key_aliases() -> HashMap<String, String> {
     };
     #[allow(clippy::useless_format)]
     let insert_side_key = |map: &mut HashMap<String, String>, k: &str, v: &str| {
-        map.insert(format!("{}", k), format!("{}", v));
-        map.insert(format!("{}-left", k), format!("{}-left", v));
-        map.insert(format!("{}-right", k), format!("{}-right", v));
+        map.insert(format!("{k}"), format!("{v}"));
+        map.insert(format!("{k}-left"), format!("{v}-left"));
+        map.insert(format!("{k}-right"), format!("{v}-right"));
     };
     let insert = |map: &mut HashMap<String, String>, k: &str, v: &str| {
         map.insert(k.into(), v.into());
@@ -589,7 +589,7 @@ mod benchmarks {
             let registry: T = default();
             let max_count = test::black_box(10);
             for i in 0..max_count {
-                registry.add(Press, format!("{} a{}", i, input), i);
+                registry.add(Press, format!("{i} a{input}"), i);
             }
             if optimize {
                 registry.optimize();
@@ -611,12 +611,12 @@ mod benchmarks {
         let nothing = Vec::<i32>::new();
         let max_count = test::black_box(100);
         for i in 0..max_count {
-            registry.add(Press, format!("ctrl shift a{}", i), i);
+            registry.add(Press, format!("ctrl shift a{i}"), i);
         }
         registry.optimize();
         bencher.iter(|| {
             for i in 0..max_count {
-                let key = format!("a{}", i);
+                let key = format!("a{i}");
                 assert_eq!(registry.on_press("ctrl-left"), nothing);
                 assert_eq!(registry.on_press("shift-left"), nothing);
                 assert_eq!(registry.on_press(&key), vec![i]);

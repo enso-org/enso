@@ -74,12 +74,19 @@ impl Model {
                     *self.current_project.borrow_mut() = Some(project);
                 }
                 Err(err) => {
-                    let err_msg = format!("Failed to initialize project: {}", err);
+                    let err_msg = format!("Failed to initialize project: {err}");
                     error!("{err_msg}");
                     self.controller.status_notifications().publish_event(err_msg);
                 }
             }
         });
+    }
+
+    fn close_project(&self) {
+        *self.current_project.borrow_mut() = None;
+        // Clear the graph editor so that it will not display any nodes from the previous
+        // project when the new project is loaded.
+        self.view.project().graph().remove_all_nodes();
     }
 
     /// Open a project by name. It makes two calls to Project Manager: one for listing projects and
@@ -211,6 +218,9 @@ impl Presenter {
                 controller::ide::Notification::NewProjectCreated
                 | controller::ide::Notification::ProjectOpened =>
                     model.setup_and_display_new_project(),
+                controller::ide::Notification::ProjectClosed => {
+                    model.close_project();
+                }
             }
             futures::future::ready(())
         });
