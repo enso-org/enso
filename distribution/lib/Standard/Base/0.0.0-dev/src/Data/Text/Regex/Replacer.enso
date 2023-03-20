@@ -116,7 +116,7 @@ build_replacement_vector replacement_string pattern =
             if replacement.is_error then Error.throw replacement else
                 builder.append (Replacement.Literal filler.text)
                 builder.append replacement
-                go next_it
+                @Tail_Call go next_it
         Match_Iterator_Value.Last filler ->
             builder.append (Replacement.Literal filler.text)
     result = go it

@@ -158,8 +158,8 @@ type Pattern_2
 
                     # If we're only replacing the first, do an early exit
                     case only_first of
-                        True -> go next_it.early_exit
-                        False -> go next_it.next
+                        True -> @Tail_Call go next_it.early_exit
+                        False -> @Tail_Call go next_it.next
                 Match_Iterator_Value.Last filler ->
                     string_builder.append filler.text
             go it.next
