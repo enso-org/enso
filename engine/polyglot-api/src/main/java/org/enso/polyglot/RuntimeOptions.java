@@ -98,6 +98,11 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(USE_GLOBAL_IR_CACHE_LOCATION_KEY, USE_GLOBAL_IR_CACHE_LOCATION)
           .build();
 
+  public static final String ENABLE_ASSERTIONS = optionName("enableAssertions");
+  public static final OptionKey<Boolean> ENABLE_ASSERTIONS_KEY = new OptionKey<>(false);
+  public static final OptionDescriptor ENABLE_ASSERTIONS_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_ASSERTIONS_KEY, ENABLE_ASSERTIONS).build();
+
   public static final String ENABLE_EXECUTION_TIMER = optionName("enableExecutionTimer");
 
   @Option(
@@ -137,6 +142,7 @@ public class RuntimeOptions {
               PREINITIALIZE_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
               USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR,
+              ENABLE_ASSERTIONS_DESCRIPTOR,
               ENABLE_EXECUTION_TIMER_DESCRIPTOR,
               WARNINGS_LIMIT_DESCRIPTOR));
 

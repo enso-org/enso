@@ -27,7 +27,6 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
@@ -77,6 +76,7 @@ public final class EnsoContext {
 
   private final EnsoLanguage language;
   private final Env environment;
+  private final Assumption assertsDisabledAssumption = Truffle.getRuntime().createAssumption("Enso assertions disabled");
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -135,7 +135,9 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
-
+    if (getOption(RuntimeOptions.ENABLE_ASSERTIONS_KEY)) {
+      this.assertsDisabledAssumption.invalidate("Enso assertions are enabled");
+    }
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     this.compilerConfig =
@@ -602,6 +604,10 @@ public final class EnsoContext {
    */
   public boolean isUseGlobalCache() {
     return getOption(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
+  }
+
+  public Assumption getAssertsDisabledAssumption() {
+    return assertsDisabledAssumption;
   }
 
   /**
