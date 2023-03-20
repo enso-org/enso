@@ -146,7 +146,7 @@ type Time_Of_Day
          Recover from the parse error.
 
              from Standard.Base import Time_Of_Day
-             from Standard.Base.Error.Common import Time_Error
+             from Standard.Base.Errors.Common import Time_Error
 
              example_parse = Time_Of_Day.parse "half twelve" . catch Time_Error _->
                  Time_Of_Day.new

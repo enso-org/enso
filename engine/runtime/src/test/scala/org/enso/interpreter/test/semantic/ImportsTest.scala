@@ -84,10 +84,10 @@ class ImportsTest extends PackageTest {
   "Import statements" should "allow for importing submodules" in {
     evalTestProject("TestSubmodules") shouldEqual 42
     val outLines = consumeOut
-    outLines(3) shouldEqual "(Foo 10)"
-    outLines(4) shouldEqual "(Mk_C 52)"
-    outLines(5) shouldEqual "20"
-    outLines(6) shouldEqual "(Mk_C 10)"
+    outLines(0) shouldEqual "(Foo 10)"
+    outLines(1) shouldEqual "(Mk_C 52)"
+    outLines(2) shouldEqual "20"
+    outLines(3) shouldEqual "(Mk_C 10)"
   }
 
   "Importing module" should "bring extension methods into the scope " in {
@@ -116,8 +116,8 @@ class ImportsTest extends PackageTest {
   "Compiler" should "accept exports of the same module" in {
     evalTestProject("Test_Multiple_Exports") shouldEqual 0
     val outLines = consumeOut
-    outLines(3) shouldEqual "z"
-    outLines(4) shouldEqual "42"
+    outLines(0) shouldEqual "z"
+    outLines(1) shouldEqual "42"
   }
 
   "Compiler" should "reject qualified exports of the same module with conflicting hidden names" in {
@@ -145,7 +145,7 @@ class ImportsTest extends PackageTest {
       "Test_Polyglot_Exports"
     ) should have message "Compilation aborted due to errors."
     val outLines = consumeOut
-    outLines should have length 6
+    outLines should have length 3
     outLines(
       2
     ) shouldEqual "Main.enso[5:16-5:19]: The name `Long` could not be found."
@@ -176,14 +176,14 @@ class ImportsTest extends PackageTest {
       "Test_Fully_Qualified_Name_Success"
     ).toString shouldEqual "0"
     val outLines = consumeOut
-    outLines should have length 4
-    outLines(3) shouldEqual "Hello world!"
+    outLines should have length 1
+    outLines(0) shouldEqual "Hello world!"
   }
 
   "Fully qualified names" should "detect conflicts with the exported types sharing the namespace" in {
-    evalTestProject(
+    the[InterpreterException] thrownBy evalTestProject(
       "Test_Fully_Qualified_Name_Conflict"
-    ).toString shouldEqual "(A 1)"
+    ) should have message "Method `Foo` of Atom could not be found."
     val outLines = consumeOut
     outLines should have length 3
     outLines(2) shouldEqual "Main.enso[2:1-2:57]: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module."

@@ -176,7 +176,7 @@ type Date
          Recover from an error due to a wrong format.
 
              from Standard.Base import Date
-             from Standard.Base.Error.Common import Time_Error
+             from Standard.Base.Errors.Common import Time_Error
 
              example_parse_err = Date.parse "my birthday" . catch Time_Error _->
                  Date.new 2000 1 1
@@ -192,7 +192,7 @@ type Date
          Recover from the parse error.
 
              from Standard.Base import Date
-             from Standard.Base.Error.Common import Time_Error
+             from Standard.Base.Errors.Common import Time_Error
 
              example_parse_err =
                  date = Date.parse "1999-1-1" "yyyy-MM-dd"
