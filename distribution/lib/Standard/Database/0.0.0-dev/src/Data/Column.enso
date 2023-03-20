@@ -143,9 +143,11 @@ type Column
         actual_operand_types = operand_types.if_nothing (Vector.fill operands.length Nothing)
         expressions = operands.zip actual_operand_types prepare_operand
 
-        actual_new_type = new_type.if_nothing self.sql_type
+        # TODO allow overriding new_type for stuff like SQLite boolean
+        _ = new_type
         new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)
-        Column.Value new_name self.connection actual_new_type new_expr self.context
+        new_type_ref = SQL_Type_Reference.new self.connection self.context new_expr
+        Column.Value new_name self.connection new_type_ref new_expr self.context
 
     ## PRIVATE
 
@@ -726,7 +728,7 @@ type Column
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column ! Illegal_Argument
     rename self name = self.naming_helpers.ensure_name_is_valid name <|
-        Column.Value name self.connection self.sql_type self.expression self.context
+        Column.Value name self.connection self.sql_type_reference self.expression self.context
 
     ## UNSTABLE
 

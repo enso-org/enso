@@ -110,7 +110,7 @@ type JDBC_Connection
        Materialized_Table of data, load to the database.
     load_table : Text -> Database_Table -> Materialized_Table -> Integer -> Nothing
     load_table self insert_template db_table table batch_size =
-        db_types = db_table.internal_columns.map .sql_type
+        db_types = db_table.internal_columns.map ic-> ic.sql_type_reference.get
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
             java_connection.setAutoCommit False

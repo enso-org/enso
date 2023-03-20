@@ -41,6 +41,7 @@ import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
 
@@ -668,9 +669,11 @@ type Table
     compute self expression on_problems=Report_Warning =
         get_column name = self.at name
         make_constant value =
+            # TODO [RW] what shall we do with this type approximation? keep it?
             new_type = SQL_Type.approximate_type value
-            other = SQL_Expression.Constant new_type value
-            Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
+            expr = SQL_Expression.Constant new_type value
+            new_type_ref = SQL_Type_Reference.from_constant new_type
+            Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type_ref expr self.context
         new_column = Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.connection.dialect.get_naming_helpers.sanitize_name expression)
@@ -1204,7 +1207,15 @@ type Table
             results = resolved_aggregates.map p->
                 agg = p.second
                 new_name = p.first
-                Aggregate_Helper.make_aggregate_column self agg new_name . catch
+                expression = Aggregate_Helper.make_expression agg self.connection.dialect
+                result = expression.if_not_error <|
+                    # TODO [RW] here we will perform as many fetches as there are aggregate columns, but technically we could perform just one fetch fetching all column types - TODO we should do that
+                    sql_type_ref = SQL_Type_Reference.new self.connection new_ctx expression
+                    Internal_Column.Value new_name sql_type_ref expression
+                ## If the `expression` did contain an error, we catch it to be
+                   able to store it in a vector and then we will partition the
+                   created columns and failures.
+                result.catch
 
             partitioned = results.partition (_.is_a Internal_Column)
 
@@ -1356,8 +1367,9 @@ type Table
                 Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
             False ->
                 sql = preprocessed.to_sql
-                expected_types = preprocessed.internal_columns.map .sql_type
-                self.connection.read_statement sql expected_types
+                # TODO [RW] get only overridden types and allow the rest to be inferred
+                # expected_types = preprocessed.internal_columns.map ic-> ic.sql_type_reference.get
+                self.connection.read_statement sql expected_types=Nothing
 
     ## UNSTABLE
 
@@ -1393,7 +1405,7 @@ type Table
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
         type_mapping = self.connection.dialect.get_type_mapping
         types = cols.map col->
-            type_mapping.sql_type_to_value_type col.sql_type
+            type_mapping.sql_type_to_value_type col.sql_type_reference.get
         Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]
 
     ## PRIVATE
@@ -1404,7 +1416,7 @@ type Table
        - internal: The internal column to use for creating a column.
     make_column : Internal_Column -> Column
     make_column self internal =
-        Column.Value internal.name self.connection internal.sql_type internal.expression self.context
+        Column.Value internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
@@ -1558,7 +1570,7 @@ make_table connection table_name columns ctx =
         cols = columns.map p->
             name = p.first
             sql_type = p.second
-            Internal_Column.Value name (SQL_Type_Reference.from_constant sql_type) (SQL_Expression.Column table_name name))
+            Internal_Column.Value name (SQL_Type_Reference.from_constant sql_type) (SQL_Expression.Column table_name name)
         Table.Value table_name connection cols ctx
 
 ## PRIVATE

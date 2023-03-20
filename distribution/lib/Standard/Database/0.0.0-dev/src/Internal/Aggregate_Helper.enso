@@ -13,19 +13,6 @@ import project.Internal.IR.Internal_Column.Internal_Column
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
-   Creates an `Internal_Column` that computes the specified statistic.
-   It returns a dataflow error if the given operation is not supported.
-
-   The provided `aggregate` is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_aggregate` first.
-make_aggregate_column : Table -> Aggregate_Column -> Text -> Internal_Column
-make_aggregate_column table aggregate new_name =
-    # TODO move thi to Table instead, much easier there...
-    sql_type = Error.throw "TODO we need to use the new context already!"
-    expression = make_expression aggregate table.connection.dialect
-    Internal_Column.Value new_name sql_type expression
-
-## PRIVATE
    Creates an Internal Representation of the expression that computes a
    requested statistic.
 make_expression : Aggregate_Column -> Dialect -> SQL_Expression
