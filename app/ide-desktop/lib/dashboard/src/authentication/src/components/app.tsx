@@ -47,6 +47,7 @@ import ConfirmRegistration from "../authentication/components/confirmRegistratio
 import Dashboard from "../dashboard/components/dashboard";
 import Login from "../authentication/components/login";
 import Registration from "../authentication/components/registration";
+import SetUsername from "../authentication/components/setUsername";
 
 // =================
 // === Constants ===
@@ -60,6 +61,8 @@ export const LOGIN_PATH = "/login";
 export const REGISTRATION_PATH = "/registration";
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = "/confirmation";
+/** Path to the set username page. */
+export const SET_USERNAME_PATH = "/set-username";
 
 // ===========
 // === App ===
@@ -144,6 +147,10 @@ function AppRouter(props: AppProps) {
               {/* Protected pages are visible to authenticated users. */}
               <router.Route element={<authProvider.ProtectedLayout />}>
                 <router.Route path={DASHBOARD_PATH} element={<Dashboard />} />
+                <router.Route
+                  path={SET_USERNAME_PATH}
+                  element={<SetUsername />}
+                />
               </router.Route>
               {/* Other pages are visible to unauthenticated and authenticated users. */}
               <router.Route
