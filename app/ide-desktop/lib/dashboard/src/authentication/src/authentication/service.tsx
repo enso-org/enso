@@ -130,7 +130,7 @@ function loadAmplifyConfig(
 ): auth.AmplifyConfig {
   /** Load the environment-specific Amplify configuration. */
   const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT];
-  let urlOpener;
+  let urlOpener = null;
   if (platform === platformModule.Platform.desktop) {
     /** If we're running on the desktop, we want to override the default URL opener for OAuth
      * flows.  This is because the default URL opener opens the URL in the desktop app itself,
