@@ -17,9 +17,9 @@ interface Result<T> {
     result: T
 }
 
-type Uuid = utils.Brand<'Uuid'> & string
-type ProjectName = utils.Brand<'ProjectName'> & string
-type UTCDateTime = utils.Brand<'UTCDateTime'> & string
+export type Uuid = utils.Brand<'Uuid'> & string
+export type ProjectName = utils.Brand<'ProjectName'> & string
+export type UTCDateTime = utils.Brand<'UTCDateTime'> & string
 
 interface ProjectMetadata {
     name: ProjectName
