@@ -469,7 +469,7 @@ impl Entry {
                 .into_iter()
                 .flatten()
                 .collect(),
-            Kind::Module | Kind::Type if defined_in_same_module => default(),
+            Kind::Type if defined_in_same_module => default(),
             Kind::Module => {
                 let import = if let Some(reexport) = &self.reexported_in {
                     Import::Unqualified {
