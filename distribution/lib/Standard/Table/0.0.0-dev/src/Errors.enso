@@ -437,6 +437,14 @@ type Inexact_Type_Coercion
        backend, so it was replaced by its closest available type.
     Warning (requested_type : Value_Type) (actual_type : Value_Type)
 
+    to_display_text : Text
+    to_display_text self =
+        "The requested type ["+self.requested_type.to_text+"] is not available in the given backend, so it was replaced by its closest available type ["+self.actual_type.to_text+"]."
+
+    to_text : Text
+    to_text self =
+        "Inexact_Type_Coercion.Warning (requested_type = " + self.requested_type.to_text + ") (actual_type = " + self.actual_type.to_text + ")"
+
 type Invalid_Value_For_Type
     ## Indicates that a column construction/transformation failed because the
        provided value is not valid for the requested column type.

@@ -35,7 +35,7 @@ type Postgres_Type_Mapping
             Value_Type.Char size variable ->
                 case variable of
                     True  -> case size of
-                        Nothing -> SQL_Type.Value Types.TEXT "text"
+                        Nothing -> SQL_Type.Value Types.VARCHAR "text"
                         _       -> SQL_Type.Value Types.VARCHAR "varchar" size
                     False -> SQL_Type.Value Types.CHAR "char" size
             Value_Type.Time ->
@@ -81,7 +81,7 @@ simple_types_map = Map.from_vector <|
     ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
     # TODO Bit1, Date_Time
-    other = [[Types.BOOLEAN, Value_Type.Boolean], [Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time]]
+    other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time]]
     ints + floats + other
 
 complex_types_map = Map.from_vector <|
@@ -93,8 +93,11 @@ complex_types_map = Map.from_vector <|
         Value_Type.Char size=sql_type.precision variable=False
     make_binary variable sql_type =
         Value_Type.Binary size=sql_type.precision variable=variable
+    handle_bit sql_type =
+        if sql_type.precision == 1 then Value_Type.Boolean else
+            make_binary False sql_type
+
     numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
-    # TODO [RW] should CLOB be text or not? should we have a separate type for it? otherwise we cannot round-trip (CLOB -> Char -> VARCHAR != CLOB)
     strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
-    binaries = [[Types.BINARY, make_binary False], [Types.BIT, make_binary False], [Types.BLOB, make_binary True]]
+    binaries = [[Types.BINARY, make_binary False], [Types.BIT, handle_bit], [Types.BLOB, make_binary True]]
     numerics + strings + binaries

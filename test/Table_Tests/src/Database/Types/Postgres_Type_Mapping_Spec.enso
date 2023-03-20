@@ -59,9 +59,9 @@ spec connection db_name =
             t.at "d" . value_type . should_equal default_text
 
         Test.specify "binary" <|
-            t = make_table "binaries" [["a", "bit(1)"], ["b", "bit varying"], ["c", "bit varying(10)"], ["d", "bytea"]]
+            t = make_table "binaries" [["a", "bit(2)"], ["b", "bit varying"], ["c", "bit varying(10)"], ["d", "bytea"]]
             t.info.print
-            t.at "a" . value_type . should_equal (Value_Type.Binary size=1 variable=False)
+            t.at "a" . value_type . should_equal (Value_Type.Binary size=2 variable=False)
             t.at "b" . value_type . should_equal (Value_Type.Binary size=Nothing variable=True)
             t.at "c" . value_type . should_equal (Value_Type.Binary size=10 variable=True)
             t.at "d" . value_type . should_equal (Value_Type.Binary size=Nothing variable=True)
@@ -92,11 +92,11 @@ spec connection db_name =
             t.at "b" . value_type . should_equal Value_Type.Boolean
 
         Test.specify "should correctly handle types through operations" <|
-            t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
+            t = make_table "foo" [["a", "int2"], ["b", "text"], ["c", "boolean"], ["d", "double precision"], ["e", "int4"]]
 
             t.compute 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
             t.compute '[a] * [d]' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t.compute '[a] + 100' . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            t.compute '[a] + [e]' . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
             t.compute '[a] + 100.0' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
             t.compute '[b] + "_suf"' . value_type . should_equal default_text
