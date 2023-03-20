@@ -23,6 +23,8 @@ import static org.junit.Assert.fail;
 import org.junit.Test;
 
 public class ExecSimpleTest {
+  private final MockHandler mockHandler = new MockHandler();
+
   public Context ensoContextForPackage(String name, File pkgFile) throws IOException {
     Context ctx =
         Context.newBuilder()
@@ -32,7 +34,7 @@ public class ExecSimpleTest {
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .logHandler(new MockHandler())
+            .logHandler(mockHandler)
             .option("log.enso.org.enso.compiler.Compiler.level", "FINE")
             .allowAllAccess(true)
             .build();
@@ -67,6 +69,9 @@ public class ExecSimpleTest {
       assertEquals("Fib_Test library has been persisted", true, persisted);
       ctx.leave();
     }
+
+    mockHandler.failOnMessage("Parsing module [local.Fib_Test.Arith].");
+
     try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(testName, pkgPath)) {
       var ensoContext =
           (EnsoContext)
@@ -90,13 +95,21 @@ public class ExecSimpleTest {
   private static class MockHandler extends Handler {
     private final Formatter fmt = new SimpleFormatter();
     private final List<LogRecord> records = new ArrayList<>();
+    private String failMsg;
 
     public MockHandler() {}
+
+    public void failOnMessage(String msg) {
+      this.failMsg = msg;
+    }
 
     @Override
     public void publish(LogRecord lr) {
       records.add(lr);
       var msg = fmt.formatMessage(lr);
+      if (failMsg != null && failMsg.equals(msg)) {
+        fail("Get forbidden message: " + msg);
+      }
       System.err.println(msg);
     }
 
