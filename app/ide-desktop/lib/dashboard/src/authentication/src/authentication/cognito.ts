@@ -107,6 +107,7 @@ function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
  * The caller can then handle them via pattern matching on the {@link results.Result} type. */
 export class Cognito {
     constructor(
+        // @ts-expect-error This will be used in a future PR.
         private readonly logger: loggerProvider.Logger,
         private readonly platform: platformModule.Platform,
         amplifyConfig: config.AmplifyConfig
