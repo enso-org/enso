@@ -11,36 +11,9 @@ import Standard.Base.Data.Text.Regex_2.Too_Many_Groups
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-import Standard.Base.IO
-
 polyglot java import org.enso.base.Replacer_Cache
 
 spec =
-    Test.group "gmt" <|
-        Test.specify "asdf" <|
-            pattern = Regex_2.compile('([a-c])')
-            s = pattern.replace "abcdef" "q$1$1q"
-            IO.println s
-            s2 = pattern.replace "abcdef" "q$1$1q"
-            IO.println s2
-            s3 = pattern.replace "abcdef" "q$1$1q2"
-            s4 = pattern.replace "abcdef" "q$1$1q3"
-            s5 = pattern.replace "abcdef" "q$1$1q4"
-            s6 = pattern.replace "abcdef" "q$1$1q5"
-            s7 = pattern.replace "abcdef" "q$1$1q6"
-            s8 = pattern.replace "abcdef" "q$1$1q7"
-
-        Test.specify "Replacer cache drops old values" <|
-            pattern = Regex_2.compile('([a-c])')
-
-            0.up_to Replacer.get_lru_array_size+1 . map i->
-                result = pattern.replace "abcdef" ("$1$1x" + i.to_text)
-                result . should_not_equal Nothing
-            Replacer.replacer_cache_lookup "$1$1x0" . should_equal Nothing
-            Replacer.replacer_cache_lookup "$1$1x1" . should_not_equal Nothing
-
-            Replacer.get_lru_array_size . should_equal Replacer.get_lru_cache_size
-
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex_2.compile "(?<dots>..)" case_insensitive=True
@@ -433,5 +406,18 @@ spec =
         Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
             match.span 5 . should_fail_with No_Such_Group
             match.span "nonexistent" . should_fail_with No_Such_Group
+
+    Test.group "caching" <|
+        Test.specify "Replacer cache drops old values" <|
+            pattern = Regex_2.compile('([a-c])')
+
+            # Add enough values to flush out the first values.
+            0.up_to Replacer.get_lru_array_size+1 . map i->
+                result = pattern.replace "abcdef" ("$1$1x" + i.to_text)
+                result . should_not_equal Nothing
+            Replacer.replacer_cache_lookup "$1$1x0" . should_equal Nothing
+            Replacer.replacer_cache_lookup "$1$1x1" . should_not_equal Nothing
+
+            Replacer.get_lru_array_size . should_equal Replacer.get_lru_cache_size
 
 main = Test_Suite.run_main spec
