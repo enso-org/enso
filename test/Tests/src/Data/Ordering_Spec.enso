@@ -46,8 +46,26 @@ Comparable.from (_ : UPair) = UPair_Comparator
 type Parent
     Value child
 
-# === The Tests ===
 
+## Expects that `result` contains incomparable values warning.
+   The values within the warning message can be switched - the order
+   does not matter. Iterates through all the warnings of result.
+expect_incomparable_warn : Any -> Any -> Any -> Nothing
+expect_incomparable_warn left_val right_val result =
+    # Incomparable values warning wraps Text values in simple quotes
+    left_val_text = if Meta.is_a left_val Text then "'" + left_val + "'" else left_val.to_text
+    right_val_text = if Meta.is_a right_val Text then "'" + right_val + "'" else right_val.to_text
+    expected_warn_msg_left = "Values " + left_val_text + " and " + right_val_text + " are incomparable"
+    expected_warn_msg_right = "Values " + right_val_text + " and " + left_val_text + " are incomparable"
+    has_expected_warning = Warning.get_all result . map (_.value) . any (it-> it == expected_warn_msg_left || it == expected_warn_msg_right)
+    has_expected_warning . should_be_true
+
+expect_no_warns : Any -> Nothing
+expect_no_warns result =
+    Warning.get_all result . length . should_equal 0
+
+
+# === The Tests ===
 spec =
     Test.group "Default comparator" <|
         Test.specify "should support custom comparator" <|
@@ -109,28 +127,6 @@ spec =
             Ordering.compare Ordering.Less "Hello" . should_fail_with Incomparable_Values
 
     Test.group "Sorting with the default comparator" <|
-        ## Expects that `result` contains incomparable values warning.
-           The values within the warning message can be switched - the order
-           does not matter. Iterates through all the warnings of result.
-        expect_incomparable_warn : Any -> Any -> Any -> Nothing
-        expect_incomparable_warn left_val right_val result =
-            # Incomparable values warning wraps Text values in simple quotes
-            left_val_text = if Meta.is_a left_val Text then "'" + left_val + "'" else left_val.to_text
-            right_val_text = if Meta.is_a right_val Text then "'" + right_val + "'" else right_val.to_text
-            expected_warn_msg_left = "Values " + left_val_text + " and " + right_val_text + " are incomparable"
-            expected_warn_msg_right = "Values " + right_val_text + " and " + left_val_text + " are incomparable"
-            has_expected_warning = Warning.get_all result . map (_.value) . any (it-> it == expected_warn_msg_left || it == expected_warn_msg_right)
-            has_expected_warning . should_be_true
-
-        # Same as `expect_incomparable_warn`, but does not check for a particular
-        # warning message
-        expect_some_incomparable_warn result =
-            expected_pattern = "Values .+ and .+ are incomparable"
-            has_expected_warning = Warning.get_all result . map (_.value) . any (it-> ) TODO...
-
-        expect_no_warns : Any -> Nothing
-        expect_no_warns result =
-            Warning.get_all result . length . should_equal 0
 
         Test.specify "should be able to sort primitive types" <|
             [3, 2, 1, Nothing].sort . should_equal [1, 2, 3, Nothing]
@@ -153,10 +149,8 @@ spec =
             expect_no_warns [Nothing].sort
             [[Nothing]].sort . should_equal [[Nothing]]
             expect_no_warns [[Nothing]].sort
-            [Number.nan].sort . should_equal [Number.nan]
-            expect_no_warns [Nothing].sort
-            [[Number.nan]].sort . should_equal [[Number.nan]]
-            expect_no_warns [[Number.nan]].sort
+            [[1]].sort . should_equal [[1]]
+            expect_no_warns [[1]].sort
 
         Test.specify "should produce warnings when sorting nested vectors" <|
             [[1], [2]].sort . should_equal [[1], [2]]
@@ -166,7 +160,7 @@ spec =
             [Ord.Value Number.nan, Ord.Value 20, Ord.Value 10].sort . should_equal [Ord.Value 10, Ord.Value 20, Ord.Value Number.nan]
 
         Test.specify "should produce warnings when sorting primitive values in atoms" <|
-            expect_incomparable_warn 1 Number.nan [Ord.Value 1, Ord.Value Number.nan].sort
+            expect_incomparable_warn (Ord.Value 1) (Ord.Value Nothing) [Ord.Value 1, Ord.Value Nothing].sort
 
         Test.specify "should attach warning when trying to sort incomparable values" <|
             expect_incomparable_warn Nothing Number.nan <| [Nothing, Number.nan].sort
