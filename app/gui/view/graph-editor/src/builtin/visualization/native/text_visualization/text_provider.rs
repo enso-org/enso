@@ -641,6 +641,11 @@ impl TableSpecification {
         self.column_names.get(column_ix).and_then(|name| name.as_ref()).map(|x| &**x)
     }
 
+    /// Return the text chunk of the column at the given index.
+    pub fn get_column_name_chunk(&self, column_ix: usize, chunk_ix: usize) -> Option<String> {
+        self.column_name(column_ix).map(|name| grapheme_chunks(name).nth(chunk_ix)).flatten()
+    }
+
     /// Return the name of the row at the given index.
     pub fn row_name(&self, row_ix: usize) -> Option<&str> {
         self.row_names.get(row_ix).and_then(|name| name.as_ref()).map(|x| &**x)
@@ -776,7 +781,7 @@ impl TextProvider for DebugGridTextProvider {
 // === Backend Text Provider ===
 // =============================
 
-const DEFAULT_GRID_SIZE: u32 = 20;
+const DEFAULT_GRID_SIZE: u32 = 10;
 
 /// A cache for a grid of Strings.
 ///
@@ -965,7 +970,7 @@ impl BackendTableProvider {
 
         let text_cache = Rc::new(RefCell::new(GridCache::<String>::new(
             GridPosition::default(),
-            GridSize::new(DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE),
+            GridSize::new(DEFAULT_GRID_SIZE, 2 * DEFAULT_GRID_SIZE),
             CACHE_PADDING,
             Box::new(grid_cache_update),
         )));
@@ -978,7 +983,7 @@ impl BackendTableProvider {
                 let grid_posititon = table_window.position;
                 let grid_size = table_window.size;
                 let preprocessor = lazy_table_preprocessor(grid_posititon, grid_size);
-                preprocessor
+                    preprocessor
             });
             grid_data_update <- receive_data.map(|data| {
                 TableDataUpdate::try_from(data.clone()).ok()

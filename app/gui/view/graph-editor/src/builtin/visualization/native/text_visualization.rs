@@ -76,7 +76,7 @@ pub const GRAPHEMES_PER_CHUNK: usize = 20;
 /// Extra chunks to load around the visible grid to ensure smooth scrolling. Extra chunks are
 /// loaded in each direction around the visible grid. So a value of 5 with a base grid of 20x10 will
 /// load 25x15 grid.
-const CACHE_PADDING: u32 = 15;
+const CACHE_PADDING: u32 = 25;
 const PADDING_TEXT: f32 = 5.0;
 
 /// Space to be used between cells in the grid. Measured in characters/lines.
@@ -283,11 +283,8 @@ impl<T: TextProvider> Model<T> {
                     .into(),
                 TableContentItem::Divider { bottom, top, left, right } =>
                     grid_view_entry::Content::Divider { top, bottom, left, right },
-                TableContentItem::ColumnHeading { column_index, .. } => table_spec
-                    .column_names
-                    .get(column_index)
-                    .cloned()
-                    .flatten()
+                TableContentItem::ColumnHeading { column_index, chunk_index, .. } => table_spec
+                    .get_column_name_chunk(column_index, chunk_index)
                     .unwrap_or_default()
                     .into(),
                 TableContentItem::RowHeading { row_index, .. } => table_spec

@@ -127,20 +127,14 @@ impl<T: Clone> GridCache<T> {
                 self.cached_grid_pos,
                 self.cached_grid_size
             );
-            let is_large_offset = offset
-                .iter()
-                .zip(self.cached_grid_size.iter())
-                .any(|(a, b)| a.unsigned_abs() > b / 4);
-            if is_large_offset {
-                let old_grid_pos: HashSet<_> = self.iter_full_grid().collect();
-                self.cached_grid_pos += offset;
-                let new_grid: HashSet<_> = self.iter_full_grid().collect();
-                let to_remove = old_grid_pos.difference(&new_grid);
-                for pos in to_remove {
-                    self.data.remove(pos);
-                }
-                self.request_data_update()
+            let old_grid_pos: HashSet<_> = self.iter_full_grid().collect();
+            self.cached_grid_pos = index;
+            let new_grid: HashSet<_> = self.iter_full_grid().collect();
+            let to_remove = old_grid_pos.difference(&new_grid);
+            for pos in to_remove {
+                self.data.remove(pos);
             }
+            self.request_data_update()
         }
     }
 
