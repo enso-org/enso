@@ -495,7 +495,7 @@ impl Input {
         has_this: bool,
     ) -> FallibleResult<InsertedSuggestion> {
         let context = self.context();
-        let generate_this = !has_this && context.is_none();
+        let generate_this = !has_this;
         let context = InsertContext { suggestion, context, generate_this };
         let default_range = (self.cursor_position..self.cursor_position).into();
         let replaced = if context.has_qualified_name() {
