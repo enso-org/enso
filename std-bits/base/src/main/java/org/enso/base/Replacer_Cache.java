@@ -4,6 +4,7 @@ import org.graalvm.collections.Pair;
 import org.graalvm.polyglot.Value;
 
 import java.util.ArrayList;
+import java.util.function.Function;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,11 +23,17 @@ public class Replacer_Cache {
   // Index into the circular buffer.
   private static int nextSlot = 0;
 
-  public static void put(String key, Value value) {
-    lru.set(nextSlot, Pair.create(key, value));
-    nextSlot = (nextSlot + 1) % lruSize;
+  public static Value get_or_set(String key, Function<Void, Value> value_producer) {
+    Value value = get(key);
+    if (value == null) {
+      value = value_producer.apply(null);
+      lru.set(nextSlot, Pair.create(key, value));
+      nextSlot = (nextSlot + 1) % lruSize;
+    }
+    return value;
   }
 
+  // Visible for testing.
   public static Value get(String key) {
     for (int i=0; i < lruSize; ++i) {
       Pair<String, Value> pair = lru.get(i);

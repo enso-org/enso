@@ -84,14 +84,8 @@ group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
    replacement strings.
 build_replacement_vector_cached : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group ! Too_Many_Groups
 build_replacement_vector_cached replacement_string pattern =
-    replacement_vector = Replacer_Cache.get replacement_string
-    case replacement_vector != Nothing of
-        True ->
-            replacement_vector
-        False ->
-            replacement_vector = build_replacement_vector replacement_string pattern
-            Replacer_Cache.put replacement_string replacement_vector
-            replacement_vector
+    Replacer_Cache.get_or_set replacement_string _->
+        build_replacement_vector replacement_string pattern
 
 ## PRIVATE
 
