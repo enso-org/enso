@@ -231,9 +231,12 @@ class TableVisualization extends Visualization {
             const height = this.dom.getAttributeNS(null, 'height')
             const tblViewStyle = `width: ${width}px; height: ${height}px; overflow: scroll;`
             this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
+            // Ensure that this.tabElem and this.dom have been updated before calling
+            // sizeColumnsToFit() to get the latest element styles.
+            window.requestAnimationFrame(() => {
+                this.agGridOptions.api.sizeColumnsToFit()
+            })
         }
-
-        this.agGridOptions && this.agGridOptions.api.sizeColumnsToFit()
     }
 
     setSize(size) {
