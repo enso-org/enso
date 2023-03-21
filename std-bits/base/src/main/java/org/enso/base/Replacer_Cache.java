@@ -1,39 +1,42 @@
 package org.enso.base;
 
+import org.graalvm.collections.Pair;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Replacer_Cache {
-  // Map from replacement string to replacement vector.
-  private static Map<String, Object> cache = new HashMap<String, Object>();
-
   private static final int lruSize = 5;
 
   // Circular buffer containing the most recent cache keys.
-  private static final String lru[] = new String[lruSize];
+  private static final ArrayList<Pair<String, Object>> lru = new ArrayList<>(lruSize);
+
+  static {
+    for (int i=0; i < lruSize; ++i) {
+      lru.add(null);
+    }
+  }
 
   // Index into the circular buffer.
   private static int nextSlot = 0;
 
   public static void put(String key, Object value) {
-    if (lru[nextSlot] != null) {
-      cache.remove(lru[nextSlot]);
-    }
-    lru[nextSlot] = key;
+    lru.set(nextSlot, Pair.create(key, value));
     nextSlot = (nextSlot + 1) % lruSize;
-
-    cache.put(key, value);
   }
 
   public static Object get(String key) {
-    return cache.get(key);
+    for (int i=0; i < lruSize; ++i) {
+      Pair<String, Object> pair = lru.get(i);
+      if (pair != null && pair.getLeft().equals(key)) {
+        return lru.get(i).getRight();
+      }
+    }
+    return null;
   }
 
-  public static int getLruArraySize() {
+  public static int getLruSize() {
     return lruSize;
-  }
-
-  public static int getLruCacheSize() {
-    return cache.size();
   }
 }

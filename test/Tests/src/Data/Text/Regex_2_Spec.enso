@@ -433,12 +433,10 @@ spec =
             pattern = Regex_2.compile('([a-c])')
 
             # Add enough values to flush out the first values.
-            0.up_to Replacer.get_lru_array_size+1 . map i->
+            0.up_to Replacer.get_lru_size+1 . map i->
                 result = pattern.replace "abcdef" ("$1$1x" + i.to_text)
                 result . should_not_equal Nothing
             Replacer.replacer_cache_lookup "$1$1x0" . should_equal Nothing
             Replacer.replacer_cache_lookup "$1$1x1" . should_not_equal Nothing
-
-            Replacer.get_lru_array_size . should_equal Replacer.get_lru_cache_size
 
 main = Test_Suite.run_main spec
