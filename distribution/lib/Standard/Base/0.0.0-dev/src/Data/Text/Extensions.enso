@@ -346,6 +346,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
    - only_first: If True, only replace the first match.
+   - use_regex: If true, the term is used as a regular expression.
 
    > Example
      Replace letters in the text "aaa".
@@ -388,10 +389,27 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
          'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
 
 Text.replace : Text -> Text -> Boolean -> Boolean -> Text
-Text.replace self pattern replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False = if pattern.is_empty then self else
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-    compiled_pattern.replace self replacement only_first
+Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if term.is_empty then self else
+    case use_regex of
+        False ->
+            array_from_single_result result = case result of
+                Nothing -> Array.empty
+                _ -> Array.new_1 result
+            spans_array = case case_sensitivity of
+                Case_Sensitivity.Sensitive -> case only_first of
+                    False -> Text_Utils.span_of_all self term
+                    True -> array_from_single_result <| Text_Utils.span_of self term
+                Case_Sensitivity.Insensitive locale -> case only_first of
+                    False ->
+                        Text_Utils.span_of_all_case_insensitive self term locale.java_locale
+                    True ->
+                        array_from_single_result <|
+                            Text_Utils.span_of_case_insensitive self term locale.java_locale False
+            Text_Utils.replace_spans self spans_array replacement
+        True ->
+            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+            pattern = Regex_2.compile term case_insensitive=case_insensitive
+            pattern.replace self replacement only_first
 
 ## ALIAS Get Words
 
