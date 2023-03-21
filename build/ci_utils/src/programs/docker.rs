@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::process::Stdio;
 
+
+
 /// Get the docker image identifier from the `docker build` command output.
 ///
 /// This assumes format compatible with `--quiet` flag.

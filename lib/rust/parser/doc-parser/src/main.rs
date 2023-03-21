@@ -28,7 +28,6 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
 use enso_doc_parser::*;
 use enso_parser::prelude::*;
 

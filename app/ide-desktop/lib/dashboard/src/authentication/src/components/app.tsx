@@ -45,8 +45,10 @@ import * as platformModule from "../platform";
 import * as session from "../authentication/providers/session";
 import ConfirmRegistration from "../authentication/components/confirmRegistration";
 import Dashboard from "../dashboard/components/dashboard";
+import ForgotPassword from "../authentication/components/forgotPassword";
 import Login from "../authentication/components/login";
 import Registration from "../authentication/components/registration";
+import ResetPassword from "../authentication/components/resetPassword";
 import SetUsername from "../authentication/components/setUsername";
 
 // =================
@@ -61,6 +63,10 @@ export const LOGIN_PATH = "/login";
 export const REGISTRATION_PATH = "/registration";
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = "/confirmation";
+/** Path to the forgot password page. */
+export const FORGOT_PASSWORD_PATH = "/forgot-password";
+/** Path to the reset password page. */
+export const RESET_PASSWORD_PATH = "/password-reset";
 /** Path to the set username page. */
 export const SET_USERNAME_PATH = "/set-username";
 
@@ -156,6 +162,14 @@ function AppRouter(props: AppProps) {
               <router.Route
                 path={CONFIRM_REGISTRATION_PATH}
                 element={<ConfirmRegistration />}
+              />
+              <router.Route
+                path={FORGOT_PASSWORD_PATH}
+                element={<ForgotPassword />}
+              />
+              <router.Route
+                path={RESET_PASSWORD_PATH}
+                element={<ResetPassword />}
               />
             </react.Fragment>
           </router.Routes>

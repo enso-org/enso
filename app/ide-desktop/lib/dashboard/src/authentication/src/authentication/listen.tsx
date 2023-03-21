@@ -27,6 +27,8 @@ export enum AuthEvent {
   cognitoHostedUi = "cognitoHostedUI",
   /** Issued when the user completes the sign-in process (via email/password). */
   signIn = "signIn",
+  /** Issued when the user signs out. */
+  signOut = "signOut",
 }
 
 /** Returns `true` if the given `string` is an {@link AuthEvent}. */
