@@ -16,8 +16,8 @@ type Postgres_Type_Mapping
     value_type_to_sql value_type on_problems =
         result = case value_type of
             Value_Type.Boolean ->
-                SQL_Type.Value Types.BIT "bit" precision=1
-            # Byte is not available on Postgres so we substitute it with int2, the closest matching integral type.
+                SQL_Type.Value Types.BIT "bool" precision=1
+            # Byte is not available on Postgres so we substitute it with int2, the closest integral type.
             Value_Type.Byte ->
                 SQL_Type.Value Types.SMALLINT "int2"
             Value_Type.Integer Bits.Bits_16 ->
@@ -45,13 +45,10 @@ type Postgres_Type_Mapping
             Value_Type.Date_Time with_timezone ->
                 type_name = if with_timezone then "timestamptz" else "timestamp"
                 SQL_Type.Value Types.TIMESTAMP type_name
-            Value_Type.Binary size variable ->
-                case variable of
-                    True  -> case size of
-                        Nothing -> SQL_Type.Value Types.BINARY "bytea"
-                        # TODO check this
-                        _       -> SQL_Type.Value Types.VARBINARY "bit varying" size
-                    False -> SQL_Type.Value Types.BIT "bit" size
+            Value_Type.Binary _ _ ->
+                # This is the maximum size that JDBC driver reports for Postgres.
+                max_int4 = 2147483647
+                SQL_Type.Value Types.BINARY "bytea" precision=max_int4
             Value_Type.Mixed ->
                 Error.throw (Illegal_Argument.Error "Postgres tables do not support Mixed types.")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
@@ -66,17 +63,16 @@ type Postgres_Type_Mapping
     ## PRIVATE
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
-        on_not_found =
-            Value_Type.Unsupported_Data_Type sql_type.name sql_type
         simple_type = simple_types_map.get sql_type.typeid Nothing
         simple_type.if_nothing <|
             ## If we didn't match any of the types from the simple mapping, we
                continue with the more complex mappings that take stuff like
                precision into account.
             case complex_types_map.get sql_type.typeid Nothing of
-                Nothing -> on_not_found
+                Nothing -> on_unknown_type sql_type
                 builder -> builder sql_type
 
+## PRIVATE
 simple_types_map = Map.from_vector <|
     ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
@@ -84,6 +80,7 @@ simple_types_map = Map.from_vector <|
     other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time]]
     ints + floats + other
 
+## PRIVATE
 complex_types_map = Map.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
@@ -94,10 +91,20 @@ complex_types_map = Map.from_vector <|
     make_binary variable sql_type =
         Value_Type.Binary size=sql_type.precision variable=variable
     handle_bit sql_type =
-        if sql_type.precision == 1 then Value_Type.Boolean else
-            make_binary False sql_type
+        if sql_type.name == "bool" then Value_Type.Boolean else
+            # We currently do not support bit types.
+            on_unknown_type sql_type
+    handle_timestamp sql_type = case sql_type.name of
+        "timestamptz" -> Value_Type.Date_Time with_timezone=True
+        "timestamp"   -> Value_Type.Date_Time with_timezone=False
+        _             -> on_unknown_type sql_type
 
     numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
     strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
-    binaries = [[Types.BINARY, make_binary False], [Types.BIT, handle_bit], [Types.BLOB, make_binary True]]
-    numerics + strings + binaries
+    binaries = [[Types.BINARY, make_binary True], [Types.BIT, handle_bit]]
+    others = [[Types.TIMESTAMP, handle_timestamp]]
+    numerics + strings + binaries + others
+
+## PRIVATE
+on_unknown_type sql_type =
+    Value_Type.Unsupported_Data_Type sql_type.name sql_type

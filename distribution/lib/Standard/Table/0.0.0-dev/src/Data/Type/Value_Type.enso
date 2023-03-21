@@ -93,9 +93,11 @@ type Value_Type
        ANSI SQL: TIME, TIME WITHOUT TIME ZONE
     Time
 
-    ## Binary stream.
+    ## Binary data.
 
-       ANSI SQL: BINARY, VARBINARY, LONGVARBINARY, BLOB, BIT(n)
+       ANSI SQL: BINARY, VARBINARY, LONGVARBINARY, BLOB
+
+       The size is expressed in bytes.
     Binary size:(Integer|Nothing)=Nothing variable:Boolean=False
 
     ## Unsupported SQL type.

@@ -55,12 +55,9 @@ spec connection db_name =
             t.at "d" . value_type . should_equal default_text
 
         Test.specify "binary" <|
-            t = make_table "binaries" [["a", "bit(2)"], ["b", "bit varying"], ["c", "bit varying(10)"], ["d", "bytea"]]
-            t.info.print
-            t.at "a" . value_type . should_equal (Value_Type.Binary size=2 variable=False)
-            t.at "b" . value_type . should_equal (Value_Type.Binary size=Nothing variable=True)
-            t.at "c" . value_type . should_equal (Value_Type.Binary size=10 variable=True)
-            t.at "d" . value_type . should_equal (Value_Type.Binary size=Nothing variable=True)
+            # Postgres does not support a BLOB type, it has `bytea` instead.
+            t = make_table "binaries" [["a", "bytea"]]
+            t.at "a" . value_type . should_equal (Value_Type.Binary size=max_int4 variable=True)
 
         Test.specify "datetime" <|
             t = make_table "dates" [["a", "date"]]
@@ -73,7 +70,6 @@ spec connection db_name =
             t2.at "d" . value_type . should_equal Value_Type.Time
 
             t3 = make_table "timestamps" [["a", "timestamp"], ["b", "timestamptz"], ["c", "timestamp without time zone"], ["d", "timestamp with time zone"]]
-            t3.info.print
             t3.at "a" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
             t3.at "b" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
             t3.at "c" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
@@ -109,6 +105,13 @@ spec connection db_name =
             t.at "a" . value_type . type_name . should_equal "box"
             t.at "b" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
             t.at "b" . value_type . type_name . should_equal "polygon"
+
+            # Bit strings are not supported by Enso tables at the moment.
+            t2 = make_table "bit strings" [["a", "bit(2)"], ["b", "bit varying"], ["c", "bit varying(10)"]]
+            t2.at "a" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
+            t2.at "a" . value_type . type_name . should_equal "bit"
+            t2.at "b" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
+            t2.at "c" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
 
 main = Test_Suite.run_main (test_with_connection spec)
 
