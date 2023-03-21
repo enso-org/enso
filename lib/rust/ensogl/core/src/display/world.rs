@@ -417,6 +417,7 @@ pub struct WorldData {
     update_themes_handle: callback::Handle,
     garbage_collector: garbage::Collector,
     emit_measurements_handle: Rc<RefCell<Option<callback::Handle>>>,
+    pixel_read_pass_threshold: Rc<RefCell<Weak<Cell<usize>>>>,
 }
 
 impl WorldData {
@@ -441,6 +442,7 @@ impl WorldData {
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));
         let emit_measurements_handle = default();
         SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
+        let pixel_read_pass_threshold = default();
 
         Self {
             frp,
@@ -456,6 +458,7 @@ impl WorldData {
             update_themes_handle,
             garbage_collector,
             emit_measurements_handle,
+            pixel_read_pass_threshold,
         }
         .init()
     }
@@ -523,8 +526,7 @@ impl WorldData {
             garbage_collector.pixel_updated();
         }));
         pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
-        // TODO: We may want to enable it on weak hardware.
-        // pixel_read_pass.set_threshold(1);
+        *self.pixel_read_pass_threshold.borrow_mut() = pixel_read_pass.get_threshold().downgrade();
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(&self.default_scene.layers))
             .add(ScreenRenderPass::new())
@@ -582,6 +584,18 @@ impl WorldData {
     #[profile(Debug)]
     pub fn collect_garbage<T: 'static>(&self, object: T) {
         self.garbage_collector.collect(object);
+    }
+
+    /// Set the maximum frequency at which the pointer location will be checked, in terms of number
+    /// of frames per check.
+    pub fn set_pixel_read_period(&self, period: usize) {
+        if let Some(setter) = self.pixel_read_pass_threshold.borrow().upgrade() {
+            // Convert from minimum number of frames per pixel-read pass to
+            // minimum number of frames between each frame that does a pixel-read pass.
+            let threshold = period.saturating_sub(1);
+            info!("Setting pixel read pass threshold to {threshold}.");
+            setter.set(threshold);
+        }
     }
 }
 

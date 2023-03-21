@@ -87,9 +87,7 @@
       dist/: # Here ensogl-pack outputs its artifacts
       linked-dist/: # Either symlink to dist or to the gui artifacts.
     generated-java/:
-    parser-upload/:
     test-results/:
-    scala-parser.js:
   test/:
     Benchmarks/:
   tools/:
