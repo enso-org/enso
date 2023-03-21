@@ -2129,6 +2129,16 @@ pub mod test {
                         }
                     }
 
+                    mod Table {
+                        mod Data {
+                            mod Table {
+                                type Table {
+                                    static fn new() -> local.Project.Table.Data.Table.Table;
+                                }
+                            }
+                        }
+                    }
+
                     static fn project_method() -> Standard.Base.Number;
                 }
             }
@@ -2148,31 +2158,39 @@ pub mod test {
                 entry:            "local.Project.Foo.Bar.Baz.baz_method".to_string(),
                 input:            "Foo.Bar.".to_string(),
                 expected_code:    "operator1 = Foo.Bar.Baz.baz_method".to_string(),
-                expected_imports: vec!["local.Project.Foo".to_string()],
+                expected_imports: vec!["import local.Project.Foo".to_string()],
             },
             Case {
                 entry:            "local.Project.Foo.Bar.Baz.baz_method".to_string(),
                 input:            "Bar.".to_string(),
                 expected_code:    "operator1 = Bar.Baz.baz_method".to_string(),
-                expected_imports: vec!["local.Project.Foo.Bar".to_string()],
+                expected_imports: vec!["import local.Project.Foo.Bar".to_string()],
             },
             Case {
                 entry:            "local.Project.Foo.Bar.bar_method".to_string(),
                 input:            "Bar.".to_string(),
                 expected_code:    "operator1 = Bar.bar_method".to_string(),
-                expected_imports: vec!["local.Project.Foo.Bar".to_string()],
+                expected_imports: vec!["import local.Project.Foo.Bar".to_string()],
             },
             Case {
                 entry:            "local.Project.Foo.Bar.bar_method".to_string(),
                 input:            "Foo.Gee.".to_string(),
                 expected_code:    "operator1 = Bar.bar_method".to_string(),
-                expected_imports: vec!["local.Project.Foo.Bar".to_string()],
+                expected_imports: vec!["import local.Project.Foo.Bar".to_string()],
             },
             Case {
                 entry:            "local.Project.Foo.Bar.bar_method".to_string(),
                 input:            "local.Project.Foo.Bar.".to_string(),
                 expected_code:    "operator1 = local.Project.Foo.Bar.bar_method".to_string(),
                 expected_imports: vec![],
+            },
+            Case {
+                entry:            "local.Project.Table.Data.Table.Table.new".to_string(),
+                input:            "Table.".to_string(),
+                expected_code:    "operator1 = Table.new".to_string(),
+                expected_imports: vec![
+                    "from local.Project.Table.Data.Table import Table".to_string()
+                ],
             },
             // TODO: test cases below actually don't work as desired because the searcher is not
             // using `local.Project.Main` as it's code position.
@@ -2186,13 +2204,13 @@ pub mod test {
                 entry:            "local.Project.project_method".to_string(),
                 input:            "Project.".to_string(),
                 expected_code:    "operator1 = Project.project_method".to_string(),
-                expected_imports: vec!["local.Project".to_string()],
+                expected_imports: vec!["import local.Project".to_string()],
             },
             Case {
                 entry:            "local.Project.Foo.Bar.bar_method".to_string(),
                 input:            "Project.".to_string(),
                 expected_code:    "operator1 = Project.Foo.Bar.bar_method".to_string(),
-                expected_imports: vec!["local.Project".to_string()],
+                expected_imports: vec!["import local.Project".to_string()],
             },
         ];
 
@@ -2216,13 +2234,11 @@ pub mod test {
             searcher.commit_node().unwrap();
             let updated_def = searcher.graph.graph().definition().unwrap().item;
             let expected = crate::test::mock::main_from_lines(&[case.expected_code.clone()]);
-            assert_eq!(updated_def.ast.repr(), expected);
+            assert_eq!(updated_def.ast.repr(), expected, "{:?}", case);
             let module_info = &searcher.graph.graph().module.info();
             let imports = module_info.iter_imports();
-            let imports = imports.map(|i| i.qualified_module_name().unwrap()).collect_vec();
-            let expected = case.expected_imports.iter().cloned();
-            let expected = expected.map(|i| QualifiedName::from_text(i).unwrap()).collect_vec();
-            assert_eq!(imports, expected, "{:?}", case);
+            let imports = imports.map(|i| i.to_string()).collect_vec();
+            assert_eq!(imports, case.expected_imports, "{:?}", case);
         }
     }
 }

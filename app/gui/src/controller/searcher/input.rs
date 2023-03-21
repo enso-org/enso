@@ -435,15 +435,14 @@ impl InsertContext<'_> {
             if let action::Suggestion::FromDatabase(entry) = self.suggestion {
                 let name = entry.qualified_name();
                 let all_segments = name.segments().cloned().collect_vec();
-                error!("all_segments: {:?}", all_segments);
-                error!("existing_segments: {:?}", existing_segments);
-                let pos = all_segments
-                    .windows(existing_segments.len())
-                    .position(|w| w == existing_segments)?;
+                // A list of search windows is reversed, because we want to look from the end, as it
+                // gives the shortest possible name.
+                let window_size = existing_segments.len();
+                let mut windows = all_segments.windows(window_size).rev();
+                let window_position_from_end = windows.position(|w| w == existing_segments)?;
+                let pos = all_segments.len().saturating_sub(window_position_from_end + window_size);
                 let name_segments = all_segments.get(pos..).unwrap_or(&[]).to_vec();
                 let import_segments = all_segments.get(..=pos).unwrap_or(&[]).to_vec();
-                error!("name_segments: {:?}", name_segments);
-                error!("import_segments: {:?}", import_segments);
                 // Valid qualified name requires at least 2 segments (namespace and project name).
                 // Not enough segments to build a qualified name is not a mistake here – it just
                 // means we don't need any import, as the entry is already in scope.
