@@ -22,9 +22,6 @@
 use enso_prelude::*;
 use ensogl::prelude::*;
 
-use ide_view_documentation as documentation;
-use ide_view_graph_editor::component::node::HEIGHT as NODE_HEIGHT;
-
 use enso_frp as frp;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
@@ -32,7 +29,8 @@ use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser as theme;
-
+use ide_view_documentation as documentation;
+use ide_view_graph_editor::component::node::HEIGHT as NODE_HEIGHT;
 
 
 // ==============
