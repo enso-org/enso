@@ -275,7 +275,7 @@ type Match_Iterator
                 filler_range = Range.new self.cursor match_start
                 filler_span = (Utf_16_Span.Value filler_range self.input)
                 match = Match_2.Value self.pattern regex_result self.input
-                next_cursor = match.utf16_end 0
+                next_cursor = match.utf_16_end 0
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
 

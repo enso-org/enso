@@ -48,8 +48,8 @@ type Match_2
        Arguments:
        - group: the group name or number. Marked groups defined in the regex are
          numbered starting at 1; group 0 refers to the entire match.
-    utf16_start : Integer | Text -> Integer
-    utf16_start self group=0 =
+    utf_16_start : Integer | Text -> Integer
+    utf_16_start self group=0 =
         span = self.utf_16_span group
         if span.is_nothing then Nothing else span.start
 
@@ -58,8 +58,8 @@ type Match_2
        Arguments:
        - group: the group name or number. Marked groups defined in the regex are
          numbered starting at 1; group 0 refers to the entire match.
-    utf16_end : Integer | Text -> Integer
-    utf16_end self group=0 =
+    utf_16_end : Integer | Text -> Integer
+    utf_16_end self group=0 =
         span = self.utf_16_span group
         if span.is_nothing then Nothing else span.end
 
