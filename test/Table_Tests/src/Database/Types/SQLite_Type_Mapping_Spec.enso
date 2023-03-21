@@ -62,8 +62,16 @@ spec =
             t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
             t.compute '[b] + "_suf"' . value_type . should_equal Value_Type.Char
 
-            # TODO
-            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a"]
-            t2.info.print
+            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "c"]
+            t2.at "b" . value_type . should_equal Value_Type.Char
+            t2.at "Sum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Maximum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Minimum c" . value_type . should_equal Value_Type.Boolean
+
+    Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
+        # TODO this will be tested once the cast operator is implemented
+        # Binary 10 variable=False -> Binary max_int4 variable=True
+        # Byte -> Integer Bits.Bits_16
+        Nothing
 
 main = Test_Suite.run_main spec

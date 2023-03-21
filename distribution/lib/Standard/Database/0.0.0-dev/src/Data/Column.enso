@@ -137,6 +137,12 @@ type Column
                 if Helpers.check_integrity self other_column then other_column.expression else
                     Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
             constant ->
+                # TODO infer the type from value
+                ## TODO [RW] later we should try to make sure the type is close
+                   to the column type - i.e. if I do x+10 if `x` is int16, then
+                   I should treat 10 as int16. Currently it will be the default
+                   (int64), but in a latter stage we should try to make the
+                   types match more closely.
                 actual_operand_type = operand_type.if_nothing self.sql_type
                 SQL_Expression.Constant actual_operand_type constant
 

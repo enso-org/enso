@@ -20,17 +20,33 @@ type SQL_Type_Mapping
        If the conversion is exact, it should be reversible, i.e.
        `sql_type_to_value_type (value_type_to_sql x) = x`.
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
-    value_type_to_sql =
+    value_type_to_sql value_type on_problems =
+        _ = [value_type, on_problems]
         Unimplemented.throw "This is an interface only."
 
     ## Converts the given SQL_Type to its corresponding Value_Type.
     sql_type_to_value_type : SQL_Type -> Value_Type
-    sql_type_to_value_type =
+    sql_type_to_value_type sql_type =
+        _ = sql_type
         Unimplemented.throw "This is an interface only."
 
-    # TODO not sure if this is needed, instead we could allow to construct SQL types only in context of a specific dialect, then the correct typename would be baked into the type
-    to_dialect_specific_name : SQL_Type -> Text
-    to_dialect_specific_name =
+    ## Returns a `SQL_Type_Reference` that will resolve to the resulting type of
+       the given operation in a given context.
+
+       In most cases this will just delegate to `SQL_Type_Reference.new` which
+       will ask the particular database backend to infer the type, but some
+       specific cases may override the default behavior. The notable example is
+       the ability to support Boolean types in SQLite.
+
+       The particular operation is identified by its name. It also gets a vector
+       of supplied arguments in case the result type may depend on them. The
+       arguments are passed as-is, i.e. they may be Database columns or raw Enso
+       values. Additionally, the generated IR expression is also provided as
+       depending on the backend the raw arguments or the target expression may
+       be more useful to create the return type.
+    infer_return_type : Connection -> Context -> Text -> Vector -> Expression -> SQL_Type_Reference
+    infer_return_type connection context op_name arguments expression =
+        _ = [connection, context, op_name, arguments, expression]
         Unimplemented.throw "This is an interface only."
 
 ## PRIVATE

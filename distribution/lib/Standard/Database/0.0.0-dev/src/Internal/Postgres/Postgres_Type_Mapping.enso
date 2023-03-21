@@ -6,6 +6,7 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Data.SQL_Type.SQL_Type
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 polyglot java import java.sql.Types
 
@@ -71,6 +72,14 @@ type Postgres_Type_Mapping
             case complex_types_map.get sql_type.typeid Nothing of
                 Nothing -> on_unknown_type sql_type
                 builder -> builder sql_type
+
+    ## PRIVATE
+       The Postgres type mapping always relies on the return type determined by
+       the database backend.
+    infer_return_type : Connection -> Context -> Text -> Vector -> Expression -> SQL_Type_Reference
+    infer_return_type connection context op_name arguments expression =
+        _ = [op_name, arguments]
+        SQL_Type_Reference.new connection context expression
 
 ## PRIVATE
 simple_types_map = Map.from_vector <|

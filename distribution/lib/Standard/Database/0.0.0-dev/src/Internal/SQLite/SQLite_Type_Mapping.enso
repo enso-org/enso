@@ -9,8 +9,6 @@ import project.Data.SQL_Type.SQL_Type
 
 polyglot java import java.sql.Types
 
-# TODO [RW] likely we could make this into a Base_SQL_Type_Mapping that can be reused across SQLite and Postgres, with adaptations if needed.
-
 ## PRIVATE
    Mapping from Value_Type to SQLite is done by finding the closest matching
    type corresponding to one of the 4 supported affinities: INTEGER, REAL,
@@ -26,18 +24,24 @@ polyglot java import java.sql.Types
    operations will be INTEGER - so we need to carefully ensure there is the
    override.
 
-   TODO update description - JDBC has more flexibility but its mostly fake, so maybe we map to what is truly there? probably yes
-   The types are mapped according to the rules set in the JDBC SQLite driver
-   which adds support for a few more types than raw SQLite - for example even
-   though a BOOLEAN column will be stored as numbers, the JDBC driver is able to
-   detect the BOOLEAN column type name and treat its contents as boolean values.
-   This is useful, as it allows us to use a bit more precise types than what
-   pure SQLite would allow. If the DB author declared a column as BOOLEAN, we
-   probably indeed want to view it as booleans values in Enso, and this
-   mechanism gives us this ability.
+   While the JDBC driver tries to approximate more precise types based on the
+   type name, these approximations are not fully true as the underlying SQLite
+   storage is still only one of the supported affinities. So to avoid suggesting
+   to the user that the database can do stuff which it cannot (like storing
+   integers truncating them at 32-bits or storing fixed-length text) we
+   approximate the supported types by data types that correspond to what can
+   actually be stored in the given column to match its affinity. While SQLite
+   allows to store any data in a column, we restrict the data to only what can
+   match the column's affinity to be aligned with our other backends.
 
-   The exact rules can be found in the `JDBC3ResultSet::getColumnType` method in
-   the `org.xerial.sqlite-jdbc` module.
+   We map the BLOB affinity to our Mixed type to allow for Mixed type columns.
+   One can still store binary data in such a column.
+   TODO [RW] do we want that or do we want to map to binary? but then we'd have
+   to disallow Mixed as it's impossible to distinguish, at least without
+   additional machinery
+
+   See `JDBC3ResultSet::getColumnType` method in the `org.xerial.sqlite-jdbc`
+   module for the logic JDBC is using to map the SQLite types.
 type SQLite_Type_Mapping
     ## PRIVATE
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
@@ -70,24 +74,38 @@ type SQLite_Type_Mapping
             Value_Type.Unsupported_Data_Type sql_type.name sql_type
         simple_types_map.get sql_type.typeid on_not_found
 
-## The types that SQLite JDBC driver will report are:
-   - BOOLEAN
-   - TINYINT
-   - SMALLINT
-   - BIGINT
-   - INTEGER
-   - DECIMAL
-   - DOUBLE
-   - REAL
-   - FLOAT
-   - NUMERIC
-   - DATE
-   - TIMESTAMP
-   - CHAR
-   - VARCHAR
-   - BINARY
-   - BLOB
-   - CLOB
+    ## PRIVATE
+       The SQLite type mapping takes special measures to keep boolean columns
+       boolean even if the Database will say that they are numeric.
+
+       To do so, any operation that returns booleans will override its return
+       type to boolean, and operations that return the same type as inputs will
+       also ensure to override to the boolean type if the input was boolean. In
+       particular, if the operations accept multiple arguments, they will
+       override the return type to boolean if all the input arguments had
+       boolean type.
+    infer_return_type : Connection -> Context -> Text -> Vector -> Expression -> SQL_Type_Reference
+    infer_return_type connection context op_name arguments expression =
+        return_boolean =
+            SQL_Type_Reference.from_constant (SQLite_Types.boolean)
+        infer_default_type =
+            SQL_Type_Reference.new connection context expression
+
+        find_type arg = case arg
+        always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN"]
+        preserve_input_type_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN"]
+        case always_boolean_ops.contains op_name of
+            True -> return_boolean
+            False -> case preserve_input_type_ops.contains op_name of
+                True ->
+                    inputs_types = arguments.map find_type
+                    if inputs_types.all (== Value_Type.Boolean) then return_boolean else
+                        infer_default_type
+                False -> infer_default_type
+
+## The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT,
+   SMALLINT, BIGINT, INTEGER, DECIMAL, DOUBLE, REAL, FLOAT, NUMERIC, DATE,
+   TIMESTAMP, CHAR, VARCHAR, BINARY, BLOB, CLOB.
 
    We map the types to how they are actually stored, with the exception of
    boolean which is mapped as boolean type as explained above.
@@ -99,7 +117,7 @@ simple_types_map = Map.from_vector <|
     floats = [Types.DOUBLE, Types.REAL, Types.FLOAT] . map x-> [x, Value_Type.Float Bits.Bits_64]
     numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, Value_Type.Decimal]
     strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, Value_Type.Char size=Nothing variable=True]
-    blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Binary size=Nothing variable=True]
+    blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Mixed]
     special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
     ints + floats + numerics + strings + blobs + special_types
 
