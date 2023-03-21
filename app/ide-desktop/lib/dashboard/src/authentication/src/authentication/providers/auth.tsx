@@ -12,8 +12,8 @@ import * as authServiceModule from '../service'
 import * as backendService from '../../dashboard/service'
 import * as errorModule from '../../error'
 import * as loggerProvider from '../../providers/logger'
+import * as newtype from '../../newtype'
 import * as sessionProvider from './session'
-import * as utils from '../../utils'
 
 // =================
 // === Constants ===
@@ -247,7 +247,7 @@ export function AuthProvider(props: AuthProviderProps) {
 
         await backend.createUser({
             userName: username,
-            userEmail: utils.brand<backendService.EmailAddress>(email),
+            userEmail: newtype.asNewtype<backendService.EmailAddress>(email),
         })
         navigate(app.DASHBOARD_PATH)
         toast.success(MESSAGES.setUsernameSuccess)
