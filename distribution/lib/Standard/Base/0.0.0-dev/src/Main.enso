@@ -8,7 +8,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors
-import project.Function
+import project.Function.Function
 import project.IO
 import project.Math
 import project.Meta
@@ -39,6 +39,7 @@ export project.Data.Text.Text
 export project.Data.Vector.Vector
 export project.Error.Error
 export project.Errors
+export project.Function.Function
 export project.IO
 export project.Math
 export project.Meta
@@ -61,7 +62,7 @@ export project.System.Process.Exit_Code.Exit_Code
 export project.Warning.Warning
 
 from project.Data.Boolean export Boolean, True, False
-from project.Function export all
+from project.Function.Function export all
 from project.Data.Numbers export Number, Integer, Decimal
 from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect, JSON_File
 

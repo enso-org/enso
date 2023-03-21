@@ -24,7 +24,8 @@ polyglot java import java.io.StringWriter
 polyglot java import java.io.IOException
 polyglot java import java.io.Writer
 
-## Writes a delimited file according to the provided format.
+## PRIVATE
+   Writes a delimited file according to the provided format.
 
    Arguments:
    - table: The table to serialize.
