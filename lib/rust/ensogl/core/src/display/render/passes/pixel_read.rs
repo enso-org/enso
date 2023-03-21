@@ -51,15 +51,15 @@ impl<T: JsTypedArrayItem> PixelReadPassData<T> {
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub struct PixelReadPass<T: JsTypedArrayItem> {
-    data:          Option<PixelReadPassData<T>>,
-    sync:          Option<WebGlSync>,
-    position:      Uniform<Vector2<i32>>,
-    threshold:     Rc<Cell<usize>>,
-    to_next_read:  usize,
+    data:            Option<PixelReadPassData<T>>,
+    sync:            Option<WebGlSync>,
+    position:        Uniform<Vector2<i32>>,
+    threshold:       Rc<Cell<usize>>,
+    since_last_read: usize,
     #[derivative(Debug = "ignore")]
-    callback:      Option<Rc<dyn Fn(Vec<T>)>>,
+    callback:        Option<Rc<dyn Fn(Vec<T>)>>,
     #[derivative(Debug = "ignore")]
-    sync_callback: Option<Rc<dyn Fn()>>,
+    sync_callback:   Option<Rc<dyn Fn()>>,
 }
 
 impl<T: JsTypedArrayItem> PixelReadPass<T> {
@@ -71,8 +71,8 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         let callback = default();
         let sync_callback = default();
         let threshold = default();
-        let to_next_read = 0;
-        Self { data, sync, position, threshold, to_next_read, callback, sync_callback }
+        let since_last_read = 0;
+        Self { data, sync, position, threshold, since_last_read, callback, sync_callback }
     }
 
     /// Sets a callback which will be evaluated after a successful pixel read action.
@@ -187,10 +187,10 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
 
 impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
     fn run(&mut self, instance: &pass::Instance, update_status: UpdateStatus) {
-        if self.to_next_read > 0 {
-            self.to_next_read -= 1;
+        if self.since_last_read < self.threshold.get() {
+            self.since_last_read += 1;
         } else {
-            self.to_next_read = self.threshold.get();
+            self.since_last_read = 0;
             self.init_if_fresh(&instance.context, &instance.variables);
             if let Some(sync) = self.sync.clone() {
                 self.check_and_handle_sync(&instance.context, &sync);
