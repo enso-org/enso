@@ -1,7 +1,7 @@
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 
 ## ALIAS Range
 

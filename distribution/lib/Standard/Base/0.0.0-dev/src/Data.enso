@@ -4,9 +4,9 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Error.File_Error.File_Error
-import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.Problem_Behavior.Problem_Behavior
+import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Network.URI.URI
 import project.Network.HTTP.Header.Header

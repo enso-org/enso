@@ -3,7 +3,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Error.Error
-import project.Error.Time_Error.Time_Error
+import project.Errors.Time_Error.Time_Error
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False

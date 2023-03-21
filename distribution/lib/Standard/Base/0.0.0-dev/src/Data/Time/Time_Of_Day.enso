@@ -10,9 +10,9 @@ import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Time_Error.Time_Error
+import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -146,7 +146,7 @@ type Time_Of_Day
          Recover from the parse error.
 
              from Standard.Base import Time_Of_Day
-             from Standard.Base.Error.Common import Time_Error
+             from Standard.Base.Errors.Common import Time_Error
 
              example_parse = Time_Of_Day.parse "half twelve" . catch Time_Error _->
                  Time_Of_Day.new

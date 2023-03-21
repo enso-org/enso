@@ -10,10 +10,10 @@ import project.Data.Range.Extensions
 import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.No_Such_Key.No_Such_Key
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.No_Such_Key.No_Such_Key
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic

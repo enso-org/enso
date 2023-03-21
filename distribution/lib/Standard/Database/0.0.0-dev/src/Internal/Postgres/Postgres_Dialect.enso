@@ -1,7 +1,7 @@
 from Standard.Base import all hiding First, Last
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Illegal_State.Illegal_State
-import Standard.Base.Error.Unimplemented.Unimplemented
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
