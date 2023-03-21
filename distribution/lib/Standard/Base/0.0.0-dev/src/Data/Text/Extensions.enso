@@ -388,6 +388,11 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
          # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
          'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
 
+   > Example
+     Regexp replace.
+
+     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
+
 Text.replace : Text -> Text -> Boolean -> Boolean -> Text
 Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if term.is_empty then self else
     case use_regex of
