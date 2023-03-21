@@ -16,7 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 /** Exposes a multi-client JSON RPC Server instance over WebSocket connections.
   *
-  * @param protocol a protocol supported be the server
+  * @param protocolFactory a protocol factory
   * @param clientControllerFactory a factory used to create a client controller
   * @param config a server config
   * @param optionalEndpoints a list of optional endpoints
@@ -24,7 +24,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param materializer a materializer
   */
 class JsonRpcServer(
-  protocol: Protocol,
+  protocolFactory: ProtocolFactory,
   clientControllerFactory: ClientControllerFactory,
   config: JsonRpcServer.Config      = JsonRpcServer.Config.default,
   optionalEndpoints: List[Endpoint] = List.empty
@@ -36,6 +36,7 @@ class JsonRpcServer(
   implicit val ec: ExecutionContext = system.dispatcher
 
   private def newUser(): Flow[Message, Message, NotUsed] = {
+    val protocol = protocolFactory.getProtocol
     val messageHandler =
       system.actorOf(
         Props(new MessageHandlerSupervisor(clientControllerFactory, protocol)),

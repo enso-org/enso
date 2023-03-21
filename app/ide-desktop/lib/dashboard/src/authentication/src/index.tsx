@@ -8,6 +8,7 @@
  * included in the final bundle. */
 // It is safe to disable `no-restricted-syntax` because the `PascalCase` naming is required
 // as per the above comment.
+// @ts-expect-error See above comment for why this import is needed.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-restricted-syntax
 import * as React from "react";
 import * as reactDOM from "react-dom/client";
@@ -46,10 +47,10 @@ export function run(
   const root = document.getElementById(ROOT_ELEMENT_ID);
   if (root == null) {
     logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`);
-    return;
+  } else {
+    const props = { logger, platform, onAuthenticated };
+    reactDOM.createRoot(root).render(<App {...props} />);
   }
-  const props = { logger, platform, onAuthenticated };
-  reactDOM.createRoot(root).render(<App {...props} />);
 }
 
 export type AppProps = app.AppProps;

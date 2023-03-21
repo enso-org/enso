@@ -10,6 +10,8 @@ import * as loggerProvider from "../providers/logger";
 // === Constants ===
 // =================
 
+/** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
+const SET_USER_NAME_PATH = "users";
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
 const GET_USER_PATH = "users/me";
 
@@ -22,6 +24,12 @@ export interface Organization {
   id: string;
   userEmail: string;
   name: string;
+}
+
+/** HTTP request body for the "set username" endpoint. */
+export interface SetUsernameRequestBody {
+  userName: string;
+  userEmail: string;
 }
 
 // ===============
@@ -65,6 +73,13 @@ export class Backend {
     };
   }
 
+  /** Sets the username of the current user, on the Cloud backend API. */
+  setUsername(body: SetUsernameRequestBody): Promise<Organization> {
+    return this.post<Organization>(SET_USER_NAME_PATH, body).then((response) =>
+      response.json()
+    );
+  }
+
   /** Returns organization info for the current user, from the Cloud backend API.
    *
    * @returns `null` if status code 401 or 404 was received. */
@@ -75,8 +90,9 @@ export class Backend {
         response.status === http.HttpStatus.notFound
       ) {
         return null;
+      } else {
+        return response.json();
       }
-      return response.json();
     });
   }
 }

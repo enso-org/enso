@@ -48,6 +48,8 @@ declare module 'create-servers' {
     }
     export default function (
         option: CreateServersOptions,
+        // This is a third-party module which we have no control over.
+        // eslint-disable-next-line no-restricted-syntax
         errorHandler: (err: HttpError | undefined) => void
     ): unknown
 }

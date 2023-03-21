@@ -45,8 +45,11 @@ import * as platformModule from "../platform";
 import * as session from "../authentication/providers/session";
 import ConfirmRegistration from "../authentication/components/confirmRegistration";
 import Dashboard from "../dashboard/components/dashboard";
+import ForgotPassword from "../authentication/components/forgotPassword";
 import Login from "../authentication/components/login";
 import Registration from "../authentication/components/registration";
+import ResetPassword from "../authentication/components/resetPassword";
+import SetUsername from "../authentication/components/setUsername";
 
 // =================
 // === Constants ===
@@ -60,6 +63,12 @@ export const LOGIN_PATH = "/login";
 export const REGISTRATION_PATH = "/registration";
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = "/confirmation";
+/** Path to the forgot password page. */
+export const FORGOT_PASSWORD_PATH = "/forgot-password";
+/** Path to the reset password page. */
+export const RESET_PASSWORD_PATH = "/password-reset";
+/** Path to the set username page. */
+export const SET_USERNAME_PATH = "/set-username";
 
 // ===========
 // === App ===
@@ -110,14 +119,23 @@ function App(props: AppProps) {
 function AppRouter(props: AppProps) {
   const { logger, onAuthenticated } = props;
   const navigate = router.useNavigate();
+  const mainPageUrl = new URL(window.location.href);
   const memoizedAuthService = react.useMemo(() => {
     const authConfig = { navigate, ...props };
     return authService.initAuthService(authConfig);
   }, [navigate, props]);
-  const userSession = memoizedAuthService.cognito.userSession;
+  const userSession = memoizedAuthService.cognito.userSession.bind(
+    memoizedAuthService.cognito
+  );
+  const registerAuthEventListener =
+    memoizedAuthService.registerAuthEventListener;
   return (
     <loggerProvider.LoggerProvider logger={logger}>
-      <session.SessionProvider userSession={userSession}>
+      <session.SessionProvider
+        mainPageUrl={mainPageUrl}
+        userSession={userSession}
+        registerAuthEventListener={registerAuthEventListener}
+      >
         <authProvider.AuthProvider
           authService={memoizedAuthService}
           onAuthenticated={onAuthenticated}
@@ -135,11 +153,23 @@ function AppRouter(props: AppProps) {
               {/* Protected pages are visible to authenticated users. */}
               <router.Route element={<authProvider.ProtectedLayout />}>
                 <router.Route path={DASHBOARD_PATH} element={<Dashboard />} />
+                <router.Route
+                  path={SET_USERNAME_PATH}
+                  element={<SetUsername />}
+                />
               </router.Route>
               {/* Other pages are visible to unauthenticated and authenticated users. */}
               <router.Route
                 path={CONFIRM_REGISTRATION_PATH}
                 element={<ConfirmRegistration />}
+              />
+              <router.Route
+                path={FORGOT_PASSWORD_PATH}
+                element={<ForgotPassword />}
+              />
+              <router.Route
+                path={RESET_PASSWORD_PATH}
+                element={<ResetPassword />}
               />
             </react.Fragment>
           </router.Routes>

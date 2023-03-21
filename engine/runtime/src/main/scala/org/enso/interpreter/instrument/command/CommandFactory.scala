@@ -65,6 +65,9 @@ object CommandFactory {
       case _: Api.StartBackgroundProcessing =>
         new StartBackgroundProcessingCmd(request.requestId)
 
+      case payload: Api.SerializeModule =>
+        new SerializeModuleCommand(request.requestId, payload.module)
+
       case Api.ShutDownRuntimeServer() =>
         throw new IllegalArgumentException(
           "ShutDownRuntimeServer request is not convertible to command object"

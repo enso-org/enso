@@ -160,3 +160,51 @@ pub mod skip {
         }
     }
 }
+
+/// Icon for the button to disable re-evaluation. Looks like a crossed-out arrow loop.
+pub mod disable_reevaluation {
+    use super::*;
+
+    use std::f32::consts::FRAC_PI_2;
+    use std::f32::consts::FRAC_PI_6;
+
+    ensogl::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
+            let fill_color = Var::<color::Rgba>::from(color_rgba);
+            let width = Var::<Pixels>::from("input_size.x");
+            let height = Var::<Pixels>::from("input_size.y");
+
+            let unit = &width / 16.0;
+
+            let outer_rect = Rect((&unit * 14.0, &unit * 12.0))
+                .corners_radius(&unit * 6.0);
+            let loop_ = &outer_rect - outer_rect.shrink(&unit * 2.0);
+            let arrow_head = Triangle(&unit * 8.0, &unit * 7.0)
+                .rotate(FRAC_PI_2.radians())
+                .translate_x(&unit * 2.5)
+                .translate_y(&unit * 5.0);
+            let arrow_loop = (loop_ + arrow_head)
+                .translate_y(-&unit)
+                .translate_x(-&unit);
+            let stripe = Rect((&unit * 17.33, &unit * 2.0))
+                .rotate((-FRAC_PI_6).radians())
+                .translate_y(&unit * -2.33);
+            let stripe_clip = stripe
+                .translate_x(-&unit)
+                .translate_y(&unit * 3.0.sqrt());
+            let icon = AnyShape::from(arrow_loop + stripe - stripe_clip)
+                .fill(fill_color);
+
+            let hover_area = Rect((width,height))
+                .fill(INVISIBLE_HOVER_COLOR);
+
+            (icon + hover_area).into()
+        }
+    }
+
+    impl ColorableShape for Shape {
+        fn set_color(&self, color: color::Rgba) {
+            self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
+        }
+    }
+}
