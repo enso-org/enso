@@ -1,5 +1,5 @@
 /** @file This module defines the Project Manager endpoint. */
-import * as utils from './utils'
+import * as newtype from './newtype'
 
 const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 
@@ -18,16 +18,16 @@ interface Result<T> {
 }
 
 // This intentionally has the same brand as in the cloud backend API.
-type ProjectId = utils.Newtype<'ProjectId'> & string
-type ProjectName = utils.Newtype<'ProjectName'> & string
-type UTCDateTime = utils.Newtype<'UTCDateTime'> & string
+type ProjectId = newtype.Newtype<string, 'ProjectId'>
+type ProjectName = newtype.Newtype<string, 'ProjectName'>
+type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
 
 interface ProjectMetadata {
     name: ProjectName
     namespace: string
     id: ProjectId
-    engineVersion: string | undefined
-    lastOpened: UTCDateTime | undefined
+    engineVersion: string | null
+    lastOpened: UTCDateTime | null
 }
 
 interface IpWithSocket {
