@@ -284,6 +284,8 @@ impl IsTarget for Wasm {
     }
 }
 
+
+
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct WatchInput {
@@ -343,11 +345,18 @@ impl IsWatchable for Wasm {
 
             let mut watch_cmd = Cargo.cmd()?;
 
+            let (watch_cmd_name, mut watch_cmd_opts) = match std::env::var("USE_CARGO_WATCH_PLUS") {
+                Ok(_) => ("watch-plus", vec!["--why"]),
+                Err(_) => ("watch", vec![]),
+            };
+            watch_cmd_opts.push("--ignore");
+            watch_cmd_opts.push("README.md");
+
             watch_cmd
                 .kill_on_drop(true)
                 .current_dir(&context.repo_root)
-                .arg("watch")
-                .args(["--ignore", "README.md"])
+                .arg(watch_cmd_name)
+                .args(watch_cmd_opts)
                 .args(cargo_watch_flags)
                 .arg("--");
 

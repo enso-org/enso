@@ -230,13 +230,6 @@ impl Uniforms {
 }
 
 
-// =========================
-// === Metadata Profiler ===
-// =========================
-
-profiler::metadata_logger!("RenderStats", log_render_stats(StatsData));
-
-
 
 // =============
 // === World ===
@@ -436,7 +429,6 @@ impl WorldData {
         let garbage_collector = default();
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
-            log_render_stats(*stats)
         }));
         let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));
@@ -536,10 +528,12 @@ impl WorldData {
     }
 
     fn run_stats(&self, time: Duration) {
-        let previous_frame_stats = self.stats.begin_frame(time);
-        if let Some(stats) = previous_frame_stats {
-            self.on.prev_frame_stats.run_all(&stats);
+        self.stats.calculate_prev_frame_fps(time);
+        {
+            let stats_borrowed = self.stats.borrow();
+            self.on.prev_frame_stats.run_all(&stats_borrowed.stats_data);
         }
+        self.stats.reset_per_frame_statistics();
     }
 
     /// Begin incrementally submitting [`profiler`] data to the User Timing web API.

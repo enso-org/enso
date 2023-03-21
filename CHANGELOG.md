@@ -172,11 +172,16 @@
   generated shaders differ per theme (only light theme is available, the dark
   theme has been disabled). We will support multiple themes in the future, but
   this is not on our priority list right now.
+- [Performance monitor was extended with the ability to print details of actions
+  performed in a given frame][5895]. In particular, you can now inspect names of
+  all symbols rendered in a given frame. You can also pause the performance
+  monitor and inspect results recorded in the past.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
 [4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
+[5895]: https://github.com/enso-org/enso/pull/5895
 
 #### Enso Standard Library
 
