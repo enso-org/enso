@@ -238,9 +238,6 @@ impl NavigatorEvents {
         let data = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_wheel.add(move |event: &mouse::OnWheel| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
-                    event.prevent_default();
-                }
                 if event.ctrl_key() {
                     // Prevent zoom event to be handed to the browser. This avoids browser scaling
                     // being applied to the whole IDE, thus we need to do this always when ctrl is
@@ -314,10 +311,6 @@ impl NavigatorEvents {
         let data = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_move.add(move |event: &mouse::OnMove| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
-                    event.prevent_default();
-                }
-
                 let position = event.position_relative_to_event_handler();
                 data.set_mouse_position(position);
                 let movement = data.mouse_position() - data.last_mouse_position();

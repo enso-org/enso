@@ -7,9 +7,27 @@ import * as react from "react";
 import * as router from "react-router-dom";
 import toast from "react-hot-toast";
 
+import * as app from "../../components/app";
+import * as authServiceModule from "../service";
 import * as backendService from "../../dashboard/service";
+import * as errorModule from "../../error";
 import * as loggerProvider from "../../providers/logger";
 import * as sessionProvider from "./session";
+
+// =================
+// === Constants ===
+// =================
+
+const MESSAGES = {
+  signUpSuccess: "We have sent you an email with further instructions!",
+  confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
+  setUsernameSuccess: "Your username has been set!",
+  signInWithPasswordSuccess: "Successfully logged in!",
+  forgotPasswordSuccess: "We have sent you an email with further instructions!",
+  resetPasswordSuccess: "Successfully reset password!",
+  signOutSuccess: "Successfully logged out!",
+  pleaseWait: "Please wait...",
+} as const;
 
 // =============
 // === Types ===
@@ -60,14 +78,30 @@ export interface PartialUserSession {
  *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
+  signUp: (email: string, password: string) => Promise<void>;
+  confirmSignUp: (email: string, code: string) => Promise<void>;
+  setUsername: (
+    accessToken: string,
+    username: string,
+    email: string
+  ) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithGitHub: () => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (
+    email: string,
+    code: string,
+    password: string
+  ) => Promise<void>;
+  signOut: () => Promise<void>;
   /** Session containing the currently authenticated user's authentication information.
    *
-   * If the user has not signed in, the session will be `undefined`. */
-  session: UserSession | undefined;
+   * If the user has not signed in, the session will be `null`. */
+  session: UserSession | null;
 }
 
 // Eslint doesn't like headings.
-/* eslint-disable jsdoc/require-description-complete-sentence */
 /** Create a global instance of the `AuthContextType`, that will be re-used between all React
  * components that use the `useAuth` hook.
  *
@@ -76,7 +110,7 @@ interface AuthContextType {
  * An `as ...` cast is unsafe. We use this cast when creating the context. So it appears that the
  * `AuthContextType` can be unsafely (i.e., only partially) initialized as a result of this.
  *
- * So it appears that we should remove the cast and initialize the context as `undefined` instead.
+ * So it appears that we should remove the cast and initialize the context as `null` instead.
  *
  * **However**, initializing a context the existing way is the recommended way to initialize a
  * context in React.  It is safe, for non-obvious reasons. It is safe because the `AuthContext` is
@@ -91,7 +125,7 @@ interface AuthContextType {
  *
  * So changing the cast would provide no safety guarantees, and would require us to introduce null
  * checks everywhere we use the context. */
-/* eslint-enable jsdoc/require-description-complete-sentence */
+// eslint-disable-next-line no-restricted-syntax
 const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 
 // ====================
@@ -99,61 +133,62 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType);
 // ====================
 
 export interface AuthProviderProps {
+  authService: authServiceModule.AuthService;
   /** Callback to execute once the user has authenticated successfully. */
   onAuthenticated: () => void;
   children: react.ReactNode;
 }
 
 export function AuthProvider(props: AuthProviderProps) {
-  const { children } = props;
+  const { authService, children } = props;
+  const { cognito } = authService;
   const { session } = sessionProvider.useSession();
   const logger = loggerProvider.useLogger();
+  const navigate = router.useNavigate();
   const onAuthenticated = react.useCallback(props.onAuthenticated, []);
   const [initialized, setInitialized] = react.useState(false);
-  const [userSession, setUserSession] = react.useState<UserSession | undefined>(
-    undefined
+  const [userSession, setUserSession] = react.useState<UserSession | null>(
+    null
   );
 
-  /* eslint-disable jsdoc/require-description-complete-sentence */
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
    * When invoked, retrieves the access token (if available) from the storage method chosen when
    * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
    * If the token has expired, automatically refreshes the token and returns the new token. */
-  /* eslint-eable jsdoc/require-description-complete-sentence */
   react.useEffect(() => {
     const fetchSession = async () => {
       if (session.none) {
         setInitialized(true);
-        setUserSession(undefined);
-        return;
-      }
-      const { accessToken, email } = session.val;
-
-      const backend = backendService.createBackend(accessToken, logger);
-      const organization = await backend.getUser();
-      let newUserSession: UserSession;
-      if (!organization) {
-        newUserSession = {
-          variant: "partial",
-          email,
-          accessToken,
-        };
+        setUserSession(null);
       } else {
-        newUserSession = {
-          variant: "full",
-          email,
-          accessToken,
-          organization,
-        };
+        const { accessToken, email } = session.val;
 
-        /** Execute the callback that should inform the Electron app that the user has logged in.
-         * This is done to transition the app from the authentication/dashboard view to the IDE. */
-        onAuthenticated();
+        const backend = backendService.createBackend(accessToken, logger);
+        const organization = await backend.getUser();
+        let newUserSession: UserSession;
+        if (!organization) {
+          newUserSession = {
+            variant: "partial",
+            email,
+            accessToken,
+          };
+        } else {
+          newUserSession = {
+            variant: "full",
+            email,
+            accessToken,
+            organization,
+          };
+
+          /** Execute the callback that should inform the Electron app that the user has logged in.
+           * This is done to transition the app from the authentication/dashboard view to the IDE. */
+          onAuthenticated();
+        }
+
+        setUserSession(newUserSession);
+        setInitialized(true);
       }
-
-      setUserSession(newUserSession);
-      setInitialized(true);
     };
 
     fetchSession().catch((error) => {
@@ -165,7 +200,109 @@ export function AuthProvider(props: AuthProviderProps) {
     });
   }, [session]);
 
+  const withLoadingToast =
+    <T extends unknown[]>(action: (...args: T) => Promise<void>) =>
+    async (...args: T) => {
+      const loadingToast = toast.loading(MESSAGES.pleaseWait);
+      try {
+        await action(...args);
+      } finally {
+        toast.dismiss(loadingToast);
+      }
+    };
+
+  const signUp = (username: string, password: string) =>
+    cognito.signUp(username, password).then((result) => {
+      if (result.ok) {
+        toast.success(MESSAGES.signUpSuccess);
+      } else {
+        toast.error(result.val.message);
+      }
+    });
+
+  const confirmSignUp = async (email: string, code: string) =>
+    cognito.confirmSignUp(email, code).then((result) => {
+      if (result.err) {
+        switch (result.val.kind) {
+          case "UserAlreadyConfirmed":
+            break;
+          default:
+            throw new errorModule.UnreachableCaseError(result.val.kind);
+        }
+      }
+
+      toast.success(MESSAGES.confirmSignUpSuccess);
+      navigate(app.LOGIN_PATH);
+    });
+
+  const signInWithPassword = async (email: string, password: string) =>
+    cognito.signInWithPassword(email, password).then((result) => {
+      if (result.ok) {
+        toast.success(MESSAGES.signInWithPasswordSuccess);
+      } else {
+        if (result.val.kind === "UserNotFound") {
+          navigate(app.REGISTRATION_PATH);
+        }
+
+        toast.error(result.val.message);
+      }
+    });
+
+  const setUsername = async (
+    accessToken: string,
+    username: string,
+    email: string
+  ) => {
+    const body: backendService.SetUsernameRequestBody = {
+      userName: username,
+      userEmail: email,
+    };
+
+    /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
+     * The API client is reinitialised on every request. That is an inefficient way of usage.
+     * Fix it by using React context and implementing it as a singleton. */
+    const backend = backendService.createBackend(accessToken, logger);
+
+    await backend.setUsername(body);
+    navigate(app.DASHBOARD_PATH);
+    toast.success(MESSAGES.setUsernameSuccess);
+  };
+
+  const forgotPassword = async (email: string) =>
+    cognito.forgotPassword(email).then((result) => {
+      if (result.ok) {
+        toast.success(MESSAGES.forgotPasswordSuccess);
+        navigate(app.RESET_PASSWORD_PATH);
+      } else {
+        toast.error(result.val.message);
+      }
+    });
+
+  const resetPassword = async (email: string, code: string, password: string) =>
+    cognito.forgotPasswordSubmit(email, code, password).then((result) => {
+      if (result.ok) {
+        toast.success(MESSAGES.resetPasswordSuccess);
+        navigate(app.LOGIN_PATH);
+      } else {
+        toast.error(result.val.message);
+      }
+    });
+
+  const signOut = () =>
+    cognito.signOut().then(() => {
+      toast.success(MESSAGES.signOutSuccess);
+    });
+
   const value = {
+    signUp: withLoadingToast(signUp),
+    confirmSignUp: withLoadingToast(confirmSignUp),
+    setUsername,
+    signInWithGoogle: cognito.signInWithGoogle.bind(cognito),
+    signInWithGitHub: cognito.signInWithGitHub.bind(cognito),
+    signInWithPassword: withLoadingToast(signInWithPassword),
+    forgotPassword: withLoadingToast(forgotPassword),
+    resetPassword: withLoadingToast(resetPassword),
+    signOut,
     session: userSession,
   };
 
@@ -209,17 +346,38 @@ export function useAuth() {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export function ProtectedLayout() {
-  const logger = loggerProvider.useLogger();
   const { session } = useAuth();
 
   if (!session) {
-    logger.error(
-      "User is not authenticated, but is trying to access a protected route."
-    );
-    return <>Unauthenticated</>;
+    return <router.Navigate to={app.LOGIN_PATH} />;
+  } else {
+    return <router.Outlet context={session} />;
   }
+}
 
-  return <router.Outlet context={session} />;
+// ===================
+// === GuestLayout ===
+// ===================
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export function GuestLayout() {
+  const { session } = useAuth();
+
+  if (session?.variant === "partial") {
+    return <router.Navigate to={app.SET_USERNAME_PATH} />;
+  } else if (session?.variant === "full") {
+    return <router.Navigate to={app.DASHBOARD_PATH} />;
+  } else {
+    return <router.Outlet />;
+  }
+}
+
+// =============================
+// === usePartialUserSession ===
+// =============================
+
+export function usePartialUserSession() {
+  return router.useOutletContext<PartialUserSession>();
 }
 
 // ==========================

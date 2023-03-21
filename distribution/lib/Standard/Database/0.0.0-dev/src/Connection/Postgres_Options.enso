@@ -32,7 +32,7 @@ type Postgres_Options
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options
+    connect : Connection_Options -> Postgres_Connection.Postgres_Connection
     connect self options =
         if Driver.isRegistered.not then Driver.register
 

@@ -41,8 +41,8 @@ const INDENT_SIZE = 4
 /** The Electron application. It is responsible for starting all the required services, and
  * displaying and managing the app window. */
 class App {
-    window: electron.BrowserWindow | undefined = undefined
-    server: server.Server | undefined = undefined
+    window: electron.BrowserWindow | null = null
+    server: server.Server | null = null
     args: config.Args = config.CONFIG
     isQuitting = false
 
@@ -194,7 +194,7 @@ class App {
                     frame: useFrame,
                     transparent: false,
                     titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
-                    vibrancy: useVibrancy ? 'fullscreen-ui' : undefined,
+                    ...(useVibrancy ? { vibrancy: 'fullscreen-ui' } : {}),
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
@@ -242,7 +242,7 @@ class App {
         electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
             logger.error(`IPC error: ${JSON.stringify(data)}`)
         })
-        const argProfiles = this.args.groups.profile.options.loadProfile.value
+        const argProfiles = this.args.groups.profile.options.load.value
         const profilePromises: Promise<string>[] = argProfiles.map((path: string) =>
             fs.readFile(path, 'utf8')
         )
@@ -252,7 +252,7 @@ class App {
                 event.reply('profiles-loaded', profiles)
             })
         })
-        const profileOutPath = this.args.groups.profile.options.saveProfile.value
+        const profileOutPath = this.args.groups.profile.options.save.value
         if (profileOutPath) {
             electron.ipcMain.on(ipc.Channel.saveProfile, (_event, data: string) => {
                 fsSync.writeFileSync(profileOutPath, data)
@@ -272,7 +272,7 @@ class App {
 
     /** Redirect the web view to `localhost:<port>` to see the served website. */
     loadWindowContent() {
-        if (this.window !== undefined) {
+        if (this.window != null) {
             const urlCfg: Record<string, string> = {}
             for (const option of this.args.optionsRecursive()) {
                 if (option.value !== option.default && option.passToWebApplication) {

@@ -722,6 +722,7 @@ ensogl::define_endpoints_2! {
         visualization_registry_reload_requested (),
 
         widgets_requested                       (NodeId, ast::Id, ast::Id),
+        request_import                          (ImString),
 
         on_visualization_select     (Switch<NodeId>),
         some_visualisation_selected (bool),
@@ -1606,6 +1607,7 @@ impl GraphEditorModelWithNetwork {
             model.frp.private.output.node_expression_edited <+ node_expression_edit.map(
                 move |(expr, selection)| (node_id, expr.clone_ref(), selection.clone())
             );
+            model.frp.private.output.request_import <+ node.request_import;
 
 
             // === Actions ===
@@ -1763,7 +1765,8 @@ impl GraphEditorModel {
         let profiling_statuses = profiling::Statuses::new();
         let profiling_button = component::profiling::Button::new(&app);
         let add_node_button = Rc::new(component::add_node_button::AddNodeButton::new(&app));
-        let drop_manager = ensogl_drop_manager::Manager::new(&scene.dom.root);
+        let drop_manager =
+            ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
         let selection_controller =
             selection::Controller::new(&frp, &app.cursor, &scene.mouse.frp, &touch_state, &nodes);
@@ -3763,12 +3766,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let default_gap = model.styles_frp.get_number_or(gap_path, 0.0);
     let files_received = model.drop_manager.files_received().clone_ref();
     frp::extend! { network
-        files_with_positions <- files_received.map3(&cursor_pos_in_scene,&default_gap,
-            |files,cursor_pos,default_gap| {
+        files_with_positions <- files_received.map2(&default_gap,
+            move |drop_event_data,default_gap| {
+                let files = &drop_event_data.files;
+                let drop_posititon = drop_event_data.position;
                 let single_offset = default_gap + node::HEIGHT;
                 files.iter().enumerate().map(|(index,file)| {
                     let offset = Vector2(0.0, single_offset * index as f32);
-                    (file.clone_ref(),cursor_pos+offset)
+                    (file.clone_ref(), drop_posititon + offset)
                 }).collect_vec()
             }
         );

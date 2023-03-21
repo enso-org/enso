@@ -2,7 +2,7 @@
 
 
 
-mod icon;
+pub mod icon;
 
 use crate::prelude::*;
 

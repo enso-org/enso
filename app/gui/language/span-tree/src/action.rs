@@ -181,7 +181,6 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
 
                     while let Some(node) = next_parent {
                         next_parent = node.parent()?;
-                        warn!("node: {:?}", node.node.kind);
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
                             .filter(|found| found.ast_crumbs.is_empty());

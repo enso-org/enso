@@ -18,7 +18,6 @@ import yargs from 'yargs'
 import * as common from 'enso-common'
 
 import * as paths from './paths.js'
-import * as shared from './shared.js'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
@@ -28,7 +27,9 @@ import BUILD_INFO from '../../build.json' assert { type: 'json' }
  * @see `args` definition below for fields description.
  */
 export interface Arguments {
-    target?: string
+    // This is returned by a third-party library we do not control.
+    // eslint-disable-next-line no-restricted-syntax
+    target?: string | undefined
     iconsDist: string
     guiDist: string
     ideDist: string
@@ -81,7 +82,7 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 export function createElectronBuilderConfig(passedArgs: Arguments): electronBuilder.Configuration {
     return {
         appId: 'org.enso',
-        productName: shared.PRODUCT_NAME,
+        productName: common.PRODUCT_NAME,
         extraMetadata: {
             version: BUILD_INFO.version,
         },
@@ -104,13 +105,16 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         protocols: [
             /** Electron URL protocol scheme definition for deep links to authentication flow pages. */
             {
-                name: `${shared.PRODUCT_NAME} url`,
+                name: `${common.PRODUCT_NAME} url`,
                 schemes: [common.DEEP_LINK_SCHEME],
                 role: 'Editor',
             },
         ],
         mac: {
             // We do not use compression as the build time is huge and file size saving is almost zero.
+            // This type assertion is UNSAFE, and any users MUST verify that
+            // they are passing a valid value to `target`.
+            // eslint-disable-next-line no-restricted-syntax
             target: (passedArgs.target ?? 'dmg') as macOptions.MacOsTargetName,
             icon: `${passedArgs.iconsDist}/icon.icns`,
             category: 'public.app-category.developer-tools',
@@ -223,7 +227,9 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 console.log('  • Notarizing.')
                 await electronNotarize.notarize({
                     // This will always be defined since we set it at the top of this object.
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    // The type-cast is safe because this is only executes
+                    // when `platform === electronBuilder.Platform.MAC`.
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, no-restricted-syntax
                     appBundleId: (buildOptions as macOptions.MacConfiguration).appId!,
                     appPath: `${appOutDir}/${appName}.app`,
                     appleId: process.env.APPLEID,
