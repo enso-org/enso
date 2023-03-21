@@ -495,7 +495,7 @@ impl Input {
         has_this: bool,
     ) -> FallibleResult<InsertedSuggestion> {
         let context = self.context();
-        let generate_this = !has_this && !context.is_some();
+        let generate_this = !has_this && context.is_none();
         let context = InsertContext { suggestion, context, generate_this };
         let default_range = (self.cursor_position..self.cursor_position).into();
         let replaced = if context.has_qualified_name() {
@@ -653,7 +653,7 @@ mod tests {
             fn run(self, parser: &Parser) {
                 debug!("Running case {} cursor position {}", self.input, self.cursor_position);
                 let input = Input::parse(parser, self.input, self.cursor_position);
-                let pattern = input.pattern().pattern.clone_ref();
+                let pattern = input.filter().pattern.clone_ref();
                 assert_eq!(input.cursor_position, self.cursor_position);
                 assert_eq!(input.edited_ast.edited_name.map(|a| a.range), self.expected_name_range);
                 assert_eq!(

@@ -2247,11 +2247,11 @@ pub mod test {
             searcher.commit_node().unwrap();
             let updated_def = searcher.graph.graph().definition().unwrap().item;
             let expected = crate::test::mock::main_from_lines(&[case.expected_code.clone()]);
-            assert_eq!(updated_def.ast.repr(), expected, "{:?}", case);
+            assert_eq!(updated_def.ast.repr(), expected, "{case:?}");
             let module_info = &searcher.graph.graph().module.info();
             let imports = module_info.iter_imports();
             let imports = imports.map(|i| i.to_string()).collect_vec();
-            assert_eq!(imports, case.expected_imports, "{:?}", case);
+            assert_eq!(imports, case.expected_imports, "{case:?}");
         }
     }
 }
