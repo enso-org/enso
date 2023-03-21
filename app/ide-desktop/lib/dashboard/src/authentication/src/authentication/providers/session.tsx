@@ -5,6 +5,7 @@ import * as react from "react";
 import * as results from "ts-results";
 
 import * as cognito from "../cognito";
+import * as error from "../../error";
 import * as hooks from "../../hooks";
 import * as listen from "../listen";
 
@@ -95,7 +96,8 @@ export function SessionProvider(props: SessionProviderProps) {
   react.useEffect(() => {
     const listener: listen.ListenerCallback = (event) => {
       switch (event) {
-        case listen.AuthEvent.signIn: {
+        case listen.AuthEvent.signIn:
+        case listen.AuthEvent.signOut: {
           refreshSession();
           break;
         }
@@ -111,6 +113,9 @@ export function SessionProvider(props: SessionProviderProps) {
           window.history.replaceState({}, "", mainPageUrl);
           refreshSession();
           break;
+        }
+        default: {
+          throw new error.UnreachableCaseError(event);
         }
       }
     };

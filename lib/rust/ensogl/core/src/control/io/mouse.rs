@@ -41,7 +41,13 @@ pub struct MouseManager {
 pub type MouseEventJsClosure = Closure<dyn FnMut(JsValue)>;
 
 macro_rules! define_bindings {
-    ( $( $js_event:ident :: $js_name:ident => $name:ident ($target:ident) ),* $(,)? ) => {
+    (
+        $target:ident,
+        $global_target:ident,
+        $( $js_event:ident :: $js_name:ident =>
+             $name:ident ($event_target:ident, $event:ident)
+        ),* $(,)?
+    ) => {
 
         /// Keeps references to JavaScript closures in order to keep them alive.
         #[derive(Debug)]
@@ -53,22 +59,30 @@ macro_rules! define_bindings {
         #[derive(Clone,CloneRef,Debug,Default)]
         #[allow(missing_docs)]
         pub struct MouseManagerDispatchers {
-            $(pub $name : callback::registry::Ref1<$target>),*
+            $(pub $name : callback::registry::Ref1<$event>),*
         }
 
         impl MouseManager {
-            /// Constructor.
-            pub fn new(dom:&web::dom::WithKnownShape<web::EventTarget>) -> Self {
-                Self::new_separated(dom,dom.deref())
-            }
-
-            /// Constructor which takes the exact element to set listener as a separate argument.
+            /// This is the constructor for mouse listeners which takes three arguments:
             ///
-            /// Sometimes we want to listen for mouse event for element without ResizeObserver.
-            /// Thus, some html element may be passed as a size provider, and another one where we
-            /// attach listeners (for example `body` and `window` respectively).
-            pub fn new_separated
-            (dom:&web::dom::WithKnownShape<web::EventTarget>,target:&web::EventTarget) -> Self {
+            /// 1. A DOM object to set resize observer on. This object should cover the entire screen.
+            /// Since EnsoGL's scene origin is positioned in the left-bottom corner, the size of
+            /// the DOM object is used to translate mouse coordinates from HTML to the EnsoGL space.
+            ///
+            /// 2. A DOM object to set the 'mousedown', 'mousewheel', and 'mouseleave' listeners on.
+            /// In most cases, this should be the canvas used by EnsoGL. Alternatively, you can set
+            /// this argument to the window object if you want EnsoGL to capture all events, even if
+            /// it is placed behind another DOM element.
+            ///
+            /// 3. A DOM object to set the 'mouseup' and 'mousemove' listeners on. In most cases,
+            /// this should be the window object. It is common for the element drag action to be
+            /// initiated by a 'mousedown' event on one element and finished by a 'mouseup' event
+            /// on another element. Handling these events globally covers such situations.
+            pub fn new(
+                dom: &web::dom::WithKnownShape<web::EventTarget>,
+                $target: &web::EventTarget,
+                $global_target: &web::EventTarget,
+            ) -> Self {
                 let dispatchers = MouseManagerDispatchers::default();
                 let dom = dom.clone();
                 $(
@@ -81,11 +95,12 @@ macro_rules! define_bindings {
                         );
                         let shape = shape.value();
                         let event = event.unchecked_into::<web::$js_event>();
-                        dispatcher.run_all(&event::$target::new(event,shape))
+                        dispatcher.run_all(&event::$event::new(event,shape))
                     });
                     let js_name = stringify!($js_name);
                     let opt = event_listener_options();
-                    let $name = web::add_event_listener_with_options(&target,js_name,closure,&opt);
+                    let $name = web::add_event_listener_with_options
+                        (&$event_target, js_name, closure, &opt);
                 )*
                 let handles = Rc::new(MouseManagerEventListenerHandles {$($name),*});
                 Self {dispatchers,handles,dom}
@@ -98,18 +113,20 @@ macro_rules! define_bindings {
 /// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
 fn event_listener_options() -> web::AddEventListenerOptions {
     let mut options = web::AddEventListenerOptions::new();
-    // We listen for events in capture phase, so we can decide ourself if it should be passed
-    // further.
-    options.capture(true);
+    // We listen for events in the bubbling phase. If we ever would like to listen in the capture
+    // phase, it would need to be set to "bubbling" for the "mouseleave" and "mouseenter" events,
+    // as they provide incorrect events for the "capture" phase.
+    options.capture(false);
     // We want to prevent default action on wheel events, thus listener cannot be passive.
     options.passive(false);
     options
 }
 
-define_bindings! {
-    MouseEvent::mousedown  => on_down  (OnDown),
-    MouseEvent::mouseup    => on_up    (OnUp),
-    MouseEvent::mousemove  => on_move  (OnMove),
-    MouseEvent::mouseleave => on_leave (OnLeave),
-    WheelEvent::wheel      => on_wheel (OnWheel),
+define_bindings! { target, gloabl_target,
+    MouseEvent::mousedown  => on_down  (target, OnDown),
+    MouseEvent::mouseup    => on_up    (gloabl_target, OnUp),
+    MouseEvent::mousemove  => on_move  (gloabl_target, OnMove),
+    MouseEvent::mouseleave => on_leave (target, OnLeave),
+    MouseEvent::mouseenter => on_enter (target, OnEnter),
+    WheelEvent::wheel      => on_wheel (target, OnWheel),
 }

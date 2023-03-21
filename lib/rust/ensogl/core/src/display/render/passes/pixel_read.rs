@@ -51,15 +51,15 @@ impl<T: JsTypedArrayItem> PixelReadPassData<T> {
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub struct PixelReadPass<T: JsTypedArrayItem> {
-    data:          Option<PixelReadPassData<T>>,
-    sync:          Option<WebGlSync>,
-    position:      Uniform<Vector2<i32>>,
-    threshold:     usize,
-    to_next_read:  usize,
+    data:            Option<PixelReadPassData<T>>,
+    sync:            Option<WebGlSync>,
+    position:        Uniform<Vector2<i32>>,
+    threshold:       Rc<Cell<usize>>,
+    since_last_read: usize,
     #[derivative(Debug = "ignore")]
-    callback:      Option<Rc<dyn Fn(Vec<T>)>>,
+    callback:        Option<Rc<dyn Fn(Vec<T>)>>,
     #[derivative(Debug = "ignore")]
-    sync_callback: Option<Rc<dyn Fn()>>,
+    sync_callback:   Option<Rc<dyn Fn()>>,
 }
 
 impl<T: JsTypedArrayItem> PixelReadPass<T> {
@@ -70,9 +70,9 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         let position = position.clone_ref();
         let callback = default();
         let sync_callback = default();
-        let threshold = 0;
-        let to_next_read = 0;
-        Self { data, sync, position, threshold, to_next_read, callback, sync_callback }
+        let threshold = default();
+        let since_last_read = 0;
+        Self { data, sync, position, threshold, since_last_read, callback, sync_callback }
     }
 
     /// Sets a callback which will be evaluated after a successful pixel read action.
@@ -91,11 +91,11 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         self.sync_callback = Some(Rc::new(f));
     }
 
-    /// Sets a threshold of how often the pass should be run. Threshold of 0 means that it will be
-    /// run every time. Threshold of N means that it will be only run every N-th call to the `run`
-    /// function.
-    pub fn set_threshold(&mut self, threshold: usize) {
-        self.threshold = threshold;
+    /// Returns a reference that can be used to set the threshold of how often the pass should be
+    /// run. Threshold of 0 means that it will be run every time. Threshold of N means that it will
+    /// be only run every N-th call to the `run` function.
+    pub fn get_threshold(&mut self) -> Rc<Cell<usize>> {
+        self.threshold.clone()
     }
 
     fn init_if_fresh(&mut self, context: &Context, variables: &UniformScope) {
@@ -106,9 +106,10 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
             let usage = Context::DYNAMIC_READ;
             context.bind_buffer(*target, Some(&buffer));
             context.buffer_data_with_opt_array_buffer(*target, Some(&js_array.buffer()), *usage);
+            context.bind_buffer(*target, None);
 
             let texture = match variables.get("pass_id").unwrap() {
-                uniform::AnyUniform::Texture(t) => t,
+                AnyUniform::Texture(t) => t,
                 _ => panic!("Pass internal error. Unmatched types."),
             };
             let format = texture.get_format();
@@ -138,6 +139,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         }
     }
 
+    #[profile(Detail)]
     fn run_not_synced(&mut self, context: &Context) {
         let data = self.data.as_ref().unwrap();
         let position = self.position.get();
@@ -151,6 +153,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         context
             .read_pixels_with_i32(position.x, position.y, width, height, format, typ, offset)
             .unwrap();
+        context.bind_buffer(*Context::PIXEL_PACK_BUFFER, None);
         let condition = Context::SYNC_GPU_COMMANDS_COMPLETE;
         let flags = 0;
         let sync = context.fence_sync(*condition, flags).unwrap();
@@ -158,6 +161,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         context.flush();
     }
 
+    #[profile(Detail)]
     fn check_and_handle_sync(&mut self, context: &Context, sync: &WebGlSync) {
         let data = self.data.as_ref().unwrap();
         let status = context.get_sync_parameter(sync, *Context::SYNC_STATUS);
@@ -173,6 +177,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
                 offset,
                 buffer_view,
             );
+            context.bind_buffer(*Context::PIXEL_PACK_BUFFER, None);
             if let Some(f) = &self.callback {
                 f(data.js_array.to_vec());
             }
@@ -182,10 +187,10 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
 
 impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
     fn run(&mut self, instance: &pass::Instance, update_status: UpdateStatus) {
-        if self.to_next_read > 0 {
-            self.to_next_read -= 1;
+        if self.since_last_read < self.threshold.get() {
+            self.since_last_read += 1;
         } else {
-            self.to_next_read = self.threshold;
+            self.since_last_read = 0;
             self.init_if_fresh(&instance.context, &instance.variables);
             if let Some(sync) = self.sync.clone() {
                 self.check_and_handle_sync(&instance.context, &sync);
