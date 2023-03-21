@@ -49,9 +49,14 @@ const GITHUB_PROVIDER = 'Github'
 
 const MESSAGES = {
     signInWithPassword: {
-        userNotFound: 'User not found. Please register first.',
+        userNotFound: 'Username not found. Please register first.',
         userNotConfirmed: 'User is not confirmed. Please check your email for a confirmation link.',
         incorrectUsernameOrPassword: 'Incorrect username or password.',
+    },
+    forgotPassword: {
+        userNotFound: 'Username not found. Please register first.',
+        userNotConfirmed:
+            'Cannot reset password for user with an unverified email. Please verify your email first.',
     },
 }
 
@@ -98,6 +103,25 @@ function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
     }
 }
 
+// =================
+// === AuthError ===
+// =================
+
+/** Object returned by the AWS Amplify library when an auth error occurs. */
+interface AuthError {
+    name: string
+    log: string
+}
+
+/** Hints to TypeScript if we can safely cast an `unknown` error to an `AuthError`. */
+function isAuthError(error: unknown): error is AuthError {
+    if (error && typeof error === 'object') {
+        return 'name' in error && 'log' in error
+    } else {
+        return false
+    }
+}
+
 // ===============
 // === Cognito ===
 // ===============
@@ -107,7 +131,6 @@ function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
  * The caller can then handle them via pattern matching on the {@link results.Result} type. */
 export class Cognito {
     constructor(
-        // @ts-expect-error This will be used in a future PR.
         private readonly logger: loggerProvider.Logger,
         private readonly platform: platformModule.Platform,
         amplifyConfig: config.AmplifyConfig
@@ -167,6 +190,29 @@ export class Cognito {
      * Does not rely on external identity providers (e.g., Google or GitHub). */
     signInWithPassword(username: string, password: string) {
         return signInWithPassword(username, password)
+    }
+
+    /** Signs out the current user. */
+    signOut() {
+        return signOut(this.logger)
+    }
+
+    /** Sends a password reset email.
+     *
+     * The user will be able to reset their password by following the link in the email, which takes
+     * them to the "reset password" page of the application. The verification code will be filled in
+     * automatically. */
+    forgotPassword(email: string) {
+        return forgotPassword(email)
+    }
+
+    /** Submits a new password for the given email address.
+     *
+     * The user will have received a verification code in an email, which they will have entered on
+     * the "reset password" page of the application. This function will submit the new password
+     * along with the verification code, changing the user's password. */
+    forgotPasswordSubmit(email: string, code: string, password: string) {
+        return forgotPasswordSubmit(email, code, password)
     }
 
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
@@ -294,7 +340,7 @@ const SIGN_UP_USERNAME_EXISTS_ERROR = {
 } as const
 
 const SIGN_UP_INVALID_PARAMETER_ERROR = {
-    internalCode: 'InvalidParameterEx[ception',
+    internalCode: 'InvalidParameterException',
     kind: 'InvalidParameter',
 } as const
 
@@ -426,5 +472,105 @@ function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPass
             }
         default:
             throw error
+    }
+}
+
+// ======================
+// === ForgotPassword ===
+// ======================
+const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
+    internalCode: 'InvalidParameterException',
+    kind: 'UserNotConfirmed',
+    message:
+        'Cannot reset password for the user as there is no registered/verified email or phone_number',
+} as const
+
+async function forgotPassword(email: string) {
+    return results.Result.wrapAsync(async () => {
+        await amplify.Auth.forgotPassword(email)
+    })
+        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
+        .then(result => result.mapErr(intoForgotPasswordErrorOrThrow))
+}
+
+type ForgotPasswordErrorKind = 'UserNotConfirmed' | 'UserNotFound'
+
+export interface ForgotPasswordError {
+    kind: ForgotPasswordErrorKind
+    message: string
+}
+
+function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordError {
+    if (error.code === 'UserNotFoundException') {
+        return {
+            kind: 'UserNotFound',
+            message: MESSAGES.forgotPassword.userNotFound,
+        }
+    } else if (
+        error.code === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.internalCode &&
+        error.message === FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.message
+    ) {
+        return {
+            kind: FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR.kind,
+            message: MESSAGES.forgotPassword.userNotConfirmed,
+        }
+    } else {
+        throw error
+    }
+}
+
+// ============================
+// === ForgotPasswordSubmit ===
+// ============================
+
+async function forgotPasswordSubmit(email: string, code: string, password: string) {
+    return results.Result.wrapAsync(async () => {
+        await amplify.Auth.forgotPasswordSubmit(email, code, password)
+    }).then(result => result.mapErr(intoForgotPasswordSubmitErrorOrThrow))
+}
+
+type ForgotPasswordSubmitErrorKind = 'AmplifyError' | 'AuthError'
+
+export interface ForgotPasswordSubmitError {
+    kind: ForgotPasswordSubmitErrorKind
+    message: string
+}
+
+function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSubmitError {
+    if (isAuthError(error)) {
+        return {
+            kind: 'AuthError',
+            message: error.log,
+        }
+    } else if (isAmplifyError(error)) {
+        return {
+            kind: 'AmplifyError',
+            message: error.message,
+        }
+    } else {
+        throw error
+    }
+}
+
+// ===============
+// === SignOut ===
+// ===============
+
+async function signOut(logger: loggerProvider.Logger) {
+    // FIXME [NP]: https://github.com/enso-org/cloud-v2/issues/341
+    // For some reason, the redirect back to the IDE from the browser doesn't work correctly so this
+    // `await` throws a timeout error. As a workaround, we catch this error and force a refresh of
+    // the session manually by running the `signOut` again. This works because Amplify will see that
+    // we've already signed out and clear the cache accordingly. Ideally we should figure out how
+    // to fix the redirect and remove this `catch`. This has the unintended consequence of catching
+    // any other errors that might occur during sign out, that we really shouldn't be catching. This
+    // also has the unintended consequence of delaying the sign out process by a few seconds (until
+    // the timeout occurs).
+    try {
+        await amplify.Auth.signOut()
+    } catch (error) {
+        logger.error('Sign out failed', error)
+    } finally {
+        await amplify.Auth.signOut()
     }
 }

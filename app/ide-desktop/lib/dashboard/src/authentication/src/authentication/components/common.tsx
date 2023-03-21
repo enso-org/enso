@@ -8,6 +8,22 @@ import * as fontawesomeIcons from "@fortawesome/free-brands-svg-icons";
 
 import * as icons from "../../components/svg";
 
+// =============
+// === Input ===
+// =============
+
+export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className={
+        "text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 " +
+        "w-full py-2 focus:outline-none focus:border-blue-400"
+      }
+    />
+  );
+}
+
 // ===============
 // === SvgIcon ===
 // ===============

@@ -23,6 +23,9 @@ const MESSAGES = {
   confirmSignUpSuccess: "Your account has been confirmed! Please log in.",
   setUsernameSuccess: "Your username has been set!",
   signInWithPasswordSuccess: "Successfully logged in!",
+  forgotPasswordSuccess: "We have sent you an email with further instructions!",
+  resetPasswordSuccess: "Successfully reset password!",
+  signOutSuccess: "Successfully logged out!",
   pleaseWait: "Please wait...",
 } as const;
 
@@ -85,6 +88,13 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInWithGitHub: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (
+    email: string,
+    code: string,
+    password: string
+  ) => Promise<void>;
+  signOut: () => Promise<void>;
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `null`. */
@@ -258,6 +268,31 @@ export function AuthProvider(props: AuthProviderProps) {
     toast.success(MESSAGES.setUsernameSuccess);
   };
 
+  const forgotPassword = async (email: string) =>
+    cognito.forgotPassword(email).then((result) => {
+      if (result.ok) {
+        toast.success(MESSAGES.forgotPasswordSuccess);
+        navigate(app.RESET_PASSWORD_PATH);
+      } else {
+        toast.error(result.val.message);
+      }
+    });
+
+  const resetPassword = async (email: string, code: string, password: string) =>
+    cognito.forgotPasswordSubmit(email, code, password).then((result) => {
+      if (result.ok) {
+        toast.success(MESSAGES.resetPasswordSuccess);
+        navigate(app.LOGIN_PATH);
+      } else {
+        toast.error(result.val.message);
+      }
+    });
+
+  const signOut = () =>
+    cognito.signOut().then(() => {
+      toast.success(MESSAGES.signOutSuccess);
+    });
+
   const value = {
     signUp: withLoadingToast(signUp),
     confirmSignUp: withLoadingToast(confirmSignUp),
@@ -265,6 +300,9 @@ export function AuthProvider(props: AuthProviderProps) {
     signInWithGoogle: cognito.signInWithGoogle.bind(cognito),
     signInWithGitHub: cognito.signInWithGitHub.bind(cognito),
     signInWithPassword: withLoadingToast(signInWithPassword),
+    forgotPassword: withLoadingToast(forgotPassword),
+    resetPassword: withLoadingToast(resetPassword),
+    signOut,
     session: userSession,
   };
 

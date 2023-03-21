@@ -17,10 +17,6 @@ const BUTTON_CLASS_NAME =
   "relative mt-6 border rounded-md py-2 text-sm text-gray-800 " +
   "bg-gray-100 hover:bg-gray-200";
 
-const INPUT_CLASS_NAME =
-  "text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border " +
-  "border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400";
-
 const LOGIN_QUERY_PARAMS = {
   email: "email",
 } as const;
@@ -87,13 +83,12 @@ function Login() {
               <div className="relative">
                 <common.SvgIcon data={icons.PATHS.at} />
 
-                <input
+                <common.Input
                   {...bindEmail}
                   required={true}
                   id="email"
                   type="email"
                   name="email"
-                  className={INPUT_CLASS_NAME}
                   placeholder="E-Mail Address"
                 />
               </div>
@@ -108,15 +103,25 @@ function Login() {
               <div className="relative">
                 <common.SvgIcon data={icons.PATHS.lock} />
 
-                <input
+                <common.Input
                   {...bindPassword}
                   required={true}
                   id="password"
                   type="password"
                   name="password"
-                  className={INPUT_CLASS_NAME}
                   placeholder="Password"
                 />
+              </div>
+            </div>
+
+            <div className="flex items-center mb-6 -mt-4">
+              <div className="flex ml-auto">
+                <router.Link
+                  to={app.FORGOT_PASSWORD_PATH}
+                  className="inline-flex text-xs sm:text-sm text-blue-500 hover:text-blue-700"
+                >
+                  Forgot Your Password?
+                </router.Link>
               </div>
             </div>
 
