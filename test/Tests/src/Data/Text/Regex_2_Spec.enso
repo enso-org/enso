@@ -9,6 +9,7 @@ import Standard.Base.Data.Text.Regex_2.No_Such_Group
 import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
 import Standard.Base.Data.Text.Regex_2.Too_Many_Groups
 
+from Standard.Base.Data.Text.Regex.Replacer import get_lru_size, replacer_cache_lookup
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
@@ -433,10 +434,10 @@ spec =
             pattern = Regex_2.compile('([a-c])')
 
             # Add enough values to flush out the first values.
-            0.up_to Replacer.get_lru_size+1 . map i->
+            0.up_to get_lru_size+1 . map i->
                 result = pattern.replace "abcdef" ("$1$1x" + i.to_text)
                 result . should_not_equal Nothing
-            Replacer.replacer_cache_lookup "$1$1x0" . should_equal Nothing
-            Replacer.replacer_cache_lookup "$1$1x1" . should_not_equal Nothing
+            replacer_cache_lookup "$1$1x0" . should_equal Nothing
+            replacer_cache_lookup "$1$1x1" . should_not_equal Nothing
 
 main = Test_Suite.run_main spec

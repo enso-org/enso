@@ -58,17 +58,17 @@ type Replacer
             string_builder.append s
         string_builder.toString
 
-    ## PRIVATE
+## PRIVATE
 
-       Get the size of the Replacer LRU cache. For testing.
-    get_lru_size : Integer
-    get_lru_size = Replacer_Cache.getLruSize
+   Get the size of the Replacer LRU cache. For testing.
+get_lru_size : Integer
+get_lru_size = Replacer_Cache.getLruSize
 
-    ## PRIVATE
+## PRIVATE
 
-       Look up a replacement string in the Replacer LRU cache. For testing.
-    replacer_cache_lookup : Text -> Replacer | Nothing
-    replacer_cache_lookup replacement_string = Replacer_Cache.get replacement_string
+   Look up a replacement string in the Replacer LRU cache. For testing.
+replacer_cache_lookup : Text -> Replacer | Nothing
+replacer_cache_lookup replacement_string = Replacer_Cache.get replacement_string
 
 ## PRIVATE
 group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
