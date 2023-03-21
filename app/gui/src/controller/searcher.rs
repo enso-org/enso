@@ -1218,7 +1218,7 @@ impl Searcher {
             let requests = return_types_for_engine.into_iter().map(|return_type| {
                 info!("Requesting suggestions for returnType {return_type:?}.");
                 let file = graph.module.path().file_path();
-                ls.completion(file, &position, &this_type, &return_type, &tags)
+                ls.completion(file, &position, &this_type, &return_type, &tags, &Some(false))
             });
             let responses: Result<Vec<language_server::response::Completion>, _> =
                 futures::future::join_all(requests).await.into_iter().collect();
@@ -1712,7 +1712,7 @@ pub mod test {
 
     pub fn expect_completion(client: &mut language_server::MockClient, results: &[SuggestionId]) {
         let response = completion_response(results);
-        client.expect.completion(|_, _, _, _, _| Ok(response))
+        client.expect.completion(|_, _, _, _, _, _| Ok(response))
     }
 
     #[derive(Debug, Derivative)]
@@ -1748,7 +1748,8 @@ pub mod test {
                 position    = self.code_location,
                 self_type   = self_type.map(Into::into),
                 return_type = return_type.map(Into::into),
-                tag         = None
+                tag         = None,
+                is_static   = None
             ) => Ok(completion_response));
         }
     }
@@ -2027,7 +2028,7 @@ pub mod test {
                 for _ in 0..EXPECTED_REQUESTS {
                     let requested_types = requested_types2.clone();
                     client.expect.completion(
-                        move |_path, _position, _self_type, return_type, _tags| {
+                        move |_path, _position, _self_type, return_type, _tags, _is_static| {
                             requested_types.borrow_mut().insert(return_type.clone());
                             Ok(completion_response(&[]))
                         },
