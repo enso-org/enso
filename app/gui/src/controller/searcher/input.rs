@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::action;
+use crate::controller::searcher::Filter;
 use crate::controller::searcher::RequiredImport;
 
 use ast::HasTokens;
@@ -301,18 +302,20 @@ impl Input {
         }
     }
 
-    /// Return the part of the input used as filtering pattern.
-    pub fn pattern(&self) -> &str {
-        if let Some(edited) = &self.edited_ast.edited_name {
+    /// Return the filtering pattern for the input.
+    pub fn filter(&self) -> Filter {
+        let pattern = if let Some(edited) = &self.edited_ast.edited_name {
             let cursor_position_in_name = self.cursor_position - edited.range.start;
             let name = ast::identifier::name(&edited.ast);
-            name.map_or("", |name| {
+            name.map_or_default(|name| {
                 let range = ..cursor_position_in_name.value as usize;
-                name.get(range).unwrap_or_default()
+                name.get(range).unwrap_or_default().into()
             })
         } else {
-            ""
-        }
+            default()
+        };
+        let context = self.context().map(|c| c.into_ast().repr().to_im_string());
+        Filter { pattern, context }
     }
 
     /// Return the accessor chain being the context of the edited name, i.e. the preceding fully
@@ -647,7 +650,7 @@ mod tests {
             fn run(self, parser: &Parser) {
                 debug!("Running case {} cursor position {}", self.input, self.cursor_position);
                 let input = Input::parse(parser, self.input, self.cursor_position);
-                let pattern = input.pattern().to_owned();
+                let pattern = input.pattern().pattern.clone_ref();
                 assert_eq!(input.cursor_position, self.cursor_position);
                 assert_eq!(input.edited_ast.edited_name.map(|a| a.range), self.expected_name_range);
                 assert_eq!(

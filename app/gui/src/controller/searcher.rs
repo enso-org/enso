@@ -393,6 +393,15 @@ impl ComponentsProvider {
     }
 }
 
+/// An information used for filtering entries.
+#[derive(Debug, Clone, CloneRef)]
+pub struct Filter {
+    /// The part of the input used for filtering.
+    pub pattern: ImString,
+    /// Additional context. A string representation of the edited accessor chain.
+    pub context: Option<ImString>,
+}
+
 /// Searcher Controller.
 ///
 /// This is an object providing all required functionalities for Searcher View: mainly it is the
@@ -474,7 +483,7 @@ impl Searcher {
 
     /// Return true if user is currently filtering entries (the input has non-empty _pattern_ part).
     pub fn is_filtering(&self) -> bool {
-        !self.data.borrow().input.pattern().is_empty()
+        !self.data.borrow().input.filter().pattern.is_empty()
     }
 
     /// Subscribe to controller's notifications.
@@ -558,11 +567,11 @@ impl Searcher {
             self.reload_list();
         } else {
             let data = self.data.borrow();
-            let context = data.input.context().map(|c| c.into_ast().repr());
-            data.components.update_filtering(data.input.pattern(), context);
+            let filter = data.input.filter();
+            data.components.update_filtering(filter.clone_ref());
             if let Actions::Loaded { list } = &data.actions {
                 debug!("Update filtering.");
-                list.update_filtering(data.input.pattern());
+                list.update_filtering(filter.pattern);
                 executor::global::spawn(self.notifier.publish(Notification::NewActionList));
             }
         }
@@ -969,12 +978,12 @@ impl Searcher {
                     info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(&response);
                     let mut data = this.data.borrow_mut();
-                    list.update_filtering(data.input.pattern());
+                    let filter = data.input.filter();
+                    list.update_filtering(filter.pattern.clone_ref());
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = response.results;
                     data.components = this.make_component_list(completions, &this_type);
-                    let context = data.input.context().map(|c| c.into_ast().repr());
-                    data.components.update_filtering(data.input.pattern(), context);
+                    data.components.update_filtering(filter);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
@@ -982,8 +991,7 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components = this.make_component_list(this.database.keys(), &this_type);
-                    let context = data.input.context().map(|c| c.into_ast().repr());
-                    data.components.update_filtering(data.input.pattern(), context);
+                    data.components.update_filtering(data.input.filter());
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
