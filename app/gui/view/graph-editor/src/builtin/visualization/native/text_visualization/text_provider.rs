@@ -487,11 +487,14 @@ impl TableSpecification {
                 let last_chunk = size % GRAPHEMES_PER_CHUNK;
                 (0..full_chunks)
                     .map(|offset| TableItem::Content { size: GRAPHEMES_PER_CHUNK, index, offset })
-                    .chain(iter::once(TableItem::Content {
-                        size: last_chunk,
-                        index,
-                        offset: full_chunks,
-                    }))
+                    .chain(
+                        iter::once(TableItem::Content {
+                            size: last_chunk,
+                            index,
+                            offset: full_chunks,
+                        })
+                        .filter(|_| last_chunk > 0),
+                    )
                     .collect_vec()
             }
             TableItem::Divider => iter::once(TableItem::Divider).collect_vec(),
@@ -500,10 +503,10 @@ impl TableSpecification {
                 let last_chunk = size % GRAPHEMES_PER_CHUNK;
                 (0..full_chunks)
                     .map(|offset| TableItem::Heading { size: GRAPHEMES_PER_CHUNK, offset })
-                    .chain(iter::once(TableItem::Heading {
-                        size:   last_chunk,
-                        offset: full_chunks,
-                    }))
+                    .chain(
+                        iter::once(TableItem::Heading { size: last_chunk, offset: full_chunks })
+                            .filter(|_| last_chunk > 0),
+                    )
                     .collect_vec()
             }
         })
