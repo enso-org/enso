@@ -76,7 +76,7 @@ type Replacer
     replacer_cache_lookup replacement_string = Replacer_Cache.get replacement_string
 
 ## PRIVATE
-group_reference_regex = '\\$(([0-9]+)|(\\$)|(&)|(<([^>]+)>))'
+group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
 
 ## PRIVATE
 
@@ -113,7 +113,7 @@ build_replacement_vector replacement_string pattern =
     go it = case it.next of
         Match_Iterator_Value.Next filler match next_it ->
             replacement = parse_group_number pattern match
-            if replacement.is_error then Error.throw replacement else
+            replacement.if_not_error <|
                 builder.append (Replacement.Literal filler.text)
                 builder.append replacement
                 @Tail_Call go next_it
@@ -136,22 +136,16 @@ build_replacement_vector replacement_string pattern =
 
    See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
 parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group ! Too_Many_Groups
-parse_group_number pattern match =
-    case match.text 2 of
-        # E.g. `$1`
-        text : Text ->
-            n = Integer.parse text
-            if n < 100 then Replacement.Substitution (pattern.lookup_group n) else Error.throw (Too_Many_Groups.Error n)
-        Nothing -> case match.text 3 of
-            # `$$`
-            _ : Text -> Replacement.Literal "$"
-            Nothing -> case match.text 4 of
-                # `$&` (same as `$0`)
-                _ : Text -> Replacement.Substitution 0
-                Nothing -> case match.text 6 of
-                    # `$<foo>`
-                    text : Text -> Replacement.Substitution (pattern.lookup_group text)
-                    Nothing -> Panic.throw (Illegal_State.Error ('Unable to identify capture group: \"' + match.txt + '\"'))
+parse_group_number pattern match = case match.text.take 2 of
+    "$$" -> Replacement.Literal "$"
+    "$<" ->
+        group_name = match.text 6
+        Replacement.Substitution (pattern.lookup_group group_name)
+    "$&" -> Replacement.Substitution 0
+    _ -> 
+        n = Integer.parse <| match.text 2
+        if n < 100 then Replacement.Substitution (pattern.lookup_group n) else
+            Error.throw (Too_Many_Groups.Error n)
 
 type Replacement
     ## A Replacement is either a string literal or a regex group number.
