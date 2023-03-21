@@ -558,7 +558,8 @@ impl Searcher {
             self.reload_list();
         } else {
             let data = self.data.borrow();
-            data.components.update_filtering(data.input.pattern());
+            let context = data.input.context().map(|c| c.into_ast().repr());
+            data.components.update_filtering(data.input.pattern(), context);
             if let Actions::Loaded { list } = &data.actions {
                 debug!("Update filtering.");
                 list.update_filtering(data.input.pattern());
@@ -972,7 +973,8 @@ impl Searcher {
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = response.results;
                     data.components = this.make_component_list(completions, &this_type);
-                    data.components.update_filtering(data.input.pattern());
+                    let context = data.input.context().map(|c| c.into_ast().repr());
+                    data.components.update_filtering(data.input.pattern(), context);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
@@ -980,7 +982,8 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components = this.make_component_list(this.database.keys(), &this_type);
-                    data.components.update_filtering(data.input.pattern());
+                    let context = data.input.context().map(|c| c.into_ast().repr());
+                    data.components.update_filtering(data.input.pattern(), context);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;

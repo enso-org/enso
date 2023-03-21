@@ -174,7 +174,7 @@ impl Component {
     /// Update matching info.
     ///
     /// It should be called each time the filtering pattern changes.
-    pub fn update_matching_info(&self, pattern: impl Str) {
+    pub fn update_matching_info(&self, pattern: impl Str, context: Option<String>) {
         // Match the input pattern to the component label.
         let label = self.to_string();
         let label_matches = fuzzly::matches(&label, pattern.as_ref());
@@ -223,6 +223,14 @@ impl Component {
         let match_info_iter = [alias_match_info, code_match_info, label_match_info].into_iter();
         let best_match_info = match_info_iter.flatten().max_by(|lhs, rhs| lhs.cmp(rhs));
         *self.match_info.borrow_mut() = best_match_info.unwrap_or(MatchInfo::DoesNotMatch);
+        if let Some(context) = context {
+            if let Data::FromDatabase { entry, .. } = &self.data {
+                let defined_in = entry.reexported_in.as_ref().unwrap_or(&entry.defined_in);
+                if !defined_in.to_string().contains(&context) {
+                    *self.match_info.borrow_mut() = MatchInfo::DoesNotMatch;
+                }
+            }
+        }
     }
 
     /// Check whether the component contains the "PRIVATE" tag.
@@ -382,10 +390,10 @@ impl List {
     }
 
     /// Update matching info in all components according to the new filtering pattern.
-    pub fn update_filtering(&self, pattern: impl AsRef<str>) {
+    pub fn update_filtering(&self, pattern: impl AsRef<str>, context: Option<String>) {
         let pattern = pattern.as_ref();
         for component in &*self.all_components {
-            component.update_matching_info(pattern)
+            component.update_matching_info(pattern, context.clone())
         }
         let pattern_not_empty = !pattern.is_empty();
         let submodules_order =
@@ -517,7 +525,7 @@ pub(crate) mod tests {
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..=4);
         let list = builder.build();
 
-        list.update_filtering("fu");
+        list.update_filtering("fu", None);
         let match_infos = list.top_modules().next().unwrap()[0]
             .entries
             .borrow()
@@ -529,22 +537,22 @@ pub(crate) mod tests {
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
-        list.update_filtering("x");
+        list.update_filtering("x", None);
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[4]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
-        list.update_filtering("Sub");
+        list.update_filtering("Sub", None);
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
-        list.update_filtering("y");
+        list.update_filtering("y", None);
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
-        list.update_filtering("");
+        list.update_filtering("", None);
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
