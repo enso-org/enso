@@ -14,8 +14,8 @@ import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Polyglot
 import project.Polyglot.Java
+import project.Polyglot.Polyglot
 import project.Runtime
 import project.System
 import project.System.Environment
@@ -44,8 +44,8 @@ export project.Math
 export project.Meta
 export project.Nothing.Nothing
 export project.Panic.Panic
-export project.Polyglot
 export project.Polyglot.Java
+export project.Polyglot.Polyglot
 export project.Runtime
 export project.System
 export project.System.Environment
