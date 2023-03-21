@@ -137,10 +137,8 @@ parse_group_number pattern match = case match.text.take 2 of
             Error.throw (Too_Many_Groups.Error n)
 
 type Replacement
-    ## A Replacement is either a string literal or a regex group number.
-
-       In a Pattern_2.replace call, each match is replaced by a replacement
-       string. This string can contain references to match groups from the
-       original regex.
+    ## A string literal to replace with
     Literal (text : Text)
+
+    ## Target group to insert
     Substitution (group_number : Integer)
