@@ -177,6 +177,7 @@ agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
 agg_mode = Base_Generator.lift_unary_op "MODE" arg->
     Builder.code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ ")"
 
+## PRIVATE
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
     percentile = Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
     ## TODO Technically, this check may not be necessary if the input column has
@@ -199,6 +200,7 @@ first_last_aggregators =
     last_not_null = make_first_aggregator reverse=True ignore_null=True
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
 
+## PRIVATE
 make_first_aggregator reverse ignore_null args =
     if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
         result_expr = args.first
@@ -215,11 +217,13 @@ make_first_aggregator reverse ignore_null args =
 
         Builder.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[" ++ index_expr ++ "]"
 
+## PRIVATE
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
      order_clause =
          Builder.code " ORDER BY char_length(" ++ arg ++ ") ASC NULLS LAST"
      Builder.code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
 
+## PRIVATE
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
      order_clause =
          Builder.code " ORDER BY char_length(" ++ arg ++ ") DESC NULLS LAST"
