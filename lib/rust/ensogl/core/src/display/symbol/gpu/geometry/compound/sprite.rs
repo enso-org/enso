@@ -288,8 +288,8 @@ pub struct SpriteSystem {
 impl SpriteSystem {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new() -> Self {
-        let (stats, symbol) = world::with_context(|t| (t.stats.clone_ref(), t.new()));
+    pub fn new(label: &'static str) -> Self {
+        let (stats, symbol) = world::with_context(|t| (t.stats.clone_ref(), t.new(label)));
         let mesh = symbol.surface();
         let point_scope = mesh.point_scope();
         let instance_scope = mesh.instance_scope();
