@@ -28,6 +28,13 @@ import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
 export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
+// =================
+// === Constants ===
+// =================
+
+const TAILWIND_BINARY_PATH = '../../node_modules/.bin/tailwindcss'
+const TAILWIND_CSS_PATH = path.resolve(THIS_PATH, 'src', 'tailwind.css')
+
 // =============================
 // === Environment variables ===
 // =============================
@@ -82,7 +89,7 @@ export function alwaysCopiedFiles(wasmArtifacts: string) {
         path.resolve(THIS_PATH, 'src', 'run.js'),
         path.resolve(THIS_PATH, 'src', 'style.css'),
         path.resolve(THIS_PATH, 'src', 'docsStyle.css'),
-        path.resolve(THIS_PATH, 'src', 'tailwind.css'),
+        TAILWIND_CSS_PATH,
         ...wasmArtifacts.split(path.delimiter),
     ]
 }
@@ -128,14 +135,15 @@ export function bundlerOptions(args: Arguments): esbuild.BuildOptions {
                 name: 'enso-generate-tailwind',
                 setup: build => {
                     build.onStart(() => {
-                        const source = path.resolve(THIS_PATH, 'src', 'tailwind.css')
                         const dest = path.join(outputPath, 'tailwind.css')
                         const config = path.resolve(THIS_PATH, 'tailwind.config.ts')
-                        console.log(`Generating tailwind css from ${source} to ${dest}`)
+                        console.log(
+                            `Generating tailwind css from '${TAILWIND_CSS_PATH}' to '${dest}'.`
+                        )
                         childProcess.spawnSync(`node`, [
-                            '../../node_modules/.bin/tailwindcss',
+                            TAILWIND_BINARY_PATH,
                             '-i',
-                            source,
+                            TAILWIND_CSS_PATH,
                             '-o',
                             dest,
                             '-c',
