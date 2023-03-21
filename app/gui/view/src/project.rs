@@ -490,7 +490,7 @@ impl View {
                     (searcher.as_ref()?.input == *node_id).then(input_change)
                 }
             );
-            searcher_input_change <- searcher_input_change_opt.filter_map(|change| change.clone());
+            searcher_input_change <- searcher_input_change_opt.unwrap();
             input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
             update_searcher_input_on_commit <- frp.output.editing_committed.constant(());
             input_change_delay.cancel <+ update_searcher_input_on_commit;

@@ -208,7 +208,11 @@ pub struct Model {
     display_object:  display::object::Instance,
     ports:           display::object::Instance,
     header:          display::object::Instance,
+    /// Text label used for displaying the ports. Contains both expression text and inserted
+    /// argument placeholders. The style is adjusted based on port types.
     ports_label:     text::Text,
+    /// Text label used during edit mode. Contains only the expression text without any
+    /// modifications. Handles user input in edit mode.
     edit_mode_label: text::Text,
     expression:      RefCell<Expression>,
     id_crumbs_map:   RefCell<HashMap<ast::Id, Crumbs>>,
@@ -260,30 +264,29 @@ impl Model {
     /// mode. Sets cursor position when entering edit mode.
     pub fn set_edit_mode(&self, edit_mode_active: bool) {
         if edit_mode_active {
-            // When transitioning to edit mode, the clicked code vis is different than the raw code
-            // we are about to show. In order to put the cursor at the right location, we need to
-            // take the offset between two representations into account.
+            // When transitioning to edit mode, we need to find the code location that corresponds
+            // to the code at mouse position. First we search for the port at that position, then
+            // find the right character index within that port.
+
             let expression = self.expression.borrow();
-            let vis_code_location = self.ports_label.location_at_mouse_position();
-            let location_char_index =
-                expression.viz_code.char_indices().nth(vis_code_location.offset.into());
-            let location_to_set = location_char_index.and_then(|char_index| {
+            let clicked_label_location = self.ports_label.location_at_mouse_position();
+            let clicked_char_index =
+                expression.viz_code.char_indices().nth(clicked_label_location.offset.into());
+            let location_to_set = clicked_char_index.and_then(|char_index| {
                 let loc_offset = char_index.0.byte().to_diff();
-                let clicked_node_ref =
-                    expression.span_tree.root_ref().leaf_iter().find(|node| {
-                        let range = node.payload.range();
-                        range.contains(&loc_offset)
-                    })?;
+                let clicked_port = expression.span_tree.root_ref().leaf_iter().find(|node| {
+                    let range = node.payload.range();
+                    range.contains(&loc_offset)
+                })?;
 
-                let position_within_node = loc_offset - clicked_node_ref.payload.index;
-                let offset_from_node_start = position_within_node.min(clicked_node_ref.size);
-                let corrected_offset = clicked_node_ref.span_offset + offset_from_node_start;
+                let byte_offset_within_port = loc_offset - clicked_port.payload.index;
+                let byte_offset_within_port = byte_offset_within_port.min(clicked_port.size);
+                let final_code_byte_offset = clicked_port.span_offset + byte_offset_within_port;
 
-                let corrected_column: Column =
-                    expression.code[..corrected_offset.into()].chars().count().into();
-
-                let corrected_location = vis_code_location.with_offset(corrected_column);
-                Some(corrected_location)
+                let final_code_column: Column =
+                    expression.code[..final_code_byte_offset.into()].chars().count().into();
+                let final_code_location = clicked_label_location.with_offset(final_code_column);
+                Some(final_code_location)
             });
 
             self.edit_mode_label.set_content(expression.code.clone());
@@ -293,16 +296,17 @@ impl Model {
             if let Some(location) = location_to_set {
                 self.edit_mode_label.set_cursor(location);
             } else {
-                // If the correct cursor location cannot be determined, do the next best thing and
-                // choose the location at the mouse position without applying any offset.
+                // If we were unable to find a port under current mouse position, set the edit label
+                // cursor at the mouse position immediately after setting its content to the raw
+                // expression code.
                 self.edit_mode_label.set_cursor_at_mouse_position();
             }
         } else {
             self.display_object.remove_child(&self.edit_mode_label);
             self.display_object.add_child(&self.ports);
             self.display_object.add_child(&self.ports_label);
-            // Reset the content of edit mode label, so that the text doesn't need to be processed
-            // for nodes not in edit mode.
+            // When we exit the edit mode, clear the label. That way we don't have any extra glyphs
+            // to process during rendering in non-edit mode.
             self.edit_mode_label.set_content("");
         }
         self.edit_mode_label.deprecated_set_focus(edit_mode_active);
@@ -937,7 +941,6 @@ ensogl::define_endpoints! {
     Output {
         pointer_style       (cursor::Style),
         width               (f32),
-        edit_mode_expression(ImString),
         expression_edit     (ImString, Vec<Selection<Byte>>),
 
         editing             (bool),
@@ -1007,16 +1010,16 @@ impl Area {
 
             eval set_editing((is_editing) model.set_edit_mode(*is_editing));
 
-            // Disable selection mouse following right after starting edit mode to prevent it from
-            // firing on initial mouse down event as a selection start. Otherwise, a selection would
-            // be created between the initial cursor position (which takes code vis offset into
-            // account) and current mouse position.
+            // Prevent text selection from being created right after entering edit mode. Otherwise,
+            // a selection would be created between the current mouse position (the position at
+            // which we clicked) and initial cursor position within edit mode label (the code
+            // position corresponding to clicked port).
             start_editing <- set_editing.on_true();
-            stop_editing <- set_editing.on_false();
-            start_editing_delayed <- start_editing.debounce();
-            reenable_mouse_follow <- any(&start_editing_delayed, &stop_editing);
-            mouse_follow_enabled <- bool(&start_editing, &reenable_mouse_follow);
-            eval mouse_follow_enabled([model] (enabled) {
+            stop_editing  <- set_editing.on_false();
+            start_editing_delayed     <- start_editing.debounce();
+            reenable_selection_update <- any(&start_editing_delayed, &stop_editing);
+            selection_update_enabled  <- bool(&start_editing, &reenable_selection_update);
+            eval selection_update_enabled([model] (enabled) {
                 let cmd_start = "start_newest_selection_end_follow_mouse";
                 let cmd_stop = "stop_newest_selection_end_follow_mouse";
                 model.edit_mode_label.set_command_enabled(cmd_start, *enabled);
@@ -1068,7 +1071,6 @@ impl Area {
             model.edit_mode_label.select <+ legit_edit.map(|(range, _)| (range.start.into(), range.end.into()));
             model.edit_mode_label.insert <+ legit_edit._1();
             expression_changed_by_user <- model.edit_mode_label.content.gate(&set_editing);
-            frp.output.source.edit_mode_expression <+ expression_changed_by_user.ref_into();
             frp.output.source.expression_edit <+ model.edit_mode_label.selections.map2(
                 &expression_changed_by_user,
                 f!([model](selection, full_content) {
@@ -1078,6 +1080,10 @@ impl Area {
                     (full_content, selections)
                 })
             );
+            frp.output.source.on_port_code_update <+ expression_changed_by_user.map(|e| {
+                // Treat edit mode update as a code modification at the span tree root.
+                (default(), e.into())
+            });
 
 
             // === Expression Type ===
