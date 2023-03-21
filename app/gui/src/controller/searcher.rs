@@ -595,7 +595,8 @@ impl Searcher {
         debug!("Picking suggestion: {picked_suggestion:?}.");
         let change = {
             let mut data = self.data.borrow_mut();
-            let inserted = data.input.after_inserting_suggestion(&picked_suggestion)?;
+            let has_this = self.this_var().is_some();
+            let inserted = data.input.after_inserting_suggestion(&picked_suggestion, has_this)?;
             let new_cursor_position = inserted.inserted_text.end;
             let inserted_code = inserted.new_input[inserted.inserted_code].to_owned();
             let import = inserted.import.clone();
@@ -651,8 +652,9 @@ impl Searcher {
         debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
         self.clear_temporary_imports();
 
+        let has_this = self.this_var().is_none();
         let preview_change =
-            self.data.borrow().input.after_inserting_suggestion(&picked_suggestion)?;
+            self.data.borrow().input.after_inserting_suggestion(&picked_suggestion, has_this)?;
         let preview_ast = self.ide.parser().parse_line_ast(preview_change.new_input).ok();
         let expression = self.get_expression(preview_ast.as_ref());
 

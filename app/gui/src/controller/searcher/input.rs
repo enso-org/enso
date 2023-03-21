@@ -392,8 +392,9 @@ impl InsertedSuggestion {
 /// For example, if the user types `Foo.Bar.` and accepts a method `Foo.Bar.baz` we insert
 /// `Foo.Bar.baz` with `Foo` import instead of inserting `Bar.baz` with `Bar` import.
 struct InsertContext<'a> {
-    suggestion: &'a action::Suggestion,
-    context:    Option<ast::opr::Chain>,
+    suggestion:    &'a action::Suggestion,
+    context:       Option<ast::opr::Chain>,
+    generate_this: bool,
 }
 
 impl InsertContext<'_> {
@@ -474,7 +475,7 @@ impl InsertContext<'_> {
                 if let Some((segments, import)) = self.segments_to_replace() {
                     (Cow::from(segments.iter().join(ast::opr::predefined::ACCESS)), import)
                 } else {
-                    let code = entry.code_to_insert(true);
+                    let code = entry.code_to_insert(self.generate_this);
                     let import = Some(RequiredImport::Entry(entry.clone_ref()));
                     (code, import)
                 }
@@ -491,9 +492,11 @@ impl Input {
     pub fn after_inserting_suggestion(
         &self,
         suggestion: &action::Suggestion,
+        has_this: bool,
     ) -> FallibleResult<InsertedSuggestion> {
         let context = self.context();
-        let context = InsertContext { suggestion, context };
+        let generate_this = !has_this && !context.is_some();
+        let context = InsertContext { suggestion, context, generate_this };
         let default_range = (self.cursor_position..self.cursor_position).into();
         let replaced = if context.has_qualified_name() {
             self.accessor_chain_range().unwrap_or(default_range)
