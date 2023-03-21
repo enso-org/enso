@@ -51,7 +51,6 @@
         }
       }
     },
-
     "engine": {
       "description": "Options that control the Enso Engine, the data processing backend.",
       "options": {
@@ -95,7 +94,6 @@
         }
       }
     },
-
     "style": {
       "description": "The available visual and tactile configurations of the application.",
       "options": {
@@ -105,7 +103,6 @@
         }
       }
     },
-
     "featurePreview": {
       "description": "Options that enable experimental features that are not yet stable.",
       "options": {
@@ -121,7 +118,6 @@
         }
       }
     },
-
     "authentication": {
       "description": "Options to manage application authentication properties.",
       "options": {
@@ -133,7 +129,6 @@
       },
       "primary": false
     },
-
     "profile": {
       "description": "Options for diagnosing application performance problems.",
       "options": {

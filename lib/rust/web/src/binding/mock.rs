@@ -668,6 +668,7 @@ mock_data! { HtmlHeadElement => HtmlElement }
 // === HtmlHeadElement ===
 mock_data! { Promise
     fn then(&self, cb: &Closure<dyn FnMut(JsValue)>) -> Promise;
+    fn resolve(cb: &JsValue) -> Promise;
 }
 
 

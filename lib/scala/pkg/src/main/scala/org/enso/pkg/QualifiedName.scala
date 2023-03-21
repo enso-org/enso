@@ -12,7 +12,7 @@ import scala.jdk.CollectionConverters._
   */
 case class QualifiedName(path: List[String], item: String) {
 
-  lazy val qualifiedNameString: String =
+  private lazy val qualifiedNameString: String =
     (path :+ item).mkString(QualifiedName.separator)
 
   @CompilerDirectives.TruffleBoundary

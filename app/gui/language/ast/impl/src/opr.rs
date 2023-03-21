@@ -51,8 +51,8 @@ pub mod predefined {
 
 /// Checks if the given AST has Opr shape with the name matching given string.
 pub fn is_opr_named(ast: &Ast, name: impl Str) -> bool {
-    let opr_opt = known::Opr::try_from(ast).ok();
-    opr_opt.contains_if(|opr| opr.name == name.as_ref())
+    let name_ref = name.as_ref();
+    matches!(ast.shape(), Shape::Opr(Opr { name, .. }) if name == name_ref)
 }
 
 /// Checks if given Ast is an assignment operator identifier.
@@ -98,10 +98,14 @@ pub fn to_access(ast: &Ast) -> Option<known::Infix> {
     to_specific_infix(ast, predefined::ACCESS)
 }
 
+/// Checks if a given node is an access infix expression.
+pub fn is_access(ast: &Ast) -> bool {
+    matches!(ast.shape(), Shape::Infix(Infix { opr, .. }) if is_access_opr(opr))
+}
+
 /// Checks if a given node is an assignment infix expression.
 pub fn is_assignment(ast: &Ast) -> bool {
-    let infix = known::Infix::try_from(ast);
-    infix.map(|infix| is_assignment_opr(&infix.opr)).unwrap_or(false)
+    matches!(ast.shape(), Shape::Infix(Infix { opr, .. }) if is_assignment_opr(opr))
 }
 
 /// Obtains a new `Opr` with an assignment.
@@ -469,8 +473,18 @@ impl Chain {
     /// Erase the current target from chain, and make the current first operand a new target.
     /// Panics if there is no operand besides target.
     pub fn erase_target(&mut self) {
-        let new_target = self.args.pop_front().unwrap().operand;
+        let new_target = self.args.remove(0).operand;
         self.target = new_target
+    }
+
+    /// Erase `n` leading arguments from chain (including target), and make the next remaining
+    /// argument a new target. Panics if there are not enough arguments to remove.
+    pub fn erase_leading_operands(&mut self, n: usize) {
+        if n == 0 {
+            return;
+        }
+        let last_removed_arg = self.args.drain(0..n).next_back();
+        self.target = last_removed_arg.expect("Not enough operands to erase").operand;
     }
 
     /// Replace the target and first argument with a new target being an proper Infix or Section

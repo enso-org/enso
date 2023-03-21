@@ -15,7 +15,7 @@ import org.enso.distribution.FileSystem
 import org.enso.editions.Editions
 import org.enso.cli.OS
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
-import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.loggingservice.printers.StderrPrinterWithColors
 import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 import org.enso.pkg.{Config, PackageManager}
@@ -33,7 +33,7 @@ import org.enso.projectmanager.infrastructure.languageserver.{
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.repository.ProjectFileRepository
 import org.enso.projectmanager.protocol.{
-  JsonRpc,
+  JsonRpcProtocolFactory,
   ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
@@ -76,7 +76,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   /** Tests can override this to allow child process output to be displayed. */
   val debugChildLogs: Boolean = false
 
-  override def protocol: Protocol = JsonRpc.protocol
+  override def protocolFactory: ProtocolFactory =
+    new JsonRpcProtocolFactory
 
   val config: ProjectManagerConfig =
     ConfigSource

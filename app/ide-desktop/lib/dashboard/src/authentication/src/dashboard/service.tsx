@@ -10,6 +10,8 @@ import * as loggerProvider from "../providers/logger";
 // === Constants ===
 // =================
 
+/** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
+const SET_USER_NAME_PATH = "users";
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
 const GET_USER_PATH = "users/me";
 
@@ -22,6 +24,12 @@ export interface Organization {
   id: string;
   userEmail: string;
   name: string;
+}
+
+/** HTTP request body for the "set username" endpoint. */
+export interface SetUsernameRequestBody {
+  userName: string;
+  userEmail: string;
 }
 
 // ===============
@@ -45,32 +53,48 @@ export class Backend {
   }
 
   /** Returns a {@link RequestBuilder} for an HTTP GET request to the given path. */
-  get = (path: string) =>
-    this.client.get(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+  get<T = void>(path: string) {
+    return this.client.get<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+  }
 
   /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
-  post = (path: string, payload: object) =>
-    this.client.post(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload);
+  post<T = void>(path: string, payload: object) {
+    return this.client.post<T>(
+      `${config.ACTIVE_CONFIG.apiUrl}/${path}`,
+      payload
+    );
+  }
 
   /** Logs the error that occurred and throws a new one with a more user-friendly message. */
-  errorHandler = (message: string) => (error: Error) => {
-    this.logger.error(error.message);
-    throw new Error(message);
-  };
+  errorHandler(message: string) {
+    return (error: Error) => {
+      this.logger.error(error.message);
+      throw new Error(message);
+    };
+  }
+
+  /** Sets the username of the current user, on the Cloud backend API. */
+  setUsername(body: SetUsernameRequestBody): Promise<Organization> {
+    return this.post<Organization>(SET_USER_NAME_PATH, body).then((response) =>
+      response.json()
+    );
+  }
 
   /** Returns organization info for the current user, from the Cloud backend API.
    *
    * @returns `null` if status code 401 or 404 was received. */
-  getUser = (): Promise<Organization | null> =>
-    this.get(GET_USER_PATH).then((response) => {
+  getUser(): Promise<Organization | null> {
+    return this.get<Organization>(GET_USER_PATH).then((response) => {
       if (
         response.status === http.HttpStatus.unauthorized ||
         response.status === http.HttpStatus.notFound
       ) {
         return null;
+      } else {
+        return response.json();
       }
-      return response.json() as Promise<Organization>;
     });
+  }
 }
 
 // =====================

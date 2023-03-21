@@ -1,5 +1,3 @@
-// This lint doesn't like headings and "etc.""
-/* eslint-disable jsdoc/require-description-complete-sentence */
 /** @file Definition of the Electron-specific parts of the authentication flows of the IDE.
  *
  * # Overview of Authentication/Authorization
@@ -73,7 +71,6 @@
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
-/* eslint-enable jsdoc/require-description-complete-sentence */
 
 import * as electron from 'electron'
 import opener from 'opener'
@@ -137,8 +134,8 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
         event.preventDefault()
         if (parsedUrl.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
             logger.error(`${url} is not a deep link, ignoring.`)
-            return
+        } else {
+            window().webContents.send(ipc.Channel.openDeepLink, url)
         }
-        window().webContents.send(ipc.Channel.openDeepLink, url)
     })
 }

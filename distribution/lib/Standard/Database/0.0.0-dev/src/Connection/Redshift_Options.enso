@@ -29,7 +29,7 @@ type Redshift_Options
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options
+    connect : Connection_Options -> Connection
     connect self options =
         if Driver.isRegistered.not then Driver.register
 

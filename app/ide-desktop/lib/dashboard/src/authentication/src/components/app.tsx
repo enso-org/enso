@@ -1,5 +1,3 @@
-// This lint does not like headings.
-/* eslint-disable jsdoc/require-description-complete-sentence */
 /** @file File containing the {@link App} React component, which is the entrypoint into our React
  * application.
  *
@@ -35,7 +33,6 @@
  * signed up but who have not completed email verification or set a username. The remaining
  * {@link router.Route}s require fully authenticated users (c.f.
  * {@link authProvider.FullUserSession}). */
-/* eslint-enable jsdoc/require-description-complete-sentence */
 
 import * as react from "react";
 import * as router from "react-router-dom";
@@ -46,8 +43,13 @@ import * as authService from "../authentication/service";
 import * as loggerProvider from "../providers/logger";
 import * as platformModule from "../platform";
 import * as session from "../authentication/providers/session";
+import ConfirmRegistration from "../authentication/components/confirmRegistration";
 import Dashboard from "../dashboard/components/dashboard";
-import withRouter from "../navigation";
+import ForgotPassword from "../authentication/components/forgotPassword";
+import Login from "../authentication/components/login";
+import Registration from "../authentication/components/registration";
+import ResetPassword from "../authentication/components/resetPassword";
+import SetUsername from "../authentication/components/setUsername";
 
 // =================
 // === Constants ===
@@ -55,6 +57,18 @@ import withRouter from "../navigation";
 
 /** Path to the root of the app (i.e., the Cloud dashboard). */
 export const DASHBOARD_PATH = "/";
+/** Path to the login page. */
+export const LOGIN_PATH = "/login";
+/** Path to the registration page. */
+export const REGISTRATION_PATH = "/registration";
+/** Path to the confirm registration page. */
+export const CONFIRM_REGISTRATION_PATH = "/confirmation";
+/** Path to the forgot password page. */
+export const FORGOT_PASSWORD_PATH = "/forgot-password";
+/** Path to the reset password page. */
+export const RESET_PASSWORD_PATH = "/password-reset";
+/** Path to the set username page. */
+export const SET_USERNAME_PATH = "/set-username";
 
 // ===========
 // === App ===
@@ -68,12 +82,11 @@ export interface AppProps {
   onAuthenticated: () => void;
 }
 
-/** Functional component called by the parent module, returning the root React component for this
+/** Component called by the parent module, returning the root React component for this
  * package.
  *
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 function App(props: AppProps) {
   const { platform } = props;
   // This is a React component even though it does not contain JSX.
@@ -88,7 +101,7 @@ function App(props: AppProps) {
     <>
       <toast.Toaster position="top-center" reverseOrder={false} />
       <Router>
-        <AppRouterWithHistory {...props} />
+        <AppRouter {...props} />
       </Router>
     </>
   );
@@ -103,25 +116,61 @@ function App(props: AppProps) {
  * The only reason the {@link AppRouter} component is separate from the {@link App} component is
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 function AppRouter(props: AppProps) {
   const { logger, onAuthenticated } = props;
   const navigate = router.useNavigate();
+  const mainPageUrl = new URL(window.location.href);
   const memoizedAuthService = react.useMemo(() => {
     const authConfig = { navigate, ...props };
     return authService.initAuthService(authConfig);
   }, [navigate, props]);
-  const userSession = memoizedAuthService.cognito.userSession;
+  const userSession = memoizedAuthService.cognito.userSession.bind(
+    memoizedAuthService.cognito
+  );
+  const registerAuthEventListener =
+    memoizedAuthService.registerAuthEventListener;
   return (
     <loggerProvider.LoggerProvider logger={logger}>
-      <session.SessionProvider userSession={userSession}>
-        <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
+      <session.SessionProvider
+        mainPageUrl={mainPageUrl}
+        userSession={userSession}
+        registerAuthEventListener={registerAuthEventListener}
+      >
+        <authProvider.AuthProvider
+          authService={memoizedAuthService}
+          onAuthenticated={onAuthenticated}
+        >
           <router.Routes>
             <react.Fragment>
+              {/* Login & registration pages are visible to unauthenticated users. */}
+              <router.Route element={<authProvider.GuestLayout />}>
+                <router.Route
+                  path={REGISTRATION_PATH}
+                  element={<Registration />}
+                />
+                <router.Route path={LOGIN_PATH} element={<Login />} />
+              </router.Route>
               {/* Protected pages are visible to authenticated users. */}
               <router.Route element={<authProvider.ProtectedLayout />}>
                 <router.Route path={DASHBOARD_PATH} element={<Dashboard />} />
+                <router.Route
+                  path={SET_USERNAME_PATH}
+                  element={<SetUsername />}
+                />
               </router.Route>
+              {/* Other pages are visible to unauthenticated and authenticated users. */}
+              <router.Route
+                path={CONFIRM_REGISTRATION_PATH}
+                element={<ConfirmRegistration />}
+              />
+              <router.Route
+                path={FORGOT_PASSWORD_PATH}
+                element={<ForgotPassword />}
+              />
+              <router.Route
+                path={RESET_PASSWORD_PATH}
+                element={<ResetPassword />}
+              />
             </react.Fragment>
           </router.Routes>
         </authProvider.AuthProvider>
@@ -129,11 +178,5 @@ function AppRouter(props: AppProps) {
     </loggerProvider.LoggerProvider>
   );
 }
-
-// This is a React component even though it does not contain JSX.
-// eslint-disable-next-line no-restricted-syntax
-// eslint-disable-next-line @typescript-eslint/naming-convention
-
-const AppRouterWithHistory = withRouter(AppRouter);
 
 export default App;

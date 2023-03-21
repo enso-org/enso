@@ -665,6 +665,28 @@ impl Handle {
         }
     }
 
+    /// Add a necessary unqualified import (`from module import name`) to the module, such that
+    /// the provided fully qualified name is imported and available in the module.
+    pub fn add_import_if_missing(
+        &self,
+        qualified_name: double_representation::name::QualifiedName,
+    ) -> FallibleResult {
+        if let Some(module_path) = qualified_name.parent() {
+            let import = model::suggestion_database::entry::Import::Unqualified {
+                module: module_path.to_owned(),
+                name:   qualified_name.name().into(),
+            };
+
+            let mut module = double_representation::module::Info { ast: self.module.ast() };
+            let already_imported = module.iter_imports().any(|info| import.covered_by(&info));
+            if !already_imported {
+                module.add_import(&self.parser, import.into());
+                self.module.update_ast(module.ast)?;
+            }
+        }
+        Ok(())
+    }
+
     /// Reorders lines so the former node is placed after the latter. Does nothing, if the latter
     /// node is already placed after former.
     ///
