@@ -9,14 +9,6 @@ import * as hooks from "../../hooks";
 import * as icons from "../../components/svg";
 import * as utils from "../../utils";
 
-// =================
-// === Constants ===
-// =================
-
-const INPUT_CLASS_NAME =
-  "text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full " +
-  "py-2 focus:outline-none focus:border-indigo-400";
-
 // ====================
 // === Registration ===
 // ====================
@@ -60,12 +52,11 @@ function Registration() {
             <div className="relative">
               <common.SvgIcon data={icons.PATHS.at} />
 
-              <input
+              <common.Input
                 {...bindEmail}
                 id="email"
                 type="email"
                 name="email"
-                className={INPUT_CLASS_NAME}
                 placeholder="E-Mail Address"
               />
             </div>
@@ -80,12 +71,11 @@ function Registration() {
             <div className="relative">
               <common.SvgIcon data={icons.PATHS.lock} />
 
-              <input
+              <common.Input
                 {...bindPassword}
                 id="password"
                 type="password"
                 name="password"
-                className={INPUT_CLASS_NAME}
                 placeholder="Password"
               />
             </div>
@@ -100,12 +90,11 @@ function Registration() {
             <div className="relative">
               <common.SvgIcon data={icons.PATHS.lock} />
 
-              <input
+              <common.Input
                 {...bindConfirmPassword}
                 id="password_confirmation"
                 type="password"
                 name="password_confirmation"
-                className={INPUT_CLASS_NAME}
                 placeholder="Confirm Password"
               />
             </div>
