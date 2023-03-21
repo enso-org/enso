@@ -1,10 +1,10 @@
-/** @file Module containing utility functions used throughout this module,
- * but don't fit anywhere else. */
+/** @file TypeScript's closest equivalent of `newtype`s. */
 
 interface Brand<TypeName extends string> {
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	_$type: TypeName
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    _$type: TypeName
 }
+
 /** Used to create a "branded type",
  * which contains a property that only exists at compile time.
  *
@@ -21,17 +21,17 @@ interface Brand<TypeName extends string> {
 export type Newtype<T, TypeName extends string> = Brand<TypeName> & T
 
 interface NotNewtype {
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	_$type?: never
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    _$type?: never
 }
 
 export function asNewtype<T extends Newtype<unknown, string>>(s: NotNewtype & Omit<T, '_$type'>): T {
-	// This cast is unsafe.
-	// `T` has an extra property `_$type` which is used purely for typechecking
-	// and does not exist at runtime.
-	//
-	// The property name is specifically chosen to trigger eslint's `naming-convention` lint,
-	// so it should not be possible to accidentally create a value with such a type.
-	// eslint-disable-next-line no-restricted-syntax
-	return s as unknown as T
+    // This cast is unsafe.
+    // `T` has an extra property `_$type` which is used purely for typechecking
+    // and does not exist at runtime.
+    //
+    // The property name is specifically chosen to trigger eslint's `naming-convention` lint,
+    // so it should not be possible to accidentally create a value with such a type.
+    // eslint-disable-next-line no-restricted-syntax
+    return s as unknown as T
 }
