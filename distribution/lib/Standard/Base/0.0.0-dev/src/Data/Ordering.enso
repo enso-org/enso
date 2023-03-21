@@ -3,7 +3,6 @@ import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Error.Common.Incomparable_Values
-import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Illegal_State.Illegal_State
 import project.Error.Unimplemented.Unimplemented
@@ -162,7 +161,7 @@ type Ordering
     Greater
 
     ## Compares to values and returns an Ordering
-    compare : Any -> Any -> Ordering ! (Incomparable_Values | Type_Error)
+    compare : Any -> Any -> Ordering ! Incomparable_Values
     compare x y =
         if x < y then Ordering.Less else
             if x == y then Ordering.Equal else
