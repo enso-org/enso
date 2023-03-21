@@ -233,7 +233,7 @@ fn cum_sum_chunks(values: &[Option<ColumnWidth>]) -> Vec<usize> {
 
 /// Return the value left of at the given index. If the index is 0, returns 0, if the index is
 /// out of bounds, returns the last value of the vector.
-fn get_left_value(vec: &Vec<usize>, index: usize) -> usize {
+fn get_left_value(vec: &[usize], index: usize) -> usize {
     if index == 0 {
         0
     } else {
@@ -643,7 +643,7 @@ impl TableSpecification {
 
     /// Return the text chunk of the column at the given index.
     pub fn get_column_name_chunk(&self, column_ix: usize, chunk_ix: usize) -> Option<String> {
-        self.column_name(column_ix).map(|name| grapheme_chunks(name).nth(chunk_ix)).flatten()
+        self.column_name(column_ix).and_then(|name| grapheme_chunks(name).nth(chunk_ix))
     }
 
     /// Return the name of the row at the given index.
@@ -747,7 +747,7 @@ impl DebugGridTextProvider {
     fn column_names(column_count: u32) -> Vec<Option<String>> {
         let mut names = Vec::with_capacity(column_count as usize);
         for column_ix in 0..column_count {
-            let name = format!("Column {}", column_ix);
+            let name = format!("Column {column_ix}");
             names.push(Some(name));
         }
         names
@@ -756,7 +756,7 @@ impl DebugGridTextProvider {
     fn row_names(row_count: u32) -> Vec<Option<String>> {
         let mut names = Vec::with_capacity(row_count as usize);
         for row_ix in 0..row_count {
-            let name = format!("Row {}", row_ix);
+            let name = format!("Row {row_ix}");
             names.push(Some(name));
         }
         names
